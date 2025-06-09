@@ -1,6 +1,6 @@
 // api-client.js - Client API unificato con gestione errori ES6
-import notificationSystem from './notification-system.js';
-import { authInit, auth } from './auth-init.js';
+import notificationSystem from '/core/notification-system.js';
+import { authInit, auth } from '/core/auth-init.js';
 
 export class ApiClient {
     constructor() {

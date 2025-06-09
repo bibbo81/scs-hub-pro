@@ -1,7 +1,7 @@
 // header-component.js - Header unificato per tutte le pagine ES6
-import api from './api-client.js';
-import notificationSystem from './notification-system.js';
-import { auth, authInit } from './auth-init.js';
+import api from '/core/api-client.js';
+import notificationSystem from '/core/notification-system.js';
+import { auth, authInit } from '/core/auth-init.js';
 
 export class HeaderComponent {
     constructor(options = {}) {
