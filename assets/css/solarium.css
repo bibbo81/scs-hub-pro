@@ -2661,3 +2661,178 @@ select.form-control {
         grid-template-columns: 1fr;
     }
 }
+
+/* ===== DROPDOWN FIXES - Aggiungi questa sezione alla fine di solarium.css ===== */
+
+/* Fix positioning container */
+.sol-header-right {
+    position: relative !important;
+}
+
+/* Fix dropdown positioning */
+#userDropdown,
+#notificationDropdown {
+    position: absolute !important;
+    top: 100% !important;
+    right: 0 !important;
+    left: auto !important;
+    margin-top: 0.5rem !important;
+    min-width: 280px !important;
+    max-width: 320px !important;
+}
+
+/* Fix dropdown header */
+.sol-dropdown-header {
+    background: var(--sol-gray-50);
+    padding: 1rem 1.25rem !important;
+}
+
+.sol-dropdown-header h3 {
+    margin: 0;
+    font-size: 1.125rem;
+    font-weight: 600;
+}
+
+.sol-dropdown-header .mark-all-read {
+    background: none;
+    border: none;
+    color: var(--sol-primary);
+    font-size: 0.875rem;
+    cursor: pointer;
+    padding: 0;
+    text-decoration: underline;
+}
+
+/* Fix notification styles */
+.sol-dropdown-notifications .notification-item {
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid var(--sol-gray-100);
+    display: flex;
+    gap: 0.75rem;
+    transition: background 0.2s;
+}
+
+.sol-dropdown-notifications .notification-item:hover {
+    background: var(--sol-gray-50);
+}
+
+.sol-dropdown-notifications .notification-item.unread {
+    background: var(--sol-primary-light);
+}
+
+.notification-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.notification-icon.shipment {
+    background: var(--sol-info-light);
+    color: var(--sol-info);
+}
+
+.notification-icon.warning {
+    background: var(--sol-warning-light);
+    color: var(--sol-warning);
+}
+
+.notification-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.notification-title {
+    font-weight: 600;
+    color: var(--sol-gray-900);
+    margin: 0 0 0.25rem;
+    font-size: 0.875rem;
+}
+
+.notification-message {
+    color: var(--sol-gray-600);
+    font-size: 0.8125rem;
+    margin: 0 0 0.25rem;
+}
+
+.notification-time {
+    color: var(--sol-gray-500);
+    font-size: 0.75rem;
+    margin: 0;
+}
+
+.no-notifications {
+    text-align: center;
+    padding: 2rem;
+    color: var(--sol-gray-500);
+    font-size: 0.875rem;
+}
+
+/* Fix user dropdown styles */
+.user-name {
+    font-weight: 600;
+    color: var(--sol-gray-900);
+    margin: 0 0 0.25rem;
+}
+
+.user-email {
+    font-size: 0.875rem;
+    color: var(--sol-gray-600);
+    margin: 0;
+}
+
+/* Fix dropdown footer */
+.sol-dropdown-footer {
+    background: var(--sol-gray-50);
+}
+
+.sol-dropdown-footer a {
+    color: var(--sol-primary);
+    text-decoration: none;
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+.sol-dropdown-footer a:hover {
+    text-decoration: underline;
+}
+
+/* Fix dropdown item icons */
+.sol-dropdown-item i {
+    width: 20px;
+    text-align: center;
+    color: var(--sol-gray-500);
+}
+
+.sol-dropdown-item:hover i {
+    color: var(--sol-gray-700);
+}
+
+/* Fix z-index stacking */
+.sol-header {
+    z-index: 100;
+}
+
+.sol-dropdown {
+    z-index: 1001;
+}
+
+.sol-sidebar {
+    z-index: 999;
+}
+
+.sol-backdrop {
+    z-index: 998;
+}
+
+/* Mobile responsive fixes */
+@media (max-width: 768px) {
+    #userDropdown,
+    #notificationDropdown {
+        right: -1rem !important;
+        max-width: calc(100vw - 2rem) !important;
+    }
+}

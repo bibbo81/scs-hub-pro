@@ -316,6 +316,19 @@ export class HeaderComponent {
             }
         });
         
+        // Previeni chiusura quando si clicca dentro il dropdown
+        document.getElementById('userDropdown')?.addEventListener('click', (e) => {
+            if (!e.target.closest('a') && !e.target.closest('button')) {
+                e.stopPropagation();
+            }
+        });
+        
+        document.getElementById('notificationDropdown')?.addEventListener('click', (e) => {
+            if (!e.target.closest('a') && !e.target.closest('button')) {
+                e.stopPropagation();
+            }
+        });
+        
         // Mark all notifications as read
         document.querySelector('.mark-all-read')?.addEventListener('click', () => {
             this.markAllNotificationsRead();

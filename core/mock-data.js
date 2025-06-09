@@ -324,12 +324,38 @@
             };
         },
         
+        // Generate mock notifications
+        generateNotifications() {
+            return {
+                notifications: [
+                    {
+                        id: 1,
+                        type: 'shipment',
+                        title: 'Spedizione in arrivo',
+                        message: 'Container MSKU1234567 arriverà domani',
+                        read: false,
+                        created_at: new Date().toISOString()
+                    },
+                    {
+                        id: 2,
+                        type: 'warning',
+                        title: 'Ritardo spedizione',
+                        message: 'BL MSCU7654321 è in ritardo di 2 giorni',
+                        read: false,
+                        created_at: new Date(Date.now() - 86400000).toISOString()
+                    }
+                ],
+                unread_count: 2,
+                total: 2
+            };
+        },
+        
         // Intercept API calls and return mock data
         interceptAPI(endpoint) {
             if (!this.enabled) return null;
             
             // Match endpoints
-            if (endpoint.includes('get-trackings')) {
+            if (endpoint.includes('get-trackings') || endpoint.includes('get-tracking')) {
                 return this.generateTrackings();
             }
             if (endpoint.includes('get-products')) {
@@ -338,40 +364,59 @@
             if (endpoint.includes('dashboard-stats')) {
                 return this.generateDashboardData();
             }
+            if (endpoint.includes('notifications')) {
+                return this.generateNotifications();
+            }
             
             return null;
         }
     };
     
     // Override window.api if mock data is enabled
-    if (window.MockData.enabled && window.api) {
-        const originalGet = window.api.get;
-        const originalPost = window.api.post;
+    function setupMockInterceptors() {
+        if (!window.MockData.enabled) return;
         
-        // Intercept GET requests
-        window.api.get = async function(endpoint, options) {
-            const mockData = window.MockData.interceptAPI(endpoint);
-            if (mockData) {
-                console.log('[MockData] Intercepted:', endpoint);
-                // Simulate network delay
-                await new Promise(resolve => setTimeout(resolve, 300));
-                return mockData;
+        // Wait for api to be available
+        const checkInterval = setInterval(() => {
+            if (window.api) {
+                clearInterval(checkInterval);
+                
+                const originalGet = window.api.get.bind(window.api);
+                const originalPost = window.api.post.bind(window.api);
+                
+                // Intercept GET requests
+                window.api.get = async function(endpoint, options) {
+                    const mockData = window.MockData.interceptAPI(endpoint);
+                    if (mockData) {
+                        console.log('[MockData] Intercepted:', endpoint);
+                        // Simulate network delay
+                        await new Promise(resolve => setTimeout(resolve, 300));
+                        return mockData;
+                    }
+                    // Fall back to original
+                    return originalGet(endpoint, options);
+                };
+                
+                // Intercept POST requests
+                window.api.post = async function(endpoint, data, options) {
+                    // For mock mode, just simulate success
+                    if (window.MockData.enabled) {
+                        console.log('[MockData] POST intercepted:', endpoint, data);
+                        await new Promise(resolve => setTimeout(resolve, 500));
+                        return { success: true, message: 'Mock operation completed' };
+                    }
+                    return originalPost(endpoint, data, options);
+                };
+                
+                console.log('[MockData] Mock data ENABLED - Remove mock-data.js for production!');
             }
-            // Fall back to original
-            return originalGet.call(this, endpoint, options);
-        };
-        
-        // Intercept POST requests
-        window.api.post = async function(endpoint, data, options) {
-            // For mock mode, just simulate success
-            if (window.MockData.enabled) {
-                console.log('[MockData] POST intercepted:', endpoint, data);
-                await new Promise(resolve => setTimeout(resolve, 500));
-                return { success: true, message: 'Mock operation completed' };
-            }
-            return originalPost.call(this, endpoint, data, options);
-        };
-        
-        console.log('[MockData] Mock data ENABLED - Remove mock-data.js for production!');
+        }, 100);
+    }
+    
+    // Setup interceptors when DOM is ready
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', setupMockInterceptors);
+    } else {
+        setupMockInterceptors();
     }
 })();

@@ -525,5 +525,116 @@
         }
     })();
     </script>
+
+    <!-- Aggiungi questo script alla fine del body in tracking.html, prima del tag </body> -->
+
+<!-- QUICK FIX per Dropdown e Mock Data -->
+<script>
+// Quick CSS fix per dropdown positioning
+document.addEventListener('DOMContentLoaded', function() {
+    // Fix dropdown positioning con CSS inline
+    const style = document.createElement('style');
+    style.textContent = `
+        /* Quick fix for dropdown positioning */
+        .sol-header-right { 
+            position: relative !important; 
+        }
+        
+        #userDropdown, 
+        #notificationDropdown { 
+            position: absolute !important; 
+            top: 100% !important; 
+            right: 0 !important; 
+            left: auto !important;
+            margin-top: 0.5rem !important; 
+            min-width: 280px !important;
+            background: white !important;
+            border: 1px solid rgba(0,0,0,0.1) !important;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1) !important;
+        }
+        
+        .sol-dropdown-header {
+            background: #f8f9fa !important;
+            padding: 1rem 1.25rem !important;
+            border-bottom: 1px solid #e9ecef !important;
+        }
+        
+        .user-name {
+            font-weight: 600 !important;
+            margin: 0 0 0.25rem !important;
+        }
+        
+        .user-email {
+            font-size: 0.875rem !important;
+            color: #6c757d !important;
+            margin: 0 !important;
+        }
+        
+        .sol-dropdown-item i {
+            width: 20px !important;
+            text-align: center !important;
+            color: #6c757d !important;
+        }
+    `;
+    document.head.appendChild(style);
+    
+    // Ensure mock data is working
+    console.log('[QuickFix] Mock data enabled:', window.MockData?.enabled);
+    
+    // Extra fix for dropdown click handling
+    setTimeout(() => {
+        const userDropdown = document.getElementById('userDropdown');
+        const notificationDropdown = document.getElementById('notificationDropdown');
+        
+        if (userDropdown) {
+            userDropdown.addEventListener('click', function(e) {
+                if (!e.target.closest('a') && !e.target.closest('button')) {
+                    e.stopPropagation();
+                    e.preventDefault();
+                }
+            });
+        }
+        
+        if (notificationDropdown) {
+            notificationDropdown.addEventListener('click', function(e) {
+                if (!e.target.closest('a') && !e.target.closest('button')) {
+                    e.stopPropagation();
+                    e.preventDefault();
+                }
+            });
+        }
+    }, 1000);
+});
+
+// Force mock data initialization
+setTimeout(() => {
+    if (window.MockData && window.MockData.enabled && !window.api._mockInitialized) {
+        console.log('[QuickFix] Re-initializing mock data interceptors...');
+        window.api._mockInitialized = true;
+        
+        const originalGet = window.api.get.bind(window.api);
+        const originalPost = window.api.post.bind(window.api);
+        
+        window.api.get = async function(endpoint, options) {
+            const mockData = window.MockData.interceptAPI(endpoint);
+            if (mockData) {
+                console.log('[QuickFix MockData] Intercepted:', endpoint);
+                await new Promise(resolve => setTimeout(resolve, 300));
+                return mockData;
+            }
+            return originalGet(endpoint, options);
+        };
+        
+        window.api.post = async function(endpoint, data, options) {
+            if (window.MockData.enabled) {
+                console.log('[QuickFix MockData] POST intercepted:', endpoint, data);
+                await new Promise(resolve => setTimeout(resolve, 500));
+                return { success: true, message: 'Mock operation completed' };
+            }
+            return originalPost(endpoint, data, options);
+        };
+    }
+}, 2000);
+</script>
 </body>
 </html>
