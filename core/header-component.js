@@ -1,7 +1,6 @@
 // header-component.js - Header unificato per tutte le pagine ES6
 import api from '/core/api-client.js';
 import notificationSystem from '/core/notification-system.js';
-import { auth, authInit } from '/core/auth-init.js';
 
 export class HeaderComponent {
     constructor(options = {}) {
@@ -20,7 +19,7 @@ export class HeaderComponent {
     
     async init() {
         // Get user info
-        this.user = auth?.getCurrentUser();
+        this.user = window.auth?.getCurrentUser();
         
         // Mount header
         this.mount();
@@ -238,8 +237,8 @@ export class HeaderComponent {
             };
         }
         
-        const name = authInit?.formatUserName(this.user) || 'Utente';
-        const initials = authInit?.getUserInitials(name) || 'U';
+        const name = window.authInit?.formatUserName(this.user) || 'Utente';
+        const initials = window.authInit?.getUserInitials(name) || 'U';
         
         return {
             name,
@@ -280,8 +279,8 @@ export class HeaderComponent {
         
         // Logout
         document.getElementById('logoutBtn')?.addEventListener('click', () => {
-            if (auth?.logout) {
-                auth.logout();
+            if (window.auth?.logout) {
+                window.auth.logout();
             } else {
                 window.location.replace('/login.html');
             }

@@ -1,5 +1,4 @@
 // app.js - Global application entry point ES6
-import { authInit, auth } from '/core/auth-init.js';
 import api from '/core/api-client.js';
 import headerComponent from '/core/header-component.js';
 import notificationSystem from '/core/notification-system.js';
@@ -79,13 +78,13 @@ class Application {
     
     // Initialize authentication
     async initAuth() {
-        if (!authInit) {
+        if (!window.authInit) {
             console.error('[App] Auth module not loaded');
             return false;
         }
         
-        const authenticated = await authInit.init();
-        this.modules.auth = auth;
+        const authenticated = await window.authInit.init();
+        this.modules.auth = window.auth;
         return authenticated;
     }
     
