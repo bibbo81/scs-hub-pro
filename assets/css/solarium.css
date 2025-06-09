@@ -2843,18 +2843,20 @@ select.form-control {
     position: relative !important;
 }
 
-/* Fix dropdown exact positioning - RIDOTTO IL GAP */
+/* Fix dropdown exact positioning - ALZATO MOLTO */
 #userDropdown,
 #notificationDropdown {
     position: absolute !important;
-    top: 100% !important;  /* Rimuovo il calc e il gap extra */
+    top: calc(100% - 40px) !important;  /* Alzato di 40px */
     right: 0 !important;
     left: auto !important;
-    margin-top: 0.25rem !important;  /* Solo 4px di gap invece di 8px */
+    margin: 0 !important;  /* Nessun margin */
     min-width: 280px !important;
     max-width: 320px !important;
     z-index: 1001 !important;
 }
+
+/* Se ancora troppo basso, prova con top: 45px !important; (valore fisso) */
 
 /* Aggiungi freccia triangolare sopra il dropdown */
 #userDropdown::before,
