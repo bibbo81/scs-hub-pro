@@ -272,9 +272,11 @@
                 }
             ];
             
-            // Merge localStorage trackings con mock trackings
-            // Usa solo localStorage se ci sono dati, altrimenti usa mock
-            const allTrackings = localTrackings.length > 0 ? localTrackings : mockTrackings;
+            // IMPORTANTE: Combina trackings salvati con mock
+            const allTrackings = [...localTrackings, ...mockTrackings];
+            
+            // Se ci sono trackings salvati, usa SOLO quelli
+            const finalTrackings = localTrackings.length > 0 ? localTrackings : mockTrackings;
             
             // Calcola statistiche
             const stats = {

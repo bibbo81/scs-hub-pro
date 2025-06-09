@@ -14,28 +14,88 @@
         // Mappature standard
         mappings: {
             carriers: {
+                // Maersk variants
+                'MAERSK': 'MAERSK',
                 'MAERSK LINE': 'MAERSK',
+                'MAERSK SEALAND': 'MAERSK',
+                // MSC variants
                 'MSC': 'MSC',
+                'MEDITERRANEAN SHIPPING': 'MSC',
+                'MEDITERRANEAN SHIPPING COMPANY': 'MSC',
+                // CMA CGM variants
                 'CMA CGM': 'CMA-CGM',
+                'CMA-CGM': 'CMA-CGM',
+                // COSCO variants
                 'COSCO': 'COSCO',
+                'COSCO SHIPPING': 'COSCO',
+                'COSCO SHIPPING LINES': 'COSCO',
+                // Hapag-Lloyd variants
                 'HAPAG-LLOYD': 'HAPAG-LLOYD',
+                'HAPAG LLOYD': 'HAPAG-LLOYD',
+                // ONE variants
                 'ONE': 'ONE',
+                'OCEAN NETWORK EXPRESS': 'ONE',
+                // Evergreen variants
                 'EVERGREEN': 'EVERGREEN',
+                'EVERGREEN LINE': 'EVERGREEN',
+                'EVERGREEN MARINE': 'EVERGREEN',
+                // Yang Ming variants
                 'YANG MING': 'YANG-MING',
+                'YANG MING LINE': 'YANG-MING',
+                'YANG MING MARINE': 'YANG-MING',
+                // Others
                 'ZIM': 'ZIM',
-                'HMM': 'HMM'
+                'ZIM LINE': 'ZIM',
+                'HMM': 'HMM',
+                'HYUNDAI': 'HMM',
+                'HYUNDAI MERCHANT MARINE': 'HMM',
+                // Air carriers
+                'CARGOLUX': 'CV',
+                'CV': 'CV',
+                'FEDEX': 'FX',
+                'FX': 'FX',
+                'DHL': 'DHL',
+                'UPS': 'UPS',
+                'EMIRATES': 'EK',
+                'QATAR': 'QR',
+                'LUFTHANSA': 'LH',
+                'AIR FRANCE': 'AF',
+                'KLM': 'KL'
             },
             
             status: {
+                // Container statuses
                 'Gate In': 'in_transit',
                 'Gate Out': 'in_transit',
                 'Loaded': 'in_transit',
+                'Loaded on Vessel': 'in_transit',
                 'Discharged': 'in_transit',
+                'Discharged from Vessel': 'in_transit',
                 'In Transit': 'in_transit',
+                'Sailing': 'in_transit',
+                'Arrived': 'in_transit',
+                'Departed': 'in_transit',
+                'Transhipment': 'in_transit',
+                'In Transshipment': 'in_transit',
+                // Delivered statuses
                 'Delivered': 'delivered',
                 'Empty': 'delivered',
+                'Empty Returned': 'delivered',
+                'POD': 'delivered',
+                // Pending statuses
                 'Registered': 'registered',
-                'Pending': 'registered'
+                'Pending': 'registered',
+                'Booked': 'registered',
+                'Booking Confirmed': 'registered',
+                // Air statuses
+                'RCS': 'registered',
+                'MAN': 'in_transit',
+                'DEP': 'in_transit',
+                'ARR': 'in_transit',
+                'RCF': 'in_transit',
+                'DLV': 'delivered',
+                'NFD': 'in_transit',
+                'AWD': 'in_transit'
             },
             
             types: {
@@ -219,7 +279,7 @@
             // Rileva tipi di tracking
             const types = new Set();
             data.forEach(row => {
-                const tracking = row.tracking_number || row.Container || row['Tracking Number'];
+                const tracking = row.tracking_number || row.Container || row['Tracking Number'] || row['AWB Number'];
                 if (tracking) {
                     const type = this.detectTrackingType(tracking);
                     if (type) types.add(type);
@@ -293,6 +353,14 @@
                     try {
                         const tracking = this.normalizeTrackingData(row);
                         
+                        if (!tracking || !tracking.trackingNumber) {
+                            console.warn('Skipping invalid row:', row);
+                            results.skipped++;
+                            return;
+                        }
+                        
+                        console.log(`Processing tracking ${tracking.trackingNumber} (${tracking.trackingType})`);
+                        
                         // Skip se già esiste e non vogliamo aggiornare
                         if (!options.updateExisting) {
                             const exists = await this.checkExists(tracking.trackingNumber);
@@ -302,52 +370,9 @@
                             }
                         }
                         
-                        // In mock mode, salva direttamente in localStorage
-                        if (window.FORCE_MOCK_API || window.MockData?.enabled) {
-                            console.log('[ImportManager] Saving to localStorage:', tracking);
-                            
-                            // Recupera trackings esistenti
-                            const existingTrackings = JSON.parse(localStorage.getItem('mockTrackings') || '[]');
-                            
-                            // Crea tracking completo con ID e timestamp
-                            const newTracking = {
-                                id: Date.now() + Math.floor(Math.random() * 1000),
-                                tracking_number: tracking.trackingNumber,
-                                tracking_type: tracking.trackingType,
-                                carrier_code: tracking.carrierCode,
-                                reference_number: tracking.referenceNumber,
-                                status: this.mappings.status[row.Status] || 'registered',
-                                created_at: new Date().toISOString(),
-                                updated_at: new Date().toISOString(),
-                                // Aggiungi campi ShipsGo se presenti
-                                origin_port: tracking.metadata.pol,
-                                destination_port: tracking.metadata.pod,
-                                eta: tracking.metadata.discharge_date,
-                                last_event_date: new Date().toISOString(),
-                                last_event_location: tracking.metadata.pol || 'N/A',
-                                metadata: {
-                                    ...tracking.metadata,
-                                    source: 'shipsgo_import',
-                                    import_date: new Date().toISOString(),
-                                    original_data: row
-                                }
-                            };
-                            
-                            // Se ci sono date di loading/discharge, genera eventi timeline
-                            if (tracking.metadata.loading_date || tracking.metadata.discharge_date) {
-                                newTracking.metadata.timeline_events = this.generateTimelineEvents(row, tracking);
-                            }
-                            
-                            // Aggiungi e salva
-                            existingTrackings.push(newTracking);
-                            localStorage.setItem('mockTrackings', JSON.stringify(existingTrackings));
-                            
-                            results.imported++;
-                        } else {
-                            // Usa API normale
-                            await this.createTracking(tracking, token);
-                            results.imported++;
-                        }
+                        // Crea/aggiorna tracking
+                        await this.createTracking(tracking, token);
+                        results.imported++;
                         
                     } catch (error) {
                         results.errors.push({
@@ -381,108 +406,120 @@
         },
         
         /**
-         * Genera eventi timeline per ShipsGo
-         */
-        generateTimelineEvents(row, tracking) {
-            const events = [];
-            const metadata = tracking.metadata;
-            
-            // Loading event
-            if (metadata.loading_date) {
-                events.push({
-                    event_type: 'GATE_IN',
-                    event_date: new Date(new Date(metadata.loading_date).getTime() - 24*60*60*1000).toISOString(),
-                    location: metadata.pol,
-                    description: 'Container entered terminal'
-                });
-                
-                events.push({
-                    event_type: 'LOADED_ON_VESSEL',
-                    event_date: metadata.loading_date,
-                    location: metadata.pol,
-                    description: 'Container loaded on vessel'
-                });
-                
-                events.push({
-                    event_type: 'VESSEL_DEPARTED',
-                    event_date: new Date(new Date(metadata.loading_date).getTime() + 6*60*60*1000).toISOString(),
-                    location: metadata.pol,
-                    description: 'Vessel departed from port'
-                });
-            }
-            
-            // Discharge event
-            if (metadata.discharge_date && new Date(metadata.discharge_date) <= new Date()) {
-                events.push({
-                    event_type: 'VESSEL_ARRIVED',
-                    event_date: new Date(new Date(metadata.discharge_date).getTime() - 6*60*60*1000).toISOString(),
-                    location: metadata.pod,
-                    description: 'Vessel arrived at port'
-                });
-                
-                events.push({
-                    event_type: 'DISCHARGED_FROM_VESSEL',
-                    event_date: metadata.discharge_date,
-                    location: metadata.pod,
-                    description: 'Container discharged from vessel'
-                });
-            }
-            
-            // Se consegnato
-            if (row.Status === 'Delivered' || row.Status === 'Empty') {
-                const deliveryDate = metadata.discharge_date ? 
-                    new Date(new Date(metadata.discharge_date).getTime() + 3*24*60*60*1000) : 
-                    new Date();
-                    
-                events.push({
-                    event_type: 'DELIVERED',
-                    event_date: deliveryDate.toISOString(),
-                    location: metadata.pod,
-                    description: 'Container delivered to consignee'
-                });
-            }
-            
-            return events.sort((a, b) => new Date(a.event_date) - new Date(b.event_date));
-        },
-        
-        /**
          * Normalizza dati tracking
          */
         normalizeTrackingData(row) {
-            // Estrai tracking number
+            // Debug: vediamo cosa arriva
+            console.log('Raw row data:', row);
+            
+            // Estrai tracking number - ATTENZIONE ai nomi esatti dei campi
             const trackingNumber = (
                 row.tracking_number || 
-                row.Container || 
-                row['Tracking Number'] || 
+                row['Tracking Number'] ||
+                row.Container ||           // Per ShipsGo Sea
+                row['Container'] ||        // Alternativa con spazi
+                row['AWB Number'] ||       // Per ShipsGo Air
+                row['BL Number'] ||        // Per Bill of Lading
                 ''
-            ).toUpperCase().trim();
+            ).toString().toUpperCase().trim();
+            
+            console.log('Extracted tracking number:', trackingNumber);
+            
+            // Se non c'è tracking number, skip
+            if (!trackingNumber || trackingNumber === '') {
+                console.warn('No tracking number found in row:', row);
+                return null;
+            }
             
             // Rileva tipo
             const trackingType = row.tracking_type || 
-                               row.Type || 
-                               this.detectTrackingType(trackingNumber);
+                                row['Tracking Type'] ||
+                                row.Type || 
+                                this.detectTrackingType(trackingNumber);
             
-            // Mappa carrier
-            const carrierInput = row.carrier_code || 
-                               row.Carrier || 
-                               row.carrier || 
-                               '';
-            const carrierCode = this.mappings.carriers[carrierInput] || 
-                              carrierInput;
+            // Mappa carrier - ATTENZIONE: ShipsGo usa "Carrier" con C maiuscola
+            const carrierInput = (
+                row.carrier_code || 
+                row.carrier ||
+                row.Carrier ||              // ShipsGo Sea usa questo
+                row['Carrier'] ||           // Con spazi
+                row.Airline ||              // ShipsGo Air
+                row['Airline'] ||
+                ''
+            ).toString().trim();
             
-            // Riferimento
+            console.log('Carrier input:', carrierInput);
+            
+            // Usa il mapping dictionary per i carrier
+            const carrierCode = this.mappings.carriers[carrierInput.toUpperCase()] || 
+                               this.getCarrierCode(carrierInput) ||
+                               carrierInput.substring(0, 10).toUpperCase();
+            
+            console.log('Mapped carrier code:', carrierCode);
+            
+            // Mappa status usando il dictionary
+            const statusInput = (row.status || row.Status || row['Status'] || 'registered').toString().trim();
+            const status = this.mappings.status[statusInput] || statusInput.toLowerCase().replace(/\s+/g, '_');
+            
+            console.log('Status mapping:', statusInput, '->', status);
+            
+            // Estrai riferimento
             const referenceNumber = row.reference || 
                                   row.Reference || 
+                                  row['Reference'] ||
                                   row.reference_number || 
+                                  row['Reference Number'] ||
                                   null;
             
-            return {
+            // Costruisci oggetto normalizzato
+            const normalized = {
                 trackingNumber,
                 trackingType,
                 carrierCode,
+                status,
                 referenceNumber,
+                // Aggiungi campi per la vista tabella
+                carrier_code: carrierCode,      // Il table view cerca questo campo
+                tracking_number: trackingNumber, // Il table view cerca questo campo  
+                tracking_type: trackingType,    // Il table view cerca questo campo
+                // Estrai origin e destination dai metadata per la location
+                origin_port: row['Port Of Loading'] || row.Origin || row.origin_port || '',
+                destination_port: row['Port Of Discharge'] || row.Destination || row.destination_port || '',
+                // Metadata completi
                 metadata: this.extractMetadata(row)
             };
+            
+            console.log('Normalized data:', normalized);
+            
+            return normalized;
+        },
+        
+        /**
+         * Helper per estrarre carrier code
+         */
+        getCarrierCode(carrierName) {
+            if (!carrierName) return 'UNKNOWN';
+            
+            const upper = carrierName.toUpperCase();
+            
+            // Controlla se contiene keyword comuni
+            if (upper.includes('MAERSK')) return 'MAERSK';
+            if (upper.includes('MSC')) return 'MSC';
+            if (upper.includes('CMA')) return 'CMA-CGM';
+            if (upper.includes('COSCO')) return 'COSCO';
+            if (upper.includes('HAPAG')) return 'HAPAG-LLOYD';
+            if (upper.includes('EVERGREEN')) return 'EVERGREEN';
+            if (upper.includes('YANG MING')) return 'YANG-MING';
+            if (upper.includes('ONE')) return 'ONE';
+            if (upper.includes('ZIM')) return 'ZIM';
+            if (upper.includes('HMM') || upper.includes('HYUNDAI')) return 'HMM';
+            if (upper.includes('CARGOLUX')) return 'CV';
+            if (upper.includes('FEDEX')) return 'FX';
+            if (upper.includes('DHL')) return 'DHL';
+            if (upper.includes('UPS')) return 'UPS';
+            
+            // Se non trova match, usa le prime 3-4 lettere
+            return upper.replace(/[^A-Z0-9]/g, '').substring(0, 4) || 'UNKNOWN';
         },
         
         /**
@@ -504,17 +541,132 @@
         extractMetadata(row) {
             const metadata = {};
             
-            // ShipsGo specific
-            if (row['Port Of Loading']) {
-                metadata.pol = row['Port Of Loading'];
-                metadata.pod = row['Port Of Discharge'];
+            // ShipsGo Sea specific
+            if (row['Port Of Loading'] || row.Container) {
+                metadata.pol = row['Port Of Loading'] || '';
+                metadata.pod = row['Port Of Discharge'] || '';
+                metadata.origin_port = metadata.pol;
+                metadata.destination_port = metadata.pod;
                 metadata.loading_date = this.parseDate(row['Date Of Loading']);
                 metadata.discharge_date = this.parseDate(row['Date Of Discharge']);
                 metadata.co2_emissions = parseFloat(row['CO₂ Emission (Tons)']) || null;
                 metadata.tags = row.Tags !== '-' ? row.Tags : null;
+                metadata.booking = row.Booking || row['Booking'] || null;
+                metadata.vessel_name = row['Vessel Name'] || null;
+                
+                // Aggiungi info paese
+                metadata.pol_country = row['POL Country'] || '';
+                metadata.pol_country_code = row['POL Country Code'] || '';
+                metadata.pod_country = row['POD Country'] || '';
+                metadata.pod_country_code = row['POD Country Code'] || '';
+            }
+            
+            // ShipsGo Air specific
+            if (row['AWB Number'] || row.Origin) {
+                metadata.origin = row.Origin || '';
+                metadata.origin_name = row['Origin Name'] || '';
+                metadata.destination = row.Destination || '';
+                metadata.destination_name = row['Destination Name'] || '';
+                metadata.origin_port = metadata.origin_name || metadata.origin;
+                metadata.destination_port = metadata.destination_name || metadata.destination;
+                metadata.departure_date = this.parseDate(row['Date Of Departure']);
+                metadata.arrival_date = this.parseDate(row['Date Of Arrival']);
+                metadata.flight_number = row['Flight Number'] || null;
+                metadata.transit_time = row['Transit Time'] || null;
+                
+                // Aggiungi info paese air
+                metadata.origin_country = row['Origin Country'] || '';
+                metadata.origin_country_code = row['Origin Country Code'] || '';
+                metadata.destination_country = row['Destination Country'] || '';
+                metadata.destination_country_code = row['Destination Country Code'] || '';
+            }
+            
+            // Common fields
+            metadata.created_at = this.parseDate(row['Created At']) || new Date().toISOString();
+            metadata.import_date = new Date().toISOString();
+            metadata.source = 'shipsgo_import';
+            
+            // Genera timeline events se è ShipsGo
+            if (row['Port Of Loading'] || row['AWB Number']) {
+                metadata.timeline_events = this.generateTimelineEvents(row);
             }
             
             return metadata;
+        },
+        
+        /**
+         * Genera timeline events per ShipsGo
+         */
+        generateTimelineEvents(row) {
+            const events = [];
+            const now = new Date();
+            
+            if (row.Container) {
+                // Sea shipment events
+                const loadingDate = this.parseDate(row['Date Of Loading']);
+                const dischargeDate = this.parseDate(row['Date Of Discharge']);
+                
+                if (loadingDate) {
+                    events.push({
+                        event_date: loadingDate,
+                        event_type: 'GATE_IN',
+                        description: 'Container entered terminal',
+                        location: row['Port Of Loading'] || 'Loading Port'
+                    });
+                    
+                    events.push({
+                        event_date: new Date(new Date(loadingDate).getTime() + 24*60*60*1000).toISOString(),
+                        event_type: 'LOADED_ON_VESSEL',
+                        description: 'Container loaded on vessel',
+                        location: row['Port Of Loading'] || 'Loading Port'
+                    });
+                }
+                
+                if (dischargeDate && new Date(dischargeDate) <= now) {
+                    events.push({
+                        event_date: dischargeDate,
+                        event_type: 'DISCHARGED_FROM_VESSEL',
+                        description: 'Container discharged from vessel',
+                        location: row['Port Of Discharge'] || 'Discharge Port'
+                    });
+                }
+                
+                if (row.Status === 'Delivered' || row.Status === 'Empty') {
+                    events.push({
+                        event_date: new Date().toISOString(),
+                        event_type: 'DELIVERED',
+                        description: 'Container delivered',
+                        location: row['Port Of Discharge'] || 'Final Destination'
+                    });
+                }
+            } else if (row['AWB Number']) {
+                // Air shipment events
+                const departureDate = this.parseDate(row['Date Of Departure']);
+                const arrivalDate = this.parseDate(row['Date Of Arrival']);
+                
+                if (departureDate) {
+                    events.push({
+                        event_date: departureDate,
+                        event_type: 'DEP',
+                        description: 'Flight departed',
+                        location: row['Origin Name'] || row.Origin || 'Origin'
+                    });
+                }
+                
+                if (arrivalDate && new Date(arrivalDate) <= now) {
+                    events.push({
+                        event_date: arrivalDate,
+                        event_type: 'ARR',
+                        description: 'Flight arrived',
+                        location: row['Destination Name'] || row.Destination || 'Destination'
+                    });
+                }
+            }
+            
+            // Ordina eventi per data
+            return events.sort((a, b) => 
+                new Date(a.event_date) - new Date(b.event_date)
+            );
         },
         
         /**
@@ -523,11 +675,40 @@
         parseDate(dateStr) {
             if (!dateStr || dateStr === '-') return null;
             
-            // Formato DD/MM/YYYY
-            const [day, month, year] = dateStr.split(' ')[0].split('/');
-            if (!day || !month || !year) return null;
+            try {
+                // Formato DD/MM/YYYY o DD/MM/YYYY HH:MM:SS
+                if (dateStr.includes('/')) {
+                    const [datePart, timePart] = dateStr.split(' ');
+                    const [day, month, year] = datePart.split('/');
+                    
+                    if (!day || !month || !year) return null;
+                    
+                    let date = new Date(
+                        parseInt(year),
+                        parseInt(month) - 1,
+                        parseInt(day)
+                    );
+                    
+                    if (timePart) {
+                        const [hours, minutes, seconds] = timePart.split(':');
+                        date.setHours(parseInt(hours) || 0);
+                        date.setMinutes(parseInt(minutes) || 0);
+                        date.setSeconds(parseInt(seconds) || 0);
+                    }
+                    
+                    return date.toISOString();
+                } else {
+                    // Prova formato ISO standard
+                    const date = new Date(dateStr);
+                    if (!isNaN(date.getTime())) {
+                        return date.toISOString();
+                    }
+                }
+            } catch (error) {
+                console.error('Error parsing date:', dateStr, error);
+            }
             
-            return new Date(`${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`).toISOString();
+            return null;
         },
         
         /**
@@ -545,33 +726,67 @@
          * Controlla se tracking esiste
          */
         async checkExists(trackingNumber) {
-            // In mock mode, controlla localStorage
-            if (window.FORCE_MOCK_API || window.MockData?.enabled) {
-                const existingTrackings = JSON.parse(localStorage.getItem('mockTrackings') || '[]');
-                return existingTrackings.some(t => t.tracking_number === trackingNumber);
+            try {
+                const stored = localStorage.getItem('mockTrackings');
+                if (stored) {
+                    const trackings = JSON.parse(stored);
+                    return trackings.some(t => 
+                        t.tracking_number === trackingNumber
+                    );
+                }
+            } catch (error) {
+                console.error('Error checking existence:', error);
             }
             return false;
         },
         
         /**
-         * Crea tracking via API
+         * Crea tracking via API o localStorage
          */
         async createTracking(trackingData, token) {
-            const response = await fetch('/.netlify/functions/add-tracking', {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(trackingData)
-            });
+            // Prepara l'oggetto tracking completo per il salvataggio
+            const tracking = {
+                id: Date.now() + Math.random(), // ID unico
+                tracking_number: trackingData.trackingNumber || trackingData.tracking_number,
+                tracking_type: trackingData.trackingType || trackingData.tracking_type,
+                carrier_code: trackingData.carrierCode || trackingData.carrier_code,
+                carrier_name: trackingData.carrierCode || trackingData.carrier_code, // Per compatibility
+                status: trackingData.status || 'registered',
+                reference_number: trackingData.referenceNumber || trackingData.reference_number,
+                origin_port: trackingData.origin_port || trackingData.metadata?.origin_port || 'N/A',
+                origin_name: trackingData.origin_name || trackingData.metadata?.origin_name || '',
+                destination_port: trackingData.destination_port || trackingData.metadata?.destination_port || 'N/A',
+                destination_name: trackingData.destination_name || trackingData.metadata?.destination_name || '',
+                eta: trackingData.metadata?.discharge_date || trackingData.metadata?.arrival_date || null,
+                last_event_date: new Date().toISOString(),
+                last_event_location: trackingData.origin_port || trackingData.metadata?.origin_port || 'Import',
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString(),
+                metadata: trackingData.metadata || {}
+            };
             
-            if (!response.ok) {
-                const error = await response.json();
-                throw new Error(error.message || 'Errore creazione tracking');
+            console.log('Creating tracking:', tracking);
+            
+            // Salva in localStorage
+            try {
+                let existingTrackings = [];
+                const stored = localStorage.getItem('mockTrackings');
+                if (stored) {
+                    existingTrackings = JSON.parse(stored);
+                }
+                
+                // Aggiungi il nuovo tracking
+                existingTrackings.push(tracking);
+                
+                // Salva
+                localStorage.setItem('mockTrackings', JSON.stringify(existingTrackings));
+                console.log('Tracking saved to localStorage. Total trackings:', existingTrackings.length);
+                
+                return tracking;
+            } catch (error) {
+                console.error('Error saving tracking:', error);
+                throw error;
             }
-            
-            return response.json();
         },
         
         /**
@@ -617,7 +832,7 @@
                         <div style="max-height: 200px; overflow-y: auto; margin-top: var(--sol-space-md);">
                             ${results.errors.slice(0, 10).map(err => `
                                 <div style="margin-bottom: var(--sol-space-sm);">
-                                    <strong>${err.row.tracking_number || 'Unknown'}:</strong> ${err.error}
+                                    <strong>${err.row.tracking_number || err.row.Container || err.row['AWB Number'] || 'Unknown'}:</strong> ${err.error}
                                 </div>
                             `).join('')}
                         </div>
@@ -652,11 +867,18 @@ MSCU7654321,MSC,container,PO123457
 1234567890,DHL,parcel,DHL456789`
                 },
                 
-                shipsgo: {
-                    filename: 'shipsgo_import_template.csv',
+                shipsgo_sea: {
+                    filename: 'shipsgo_sea_template.csv',
                     content: `Container,Carrier,Status,Reference,Booking,Port Of Loading,Port Of Discharge,Date Of Loading,Date Of Discharge,CO₂ Emission (Tons),Tags
 MRKU1234567,MAERSK LINE,In Transit,PO123456,BKG789,SHANGHAI,ROTTERDAM,15/06/2025,30/06/2025,1.5,Urgent
 MSCU7654321,MSC,Loaded,INV456789,-,NINGBO,GENOVA,20/06/2025,15/07/2025,2.1,Regular`
+                },
+                
+                shipsgo_air: {
+                    filename: 'shipsgo_air_template.csv',
+                    content: `AWB Number,Airline,Status,Origin,Origin Name,Destination,Destination Name,Date Of Departure,Date Of Arrival,Reference,Tags
+176-12345678,CARGOLUX,DEP,HKG,Hong Kong,MXP,Milan Malpensa,07/12/2024 14:30:00,08/12/2024 18:45:00,AIR-2024-001,Express
+235-87654321,FEDEX,ARR,JFK,New York JFK,FCO,Rome Fiumicino,06/12/2024 22:00:00,07/12/2024 14:30:00,AIR-2024-002,Standard`
                 }
             };
             
@@ -670,43 +892,6 @@ MSCU7654321,MSC,Loaded,INV456789,-,NINGBO,GENOVA,20/06/2025,15/07/2025,2.1,Regul
             if (window.showNotification) {
                 window.showNotification(`Template ${type} scaricato!`, 'success');
             }
-        },
-        
-        /**
-         * Render UI per import
-         */
-        renderImportUI(containerId) {
-            const container = document.getElementById(containerId);
-            if (!container) return;
-            
-            container.innerHTML = `
-                <div style="text-align: center; padding: 2rem;">
-                    <div style="background: #e3f2fd; border-radius: 12px; padding: 2rem; margin-bottom: 1rem;">
-                        <i class="fas fa-ship fa-3x" style="color: #1976d2; margin-bottom: 1rem; display: block;"></i>
-                        <h4>Import File ShipsGo</h4>
-                        <p>Carica i file Excel esportati da ShipsGo (Mare o Aereo)</p>
-                        <input type="file" id="shipsgoFile" accept=".csv,.xlsx,.xls" style="display:none" 
-                               onchange="if(this.files[0]) { window.ImportManager.importFile(this.files[0], {type:'shipsgo'}); window.ModalSystem.close(); }">
-                        <button class="sol-btn sol-btn-primary" onclick="document.getElementById('shipsgoFile').click()">
-                            <i class="fas fa-file-excel"></i> Seleziona File ShipsGo
-                        </button>
-                    </div>
-                    
-                    <div style="background: #f3f4f6; border-radius: 12px; padding: 2rem;">
-                        <i class="fas fa-file-csv fa-3x" style="color: #6b7280; margin-bottom: 1rem; display: block;"></i>
-                        <h4>Import File Standard</h4>
-                        <p>Carica file CSV o Excel con formato standard</p>
-                        <input type="file" id="standardFile" accept=".csv,.xlsx,.xls" style="display:none" 
-                               onchange="if(this.files[0]) { window.ImportManager.importFile(this.files[0], {type:'standard'}); window.ModalSystem.close(); }">
-                        <button class="sol-btn sol-btn-glass" onclick="document.getElementById('standardFile').click()">
-                            <i class="fas fa-file-upload"></i> Seleziona File
-                        </button>
-                        <button class="sol-btn sol-btn-glass" onclick="window.ImportManager.downloadTemplate('standard')">
-                            <i class="fas fa-download"></i> Scarica Template
-                        </button>
-                    </div>
-                </div>
-            `;
         }
     };
 })();
