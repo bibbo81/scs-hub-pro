@@ -94,9 +94,17 @@
                 <div class="sol-card-filters">
                     <select class="sol-select" id="statusFilter">
                         <option value="">Tutti gli stati</option>
+                        <option value="registered">Registrato</option>
+                        <option value="in_transit">In Transito</option>
+                        <option value="delivered">Consegnato</option>
+                        <option value="delayed">In Ritardo</option>
                     </select>
                     <select class="sol-select" id="typeFilter">
                         <option value="">Tutti i tipi</option>
+                        <option value="container">Container</option>
+                        <option value="bl">Bill of Lading</option>
+                        <option value="awb">Air Waybill</option>
+                        <option value="parcel">Parcel</option>
                     </select>
                     <!-- View Toggle Button -->
                     <button type="button" class="sol-btn-toggle-view" id="toggleView" data-view="table">
@@ -135,6 +143,76 @@
             </div>
         </div>
     </main>
+
+    <!-- Fix Scripts -->
+    <script>
+    // Fix 1: Inizializzazione tracking
+    window.addEventListener('DOMContentLoaded', function() {
+        console.log('[Tracking Fix] Checking initialization...');
+        
+        // Attendi che trackingInit sia disponibile
+        let attempts = 0;
+        const initInterval = setInterval(() => {
+            attempts++;
+            
+            if (window.trackingInit) {
+                // Verifica se già inizializzato
+                if (typeof window.showAddTrackingForm === 'undefined') {
+                    console.log('[Tracking Fix] Calling trackingInit...');
+                    window.trackingInit();
+                }
+                clearInterval(initInterval);
+            } else if (attempts > 30) { // 3 secondi
+                console.error('[Tracking Fix] trackingInit not found');
+                clearInterval(initInterval);
+            }
+        }, 100);
+    });
+
+    // Fix 2: ModalSystem confirm
+    setTimeout(() => {
+        if (window.ModalSystem && !window.ModalSystem._confirmResolvers) {
+            console.log('[Modal Fix] Patching ModalSystem.confirm...');
+            
+            window.ModalSystem._confirmResolvers = {};
+            
+            const originalConfirm = window.ModalSystem.confirm;
+            window.ModalSystem.confirm = function(options = {}) {
+                return new Promise((resolve) => {
+                    const modalId = `modal-confirm-${Date.now()}`;
+                    
+                    const modal = this.create({
+                        title: options.title || 'Conferma',
+                        content: options.message || 'Sei sicuro?',
+                        maxWidth: options.maxWidth || '500px',
+                        footer: `
+                            <button class="sol-btn sol-btn-glass" onclick="window.ModalSystem.handleConfirm('${modalId}', false)">
+                                ${options.cancelText || 'Annulla'}
+                            </button>
+                            <button class="sol-btn ${options.confirmClass || 'sol-btn-primary'}" onclick="window.ModalSystem.handleConfirm('${modalId}', true)">
+                                ${options.confirmText || 'Conferma'}
+                            </button>
+                        `,
+                        hideClose: true,
+                        closeOnBackdrop: false,
+                        closeOnEsc: false
+                    });
+                    
+                    this._confirmResolvers[modalId] = resolve;
+                });
+            };
+            
+            window.ModalSystem.handleConfirm = function(modalId, result) {
+                const resolve = this._confirmResolvers?.[modalId];
+                if (resolve) {
+                    resolve(result);
+                    delete this._confirmResolvers[modalId];
+                }
+                this.close(modalId);
+            };
+        }
+    }, 1000);
+    </script>
 
     <!-- Timeline Enhancement Script -->
     <script>
