@@ -265,6 +265,8 @@
          * Processa import
          */
         async processImport(data, progressModal, options = {}) {
+            console.log('[ImportManager] Processing import:', data.length, 'records');
+            
             const results = {
                 imported: 0,
                 updated: 0,
@@ -334,6 +336,7 @@
                 }
             }
             
+            console.log('[ImportManager] Import results:', results);
             return results;
         },
         
@@ -345,7 +348,8 @@
             const trackingNumber = (
                 row.tracking_number || 
                 row.Container || 
-                row['Tracking Number'] || 
+                row['Tracking Number'] ||
+                row['AWB Number'] || 
                 ''
             ).toUpperCase().trim();
             
@@ -357,10 +361,11 @@
             // Mappa carrier
             const carrierInput = row.carrier_code || 
                                row.Carrier || 
-                               row.carrier || 
+                               row.carrier ||
+                               row.Airline || 
                                '';
-            const carrierCode = this.mappings.carriers[carrierInput] || 
-                              carrierInput;
+            const carrierCode = this.mappings.carriers[carrierInput.toUpperCase()] || 
+                              carrierInput.toUpperCase();
             
             // Riferimento
             const referenceNumber = row.reference || 
@@ -368,11 +373,18 @@
                                   row.reference_number || 
                                   null;
             
+            // Status mapping per ShipsGo
+            let status = 'registered';
+            if (row.Status) {
+                status = this.mappings.status[row.Status] || 'in_transit';
+            }
+            
             return {
                 trackingNumber,
                 trackingType,
                 carrierCode,
                 referenceNumber,
+                status,
                 metadata: this.extractMetadata(row)
             };
         },
@@ -396,7 +408,7 @@
         extractMetadata(row) {
             const metadata = {};
             
-            // ShipsGo specific
+            // ShipsGo Sea specific
             if (row['Port Of Loading']) {
                 metadata.pol = row['Port Of Loading'];
                 metadata.pod = row['Port Of Discharge'];
@@ -404,9 +416,82 @@
                 metadata.discharge_date = this.parseDate(row['Date Of Discharge']);
                 metadata.co2_emissions = parseFloat(row['CO₂ Emission (Tons)']) || null;
                 metadata.tags = row.Tags !== '-' ? row.Tags : null;
+                metadata.booking = row.Booking !== '-' ? row.Booking : null;
             }
             
+            // ShipsGo Air specific
+            if (row['Origin']) {
+                metadata.origin = row['Origin'];
+                metadata.destination = row['Destination'];
+                metadata.origin_name = row['Origin Name'];
+                metadata.destination_name = row['Destination Name'];
+                metadata.departure_date = this.parseDate(row['Date Of Departure']);
+                metadata.arrival_date = this.parseDate(row['Date Of Arrival']);
+                metadata.transit_time = row['Transit Time'];
+            }
+            
+            // Generate timeline events
+            metadata.timeline_events = this.generateTimelineEvents(row);
+            
             return metadata;
+        },
+        
+        /**
+         * Generate timeline events from ShipsGo data
+         */
+        generateTimelineEvents(row) {
+            const events = [];
+            const now = new Date();
+            
+            // Per container
+            if (row['Port Of Loading']) {
+                const loadingDate = this.parseDate(row['Date Of Loading']);
+                const dischargeDate = this.parseDate(row['Date Of Discharge']);
+                
+                if (loadingDate) {
+                    events.push({
+                        event_date: loadingDate,
+                        event_type: 'LOADED_ON_VESSEL',
+                        description: `Loaded at ${row['Port Of Loading']}`,
+                        location_name: row['Port Of Loading']
+                    });
+                }
+                
+                if (dischargeDate && new Date(dischargeDate) <= now) {
+                    events.push({
+                        event_date: dischargeDate,
+                        event_type: 'DISCHARGED_FROM_VESSEL',
+                        description: `Discharged at ${row['Port Of Discharge']}`,
+                        location_name: row['Port Of Discharge']
+                    });
+                }
+            }
+            
+            // Per AWB
+            if (row['Origin']) {
+                const departureDate = this.parseDate(row['Date Of Departure']);
+                const arrivalDate = this.parseDate(row['Date Of Arrival']);
+                
+                if (departureDate) {
+                    events.push({
+                        event_date: departureDate,
+                        event_type: 'DEP',
+                        description: `Departed from ${row['Origin']}`,
+                        location_name: row['Origin Name'] || row['Origin']
+                    });
+                }
+                
+                if (arrivalDate && new Date(arrivalDate) <= now) {
+                    events.push({
+                        event_date: arrivalDate,
+                        event_type: 'ARR',
+                        description: `Arrived at ${row['Destination']}`,
+                        location_name: row['Destination Name'] || row['Destination']
+                    });
+                }
+            }
+            
+            return events.sort((a, b) => new Date(a.event_date) - new Date(b.event_date));
         },
         
         /**
@@ -443,21 +528,13 @@
          * Crea tracking via API
          */
         async createTracking(trackingData, token) {
-            const response = await fetch('/.netlify/functions/add-tracking', {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(trackingData)
+            console.log('[ImportManager] Creating tracking:', trackingData);
+            
+            const response = await window.api.post('add-tracking', trackingData, {
+                loading: 'Aggiunta tracking...'
             });
             
-            if (!response.ok) {
-                const error = await response.json();
-                throw new Error(error.message || 'Errore creazione tracking');
-            }
-            
-            return response.json();
+            return response;
         },
         
         /**

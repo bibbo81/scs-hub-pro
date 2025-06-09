@@ -50,23 +50,160 @@
                     });
                 }
                 
-                // Mock per trackings
-                if (url.includes('get-trackings')) {
+                // Mock per GET trackings
+                if (url.includes('get-trackings') && args[1]?.method !== 'POST') {
                     return Promise.resolve({
                         ok: true,
                         status: 200,
                         headers: new Headers({'content-type': 'application/json'}),
                         json: () => {
-                            // Usa MockData se disponibile
-                            if (window.MockData && window.MockData.generateTrackings) {
-                                return Promise.resolve(window.MockData.generateTrackings());
-                            }
-                            // Fallback data
+                            // Combina mock data con localStorage
+                            const savedTrackings = JSON.parse(localStorage.getItem('mockTrackings') || '[]');
+                            const mockTrackings = window.MockData?.generateTrackings()?.trackings || [];
+                            
+                            // Merge: saved + mock (evita duplicati per ID)
+                            const seenIds = new Set(savedTrackings.map(t => t.id));
+                            const allTrackings = [
+                                ...savedTrackings,
+                                ...mockTrackings.filter(t => !seenIds.has(t.id))
+                            ];
+                            
                             return Promise.resolve({
-                                trackings: [],
-                                stats: { total: 0, in_transit: 0, delivered: 0, delayed: 0 }
+                                trackings: allTrackings,
+                                stats: {
+                                    total: allTrackings.length,
+                                    in_transit: allTrackings.filter(t => t.status === 'in_transit').length,
+                                    out_for_delivery: allTrackings.filter(t => t.status === 'out_for_delivery').length,
+                                    delivered: allTrackings.filter(t => t.status === 'delivered').length,
+                                    delayed: allTrackings.filter(t => t.status === 'delayed').length,
+                                    registered: allTrackings.filter(t => t.status === 'registered').length
+                                }
                             });
                         }
+                    });
+                }
+                
+                // Mock per POST add-tracking
+                if (url.includes('add-tracking')) {
+                    // Parse body
+                    let bodyData;
+                    try {
+                        bodyData = JSON.parse(args[1].body);
+                    } catch (e) {
+                        bodyData = {};
+                    }
+                    
+                    // Recupera trackings esistenti
+                    const mockTrackings = JSON.parse(localStorage.getItem('mockTrackings') || '[]');
+                    
+                    // Crea nuovo tracking
+                    const newTracking = {
+                        id: Date.now(),
+                        ...bodyData,
+                        status: bodyData.status || 'registered',
+                        created_at: new Date().toISOString(),
+                        updated_at: new Date().toISOString(),
+                        last_event_date: new Date().toISOString(),
+                        last_event_location: 'Registered',
+                        user_id: 'mock-user'
+                    };
+                    
+                    // Salva
+                    mockTrackings.push(newTracking);
+                    localStorage.setItem('mockTrackings', JSON.stringify(mockTrackings));
+                    
+                    console.log('[Mock] Tracking added:', newTracking);
+                    
+                    return Promise.resolve({
+                        ok: true,
+                        status: 200,
+                        headers: new Headers({'content-type': 'application/json'}),
+                        json: () => Promise.resolve({ 
+                            success: true, 
+                            data: newTracking 
+                        })
+                    });
+                }
+                
+                // Mock per POST import-trackings (batch)
+                if (url.includes('import-trackings')) {
+                    let bodyData;
+                    try {
+                        bodyData = JSON.parse(args[1].body);
+                    } catch (e) {
+                        bodyData = { trackings: [] };
+                    }
+                    
+                    const mockTrackings = JSON.parse(localStorage.getItem('mockTrackings') || '[]');
+                    const imported = [];
+                    
+                    // Import tutti i tracking
+                    bodyData.trackings?.forEach(tracking => {
+                        const newTracking = {
+                            id: Date.now() + Math.random(),
+                            ...tracking,
+                            status: tracking.status || 'registered',
+                            created_at: new Date().toISOString(),
+                            updated_at: new Date().toISOString(),
+                            user_id: 'mock-user'
+                        };
+                        mockTrackings.push(newTracking);
+                        imported.push(newTracking);
+                    });
+                    
+                    localStorage.setItem('mockTrackings', JSON.stringify(mockTrackings));
+                    
+                    console.log('[Mock] Batch import:', imported.length, 'trackings');
+                    
+                    return Promise.resolve({
+                        ok: true,
+                        status: 200,
+                        headers: new Headers({'content-type': 'application/json'}),
+                        json: () => Promise.resolve({ 
+                            success: true,
+                            result: {
+                                imported: imported.length,
+                                updated: 0,
+                                skipped: 0,
+                                errors: 0
+                            },
+                            data: imported
+                        })
+                    });
+                }
+                
+                // Mock per POST update-tracking
+                if (url.includes('update-tracking')) {
+                    return Promise.resolve({
+                        ok: true,
+                        status: 200,
+                        headers: new Headers({'content-type': 'application/json'}),
+                        json: () => Promise.resolve({ success: true, message: 'Updated' })
+                    });
+                }
+                
+                // Mock per POST delete-tracking
+                if (url.includes('delete-tracking')) {
+                    let bodyData;
+                    try {
+                        bodyData = JSON.parse(args[1].body);
+                    } catch (e) {
+                        bodyData = {};
+                    }
+                    
+                    if (bodyData.trackingId) {
+                        const mockTrackings = JSON.parse(localStorage.getItem('mockTrackings') || '[]');
+                        const filtered = mockTrackings.filter(t => t.id !== bodyData.trackingId);
+                        localStorage.setItem('mockTrackings', JSON.stringify(filtered));
+                        
+                        console.log('[Mock] Tracking deleted:', bodyData.trackingId);
+                    }
+                    
+                    return Promise.resolve({
+                        ok: true,
+                        status: 200,
+                        headers: new Headers({'content-type': 'application/json'}),
+                        json: () => Promise.resolve({ success: true })
                     });
                 }
                 
@@ -83,7 +220,7 @@
             return originalFetch.apply(this, args);
         };
         
-        console.log('[ForceMock] Fetch interceptor installed successfully');
+        console.log('[ForceMock] Complete mock interceptor installed');
     }
     </script>
     
@@ -155,6 +292,11 @@
                 <button class="sol-btn sol-btn-glass" id="exportExcelBtn">
                     <i class="fas fa-file-excel"></i>
                     <span>Export Excel</span>
+                </button>
+                <!-- Clear Mock Data Button - Solo Development -->
+                <button class="sol-btn sol-btn-glass" onclick="if(confirm('Cancellare tutti i tracking salvati?')){localStorage.removeItem('mockTrackings');location.reload();}">
+                    <i class="fas fa-trash"></i>
+                    <span>Clear Data</span>
                 </button>
                 <button class="sol-btn sol-btn-primary" id="addTrackingBtn">
                     <i class="fas fa-plus"></i>
@@ -443,11 +585,11 @@
                         </div>
                         <div class="sol-tracking-detail">
                             <span class="sol-tracking-detail-label">Origine</span>
-                            <span class="sol-tracking-detail-value">${tracking.origin_name || tracking.origin_port || 'N/A'}</span>
+                            <span class="sol-tracking-detail-value">${tracking.metadata?.origin_name || tracking.metadata?.pol || 'N/A'}</span>
                         </div>
                         <div class="sol-tracking-detail">
                             <span class="sol-tracking-detail-label">Destinazione</span>
-                            <span class="sol-tracking-detail-value">${tracking.destination_name || tracking.destination_port || 'N/A'}</span>
+                            <span class="sol-tracking-detail-value">${tracking.metadata?.destination_name || tracking.metadata?.pod || 'N/A'}</span>
                         </div>
                         <div class="sol-tracking-detail">
                             <span class="sol-tracking-detail-label">ETA</span>
@@ -491,10 +633,10 @@
                             <span class="sol-timeline-event-title">${event.title || event.description}</span>
                             <span class="sol-timeline-event-date">${eventDate.toLocaleDateString('it-IT')} ${eventDate.toLocaleTimeString('it-IT', {hour: '2-digit', minute:'2-digit'})}</span>
                         </div>
-                        ${event.location ? `
+                        ${event.location || event.location_name ? `
                             <div class="sol-timeline-event-location">
                                 <i class="fas fa-map-marker-alt"></i>
-                                ${event.location}
+                                ${event.location || event.location_name}
                             </div>
                         ` : ''}
                         ${event.details ? `<div class="sol-timeline-event-description">${event.details}</div>` : ''}
@@ -508,9 +650,13 @@
             const typeMap = {
                 'DELIVERED': 'delivered',
                 'DISCHARGED': 'delivered',
+                'DISCHARGED_FROM_VESSEL': 'delivered',
                 'LOADED': 'in-transit',
+                'LOADED_ON_VESSEL': 'in-transit',
                 'DEPARTED': 'in-transit',
+                'DEP': 'in-transit',
                 'ARRIVED': 'in-transit',
+                'ARR': 'in-transit',
                 'DELAYED': 'delayed',
                 'EXCEPTION': 'exception'
             };
