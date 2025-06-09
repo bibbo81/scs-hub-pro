@@ -607,5 +607,42 @@
         }
     })();
     </script>
+
+    <!-- ShipsGo Import Enhancement Script -->
+    <script>
+    // Aggiungi handler per ShipsGo import quando il form viene creato
+    document.addEventListener('DOMContentLoaded', function() {
+        // Monitora quando viene creato il form
+        const observer = new MutationObserver(function(mutations) {
+            const importContainer = document.getElementById('importContainer');
+            if (importContainer && !importContainer.hasAttribute('data-initialized')) {
+                importContainer.setAttribute('data-initialized', 'true');
+                
+                // Aggiungi il contenuto per ShipsGo import
+                importContainer.innerHTML = `
+                    <div style="text-align: center; padding: 2rem;">
+                        <div style="background: #e3f2fd; border-radius: 12px; padding: 2rem; display: inline-block;">
+                            <i class="fas fa-ship fa-3x" style="color: #1976d2; margin-bottom: 1rem; display: block;"></i>
+                            <h4>Import File ShipsGo</h4>
+                            <p>Carica i file Excel esportati da ShipsGo (Mare o Aereo)</p>
+                            <input type="file" id="shipsgoFile" accept=".csv,.xlsx,.xls" style="display:none" 
+                                   onchange="if(this.files[0]) { window.ImportManager.importFile(this.files[0], {type:'shipsgo'}); window.ModalSystem.close(); }">
+                            <button class="sol-btn sol-btn-primary" onclick="document.getElementById('shipsgoFile').click()">
+                                <i class="fas fa-file-excel"></i> Seleziona File ShipsGo
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }
+        });
+        
+        // Osserva cambiamenti nel DOM
+        observer.observe(document.body, {
+            childList: true,
+            subtree: true
+        });
+    });
+    </script>
+
 </body>
 </html>
