@@ -2,7 +2,6 @@
 // FIX: Usa percorsi relativi corretti
 import TableManager from '../../core/table-manager.js';
 import modalSystem from '../../core/modal-system.js';
-// RIMOSSO: import { ImportManager } from '/core/import-manager.js';
 
 // Tracking patterns
 const TRACKING_PATTERNS = {
@@ -17,9 +16,44 @@ let trackingTable = null;
 let trackings = [];
 let statsCards = [];
 
+// IMPORTANTE: Esponi le funzioni necessarie SUBITO
+window.refreshTracking = (id) => handleRefreshTracking(id);
+window.viewTimeline = (id) => handleViewTimeline(id);
+window.deleteTracking = (id) => handleDeleteTracking(id);
+
+// Show add tracking form - DEFINITA PRIMA DI trackingInit
+function showAddTrackingForm() {
+    window.ModalSystem.show({
+        title: 'Gestione Tracking',
+        size: 'large',
+        content: renderTrackingForm(),
+        actions: [
+            {
+                label: 'Annulla',
+                className: 'sol-btn-glass',
+                handler: () => window.ModalSystem.close()
+            },
+            {
+                label: 'Aggiungi Tracking',
+                className: 'sol-btn-primary',
+                handler: () => handleAddTracking()
+            }
+        ]
+    });
+    
+    // Setup form interactions
+    setupFormInteractions();
+}
+
 // Initialize page
 window.trackingInit = async function() {
     console.log('[Tracking] Initializing page...');
+    
+    // Riesponi le funzioni per sicurezza
+    window.showAddTrackingForm = showAddTrackingForm;
+    window.refreshAllTrackings = refreshAllTrackings;
+    window.exportToPDF = exportToPDF;
+    window.exportToExcel = exportToExcel;
     
     // Setup page components
     setupStatsCards();
@@ -31,6 +65,8 @@ window.trackingInit = async function() {
     
     // Start auto-refresh
     startAutoRefresh();
+    
+    console.log('[Tracking] Page initialized successfully');
 };
 
 // Setup stats cards with drag & drop
@@ -89,11 +125,6 @@ function setupTrackingTable() {
         emptyMessage: 'Nessun tracking attivo. Aggiungi il tuo primo tracking per iniziare.',
         pageSize: 20
     });
-    
-    // Expose action handlers globally
-    window.refreshTracking = (id) => handleRefreshTracking(id);
-    window.viewTimeline = (id) => handleViewTimeline(id);
-    window.deleteTracking = (id) => handleDeleteTracking(id);
 }
 
 // Setup event listeners
@@ -163,30 +194,6 @@ function updateStats(stats) {
     document.getElementById('outForDelivery').textContent = stats.out_for_delivery || 0;
     document.getElementById('delivered').textContent = stats.delivered || 0;
     document.getElementById('delayed').textContent = stats.delayed || 0;
-}
-
-// Show add tracking form
-function showAddTrackingForm() {
-    window.ModalSystem.show({
-        title: 'Gestione Tracking',
-        size: 'large',
-        content: renderTrackingForm(),
-        actions: [
-            {
-                label: 'Annulla',
-                className: 'sol-btn-glass',
-                handler: () => window.ModalSystem.close()
-            },
-            {
-                label: 'Aggiungi Tracking',
-                className: 'sol-btn-primary',
-                handler: () => handleAddTracking()
-            }
-        ]
-    });
-    
-    // Setup form interactions
-    setupFormInteractions();
 }
 
 // Render tracking form

@@ -147,7 +147,7 @@ export class HeaderComponent {
         const userInfo = this.getUserInfo();
         
         return `
-            <div class="sol-dropdown" id="userDropdown">
+            <div class="sol-dropdown" id="userDropdown" style="display: none;">
                 <div class="sol-dropdown-header">
                     <p class="user-name">${userInfo.name}</p>
                     <p class="user-email">${userInfo.email}</p>
@@ -174,7 +174,7 @@ export class HeaderComponent {
     
     renderNotificationDropdown() {
         return `
-            <div class="sol-dropdown sol-dropdown-notifications" id="notificationDropdown">
+            <div class="sol-dropdown sol-dropdown-notifications" id="notificationDropdown" style="display: none;">
                 <div class="sol-dropdown-header">
                     <h3>Notifiche</h3>
                     <button class="mark-all-read">Segna tutte come lette</button>
@@ -251,7 +251,7 @@ export class HeaderComponent {
         return window.location.pathname === href;
     }
     
-    // Event Listeners
+    // Event Listeners - FIXED VERSION
     attachEventListeners() {
         // Menu toggle
         document.getElementById('menuToggle')?.addEventListener('click', () => {
@@ -265,15 +265,17 @@ export class HeaderComponent {
             document.getElementById('backdrop').classList.remove('active');
         });
         
-        // User menu
+        // User menu - Fix: previeni propagazione
         document.getElementById('userMenuBtn')?.addEventListener('click', (e) => {
             e.stopPropagation();
+            e.preventDefault();
             this.toggleDropdown('userDropdown');
         });
         
-        // Notifications
+        // Notifications - Fix: previeni propagazione
         document.getElementById('notificationBtn')?.addEventListener('click', (e) => {
             e.stopPropagation();
+            e.preventDefault();
             this.toggleDropdown('notificationDropdown');
         });
         
@@ -299,16 +301,19 @@ export class HeaderComponent {
             }
         });
         
-        // Close dropdowns on outside click
-        document.addEventListener('click', () => {
-            this.closeAllDropdowns();
-        });
-        
-        // Prevent dropdown close on inside click
-        document.querySelectorAll('.sol-dropdown').forEach(dropdown => {
-            dropdown.addEventListener('click', (e) => {
-                e.stopPropagation();
-            });
+        // Close dropdowns on outside click - IMPORTANTE: con setTimeout
+        document.addEventListener('click', (e) => {
+            // Non chiudere se il click è sui bottoni o dropdown stessi
+            if (!e.target.closest('#userMenuBtn') && 
+                !e.target.closest('#notificationBtn') && 
+                !e.target.closest('#userDropdown') && 
+                !e.target.closest('#notificationDropdown')) {
+                
+                // Usa setTimeout per evitare race condition
+                setTimeout(() => {
+                    this.closeAllDropdowns();
+                }, 10);
+            }
         });
         
         // Mark all notifications as read

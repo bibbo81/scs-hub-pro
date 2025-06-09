@@ -171,7 +171,7 @@ class Application {
         });
     }
     
-    // Page-specific initialization
+    // Page-specific initialization - FIXED VERSION
     async initPage() {
         // Get current page
         const path = window.location.pathname;
@@ -179,7 +179,30 @@ class Application {
         
         console.log(`[App] Initializing page: ${pageName}`);
         
-        // Check if page has specific init function
+        // Per tracking page, aspetta che il modulo sia caricato
+        if (pageName === 'tracking') {
+            // Attendi un momento per permettere al modulo di caricarsi
+            let attempts = 0;
+            const maxAttempts = 20;
+            const checkInterval = 100; // 100ms
+            
+            const waitForTrackingInit = setInterval(() => {
+                attempts++;
+                
+                if (window.trackingInit) {
+                    clearInterval(waitForTrackingInit);
+                    console.log('[App] Found trackingInit, calling it...');
+                    window.trackingInit();
+                } else if (attempts >= maxAttempts) {
+                    clearInterval(waitForTrackingInit);
+                    console.error('[App] trackingInit not found after waiting');
+                }
+            }, checkInterval);
+            
+            return;
+        }
+        
+        // Check if page has specific init function (per altre pagine)
         if (window[`${pageName}Init`]) {
             await window[`${pageName}Init`]();
         }
