@@ -1,6 +1,7 @@
 // /pages/tracking/index.js - Logica specifica per la pagina tracking
-import { TableManager } from '/core/table-manager.js';
-import { ModalSystem } from '/core/modal-system.js';
+// FIX: Usa percorsi relativi corretti
+import TableManager from '../../core/table-manager.js';
+import modalSystem from '../../core/modal-system.js';
 // RIMOSSO: import { ImportManager } from '/core/import-manager.js';
 
 // Tracking patterns
@@ -15,8 +16,6 @@ const TRACKING_PATTERNS = {
 let trackingTable = null;
 let trackings = [];
 let statsCards = [];
-
-// Global state
 
 // Initialize page
 window.trackingInit = async function() {
@@ -292,7 +291,7 @@ function setupFormInteractions() {
             if (tabName === 'import') {
                 // Load ShipsGo templates if available
                 try {
-                    const { shipsGoImport } = await import('/core/import-wizard-shipsgo.js');
+                    const { shipsGoImport } = await import('../../core/import-wizard-shipsgo.js');
                     shipsGoImport.init();
                 } catch (error) {
                     console.log('ShipsGo templates not available');
