@@ -5,6 +5,88 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Supply Chain Hub - Tracking Spedizioni</title>
     
+    <!-- FORCE MOCK DATA EARLY - DEVE ESSERE IL PRIMO SCRIPT -->
+    <script>
+    // Override fetch globalmente PRIMA che venga usato
+    window.FORCE_MOCK_API = true;
+    
+    if (window.FORCE_MOCK_API) {
+        const originalFetch = window.fetch;
+        window.fetch = function(...args) {
+            const url = args[0];
+            
+            // Intercetta chiamate a Netlify functions
+            if (url.includes('/.netlify/functions/')) {
+                console.log('[ForceMock] Intercepting:', url);
+                
+                // Mock per notifications
+                if (url.includes('notifications')) {
+                    return Promise.resolve({
+                        ok: true,
+                        status: 200,
+                        headers: new Headers({'content-type': 'application/json'}),
+                        json: () => Promise.resolve({
+                            notifications: [
+                                {
+                                    id: 1,
+                                    type: 'shipment',
+                                    title: 'Spedizione in arrivo',
+                                    message: 'Container MSKU1234567 arriverà domani',
+                                    read: false,
+                                    created_at: new Date().toISOString()
+                                },
+                                {
+                                    id: 2,
+                                    type: 'warning',
+                                    title: 'Ritardo spedizione',
+                                    message: 'BL MSCU7654321 è in ritardo di 2 giorni',
+                                    read: false,
+                                    created_at: new Date(Date.now() - 86400000).toISOString()
+                                }
+                            ],
+                            unread_count: 2,
+                            total: 2
+                        })
+                    });
+                }
+                
+                // Mock per trackings
+                if (url.includes('get-trackings')) {
+                    return Promise.resolve({
+                        ok: true,
+                        status: 200,
+                        headers: new Headers({'content-type': 'application/json'}),
+                        json: () => {
+                            // Usa MockData se disponibile
+                            if (window.MockData && window.MockData.generateTrackings) {
+                                return Promise.resolve(window.MockData.generateTrackings());
+                            }
+                            // Fallback data
+                            return Promise.resolve({
+                                trackings: [],
+                                stats: { total: 0, in_transit: 0, delivered: 0, delayed: 0 }
+                            });
+                        }
+                    });
+                }
+                
+                // Default response per altre chiamate
+                return Promise.resolve({
+                    ok: true,
+                    status: 200,
+                    headers: new Headers({'content-type': 'application/json'}),
+                    json: () => Promise.resolve({ success: true, data: {} })
+                });
+            }
+            
+            // Passa attraverso per URL non-Netlify
+            return originalFetch.apply(this, args);
+        };
+        
+        console.log('[ForceMock] Fetch interceptor installed successfully');
+    }
+    </script>
+    
     <!-- Favicon -->
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23007AFF'%3E%3Cpath d='M20 8h-3V4H3c-1.1 0-2 .9-2 2v11h2c0 1.66 1.34 3 3 3s3-1.34 3-3h6c0 1.66 1.34 3 3 3s3-1.34 3-3h2v-5l-4zM6 18.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm13.5-9l1.96 2.5H17V9.5h2.5zm-1.5 9c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z'/%3E%3C/svg%3E">
     
@@ -143,118 +225,6 @@
             </div>
         </div>
     </main>
-
-<!-- Aggiungi questo SUBITO DOPO <body> in tracking.html, PRIMA di tutti gli altri script -->
-<script>
-// EARLY MOCK INTERCEPTOR - Deve essere caricato PRIMA di tutto
-(function() {
-    console.log('[EarlyMock] Setting up early interceptors...');
-    
-    // Crea un proxy per window.api prima che venga creato
-    let realApi = null;
-    let apiProxy = null;
-    
-    // Mock data per risposte immediate
-    const mockResponses = {
-        notifications: {
-            notifications: [
-                {
-                    id: 1,
-                    type: 'shipment',
-                    title: 'Spedizione in arrivo',
-                    message: 'Container MSKU1234567 arriverà domani',
-                    read: false,
-                    created_at: new Date().toISOString()
-                },
-                {
-                    id: 2,
-                    type: 'warning',
-                    title: 'Ritardo spedizione',
-                    message: 'BL MSCU7654321 è in ritardo di 2 giorni',
-                    read: false,
-                    created_at: new Date(Date.now() - 86400000).toISOString()
-                }
-            ],
-            unread_count: 2,
-            total: 2
-        }
-    };
-    
-    // Intercetta la definizione di window.api
-    Object.defineProperty(window, 'api', {
-        get: function() {
-            return apiProxy;
-        },
-        set: function(value) {
-            console.log('[EarlyMock] window.api is being set');
-            realApi = value;
-            
-            // Crea proxy con interceptors
-            apiProxy = new Proxy(realApi, {
-                get: function(target, prop) {
-                    if (prop === 'get') {
-                        return async function(endpoint, options) {
-                            console.log('[EarlyMock] Intercepting GET:', endpoint);
-                            
-                            // Se è una richiesta di notifiche, ritorna mock data immediato
-                            if (endpoint.includes('notifications')) {
-                                console.log('[EarlyMock] Returning mock notifications');
-                                await new Promise(resolve => setTimeout(resolve, 100));
-                                return mockResponses.notifications;
-                            }
-                            
-                            // Altrimenti usa MockData se disponibile
-                            if (window.MockData?.enabled) {
-                                const mockData = window.MockData.interceptAPI(endpoint);
-                                if (mockData) {
-                                    console.log('[EarlyMock] Returning MockData for:', endpoint);
-                                    await new Promise(resolve => setTimeout(resolve, 200));
-                                    return mockData;
-                                }
-                            }
-                            
-                            // Fallback alla chiamata originale
-                            try {
-                                return await target.get.call(target, endpoint, options);
-                            } catch (error) {
-                                console.log('[EarlyMock] Original call failed:', error.message);
-                                // Return empty data per 404
-                                if (error.status === 404) {
-                                    if (endpoint.includes('notifications')) {
-                                        return { notifications: [], unread_count: 0 };
-                                    }
-                                    if (endpoint.includes('trackings')) {
-                                        return { trackings: [], stats: {} };
-                                    }
-                                }
-                                throw error;
-                            }
-                        };
-                    }
-                    
-                    if (prop === 'post') {
-                        return async function(endpoint, data, options) {
-                            console.log('[EarlyMock] Intercepting POST:', endpoint);
-                            
-                            if (window.MockData?.enabled) {
-                                await new Promise(resolve => setTimeout(resolve, 300));
-                                return { success: true, message: 'Mock operation completed', data: data };
-                            }
-                            
-                            return target.post.call(target, endpoint, data, options);
-                        };
-                    }
-                    
-                    // Per altre proprietà/metodi, ritorna l'originale
-                    return target[prop];
-                }
-            });
-        }
-    });
-    
-    console.log('[EarlyMock] Early interceptor ready');
-})();
-</script>
 
     <!-- Fix Scripts -->
     <script>
@@ -637,253 +607,5 @@
         }
     })();
     </script>
-
-  <!-- SOSTITUISCI il QUICK FIX esistente con questo script più completo -->
-<script>
-// COMPLETE FIX per Dropdown, Mock Data e Errori 404
-document.addEventListener('DOMContentLoaded', function() {
-    console.log('[CompleteFix] Starting fixes...');
-    
-    // 1. CSS Fix AGGRESSIVO per dropdown positioning
-    const style = document.createElement('style');
-    style.textContent = `
-        /* Complete fix for header and dropdown */
-        .sol-header {
-            position: sticky !important;
-            top: 0 !important;
-            z-index: 100 !important;
-            background: white !important;
-        }
-        
-        .sol-header-content {
-            position: relative !important;
-            height: 64px !important;
-        }
-        
-        .sol-header-right { 
-            position: relative !important; 
-            display: flex !important;
-            align-items: center !important;
-            gap: 1rem !important;
-        }
-        
-        /* FIX PRINCIPALE: dropdown positioning */
-        #userDropdown, 
-        #notificationDropdown { 
-            position: absolute !important; 
-            top: calc(100% + 8px) !important;  /* Solo 8px di gap */
-            right: 0 !important; 
-            left: auto !important;
-            margin: 0 !important;  /* Rimuovi margin-top */
-            min-width: 280px !important;
-            background: white !important;
-            border: 1px solid #e5e7eb !important;
-            border-radius: 0.5rem !important;
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05) !important;
-            z-index: 1001 !important;
-        }
-        
-        /* Fix header user button positioning */
-        #userMenuBtn {
-            position: relative !important;
-        }
-        
-        /* Fix dropdown arrow alignment */
-        #userDropdown::before {
-            content: '';
-            position: absolute;
-            top: -6px;
-            right: 20px;
-            width: 12px;
-            height: 12px;
-            background: white;
-            border-left: 1px solid #e5e7eb;
-            border-top: 1px solid #e5e7eb;
-            transform: rotate(45deg);
-            z-index: 1;
-        }
-        
-        .sol-dropdown-header {
-            background: #f9fafb !important;
-            padding: 1rem 1.25rem !important;
-            border-bottom: 1px solid #e5e7eb !important;
-            border-radius: 0.5rem 0.5rem 0 0 !important;
-        }
-        
-        .user-name {
-            font-weight: 600 !important;
-            margin: 0 0 0.25rem !important;
-            color: #111827 !important;
-        }
-        
-        .user-email {
-            font-size: 0.875rem !important;
-            color: #6b7280 !important;
-            margin: 0 !important;
-        }
-        
-        .sol-dropdown-item {
-            padding: 0.75rem 1.25rem !important;
-        }
-        
-        .sol-dropdown-item i {
-            width: 20px !important;
-            text-align: center !important;
-            color: #6b7280 !important;
-            margin-right: 0.75rem !important;
-        }
-        
-        .sol-dropdown-item:hover {
-            background: #f3f4f6 !important;
-        }
-        
-        /* Fix notification dropdown */
-        .notification-item {
-            padding: 0.75rem 1.25rem !important;
-            border-bottom: 1px solid #f3f4f6 !important;
-        }
-        
-        .notification-item:last-child {
-            border-bottom: none !important;
-        }
-        
-        /* Fix main content padding */
-        .sol-main-content {
-            padding-top: calc(64px + 2rem) !important;
-        }
-    `;
-    document.head.appendChild(style);
-    
-    // 2. Fix Mock Data Interceptors PRIMA che vengano fatte chiamate API
-    if (window.MockData && window.MockData.enabled) {
-        console.log('[CompleteFix] Setting up mock interceptors...');
-        
-        // Aspetta che api sia disponibile
-        const setupMockApi = () => {
-            if (!window.api) {
-                setTimeout(setupMockApi, 50);
-                return;
-            }
-            
-            // Salva riferimenti originali
-            const originalGet = window.api.get.bind(window.api);
-            const originalPost = window.api.post.bind(window.api);
-            
-            // Intercetta GET
-            window.api.get = async function(endpoint, options) {
-                console.log('[MockAPI] GET request:', endpoint);
-                
-                // Check mock data PRIMA di fare la richiesta
-                const mockData = window.MockData.interceptAPI(endpoint);
-                if (mockData) {
-                    console.log('[MockAPI] Returning mock data for:', endpoint);
-                    await new Promise(resolve => setTimeout(resolve, 200));
-                    return mockData;
-                }
-                
-                // Se non c'è mock data, prova la richiesta reale
-                try {
-                    return await originalGet(endpoint, options);
-                } catch (error) {
-                    console.error('[MockAPI] Real request failed, returning empty data');
-                    // Return empty data invece di fallire
-                    if (endpoint.includes('notifications')) {
-                        return { notifications: [], unread_count: 0 };
-                    }
-                    if (endpoint.includes('trackings')) {
-                        return { trackings: [], stats: {} };
-                    }
-                    throw error;
-                }
-            };
-            
-            // Intercetta POST
-            window.api.post = async function(endpoint, data, options) {
-                console.log('[MockAPI] POST request:', endpoint, data);
-                
-                if (window.MockData.enabled) {
-                    await new Promise(resolve => setTimeout(resolve, 300));
-                    return { success: true, message: 'Mock operation completed', data: data };
-                }
-                
-                return originalPost(endpoint, data, options);
-            };
-            
-            console.log('[CompleteFix] Mock API setup complete');
-        };
-        
-        setupMockApi();
-    }
-    
-    // 3. Fix dropdown event handling
-    setTimeout(() => {
-        const userDropdown = document.getElementById('userDropdown');
-        const notificationDropdown = document.getElementById('notificationDropdown');
-        const userMenuBtn = document.getElementById('userMenuBtn');
-        const notificationBtn = document.getElementById('notificationBtn');
-        
-        // Previeni propagazione click dentro dropdown
-        [userDropdown, notificationDropdown].forEach(dropdown => {
-            if (dropdown) {
-                dropdown.addEventListener('click', function(e) {
-                    if (!e.target.closest('a') && !e.target.closest('button')) {
-                        e.stopPropagation();
-                    }
-                });
-            }
-        });
-        
-        // Fix posizione dropdown quando si apre
-        if (userMenuBtn) {
-            userMenuBtn.addEventListener('click', function() {
-                setTimeout(() => {
-                    if (userDropdown && userDropdown.style.display === 'block') {
-                        const rect = userMenuBtn.getBoundingClientRect();
-                        userDropdown.style.top = `${rect.bottom + 8 - rect.top}px`;
-                    }
-                }, 10);
-            });
-        }
-        
-        console.log('[CompleteFix] Event handlers setup complete');
-    }, 1000);
-    
-    // 4. Force reload notifications con mock data
-    setTimeout(() => {
-        if (window.headerComponent && window.headerComponent.loadNotifications) {
-            console.log('[CompleteFix] Reloading notifications with mock data...');
-            window.headerComponent.loadNotifications().catch(err => {
-                console.log('[CompleteFix] Notification load error handled:', err.message);
-            });
-        }
-    }, 2000);
-});
-
-// 5. Fallback se l'header non si inizializza correttamente
-window.addEventListener('load', function() {
-    setTimeout(() => {
-        // Verifica che il dropdown sia nella posizione giusta
-        const dropdown = document.getElementById('userDropdown');
-        const button = document.getElementById('userMenuBtn');
-        
-        if (dropdown && button) {
-            // Assicurati che il dropdown sia figlio di sol-header-right
-            const headerRight = button.closest('.sol-header-right');
-            if (headerRight && !headerRight.contains(dropdown)) {
-                console.log('[CompleteFix] Moving dropdown to correct parent...');
-                headerRight.appendChild(dropdown);
-                
-                // Sposta anche il notification dropdown
-                const notifDropdown = document.getElementById('notificationDropdown');
-                if (notifDropdown && !headerRight.contains(notifDropdown)) {
-                    headerRight.appendChild(notifDropdown);
-                }
-            }
-        }
-    }, 3000);
-});
-
-console.log('[CompleteFix] Fix script loaded');
-</script>
 </body>
 </html>

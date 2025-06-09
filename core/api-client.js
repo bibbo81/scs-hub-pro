@@ -1,5 +1,4 @@
 // api-client.js - Client API unificato con gestione errori ES6
-// api-client.js - Client API unificato con gestione errori ES6
 import notificationSystem from '/core/notification-system.js';
 
 export class ApiClient {
@@ -111,9 +110,9 @@ export class ApiClient {
         // Skip notification if specified
         if (options.silent) return;
         
-        // Special handling for 404 in development with mock data
-        if (error.status === 404 && window.MockData?.enabled) {
-            console.log('[API] 404 error with mock data enabled, suppressing notification');
+        // ADD THIS: Special handling for 404 in development with mock data
+        if (error.status === 404 && (window.MockData?.enabled || window.FORCE_MOCK_API)) {
+            console.log('[API] 404 error in dev mode, suppressing notification');
             return; // Don't show error notification in dev mode
         }
         

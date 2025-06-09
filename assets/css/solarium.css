@@ -2836,3 +2836,112 @@ select.form-control {
         max-width: calc(100vw - 2rem) !important;
     }
 }
+
+/* AGGIUNGI QUESTE REGOLE ALLA FINE DI solarium.css */
+
+/* ===== DROPDOWN POSITIONING FIX ===== */
+/* Fix container positioning */
+.sol-header-right {
+    position: relative !important;
+}
+
+/* Fix dropdown exact positioning */
+#userDropdown,
+#notificationDropdown {
+    position: absolute !important;
+    top: calc(100% + 8px) !important;  /* 8px sotto il bottone */
+    right: 0 !important;
+    left: auto !important;
+    margin: 0 !important;  /* Rimuovi tutti i margin */
+    min-width: 280px !important;
+    max-width: 320px !important;
+    z-index: 1001 !important;
+}
+
+/* Aggiungi freccia triangolare sopra il dropdown */
+#userDropdown::before,
+#notificationDropdown::before {
+    content: '';
+    position: absolute;
+    top: -6px;
+    right: 20px;
+    width: 12px;
+    height: 12px;
+    background: white;
+    border-left: 1px solid #e5e7eb;
+    border-top: 1px solid #e5e7eb;
+    transform: rotate(45deg);
+    z-index: 1;
+}
+
+/* Fix per mobile */
+@media (max-width: 768px) {
+    #userDropdown,
+    #notificationDropdown {
+        right: -1rem !important;
+        max-width: calc(100vw - 2rem) !important;
+    }
+    
+    #userDropdown::before,
+    #notificationDropdown::before {
+        right: 2rem;
+    }
+}
+
+/* Fix dropdown header styling */
+.sol-dropdown-header {
+    background: #f9fafb !important;
+    padding: 1rem 1.25rem !important;
+    border-bottom: 1px solid #e5e7eb !important;
+    border-radius: 0.5rem 0.5rem 0 0 !important;
+}
+
+/* Fix user info styling */
+.user-name {
+    font-weight: 600 !important;
+    margin: 0 0 0.25rem !important;
+    color: #111827 !important;
+    font-size: 0.9375rem !important;
+}
+
+.user-email {
+    font-size: 0.8125rem !important;
+    color: #6b7280 !important;
+    margin: 0 !important;
+}
+
+/* Fix dropdown items */
+.sol-dropdown-item {
+    padding: 0.75rem 1.25rem !important;
+    font-size: 0.875rem !important;
+}
+
+.sol-dropdown-item i {
+    width: 18px !important;
+    text-align: center !important;
+    color: #6b7280 !important;
+    margin-right: 0.75rem !important;
+    font-size: 0.875rem !important;
+}
+
+.sol-dropdown-item:hover {
+    background: #f3f4f6 !important;
+}
+
+/* Fix notification items */
+.notification-item {
+    padding: 0.875rem 1.25rem !important;
+    border-bottom: 1px solid #f3f4f6 !important;
+    display: flex !important;
+    gap: 0.75rem !important;
+}
+
+.notification-item:last-child {
+    border-bottom: none !important;
+}
+
+.notification-item.unread {
+    background: #eff6ff !important;
+}
+
+/* END DROPDOWN FIX */
