@@ -2,7 +2,7 @@
 import { importWizard } from '/core/import-wizard.js';
 import { notificationSystem } from '/core/notification-system.js';
 
-// ShipsGo Templates Configuration
+// ShipsGo Templates Configuration - AGGIORNATO CON I CAMPI CORRETTI
 const SHIPSGO_TEMPLATES = {
     sea: {
         name: 'ShipsGo Sea Shipments',
@@ -14,34 +14,41 @@ const SHIPSGO_TEMPLATES = {
             'Port Of Discharge', 'Date Of Loading', 'Date Of Discharge'
         ],
         fieldMapping: {
+            // Mapping esatto dalle colonne del file Excel mostrato
             'Container': 'tracking_number',
             'Carrier': 'carrier_name',
             'Status': 'status',
             'Port Of Loading': 'origin_port',
-            'Port Of Discharge': 'destination_port',
             'Date Of Loading': 'loading_date',
+            'POL Country': 'origin_country',
+            'POL Country Code': 'origin_country_code',
+            'Port Of Discharge': 'destination_port',
             'Date Of Discharge': 'discharge_date',
+            'POD Country': 'destination_country',
+            'POD Country Code': 'destination_country_code',
             'Reference': 'reference_number',
             'Booking': 'booking_number',
             'CO₂ Emission (Tons)': 'co2_emissions',
             'Container Count': 'container_count',
-            'POL Country': 'origin_country',
-            'POD Country': 'destination_country',
-            'Tags': 'tags'
+            'Tags': 'tags',
+            'Created At': 'created_at'
         },
         defaultValues: {
             tracking_type: 'container'
         },
         eventGenerator: generateSeaEvents,
         statusMapping: {
-            'Sailing': 'in_transit',
-            'Arrived': 'in_transit',
-            'Delivered': 'delivered',
             'Discharged': 'delivered',
+            'Delivered': 'delivered',
+            'Empty': 'delivered',
+            'In Transit': 'in_transit',
+            'Sailing': 'in_transit',
+            'Loaded': 'in_transit',
             'Gate In': 'in_transit',
             'Gate Out': 'in_transit',
-            'Loaded': 'in_transit',
-            'Empty': 'delivered'
+            'Arrived': 'in_transit',
+            'Registered': 'registered',
+            'Pending': 'registered'
         }
     },
     
@@ -55,33 +62,42 @@ const SHIPSGO_TEMPLATES = {
             'Destination', 'Date Of Departure', 'Date Of Arrival'
         ],
         fieldMapping: {
+            // Mapping dalle colonne del file Excel Air
             'AWB Number': 'tracking_number',
             'Airline': 'carrier_name',
             'Status': 'status',
             'Origin': 'origin_port',
-            'Destination': 'destination_port',
-            'Date Of Departure': 'departure_date',
-            'Date Of Arrival': 'arrival_date',
-            'Reference': 'reference_number',
             'Origin Name': 'origin_name',
-            'Destination Name': 'destination_name',
+            'Date Of Departure': 'departure_date',
             'Origin Country': 'origin_country',
+            'Origin Country Code': 'origin_country_code',
+            'Destination': 'destination_port',
+            'Destination Name': 'destination_name',
+            'Date Of Arrival': 'arrival_date',
             'Destination Country': 'destination_country',
+            'Destination Country Code': 'destination_country_code',
+            'Reference': 'reference_number',
+            'Tags': 'tags',
+            'Created At': 'created_at',
             'Transit Time': 'transit_time',
-            'Tags': 'tags'
+            'T5 Count': 't5_count'
         },
         defaultValues: {
             tracking_type: 'awb'
         },
         eventGenerator: generateAirEvents,
         statusMapping: {
+            'Departed': 'in_transit',
+            'Arrived': 'in_transit',
+            'In Transit': 'in_transit',
+            'Out for Delivery': 'out_for_delivery',
+            'Delivered': 'delivered',
             'RCS': 'registered',
             'MAN': 'in_transit',
             'DEP': 'in_transit',
+            'ARR': 'in_transit',
             'RCF': 'in_transit',
-            'DLV': 'delivered',
-            'In Transit': 'in_transit',
-            'Delivered': 'delivered'
+            'DLV': 'delivered'
         }
     }
 };
@@ -123,17 +139,18 @@ function generateSeaEvents(rowData, mappedData) {
     const events = [];
     const now = new Date();
     
-    // Parse dates
+    // Parse dates - AGGIORNATO per formato MM/DD/YYYY
     const loadingDate = parseShipsGoDate(rowData['Date Of Loading']);
     const dischargeDate = parseShipsGoDate(rowData['Date Of Discharge']);
+    const createdDate = parseShipsGoDate(rowData['Created At']);
     const status = rowData['Status'];
     
     // Registration event (always first)
-    if (rowData['Created At']) {
+    if (createdDate) {
         events.push({
             event_type: 'REGISTERED',
-            event_date: parseShipsGoDate(rowData['Created At']) || new Date(now - 30 * 24 * 60 * 60 * 1000).toISOString(),
-            location: mappedData.origin_port,
+            event_date: createdDate,
+            location: rowData['Port Of Loading'],
             description: 'Shipment registered in system',
             icon: SEA_EVENT_TYPES.REGISTERED.icon,
             color: SEA_EVENT_TYPES.REGISTERED.color
@@ -161,7 +178,8 @@ function generateSeaEvents(rowData, mappedData) {
             location: rowData['Port Of Loading'],
             description: `Loaded on vessel at ${rowData['Port Of Loading']}`,
             icon: SEA_EVENT_TYPES.LOADED_ON_VESSEL.icon,
-            color: SEA_EVENT_TYPES.LOADED_ON_VESSEL.color
+            color: SEA_EVENT_TYPES.LOADED_ON_VESSEL.color,
+            details: `Carrier: ${rowData['Carrier']}`
         });
         
         // Vessel departed (few hours after loading)
@@ -214,18 +232,20 @@ function generateSeaEvents(rowData, mappedData) {
             color: SEA_EVENT_TYPES.DISCHARGED_FROM_VESSEL.color
         });
         
-        // Gate out (1 day after discharge)
-        const gateOutDate = new Date(dischargeDate);
-        gateOutDate.setDate(gateOutDate.getDate() + 1);
-        if (gateOutDate <= now) {
-            events.push({
-                event_type: 'GATE_OUT',
-                event_date: gateOutDate.toISOString(),
-                location: rowData['Port Of Discharge'],
-                description: 'Container left terminal',
-                icon: SEA_EVENT_TYPES.GATE_OUT.icon,
-                color: SEA_EVENT_TYPES.GATE_OUT.color
-            });
+        // Gate out (1 day after discharge if delivered)
+        if (status === 'Discharged' || status === 'Delivered' || status === 'Empty') {
+            const gateOutDate = new Date(dischargeDate);
+            gateOutDate.setDate(gateOutDate.getDate() + 1);
+            if (gateOutDate <= now) {
+                events.push({
+                    event_type: 'GATE_OUT',
+                    event_date: gateOutDate.toISOString(),
+                    location: rowData['Port Of Discharge'],
+                    description: 'Container left terminal',
+                    icon: SEA_EVENT_TYPES.GATE_OUT.icon,
+                    color: SEA_EVENT_TYPES.GATE_OUT.color
+                });
+            }
         }
     }
     
@@ -256,10 +276,23 @@ function generateAirEvents(rowData, mappedData) {
     const events = [];
     const now = new Date();
     
-    // Parse dates
+    // Parse dates - AGGIORNATO per formato MM/DD/YYYY HH:mm:ss
     const departureDate = parseShipsGoDate(rowData['Date Of Departure']);
     const arrivalDate = parseShipsGoDate(rowData['Date Of Arrival']);
+    const createdDate = parseShipsGoDate(rowData['Created At']);
     const status = rowData['Status'];
+    
+    // Registration/Creation event
+    if (createdDate) {
+        events.push({
+            event_type: 'REGISTERED',
+            event_date: createdDate,
+            location: rowData['Origin Name'] || rowData['Origin'],
+            description: 'AWB registered in system',
+            icon: '📋',
+            color: 'info'
+        });
+    }
     
     // RCS - Received from shipper (1 day before departure)
     if (departureDate) {
@@ -294,7 +327,8 @@ function generateAirEvents(rowData, mappedData) {
                 location: rowData['Origin Name'] || rowData['Origin'],
                 description: `Flight departed from ${rowData['Origin']}`,
                 icon: AIR_EVENT_TYPES.DEP.icon,
-                color: AIR_EVENT_TYPES.DEP.color
+                color: AIR_EVENT_TYPES.DEP.color,
+                details: `Airline: ${rowData['Airline']}`
             });
         }
     }
@@ -347,21 +381,27 @@ function generateAirEvents(rowData, mappedData) {
     return events;
 }
 
-// Parse ShipsGo date format (DD/MM/YYYY or DD/MM/YYYY HH:MM:SS)
+// Parse ShipsGo date format (MM/DD/YYYY or MM/DD/YYYY HH:MM:SS)
 function parseShipsGoDate(dateStr) {
     if (!dateStr || dateStr === '-' || dateStr === '') return null;
     
     try {
         // Split date and time
-        const [datePart, timePart] = dateStr.split(' ');
-        const [day, month, year] = datePart.split('/');
+        const [datePart, timePart] = dateStr.trim().split(' ');
+        
+        // Parse MM/DD/YYYY format
+        const [month, day, year] = datePart.split('/');
         
         if (!day || !month || !year) return null;
         
-        // Create date object
-        let date = new Date(`${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`);
+        // Create date object - months are 0-indexed in JavaScript
+        let date = new Date(
+            parseInt(year),
+            parseInt(month) - 1,  // Subtract 1 for 0-indexed months
+            parseInt(day)
+        );
         
-        // Add time if present
+        // Add time if present (HH:MM:SS format)
         if (timePart) {
             const [hours, minutes, seconds] = timePart.split(':');
             date.setHours(parseInt(hours) || 0);
@@ -392,7 +432,9 @@ export async function handleShipsGoImport(file, template) {
                 { key: 'status', label: 'Status' },
                 { key: 'origin_port', label: 'Origin' },
                 { key: 'destination_port', label: 'Destination' },
-                { key: 'reference_number', label: 'Reference' }
+                { key: 'reference_number', label: 'Reference' },
+                { key: 'co2_emissions', label: 'CO₂ Emissions' },
+                { key: 'tags', label: 'Tags' }
             ],
             templates: SHIPSGO_TEMPLATES,
             defaultTemplate: template,
@@ -405,6 +447,11 @@ export async function handleShipsGoImport(file, template) {
             onImport: async (data, options) => {
                 // Process each row
                 const processedData = data.map(row => {
+                    // Apply status mapping
+                    if (row.status && template.statusMapping) {
+                        row.status = template.statusMapping[row.status] || row.status;
+                    }
+                    
                     // Generate timeline events
                     const events = template.eventGenerator ? 
                         template.eventGenerator(row._original || row, row) : [];
@@ -463,6 +510,7 @@ export const shipsGoImport = {
     init: initShipsGoTemplates,
     handleImport: handleShipsGoImport,
     detectFormat: detectShipsGoFormat,
+    parseDate: parseShipsGoDate,
     generateSeaEvents,
     generateAirEvents
 };
