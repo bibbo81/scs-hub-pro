@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Mapping ShipsGo</title>
+    <style>
+        body { font-family: monospace; padding: 20px; }
+        .test { margin: 10px 0; padding: 10px; border: 1px solid #ccc; }
+        .success { background: #d4edda; }
+        .error { background: #f8d7da; }
+        pre { background: #f8f9fa; padding: 10px; overflow: auto; }
+    </style>
+</head>
+<body>
+    <h1>Test Mapping ShipsGo</h1>
+    
+    <div id="results"></div>
+    
+    <script>
+        // Test data examples
+        const testDataSea = {
+            'Container': 'MSKU1234567',
+            'Carrier': 'MAERSK LINE',
+            'Status': 'In Transit',
+            'Reference': 'PO-2024-123',
+            'Booking': 'BKG789',
+            'Port Of Loading': 'SHANGHAI',
+            'Port Of Discharge': 'ROTTERDAM',
+            'Date Of Loading': '15/06/2025',
+            'Date Of Discharge': '30/06/2025',
+            'CO₂ Emission (Tons)': '1.5',
+            'Tags': 'Urgent'
+        };
+        
+        const testDataAir = {
+            'AWB Number': '176-12345678',
+            'Airline': 'CARGOLUX',
+            'Status': 'Departed',
+            'Origin': 'HKG',
+            'Origin Name': 'Hong Kong',
+            'Destination': 'MXP',
+            'Destination Name': 'Milan Malpensa',
+            'Date Of Departure': '07/12/2024 14:30:00',
+            'Date Of Arrival': '08/12/2024 18:45:00',
+            'Reference': 'AIR-2024-456',
+            'Tags': 'Express',
+            'Transit Time': '28h 15m'
+        };
+        
+        // Mock delle funzioni di ImportManager
+        const mockImportManager = {
+            mappings: {
+                carriers: {
+                    'MAERSK LINE': 'MAERSK',
+                    'MSC': 'MSC',
+                    'CMA CGM': 'CMA-CGM',
+                    'COSCO': 'COSCO',
+                    'CARGOLUX': 'CV'
+                },
+                status: {
+                    'Gate In': 'in_transit',
+                    'Gate Out': 'in_transit',
+                    'Loaded': 'in_transit',
+                    'Discharged': 'in_transit',
+                    'In Transit': 'in_transit',
+                    'Departed': 'in_transit',
+                    'Arrived': 'in_transit',
+                    'Delivered': 'delivered',
+                    'Empty': 'delivered',
+                    'Registered': 'registered',
+                    'Pending': 'registered'
+                },
+                types: {
+                    container: /^[A-Z]{4}\d{7}$/,
+                    bl: /^[A-Z]{4}\d{8,12}$/,
+                    awb: /^\d{3}-\d{8}$/,
+                    parcel: /^[A-Z0-9]{10,30}$/
+                }
+            },
+            
+            detectTrackingType(trackingNumber) {
+                const num = trackingNumber.toUpperCase();
+                for (const [type, pattern] of Object.entries(this.mappings.types)) {
+                    if (pattern.test(num)) return type;
+                }
+                return 'unknown';
+            },
+            
+            getCarrierCode(carrierName) {
+                if (!carrierName) return '';
+                const upperName = carrierName.toUpperCase();
+                if (upperName.includes('MAERSK')) return 'MAERSK';
+                if (upperName.includes('CARGOLUX')) return 'CV';
+                return upperName.substring(0, 3);
+            },
+            
+            parseDate(dateStr) {
+                if (!dateStr || dateStr === '-') return null;
+                try {
+                    const datePart = dateStr.split(' ')[0];
+                    if (datePart.includes('/')) {
+                        const [day, month, year] = datePart.split('/');
+                        const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+                        return date.toISOString();
+                    }
+                    return new Date(dateStr).toISOString();
+                } catch (error) {
+                    return null;
+                }
+            },
+            
+            normalizeTrackingData(row) {
+                const trackingNumber = (
+                    row['Container'] || 
+                    row['AWB Number'] || 
+                    row['Tracking Number'] || 
+                    ''
+                ).toString().toUpperCase().trim();
+                
+                const trackingType = this.detectTrackingType(trackingNumber);
+                
+                const carrierInput = (
+                    row['Carrier'] || 
+                    row['Airline'] || 
+                    ''
+                ).toString().trim();
+                
+                const carrierCode = this.mappings.carriers[carrierInput] || 
+                                  this.getCarrierCode(carrierInput) ||
+                                  carrierInput.toUpperCase();
+                
+                const statusInput = row['Status'] || 'registered';
+                const status = this.mappings.status[statusInput] || 'registered';
+                
+                return {
+                    trackingNumber,
+                    trackingType,
+                    carrierCode,
+                    status,
+                    referenceNumber: row['Reference'] || null,
+                    metadata: {
+                        pol: row['Port Of Loading'],
+                        pod: row['Port Of Discharge'],
+                        origin_name: row['Origin Name'],
+                        destination_name: row['Destination Name'],
+                        loading_date: this.parseDate(row['Date Of Loading']),
+                        discharge_date: this.parseDate(row['Date Of Discharge']),
+                        departure_date: this.parseDate(row['Date Of Departure']),
+                        arrival_date: this.parseDate(row['Date Of Arrival'])
+                    }
+                };
+            }
+        };
+        
+        // Run tests
+        function runTests() {
+            const results = document.getElementById('results');
+            
+            // Test Sea Container
+            const seaResult = mockImportManager.normalizeTrackingData(testDataSea);
+            results.innerHTML += `
+                <div class="test ${seaResult.trackingNumber === 'MSKU1234567' ? 'success' : 'error'}">
+                    <h3>Test Sea Container</h3>
+                    <pre>${JSON.stringify(seaResult, null, 2)}</pre>
+                    <p>✓ Tracking: ${seaResult.trackingNumber} (expected: MSKU1234567)</p>
+                    <p>✓ Type: ${seaResult.trackingType} (expected: container)</p>
+                    <p>✓ Carrier: ${seaResult.carrierCode} (expected: MAERSK)</p>
+                    <p>✓ Status: ${seaResult.status} (expected: in_transit)</p>
+                </div>
+            `;
+            
+            // Test Air Shipment
+            const airResult = mockImportManager.normalizeTrackingData(testDataAir);
+            results.innerHTML += `
+                <div class="test ${airResult.trackingNumber === '176-12345678' ? 'success' : 'error'}">
+                    <h3>Test Air Shipment</h3>
+                    <pre>${JSON.stringify(airResult, null, 2)}</pre>
+                    <p>✓ Tracking: ${airResult.trackingNumber} (expected: 176-12345678)</p>
+                    <p>✓ Type: ${airResult.trackingType} (expected: awb)</p>
+                    <p>✓ Carrier: ${airResult.carrierCode} (expected: CV)</p>
+                    <p>✓ Status: ${airResult.status} (expected: in_transit)</p>
+                </div>
+            `;
+            
+            // Test what would be saved
+            const mockTracking = {
+                id: Date.now(),
+                tracking_number: seaResult.trackingNumber,
+                tracking_type: seaResult.trackingType,
+                carrier_code: seaResult.carrierCode,
+                status: seaResult.status,
+                reference_number: seaResult.referenceNumber,
+                origin_port: seaResult.metadata.pol || 'N/A',
+                destination_port: seaResult.metadata.pod || 'N/A',
+                eta: seaResult.metadata.discharge_date,
+                last_event_date: new Date().toISOString(),
+                last_event_location: seaResult.metadata.pol || 'Import',
+                created_at: new Date().toISOString(),
+                metadata: seaResult.metadata
+            };
+            
+            results.innerHTML += `
+                <div class="test success">
+                    <h3>Final Tracking Object (what gets saved)</h3>
+                    <pre>${JSON.stringify(mockTracking, null, 2)}</pre>
+                </div>
+            `;
+        }
+        
+        // Run tests on load
+        runTests();
+    </script>
+</body>
+</html>
