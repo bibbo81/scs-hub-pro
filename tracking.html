@@ -526,115 +526,252 @@
     })();
     </script>
 
-    <!-- Aggiungi questo script alla fine del body in tracking.html, prima del tag </body> -->
-
-<!-- QUICK FIX per Dropdown e Mock Data -->
+  <!-- SOSTITUISCI il QUICK FIX esistente con questo script più completo -->
 <script>
-// Quick CSS fix per dropdown positioning
+// COMPLETE FIX per Dropdown, Mock Data e Errori 404
 document.addEventListener('DOMContentLoaded', function() {
-    // Fix dropdown positioning con CSS inline
+    console.log('[CompleteFix] Starting fixes...');
+    
+    // 1. CSS Fix AGGRESSIVO per dropdown positioning
     const style = document.createElement('style');
     style.textContent = `
-        /* Quick fix for dropdown positioning */
-        .sol-header-right { 
-            position: relative !important; 
+        /* Complete fix for header and dropdown */
+        .sol-header {
+            position: sticky !important;
+            top: 0 !important;
+            z-index: 100 !important;
+            background: white !important;
         }
         
+        .sol-header-content {
+            position: relative !important;
+            height: 64px !important;
+        }
+        
+        .sol-header-right { 
+            position: relative !important; 
+            display: flex !important;
+            align-items: center !important;
+            gap: 1rem !important;
+        }
+        
+        /* FIX PRINCIPALE: dropdown positioning */
         #userDropdown, 
         #notificationDropdown { 
             position: absolute !important; 
-            top: 100% !important; 
+            top: calc(100% + 8px) !important;  /* Solo 8px di gap */
             right: 0 !important; 
             left: auto !important;
-            margin-top: 0.5rem !important; 
+            margin: 0 !important;  /* Rimuovi margin-top */
             min-width: 280px !important;
             background: white !important;
-            border: 1px solid rgba(0,0,0,0.1) !important;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.1) !important;
+            border: 1px solid #e5e7eb !important;
+            border-radius: 0.5rem !important;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05) !important;
+            z-index: 1001 !important;
+        }
+        
+        /* Fix header user button positioning */
+        #userMenuBtn {
+            position: relative !important;
+        }
+        
+        /* Fix dropdown arrow alignment */
+        #userDropdown::before {
+            content: '';
+            position: absolute;
+            top: -6px;
+            right: 20px;
+            width: 12px;
+            height: 12px;
+            background: white;
+            border-left: 1px solid #e5e7eb;
+            border-top: 1px solid #e5e7eb;
+            transform: rotate(45deg);
+            z-index: 1;
         }
         
         .sol-dropdown-header {
-            background: #f8f9fa !important;
+            background: #f9fafb !important;
             padding: 1rem 1.25rem !important;
-            border-bottom: 1px solid #e9ecef !important;
+            border-bottom: 1px solid #e5e7eb !important;
+            border-radius: 0.5rem 0.5rem 0 0 !important;
         }
         
         .user-name {
             font-weight: 600 !important;
             margin: 0 0 0.25rem !important;
+            color: #111827 !important;
         }
         
         .user-email {
             font-size: 0.875rem !important;
-            color: #6c757d !important;
+            color: #6b7280 !important;
             margin: 0 !important;
+        }
+        
+        .sol-dropdown-item {
+            padding: 0.75rem 1.25rem !important;
         }
         
         .sol-dropdown-item i {
             width: 20px !important;
             text-align: center !important;
-            color: #6c757d !important;
+            color: #6b7280 !important;
+            margin-right: 0.75rem !important;
+        }
+        
+        .sol-dropdown-item:hover {
+            background: #f3f4f6 !important;
+        }
+        
+        /* Fix notification dropdown */
+        .notification-item {
+            padding: 0.75rem 1.25rem !important;
+            border-bottom: 1px solid #f3f4f6 !important;
+        }
+        
+        .notification-item:last-child {
+            border-bottom: none !important;
+        }
+        
+        /* Fix main content padding */
+        .sol-main-content {
+            padding-top: calc(64px + 2rem) !important;
         }
     `;
     document.head.appendChild(style);
     
-    // Ensure mock data is working
-    console.log('[QuickFix] Mock data enabled:', window.MockData?.enabled);
+    // 2. Fix Mock Data Interceptors PRIMA che vengano fatte chiamate API
+    if (window.MockData && window.MockData.enabled) {
+        console.log('[CompleteFix] Setting up mock interceptors...');
+        
+        // Aspetta che api sia disponibile
+        const setupMockApi = () => {
+            if (!window.api) {
+                setTimeout(setupMockApi, 50);
+                return;
+            }
+            
+            // Salva riferimenti originali
+            const originalGet = window.api.get.bind(window.api);
+            const originalPost = window.api.post.bind(window.api);
+            
+            // Intercetta GET
+            window.api.get = async function(endpoint, options) {
+                console.log('[MockAPI] GET request:', endpoint);
+                
+                // Check mock data PRIMA di fare la richiesta
+                const mockData = window.MockData.interceptAPI(endpoint);
+                if (mockData) {
+                    console.log('[MockAPI] Returning mock data for:', endpoint);
+                    await new Promise(resolve => setTimeout(resolve, 200));
+                    return mockData;
+                }
+                
+                // Se non c'è mock data, prova la richiesta reale
+                try {
+                    return await originalGet(endpoint, options);
+                } catch (error) {
+                    console.error('[MockAPI] Real request failed, returning empty data');
+                    // Return empty data invece di fallire
+                    if (endpoint.includes('notifications')) {
+                        return { notifications: [], unread_count: 0 };
+                    }
+                    if (endpoint.includes('trackings')) {
+                        return { trackings: [], stats: {} };
+                    }
+                    throw error;
+                }
+            };
+            
+            // Intercetta POST
+            window.api.post = async function(endpoint, data, options) {
+                console.log('[MockAPI] POST request:', endpoint, data);
+                
+                if (window.MockData.enabled) {
+                    await new Promise(resolve => setTimeout(resolve, 300));
+                    return { success: true, message: 'Mock operation completed', data: data };
+                }
+                
+                return originalPost(endpoint, data, options);
+            };
+            
+            console.log('[CompleteFix] Mock API setup complete');
+        };
+        
+        setupMockApi();
+    }
     
-    // Extra fix for dropdown click handling
+    // 3. Fix dropdown event handling
     setTimeout(() => {
         const userDropdown = document.getElementById('userDropdown');
         const notificationDropdown = document.getElementById('notificationDropdown');
+        const userMenuBtn = document.getElementById('userMenuBtn');
+        const notificationBtn = document.getElementById('notificationBtn');
         
-        if (userDropdown) {
-            userDropdown.addEventListener('click', function(e) {
-                if (!e.target.closest('a') && !e.target.closest('button')) {
-                    e.stopPropagation();
-                    e.preventDefault();
-                }
+        // Previeni propagazione click dentro dropdown
+        [userDropdown, notificationDropdown].forEach(dropdown => {
+            if (dropdown) {
+                dropdown.addEventListener('click', function(e) {
+                    if (!e.target.closest('a') && !e.target.closest('button')) {
+                        e.stopPropagation();
+                    }
+                });
+            }
+        });
+        
+        // Fix posizione dropdown quando si apre
+        if (userMenuBtn) {
+            userMenuBtn.addEventListener('click', function() {
+                setTimeout(() => {
+                    if (userDropdown && userDropdown.style.display === 'block') {
+                        const rect = userMenuBtn.getBoundingClientRect();
+                        userDropdown.style.top = `${rect.bottom + 8 - rect.top}px`;
+                    }
+                }, 10);
             });
         }
         
-        if (notificationDropdown) {
-            notificationDropdown.addEventListener('click', function(e) {
-                if (!e.target.closest('a') && !e.target.closest('button')) {
-                    e.stopPropagation();
-                    e.preventDefault();
-                }
-            });
-        }
+        console.log('[CompleteFix] Event handlers setup complete');
     }, 1000);
+    
+    // 4. Force reload notifications con mock data
+    setTimeout(() => {
+        if (window.headerComponent && window.headerComponent.loadNotifications) {
+            console.log('[CompleteFix] Reloading notifications with mock data...');
+            window.headerComponent.loadNotifications().catch(err => {
+                console.log('[CompleteFix] Notification load error handled:', err.message);
+            });
+        }
+    }, 2000);
 });
 
-// Force mock data initialization
-setTimeout(() => {
-    if (window.MockData && window.MockData.enabled && !window.api._mockInitialized) {
-        console.log('[QuickFix] Re-initializing mock data interceptors...');
-        window.api._mockInitialized = true;
+// 5. Fallback se l'header non si inizializza correttamente
+window.addEventListener('load', function() {
+    setTimeout(() => {
+        // Verifica che il dropdown sia nella posizione giusta
+        const dropdown = document.getElementById('userDropdown');
+        const button = document.getElementById('userMenuBtn');
         
-        const originalGet = window.api.get.bind(window.api);
-        const originalPost = window.api.post.bind(window.api);
-        
-        window.api.get = async function(endpoint, options) {
-            const mockData = window.MockData.interceptAPI(endpoint);
-            if (mockData) {
-                console.log('[QuickFix MockData] Intercepted:', endpoint);
-                await new Promise(resolve => setTimeout(resolve, 300));
-                return mockData;
+        if (dropdown && button) {
+            // Assicurati che il dropdown sia figlio di sol-header-right
+            const headerRight = button.closest('.sol-header-right');
+            if (headerRight && !headerRight.contains(dropdown)) {
+                console.log('[CompleteFix] Moving dropdown to correct parent...');
+                headerRight.appendChild(dropdown);
+                
+                // Sposta anche il notification dropdown
+                const notifDropdown = document.getElementById('notificationDropdown');
+                if (notifDropdown && !headerRight.contains(notifDropdown)) {
+                    headerRight.appendChild(notifDropdown);
+                }
             }
-            return originalGet(endpoint, options);
-        };
-        
-        window.api.post = async function(endpoint, data, options) {
-            if (window.MockData.enabled) {
-                console.log('[QuickFix MockData] POST intercepted:', endpoint, data);
-                await new Promise(resolve => setTimeout(resolve, 500));
-                return { success: true, message: 'Mock operation completed' };
-            }
-            return originalPost(endpoint, data, options);
-        };
-    }
-}, 2000);
+        }
+    }, 3000);
+});
+
+console.log('[CompleteFix] Fix script loaded');
 </script>
 </body>
 </html>
