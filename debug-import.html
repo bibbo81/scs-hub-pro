@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Debug Import ShipsGo</title>
+    <style>
+        body {
+            font-family: monospace;
+            padding: 20px;
+            background: #1a1a1a;
+            color: #0f0;
+        }
+        .section {
+            margin: 20px 0;
+            padding: 10px;
+            border: 1px solid #0f0;
+            border-radius: 5px;
+        }
+        button {
+            background: #333;
+            color: #0f0;
+            border: 1px solid #0f0;
+            padding: 10px;
+            margin: 5px;
+            cursor: pointer;
+            font-family: monospace;
+        }
+        button:hover {
+            background: #0f0;
+            color: #000;
+        }
+        pre {
+            background: #000;
+            padding: 10px;
+            overflow: auto;
+            max-height: 300px;
+        }
+        .success { color: #0f0; }
+        .error { color: #f00; }
+        .warning { color: #ff0; }
+        .info { color: #0ff; }
+    </style>
+</head>
+<body>
+    <h1>🔧 Debug Import ShipsGo - Supply Chain Hub</h1>
+    
+    <div class="section">
+        <h2>1. Check localStorage</h2>
+        <button onclick="checkLocalStorage()">Check mockTrackings</button>
+        <button onclick="clearLocalStorage()">Clear All Data</button>
+        <button onclick="exportLocalStorage()">Export to JSON</button>
+        <pre id="localStorage-output"></pre>
+    </div>
+    
+    <div class="section">
+        <h2>2. Test Direct Save</h2>
+        <button onclick="testDirectSave()">Save Test Tracking</button>
+        <button onclick="saveShipsGoTracking()">Save ShipsGo Example</button>
+        <pre id="save-output"></pre>
+    </div>
+    
+    <div class="section">
+        <h2>3. Simulate ShipsGo Import</h2>
+        <button onclick="simulateShipsGoImport()">Simulate Sea Container</button>
+        <button onclick="simulateAirImport()">Simulate Air Shipment</button>
+        <pre id="import-output"></pre>
+    </div>
+    
+    <div class="section">
+        <h2>4. Check Mock Interceptor</h2>
+        <button onclick="testMockInterceptor()">Test API Call</button>
+        <button onclick="testWindowObjects()">Check Window Objects</button>
+        <pre id="api-output"></pre>
+    </div>
+    
+    <div class="section">
+        <h2>5. Quick Actions</h2>
+        <button onclick="window.location.href='/tracking.html'">Go to Tracking Page</button>
+        <button onclick="resetToMockData()">Reset to Mock Data</button>
+        <a href="/tracking.html" target="_blank" style="color: #0f0;">Open Tracking in New Tab</a>
+    </div>
+
+    <script>
+        function log(elementId, message, type = '') {
+            const el = document.getElementById(elementId);
+            const timestamp = new Date().toISOString().split('T')[1].split('.')[0];
+            const className = type ? `class="${type}"` : '';
+            el.innerHTML += `<div ${className}>[${timestamp}] ${message}</div>`;
+        }
+
+        function checkLocalStorage() {
+            const output = document.getElementById('localStorage-output');
+            output.innerHTML = '';
+            
+            try {
+                const mockTrackings = localStorage.getItem('mockTrackings');
+                if (mockTrackings) {
+                    const data = JSON.parse(mockTrackings);
+                    log('localStorage-output', `Found ${data.length} trackings in localStorage:`, 'success');
+                    
+                    // Mostra sommario
+                    const summary = {
+                        total: data.length,
+                        byStatus: {},
+                        byType: {},
+                        byCarrier: {}
+                    };
+                    
+                    data.forEach(t => {
+                        summary.byStatus[t.status] = (summary.byStatus[t.status] || 0) + 1;
+                        summary.byType[t.tracking_type] = (summary.byType[t.tracking_type] || 0) + 1;
+                        summary.byCarrier[t.carrier_code] = (summary.byCarrier[t.carrier_code] || 0) + 1;
+                    });
+                    
+                    log('localStorage-output', '\nSummary:', 'info');
+                    log('localStorage-output', JSON.stringify(summary, null, 2));
+                    
+                    log('localStorage-output', '\nFirst 3 trackings:', 'info');
+                    log('localStorage-output', JSON.stringify(data.slice(0, 3), null, 2));
+                } else {
+                    log('localStorage-output', 'No mockTrackings found in localStorage', 'warning');
+                }
+                
+                // Check other keys
+                log('localStorage-output', '\nAll localStorage keys:', 'info');
+                for (let i = 0; i < localStorage.length; i++) {
+                    const key = localStorage.key(i);
+                    const value = localStorage.getItem(key);
+                    log('localStorage-output', `- ${key}: ${value.substring(0, 100)}...`);
+                }
+            } catch (error) {
+                log('localStorage-output', `Error: ${error.message}`, 'error');
+            }
+        }
+
+        function clearLocalStorage() {
+            if (confirm('Clear all localStorage data?')) {
+                localStorage.clear();
+                log('localStorage-output', 'All localStorage data cleared!', 'success');
+                setTimeout(() => location.reload(), 1000);
+            }
+        }
+
+        function exportLocalStorage() {
+            try {
+                const data = localStorage.getItem('mockTrackings');
+                if (data) {
+                    const blob = new Blob([data], { type: 'application/json' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `trackings-export-${new Date().toISOString().split('T')[0]}.json`;
+                    a.click();
+                    log('localStorage-output', 'Data exported to JSON file', 'success');
+                } else {
+                    log('localStorage-output', 'No data to export', 'warning');
+                }
+            } catch (error) {
+                log('localStorage-output', `Export error: ${error.message}`, 'error');
+            }
+        }
+
+        function testDirectSave() {
+            const output = document.getElementById('save-output');
+            output.innerHTML = '';
+            
+            try {
+                // Get existing
+                const existing = JSON.parse(localStorage.getItem('mockTrackings') || '[]');
+                log('save-output', `Current trackings: ${existing.length}`);
+                
+                // Add new
+                const newTracking = {
+                    id: Date.now(),
+                    tracking_number: 'TEST' + Date.now(),
+                    tracking_type: 'container',
+                    carrier_code: 'MSC',
+                    status: 'in_transit',
+                    created_at: new Date().toISOString(),
+                    updated_at: new Date().toISOString(),
+                    last_event_date: new Date().toISOString(),
+                    last_event_location: 'Test Location',
+                    origin_port: 'Shanghai',
+                    destination_port: 'Rotterdam',
+                    eta: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+                    metadata: {
+                        source: 'debug_test',
+                        pol: 'Shanghai',
+                        pod: 'Rotterdam'
+                    }
+                };
+                
+                existing.push(newTracking);
+                localStorage.setItem('mockTrackings', JSON.stringify(existing));
+                
+                log('save-output', 'Saved new tracking:', 'success');
+                log('save-output', JSON.stringify(newTracking, null, 2));
+                log('save-output', `Total trackings now: ${existing.length}`, 'success');
+                
+            } catch (error) {
+                log('save-output', `Error: ${error.message}`, 'error');
+            }
+        }
+
+        function saveShipsGoTracking() {
+            const output = document.getElementById('save-output');
+            output.innerHTML = '';
+            
+            try {
+                const existing = JSON.parse(localStorage.getItem('mockTrackings') || '[]');
+                
+                const shipsGoTracking = {
+                    id: Date.now(),
+                    tracking_number: 'MSKU' + Math.floor(Math.random() * 9000000 + 1000000),
+                    tracking_type: 'container',
+                    carrier_code: 'MAERSK',
+                    status: 'in_transit',
+                    reference_number: 'PO-2024-' + Math.floor(Math.random() * 1000),
+                    created_at: new Date().toISOString(),
+                    updated_at: new Date().toISOString(),
+                    origin_port: 'SHANGHAI',
+                    destination_port: 'ROTTERDAM',
+                    eta: '2024-12-25T00:00:00.000Z',
+                    last_event_date: new Date().toISOString(),
+                    last_event_location: 'SHANGHAI',
+                    metadata: {
+                        source: 'shipsgo_import',
+                        pol: 'SHANGHAI',
+                        pod: 'ROTTERDAM',
+                        loading_date: '2024-12-01T00:00:00.000Z',
+                        discharge_date: '2024-12-25T00:00:00.000Z',
+                        co2_emissions: 1.5,
+                        timeline_events: [
+                            {
+                                event_type: 'GATE_IN',
+                                event_date: '2024-11-30T10:00:00.000Z',
+                                location: 'SHANGHAI',
+                                description: 'Container entered terminal'
+                            },
+                            {
+                                event_type: 'LOADED_ON_VESSEL',
+                                event_date: '2024-12-01T10:00:00.000Z',
+                                location: 'SHANGHAI',
+                                description: 'Container loaded on vessel'
+                            },
+                            {
+                                event_type: 'VESSEL_DEPARTED',
+                                event_date: '2024-12-01T16:00:00.000Z',
+                                location: 'SHANGHAI',
+                                description: 'Vessel departed from port'
+                            }
+                        ]
+                    }
+                };
+                
+                existing.push(shipsGoTracking);
+                localStorage.setItem('mockTrackings', JSON.stringify(existing));
+                
+                log('save-output', 'Saved ShipsGo tracking:', 'success');
+                log('save-output', JSON.stringify(shipsGoTracking, null, 2));
+                log('save-output', `Total trackings now: ${existing.length}`, 'success');
+                
+            } catch (error) {
+                log('save-output', `Error: ${error.message}`, 'error');
+            }
+        }
+
+        function simulateShipsGoImport() {
+            const output = document.getElementById('import-output');
+            output.innerHTML = '';
+            
+            try {
+                // Simulate ShipsGo data
+                const shipsGoData = {
+                    Container: 'MSKU' + Math.floor(Math.random() * 9000000 + 1000000),
+                    Carrier: 'MAERSK LINE',
+                    Status: 'In Transit',
+                    'Port Of Loading': 'SHANGHAI',
+                    'Port Of Discharge': 'ROTTERDAM',
+                    'Date Of Loading': '01/12/2024',
+                    'Date Of Discharge': '25/12/2024',
+                    Reference: 'PO-2024-' + Math.floor(Math.random() * 1000),
+                    'CO₂ Emission (Tons)': '1.5',
+                    Tags: 'Urgent'
+                };
+                
+                log('import-output', 'ShipsGo raw data:', 'info');
+                log('import-output', JSON.stringify(shipsGoData, null, 2));
+                
+                // Transform to tracking format
+                const trackingData = {
+                    id: Date.now(),
+                    tracking_number: shipsGoData.Container,
+                    tracking_type: 'container',
+                    carrier_code: 'MAERSK',
+                    status: 'in_transit',
+                    reference_number: shipsGoData.Reference,
+                    created_at: new Date().toISOString(),
+                    updated_at: new Date().toISOString(),
+                    origin_port: shipsGoData['Port Of Loading'],
+                    destination_port: shipsGoData['Port Of Discharge'],
+                    eta: new Date('2024-12-25').toISOString(),
+                    last_event_date: new Date().toISOString(),
+                    last_event_location: shipsGoData['Port Of Loading'],
+                    metadata: {
+                        source: 'shipsgo_import',
+                        pol: shipsGoData['Port Of Loading'],
+                        pod: shipsGoData['Port Of Discharge'],
+                        loading_date: new Date('2024-12-01').toISOString(),
+                        discharge_date: new Date('2024-12-25').toISOString(),
+                        co2_emissions: parseFloat(shipsGoData['CO₂ Emission (Tons)']),
+                        tags: shipsGoData.Tags,
+                        timeline_events: [
+                            {
+                                event_type: 'LOADED_ON_VESSEL',
+                                event_date: '2024-12-01T10:00:00Z',
+                                location: 'SHANGHAI',
+                                description: 'Container loaded on vessel'
+                            },
+                            {
+                                event_type: 'VESSEL_DEPARTED',
+                                event_date: '2024-12-01T16:00:00Z',
+                                location: 'SHANGHAI',
+                                description: 'Vessel departed from port'
+                            }
+                        ]
+                    }
+                };
+                
+                log('import-output', '\nTransformed tracking data:', 'info');
+                log('import-output', JSON.stringify(trackingData, null, 2));
+                
+                // Save to localStorage
+                const existing = JSON.parse(localStorage.getItem('mockTrackings') || '[]');
+                existing.push(trackingData);
+                localStorage.setItem('mockTrackings', JSON.stringify(existing));
+                
+                log('import-output', '\nSaved to localStorage!', 'success');
+                log('import-output', `Total trackings: ${existing.length}`, 'success');
+                
+            } catch (error) {
+                log('import-output', `Error: ${error.message}`, 'error');
+            }
+        }
+
+        function simulateAirImport() {
+            const output = document.getElementById('import-output');
+            output.innerHTML = '';
+            
+            try {
+                const airData = {
+                    'AWB Number': '176-' + Math.floor(Math.random() * 90000000 + 10000000),
+                    Airline: 'CARGOLUX',
+                    Status: 'In Transit',
+                    Origin: 'HKG',
+                    'Origin Name': 'Hong Kong',
+                    Destination: 'MXP',
+                    'Destination Name': 'Milan Malpensa',
+                    'Date Of Departure': '07/12/2024 14:30:00',
+                    'Date Of Arrival': '08/12/2024 18:45:00',
+                    Reference: 'AIR-2024-' + Math.floor(Math.random() * 1000),
+                    Tags: 'Express'
+                };
+                
+                log('import-output', 'Air shipment data:', 'info');
+                log('import-output', JSON.stringify(airData, null, 2));
+                
+                const existing = JSON.parse(localStorage.getItem('mockTrackings') || '[]');
+                existing.push({
+                    id: Date.now(),
+                    tracking_number: airData['AWB Number'],
+                    tracking_type: 'awb',
+                    carrier_code: 'CV',
+                    status: 'in_transit',
+                    reference_number: airData.Reference,
+                    created_at: new Date().toISOString(),
+                    origin_port: airData['Origin Name'],
+                    destination_port: airData['Destination Name'],
+                    eta: new Date('2024-12-08T18:45:00').toISOString(),
+                    last_event_date: new Date().toISOString(),
+                    last_event_location: airData['Origin Name'],
+                    metadata: {
+                        source: 'shipsgo_import',
+                        tags: airData.Tags
+                    }
+                });
+                
+                localStorage.setItem('mockTrackings', JSON.stringify(existing));
+                log('import-output', 'Air shipment saved!', 'success');
+                
+            } catch (error) {
+                log('import-output', `Error: ${error.message}`, 'error');
+            }
+        }
+
+        async function testMockInterceptor() {
+            const output = document.getElementById('api-output');
+            output.innerHTML = '';
+            
+            try {
+                log('api-output', 'Testing GET /get-trackings...', 'info');
+                
+                const response = await fetch('/.netlify/functions/get-trackings', {
+                    headers: {
+                        'Authorization': 'Bearer mock-token'
+                    }
+                });
+                
+                log('api-output', `Response status: ${response.status}`, response.ok ? 'success' : 'error');
+                
+                const data = await response.json();
+                log('api-output', 'Response data:', 'info');
+                log('api-output', JSON.stringify(data, null, 2));
+                
+                if (data.trackings) {
+                    log('api-output', `\nTotal trackings returned: ${data.trackings.length}`, 'success');
+                }
+                
+            } catch (error) {
+                log('api-output', `Error: ${error.message}`, 'error');
+            }
+        }
+
+        function testWindowObjects() {
+            const output = document.getElementById('api-output');
+            output.innerHTML = '';
+            
+            log('api-output', 'Checking window objects:', 'info');
+            
+            const objects = {
+                'window.api': !!window.api,
+                'window.MockData': !!window.MockData,
+                'window.ImportManager': !!window.ImportManager,
+                'window.ModalSystem': !!window.ModalSystem,
+                'window.NotificationSystem': !!window.NotificationSystem,
+                'window.FORCE_MOCK_API': window.FORCE_MOCK_API,
+                'window.MockData.enabled': window.MockData?.enabled
+            };
+            
+            Object.entries(objects).forEach(([key, value]) => {
+                log('api-output', `${key}: ${value}`, value ? 'success' : 'warning');
+            });
+            
+            if (window.MockData) {
+                log('api-output', '\nMockData functions:', 'info');
+                log('api-output', Object.keys(window.MockData).join(', '));
+            }
+        }
+
+        function resetToMockData() {
+            if (confirm('Reset to default mock data? This will clear all imported trackings.')) {
+                localStorage.removeItem('mockTrackings');
+                log('localStorage-output', 'Reset to mock data. Reload the page to see default trackings.', 'success');
+            }
+        }
+
+        // Auto-check on load
+        window.onload = () => {
+            log('localStorage-output', 'Debug tool loaded. Checking environment...', 'warning');
+            checkLocalStorage();
+            
+            // Show current URL
+            log('api-output', `Current URL: ${window.location.href}`, 'info');
+            log('api-output', `Origin: ${window.location.origin}`, 'info');
+        };
+    </script>
+</body>
+</html>

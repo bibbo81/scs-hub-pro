@@ -265,8 +265,6 @@
          * Processa import
          */
         async processImport(data, progressModal, options = {}) {
-            console.log('[ImportManager] Processing import:', data.length, 'records');
-            
             const results = {
                 imported: 0,
                 updated: 0,
@@ -304,9 +302,52 @@
                             }
                         }
                         
-                        // Crea/aggiorna tracking
-                        await this.createTracking(tracking, token);
-                        results.imported++;
+                        // In mock mode, salva direttamente in localStorage
+                        if (window.FORCE_MOCK_API || window.MockData?.enabled) {
+                            console.log('[ImportManager] Saving to localStorage:', tracking);
+                            
+                            // Recupera trackings esistenti
+                            const existingTrackings = JSON.parse(localStorage.getItem('mockTrackings') || '[]');
+                            
+                            // Crea tracking completo con ID e timestamp
+                            const newTracking = {
+                                id: Date.now() + Math.floor(Math.random() * 1000),
+                                tracking_number: tracking.trackingNumber,
+                                tracking_type: tracking.trackingType,
+                                carrier_code: tracking.carrierCode,
+                                reference_number: tracking.referenceNumber,
+                                status: this.mappings.status[row.Status] || 'registered',
+                                created_at: new Date().toISOString(),
+                                updated_at: new Date().toISOString(),
+                                // Aggiungi campi ShipsGo se presenti
+                                origin_port: tracking.metadata.pol,
+                                destination_port: tracking.metadata.pod,
+                                eta: tracking.metadata.discharge_date,
+                                last_event_date: new Date().toISOString(),
+                                last_event_location: tracking.metadata.pol || 'N/A',
+                                metadata: {
+                                    ...tracking.metadata,
+                                    source: 'shipsgo_import',
+                                    import_date: new Date().toISOString(),
+                                    original_data: row
+                                }
+                            };
+                            
+                            // Se ci sono date di loading/discharge, genera eventi timeline
+                            if (tracking.metadata.loading_date || tracking.metadata.discharge_date) {
+                                newTracking.metadata.timeline_events = this.generateTimelineEvents(row, tracking);
+                            }
+                            
+                            // Aggiungi e salva
+                            existingTrackings.push(newTracking);
+                            localStorage.setItem('mockTrackings', JSON.stringify(existingTrackings));
+                            
+                            results.imported++;
+                        } else {
+                            // Usa API normale
+                            await this.createTracking(tracking, token);
+                            results.imported++;
+                        }
                         
                     } catch (error) {
                         results.errors.push({
@@ -336,8 +377,72 @@
                 }
             }
             
-            console.log('[ImportManager] Import results:', results);
             return results;
+        },
+        
+        /**
+         * Genera eventi timeline per ShipsGo
+         */
+        generateTimelineEvents(row, tracking) {
+            const events = [];
+            const metadata = tracking.metadata;
+            
+            // Loading event
+            if (metadata.loading_date) {
+                events.push({
+                    event_type: 'GATE_IN',
+                    event_date: new Date(new Date(metadata.loading_date).getTime() - 24*60*60*1000).toISOString(),
+                    location: metadata.pol,
+                    description: 'Container entered terminal'
+                });
+                
+                events.push({
+                    event_type: 'LOADED_ON_VESSEL',
+                    event_date: metadata.loading_date,
+                    location: metadata.pol,
+                    description: 'Container loaded on vessel'
+                });
+                
+                events.push({
+                    event_type: 'VESSEL_DEPARTED',
+                    event_date: new Date(new Date(metadata.loading_date).getTime() + 6*60*60*1000).toISOString(),
+                    location: metadata.pol,
+                    description: 'Vessel departed from port'
+                });
+            }
+            
+            // Discharge event
+            if (metadata.discharge_date && new Date(metadata.discharge_date) <= new Date()) {
+                events.push({
+                    event_type: 'VESSEL_ARRIVED',
+                    event_date: new Date(new Date(metadata.discharge_date).getTime() - 6*60*60*1000).toISOString(),
+                    location: metadata.pod,
+                    description: 'Vessel arrived at port'
+                });
+                
+                events.push({
+                    event_type: 'DISCHARGED_FROM_VESSEL',
+                    event_date: metadata.discharge_date,
+                    location: metadata.pod,
+                    description: 'Container discharged from vessel'
+                });
+            }
+            
+            // Se consegnato
+            if (row.Status === 'Delivered' || row.Status === 'Empty') {
+                const deliveryDate = metadata.discharge_date ? 
+                    new Date(new Date(metadata.discharge_date).getTime() + 3*24*60*60*1000) : 
+                    new Date();
+                    
+                events.push({
+                    event_type: 'DELIVERED',
+                    event_date: deliveryDate.toISOString(),
+                    location: metadata.pod,
+                    description: 'Container delivered to consignee'
+                });
+            }
+            
+            return events.sort((a, b) => new Date(a.event_date) - new Date(b.event_date));
         },
         
         /**
@@ -348,8 +453,7 @@
             const trackingNumber = (
                 row.tracking_number || 
                 row.Container || 
-                row['Tracking Number'] ||
-                row['AWB Number'] || 
+                row['Tracking Number'] || 
                 ''
             ).toUpperCase().trim();
             
@@ -361,11 +465,10 @@
             // Mappa carrier
             const carrierInput = row.carrier_code || 
                                row.Carrier || 
-                               row.carrier ||
-                               row.Airline || 
+                               row.carrier || 
                                '';
-            const carrierCode = this.mappings.carriers[carrierInput.toUpperCase()] || 
-                              carrierInput.toUpperCase();
+            const carrierCode = this.mappings.carriers[carrierInput] || 
+                              carrierInput;
             
             // Riferimento
             const referenceNumber = row.reference || 
@@ -373,18 +476,11 @@
                                   row.reference_number || 
                                   null;
             
-            // Status mapping per ShipsGo
-            let status = 'registered';
-            if (row.Status) {
-                status = this.mappings.status[row.Status] || 'in_transit';
-            }
-            
             return {
                 trackingNumber,
                 trackingType,
                 carrierCode,
                 referenceNumber,
-                status,
                 metadata: this.extractMetadata(row)
             };
         },
@@ -408,7 +504,7 @@
         extractMetadata(row) {
             const metadata = {};
             
-            // ShipsGo Sea specific
+            // ShipsGo specific
             if (row['Port Of Loading']) {
                 metadata.pol = row['Port Of Loading'];
                 metadata.pod = row['Port Of Discharge'];
@@ -416,82 +512,9 @@
                 metadata.discharge_date = this.parseDate(row['Date Of Discharge']);
                 metadata.co2_emissions = parseFloat(row['CO₂ Emission (Tons)']) || null;
                 metadata.tags = row.Tags !== '-' ? row.Tags : null;
-                metadata.booking = row.Booking !== '-' ? row.Booking : null;
             }
-            
-            // ShipsGo Air specific
-            if (row['Origin']) {
-                metadata.origin = row['Origin'];
-                metadata.destination = row['Destination'];
-                metadata.origin_name = row['Origin Name'];
-                metadata.destination_name = row['Destination Name'];
-                metadata.departure_date = this.parseDate(row['Date Of Departure']);
-                metadata.arrival_date = this.parseDate(row['Date Of Arrival']);
-                metadata.transit_time = row['Transit Time'];
-            }
-            
-            // Generate timeline events
-            metadata.timeline_events = this.generateTimelineEvents(row);
             
             return metadata;
-        },
-        
-        /**
-         * Generate timeline events from ShipsGo data
-         */
-        generateTimelineEvents(row) {
-            const events = [];
-            const now = new Date();
-            
-            // Per container
-            if (row['Port Of Loading']) {
-                const loadingDate = this.parseDate(row['Date Of Loading']);
-                const dischargeDate = this.parseDate(row['Date Of Discharge']);
-                
-                if (loadingDate) {
-                    events.push({
-                        event_date: loadingDate,
-                        event_type: 'LOADED_ON_VESSEL',
-                        description: `Loaded at ${row['Port Of Loading']}`,
-                        location_name: row['Port Of Loading']
-                    });
-                }
-                
-                if (dischargeDate && new Date(dischargeDate) <= now) {
-                    events.push({
-                        event_date: dischargeDate,
-                        event_type: 'DISCHARGED_FROM_VESSEL',
-                        description: `Discharged at ${row['Port Of Discharge']}`,
-                        location_name: row['Port Of Discharge']
-                    });
-                }
-            }
-            
-            // Per AWB
-            if (row['Origin']) {
-                const departureDate = this.parseDate(row['Date Of Departure']);
-                const arrivalDate = this.parseDate(row['Date Of Arrival']);
-                
-                if (departureDate) {
-                    events.push({
-                        event_date: departureDate,
-                        event_type: 'DEP',
-                        description: `Departed from ${row['Origin']}`,
-                        location_name: row['Origin Name'] || row['Origin']
-                    });
-                }
-                
-                if (arrivalDate && new Date(arrivalDate) <= now) {
-                    events.push({
-                        event_date: arrivalDate,
-                        event_type: 'ARR',
-                        description: `Arrived at ${row['Destination']}`,
-                        location_name: row['Destination Name'] || row['Destination']
-                    });
-                }
-            }
-            
-            return events.sort((a, b) => new Date(a.event_date) - new Date(b.event_date));
         },
         
         /**
@@ -502,6 +525,8 @@
             
             // Formato DD/MM/YYYY
             const [day, month, year] = dateStr.split(' ')[0].split('/');
+            if (!day || !month || !year) return null;
+            
             return new Date(`${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`).toISOString();
         },
         
@@ -520,21 +545,33 @@
          * Controlla se tracking esiste
          */
         async checkExists(trackingNumber) {
-            // Implementa controllo esistenza
-            return false; // Per ora
+            // In mock mode, controlla localStorage
+            if (window.FORCE_MOCK_API || window.MockData?.enabled) {
+                const existingTrackings = JSON.parse(localStorage.getItem('mockTrackings') || '[]');
+                return existingTrackings.some(t => t.tracking_number === trackingNumber);
+            }
+            return false;
         },
         
         /**
          * Crea tracking via API
          */
         async createTracking(trackingData, token) {
-            console.log('[ImportManager] Creating tracking:', trackingData);
-            
-            const response = await window.api.post('add-tracking', trackingData, {
-                loading: 'Aggiunta tracking...'
+            const response = await fetch('/.netlify/functions/add-tracking', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(trackingData)
             });
             
-            return response;
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.message || 'Errore creazione tracking');
+            }
+            
+            return response.json();
         },
         
         /**
@@ -633,6 +670,43 @@ MSCU7654321,MSC,Loaded,INV456789,-,NINGBO,GENOVA,20/06/2025,15/07/2025,2.1,Regul
             if (window.showNotification) {
                 window.showNotification(`Template ${type} scaricato!`, 'success');
             }
+        },
+        
+        /**
+         * Render UI per import
+         */
+        renderImportUI(containerId) {
+            const container = document.getElementById(containerId);
+            if (!container) return;
+            
+            container.innerHTML = `
+                <div style="text-align: center; padding: 2rem;">
+                    <div style="background: #e3f2fd; border-radius: 12px; padding: 2rem; margin-bottom: 1rem;">
+                        <i class="fas fa-ship fa-3x" style="color: #1976d2; margin-bottom: 1rem; display: block;"></i>
+                        <h4>Import File ShipsGo</h4>
+                        <p>Carica i file Excel esportati da ShipsGo (Mare o Aereo)</p>
+                        <input type="file" id="shipsgoFile" accept=".csv,.xlsx,.xls" style="display:none" 
+                               onchange="if(this.files[0]) { window.ImportManager.importFile(this.files[0], {type:'shipsgo'}); window.ModalSystem.close(); }">
+                        <button class="sol-btn sol-btn-primary" onclick="document.getElementById('shipsgoFile').click()">
+                            <i class="fas fa-file-excel"></i> Seleziona File ShipsGo
+                        </button>
+                    </div>
+                    
+                    <div style="background: #f3f4f6; border-radius: 12px; padding: 2rem;">
+                        <i class="fas fa-file-csv fa-3x" style="color: #6b7280; margin-bottom: 1rem; display: block;"></i>
+                        <h4>Import File Standard</h4>
+                        <p>Carica file CSV o Excel con formato standard</p>
+                        <input type="file" id="standardFile" accept=".csv,.xlsx,.xls" style="display:none" 
+                               onchange="if(this.files[0]) { window.ImportManager.importFile(this.files[0], {type:'standard'}); window.ModalSystem.close(); }">
+                        <button class="sol-btn sol-btn-glass" onclick="document.getElementById('standardFile').click()">
+                            <i class="fas fa-file-upload"></i> Seleziona File
+                        </button>
+                        <button class="sol-btn sol-btn-glass" onclick="window.ImportManager.downloadTemplate('standard')">
+                            <i class="fas fa-download"></i> Scarica Template
+                        </button>
+                    </div>
+                </div>
+            `;
         }
     };
 })();
