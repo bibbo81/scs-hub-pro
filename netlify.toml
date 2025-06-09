@@ -1,4 +1,5 @@
-# Nessuna direttiva build necessaria dato che pubblichiamo dalla root
+[build]
+  publish = "."
 
 [[redirects]]
   from = "/"
