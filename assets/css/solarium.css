@@ -2837,22 +2837,20 @@ select.form-control {
     }
 }
 
-/* AGGIUNGI QUESTE REGOLE ALLA FINE DI solarium.css */
-
 /* ===== DROPDOWN POSITIONING FIX ===== */
 /* Fix container positioning */
 .sol-header-right {
     position: relative !important;
 }
 
-/* Fix dropdown exact positioning */
+/* Fix dropdown exact positioning - RIDOTTO IL GAP */
 #userDropdown,
 #notificationDropdown {
     position: absolute !important;
-    top: calc(100% + 8px) !important;  /* 8px sotto il bottone */
+    top: 100% !important;  /* Rimuovo il calc e il gap extra */
     right: 0 !important;
     left: auto !important;
-    margin: 0 !important;  /* Rimuovi tutti i margin */
+    margin-top: 0.25rem !important;  /* Solo 4px di gap invece di 8px */
     min-width: 280px !important;
     max-width: 320px !important;
     z-index: 1001 !important;
