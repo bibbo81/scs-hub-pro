@@ -1928,3 +1928,526 @@ select.form-control {
 }
 
 /* End of Solarium Design System */
+
+/* Responsive */
+@media (max-width: 768px) {
+    .page-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+    }
+    
+    .charts-row,
+    .data-row {
+        grid-template-columns: 1fr;
+    }
+    
+    .kpi-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .filters-row {
+        flex-direction: column;
+    }
+    
+    .filter-actions {
+        width: 100%;
+        justify-content: stretch;
+    }
+    
+    .filter-actions .btn {
+        flex: 1;
+    }
+    
+    .stats-row {
+        grid-template-columns: 1fr;
+    }
+    
+    .products-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* ===== Header Component Fixes ===== */
+/* Fix per header-component.js - classi mancanti */
+
+.sol-header-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 64px;
+  padding: 0 var(--sol-spacing-lg);
+  max-width: 100%;
+  margin: 0 auto;
+}
+
+.sol-header-left,
+.sol-header-center,
+.sol-header-right {
+  display: flex;
+  align-items: center;
+}
+
+.sol-header-left {
+  gap: var(--sol-spacing-md);
+}
+
+.sol-header-right {
+  gap: var(--sol-spacing-md);
+}
+
+.sol-logo {
+  display: flex;
+  align-items: center;
+  gap: var(--sol-spacing-sm);
+  text-decoration: none;
+  color: var(--sol-gray-900);
+  font-weight: 600;
+  font-size: 1.25rem;
+}
+
+.sol-logo-icon {
+  width: 40px;
+  height: 40px;
+  background: var(--sol-primary);
+  color: white;
+  border-radius: var(--sol-radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 0.875rem;
+}
+
+.sol-logo-text {
+  font-size: 1.125rem;
+}
+
+/* Buttons */
+.sol-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1.25rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  line-height: 1.25;
+  border: 1px solid transparent;
+  border-radius: var(--sol-radius-md);
+  cursor: pointer;
+  transition: all var(--sol-transition-fast);
+  text-decoration: none;
+  white-space: nowrap;
+  background: none;
+}
+
+.sol-btn-glass {
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(10px);
+  border: 1px solid var(--sol-gray-200);
+  color: var(--sol-gray-700);
+}
+
+.sol-btn-glass:hover {
+  background: rgba(255, 255, 255, 0.9);
+  border-color: var(--sol-gray-300);
+  transform: translateY(-1px);
+}
+
+.sol-btn-primary {
+  color: white;
+  background-color: var(--sol-primary);
+  border-color: var(--sol-primary);
+}
+
+.sol-btn-primary:hover {
+  background-color: var(--sol-primary-dark);
+  border-color: var(--sol-primary-dark);
+  transform: translateY(-1px);
+}
+
+/* Search */
+.sol-search-wrapper {
+  position: relative;
+  width: 100%;
+  max-width: 400px;
+}
+
+.sol-search {
+  width: 100%;
+  padding: 0.625rem 2.5rem 0.625rem 1rem;
+  background: var(--sol-gray-50);
+  border: 1px solid var(--sol-gray-300);
+  border-radius: var(--sol-radius-md);
+  font-size: 0.875rem;
+  transition: all var(--sol-transition-fast);
+}
+
+.sol-search:focus {
+  outline: none;
+  background: white;
+  border-color: var(--sol-primary);
+  box-shadow: 0 0 0 3px var(--sol-primary-light);
+}
+
+.sol-search-icon {
+  position: absolute;
+  right: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--sol-gray-400);
+  pointer-events: none;
+}
+
+/* User Avatar */
+.user-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--sol-primary);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 0.875rem;
+}
+
+/* Notification Badge */
+.notification-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  background: var(--sol-danger);
+  color: white;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.125rem 0.375rem;
+  border-radius: var(--sol-radius-full);
+  min-width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#notificationBtn {
+  position: relative;
+}
+
+/* Dropdowns */
+.sol-dropdown {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  right: 0;
+  background: white;
+  border: 1px solid var(--sol-gray-200);
+  border-radius: var(--sol-radius-lg);
+  box-shadow: var(--sol-shadow-lg);
+  min-width: 280px;
+  display: none;
+  z-index: 1000;
+}
+
+.sol-dropdown-header {
+  padding: var(--sol-spacing-md) var(--sol-spacing-lg);
+  border-bottom: 1px solid var(--sol-gray-100);
+}
+
+.sol-dropdown-body {
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.sol-dropdown-footer {
+  padding: var(--sol-spacing-sm) var(--sol-spacing-lg);
+  border-top: 1px solid var(--sol-gray-100);
+  text-align: center;
+}
+
+.sol-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: var(--sol-spacing-md);
+  padding: var(--sol-spacing-md) var(--sol-spacing-lg);
+  color: var(--sol-gray-700);
+  text-decoration: none;
+  transition: all var(--sol-transition-fast);
+  border: none;
+  background: none;
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+}
+
+.sol-dropdown-item:hover {
+  background: var(--sol-gray-50);
+  color: var(--sol-gray-900);
+}
+
+/* Sidebar */
+.sol-sidebar {
+  position: fixed;
+  left: -280px;
+  top: 0;
+  bottom: 0;
+  width: 280px;
+  background: white;
+  box-shadow: var(--sol-shadow-xl);
+  transition: left var(--sol-transition-base);
+  z-index: 999;
+  overflow-y: auto;
+}
+
+.sol-sidebar.active {
+  left: 0;
+}
+
+.sol-nav {
+  padding: var(--sol-spacing-lg);
+}
+
+.sol-nav-item {
+  display: flex;
+  align-items: center;
+  gap: var(--sol-spacing-md);
+  padding: var(--sol-spacing-md) var(--sol-spacing-lg);
+  color: var(--sol-gray-600);
+  text-decoration: none;
+  border-radius: var(--sol-radius-md);
+  transition: all var(--sol-transition-fast);
+  margin-bottom: var(--sol-spacing-xs);
+}
+
+.sol-nav-item:hover {
+  background: var(--sol-gray-50);
+  color: var(--sol-gray-900);
+}
+
+.sol-nav-item.active {
+  background: var(--sol-primary-light);
+  color: var(--sol-primary);
+  font-weight: 500;
+}
+
+.sol-nav-divider {
+  height: 1px;
+  background: var(--sol-gray-200);
+  margin: var(--sol-spacing-md) 0;
+}
+
+/* Backdrop */
+.sol-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: none;
+  z-index: 998;
+}
+
+.sol-backdrop.active {
+  display: block;
+}
+
+/* Main Content Adjustment */
+.sol-main-content {
+  padding-top: calc(64px + var(--sol-spacing-xl));
+  min-height: 100vh;
+  max-width: 1280px;
+  margin: 0 auto;
+  padding-left: var(--sol-spacing-lg);
+  padding-right: var(--sol-spacing-lg);
+}
+
+/* Page Header */
+.sol-page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 2rem;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.sol-page-title {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--sol-gray-900);
+  margin: 0;
+}
+
+.sol-page-subtitle {
+  font-size: 1rem;
+  color: var(--sol-gray-600);
+  margin-top: 0.25rem;
+}
+
+.sol-page-actions {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+/* Stats Grid */
+.sol-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.sol-stat-card {
+  background: white;
+  border-radius: var(--sol-radius-lg);
+  padding: 1.25rem;
+  box-shadow: var(--sol-shadow-sm);
+  border: 1px solid var(--sol-gray-100);
+  position: relative;
+  transition: all var(--sol-transition-fast);
+}
+
+.sol-stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--sol-shadow-md);
+}
+
+.card-drag-handle {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  color: var(--sol-gray-400);
+  cursor: move;
+  opacity: 0;
+  transition: opacity var(--sol-transition-fast);
+}
+
+.sol-stat-card:hover .card-drag-handle {
+  opacity: 1;
+}
+
+.sol-stat-icon {
+  font-size: 2rem;
+  color: var(--sol-primary);
+  margin-bottom: 0.5rem;
+}
+
+.sol-stat-value {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--sol-gray-900);
+  line-height: 1;
+}
+
+.sol-stat-label {
+  font-size: 0.875rem;
+  color: var(--sol-gray-600);
+  margin-top: 0.25rem;
+}
+
+/* Cards */
+.sol-card {
+  background: white;
+  border-radius: var(--sol-radius-lg);
+  box-shadow: var(--sol-shadow-sm);
+  border: 1px solid var(--sol-gray-100);
+  overflow: hidden;
+}
+
+.sol-card-header {
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid var(--sol-gray-100);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.sol-card-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--sol-gray-900);
+  margin: 0;
+}
+
+.sol-card-filters {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.sol-select {
+  padding: 0.5rem 0.75rem;
+  background: white;
+  border: 1px solid var(--sol-gray-300);
+  border-radius: var(--sol-radius-md);
+  font-size: 0.875rem;
+  color: var(--sol-gray-700);
+  cursor: pointer;
+  transition: all var(--sol-transition-fast);
+}
+
+.sol-select:focus {
+  outline: none;
+  border-color: var(--sol-primary);
+  box-shadow: 0 0 0 3px var(--sol-primary-light);
+}
+
+/* Badge */
+.sol-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border-radius: var(--sol-radius-full);
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+}
+
+.sol-badge-info {
+  background: var(--sol-info-light);
+  color: var(--sol-info-dark);
+}
+
+.sol-badge-success {
+  background: var(--sol-success-light);
+  color: var(--sol-success-dark);
+}
+
+.sol-badge-warning {
+  background: var(--sol-warning-light);
+  color: var(--sol-warning-dark);
+}
+
+.sol-badge-error {
+  background: var(--sol-danger-light);
+  color: var(--sol-danger-dark);
+}
+
+/* Hide on mobile */
+@media (max-width: 768px) {
+  .hide-mobile {
+    display: none;
+  }
+  
+  .sol-page-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .sol-page-actions {
+    width: 100%;
+  }
+  
+  .sol-page-actions .sol-btn {
+    flex: 1;
+  }
+}
+
+/* End of Solarium Design System */
