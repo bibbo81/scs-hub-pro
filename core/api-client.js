@@ -1,6 +1,7 @@
 // api-client.js - Client API unificato con gestione errori ES6
+// api-client.js - Client API unificato con gestione errori ES6
 import notificationSystem from '/core/notification-system.js';
-import { authInit, auth } from '/core/auth-init.js';
+// RIMUOVI: import { authInit, auth } from '/core/auth-init.js';
 
 export class ApiClient {
     constructor() {
@@ -28,7 +29,7 @@ export class ApiClient {
     
     // Get token from auth
     refreshToken() {
-        const token = authInit?.getToken() || 
+        const token = window.authInit?.getToken() || 
                      localStorage.getItem('sb-access-token') ||
                      sessionStorage.getItem('sb-access-token');
         this.setToken(token);
@@ -117,7 +118,7 @@ export class ApiClient {
             message = 'Sessione scaduta. Effettua nuovamente il login.';
             // Auto logout after 2 seconds
             setTimeout(() => {
-                auth?.logout();
+                window.auth?.logout();
             }, 2000);
         } else if (error.status === 403) {
             message = 'Non hai i permessi per questa operazione';
