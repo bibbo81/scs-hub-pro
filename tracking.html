@@ -19,13 +19,13 @@
     <!-- Core JS Modules - ES6 -->
     <script type="module">
         // Import core modules
-        import { authInit } from './core/auth-init.js';
-        import api from './core/api-client.js';
-        import headerComponent from './core/header-component.js';
-        import notificationSystem from './core/notification-system.js';
-        import modalSystem from './core/modal-system.js';
-        import TableManager from './core/table-manager.js';
-        import app from './assets/js/app.js';
+        import { authInit } from '/core/auth-init.js';
+        import api from '/core/api-client.js';
+        import headerComponent from '/core/header-component.js';
+        import notificationSystem from '/core/notification-system.js';
+        import modalSystem from '/core/modal-system.js';
+        import TableManager from '/core/table-manager.js';
+        import app from '/assets/js/app.js';
         
         // Make modules available globally for backward compatibility
         window.authInit = authInit;
@@ -38,13 +38,13 @@
     </script>
     
     <!-- Legacy Scripts (to be converted) -->
-    <script src="core/import-manager.js"></script> <!-- Non module, carica window.ImportManager -->
+    <script src="/core/import-manager.js"></script> <!-- Non module, carica window.ImportManager -->
     
     <!-- Mock Data - SOLO SVILUPPO - RIMUOVERE IN PRODUZIONE -->
-    <script src="core/mock-data.js"></script>
+    <script src="/core/mock-data.js"></script>
     
     <!-- Page Specific -->
-    <script type="module" src="pages/tracking/index.js"></script>
+    <script type="module" src="/pages/tracking/index.js"></script>
 </head>
 <body>
     <!-- Header verrà montato automaticamente da header-component.js -->
