@@ -1,9 +1,9 @@
 // app.js - Global application entry point ES6
-import { authInit, auth } from './auth-init.js';
-import api from './api-client.js';
-import headerComponent from './header-component.js';
-import notificationSystem from './notification-system.js';
-import modalSystem from './modal-system.js';
+import { authInit, auth } from '/core/auth-init.js';
+import api from '/core/api-client.js';
+import headerComponent from '/core/header-component.js';
+import notificationSystem from '/core/notification-system.js';
+import modalSystem from '/core/modal-system.js';
 
 class Application {
     constructor() {
