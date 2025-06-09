@@ -16,6 +16,10 @@ build/
 # OS
 .DS_Store
 Thumbs.db
+.AppleDouble
+.LSOverride
+ehthumbs.db
+*~
 
 # IDE
 .vscode/
