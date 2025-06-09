@@ -2451,3 +2451,213 @@ select.form-control {
 }
 
 /* End of Solarium Design System */
+
+/* ===== Modal System Enhanced ===== */
+.sol-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    opacity: 0;
+    visibility: hidden;
+    transition: all var(--sol-transition-base);
+}
+
+.sol-modal-overlay.active {
+    opacity: 1;
+    visibility: visible;
+}
+
+.sol-modal-overlay.no-animation {
+    transition: none;
+}
+
+.sol-modal-content {
+    background-color: white;
+    border-radius: var(--sol-radius-lg);
+    box-shadow: var(--sol-shadow-xl);
+    width: 90%;
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+    transform: scale(0.9) translateY(20px);
+    transition: all var(--sol-transition-base);
+}
+
+.sol-modal-overlay.active .sol-modal-content {
+    transform: scale(1) translateY(0);
+}
+
+/* Progress Modal Styles */
+.sol-progress-wrapper {
+    padding: 1rem 0;
+}
+
+.sol-progress-message {
+    margin-bottom: 1rem;
+    text-align: center;
+    color: var(--sol-gray-700);
+}
+
+.sol-progress-bar {
+    height: 8px;
+    background: var(--sol-gray-200);
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 1rem;
+}
+
+.sol-progress-fill {
+    height: 100%;
+    background: var(--sol-primary);
+    transition: width 0.3s ease;
+    border-radius: 4px;
+}
+
+.sol-progress-percentage {
+    text-align: center;
+    font-weight: 600;
+    color: var(--sol-gray-900);
+}
+
+.sol-progress-stats {
+    display: flex;
+    justify-content: space-around;
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--sol-gray-100);
+}
+
+.sol-progress-stat {
+    text-align: center;
+}
+
+.stat-label {
+    font-size: 0.875rem;
+    color: var(--sol-gray-600);
+    display: block;
+}
+
+.stat-value {
+    font-weight: 600;
+    color: var(--sol-gray-900);
+}
+
+/* Alert Modal Styles */
+.sol-alert-content {
+    text-align: center;
+    padding: 2rem 0;
+}
+
+.sol-alert-content p {
+    font-size: 1.125rem;
+    color: var(--sol-gray-700);
+    margin: 0;
+}
+
+/* Form Modal Styles */
+.sol-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.sol-form-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1rem;
+}
+
+.sol-form-group {
+    display: flex;
+    flex-direction: column;
+}
+
+.sol-form-label {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--sol-gray-700);
+    margin-bottom: 0.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.sol-form-input,
+.sol-form-select {
+    padding: 0.625rem 0.875rem;
+    border: 1px solid var(--sol-gray-300);
+    border-radius: var(--sol-radius-md);
+    font-size: 0.875rem;
+    transition: all var(--sol-transition-fast);
+}
+
+.sol-form-input:focus,
+.sol-form-select:focus {
+    outline: none;
+    border-color: var(--sol-primary);
+    box-shadow: 0 0 0 3px var(--sol-primary-light);
+}
+
+.sol-form-hint {
+    font-size: 0.75rem;
+    margin-top: 0.25rem;
+    color: var(--sol-gray-600);
+}
+
+/* Tabs */
+.sol-tabs {
+    display: flex;
+    gap: 0.5rem;
+    border-bottom: 1px solid var(--sol-gray-200);
+    margin-bottom: 1.5rem;
+}
+
+.sol-tab {
+    padding: 0.75rem 1.5rem;
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    color: var(--sol-gray-600);
+    font-weight: 500;
+    cursor: pointer;
+    transition: all var(--sol-transition-fast);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.sol-tab:hover {
+    color: var(--sol-gray-900);
+}
+
+.sol-tab.active {
+    color: var(--sol-primary);
+    border-bottom-color: var(--sol-primary);
+}
+
+.sol-tab-content {
+    display: none;
+}
+
+.sol-tab-content.active {
+    display: block;
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+    .sol-modal-content {
+        width: 95%;
+        margin: 1rem;
+    }
+    
+    .sol-form-grid {
+        grid-template-columns: 1fr;
+    }
+}
