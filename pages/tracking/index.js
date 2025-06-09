@@ -305,9 +305,9 @@ function setupFormInteractions() {
                 }
                 
                 // Use window.ImportManager instead of ImportManager
-                if (window.ImportManager) {
-                    window.ImportManager.renderImportUI('importContainer');
-                }
+                // if (window.ImportManager) {
+//     window.ImportManager.renderImportUI('importContainer');
+// }
             }
         });
     });
