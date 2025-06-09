@@ -11,29 +11,41 @@
     <!-- Core CSS -->
     <link rel="stylesheet" href="assets/css/solarium.css">
     <link rel="stylesheet" href="assets/css/timeline.css">
-    <link rel="stylesheet" href="core/modal-system.css"> <!-- Aggiunto modal CSS -->
+    <link rel="stylesheet" href="core/modal-system.css">
     
-    <!-- Core JS Modules -->
-    <!-- <script src="core/auth-init.js"></script> -->
-    <script src="core/api-client.js"></script>
-    <script src="core/header-component.js"></script>
-    <script src="core/notification-system.js"></script>
-    <script src="core/modal-system.js"></script>
-    <script src="core/table-manager.js"></script>
+    <!-- External Dependencies -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+    
+    <!-- Core JS Modules - ES6 -->
+    <script type="module">
+        // Import core modules
+        import { authInit } from './core/auth-init.js';
+        import api from './core/api-client.js';
+        import headerComponent from './core/header-component.js';
+        import notificationSystem from './core/notification-system.js';
+        import modalSystem from './core/modal-system.js';
+        import TableManager from './core/table-manager.js';
+        import app from './assets/js/app.js';
+        
+        // Make modules available globally for backward compatibility
+        window.authInit = authInit;
+        window.api = api;
+        window.headerComponent = headerComponent;
+        window.NotificationSystem = notificationSystem;
+        window.ModalSystem = modalSystem;
+        window.TableManager = TableManager;
+        window.App = app;
+    </script>
+    
+    <!-- Legacy Scripts (to be converted) -->
     <script src="core/import-manager.js"></script> <!-- Non module, carica window.ImportManager -->
     
     <!-- Mock Data - SOLO SVILUPPO - RIMUOVERE IN PRODUZIONE -->
     <script src="core/mock-data.js"></script>
     
-    <!-- Global App -->
-    <script src="assets/js/app.js"></script>
-    
     <!-- Page Specific -->
     <script type="module" src="pages/tracking/index.js"></script>
-    
-    <!-- External Dependencies (da CDN per ora) -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
 </head>
 <body>
     <!-- Header verrà montato automaticamente da header-component.js -->
