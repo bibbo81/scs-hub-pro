@@ -144,6 +144,118 @@
         </div>
     </main>
 
+<!-- Aggiungi questo SUBITO DOPO <body> in tracking.html, PRIMA di tutti gli altri script -->
+<script>
+// EARLY MOCK INTERCEPTOR - Deve essere caricato PRIMA di tutto
+(function() {
+    console.log('[EarlyMock] Setting up early interceptors...');
+    
+    // Crea un proxy per window.api prima che venga creato
+    let realApi = null;
+    let apiProxy = null;
+    
+    // Mock data per risposte immediate
+    const mockResponses = {
+        notifications: {
+            notifications: [
+                {
+                    id: 1,
+                    type: 'shipment',
+                    title: 'Spedizione in arrivo',
+                    message: 'Container MSKU1234567 arriverà domani',
+                    read: false,
+                    created_at: new Date().toISOString()
+                },
+                {
+                    id: 2,
+                    type: 'warning',
+                    title: 'Ritardo spedizione',
+                    message: 'BL MSCU7654321 è in ritardo di 2 giorni',
+                    read: false,
+                    created_at: new Date(Date.now() - 86400000).toISOString()
+                }
+            ],
+            unread_count: 2,
+            total: 2
+        }
+    };
+    
+    // Intercetta la definizione di window.api
+    Object.defineProperty(window, 'api', {
+        get: function() {
+            return apiProxy;
+        },
+        set: function(value) {
+            console.log('[EarlyMock] window.api is being set');
+            realApi = value;
+            
+            // Crea proxy con interceptors
+            apiProxy = new Proxy(realApi, {
+                get: function(target, prop) {
+                    if (prop === 'get') {
+                        return async function(endpoint, options) {
+                            console.log('[EarlyMock] Intercepting GET:', endpoint);
+                            
+                            // Se è una richiesta di notifiche, ritorna mock data immediato
+                            if (endpoint.includes('notifications')) {
+                                console.log('[EarlyMock] Returning mock notifications');
+                                await new Promise(resolve => setTimeout(resolve, 100));
+                                return mockResponses.notifications;
+                            }
+                            
+                            // Altrimenti usa MockData se disponibile
+                            if (window.MockData?.enabled) {
+                                const mockData = window.MockData.interceptAPI(endpoint);
+                                if (mockData) {
+                                    console.log('[EarlyMock] Returning MockData for:', endpoint);
+                                    await new Promise(resolve => setTimeout(resolve, 200));
+                                    return mockData;
+                                }
+                            }
+                            
+                            // Fallback alla chiamata originale
+                            try {
+                                return await target.get.call(target, endpoint, options);
+                            } catch (error) {
+                                console.log('[EarlyMock] Original call failed:', error.message);
+                                // Return empty data per 404
+                                if (error.status === 404) {
+                                    if (endpoint.includes('notifications')) {
+                                        return { notifications: [], unread_count: 0 };
+                                    }
+                                    if (endpoint.includes('trackings')) {
+                                        return { trackings: [], stats: {} };
+                                    }
+                                }
+                                throw error;
+                            }
+                        };
+                    }
+                    
+                    if (prop === 'post') {
+                        return async function(endpoint, data, options) {
+                            console.log('[EarlyMock] Intercepting POST:', endpoint);
+                            
+                            if (window.MockData?.enabled) {
+                                await new Promise(resolve => setTimeout(resolve, 300));
+                                return { success: true, message: 'Mock operation completed', data: data };
+                            }
+                            
+                            return target.post.call(target, endpoint, data, options);
+                        };
+                    }
+                    
+                    // Per altre proprietà/metodi, ritorna l'originale
+                    return target[prop];
+                }
+            });
+        }
+    });
+    
+    console.log('[EarlyMock] Early interceptor ready');
+})();
+</script>
+
     <!-- Fix Scripts -->
     <script>
     // Fix 1: Inizializzazione tracking

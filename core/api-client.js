@@ -111,6 +111,12 @@ export class ApiClient {
         // Skip notification if specified
         if (options.silent) return;
         
+        // Special handling for 404 in development with mock data
+        if (error.status === 404 && window.MockData?.enabled) {
+            console.log('[API] 404 error with mock data enabled, suppressing notification');
+            return; // Don't show error notification in dev mode
+        }
+        
         let message = 'Si è verificato un errore';
         
         if (error.status === 401) {
