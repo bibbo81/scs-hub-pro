@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Supply Chain Hub - Products</title>
+    
+    <!-- Core CSS -->
+    <link rel="stylesheet" href="/assets/css/solarium.css">
+    
+    <!-- Core JS Modules -->
+    <script type="module" src="/core/auth-init.js"></script>
+    <script type="module" src="/core/api-client.js"></script>
+    <script type="module" src="/core/header-component.js"></script>
+    <script type="module" src="/core/notification-system.js"></script>
+    <script type="module" src="/core/modal-system.js"></script>
+    <script type="module" src="/core/table-manager.js"></script>
+    <script type="module" src="/core/data-service.js"></script>
+    <script type="module" src="/core/import-wizard.js"></script>
+    
+    <!-- Global App -->
+    <script type="module" src="/assets/js/app.js"></script>
+    
+    <!-- Page Specific -->
+    <script type="module" src="/pages/products/index.js"></script>
+</head>
+<body>
+    <!-- Header will be injected here -->
+    <div id="header-root"></div>
+
+    <!-- Main Content -->
+    <main class="sol-main-content">
+        <div class="sol-container">
+            <!-- Page Header -->
+            <div class="page-header">
+                <div>
+                    <h1>Products Management</h1>
+                    <p class="page-subtitle">Manage your product catalog and inventory</p>
+                </div>
+                <div class="page-actions">
+                    <button class="btn btn-secondary" onclick="products.exportData()">
+                        <i class="icon-download"></i> Export
+                    </button>
+                    <button class="btn btn-primary" onclick="products.showImportWizard()">
+                        <i class="icon-upload"></i> Import Products
+                    </button>
+                    <button class="btn btn-primary" onclick="products.showCreateModal()">
+                        <i class="icon-plus"></i> New Product
+                    </button>
+                </div>
+            </div>
+
+            <!-- Filters Section -->
+            <div class="filters-section">
+                <div class="filters-row">
+                    <!-- Search -->
+                    <div class="filter-group flex-grow">
+                        <label>Search</label>
+                        <div class="search-input">
+                            <i class="icon-search"></i>
+                            <input type="text" id="searchInput" placeholder="Search by code, description, category...">
+                        </div>
+                    </div>
+                    
+                    <!-- Category Filter -->
+                    <div class="filter-group">
+                        <label>Category</label>
+                        <select id="categoryFilter" class="form-control">
+                            <option value="">All Categories</option>
+                            <!-- Categories will be loaded dynamically -->
+                        </select>
+                    </div>
+                    
+                    <!-- Status Filter -->
+                    <div class="filter-group">
+                        <label>Status</label>
+                        <select id="statusFilter" class="form-control">
+                            <option value="">All Status</option>
+                            <option value="active">Active</option>
+                            <option value="inactive">Inactive</option>
+                            <option value="discontinued">Discontinued</option>
+                        </select>
+                    </div>
+                    
+                    <!-- Actions -->
+                    <div class="filter-actions">
+                        <button class="btn btn-secondary" onclick="products.resetFilters()">
+                            <i class="icon-x"></i> Clear
+                        </button>
+                        <button class="btn btn-primary" onclick="products.applyFilters()">
+                            <i class="icon-filter"></i> Apply
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Stats Cards -->
+            <div class="stats-row">
+                <div class="stat-card">
+                    <div class="stat-icon primary">
+                        <i class="icon-package"></i>
+                    </div>
+                    <div class="stat-content">
+                        <div class="stat-value" id="totalProducts">0</div>
+                        <div class="stat-label">Total Products</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon success">
+                        <i class="icon-check-circle"></i>
+                    </div>
+                    <div class="stat-content">
+                        <div class="stat-value" id="activeProducts">0</div>
+                        <div class="stat-label">Active Products</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon warning">
+                        <i class="icon-tag"></i>
+                    </div>
+                    <div class="stat-content">
+                        <div class="stat-value" id="totalCategories">0</div>
+                        <div class="stat-label">Categories</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon info">
+                        <i class="icon-euro-sign"></i>
+                    </div>
+                    <div class="stat-content">
+                        <div class="stat-value" id="totalValue">€0</div>
+                        <div class="stat-label">Total Value</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Products Table -->
+            <div class="table-section">
+                <div class="table-header">
+                    <h2>Products List</h2>
+                    <div class="table-controls">
+                        <div class="view-toggle">
+                            <button class="view-btn active" onclick="products.setView('table')">
+                                <i class="icon-list"></i>
+                            </button>
+                            <button class="view-btn" onclick="products.setView('grid')">
+                                <i class="icon-grid"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Table View -->
+                <div id="tableView" class="table-container">
+                    <table id="productsTable" class="data-table">
+                        <thead>
+                            <tr>
+                                <th data-sort="cod_art">Code</th>
+                                <th data-sort="descrizione">Description</th>
+                                <th data-sort="categoria">Category</th>
+                                <th data-sort="um">Unit</th>
+                                <th data-sort="peso_kg" class="text-right">Weight (kg)</th>
+                                <th data-sort="valore_unitario" class="text-right">Unit Value</th>
+                                <th data-sort="status">Status</th>
+                                <th data-sort="updated_at">Last Update</th>
+                                <th class="text-center">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Products will be rendered here -->
+                        </tbody>
+                    </table>
+                    
+                    <!-- Pagination -->
+                    <div class="table-pagination" id="tablePagination">
+                        <!-- Pagination will be rendered here -->
+                    </div>
+                </div>
+                
+                <!-- Grid View -->
+                <div id="gridView" class="products-grid" style="display: none;">
+                    <!-- Product cards will be rendered here -->
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Product Form Modal Template -->
+    <template id="productFormTemplate">
+        <form id="productForm" class="modal-form">
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="status">Status</label>
+                    <select id="status" name="status" class="form-control">
+                        <option value="active">Active</option>
+                        <option value="inactive">Inactive</option>
+                        <option value="discontinued">Discontinued</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label for="note">Notes</label>
+                <textarea id="note" name="note" class="form-control" rows="2"></textarea>
+            </div>
+            
+            <div class="form-actions">
+                <button type="button" class="btn btn-secondary" onclick="modalSystem.close()">Cancel</button>
+                <button type="submit" class="btn btn-primary">
+                    <i class="icon-save"></i> Save Product
+                </button>
+            </div>
+        </form>
+    </template>
+
+    <!-- Footer -->
+    <footer class="sol-footer">
+        <div class="sol-container">
+            <p>&copy; 2024 Supply Chain Hub. All rights reserved.</p>
+        </div>
+    </footer>
+</body>
+</html> for="cod_art" class="required">Product Code</label>
+                    <input type="text" id="cod_art" name="cod_art" class="form-control" 
+                           pattern="[0-9]{8}" maxlength="8" required
+                           placeholder="00000000">
+                    <small class="form-text">8 digit numeric code</small>
+                </div>
+                
+                <div class="form-group">
+                    <label for="categoria">Category</label>
+                    <select id="categoria" name="categoria" class="form-control">
+                        <option value="">Select category...</option>
+                        <!-- Categories will be loaded -->
+                    </select>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label for="descrizione" class="required">Description</label>
+                <input type="text" id="descrizione" name="descrizione" class="form-control" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="descrizione_estesa">Extended Description</label>
+                <textarea id="descrizione_estesa" name="descrizione_estesa" class="form-control" rows="3"></textarea>
+            </div>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="um">Unit of Measure</label>
+                    <select id="um" name="um" class="form-control">
+                        <option value="PZ">PZ - Pieces</option>
+                        <option value="KG">KG - Kilograms</option>
+                        <option value="MT">MT - Meters</option>
+                        <option value="LT">LT - Liters</option>
+                        <option value="M2">M2 - Square Meters</option>
+                        <option value="M3">M3 - Cubic Meters</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="peso_kg">Weight (kg)</label>
+                    <input type="number" id="peso_kg" name="peso_kg" class="form-control" 
+                           step="0.001" min="0">
+                </div>
+                
+                <div class="form-group">
+                    <label for="volume_m3">Volume (m³)</label>
+                    <input type="number" id="volume_m3" name="volume_m3" class="form-control" 
+                           step="0.001" min="0">
+                </div>
+            </div>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="valore_unitario">Unit Value (€)</label>
+                    <input type="number" id="valore_unitario" name="valore_unitario" class="form-control" 
+                           step="0.01" min="0">
+                </div>
+                
+                <div class="form-group">
+                    <label

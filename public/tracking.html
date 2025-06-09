@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Supply Chain Hub - Tracking Spedizioni</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23007AFF'%3E%3Cpath d='M20 8h-3V4H3c-1.1 0-2 .9-2 2v11h2c0 1.66 1.34 3 3 3s3-1.34 3-3h6c0 1.66 1.34 3 3 3s3-1.34 3-3h2v-5l-4zM6 18.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm13.5-9l1.96 2.5H17V9.5h2.5zm-1.5 9c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z'/%3E%3C/svg%3E">
+    
+    <!-- Core CSS -->
+    <link rel="stylesheet" href="assets/css/solarium.css">
+    <link rel="stylesheet" href="assets/css/timeline.css">
+    <link rel="stylesheet" href="core/modal-system.css"> <!-- Aggiunto modal CSS -->
+    
+    <!-- Core JS Modules -->
+    <!-- <script src="core/auth-init.js"></script> -->
+    <script src="core/api-client.js"></script>
+    <script src="core/header-component.js"></script>
+    <script src="core/notification-system.js"></script>
+    <script src="core/modal-system.js"></script>
+    <script src="core/table-manager.js"></script>
+    <script src="core/import-manager.js"></script> <!-- Non module, carica window.ImportManager -->
+    
+    <!-- Mock Data - SOLO SVILUPPO - RIMUOVERE IN PRODUZIONE -->
+    <script src="core/mock-data.js"></script>
+    
+    <!-- Global App -->
+    <script src="assets/js/app.js"></script>
+    
+    <!-- Page Specific -->
+    <script type="module" src="pages/tracking/index.js"></script>
+    
+    <!-- External Dependencies (da CDN per ora) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+</head>
+<body>
+    <!-- Header verrà montato automaticamente da header-component.js -->
+    
+    <!-- Main Content -->
+    <main class="sol-main-content" id="mainContent">
+        <!-- Page Header -->
+        <div class="sol-page-header">
+            <div>
+                <h1 class="sol-page-title">Tracking Spedizioni</h1>
+                <p class="sol-page-subtitle">Monitora in tempo reale container, BL e spedizioni aeree</p>
+            </div>
+            <div class="sol-page-actions">
+                <button class="sol-btn sol-btn-glass" id="refreshAllBtn">
+                    <i class="fas fa-sync-alt"></i>
+                    <span>Aggiorna Tutto</span>
+                </button>
+                <button class="sol-btn sol-btn-glass" id="exportPdfBtn">
+                    <i class="fas fa-file-pdf"></i>
+                    <span>Export PDF</span>
+                </button>
+                <button class="sol-btn sol-btn-glass" id="exportExcelBtn">
+                    <i class="fas fa-file-excel"></i>
+                    <span>Export Excel</span>
+                </button>
+                <button class="sol-btn sol-btn-primary" id="addTrackingBtn">
+                    <i class="fas fa-plus"></i>
+                    <span>Aggiungi Tracking</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Stats Cards -->
+        <div class="sol-stats-grid" id="statsGrid">
+            <!-- Populated by JS -->
+        </div>
+
+        <!-- Add Tracking Form -->
+        <div class="sol-card" id="addTrackingForm" style="display: none;">
+            <!-- Populated by JS -->
+        </div>
+
+        <!-- Tracking List -->
+        <div class="sol-card">
+            <div class="sol-card-header">
+                <h3 class="sol-card-title">Lista Tracking Attivi</h3>
+                <div class="sol-card-filters">
+                    <select class="sol-select" id="statusFilter">
+                        <option value="">Tutti gli stati</option>
+                    </select>
+                    <select class="sol-select" id="typeFilter">
+                        <option value="">Tutti i tipi</option>
+                    </select>
+                    <!-- View Toggle Button -->
+                    <button type="button" class="sol-btn-toggle-view" id="toggleView" data-view="table">
+                        <i class="fas fa-table"></i>
+                        <span class="toggle-text">Vista Tabella</span>
+                    </button>
+                </div>
+            </div>
+            
+            <div id="trackingTableContainer">
+                <!-- Table Manager will render here -->
+            </div>
+            
+            <!-- Timeline Container (nascosto di default) -->
+            <div id="timelineContainer" class="sol-timeline-container" style="display: none;">
+                <div class="sol-timeline-header">
+                    <div class="sol-timeline-legend">
+                        <span class="legend-item">
+                            <i class="fas fa-circle text-info"></i> In Transit
+                        </span>
+                        <span class="legend-item">
+                            <i class="fas fa-circle text-success"></i> Consegnato
+                        </span>
+                        <span class="legend-item">
+                            <i class="fas fa-circle text-warning"></i> In Ritardo
+                        </span>
+                        <span class="legend-item">
+                            <i class="fas fa-circle text-danger"></i> Problema
+                        </span>
+                    </div>
+                </div>
+                
+                <div id="timelineContent" class="sol-timeline-content">
+                    <!-- Timeline items verranno inseriti qui dinamicamente -->
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Timeline Enhancement Script -->
+    <script>
+    // Timeline View Functions
+    (function() {
+        let currentView = 'table';
+        
+        // Initialize view toggle
+        function initViewToggle() {
+            const toggleBtn = document.getElementById('toggleView');
+            const tableContainer = document.getElementById('trackingTableContainer');
+            const timelineContainer = document.getElementById('timelineContainer');
+            
+            if (!toggleBtn) return;
+            
+            toggleBtn.addEventListener('click', function() {
+                currentView = this.dataset.view === 'table' ? 'timeline' : 'table';
+                
+                if (currentView === 'timeline') {
+                    // Switch to Timeline View
+                    tableContainer.style.display = 'none';
+                    timelineContainer.style.display = 'block';
+                    
+                    this.dataset.view = 'timeline';
+                    this.classList.add('timeline-active');
+                    this.innerHTML = '<i class="fas fa-stream"></i> <span class="toggle-text">Vista Timeline</span>';
+                    
+                    // Load timeline view
+                    loadTimelineView();
+                    
+                } else {
+                    // Switch back to Table View
+                    tableContainer.style.display = 'block';
+                    timelineContainer.style.display = 'none';
+                    
+                    this.dataset.view = 'table';
+                    this.classList.remove('timeline-active');
+                    this.innerHTML = '<i class="fas fa-table"></i> <span class="toggle-text">Vista Tabella</span>';
+                }
+                
+                // Save preference
+                localStorage.setItem('trackingViewMode', currentView);
+            });
+            
+            // Restore saved view
+            const savedView = localStorage.getItem('trackingViewMode');
+            if (savedView === 'timeline') {
+                toggleBtn.click();
+            }
+        }
+        
+        // Load Timeline View
+        async function loadTimelineView() {
+            const timelineContent = document.getElementById('timelineContent');
+            timelineContent.innerHTML = '<div class="sol-timeline-loading"><i class="fas fa-spinner fa-spin"></i> Caricamento timeline...</div>';
+            
+            try {
+                // Use data from the existing trackings loaded by tracking/index.js
+                const trackings = window.currentTrackings || [];
+                
+                if (trackings.length === 0) {
+                    timelineContent.innerHTML = `
+                        <div class="sol-timeline-empty">
+                            <i class="fas fa-ship"></i>
+                            <p>Nessun tracking da visualizzare</p>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                // Generate timeline HTML
+                let timelineHTML = '';
+                
+                // Group trackings by status for better visualization
+                const groupedTrackings = groupTrackingsByStatus(trackings);
+                
+                for (const [status, statusTrackings] of Object.entries(groupedTrackings)) {
+                    if (statusTrackings.length > 0) {
+                        timelineHTML += `<div class="sol-timeline-group">
+                            <h4 class="sol-timeline-group-title">${getStatusLabel(status)} (${statusTrackings.length})</h4>`;
+                        
+                        statusTrackings.forEach(tracking => {
+                            timelineHTML += generateTrackingTimeline(tracking);
+                        });
+                        
+                        timelineHTML += '</div>';
+                    }
+                }
+                
+                timelineContent.innerHTML = timelineHTML;
+                
+            } catch (error) {
+                console.error('Error loading timeline:', error);
+                timelineContent.innerHTML = '<div class="sol-timeline-empty">Errore nel caricamento della timeline</div>';
+            }
+        }
+        
+        // Group trackings by status
+        function groupTrackingsByStatus(trackings) {
+            const groups = {
+                'delivered': [],
+                'in_transit': [],
+                'delayed': [],
+                'registered': [],
+                'exception': []
+            };
+            
+            trackings.forEach(tracking => {
+                const status = tracking.status || 'registered';
+                if (groups[status]) {
+                    groups[status].push(tracking);
+                } else {
+                    groups['exception'].push(tracking);
+                }
+            });
+            
+            return groups;
+        }
+        
+        // Get status label in Italian
+        function getStatusLabel(status) {
+            const labels = {
+                'delivered': 'Consegnati',
+                'in_transit': 'In Transito',
+                'delayed': 'In Ritardo',
+                'registered': 'Registrati',
+                'exception': 'Con Problemi'
+            };
+            return labels[status] || status;
+        }
+        
+        // Generate HTML for tracking timeline
+        function generateTrackingTimeline(tracking) {
+            let html = `
+                <div class="sol-timeline-tracking-card">
+                    <div class="sol-tracking-card-header">
+                        <div class="sol-tracking-info">
+                            <span class="sol-tracking-number">${tracking.tracking_number}</span>
+                            <span class="sol-tracking-type">${tracking.tracking_type || 'container'}</span>
+                        </div>
+                        <span class="sol-tracking-status status-${tracking.status}">${getStatusLabel(tracking.status)}</span>
+                    </div>
+                    <div class="sol-tracking-details">
+                        <div class="sol-tracking-detail">
+                            <span class="sol-tracking-detail-label">Vettore</span>
+                            <span class="sol-tracking-detail-value">${tracking.carrier_code || 'N/A'}</span>
+                        </div>
+                        <div class="sol-tracking-detail">
+                            <span class="sol-tracking-detail-label">Origine</span>
+                            <span class="sol-tracking-detail-value">${tracking.origin_name || tracking.origin_port || 'N/A'}</span>
+                        </div>
+                        <div class="sol-tracking-detail">
+                            <span class="sol-tracking-detail-label">Destinazione</span>
+                            <span class="sol-tracking-detail-value">${tracking.destination_name || tracking.destination_port || 'N/A'}</span>
+                        </div>
+                        <div class="sol-tracking-detail">
+                            <span class="sol-tracking-detail-label">ETA</span>
+                            <span class="sol-tracking-detail-value">${tracking.eta ? new Date(tracking.eta).toLocaleDateString('it-IT') : 'N/A'}</span>
+                        </div>
+                    </div>
+                `;
+            
+            // Check for timeline events in metadata
+            const timelineEvents = tracking.metadata?.timeline_events || [];
+            
+            if (timelineEvents.length > 0) {
+                // Use real events from metadata
+                html += '<div class="sol-timeline-events">';
+                
+                timelineEvents.forEach((event, index) => {
+                    const isLast = index === timelineEvents.length - 1;
+                    html += generateTimelineEvent(event, isLast);
+                });
+                
+                html += '</div>';
+            } else {
+                // Generate demo events based on status
+                html += generateDemoTimeline(tracking);
+            }
+            
+            html += '</div>';
+            
+            return html;
+        }
+        
+        // Generate timeline event HTML
+        function generateTimelineEvent(event, isLast) {
+            const eventDate = new Date(event.date || event.event_date);
+            const eventClass = getEventClass(event.type || event.event_type);
+            
+            return `
+                <div class="sol-timeline-item ${eventClass} ${isLast ? 'last' : ''}">
+                    <div class="sol-timeline-event">
+                        <div class="sol-timeline-event-header">
+                            <span class="sol-timeline-event-title">${event.title || event.description}</span>
+                            <span class="sol-timeline-event-date">${eventDate.toLocaleDateString('it-IT')} ${eventDate.toLocaleTimeString('it-IT', {hour: '2-digit', minute:'2-digit'})}</span>
+                        </div>
+                        ${event.location ? `
+                            <div class="sol-timeline-event-location">
+                                <i class="fas fa-map-marker-alt"></i>
+                                ${event.location}
+                            </div>
+                        ` : ''}
+                        ${event.details ? `<div class="sol-timeline-event-description">${event.details}</div>` : ''}
+                    </div>
+                </div>
+            `;
+        }
+        
+        // Get event class based on type
+        function getEventClass(eventType) {
+            const typeMap = {
+                'DELIVERED': 'delivered',
+                'DISCHARGED': 'delivered',
+                'LOADED': 'in-transit',
+                'DEPARTED': 'in-transit',
+                'ARRIVED': 'in-transit',
+                'DELAYED': 'delayed',
+                'EXCEPTION': 'exception'
+            };
+            return typeMap[eventType] || '';
+        }
+        
+        // Generate demo timeline (fallback when no real events)
+        function generateDemoTimeline(tracking) {
+            const events = [];
+            const now = new Date();
+            
+            // Base events on status
+            if (tracking.status === 'registered') {
+                events.push({
+                    title: 'Spedizione Registrata',
+                    date: new Date(now - 1 * 24 * 60 * 60 * 1000),
+                    location: tracking.origin_name,
+                    description: 'Informazioni spedizione ricevute'
+                });
+            }
+            
+            if (tracking.status === 'in_transit' || tracking.status === 'delivered') {
+                events.push({
+                    title: 'Partenza dall\'Origine',
+                    date: new Date(now - 5 * 24 * 60 * 60 * 1000),
+                    location: tracking.origin_name,
+                    description: 'Container caricato e nave partita'
+                });
+                
+                events.push({
+                    title: 'In Transito',
+                    date: new Date(now - 3 * 24 * 60 * 60 * 1000),
+                    location: 'Mare Mediterraneo',
+                    description: 'Navigazione in corso'
+                });
+            }
+            
+            if (tracking.status === 'delivered') {
+                events.push({
+                    title: 'Arrivo a Destinazione',
+                    date: new Date(now - 2 * 24 * 60 * 60 * 1000),
+                    location: tracking.destination_name,
+                    description: 'Nave arrivata e container scaricato'
+                });
+                
+                events.push({
+                    title: 'Consegnato',
+                    date: new Date(now - 1 * 24 * 60 * 60 * 1000),
+                    location: tracking.destination_name,
+                    description: 'Container consegnato al destinatario',
+                    class: 'delivered'
+                });
+            }
+            
+            let html = '<div class="sol-timeline-events">';
+            
+            events.forEach((event, index) => {
+                const isLast = index === events.length - 1;
+                html += `
+                    <div class="sol-timeline-item ${event.class || ''} ${isLast ? 'last' : ''}">
+                        <div class="sol-timeline-event">
+                            <div class="sol-timeline-event-header">
+                                <span class="sol-timeline-event-title">${event.title}</span>
+                                <span class="sol-timeline-event-date">${event.date.toLocaleDateString('it-IT')}</span>
+                            </div>
+                            <div class="sol-timeline-event-location">
+                                <i class="fas fa-map-marker-alt"></i>
+                                ${event.location}
+                            </div>
+                            <div class="sol-timeline-event-description">${event.description}</div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            html += '</div>';
+            
+            return html;
+        }
+        
+        // Export functions to window for integration
+        window.timelineView = {
+            init: initViewToggle,
+            refresh: loadTimelineView,
+            isActive: () => currentView === 'timeline'
+        };
+        
+        // Auto-init on DOM ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initViewToggle);
+        } else {
+            initViewToggle();
+        }
+    })();
+    </script>
+</body>
+</html>

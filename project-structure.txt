@@ -1,0 +1,34 @@
+.
+├── project-structure.txt
+└── public
+    ├── assets
+    │   ├── css
+    │   │   ├── solarium.css
+    │   │   └── timeline.css
+    │   └── js
+    │       └── app.js
+    ├── core
+    │   ├── api-client.js
+    │   ├── auth-init.js
+    │   ├── data-service.js
+    │   ├── header-component.js
+    │   ├── import-manager.js
+    │   ├── import-wizard-shipsgo.js
+    │   ├── import-wizard.js
+    │   ├── mock-data.js
+    │   ├── modal-system.css
+    │   ├── modal-system.js
+    │   ├── notification-system.js
+    │   └── table-manager.js
+    ├── dashboard.html
+    ├── pages
+    │   ├── dashboard
+    │   │   └── index.js
+    │   ├── products
+    │   │   └── index.js
+    │   └── tracking
+    │       └── index.js
+    ├── products.html
+    └── tracking.html
+
+10 directories, 22 files

@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Supply Chain Hub - Dashboard</title>
+    
+    <!-- Core CSS -->
+    <link rel="stylesheet" href="/assets/css/solarium.css">
+    
+    <!-- Core JS Modules -->
+    <script type="module" src="/core/auth-init.js"></script>
+    <script type="module" src="/core/api-client.js"></script>
+    <script type="module" src="/core/header-component.js"></script>
+    <script type="module" src="/core/notification-system.js"></script>
+    <script type="module" src="/core/data-service.js"></script>
+    
+    <!-- Charts Library -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
+    
+    <!-- Global App -->
+    <script type="module" src="/assets/js/app.js"></script>
+    
+    <!-- Page Specific -->
+    <script type="module" src="/pages/dashboard/index.js"></script>
+</head>
+<body>
+    <!-- Header will be injected here -->
+    <div id="header-root"></div>
+
+    <!-- Main Content -->
+    <main class="sol-main-content">
+        <div class="sol-container">
+            <!-- Page Header -->
+            <div class="page-header">
+                <h1>Dashboard</h1>
+                <div class="page-actions">
+                    <select id="periodFilter" class="form-control">
+                        <option value="7">Last 7 days</option>
+                        <option value="30" selected>Last 30 days</option>
+                        <option value="90">Last 90 days</option>
+                        <option value="365">Last year</option>
+                    </select>
+                    <button class="btn btn-primary" onclick="window.location.href='/import.html'">
+                        <i class="icon-upload"></i> Import Data
+                    </button>
+                </div>
+            </div>
+
+            <!-- KPI Cards -->
+            <div class="kpi-grid" id="kpiGrid">
+                <!-- KPI cards will be rendered here -->
+            </div>
+
+            <!-- Charts Row -->
+            <div class="charts-row">
+                <!-- Revenue Trend -->
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <h3>Revenue Trend</h3>
+                        <div class="chart-actions">
+                            <button class="btn-icon" onclick="dashboard.exportChart('revenueChart')">
+                                <i class="icon-download"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="chart-body">
+                        <canvas id="revenueChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Shipments by Status -->
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <h3>Shipments by Status</h3>
+                    </div>
+                    <div class="chart-body">
+                        <canvas id="statusChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Data Tables Row -->
+            <div class="data-row">
+                <!-- Top Suppliers -->
+                <div class="data-card">
+                    <div class="card-header">
+                        <h3>Top Suppliers</h3>
+                        <a href="/suppliers.html" class="link-action">View all →</a>
+                    </div>
+                    <div class="card-body">
+                        <table class="simple-table" id="topSuppliersTable">
+                            <thead>
+                                <tr>
+                                    <th>Supplier</th>
+                                    <th>Shipments</th>
+                                    <th>Volume</th>
+                                    <th>Cost</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Data will be rendered here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Top Carriers -->
+                <div class="data-card">
+                    <div class="card-header">
+                        <h3>Top Carriers</h3>
+                        <a href="/carriers.html" class="link-action">View all →</a>
+                    </div>
+                    <div class="card-body">
+                        <table class="simple-table" id="topCarriersTable">
+                            <thead>
+                                <tr>
+                                    <th>Carrier</th>
+                                    <th>Shipments</th>
+                                    <th>Avg Cost</th>
+                                    <th>On-time %</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Data will be rendered here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Alerts Section -->
+            <div class="alerts-section" id="alertsSection" style="display: none;">
+                <h2>Alerts & Actions Required</h2>
+                <div class="alerts-grid" id="alertsGrid">
+                    <!-- Alerts will be rendered here -->
+                </div>
+            </div>
+
+            <!-- Recent Activity -->
+            <div class="activity-section">
+                <div class="section-header">
+                    <h2>Recent Activity</h2>
+                    <a href="/activity.html" class="link-action">View all →</a>
+                </div>
+                <div class="activity-timeline" id="activityTimeline">
+                    <!-- Activity items will be rendered here -->
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="sol-footer">
+        <div class="sol-container">
+            <p>&copy; 2024 Supply Chain Hub. All rights reserved.</p>
+        </div>
+    </footer>
+</body>
+</html>

@@ -1,0 +1,178 @@
+/* Modal System Styles */
+.sol-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(8px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+    padding: var(--sol-space-xl);
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease;
+}
+
+.sol-modal-overlay.active {
+    opacity: 1;
+    visibility: visible;
+}
+
+.sol-modal-overlay.no-animation {
+    transition: none;
+}
+
+.sol-modal-content {
+    background: var(--sol-glass-heavy);
+    backdrop-filter: var(--sol-blur-xl);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: var(--sol-radius-2xl);
+    width: 100%;
+    max-height: 90vh;
+    overflow: hidden;
+    box-shadow: var(--sol-shadow-lg);
+    transform: scale(0.9) translateY(20px);
+    transition: transform 0.3s ease;
+}
+
+.sol-modal-overlay.active .sol-modal-content {
+    transform: scale(1) translateY(0);
+}
+
+.sol-modal-header {
+    padding: var(--sol-space-xl);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.sol-modal-title {
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin: 0;
+}
+
+.sol-modal-close {
+    background: none;
+    border: none;
+    color: var(--sol-text-primary);
+    font-size: 1.5rem;
+    cursor: pointer;
+    padding: var(--sol-space-sm);
+    border-radius: 50%;
+    transition: var(--sol-transition-base);
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.sol-modal-close:hover {
+    background: var(--sol-glass-medium);
+}
+
+.sol-modal-body {
+    padding: var(--sol-space-xl);
+    overflow-y: auto;
+    max-height: calc(90vh - 200px);
+}
+
+.sol-modal-footer {
+    padding: var(--sol-space-lg) var(--sol-space-xl);
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    display: flex;
+    gap: var(--sol-space-md);
+    justify-content: flex-end;
+}
+
+/* Progress Styles */
+.sol-progress-wrapper {
+    text-align: center;
+}
+
+.sol-progress-message {
+    margin-bottom: var(--sol-space-lg);
+    color: var(--sol-text-secondary);
+}
+
+.sol-progress-bar {
+    width: 100%;
+    height: 8px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+    overflow: hidden;
+    margin: var(--sol-space-md) 0;
+}
+
+.sol-progress-fill {
+    height: 100%;
+    background: var(--sol-gradient-primary);
+    transition: width 0.3s ease;
+}
+
+.sol-progress-percentage {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--sol-text-primary);
+    margin-top: var(--sol-space-lg);
+}
+
+.sol-progress-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: var(--sol-space-md);
+    margin-top: var(--sol-space-xl);
+}
+
+.sol-progress-stat {
+    background: var(--sol-glass-light);
+    padding: var(--sol-space-md);
+    border-radius: var(--sol-radius-md);
+}
+
+.stat-label {
+    display: block;
+    font-size: 0.875rem;
+    color: var(--sol-text-tertiary);
+    margin-bottom: var(--sol-space-xs);
+}
+
+.stat-value {
+    display: block;
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--sol-text-primary);
+}
+
+/* Alert Styles */
+.sol-alert-content {
+    text-align: center;
+    padding: var(--sol-space-lg) 0;
+}
+
+.sol-alert-content p {
+    font-size: 1.125rem;
+    color: var(--sol-text-secondary);
+    margin: 0;
+}
+
+/* Mobile */
+@media (max-width: 768px) {
+    .sol-modal-overlay {
+        padding: var(--sol-space-md);
+    }
+    
+    .sol-modal-content {
+        max-height: 95vh;
+    }
+    
+    .sol-modal-body {
+        padding: var(--sol-space-lg);
+    }
+}
