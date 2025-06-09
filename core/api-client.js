@@ -240,6 +240,3 @@ if (document.readyState === 'loading') {
 
 // Export singleton
 export default apiClient;
-
-// Export class for testing
-export { ApiClient };
