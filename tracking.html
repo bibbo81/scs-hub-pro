@@ -19,7 +19,6 @@
     <!-- Core JS Modules - ES6 -->
     <script type="module">
         // Import core modules
-        import { authInit } from '/core/auth-init.js';
         import api from '/core/api-client.js';
         import headerComponent from '/core/header-component.js';
         import notificationSystem from '/core/notification-system.js';
@@ -28,7 +27,6 @@
         import app from '/assets/js/app.js';
         
         // Make modules available globally for backward compatibility
-        window.authInit = authInit;
         window.api = api;
         window.headerComponent = headerComponent;
         window.NotificationSystem = notificationSystem;
@@ -38,7 +36,8 @@
     </script>
     
     <!-- Legacy Scripts (to be converted) -->
-    <script src="/core/import-manager.js"></script> <!-- Non module, carica window.ImportManager -->
+    <script src="/core/auth-init.js"></script> <!-- IIFE, carica window.authInit -->
+    <script src="/core/import-manager.js"></script> <!-- IIFE, carica window.ImportManager -->
     
     <!-- Mock Data - SOLO SVILUPPO - RIMUOVERE IN PRODUZIONE -->
     <script src="/core/mock-data.js"></script>

@@ -353,4 +353,8 @@ export const ModalSystem = {
             this.close(modalId);
         }
     }
+    
 };
+
+// Alla fine del file modal-system.js, dopo l'oggetto ModalSystem
+export default ModalSystem;

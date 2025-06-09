@@ -2,7 +2,7 @@
 import api from '/core/api-client.js';
 import headerComponent from '/core/header-component.js';
 import notificationSystem from '/core/notification-system.js';
-import { ModalSystem as modalSystem } from '/core/modal-system.js';
+import modalSystem from '/core/modal-system.js';
 
 class Application {
     constructor() {

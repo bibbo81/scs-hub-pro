@@ -542,3 +542,5 @@ export class TableManager {
         XLSX.writeFile(wb, `export-${Date.now()}.xlsx`);
     }
 }
+
+export default TableManager;
