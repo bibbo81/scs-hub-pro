@@ -569,6 +569,71 @@ function generateMockTrackings() {
             reference_number: 'AIR-2024-003',
             created_at: new Date(now - 2 * 24 * 60 * 60 * 1000).toISOString(),
             eta: new Date(now.getTime() + 1 * 24 * 60 * 60 * 1000).toISOString()
+        },
+        {
+            id: '4',
+            tracking_number: 'COSU6789012',
+            tracking_type: 'container',
+            carrier_code: 'COSCO',
+            status: 'delayed',
+            last_event_location: 'Singapore',
+            origin_port: 'QINGDAO',
+            destination_port: 'ROTTERDAM',
+            reference_number: 'PO-2024-004',
+            created_at: new Date(now - 15 * 24 * 60 * 60 * 1000).toISOString(),
+            eta: new Date(now.getTime() + 10 * 24 * 60 * 60 * 1000).toISOString()
+        },
+        {
+            id: '5',
+            tracking_number: 'DHL1234567890',
+            tracking_type: 'parcel',
+            carrier_code: 'DHL',
+            status: 'out_for_delivery',
+            last_event_location: 'Milano Hub',
+            origin_port: 'MILANO',
+            destination_port: 'ROMA',
+            reference_number: 'EXP-2024-005',
+            created_at: new Date(now - 3 * 24 * 60 * 60 * 1000).toISOString(),
+            eta: new Date(now.getTime() + 1 * 24 * 60 * 60 * 1000).toISOString()
+        },
+        {
+            id: '6',
+            tracking_number: 'HLCU1112223',
+            tracking_type: 'container',
+            carrier_code: 'HAPAG-LLOYD',
+            status: 'customs_cleared',
+            last_event_location: 'Port Said, Egypt',
+            origin_port: 'JEBEL ALI',
+            destination_port: 'HAMBURG',
+            reference_number: 'PO-2024-006',
+            created_at: new Date(now - 12 * 24 * 60 * 60 * 1000).toISOString(),
+            eta: new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000).toISOString()
+        },
+        {
+            id: '7',
+            tracking_number: 'EGLV2345678',
+            tracking_type: 'container',
+            carrier_code: 'EVERGREEN',
+            status: 'registered',
+            last_event_location: 'Booking Confirmed',
+            origin_port: 'KAOHSIUNG',
+            destination_port: 'LOS ANGELES',
+            reference_number: 'PO-2024-007',
+            created_at: new Date(now - 1 * 24 * 60 * 60 * 1000).toISOString(),
+            eta: new Date(now.getTime() + 21 * 24 * 60 * 60 * 1000).toISOString()
+        },
+        {
+            id: '8',
+            tracking_number: '235-87654321',
+            tracking_type: 'awb',
+            carrier_code: 'FEDEX',
+            status: 'delivered',
+            last_event_location: 'Paris, France',
+            origin_port: 'CDG',
+            destination_port: 'FCO',
+            reference_number: 'AIR-2024-008',
+            created_at: new Date(now - 5 * 24 * 60 * 60 * 1000).toISOString(),
+            eta: null
         }
     ];
 }
@@ -605,83 +670,125 @@ function showAddTrackingForm() {
 // Render tracking form
 function renderTrackingForm() {
     return `
-        <form id="trackingForm" class="tracking-form">
-            <div class="form-grid">
-                <div class="form-group">
-                    <label>Numero Tracking *</label>
-                    <input type="text" id="trackingNumber" class="form-control" 
-                           placeholder="Es: MSKU1234567" required
-                           oninput="detectTrackingType(this.value)">
-                    <span class="form-hint" id="typeHint"></span>
-                </div>
-                
-                <div class="form-group">
-                    <label>Tipo Tracking *</label>
-                    <select id="trackingType" class="form-control" required>
-                        <option value="">Seleziona tipo</option>
-                        <option value="container">Container (Mare)</option>
-                        <option value="bl">Bill of Lading (B/L)</option>
-                        <option value="awb">Air Waybill (Aereo)</option>
-                        <option value="parcel">Parcel/Express</option>
-                    </select>
-                </div>
-                
-                <div class="form-group">
-                    <label>Vettore *</label>
-                    <select id="carrierCode" class="form-control" required>
-                        <option value="">Seleziona vettore</option>
-                        <optgroup label="Mare">
-                            <option value="MSC">MSC</option>
-                            <option value="MAERSK">MAERSK</option>
-                            <option value="CMA-CGM">CMA CGM</option>
-                            <option value="COSCO">COSCO</option>
-                            <option value="HAPAG-LLOYD">Hapag-Lloyd</option>
-                            <option value="ONE">ONE</option>
-                            <option value="EVERGREEN">Evergreen</option>
-                        </optgroup>
-                        <optgroup label="Aereo">
-                            <option value="CARGOLUX">Cargolux</option>
-                            <option value="LUFTHANSA">Lufthansa Cargo</option>
-                            <option value="EMIRATES">Emirates SkyCargo</option>
-                        </optgroup>
-                        <optgroup label="Express">
-                            <option value="DHL">DHL</option>
-                            <option value="FEDEX">FedEx</option>
-                            <option value="UPS">UPS</option>
-                            <option value="TNT">TNT</option>
-                            <option value="GLS">GLS</option>
-                        </optgroup>
-                    </select>
-                </div>
-                
-                <div class="form-group">
-                    <label>Riferimento</label>
-                    <input type="text" id="referenceNumber" class="form-control" 
-                           placeholder="Es: PO123456">
-                </div>
-                
-                <div class="form-group">
-                    <label>Porto Origine</label>
-                    <input type="text" id="originPort" class="form-control" 
-                           placeholder="Es: SHANGHAI">
-                </div>
-                
-                <div class="form-group">
-                    <label>Porto Destinazione</label>
-                    <input type="text" id="destinationPort" class="form-control" 
-                           placeholder="Es: GENOVA">
-                </div>
+        <div class="sol-form">
+            <!-- Tab Navigation -->
+            <div class="sol-tabs">
+                <button class="sol-tab active" data-tab="single" onclick="switchTab('single')">
+                    <i class="fas fa-plus"></i>
+                    Singolo Tracking
+                </button>
+                <button class="sol-tab" data-tab="import" onclick="switchTab('import')">
+                    <i class="fas fa-file-import"></i>
+                    Import Multiplo
+                </button>
             </div>
             
-            <div class="form-actions">
-                <button type="button" class="btn btn-secondary" onclick="modalSystem.closeAll()">
-                    Annulla
-                </button>
-                <button type="submit" class="btn btn-primary">
-                    <i class="fas fa-plus"></i> Aggiungi Tracking
-                </button>
+            <!-- Single Tab -->
+            <div class="sol-tab-content active" data-content="single">
+                <form id="trackingForm" class="tracking-form">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label>Numero Tracking *</label>
+                            <input type="text" id="trackingNumber" class="form-control" 
+                                   placeholder="Es: MSKU1234567" required
+                                   oninput="detectTrackingType(this.value)">
+                            <span class="form-hint" id="typeHint"></span>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Tipo Tracking *</label>
+                            <select id="trackingType" class="form-control" required>
+                                <option value="">Seleziona tipo</option>
+                                <option value="container">Container (Mare)</option>
+                                <option value="bl">Bill of Lading (B/L)</option>
+                                <option value="awb">Air Waybill (Aereo)</option>
+                                <option value="parcel">Parcel/Express</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Vettore *</label>
+                            <select id="carrierCode" class="form-control" required>
+                                <option value="">Seleziona vettore</option>
+                                <optgroup label="Mare">
+                                    <option value="MSC">MSC</option>
+                                    <option value="MAERSK">MAERSK</option>
+                                    <option value="CMA-CGM">CMA CGM</option>
+                                    <option value="COSCO">COSCO</option>
+                                    <option value="HAPAG-LLOYD">Hapag-Lloyd</option>
+                                    <option value="ONE">ONE</option>
+                                    <option value="EVERGREEN">Evergreen</option>
+                                </optgroup>
+                                <optgroup label="Aereo">
+                                    <option value="CARGOLUX">Cargolux</option>
+                                    <option value="LUFTHANSA">Lufthansa Cargo</option>
+                                    <option value="EMIRATES">Emirates SkyCargo</option>
+                                </optgroup>
+                                <optgroup label="Express">
+                                    <option value="DHL">DHL</option>
+                                    <option value="FEDEX">FedEx</option>
+                                    <option value="UPS">UPS</option>
+                                    <option value="TNT">TNT</option>
+                                    <option value="GLS">GLS</option>
+                                </optgroup>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Riferimento</label>
+                            <input type="text" id="referenceNumber" class="form-control" 
+                                   placeholder="Es: PO123456">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Porto Origine</label>
+                            <input type="text" id="originPort" class="form-control" 
+                                   placeholder="Es: SHANGHAI">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Porto Destinazione</label>
+                            <input type="text" id="destinationPort" class="form-control" 
+                                   placeholder="Es: GENOVA">
+                        </div>
+                    </div>
+                    
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-secondary" onclick="modalSystem.closeAll()">
+                            Annulla
+                        </button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-plus"></i> Aggiungi Tracking
+                        </button>
+                    </div>
+                </form>
             </div>
-        </form>
+            
+            <!-- Import Tab -->
+            <div class="sol-tab-content" data-content="import">
+                <div id="importContainer">
+                    <div style="text-align: center; padding: 2rem;">
+                        <div style="background: #e3f2fd; border-radius: 12px; padding: 2rem; display: inline-block;">
+                            <i class="fas fa-ship fa-3x" style="color: #1976d2; margin-bottom: 1rem; display: block;"></i>
+                            <h4>Import File ShipsGo</h4>
+                            <p>Carica i file Excel esportati da ShipsGo (Mare o Aereo)</p>
+                            <input type="file" id="shipsgoFile" accept=".csv,.xlsx,.xls" style="display:none" 
+                                   onchange="handleFileImport(this.files[0])">
+                            <button class="btn btn-primary" onclick="document.getElementById('shipsgoFile').click()">
+                                <i class="fas fa-file-excel"></i> Seleziona File ShipsGo
+                            </button>
+                        </div>
+                        
+                        <div style="margin-top: 2rem;">
+                            <p>Oppure</p>
+                            <button class="btn btn-secondary" onclick="downloadTemplate()">
+                                <i class="fas fa-download"></i> Scarica Template CSV
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     `;
 }
 
@@ -690,6 +797,50 @@ function setupFormInteractions() {
     const form = document.getElementById('trackingForm');
     form.addEventListener('submit', handleAddTracking);
 }
+
+// Switch tab
+window.switchTab = function(tabName) {
+    // Update tabs
+    document.querySelectorAll('.sol-tab').forEach(tab => {
+        tab.classList.toggle('active', tab.dataset.tab === tabName);
+    });
+    
+    // Update content
+    document.querySelectorAll('.sol-tab-content').forEach(content => {
+        content.classList.toggle('active', content.dataset.content === tabName);
+    });
+};
+
+// Handle file import
+window.handleFileImport = async function(file) {
+    if (!file) return;
+    
+    notificationSystem.info('Caricamento file in corso...');
+    
+    // Simula import per ora
+    setTimeout(() => {
+        notificationSystem.success('File caricato! Funzionalità import in sviluppo.');
+        modalSystem.closeAll();
+    }, 1500);
+};
+
+// Download template
+window.downloadTemplate = function() {
+    const csv = `tracking_number,tracking_type,carrier_code,origin_port,destination_port,reference_number
+MSKU1234567,container,MAERSK,SHANGHAI,GENOVA,PO-2024-001
+MSCU7654321,container,MSC,NINGBO,GENOVA,PO-2024-002
+176-12345678,awb,CARGOLUX,HKG,MXP,AIR-2024-003`;
+    
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'tracking_template.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+    
+    notificationSystem.success('Template scaricato!');
+};
 
 // Detect tracking type
 window.detectTrackingType = function(value) {
@@ -1184,5 +1335,39 @@ style.textContent = `
         font-size: 0.875rem;
         color: var(--sol-gray-600);
     }
+        .sol-tabs {
+    display: flex;
+    border-bottom: 2px solid var(--sol-gray-200);
+    margin-bottom: 2rem;
+}
+
+.sol-tab {
+    padding: 1rem 1.5rem;
+    background: none;
+    border: none;
+    color: var(--sol-gray-600);
+    font-weight: 500;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -2px;
+    transition: all 0.3s;
+}
+
+.sol-tab:hover {
+    color: var(--sol-gray-900);
+}
+
+.sol-tab.active {
+    color: var(--sol-primary);
+    border-bottom-color: var(--sol-primary);
+}
+
+.sol-tab-content {
+    display: none;
+}
+
+.sol-tab-content.active {
+    display: block;
+}
 `;
 document.head.appendChild(style);
