@@ -3018,3 +3018,22 @@ select.form-control {
 .column-item input[type="checkbox"] {
     cursor: pointer;
 }
+
+/* Button Danger Style */
+.sol-btn-danger,
+.sol-btn-error {
+    color: white;
+    background-color: var(--sol-danger, #ef4444);
+    border-color: var(--sol-danger, #ef4444);
+}
+
+.sol-btn-danger:hover:not(:disabled),
+.sol-btn-error:hover:not(:disabled) {
+    background-color: var(--sol-danger-dark, #dc2626);
+    border-color: var(--sol-danger-dark, #dc2626);
+}
+
+/* Fix modal z-index */
+.sol-modal-overlay {
+    z-index: 2000 !important;
+}

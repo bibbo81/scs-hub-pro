@@ -127,32 +127,42 @@ export const ModalSystem = {
      * @param {Object} options - Opzioni della modal di conferma
      * @returns {Promise} Promise che risolve con true/false
      */
-    confirm(options = {}) {
-        return new Promise((resolve) => {
-            const modalId = `modal-confirm-${Date.now()}`;
-            
-            const modal = this.create({
-                title: options.title || 'Conferma',
-                content: options.message || 'Sei sicuro?',
-                maxWidth: options.maxWidth || '500px',
-                footer: `
-                    <button class="sol-btn sol-btn-glass" onclick="window.ModalSystem.handleConfirm('${modalId}', false)">
-                        ${options.cancelText || 'Annulla'}
-                    </button>
-                    <button class="sol-btn ${options.confirmClass || 'sol-btn-primary'}" onclick="window.ModalSystem.handleConfirm('${modalId}', true)">
-                        ${options.confirmText || 'Conferma'}
-                    </button>
-                `,
-                hideClose: true,
-                closeOnBackdrop: false,
-                closeOnEsc: false,
-                onClose: (result) => resolve(result || false)
-            });
-            
-            // Salva resolver
-            this._confirmResolvers[modalId] = resolve;
+    // In modal-system.js, sostituisci il metodo confirm con:
+confirm(options = {}) {
+    return new Promise((resolve) => {
+        const modalId = `modal-confirm-${Date.now()}`;
+        
+        const modal = this.create({
+            title: options.title || 'Conferma',
+            content: options.message || 'Sei sicuro?',
+            maxWidth: options.maxWidth || '500px',
+            footer: `
+                <button class="sol-btn sol-btn-glass" data-confirm-result="false" data-modal-id="${modalId}">
+                    ${options.cancelText || 'Annulla'}
+                </button>
+                <button class="sol-btn ${options.confirmClass || 'sol-btn-primary'}" data-confirm-result="true" data-modal-id="${modalId}">
+                    ${options.confirmText || 'Conferma'}
+                </button>
+            `,
+            hideClose: true,
+            closeOnBackdrop: false,
+            closeOnEsc: false,
+            onClose: (result) => resolve(result || false)
         });
-    },
+        
+        // Attach confirm handlers
+        modal.querySelectorAll('[data-confirm-result]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const result = btn.dataset.confirmResult === 'true';
+                this.resolveConfirm(modalId, result);
+            });
+        });
+        
+        // Salva resolver
+        const modalData = this.activeModals.get(modalId);
+        modalData.resolver = resolve;
+    });
+},
     
     /**
      * Handle confirm button click
