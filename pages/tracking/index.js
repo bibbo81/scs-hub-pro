@@ -1,5 +1,4 @@
 // /pages/tracking/index.js - Logica specifica per la pagina tracking
-// FIX: Usa percorsi relativi corretti
 import TableManager from '../../core/table-manager.js';
 import modalSystem from '../../core/modal-system.js';
 
@@ -11,6 +10,38 @@ const TRACKING_PATTERNS = {
     parcel: /^[A-Z0-9]{10,30}$/
 };
 
+// Column configuration system
+const AVAILABLE_COLUMNS = {
+    // Core columns
+    tracking_number: { label: 'Tracking Number', visible: true, order: 1, width: 150 },
+    tracking_type: { label: 'Tipo', visible: true, order: 2, width: 100 },
+    carrier_code: { label: 'Carrier', visible: true, order: 3, width: 120 },
+    status: { label: 'Stato', visible: true, order: 4, width: 120 },
+    created_at: { label: 'Data Inserimento', visible: true, order: 5, width: 150 },
+    last_event_location: { label: 'Posizione', visible: true, order: 6, width: 150 },
+    eta: { label: 'ETA', visible: true, order: 7, width: 120 },
+    
+    // ShipsGo Sea columns
+    reference_number: { label: 'Reference', visible: false, order: 8, width: 120 },
+    booking: { label: 'Booking', visible: false, order: 9, width: 120 },
+    port_of_loading: { label: 'Porto Carico', visible: false, order: 10, width: 150 },
+    port_of_discharge: { label: 'Porto Scarico', visible: false, order: 11, width: 150 },
+    date_of_loading: { label: 'Data Carico', visible: false, order: 12, width: 120 },
+    date_of_discharge: { label: 'Data Scarico', visible: false, order: 13, width: 120 },
+    co2_emissions: { label: 'CO₂ (Tons)', visible: false, order: 14, width: 100 },
+    vessel_name: { label: 'Nave', visible: false, order: 15, width: 150 },
+    
+    // ShipsGo Air columns
+    origin: { label: 'Origine', visible: false, order: 16, width: 100 },
+    destination: { label: 'Destinazione', visible: false, order: 17, width: 100 },
+    origin_name: { label: 'Nome Origine', visible: false, order: 18, width: 150 },
+    destination_name: { label: 'Nome Destinazione', visible: false, order: 19, width: 150 },
+    departure_date: { label: 'Data Partenza', visible: false, order: 20, width: 120 },
+    arrival_date: { label: 'Data Arrivo', visible: false, order: 21, width: 120 },
+    flight_number: { label: 'Volo', visible: false, order: 22, width: 100 },
+    transit_time: { label: 'Tempo Transito', visible: false, order: 23, width: 120 }
+};
+
 // Global state
 let trackingTable = null;
 let trackings = [];
@@ -20,8 +51,10 @@ let statsCards = [];
 window.refreshTracking = (id) => handleRefreshTracking(id);
 window.viewTimeline = (id) => handleViewTimeline(id);
 window.deleteTracking = (id) => handleDeleteTracking(id);
+window.showColumnEditor = () => showColumnEditor();
+window.toggleColumn = (key, visible) => toggleColumn(key, visible);
 
-// Show add tracking form - DEFINITA PRIMA DI trackingInit
+// Show add tracking form
 function showAddTrackingForm() {
     window.ModalSystem.show({
         title: 'Gestione Tracking',
@@ -49,6 +82,9 @@ function showAddTrackingForm() {
 window.trackingInit = async function() {
     console.log('[Tracking] Initializing page...');
     
+    // Load column preferences
+    loadColumnPreferences();
+    
     // Riesponi le funzioni per sicurezza
     window.showAddTrackingForm = showAddTrackingForm;
     window.refreshAllTrackings = refreshAllTrackings;
@@ -68,6 +104,112 @@ window.trackingInit = async function() {
     
     console.log('[Tracking] Page initialized successfully');
 };
+
+// Load column preferences
+function loadColumnPreferences() {
+    const saved = localStorage.getItem('trackingColumnsConfig');
+    if (saved) {
+        const config = JSON.parse(saved);
+        Object.assign(AVAILABLE_COLUMNS, config);
+    }
+}
+
+// Save column preferences
+function saveColumnPreferences() {
+    localStorage.setItem('trackingColumnsConfig', JSON.stringify(AVAILABLE_COLUMNS));
+}
+
+// Show column editor
+function showColumnEditor() {
+    const content = `
+        <div class="column-editor">
+            <p style="margin-bottom: 1rem;">Seleziona le colonne da visualizzare e trascinale per riordinarle:</p>
+            <div class="column-list" id="columnList">
+                ${Object.entries(AVAILABLE_COLUMNS)
+                    .sort((a, b) => a[1].order - b[1].order)
+                    .map(([key, col]) => `
+                        <div class="column-item" data-key="${key}" draggable="true">
+                            <i class="fas fa-grip-vertical drag-handle"></i>
+                            <label>
+                                <input type="checkbox" ${col.visible ? 'checked' : ''} 
+                                       onchange="toggleColumn('${key}', this.checked)">
+                                ${col.label}
+                            </label>
+                        </div>
+                    `).join('')}
+            </div>
+        </div>
+    `;
+    
+    const modal = window.ModalSystem.show({
+        title: 'Gestione Colonne',
+        content: content,
+        actions: [
+            {
+                label: 'Ripristina Default',
+                className: 'sol-btn-glass',
+                handler: () => {
+                    resetColumns();
+                    return false; // Keep modal open
+                }
+            },
+            {
+                label: 'Applica',
+                className: 'sol-btn-primary',
+                handler: () => {
+                    saveColumnPreferences();
+                    setupTrackingTable(); // Rebuild table
+                    loadTrackings(); // Reload data
+                    return true; // Close modal
+                }
+            }
+        ]
+    });
+    
+    // Setup drag & drop
+    setupColumnDragDrop();
+}
+
+// Toggle column visibility
+function toggleColumn(key, visible) {
+    AVAILABLE_COLUMNS[key].visible = visible;
+}
+
+// Reset columns to default
+function resetColumns() {
+    // Reset visibility
+    Object.keys(AVAILABLE_COLUMNS).forEach(key => {
+        AVAILABLE_COLUMNS[key].visible = ['tracking_number', 'tracking_type', 'carrier_code', 'status', 'created_at', 'last_event_location', 'eta'].includes(key);
+    });
+    // Reset order
+    const defaultOrder = ['tracking_number', 'tracking_type', 'carrier_code', 'status', 'created_at', 'last_event_location', 'eta'];
+    defaultOrder.forEach((key, index) => {
+        if (AVAILABLE_COLUMNS[key]) {
+            AVAILABLE_COLUMNS[key].order = index + 1;
+        }
+    });
+    // Refresh editor
+    showColumnEditor();
+}
+
+// Setup column drag & drop
+function setupColumnDragDrop() {
+    const list = document.getElementById('columnList');
+    if (!list) return;
+    
+    new Sortable(list, {
+        animation: 150,
+        handle: '.drag-handle',
+        onEnd: function(evt) {
+            // Update order based on new positions
+            const items = list.querySelectorAll('.column-item');
+            items.forEach((item, index) => {
+                const key = item.dataset.key;
+                AVAILABLE_COLUMNS[key].order = index + 1;
+            });
+        }
+    });
+}
 
 // Setup stats cards with drag & drop
 function setupStatsCards() {
@@ -107,24 +249,105 @@ function setupStatsCards() {
 
 // Setup tracking table
 function setupTrackingTable() {
+    // Get visible columns sorted by order
+    const visibleColumns = Object.entries(AVAILABLE_COLUMNS)
+        .filter(([key, col]) => col.visible)
+        .sort((a, b) => a[1].order - b[1].order)
+        .map(([key, col]) => {
+            // Map column configuration
+            const columnConfig = {
+                key: key,
+                label: col.label,
+                sortable: true
+            };
+            
+            // Add specific formatters
+            switch(key) {
+                case 'tracking_type':
+                    columnConfig.formatter = formatType;
+                    break;
+                case 'status':
+                    columnConfig.formatter = formatStatus;
+                    break;
+                case 'created_at':
+                case 'last_event_date':
+                case 'date_of_loading':
+                case 'date_of_discharge':
+                case 'departure_date':
+                case 'arrival_date':
+                    columnConfig.formatter = formatDate;
+                    break;
+                case 'eta':
+                    columnConfig.formatter = (value, row) => {
+                        const eta = getTrackingETA(row);
+                        return eta ? formatDate(eta) : '-';
+                    };
+                    break;
+                case 'co2_emissions':
+                    columnConfig.formatter = (value) => value ? `${value} tons` : '-';
+                    break;
+                case 'port_of_loading':
+                case 'port_of_discharge':
+                case 'origin':
+                case 'destination':
+                    columnConfig.formatter = (value, row) => {
+                        // Try to get from metadata first
+                        if (key === 'port_of_loading') return row.metadata?.pol || value || '-';
+                        if (key === 'port_of_discharge') return row.metadata?.pod || value || '-';
+                        return value || '-';
+                    };
+                    break;
+            }
+            
+            return columnConfig;
+        });
+    
+    // Add actions column
+    visibleColumns.push({
+        key: 'actions',
+        label: 'Azioni',
+        sortable: false,
+        formatter: (_, row) => `
+            <div class="action-buttons">
+                <button class="btn-icon" onclick="refreshTracking('${row.id}')" title="Aggiorna">
+                    <i class="icon-sync-alt"></i>
+                </button>
+                <button class="btn-icon" onclick="viewTimeline('${row.id}')" title="Timeline">
+                    <i class="icon-history"></i>
+                </button>
+                <button class="btn-icon text-danger" onclick="deleteTracking('${row.id}')" title="Elimina">
+                    <i class="icon-trash"></i>
+                </button>
+            </div>
+        `
+    });
+    
     trackingTable = new TableManager('trackingTableContainer', {
-        columns: [
-            { key: 'tracking_number', label: 'Tracking Number', sortable: true },
-            { key: 'tracking_type', label: 'Tipo', formatter: formatType },
-            { key: 'carrier_code', label: 'Carrier', sortable: true },
-            { key: 'status', label: 'Stato', formatter: formatStatus },
-            { key: 'last_event_date', label: 'Ultimo Aggiornamento', formatter: formatDate },
-            { key: 'last_event_location', label: 'Posizione' },
-            { key: 'eta', label: 'ETA', formatter: formatDate }
-        ],
-        actions: [
-            { icon: 'fas fa-sync-alt', handler: 'refreshTracking', title: 'Aggiorna' },
-            { icon: 'fas fa-history', handler: 'viewTimeline', title: 'Timeline' },
-            { icon: 'fas fa-trash', handler: 'deleteTracking', title: 'Elimina' }
-        ],
+        columns: visibleColumns,
+        actions: false, // We handle actions in column formatter
         emptyMessage: 'Nessun tracking attivo. Aggiungi il tuo primo tracking per iniziare.',
         pageSize: 20
     });
+}
+
+// Get tracking ETA
+function getTrackingETA(tracking) {
+    // Per container: cerca discharge date futuro
+    if (tracking.tracking_type === 'container') {
+        const dischargeDate = tracking.metadata?.discharge_date;
+        if (dischargeDate && new Date(dischargeDate) > new Date()) {
+            return dischargeDate;
+        }
+    }
+    // Per AWB: cerca arrival date futuro
+    else if (tracking.tracking_type === 'awb') {
+        const arrivalDate = tracking.metadata?.arrival_date;
+        if (arrivalDate && new Date(arrivalDate) > new Date()) {
+            return arrivalDate;
+        }
+    }
+    // Fallback a eta field
+    return tracking.eta;
 }
 
 // Setup event listeners
@@ -162,6 +385,28 @@ async function loadTrackings() {
         });
         
         trackings = result.trackings || [];
+        
+        // Add metadata fields to root level for column display
+        trackings = trackings.map(t => ({
+            ...t,
+            // ShipsGo Sea fields
+            port_of_loading: t.metadata?.pol || t.origin_port,
+            port_of_discharge: t.metadata?.pod || t.destination_port,
+            date_of_loading: t.metadata?.loading_date,
+            date_of_discharge: t.metadata?.discharge_date,
+            co2_emissions: t.metadata?.co2_emissions,
+            vessel_name: t.metadata?.vessel_name,
+            booking: t.metadata?.booking,
+            // ShipsGo Air fields
+            origin: t.metadata?.origin,
+            destination: t.metadata?.destination,
+            origin_name: t.metadata?.origin_name || t.origin_name,
+            destination_name: t.metadata?.destination_name || t.destination_name,
+            departure_date: t.metadata?.departure_date,
+            arrival_date: t.metadata?.arrival_date,
+            flight_number: t.metadata?.flight_number,
+            transit_time: t.metadata?.transit_time
+        }));
         
         // IMPORTANTE: Salva i tracking globalmente per la timeline view
         window.currentTrackings = trackings;
@@ -305,9 +550,9 @@ function setupFormInteractions() {
                 }
                 
                 // Use window.ImportManager instead of ImportManager
-                // if (window.ImportManager) {
-//     window.ImportManager.renderImportUI('importContainer');
-// }
+                if (window.ImportManager) {
+                    window.ImportManager.renderImportUI('importContainer');
+                }
             }
         });
     });
@@ -555,7 +800,7 @@ function renderTimeline(tracking, events) {
     `;
 }
 
-// Handle delete tracking
+// Handle delete tracking - FIXED VERSION
 async function handleDeleteTracking(id) {
     const confirm = await window.ModalSystem.confirm({
         title: 'Conferma eliminazione',
@@ -567,11 +812,20 @@ async function handleDeleteTracking(id) {
     if (!confirm) return;
     
     try {
-        await window.api.post('delete-tracking', { trackingId: id }, {
-            loading: 'Eliminazione tracking...'
-        });
+        // Rimuovi da localStorage
+        let trackings = [];
+        const stored = localStorage.getItem('mockTrackings');
+        if (stored) {
+            trackings = JSON.parse(stored);
+            // Filtra via il tracking da eliminare
+            trackings = trackings.filter(t => t.id != id);
+            // Salva di nuovo
+            localStorage.setItem('mockTrackings', JSON.stringify(trackings));
+        }
         
         window.NotificationSystem.success('Tracking eliminato');
+        
+        // Ricarica la pagina per aggiornare la vista
         await loadTrackings();
         
     } catch (error) {
@@ -771,12 +1025,12 @@ window.syncFromShipsGo = async function(type) {
 // Format helpers
 function formatType(type) {
     const types = {
-        container: { icon: 'fa-cube', text: 'Container' },
-        bl: { icon: 'fa-file-alt', text: 'B/L' },
-        awb: { icon: 'fa-plane', text: 'AWB' },
-        parcel: { icon: 'fa-box', text: 'Parcel' }
+        container: { icon: 'fa-ship', text: 'MARE' },
+        bl: { icon: 'fa-file-alt', text: 'MARE' },
+        awb: { icon: 'fa-plane', text: 'AEREO' },
+        parcel: { icon: 'fa-box', text: 'PARCEL' }
     };
-    const config = types[type] || { icon: 'fa-question', text: type };
+    const config = types[type] || { icon: 'fa-question', text: type.toUpperCase() };
     return `<span class="sol-badge sol-badge-info"><i class="fas ${config.icon}"></i> ${config.text}</span>`;
 }
 
@@ -784,6 +1038,7 @@ function formatStatus(status) {
     const statuses = {
         registered: { class: 'info', text: 'Registrato', icon: 'fa-clock' },
         in_transit: { class: 'warning', text: 'In Transito', icon: 'fa-ship' },
+        arrived: { class: 'primary', text: 'ARRIVATO', icon: 'fa-anchor' },
         out_for_delivery: { class: 'primary', text: 'In Consegna', icon: 'fa-truck' },
         delivered: { class: 'success', text: 'Consegnato', icon: 'fa-check-circle' },
         delayed: { class: 'error', text: 'In Ritardo', icon: 'fa-exclamation-triangle' },
@@ -796,7 +1051,7 @@ function formatStatus(status) {
 
 function formatDate(date) {
     if (!date) return '-';
-    return new Date(date).toLocaleString('it-IT', {
+    return new Date(date).toLocaleDateString('it-IT', {
         day: '2-digit',
         month: '2-digit',
         year: 'numeric',

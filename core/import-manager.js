@@ -63,40 +63,40 @@
                 'KLM': 'KL'
             },
             
-            status: {
-                // Container statuses
-                'Gate In': 'in_transit',
-                'Gate Out': 'in_transit',
-                'Loaded': 'in_transit',
-                'Loaded on Vessel': 'in_transit',
-                'Discharged': 'in_transit',
-                'Discharged from Vessel': 'in_transit',
-                'In Transit': 'in_transit',
-                'Sailing': 'in_transit',
-                'Arrived': 'in_transit',
-                'Departed': 'in_transit',
-                'Transhipment': 'in_transit',
-                'In Transshipment': 'in_transit',
-                // Delivered statuses
-                'Delivered': 'delivered',
-                'Empty': 'delivered',
-                'Empty Returned': 'delivered',
-                'POD': 'delivered',
-                // Pending statuses
-                'Registered': 'registered',
-                'Pending': 'registered',
-                'Booked': 'registered',
-                'Booking Confirmed': 'registered',
-                // Air statuses
-                'RCS': 'registered',
-                'MAN': 'in_transit',
-                'DEP': 'in_transit',
-                'ARR': 'in_transit',
-                'RCF': 'in_transit',
-                'DLV': 'delivered',
-                'NFD': 'in_transit',
-                'AWD': 'in_transit'
-            },
+            sstatus: {
+    // Container statuses
+    'Gate In': 'in_transit',
+    'Gate Out': 'in_transit',
+    'Loaded': 'in_transit',
+    'Loaded on Vessel': 'in_transit',
+    'Discharged': 'arrived',              // CAMBIATO
+    'Discharged from Vessel': 'arrived',  // CAMBIATO
+    'In Transit': 'in_transit',
+    'Sailing': 'in_transit',
+    'Arrived': 'arrived',                 // CAMBIATO
+    'Departed': 'in_transit',
+    'Transhipment': 'in_transit',
+    'In Transshipment': 'in_transit',
+    // Delivered statuses
+    'Delivered': 'delivered',
+    'Empty': 'delivered',
+    'Empty Returned': 'delivered',
+    'POD': 'delivered',
+    // Pending statuses
+    'Registered': 'registered',
+    'Pending': 'registered',
+    'Booked': 'registered',
+    'Booking Confirmed': 'registered',
+    // Air statuses
+    'RCS': 'registered',
+    'MAN': 'in_transit',
+    'DEP': 'in_transit',
+    'ARR': 'arrived',                     // CAMBIATO
+    'RCF': 'in_transit',
+    'DLV': 'delivered',
+    'NFD': 'in_transit',
+    'AWD': 'in_transit'
+},
             
             types: {
                 container: /^[A-Z]{4}\d{7}$/,
