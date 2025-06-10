@@ -12,6 +12,9 @@ export const ModalSystem = {
     // Registry delle modali attive
     activeModals: new Map(),
     
+    // Registry per confirm resolvers
+    _confirmResolvers: {},
+    
     /**
      * Mostra una modal con opzioni semplificate
      * @param {Object} options - Opzioni della modal
@@ -133,10 +136,10 @@ export const ModalSystem = {
                 content: options.message || 'Sei sicuro?',
                 maxWidth: options.maxWidth || '500px',
                 footer: `
-                    <button class="sol-btn sol-btn-glass" data-confirm-result="false" data-modal-id="${modalId}">
+                    <button class="sol-btn sol-btn-glass" onclick="window.ModalSystem.handleConfirm('${modalId}', false)">
                         ${options.cancelText || 'Annulla'}
                     </button>
-                    <button class="sol-btn ${options.confirmClass || 'sol-btn-primary'}" data-confirm-result="true" data-modal-id="${modalId}">
+                    <button class="sol-btn ${options.confirmClass || 'sol-btn-primary'}" onclick="window.ModalSystem.handleConfirm('${modalId}', true)">
                         ${options.confirmText || 'Conferma'}
                     </button>
                 `,
@@ -146,18 +149,21 @@ export const ModalSystem = {
                 onClose: (result) => resolve(result || false)
             });
             
-            // Attach confirm handlers
-            modal.querySelectorAll('[data-confirm-result]').forEach(btn => {
-                btn.addEventListener('click', () => {
-                    const result = btn.dataset.confirmResult === 'true';
-                    this.resolveConfirm(modalId, result);
-                });
-            });
-            
             // Salva resolver
-            const modalData = this.activeModals.get(modalId);
-            modalData.resolver = resolve;
+            this._confirmResolvers[modalId] = resolve;
         });
+    },
+    
+    /**
+     * Handle confirm button click
+     */
+    handleConfirm(modalId, result) {
+        const resolve = this._confirmResolvers[modalId];
+        if (resolve) {
+            resolve(result);
+            delete this._confirmResolvers[modalId];
+        }
+        this.close(modalId);
     },
     
     /**
@@ -341,20 +347,9 @@ export const ModalSystem = {
             };
             document.addEventListener('keydown', escHandler);
         }
-    },
-    
-    /**
-     * Helper per confirm modal
-     */
-    resolveConfirm(modalId, result) {
-        const modalData = this.activeModals.get(modalId);
-        if (modalData && modalData.resolver) {
-            modalData.onClose = () => modalData.resolver(result);
-            this.close(modalId);
-        }
     }
-    
 };
 
-// Alla fine del file modal-system.js, dopo l'oggetto ModalSystem
+// Export singleton
+export const modalSystem = ModalSystem;
 export default ModalSystem;

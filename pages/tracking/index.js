@@ -1,6 +1,7 @@
 // /pages/tracking/index.js - Logica specifica per la pagina tracking
-import TableManager from '../../core/table-manager.js';
-import modalSystem from '../../core/modal-system.js';
+import { TableManager } from '/core/table-manager.js';
+import { modalSystem } from '/core/modal-system.js';
+import { notificationSystem } from '/core/notification-system.js';
 
 // Tracking patterns
 const TRACKING_PATTERNS = {
@@ -10,86 +11,116 @@ const TRACKING_PATTERNS = {
     parcel: /^[A-Z0-9]{10,30}$/
 };
 
-// Column configuration system
-const AVAILABLE_COLUMNS = {
-    // Core columns
-    tracking_number: { label: 'Tracking Number', visible: true, order: 1, width: 150 },
-    tracking_type: { label: 'Tipo', visible: true, order: 2, width: 100 },
-    carrier_code: { label: 'Carrier', visible: true, order: 3, width: 120 },
-    status: { label: 'Stato', visible: true, order: 4, width: 120 },
-    created_at: { label: 'Data Inserimento', visible: true, order: 5, width: 150 },
-    last_event_location: { label: 'Posizione', visible: true, order: 6, width: 150 },
-    eta: { label: 'ETA', visible: true, order: 7, width: 120 },
+// Status mapping consolidato basato sui tuoi dati Google Sheets
+const STATUS_MAPPING = {
+    // In Transit
+    'Sailing': 'in_transit',
+    'In Transit': 'in_transit',
+    'In transito': 'in_transit',
+    'At local FedEx facility': 'in_transit',
+    'Departed FedEx hub': 'in_transit',
+    'On the way': 'in_transit',
+    'Arrived at FedEx hub': 'in_transit',
+    'At destination sort facility': 'in_transit',
+    'Left FedEx origin facility': 'in_transit',
+    'Picked up': 'in_transit',
+    'Arrivata nella Sede GLS locale.': 'in_transit',
+    'In transito.': 'in_transit',
+    'Partita dalla sede mittente. In transito.': 'in_transit',
+    'La spedizione è in transito': 'in_transit',
     
-    // ShipsGo Sea columns
-    reference_number: { label: 'Reference', visible: false, order: 8, width: 120 },
-    booking: { label: 'Booking', visible: false, order: 9, width: 120 },
-    port_of_loading: { label: 'Porto Carico', visible: false, order: 10, width: 150 },
-    port_of_discharge: { label: 'Porto Scarico', visible: false, order: 11, width: 150 },
-    date_of_loading: { label: 'Data Carico', visible: false, order: 12, width: 120 },
-    date_of_discharge: { label: 'Data Scarico', visible: false, order: 13, width: 120 },
-    co2_emissions: { label: 'CO₂ (Tons)', visible: false, order: 14, width: 100 },
-    vessel_name: { label: 'Nave', visible: false, order: 15, width: 150 },
+    // Arrived/Discharged (nuovo stato)
+    'Arrived': 'arrived',
+    'Arrivata': 'arrived',
+    'Discharged': 'arrived',
+    'Scaricato': 'arrived',
     
-    // ShipsGo Air columns
-    origin: { label: 'Origine', visible: false, order: 16, width: 100 },
-    destination: { label: 'Destinazione', visible: false, order: 17, width: 100 },
-    origin_name: { label: 'Nome Origine', visible: false, order: 18, width: 150 },
-    destination_name: { label: 'Nome Destinazione', visible: false, order: 19, width: 150 },
-    departure_date: { label: 'Data Partenza', visible: false, order: 20, width: 120 },
-    arrival_date: { label: 'Data Arrivo', visible: false, order: 21, width: 120 },
-    flight_number: { label: 'Volo', visible: false, order: 22, width: 100 },
-    transit_time: { label: 'Tempo Transito', visible: false, order: 23, width: 120 }
+    // Out for Delivery
+    'On FedEx vehicle for delivery': 'out_for_delivery',
+    'Consegna prevista nel corso della giornata odierna.': 'out_for_delivery',
+    'La spedizione è in consegna': 'out_for_delivery',
+    'In consegna': 'out_for_delivery',
+    
+    // Delivered
+    'Delivered': 'delivered',
+    'Consegnato': 'delivered',
+    'LA spedizione è stata consegnata': 'delivered',
+    'Consegnata.': 'delivered',
+    'La spedizione è stata consegnata': 'delivered',
+    'Empty': 'delivered',
+    'Empty Returned': 'delivered',
+    'POD': 'delivered',
+    
+    // Customs
+    'International shipment release - Import': 'customs_cleared',
+    'Sdoganata': 'customs_cleared',
+    
+    // Registered
+    'Shipment information sent to FedEx': 'registered',
+    'Spedizione creata': 'registered',
+    'La spedizione e\' stata creata dal mittente, attendiamo che ci venga affidata per l\'invio a destinazione.': 'registered',
+    'Registered': 'registered',
+    'Pending': 'registered',
+    'Booked': 'registered',
+    'Booking Confirmed': 'registered'
 };
 
 // Global state
 let trackingTable = null;
 let trackings = [];
 let statsCards = [];
+let currentColumns = [
+    'tracking_number',
+    'tracking_type',
+    'carrier_code',
+    'status',
+    'origin_port',
+    'destination_port',
+    'eta',
+    'created_at',
+    'actions'
+];
 
-// IMPORTANTE: Esponi le funzioni necessarie SUBITO
+// Column definitions
+const AVAILABLE_COLUMNS = [
+    { key: 'tracking_number', label: 'Numero Tracking', required: true },
+    { key: 'tracking_type', label: 'Tipo', required: true },
+    { key: 'carrier_code', label: 'Vettore', required: false },
+    { key: 'status', label: 'Stato', required: true },
+    { key: 'origin_port', label: 'Origine', required: false },
+    { key: 'destination_port', label: 'Destinazione', required: false },
+    { key: 'last_event_location', label: 'Ultima Posizione', required: false },
+    { key: 'eta', label: 'ETA', required: false },
+    { key: 'reference_number', label: 'Riferimento', required: false },
+    { key: 'created_at', label: 'Data Inserimento', required: false },
+    { key: 'actions', label: 'Azioni', required: true, isAction: true }
+];
+
+// Default columns (saved in localStorage)
+const DEFAULT_COLUMNS = ['tracking_number', 'tracking_type', 'carrier_code', 'status', 'origin_port', 'destination_port', 'eta', 'created_at', 'actions'];
+
+// Esponi le funzioni necessarie
 window.refreshTracking = (id) => handleRefreshTracking(id);
 window.viewTimeline = (id) => handleViewTimeline(id);
 window.deleteTracking = (id) => handleDeleteTracking(id);
-window.showColumnEditor = () => showColumnEditor();
-window.toggleColumn = (key, visible) => toggleColumn(key, visible);
-
-// Show add tracking form
-function showAddTrackingForm() {
-    window.ModalSystem.show({
-        title: 'Gestione Tracking',
-        size: 'large',
-        content: renderTrackingForm(),
-        actions: [
-            {
-                label: 'Annulla',
-                className: 'sol-btn-glass',
-                handler: () => window.ModalSystem.close()
-            },
-            {
-                label: 'Aggiungi Tracking',
-                className: 'sol-btn-primary',
-                handler: () => handleAddTracking()
-            }
-        ]
-    });
-    
-    // Setup form interactions
-    setupFormInteractions();
-}
+window.showColumnManager = showColumnManager;
+window.toggleAllColumns = toggleAllColumns;
+window.applyColumnChanges = applyColumnChanges;
+window.resetDefaultColumns = resetDefaultColumns;
 
 // Initialize page
 window.trackingInit = async function() {
     console.log('[Tracking] Initializing page...');
-    
-    // Load column preferences
-    loadColumnPreferences();
     
     // Riesponi le funzioni per sicurezza
     window.showAddTrackingForm = showAddTrackingForm;
     window.refreshAllTrackings = refreshAllTrackings;
     window.exportToPDF = exportToPDF;
     window.exportToExcel = exportToExcel;
+    window.showColumnManager = showColumnManager;
+    
+    // Load saved columns
+    loadSavedColumns();
     
     // Setup page components
     setupStatsCards();
@@ -105,108 +136,166 @@ window.trackingInit = async function() {
     console.log('[Tracking] Page initialized successfully');
 };
 
-// Load column preferences
-function loadColumnPreferences() {
-    const saved = localStorage.getItem('trackingColumnsConfig');
+// Load saved column preferences
+function loadSavedColumns() {
+    const saved = localStorage.getItem('trackingColumns');
     if (saved) {
-        const config = JSON.parse(saved);
-        Object.assign(AVAILABLE_COLUMNS, config);
+        try {
+            currentColumns = JSON.parse(saved);
+        } catch (e) {
+            currentColumns = [...DEFAULT_COLUMNS];
+        }
+    } else {
+        currentColumns = [...DEFAULT_COLUMNS];
     }
 }
 
-// Save column preferences
-function saveColumnPreferences() {
-    localStorage.setItem('trackingColumnsConfig', JSON.stringify(AVAILABLE_COLUMNS));
-}
-
-// Show column editor
-function showColumnEditor() {
+// Show column manager modal
+function showColumnManager() {
     const content = `
-        <div class="column-editor">
-            <p style="margin-bottom: 1rem;">Seleziona le colonne da visualizzare e trascinale per riordinarle:</p>
+        <div class="column-manager">
+            <div class="column-manager-header">
+                <p>Seleziona e riordina le colonne da visualizzare</p>
+                <button class="btn btn-sm btn-secondary" onclick="toggleAllColumns()">
+                    <i class="icon-check-square"></i> Seleziona/Deseleziona Tutto
+                </button>
+            </div>
             <div class="column-list" id="columnList">
-                ${Object.entries(AVAILABLE_COLUMNS)
-                    .sort((a, b) => a[1].order - b[1].order)
-                    .map(([key, col]) => `
-                        <div class="column-item" data-key="${key}" draggable="true">
-                            <i class="fas fa-grip-vertical drag-handle"></i>
-                            <label>
-                                <input type="checkbox" ${col.visible ? 'checked' : ''} 
-                                       onchange="toggleColumn('${key}', this.checked)">
-                                ${col.label}
+                ${AVAILABLE_COLUMNS.map(col => {
+                    const isChecked = currentColumns.includes(col.key);
+                    const isRequired = col.required;
+                    return `
+                        <div class="column-item ${isRequired ? 'required' : ''}" data-column="${col.key}">
+                            <div class="column-drag-handle" ${isRequired ? 'style="visibility:hidden"' : ''}>
+                                <i class="fas fa-grip-vertical"></i>
+                            </div>
+                            <label class="column-checkbox">
+                                <input type="checkbox" 
+                                       value="${col.key}" 
+                                       ${isChecked ? 'checked' : ''} 
+                                       ${isRequired ? 'disabled' : ''}
+                                       onchange="updateColumnSelection(this)">
+                                <span>${col.label}</span>
+                                ${isRequired ? '<small class="text-muted"> (obbligatorio)</small>' : ''}
                             </label>
                         </div>
-                    `).join('')}
+                    `;
+                }).join('')}
+            </div>
+            <div class="column-manager-footer">
+                <button class="btn btn-secondary" onclick="resetDefaultColumns()">
+                    <i class="icon-refresh"></i> Ripristina Default
+                </button>
+                <button class="btn btn-primary" onclick="applyColumnChanges()">
+                    <i class="icon-check"></i> Applica
+                </button>
             </div>
         </div>
     `;
     
-    const modal = window.ModalSystem.show({
+    modalSystem.show({
         title: 'Gestione Colonne',
         content: content,
-        actions: [
-            {
-                label: 'Ripristina Default',
-                className: 'sol-btn-glass',
-                handler: () => {
-                    resetColumns();
-                    return false; // Keep modal open
-                }
-            },
-            {
-                label: 'Applica',
-                className: 'sol-btn-primary',
-                handler: () => {
-                    saveColumnPreferences();
-                    setupTrackingTable(); // Rebuild table
-                    loadTrackings(); // Reload data
-                    return true; // Close modal
-                }
-            }
-        ]
+        size: 'medium',
+        showFooter: false
     });
     
-    // Setup drag & drop
-    setupColumnDragDrop();
+    // Initialize Sortable dopo che il modal è stato renderizzato
+    setTimeout(() => {
+        const columnList = document.getElementById('columnList');
+        if (columnList && window.Sortable) {
+            new Sortable(columnList, {
+                animation: 150,
+                handle: '.column-drag-handle',
+                ghostClass: 'sortable-ghost',
+                onEnd: function(evt) {
+                    // Update column order
+                    updateColumnOrder();
+                }
+            });
+        }
+    }, 100);
 }
 
-// Toggle column visibility
-function toggleColumn(key, visible) {
-    AVAILABLE_COLUMNS[key].visible = visible;
-}
-
-// Reset columns to default
-function resetColumns() {
-    // Reset visibility
-    Object.keys(AVAILABLE_COLUMNS).forEach(key => {
-        AVAILABLE_COLUMNS[key].visible = ['tracking_number', 'tracking_type', 'carrier_code', 'status', 'created_at', 'last_event_location', 'eta'].includes(key);
+// Toggle all columns
+function toggleAllColumns() {
+    const checkboxes = document.querySelectorAll('#columnList input[type="checkbox"]:not(:disabled)');
+    const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+    
+    checkboxes.forEach(cb => {
+        cb.checked = !allChecked;
+        updateColumnSelection(cb);
     });
-    // Reset order
-    const defaultOrder = ['tracking_number', 'tracking_type', 'carrier_code', 'status', 'created_at', 'last_event_location', 'eta'];
-    defaultOrder.forEach((key, index) => {
-        if (AVAILABLE_COLUMNS[key]) {
-            AVAILABLE_COLUMNS[key].order = index + 1;
+}
+
+// Update column selection
+window.updateColumnSelection = function(checkbox) {
+    const column = checkbox.value;
+    if (checkbox.checked && !currentColumns.includes(column)) {
+        currentColumns.push(column);
+    } else if (!checkbox.checked && currentColumns.includes(column)) {
+        currentColumns = currentColumns.filter(c => c !== column);
+    }
+};
+
+// Update column order based on DOM
+function updateColumnOrder() {
+    const items = document.querySelectorAll('.column-item');
+    const newOrder = [];
+    
+    items.forEach(item => {
+        const column = item.dataset.column;
+        const checkbox = item.querySelector('input[type="checkbox"]');
+        if (checkbox.checked) {
+            newOrder.push(column);
         }
     });
-    // Refresh editor
-    showColumnEditor();
+    
+    currentColumns = newOrder;
 }
 
-// Setup column drag & drop
-function setupColumnDragDrop() {
-    const list = document.getElementById('columnList');
-    if (!list) return;
+// Apply column changes
+function applyColumnChanges() {
+    // Get column order from DOM
+    updateColumnOrder();
     
-    new Sortable(list, {
-        animation: 150,
-        handle: '.drag-handle',
-        onEnd: function(evt) {
-            // Update order based on new positions
-            const items = list.querySelectorAll('.column-item');
-            items.forEach((item, index) => {
-                const key = item.dataset.key;
-                AVAILABLE_COLUMNS[key].order = index + 1;
-            });
+    // Save to localStorage
+    localStorage.setItem('trackingColumns', JSON.stringify(currentColumns));
+    
+    // Rebuild table with new columns
+    setupTrackingTable();
+    loadTrackings();
+    
+    // Close modal
+    modalSystem.closeAll();
+    
+    notificationSystem.show('Colonne aggiornate con successo', 'success');
+}
+
+// Reset to default columns
+function resetDefaultColumns() {
+    currentColumns = [...DEFAULT_COLUMNS];
+    
+    // Update checkboxes
+    document.querySelectorAll('#columnList input[type="checkbox"]').forEach(cb => {
+        cb.checked = DEFAULT_COLUMNS.includes(cb.value);
+    });
+    
+    // Reorder items to match default order
+    const columnList = document.getElementById('columnList');
+    const items = Array.from(columnList.children);
+    
+    DEFAULT_COLUMNS.forEach(colKey => {
+        const item = items.find(el => el.dataset.column === colKey);
+        if (item) {
+            columnList.appendChild(item);
+        }
+    });
+    
+    // Add remaining unchecked items at the end
+    items.forEach(item => {
+        if (!DEFAULT_COLUMNS.includes(item.dataset.column)) {
+            columnList.appendChild(item);
         }
     });
 }
@@ -218,7 +307,7 @@ function setupStatsCards() {
     statsCards = [
         { id: 'activeTrackings', icon: 'fa-box', label: 'Tracking Attivi', value: 0 },
         { id: 'inTransit', icon: 'fa-ship', label: 'In Transito', value: 0 },
-        { id: 'outForDelivery', icon: 'fa-truck', label: 'In Consegna Oggi', value: 0 },
+        { id: 'arrived', icon: 'fa-anchor', label: 'Arrivati', value: 0 },
         { id: 'delivered', icon: 'fa-check-circle', label: 'Consegnati', value: 0 },
         { id: 'delayed', icon: 'fa-exclamation-triangle', label: 'In Ritardo', value: 0 }
     ];
@@ -249,105 +338,114 @@ function setupStatsCards() {
 
 // Setup tracking table
 function setupTrackingTable() {
-    // Get visible columns sorted by order
-    const visibleColumns = Object.entries(AVAILABLE_COLUMNS)
-        .filter(([key, col]) => col.visible)
-        .sort((a, b) => a[1].order - b[1].order)
-        .map(([key, col]) => {
-            // Map column configuration
-            const columnConfig = {
-                key: key,
-                label: col.label,
-                sortable: true
+    const columns = currentColumns.map(colKey => {
+        const colDef = AVAILABLE_COLUMNS.find(c => c.key === colKey);
+        if (!colDef) return null;
+        
+        if (colDef.isAction) {
+            return {
+                key: 'actions',
+                label: 'Azioni',
+                sortable: false,
+                formatter: (value, row) => `
+                    <div class="action-buttons">
+                        <button class="btn-icon" onclick="refreshTracking('${row.id}')" title="Aggiorna">
+                            <i class="fas fa-sync-alt"></i>
+                        </button>
+                        <button class="btn-icon" onclick="viewTimeline('${row.id}')" title="Timeline">
+                            <i class="fas fa-history"></i>
+                        </button>
+                        <button class="btn-icon text-danger" onclick="deleteTracking('${row.id}')" title="Elimina">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                `
             };
-            
-            // Add specific formatters
-            switch(key) {
-                case 'tracking_type':
-                    columnConfig.formatter = formatType;
-                    break;
-                case 'status':
-                    columnConfig.formatter = formatStatus;
-                    break;
-                case 'created_at':
-                case 'last_event_date':
-                case 'date_of_loading':
-                case 'date_of_discharge':
-                case 'departure_date':
-                case 'arrival_date':
-                    columnConfig.formatter = formatDate;
-                    break;
-                case 'eta':
-                    columnConfig.formatter = (value, row) => {
-                        const eta = getTrackingETA(row);
-                        return eta ? formatDate(eta) : '-';
-                    };
-                    break;
-                case 'co2_emissions':
-                    columnConfig.formatter = (value) => value ? `${value} tons` : '-';
-                    break;
-                case 'port_of_loading':
-                case 'port_of_discharge':
-                case 'origin':
-                case 'destination':
-                    columnConfig.formatter = (value, row) => {
-                        // Try to get from metadata first
-                        if (key === 'port_of_loading') return row.metadata?.pol || value || '-';
-                        if (key === 'port_of_discharge') return row.metadata?.pod || value || '-';
-                        return value || '-';
-                    };
-                    break;
-            }
-            
-            return columnConfig;
-        });
+        }
+        
+        const formatter = getColumnFormatter(colKey);
+        return {
+            key: colKey,
+            label: colDef.label,
+            sortable: !colDef.isAction,
+            formatter: formatter
+        };
+    }).filter(Boolean);
     
-    // Add actions column
-    visibleColumns.push({
-        key: 'actions',
-        label: 'Azioni',
-        sortable: false,
-        formatter: (_, row) => `
-            <div class="action-buttons">
-                <button class="btn-icon" onclick="refreshTracking('${row.id}')" title="Aggiorna">
-                    <i class="icon-sync-alt"></i>
-                </button>
-                <button class="btn-icon" onclick="viewTimeline('${row.id}')" title="Timeline">
-                    <i class="icon-history"></i>
-                </button>
-                <button class="btn-icon text-danger" onclick="deleteTracking('${row.id}')" title="Elimina">
-                    <i class="icon-trash"></i>
-                </button>
-            </div>
-        `
-    });
+    // Add column manager button to table header
+    const tableContainer = document.getElementById('trackingTableContainer');
+    tableContainer.innerHTML = `
+        <div class="table-header-actions">
+            <button class="btn btn-sm btn-secondary" onclick="showColumnManager()">
+                <i class="fas fa-columns"></i> Gestione Colonne
+            </button>
+        </div>
+        <div id="trackingTableWrapper"></div>
+    `;
     
-    trackingTable = new TableManager('trackingTableContainer', {
-        columns: visibleColumns,
-        actions: false, // We handle actions in column formatter
+    trackingTable = new TableManager('trackingTableWrapper', {
+        columns: columns,
         emptyMessage: 'Nessun tracking attivo. Aggiungi il tuo primo tracking per iniziare.',
         pageSize: 20
     });
 }
 
-// Get tracking ETA
-function getTrackingETA(tracking) {
-    // Per container: cerca discharge date futuro
-    if (tracking.tracking_type === 'container') {
-        const dischargeDate = tracking.metadata?.discharge_date;
-        if (dischargeDate && new Date(dischargeDate) > new Date()) {
-            return dischargeDate;
-        }
-    }
-    // Per AWB: cerca arrival date futuro
-    else if (tracking.tracking_type === 'awb') {
-        const arrivalDate = tracking.metadata?.arrival_date;
-        if (arrivalDate && new Date(arrivalDate) > new Date()) {
-            return arrivalDate;
-        }
-    }
-    // Fallback a eta field
-    return tracking.eta;
+// Column formatters
+function getColumnFormatter(key) {
+    const formatters = {
+        tracking_type: (value) => {
+            const types = {
+                container: { icon: 'fa-cube', text: 'MARE', color: 'primary' },
+                bl: { icon: 'fa-file-alt', text: 'B/L', color: 'info' },
+                awb: { icon: 'fa-plane', text: 'AEREO', color: 'warning' },
+                parcel: { icon: 'fa-box', text: 'PARCEL', color: 'success' }
+            };
+            const config = types[value] || { icon: 'fa-question', text: value, color: 'secondary' };
+            return `<span class="badge badge-${config.color}"><i class="fas ${config.icon}"></i> ${config.text}</span>`;
+        },
+        status: (value) => {
+            const statuses = {
+                registered: { class: 'secondary', text: 'Registrato', icon: 'fa-clock' },
+                in_transit: { class: 'info', text: 'In Transito', icon: 'fa-ship' },
+                arrived: { class: 'primary', text: 'Arrivato', icon: 'fa-anchor' },
+                customs_cleared: { class: 'success', text: 'Sdoganato', icon: 'fa-check' },
+                out_for_delivery: { class: 'warning', text: 'In Consegna', icon: 'fa-truck' },
+                delivered: { class: 'success', text: 'Consegnato', icon: 'fa-check-circle' },
+                delayed: { class: 'danger', text: 'In Ritardo', icon: 'fa-exclamation-triangle' },
+                exception: { class: 'danger', text: 'Eccezione', icon: 'fa-times-circle' }
+            };
+            const config = statuses[value] || { class: 'secondary', text: value, icon: 'fa-question' };
+            return `<span class="badge badge-${config.class}"><i class="fas ${config.icon}"></i> ${config.text}</span>`;
+        },
+        eta: (value) => {
+            if (!value) return '-';
+            const date = new Date(value);
+            const now = new Date();
+            const isInFuture = date > now;
+            
+            return `<span class="${isInFuture ? 'text-primary' : 'text-muted'}">
+                ${date.toLocaleDateString('it-IT')}
+                ${isInFuture ? ' <i class="fas fa-clock"></i>' : ''}
+            </span>`;
+        },
+        created_at: (value) => {
+            if (!value) return '-';
+            return new Date(value).toLocaleDateString('it-IT', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        },
+        last_event_location: (value) => value || '-',
+        origin_port: (value) => value || '-',
+        destination_port: (value) => value || '-',
+        reference_number: (value) => value ? `<code>${value}</code>` : '-',
+        carrier_code: (value) => value || '-'
+    };
+    
+    return formatters[key] || ((value) => value || '-');
 }
 
 // Setup event listeners
@@ -361,204 +459,238 @@ function setupEventListeners() {
     // Filters
     document.getElementById('statusFilter')?.addEventListener('change', applyFilters);
     document.getElementById('typeFilter')?.addEventListener('change', applyFilters);
-    
-    // Custom header action for sync
-    if (window.headerComponent) {
-        window.headerComponent.options.customActions = [
-            {
-                icon: 'fas fa-cloud-download-alt',
-                label: 'Sincronizza ShipsGo',
-                handler: 'openSyncWizard'
-            }
-        ];
-        window.openSyncWizard = () => showSyncWizard();
-    }
 }
 
-// Load trackings from API
+// Load trackings from localStorage
 async function loadTrackings() {
     try {
         trackingTable.loading(true);
         
-        const result = await window.api.get('get-trackings', {
-            loading: 'Caricamento tracking...'
-        });
+        // Load from localStorage
+        const stored = localStorage.getItem('trackings');
+        trackings = stored ? JSON.parse(stored) : generateMockTrackings();
         
-        trackings = result.trackings || [];
-        
-        // Add metadata fields to root level for column display
+        // Ensure all trackings have required fields
         trackings = trackings.map(t => ({
             ...t,
-            // ShipsGo Sea fields
-            port_of_loading: t.metadata?.pol || t.origin_port,
-            port_of_discharge: t.metadata?.pod || t.destination_port,
-            date_of_loading: t.metadata?.loading_date,
-            date_of_discharge: t.metadata?.discharge_date,
-            co2_emissions: t.metadata?.co2_emissions,
-            vessel_name: t.metadata?.vessel_name,
-            booking: t.metadata?.booking,
-            // ShipsGo Air fields
-            origin: t.metadata?.origin,
-            destination: t.metadata?.destination,
-            origin_name: t.metadata?.origin_name || t.origin_name,
-            destination_name: t.metadata?.destination_name || t.destination_name,
-            departure_date: t.metadata?.departure_date,
-            arrival_date: t.metadata?.arrival_date,
-            flight_number: t.metadata?.flight_number,
-            transit_time: t.metadata?.transit_time
+            id: t.id || Date.now() + Math.random(),
+            created_at: t.created_at || new Date().toISOString(),
+            eta: t.eta || generateETA(t.status)
         }));
         
-        // IMPORTANTE: Salva i tracking globalmente per la timeline view
-        window.currentTrackings = trackings;
+        // Save back to ensure consistency
+        localStorage.setItem('trackings', JSON.stringify(trackings));
         
         // Update stats
-        updateStats(result.stats);
+        updateStats();
         
         // Update table
         trackingTable.setData(trackings);
         
         // Update timeline if active
+        window.currentTrackings = trackings;
         if (window.timelineView && window.timelineView.isActive()) {
             window.timelineView.refresh();
         }
         
     } catch (error) {
         console.error('Error loading trackings:', error);
-        window.NotificationSystem.error('Errore nel caricamento dei tracking');
+        notificationSystem.show('Errore nel caricamento dei tracking', 'error');
     } finally {
         trackingTable.loading(false);
     }
 }
 
-// Update stats cards
-function updateStats(stats) {
-    if (!stats) return;
+// Generate ETA based on status
+function generateETA(status) {
+    const now = new Date();
+    const eta = new Date(now);
     
-    document.getElementById('activeTrackings').textContent = stats.total || 0;
-    document.getElementById('inTransit').textContent = stats.in_transit || 0;
-    document.getElementById('outForDelivery').textContent = stats.out_for_delivery || 0;
-    document.getElementById('delivered').textContent = stats.delivered || 0;
-    document.getElementById('delayed').textContent = stats.delayed || 0;
+    switch(status) {
+        case 'in_transit':
+            eta.setDate(eta.getDate() + 7); // 7 giorni
+            break;
+        case 'arrived':
+            eta.setDate(eta.getDate() + 2); // 2 giorni
+            break;
+        case 'out_for_delivery':
+            eta.setDate(eta.getDate() + 1); // domani
+            break;
+        case 'delivered':
+        case 'customs_cleared':
+            return null; // Già consegnato
+        default:
+            eta.setDate(eta.getDate() + 14); // 14 giorni default
+    }
+    
+    return eta.toISOString();
+}
+
+// Generate mock trackings
+function generateMockTrackings() {
+    const now = new Date();
+    return [
+        {
+            id: '1',
+            tracking_number: 'MSKU1234567',
+            tracking_type: 'container',
+            carrier_code: 'MAERSK',
+            status: 'in_transit',
+            last_event_location: 'Shanghai, China',
+            origin_port: 'SHANGHAI',
+            destination_port: 'GENOVA',
+            reference_number: 'PO-2024-001',
+            created_at: new Date(now - 10 * 24 * 60 * 60 * 1000).toISOString(),
+            eta: new Date(now.getTime() + 5 * 24 * 60 * 60 * 1000).toISOString()
+        },
+        {
+            id: '2',
+            tracking_number: 'MSCU7654321',
+            tracking_type: 'container',
+            carrier_code: 'MSC',
+            status: 'arrived',
+            last_event_location: 'Genova, Italy',
+            origin_port: 'NINGBO',
+            destination_port: 'GENOVA',
+            reference_number: 'PO-2024-002',
+            created_at: new Date(now - 20 * 24 * 60 * 60 * 1000).toISOString(),
+            eta: new Date(now.getTime() + 2 * 24 * 60 * 60 * 1000).toISOString()
+        },
+        {
+            id: '3',
+            tracking_number: '176-12345678',
+            tracking_type: 'awb',
+            carrier_code: 'CARGOLUX',
+            status: 'in_transit',
+            last_event_location: 'Luxembourg Airport',
+            origin_port: 'HKG',
+            destination_port: 'MXP',
+            reference_number: 'AIR-2024-003',
+            created_at: new Date(now - 2 * 24 * 60 * 60 * 1000).toISOString(),
+            eta: new Date(now.getTime() + 1 * 24 * 60 * 60 * 1000).toISOString()
+        }
+    ];
+}
+
+// Update stats cards
+function updateStats() {
+    const stats = {
+        total: trackings.length,
+        in_transit: trackings.filter(t => t.status === 'in_transit').length,
+        arrived: trackings.filter(t => t.status === 'arrived').length,
+        delivered: trackings.filter(t => t.status === 'delivered').length,
+        delayed: trackings.filter(t => t.status === 'delayed').length
+    };
+    
+    document.getElementById('activeTrackings').textContent = stats.total;
+    document.getElementById('inTransit').textContent = stats.in_transit;
+    document.getElementById('arrived').textContent = stats.arrived;
+    document.getElementById('delivered').textContent = stats.delivered;
+    document.getElementById('delayed').textContent = stats.delayed;
+}
+
+// Show add tracking form
+function showAddTrackingForm() {
+    modalSystem.show({
+        title: 'Aggiungi Tracking',
+        content: renderTrackingForm(),
+        size: 'large',
+        showFooter: false
+    });
+    
+    setupFormInteractions();
 }
 
 // Render tracking form
 function renderTrackingForm() {
     return `
-        <div class="sol-form">
-            <!-- Tab Navigation -->
-            <div class="sol-tabs">
-                <button class="sol-tab active" data-tab="single">
-                    <i class="fas fa-plus"></i>
-                    Singolo Tracking
-                </button>
-                <button class="sol-tab" data-tab="import">
-                    <i class="fas fa-file-import"></i>
-                    Import Multiplo
-                </button>
-            </div>
-            
-            <!-- Single Tab -->
-            <div class="sol-tab-content active" data-content="single">
-                <div class="sol-form-grid">
-                    <div class="sol-form-group">
-                        <label class="sol-form-label">
-                            <i class="fas fa-barcode"></i> Numero Tracking
-                        </label>
-                        <input type="text" 
-                               id="trackingNumber" 
-                               class="sol-form-input" 
-                               placeholder="Es: MSKU1234567"
-                               oninput="detectTrackingType(this.value)">
-                        <span class="sol-form-hint" id="typeHint"></span>
-                    </div>
-                    
-                    <div class="sol-form-group">
-                        <label class="sol-form-label">
-                            <i class="fas fa-box"></i> Tipo Tracking
-                        </label>
-                        <select id="trackingType" class="sol-form-select">
-                            <option value="">Seleziona tipo</option>
-                            <option value="container">Container</option>
-                            <option value="bl">Bill of Lading (BL)</option>
-                            <option value="awb">Air Waybill (AWB)</option>
-                            <option value="parcel">Parcel/Express</option>
-                        </select>
-                    </div>
-                    
-                    <div class="sol-form-group">
-                        <label class="sol-form-label">
-                            <i class="fas fa-truck"></i> Carrier
-                        </label>
-                        <select id="carrierCode" class="sol-form-select">
-                            <option value="">Seleziona carrier</option>
-                            <optgroup label="Maritime">
-                                <option value="MSC">MSC</option>
-                                <option value="MAERSK">MAERSK</option>
-                                <option value="CMA-CGM">CMA CGM</option>
-                                <option value="COSCO">COSCO</option>
-                            </optgroup>
-                            <optgroup label="Air Cargo">
-                                <option value="FX">FedEx</option>
-                                <option value="CV">Cargolux</option>
-                            </optgroup>
-                        </select>
-                    </div>
-                    
-                    <div class="sol-form-group">
-                        <label class="sol-form-label">
-                            <i class="fas fa-tag"></i> Riferimento (opzionale)
-                        </label>
-                        <input type="text" 
-                               id="referenceNumber" 
-                               class="sol-form-input" 
-                               placeholder="Es: PO123456">
-                    </div>
+        <form id="trackingForm" class="tracking-form">
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>Numero Tracking *</label>
+                    <input type="text" id="trackingNumber" class="form-control" 
+                           placeholder="Es: MSKU1234567" required
+                           oninput="detectTrackingType(this.value)">
+                    <span class="form-hint" id="typeHint"></span>
+                </div>
+                
+                <div class="form-group">
+                    <label>Tipo Tracking *</label>
+                    <select id="trackingType" class="form-control" required>
+                        <option value="">Seleziona tipo</option>
+                        <option value="container">Container (Mare)</option>
+                        <option value="bl">Bill of Lading (B/L)</option>
+                        <option value="awb">Air Waybill (Aereo)</option>
+                        <option value="parcel">Parcel/Express</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label>Vettore *</label>
+                    <select id="carrierCode" class="form-control" required>
+                        <option value="">Seleziona vettore</option>
+                        <optgroup label="Mare">
+                            <option value="MSC">MSC</option>
+                            <option value="MAERSK">MAERSK</option>
+                            <option value="CMA-CGM">CMA CGM</option>
+                            <option value="COSCO">COSCO</option>
+                            <option value="HAPAG-LLOYD">Hapag-Lloyd</option>
+                            <option value="ONE">ONE</option>
+                            <option value="EVERGREEN">Evergreen</option>
+                        </optgroup>
+                        <optgroup label="Aereo">
+                            <option value="CARGOLUX">Cargolux</option>
+                            <option value="LUFTHANSA">Lufthansa Cargo</option>
+                            <option value="EMIRATES">Emirates SkyCargo</option>
+                        </optgroup>
+                        <optgroup label="Express">
+                            <option value="DHL">DHL</option>
+                            <option value="FEDEX">FedEx</option>
+                            <option value="UPS">UPS</option>
+                            <option value="TNT">TNT</option>
+                            <option value="GLS">GLS</option>
+                        </optgroup>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label>Riferimento</label>
+                    <input type="text" id="referenceNumber" class="form-control" 
+                           placeholder="Es: PO123456">
+                </div>
+                
+                <div class="form-group">
+                    <label>Porto Origine</label>
+                    <input type="text" id="originPort" class="form-control" 
+                           placeholder="Es: SHANGHAI">
+                </div>
+                
+                <div class="form-group">
+                    <label>Porto Destinazione</label>
+                    <input type="text" id="destinationPort" class="form-control" 
+                           placeholder="Es: GENOVA">
                 </div>
             </div>
             
-            <!-- Import Tab -->
-            <div class="sol-tab-content" data-content="import">
-                <div id="importContainer"></div>
+            <div class="form-actions">
+                <button type="button" class="btn btn-secondary" onclick="modalSystem.closeAll()">
+                    Annulla
+                </button>
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-plus"></i> Aggiungi Tracking
+                </button>
             </div>
-        </div>
+        </form>
     `;
 }
 
 // Setup form interactions
 function setupFormInteractions() {
-    // Tab switching
-    document.querySelectorAll('.sol-tab').forEach(tab => {
-        tab.addEventListener('click', async (e) => {
-            const tabName = e.currentTarget.dataset.tab;
-            
-            // Update tabs
-            document.querySelectorAll('.sol-tab').forEach(t => t.classList.remove('active'));
-            e.currentTarget.classList.add('active');
-            
-            // Update content
-            document.querySelectorAll('.sol-tab-content').forEach(c => c.classList.remove('active'));
-            document.querySelector(`[data-content="${tabName}"]`).classList.add('active');
-            
-            // Initialize import if needed
-            if (tabName === 'import') {
-                // Load ShipsGo templates if available
-                try {
-                    const { shipsGoImport } = await import('../../core/import-wizard-shipsgo.js');
-                    shipsGoImport.init();
-                } catch (error) {
-                    console.log('ShipsGo templates not available');
-                }
-                
-                // Use window.ImportManager instead of ImportManager
-                if (window.ImportManager) {
-                    window.ImportManager.renderImportUI('importContainer');
-                }
-            }
-        });
-    });
+    const form = document.getElementById('trackingForm');
+    form.addEventListener('submit', handleAddTracking);
 }
 
-// Detect tracking type from number
+// Detect tracking type
 window.detectTrackingType = function(value) {
     const input = value.trim().toUpperCase();
     const typeSelect = document.getElementById('trackingType');
@@ -580,7 +712,7 @@ window.detectTrackingType = function(value) {
         typeSelect.value = detectedType;
         if (hint) {
             hint.textContent = `Rilevato: ${detectedType.toUpperCase()}`;
-            hint.style.color = '#34C759';
+            hint.style.color = '#10b981';
         }
     } else if (hint) {
         hint.textContent = '';
@@ -588,211 +720,109 @@ window.detectTrackingType = function(value) {
 };
 
 // Handle add tracking
-async function handleAddTracking() {
+async function handleAddTracking(event) {
+    event.preventDefault();
+    
     const formData = {
-        trackingNumber: document.getElementById('trackingNumber').value.trim().toUpperCase(),
-        trackingType: document.getElementById('trackingType').value,
-        carrierCode: document.getElementById('carrierCode').value,
-        referenceNumber: document.getElementById('referenceNumber').value
+        tracking_number: document.getElementById('trackingNumber').value.trim().toUpperCase(),
+        tracking_type: document.getElementById('trackingType').value,
+        carrier_code: document.getElementById('carrierCode').value,
+        reference_number: document.getElementById('referenceNumber').value,
+        origin_port: document.getElementById('originPort').value.toUpperCase(),
+        destination_port: document.getElementById('destinationPort').value.toUpperCase(),
+        status: 'registered',
+        created_at: new Date().toISOString(),
+        eta: generateETA('registered')
     };
     
     // Validate
-    if (!formData.trackingNumber || !formData.trackingType || !formData.carrierCode) {
-        window.NotificationSystem.error('Compila tutti i campi obbligatori');
+    if (!formData.tracking_number || !formData.tracking_type || !formData.carrier_code) {
+        notificationSystem.show('Compila tutti i campi obbligatori', 'error');
         return;
     }
     
-    try {
-        // Smart tracking strategy
-        const result = await smartAddTracking(formData);
-        
-        if (result.success) {
-            window.NotificationSystem.success(result.message);
-            window.ModalSystem.close();
-            await loadTrackings();
-        }
-        
-    } catch (error) {
-        console.error('Error adding tracking:', error);
-        window.NotificationSystem.error(error.message);
-    }
-}
-
-// Smart add tracking (GET first, POST only if needed)
-async function smartAddTracking(formData) {
-    // Check if already exists locally
-    const exists = trackings.find(t => 
-        t.tracking_number.toUpperCase() === formData.trackingNumber
-    );
-    
-    if (exists) {
-        return {
-            success: false,
-            message: 'Tracking già presente nel sistema'
-        };
+    // Check if already exists
+    if (trackings.find(t => t.tracking_number === formData.tracking_number)) {
+        notificationSystem.show('Tracking già presente nel sistema', 'error');
+        return;
     }
     
-    // Container: Try GET first from ShipsGo
-    if (formData.trackingType === 'container') {
-        const containerInfo = await tryGetContainer(formData);
-        
-        if (containerInfo.found) {
-            // Save without consuming credits
-            await saveTrackingFromShipsGo(containerInfo.data, formData);
-            return {
-                success: true,
-                message: '✅ Container trovato in ShipsGo (0 crediti)'
-            };
-        } else {
-            // Ask confirmation for POST
-            const confirm = await window.ModalSystem.confirm({
-                title: 'Container non trovato',
-                message: 'Container non trovato in ShipsGo. Vuoi registrarlo? (consuma 1 credito)',
-                confirmText: 'Registra',
-                confirmClass: 'sol-btn-primary'
-            });
-            
-            if (confirm) {
-                await createNewTracking(formData);
-                return {
-                    success: true,
-                    message: '✅ Container registrato (1 credito)'
-                };
-            }
-        }
-    } else {
-        // Other types: direct creation
-        await createNewTracking(formData);
-        return {
-            success: true,
-            message: '✅ Tracking aggiunto con successo'
-        };
-    }
-}
-
-// Try GET container from ShipsGo
-async function tryGetContainer(formData) {
-    try {
-        const result = await window.api.get(
-            `shipsgo-container-info?containerNumber=${formData.trackingNumber}&shippingLine=${formData.carrierCode}`,
-            { silent: true }
-        );
-        
-        if (result.data && result.data.tracking_number) {
-            return { found: true, data: result.data };
-        }
-    } catch (error) {
-        console.log('Container not found in ShipsGo');
-    }
+    // Add to trackings
+    formData.id = Date.now().toString();
+    trackings.push(formData);
     
-    return { found: false };
-}
-
-// Save tracking from ShipsGo data
-async function saveTrackingFromShipsGo(shipsgoData, formData) {
-    await window.api.post('add-tracking', {
-        ...formData,
-        metadata: {
-            ...shipsgoData.metadata,
-            imported_from_shipsgo: true
-        }
-    });
-}
-
-// Create new tracking
-async function createNewTracking(formData) {
-    await window.api.post('add-tracking', formData, {
-        loading: 'Aggiunta tracking...'
-    });
+    // Save to localStorage
+    localStorage.setItem('trackings', JSON.stringify(trackings));
+    
+    // Close modal and reload
+    modalSystem.closeAll();
+    notificationSystem.show('Tracking aggiunto con successo', 'success');
+    await loadTrackings();
 }
 
 // Handle refresh tracking
 async function handleRefreshTracking(id) {
-    try {
-        await window.api.post('update-tracking', { 
-            trackingId: id, 
-            forceUpdate: true 
-        }, {
-            loading: 'Aggiornamento tracking...'
-        });
-        
-        window.NotificationSystem.success('Tracking aggiornato');
-        await loadTrackings();
-        
-    } catch (error) {
-        console.error('Error refreshing:', error);
-        window.NotificationSystem.error('Errore durante aggiornamento');
-    }
-}
-
-// Handle view timeline (Modal version - existing functionality)
-async function handleViewTimeline(id) {
-    try {
-        // For mock data, find the tracking locally
-        const tracking = trackings.find(t => t.id == id);
-        
-        if (!tracking) {
-            throw new Error('Tracking non trovato');
-        }
-        
-        // Try to get events from API, fallback to metadata events
-        let events = [];
-        try {
-            const result = await window.api.get(`get-tracking-events?trackingId=${id}`, {
-                loading: 'Caricamento timeline...'
-            });
-            events = result.events || [];
-        } catch (error) {
-            // Use metadata events if available
-            if (tracking.metadata && tracking.metadata.timeline_events) {
-                events = tracking.metadata.timeline_events.map((e, index) => ({
-                    id: index + 1,
-                    event_date: e.date,
-                    event_type: e.type,
-                    description: e.description,
-                    location_name: e.location,
-                    details: e.details
-                }));
-            }
-        }
-        
-        window.ModalSystem.show({
-            title: `Timeline - ${tracking.tracking_number}`,
-            size: 'large',
-            content: renderTimeline(tracking, events)
-        });
-        
-    } catch (error) {
-        console.error('Error loading timeline:', error);
-        window.NotificationSystem.error('Errore caricamento timeline');
-    }
-}
-
-// Render timeline (Modal version)
-function renderTimeline(tracking, events) {
-    if (events.length === 0) {
-        return `
-            <div class="sol-empty-state">
-                <i class="fas fa-info-circle"></i>
-                <p>Nessun evento disponibile per questo tracking.</p>
-            </div>
-        `;
+    const tracking = trackings.find(t => t.id === id);
+    if (!tracking) return;
+    
+    // Simulate status progression
+    const statusProgression = {
+        'registered': 'in_transit',
+        'in_transit': 'arrived',
+        'arrived': 'customs_cleared',
+        'customs_cleared': 'out_for_delivery',
+        'out_for_delivery': 'delivered'
+    };
+    
+    const newStatus = statusProgression[tracking.status] || tracking.status;
+    tracking.status = newStatus;
+    tracking.last_event_date = new Date().toISOString();
+    
+    // Update location based on status
+    if (newStatus === 'arrived') {
+        tracking.last_event_location = tracking.destination_port;
+    } else if (newStatus === 'out_for_delivery') {
+        tracking.last_event_location = 'Local Delivery Hub';
     }
     
+    // Update ETA
+    tracking.eta = generateETA(newStatus);
+    
+    // Save
+    localStorage.setItem('trackings', JSON.stringify(trackings));
+    
+    notificationSystem.show('Tracking aggiornato', 'success');
+    await loadTrackings();
+}
+
+// Handle view timeline
+async function handleViewTimeline(id) {
+    const tracking = trackings.find(t => t.id === id);
+    if (!tracking) return;
+    
+    modalSystem.show({
+        title: `Timeline - ${tracking.tracking_number}`,
+        size: 'large',
+        content: renderTimeline(tracking)
+    });
+}
+
+// Render timeline
+function renderTimeline(tracking) {
+    const events = generateTimelineEvents(tracking);
+    
     return `
-        <div class="sol-timeline">
+        <div class="timeline">
             ${events.map(event => `
-                <div class="sol-timeline-item">
-                    <div class="sol-timeline-marker"></div>
-                    <div class="sol-timeline-content">
-                        <div class="sol-timeline-date">${formatDate(event.event_date)}</div>
-                        <div class="sol-timeline-title">${formatEventType(event.event_type)}</div>
-                        <div class="sol-timeline-description">${event.description || ''}</div>
-                        ${event.location_name ? `
-                            <div class="sol-timeline-location">
-                                <i class="fas fa-map-marker-alt"></i> ${event.location_name}
-                            </div>
-                        ` : ''}
+                <div class="timeline-item ${event.class}">
+                    <div class="timeline-marker"></div>
+                    <div class="timeline-content">
+                        <div class="timeline-header">
+                            <span class="timeline-title">${event.title}</span>
+                            <span class="timeline-date">${formatDate(event.date)}</span>
+                        </div>
+                        ${event.location ? `<div class="timeline-location"><i class="fas fa-map-marker-alt"></i> ${event.location}</div>` : ''}
+                        <div class="timeline-description">${event.description}</div>
                     </div>
                 </div>
             `).join('')}
@@ -800,110 +830,108 @@ function renderTimeline(tracking, events) {
     `;
 }
 
-// Handle delete tracking - FIXED VERSION
-async function handleDeleteTracking(id) {
-    const confirm = await window.ModalSystem.confirm({
-        title: 'Conferma eliminazione',
-        message: 'Sei sicuro di voler eliminare questo tracking?',
-        confirmText: 'Elimina',
-        confirmClass: 'sol-btn-error'
+// Generate timeline events
+function generateTimelineEvents(tracking) {
+    const events = [];
+    const createdDate = new Date(tracking.created_at);
+    
+    // Always add creation event
+    events.push({
+        date: createdDate,
+        title: 'Tracking Registrato',
+        description: 'Tracking inserito nel sistema',
+        location: tracking.origin_port,
+        class: 'registered'
     });
     
-    if (!confirm) return;
-    
-    try {
-        // Rimuovi da localStorage
-        let trackings = [];
-        const stored = localStorage.getItem('mockTrackings');
-        if (stored) {
-            trackings = JSON.parse(stored);
-            // Filtra via il tracking da eliminare
-            trackings = trackings.filter(t => t.id != id);
-            // Salva di nuovo
-            localStorage.setItem('mockTrackings', JSON.stringify(trackings));
-        }
-        
-        window.NotificationSystem.success('Tracking eliminato');
-        
-        // Ricarica la pagina per aggiornare la vista
-        await loadTrackings();
-        
-    } catch (error) {
-        console.error('Error deleting:', error);
-        window.NotificationSystem.error('Errore durante eliminazione');
+    // Add events based on status
+    if (['in_transit', 'arrived', 'delivered'].includes(tracking.status)) {
+        events.push({
+            date: new Date(createdDate.getTime() + 2 * 24 * 60 * 60 * 1000),
+            title: 'Partenza',
+            description: 'Spedizione partita dall\'origine',
+            location: tracking.origin_port,
+            class: 'departed'
+        });
     }
+    
+    if (['arrived', 'delivered'].includes(tracking.status)) {
+        events.push({
+            date: new Date(createdDate.getTime() + 7 * 24 * 60 * 60 * 1000),
+            title: 'Arrivato a Destinazione',
+            description: 'Spedizione arrivata al porto di destinazione',
+            location: tracking.destination_port,
+            class: 'arrived'
+        });
+    }
+    
+    if (tracking.status === 'delivered') {
+        events.push({
+            date: new Date(),
+            title: 'Consegnato',
+            description: 'Spedizione consegnata al destinatario',
+            location: tracking.destination_port,
+            class: 'delivered'
+        });
+    }
+    
+    return events.sort((a, b) => b.date - a.date);
+}
+
+// Handle delete tracking
+async function handleDeleteTracking(id) {
+    const confirmed = await modalSystem.confirm({
+        title: 'Conferma Eliminazione',
+        message: 'Sei sicuro di voler eliminare questo tracking?',
+        confirmText: 'Elimina',
+        confirmClass: 'btn-danger'
+    });
+    
+    if (!confirmed) return;
+    
+    // Remove from array
+    trackings = trackings.filter(t => t.id !== id);
+    
+    // Save to localStorage
+    localStorage.setItem('trackings', JSON.stringify(trackings));
+    
+    // Close any open modals
+    modalSystem.closeAll();
+    
+    notificationSystem.show('Tracking eliminato', 'success');
+    await loadTrackings();
 }
 
 // Refresh all trackings
 async function refreshAllTrackings() {
-    const activeTrackings = trackings.filter(t => t.status !== 'delivered');
+    const activeTrackings = trackings.filter(t => !['delivered', 'exception'].includes(t.status));
     
     if (activeTrackings.length === 0) {
-        window.NotificationSystem.info('Nessun tracking attivo da aggiornare');
+        notificationSystem.show('Nessun tracking attivo da aggiornare', 'info');
         return;
     }
     
-    // Show progress modal
-    const progressModal = window.ModalSystem.show({
+    // Show progress
+    const progressModal = modalSystem.progress({
         title: 'Aggiornamento Tracking',
-        content: `
-            <div class="sol-progress">
-                <p id="progressText">Preparazione...</p>
-                <div class="sol-progress-bar">
-                    <div class="sol-progress-fill" id="progressBar"></div>
-                </div>
-                <p class="sol-progress-stats">
-                    <span id="progressCount">0</span> / ${activeTrackings.length}
-                </p>
-            </div>
-        `,
-        closable: false
+        message: 'Aggiornamento in corso...',
+        showPercentage: true
     });
     
-    let completed = 0;
-    let errors = 0;
-    
-    // Process in batches
-    const batchSize = 5;
-    for (let i = 0; i < activeTrackings.length; i += batchSize) {
-        const batch = activeTrackings.slice(i, i + batchSize);
+    // Simulate updates
+    for (let i = 0; i < activeTrackings.length; i++) {
+        const progress = ((i + 1) / activeTrackings.length) * 100;
+        progressModal.update(progress, `Aggiornamento ${i + 1} di ${activeTrackings.length}...`);
         
-        await Promise.all(batch.map(async (tracking) => {
-            try {
-                await window.api.post('update-tracking', { 
-                    trackingId: tracking.id 
-                }, { silent: true });
-            } catch (error) {
-                errors++;
-            } finally {
-                completed++;
-                updateProgress(completed, activeTrackings.length);
-            }
-        }));
+        // Update tracking
+        await handleRefreshTracking(activeTrackings[i].id);
         
-        // Rate limiting
-        if (i + batchSize < activeTrackings.length) {
-            await new Promise(resolve => setTimeout(resolve, 1000));
-        }
+        // Small delay for visual effect
+        await new Promise(resolve => setTimeout(resolve, 500));
     }
     
-    window.ModalSystem.close();
-    
-    const message = errors > 0 ? 
-        `Aggiornamento completato con ${errors} errori` :
-        'Tutti i tracking aggiornati con successo';
-        
-    window.NotificationSystem[errors > 0 ? 'warning' : 'success'](message);
-    
-    await loadTrackings();
-}
-
-// Update progress
-function updateProgress(current, total) {
-    const percent = (current / total) * 100;
-    document.getElementById('progressBar').style.width = `${percent}%`;
-    document.getElementById('progressCount').textContent = current;
-    document.getElementById('progressText').textContent = `Aggiornamento tracking ${current} di ${total}...`;
+    progressModal.close();
+    notificationSystem.show('Tutti i tracking sono stati aggiornati', 'success');
 }
 
 // Apply filters
@@ -932,148 +960,23 @@ function applyFilters() {
 
 // Export functions
 async function exportToPDF() {
-    // Implementation depends on jsPDF availability
-    window.NotificationSystem.info('Export PDF in sviluppo');
+    notificationSystem.show('Export PDF in sviluppo', 'info');
 }
 
 async function exportToExcel() {
-    // Implementation depends on XLSX availability
-    window.NotificationSystem.info('Export Excel in sviluppo');
+    notificationSystem.show('Export Excel in sviluppo', 'info');
 }
-
-// Show sync wizard
-function showSyncWizard() {
-    window.ModalSystem.show({
-        title: 'Sincronizzazione ShipsGo',
-        size: 'large',
-        content: renderSyncWizard()
-    });
-}
-
-// Render sync wizard
-function renderSyncWizard() {
-    return `
-        <div class="sol-sync-wizard">
-            <div class="sol-sync-header">
-                <i class="fas fa-sync-alt sol-sync-icon"></i>
-                <h3>Sincronizza i tuoi tracking da ShipsGo</h3>
-                <p>Scarica GRATIS tutti i tracking già presenti nel tuo account</p>
-            </div>
-            
-            <div class="sol-sync-options">
-                <div class="sol-sync-card" onclick="syncFromShipsGo('all')">
-                    <i class="fas fa-cloud-download-alt"></i>
-                    <h4>Import Account</h4>
-                    <p>Scarica TUTTI i tracking</p>
-                    <span class="sol-badge sol-badge-success">GRATIS</span>
-                </div>
-                
-                <div class="sol-sync-card" onclick="syncFromShipsGo('active')">
-                    <i class="fas fa-ship"></i>
-                    <h4>Container Attivi</h4>
-                    <p>Solo container in transito</p>
-                    <span class="sol-badge sol-badge-success">GRATIS</span>
-                </div>
-                
-                <div class="sol-sync-card" onclick="syncFromShipsGo('awb')">
-                    <i class="fas fa-plane"></i>
-                    <h4>AWB Recenti</h4>
-                    <p>Ultimi 30 giorni</p>
-                    <span class="sol-badge sol-badge-success">GRATIS</span>
-                </div>
-            </div>
-        </div>
-    `;
-}
-
-// Sync from ShipsGo
-window.syncFromShipsGo = async function(type) {
-    window.ModalSystem.close();
-    
-    try {
-        let result;
-        
-        switch(type) {
-            case 'all':
-                result = await window.api.post('sync-shipsgo-all', {}, {
-                    loading: 'Sincronizzazione completa in corso...'
-                });
-                break;
-            case 'active':
-                result = await window.api.post('sync-shipsgo-containers', {
-                    onlyActive: true
-                }, {
-                    loading: 'Sincronizzazione container attivi...'
-                });
-                break;
-            case 'awb':
-                result = await window.api.get('shipsgo-air-shipments?take=50&recent=true', {
-                    loading: 'Download AWB recenti...'
-                });
-                break;
-        }
-        
-        window.NotificationSystem.success('Sincronizzazione completata');
-        await loadTrackings();
-        
-    } catch (error) {
-        console.error('Sync error:', error);
-        window.NotificationSystem.error('Errore durante sincronizzazione');
-    }
-};
 
 // Format helpers
-function formatType(type) {
-    const types = {
-        container: { icon: 'fa-ship', text: 'MARE' },
-        bl: { icon: 'fa-file-alt', text: 'MARE' },
-        awb: { icon: 'fa-plane', text: 'AEREO' },
-        parcel: { icon: 'fa-box', text: 'PARCEL' }
-    };
-    const config = types[type] || { icon: 'fa-question', text: type.toUpperCase() };
-    return `<span class="sol-badge sol-badge-info"><i class="fas ${config.icon}"></i> ${config.text}</span>`;
-}
-
-function formatStatus(status) {
-    const statuses = {
-        registered: { class: 'info', text: 'Registrato', icon: 'fa-clock' },
-        in_transit: { class: 'warning', text: 'In Transito', icon: 'fa-ship' },
-        arrived: { class: 'primary', text: 'ARRIVATO', icon: 'fa-anchor' },
-        out_for_delivery: { class: 'primary', text: 'In Consegna', icon: 'fa-truck' },
-        delivered: { class: 'success', text: 'Consegnato', icon: 'fa-check-circle' },
-        delayed: { class: 'error', text: 'In Ritardo', icon: 'fa-exclamation-triangle' },
-        exception: { class: 'error', text: 'Eccezione', icon: 'fa-times-circle' },
-        cancelled: { class: 'dark', text: 'Cancellato', icon: 'fa-ban' }
-    };
-    const config = statuses[status] || { class: 'info', text: status, icon: 'fa-question' };
-    return `<span class="sol-badge sol-badge-${config.class}"><i class="fas ${config.icon}"></i> ${config.text}</span>`;
-}
-
 function formatDate(date) {
     if (!date) return '-';
-    return new Date(date).toLocaleDateString('it-IT', {
+    return new Date(date).toLocaleString('it-IT', {
         day: '2-digit',
         month: '2-digit',
         year: 'numeric',
         hour: '2-digit',
         minute: '2-digit'
     });
-}
-
-function formatEventType(type) {
-    const eventTypes = {
-        'REGISTERED': 'Registrato',
-        'GATE_IN': 'Ingresso Terminal',
-        'GATE_OUT': 'Uscita Terminal',
-        'LOADED_ON_VESSEL': 'Caricato su Nave',
-        'DISCHARGED_FROM_VESSEL': 'Scaricato da Nave',
-        'DELIVERED': 'Consegnato',
-        'DEPARTED': 'Partito',
-        'ARRIVED': 'Arrivato',
-        'VESSEL_DEPARTED': 'Nave Partita',
-        'IN_TRANSIT': 'In Transito'
-    };
-    return eventTypes[type] || type;
 }
 
 // Stats order management
@@ -1111,3 +1014,174 @@ function startAutoRefresh() {
         loadTrackings();
     }, 5 * 60 * 1000);
 }
+
+// CSS additions needed for column manager
+const style = document.createElement('style');
+style.textContent = `
+    .table-header-actions {
+        text-align: right;
+        margin-bottom: 1rem;
+    }
+    
+    .column-manager {
+        max-height: 500px;
+        overflow-y: auto;
+    }
+    
+    .column-manager-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1.5rem;
+        padding-bottom: 1rem;
+        border-bottom: 1px solid var(--sol-gray-200);
+    }
+    
+    .column-list {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+    
+    .column-item {
+        display: flex;
+        align-items: center;
+        padding: 0.75rem;
+        background: var(--sol-gray-50);
+        border-radius: 0.5rem;
+        transition: all 0.2s;
+    }
+    
+    .column-item:hover {
+        background: var(--sol-gray-100);
+    }
+    
+    .column-item.required {
+        opacity: 0.8;
+    }
+    
+    .column-drag-handle {
+        cursor: move;
+        color: var(--sol-gray-400);
+        margin-right: 1rem;
+    }
+    
+    .column-checkbox {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        cursor: pointer;
+        flex: 1;
+    }
+    
+    .column-checkbox input {
+        cursor: pointer;
+    }
+    
+    .column-checkbox input:disabled {
+        cursor: not-allowed;
+    }
+    
+    .column-manager-footer {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 1.5rem;
+        padding-top: 1rem;
+        border-top: 1px solid var(--sol-gray-200);
+    }
+    
+    .sortable-ghost {
+        opacity: 0.4;
+    }
+    
+    .tracking-form {
+        padding: 1rem 0;
+    }
+    
+    .form-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1rem;
+        margin-bottom: 2rem;
+    }
+    
+    .form-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 1rem;
+        padding-top: 1rem;
+        border-top: 1px solid var(--sol-gray-200);
+    }
+    
+    .timeline {
+        position: relative;
+        padding: 1rem 0;
+    }
+    
+    .timeline-item {
+        position: relative;
+        padding-left: 3rem;
+        padding-bottom: 2rem;
+        border-left: 2px solid var(--sol-gray-200);
+    }
+    
+    .timeline-item:last-child {
+        border-left: none;
+        padding-bottom: 0;
+    }
+    
+    .timeline-marker {
+        position: absolute;
+        left: -8px;
+        top: 0;
+        width: 16px;
+        height: 16px;
+        background: white;
+        border: 2px solid var(--sol-primary);
+        border-radius: 50%;
+    }
+    
+    .timeline-item.delivered .timeline-marker {
+        border-color: var(--sol-success);
+        background: var(--sol-success);
+    }
+    
+    .timeline-item.arrived .timeline-marker {
+        border-color: var(--sol-primary);
+        background: var(--sol-primary);
+    }
+    
+    .timeline-content {
+        background: var(--sol-gray-50);
+        padding: 1rem;
+        border-radius: 0.5rem;
+    }
+    
+    .timeline-header {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 0.5rem;
+    }
+    
+    .timeline-title {
+        font-weight: 600;
+        color: var(--sol-gray-900);
+    }
+    
+    .timeline-date {
+        font-size: 0.875rem;
+        color: var(--sol-gray-600);
+    }
+    
+    .timeline-location {
+        font-size: 0.875rem;
+        color: var(--sol-gray-700);
+        margin-bottom: 0.5rem;
+    }
+    
+    .timeline-description {
+        font-size: 0.875rem;
+        color: var(--sol-gray-600);
+    }
+`;
+document.head.appendChild(style);
