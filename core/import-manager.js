@@ -63,7 +63,7 @@
                 'KLM': 'KL'
             },
             
-            sstatus: {
+            status: {
     // Container statuses
     'Gate In': 'in_transit',
     'Gate Out': 'in_transit',
