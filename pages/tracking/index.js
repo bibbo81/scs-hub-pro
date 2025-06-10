@@ -86,49 +86,52 @@ let currentColumns = [
 // Sostituisci tutto l'array availableColumns con:
 const availableColumns = [
     // Colonne Base
-    { id: 'tracking_number', label: 'Numero Tracking', visible: true, order: 0 },
-    { id: 'tracking_type', label: 'Tipo', visible: true, order: 1 },
-    { id: 'carrier_code', label: 'Vettore', visible: true, order: 2 },
-    { id: 'status', label: 'Stato', visible: true, order: 3 },
-    { id: 'origin_port', label: 'Origine', visible: true, order: 4 },
-    { id: 'destination_port', label: 'Destinazione', visible: true, order: 5 },
-    { id: 'reference_number', label: 'Riferimento', visible: true, order: 6 },
+    { key: 'tracking_number', label: 'Numero Tracking', visible: true, order: 0, required: true },
+    { key: 'tracking_type', label: 'Tipo', visible: true, order: 1 },
+    { key: 'carrier_code', label: 'Vettore', visible: true, order: 2 },
+    { key: 'status', label: 'Stato', visible: true, order: 3 },
+    { key: 'origin_port', label: 'Origine', visible: true, order: 4 },
+    { key: 'destination_port', label: 'Destinazione', visible: true, order: 5 },
+    { key: 'reference_number', label: 'Riferimento', visible: true, order: 6 },
     
-    // Colonne ShipsGo Mare (dal tuo Excel)
-    { id: 'booking', label: 'Booking', visible: false, order: 7 },
-    { id: 'container_count', label: 'Container Count', visible: false, order: 8 },
-    { id: 'port_of_loading', label: 'Port Of Loading', visible: false, order: 9 },
-    { id: 'date_of_loading', label: 'Date Of Loading', visible: false, order: 10 },
-    { id: 'pol_country', label: 'POL Country', visible: false, order: 11 },
-    { id: 'pol_country_code', label: 'POL Country Code', visible: false, order: 12 },
-    { id: 'port_of_discharge', label: 'Port Of Discharge', visible: false, order: 13 },
-    { id: 'date_of_discharge', label: 'Date Of Discharge', visible: false, order: 14 },
-    { id: 'pod_country', label: 'POD Country', visible: false, order: 15 },
-    { id: 'pod_country_code', label: 'POD Country Code', visible: false, order: 16 },
-    { id: 'co2_emission', label: 'CO₂ Emission (Tons)', visible: false, order: 17 },
-    { id: 'tags', label: 'Tags', visible: false, order: 18 },
-    { id: 'created_at_shipsgo', label: 'Created At', visible: false, order: 19 },
+    // Colonne ShipsGo Mare
+    { key: 'booking', label: 'Booking', visible: false, order: 7 },
+    { key: 'container_count', label: 'Container Count', visible: false, order: 8 },
+    { key: 'port_of_loading', label: 'Port Of Loading', visible: false, order: 9 },
+    { key: 'date_of_loading', label: 'Date Of Loading', visible: false, order: 10 },
+    { key: 'pol_country', label: 'POL Country', visible: false, order: 11 },
+    { key: 'pol_country_code', label: 'POL Country Code', visible: false, order: 12 },
+    { key: 'port_of_discharge', label: 'Port Of Discharge', visible: false, order: 13 },
+    { key: 'date_of_discharge', label: 'Date Of Discharge', visible: false, order: 14 },
+    { key: 'pod_country', label: 'POD Country', visible: false, order: 15 },
+    { key: 'pod_country_code', label: 'POD Country Code', visible: false, order: 16 },
+    { key: 'co2_emission', label: 'CO₂ Emission (Tons)', visible: false, order: 17 },
+    { key: 'tags', label: 'Tags', visible: false, order: 18 },
+    { key: 'created_at_shipsgo', label: 'Created At', visible: false, order: 19 },
     
     // Colonne ShipsGo Air  
-    { id: 'awb_number', label: 'AWB Number', visible: false, order: 20 },
-    { id: 'airline', label: 'Airline', visible: false, order: 21 },
-    { id: 'origin', label: 'Origin', visible: false, order: 22 },
-    { id: 'origin_name', label: 'Origin Name', visible: false, order: 23 },
-    { id: 'date_of_departure', label: 'Date Of Departure', visible: false, order: 24 },
-    { id: 'origin_country', label: 'Origin Country', visible: false, order: 25 },
-    { id: 'origin_country_code', label: 'Origin Country Code', visible: false, order: 26 },
-    { id: 'destination', label: 'Destination', visible: false, order: 27 },
-    { id: 'destination_name', label: 'Destination Name', visible: false, order: 28 },
-    { id: 'date_of_arrival', label: 'Date Of Arrival', visible: false, order: 29 },
-    { id: 'destination_country', label: 'Destination Country', visible: false, order: 30 },
-    { id: 'destination_country_code', label: 'Destination Country Code', visible: false, order: 31 },
-    { id: 'transit_time', label: 'Transit Time', visible: false, order: 32 },
-    { id: 't5_count', label: 'T5 Count', visible: false, order: 33 },
+    { key: 'awb_number', label: 'AWB Number', visible: false, order: 20 },
+    { key: 'airline', label: 'Airline', visible: false, order: 21 },
+    { key: 'origin', label: 'Origin', visible: false, order: 22 },
+    { key: 'origin_name', label: 'Origin Name', visible: false, order: 23 },
+    { key: 'date_of_departure', label: 'Date Of Departure', visible: false, order: 24 },
+    { key: 'origin_country', label: 'Origin Country', visible: false, order: 25 },
+    { key: 'origin_country_code', label: 'Origin Country Code', visible: false, order: 26 },
+    { key: 'destination', label: 'Destination', visible: false, order: 27 },
+    { key: 'destination_name', label: 'Destination Name', visible: false, order: 28 },
+    { key: 'date_of_arrival', label: 'Date Of Arrival', visible: false, order: 29 },
+    { key: 'destination_country', label: 'Destination Country', visible: false, order: 30 },
+    { key: 'destination_country_code', label: 'Destination Country Code', visible: false, order: 31 },
+    { key: 'transit_time', label: 'Transit Time', visible: false, order: 32 },
+    { key: 't5_count', label: 'T5 Count', visible: false, order: 33 },
     
     // Colonne Sistema
-    { id: 'last_event_location', label: 'Ultima Posizione', visible: true, order: 34 },
-    { id: 'eta', label: 'ETA', visible: true, order: 35 },
-    { id: 'created_at', label: 'Data Inserimento', visible: true, order: 36 }
+    { key: 'last_event_location', label: 'Ultima Posizione', visible: true, order: 34 },
+    { key: 'eta', label: 'ETA', visible: true, order: 35 },
+    { key: 'created_at', label: 'Data Inserimento', visible: true, order: 36 },
+    
+    // Actions column
+    { key: 'actions', label: 'Azioni', visible: true, order: 37, required: true, isAction: true }
 ];
 
 // Default columns (saved in localStorage)
@@ -196,7 +199,7 @@ function showColumnManager() {
                 </button>
             </div>
             <div class="column-list" id="columnList">
-                ${AVAILABLE_COLUMNS.map(col => {
+                ${availableColumns.map(col => {
                     const isChecked = currentColumns.includes(col.key);
                     const isRequired = col.required;
                     return `
@@ -374,7 +377,7 @@ function setupStatsCards() {
 // Setup tracking table
 function setupTrackingTable() {
     const columns = currentColumns.map(colKey => {
-        const colDef = AVAILABLE_COLUMNS.find(c => c.key === colKey);
+        const colDef = availableColumns.find(c => c.key === colKey);
         if (!colDef) return null;
         
         if (colDef.isAction) {
@@ -1402,6 +1405,16 @@ style.textContent = `
 
 .sol-tab-content.active {
     display: block;
+}
+    .btn-danger {
+    color: white;
+    background-color: #ef4444;
+    border-color: #ef4444;
+}
+
+.btn-danger:hover {
+    background-color: #dc2626;
+    border-color: #dc2626;
 }
 `;
 document.head.appendChild(style);
