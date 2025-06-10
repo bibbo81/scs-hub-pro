@@ -128,26 +128,26 @@ export const ModalSystem = {
      * @returns {Promise} Promise che risolve con true/false
      */
     confirm(options = {}) {
-        return new Promise((resolve) => {
-            const modalId = `modal-confirm-${Date.now()}`;
-            
-            const modal = this.create({
-                title: options.title || 'Conferma',
-                content: options.message || 'Sei sicuro?',
-                maxWidth: options.maxWidth || '500px',
-                footer: `
-                    <button class="sol-btn sol-btn-glass" data-confirm-result="false" data-modal-id="${modalId}">
-                        ${options.cancelText || 'Annulla'}
-                    </button>
-                    <button class="sol-btn ${options.confirmClass || 'sol-btn-primary'}" data-confirm-result="true" data-modal-id="${modalId}">
-                        ${options.confirmText || 'Conferma'}
-                    </button>
-                `,
-                hideClose: true,
-                closeOnBackdrop: false,
-                closeOnEsc: false,
-                onClose: (result) => resolve(result || false)
-            });
+    return new Promise((resolve) => {
+        const modalId = `modal-confirm-${Date.now()}`;
+        
+        const modal = this.create({
+            title: options.title || 'Conferma',
+            content: options.message || 'Sei sicuro?',
+            maxWidth: options.maxWidth || '500px',
+            footer: `
+                <button class="sol-btn sol-btn-glass" onclick="modalSystem.resolveConfirm('${modalId}', false)">
+                    ${options.cancelText || 'Annulla'}
+                </button>
+                <button class="sol-btn ${options.confirmClass || 'sol-btn-primary'}" onclick="modalSystem.resolveConfirm('${modalId}', true)">
+                    ${options.confirmText || 'Conferma'}
+                </button>
+            `,
+            hideClose: false,  // <-- Cambiato a false per mostrare la X
+            closeOnBackdrop: false,
+            closeOnEsc: true,  // <-- Cambiato a true per permettere ESC
+            onClose: () => resolve(false)  // <-- Risolve con false quando si chiude
+        });
             
             // Attach confirm handlers
             modal.querySelectorAll('[data-confirm-result]').forEach(btn => {
@@ -159,9 +159,11 @@ export const ModalSystem = {
             
             // Salva resolver
             const modalData = this.activeModals.get(modalId);
+        if (modalData) {
             modalData.resolver = resolve;
-        });
-    },
+        }
+    });
+},
     
     /**
      * Handle confirm button click

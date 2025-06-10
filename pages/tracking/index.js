@@ -410,18 +410,12 @@ function setupTrackingTable() {
         };
     }).filter(Boolean);
     
-    // Add column manager button to table header
-    const tableContainer = document.getElementById('trackingTableContainer');
-    tableContainer.innerHTML = `
-        <div class="table-header-actions">
-            <button class="btn btn-sm btn-secondary" onclick="showColumnManager()">
-                <i class="fas fa-columns"></i> Gestione Colonne
-            </button>
-        </div>
-        <div id="trackingTableWrapper"></div>
-    `;
+    // RIMUOVI QUESTA PARTE - Non creare il wrapper
+    // const tableContainer = document.getElementById('trackingTableContainer');
+    // tableContainer.innerHTML = `...`;
     
-    trackingTable = new TableManager('trackingTableWrapper', {
+    // USA DIRETTAMENTE trackingTableContainer
+    trackingTable = new TableManager('trackingTableContainer', {
         columns: columns,
         emptyMessage: 'Nessun tracking attivo. Aggiungi il tuo primo tracking per iniziare.',
         pageSize: 20
@@ -1073,7 +1067,8 @@ async function handleDeleteTracking(id) {
         title: 'Conferma Eliminazione',
         message: 'Sei sicuro di voler eliminare questo tracking?',
         confirmText: 'Elimina',
-        confirmClass: 'btn-danger'
+        confirmClass: 'sol-btn-danger',  // <-- Deve essere sol-btn-danger, non btn-danger
+        cancelText: 'Annulla'
     });
     
     if (!confirmed) return;
@@ -1415,6 +1410,17 @@ style.textContent = `
 .btn-danger:hover {
     background-color: #dc2626;
     border-color: #dc2626;
+}
+    // Aggiungi dopo gli altri stili CSS:
+.sol-btn-danger {
+    color: white !important;
+    background-color: #ef4444 !important;
+    border-color: #ef4444 !important;
+}
+
+.sol-btn-danger:hover {
+    background-color: #dc2626 !important;
+    border-color: #dc2626 !important;
 }
 `;
 document.head.appendChild(style);
