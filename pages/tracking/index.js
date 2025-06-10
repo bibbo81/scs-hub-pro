@@ -1,7 +1,8 @@
 // /pages/tracking/index.js - Logica specifica per la pagina tracking
-import { TableManager } from '/core/table-manager.js';
-import { modalSystem } from '/core/modal-system.js';
-import { notificationSystem } from '/core/notification-system.js';
+// FIX: Import corretti per i moduli
+import TableManager from '../../core/table-manager.js';
+import modalSystem from '../../core/modal-system.js';
+import notificationSystem from '../../core/notification-system.js';
 
 // Tracking patterns
 const TRACKING_PATTERNS = {
@@ -269,7 +270,7 @@ function applyColumnChanges() {
     // Close modal
     modalSystem.closeAll();
     
-    notificationSystem.show('Colonne aggiornate con successo', 'success');
+    notificationSystem.success('Colonne aggiornate con successo');
 }
 
 // Reset to default columns
@@ -495,7 +496,7 @@ async function loadTrackings() {
         
     } catch (error) {
         console.error('Error loading trackings:', error);
-        notificationSystem.show('Errore nel caricamento dei tracking', 'error');
+        notificationSystem.error('Errore nel caricamento dei tracking');
     } finally {
         trackingTable.loading(false);
     }
@@ -737,13 +738,13 @@ async function handleAddTracking(event) {
     
     // Validate
     if (!formData.tracking_number || !formData.tracking_type || !formData.carrier_code) {
-        notificationSystem.show('Compila tutti i campi obbligatori', 'error');
+        notificationSystem.error('Compila tutti i campi obbligatori');
         return;
     }
     
     // Check if already exists
     if (trackings.find(t => t.tracking_number === formData.tracking_number)) {
-        notificationSystem.show('Tracking già presente nel sistema', 'error');
+        notificationSystem.error('Tracking già presente nel sistema');
         return;
     }
     
@@ -756,7 +757,7 @@ async function handleAddTracking(event) {
     
     // Close modal and reload
     modalSystem.closeAll();
-    notificationSystem.show('Tracking aggiunto con successo', 'success');
+    notificationSystem.success('Tracking aggiunto con successo');
     await loadTrackings();
 }
 
@@ -791,7 +792,7 @@ async function handleRefreshTracking(id) {
     // Save
     localStorage.setItem('trackings', JSON.stringify(trackings));
     
-    notificationSystem.show('Tracking aggiornato', 'success');
+    notificationSystem.success('Tracking aggiornato');
     await loadTrackings();
 }
 
@@ -898,7 +899,7 @@ async function handleDeleteTracking(id) {
     // Close any open modals
     modalSystem.closeAll();
     
-    notificationSystem.show('Tracking eliminato', 'success');
+    notificationSystem.success('Tracking eliminato');
     await loadTrackings();
 }
 
@@ -907,7 +908,7 @@ async function refreshAllTrackings() {
     const activeTrackings = trackings.filter(t => !['delivered', 'exception'].includes(t.status));
     
     if (activeTrackings.length === 0) {
-        notificationSystem.show('Nessun tracking attivo da aggiornare', 'info');
+        notificationSystem.info('Nessun tracking attivo da aggiornare');
         return;
     }
     
@@ -931,7 +932,7 @@ async function refreshAllTrackings() {
     }
     
     progressModal.close();
-    notificationSystem.show('Tutti i tracking sono stati aggiornati', 'success');
+    notificationSystem.success('Tutti i tracking sono stati aggiornati');
 }
 
 // Apply filters
@@ -960,11 +961,11 @@ function applyFilters() {
 
 // Export functions
 async function exportToPDF() {
-    notificationSystem.show('Export PDF in sviluppo', 'info');
+    notificationSystem.info('Export PDF in sviluppo');
 }
 
 async function exportToExcel() {
-    notificationSystem.show('Export Excel in sviluppo', 'info');
+    notificationSystem.info('Export Excel in sviluppo');
 }
 
 // Format helpers
