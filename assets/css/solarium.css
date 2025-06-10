@@ -2673,18 +2673,39 @@ select.form-control {
 #userDropdown,
 #notificationDropdown {
     position: absolute !important;
-    top: 100% !important;
+    top: 48px !important;  /* Valore fisso - header è circa 64px, quindi 48px lo mette vicino */
     right: 0 !important;
     left: auto !important;
-    margin-top: 0.5rem !important;
+    margin: 0 !important;
     min-width: 280px !important;
     max-width: 320px !important;
+    z-index: 1001 !important;
+    transform: none !important;
+    translate: none !important;
+}
+
+/* Aggiungi freccia triangolare sopra il dropdown */
+#userDropdown::before,
+#notificationDropdown::before {
+    content: '';
+    position: absolute;
+    top: -6px;
+    right: 20px;
+    width: 12px;
+    height: 12px;
+    background: white;
+    border-left: 1px solid #e5e7eb;
+    border-top: 1px solid #e5e7eb;
+    transform: rotate(45deg);
+    z-index: 1;
 }
 
 /* Fix dropdown header */
 .sol-dropdown-header {
     background: var(--sol-gray-50);
     padding: 1rem 1.25rem !important;
+    border-bottom: 1px solid #e5e7eb !important;
+    border-radius: 0.5rem 0.5rem 0 0 !important;
 }
 
 .sol-dropdown-header h3 {
@@ -2773,15 +2794,16 @@ select.form-control {
 
 /* Fix user dropdown styles */
 .user-name {
-    font-weight: 600;
-    color: var(--sol-gray-900);
-    margin: 0 0 0.25rem;
+    font-weight: 600 !important;
+    margin: 0 0 0.25rem !important;
+    color: #111827 !important;
+    font-size: 0.9375rem !important;
 }
 
 .user-email {
-    font-size: 0.875rem;
-    color: var(--sol-gray-600);
-    margin: 0;
+    font-size: 0.8125rem !important;
+    color: #6b7280 !important;
+    margin: 0 !important;
 }
 
 /* Fix dropdown footer */
@@ -2801,10 +2823,17 @@ select.form-control {
 }
 
 /* Fix dropdown item icons */
+.sol-dropdown-item {
+    padding: 0.75rem 1.25rem !important;
+    font-size: 0.875rem !important;
+}
+
 .sol-dropdown-item i {
-    width: 20px;
-    text-align: center;
-    color: var(--sol-gray-500);
+    width: 18px !important;
+    text-align: center !important;
+    color: #6b7280 !important;
+    margin-right: 0.75rem !important;
+    font-size: 0.875rem !important;
 }
 
 .sol-dropdown-item:hover i {
@@ -2835,125 +2864,12 @@ select.form-control {
         right: -1rem !important;
         max-width: calc(100vw - 2rem) !important;
     }
-}
-
-/* ===== DROPDOWN POSITIONING FIX ===== */
-/* Fix container positioning */
-.sol-header-right {
-    position: relative !important;
-}
-
-/* Fix dropdown exact positioning - VALORE FISSO */
-#userDropdown,
-#notificationDropdown {
-    position: absolute !important;
-    top: 48px !important;  /* Valore fisso - header è circa 64px, quindi 48px lo mette vicino */
-    right: 0 !important;
-    left: auto !important;
-    margin: 0 !important;
-    min-width: 280px !important;
-    max-width: 320px !important;
-    z-index: 1001 !important;
-}
-
-/* Rimuovi qualsiasi transform o translate che potrebbe spostarlo */
-#userDropdown {
-    transform: none !important;
-    translate: none !important;
-}
-
-#notificationDropdown {
-    transform: none !important;
-    translate: none !important;
-}
-
-/* Aggiungi freccia triangolare sopra il dropdown */
-#userDropdown::before,
-#notificationDropdown::before {
-    content: '';
-    position: absolute;
-    top: -6px;
-    right: 20px;
-    width: 12px;
-    height: 12px;
-    background: white;
-    border-left: 1px solid #e5e7eb;
-    border-top: 1px solid #e5e7eb;
-    transform: rotate(45deg);
-    z-index: 1;
-}
-
-/* Fix per mobile */
-@media (max-width: 768px) {
-    #userDropdown,
-    #notificationDropdown {
-        right: -1rem !important;
-        max-width: calc(100vw - 2rem) !important;
-    }
     
     #userDropdown::before,
     #notificationDropdown::before {
         right: 2rem;
     }
 }
-
-/* Fix dropdown header styling */
-.sol-dropdown-header {
-    background: #f9fafb !important;
-    padding: 1rem 1.25rem !important;
-    border-bottom: 1px solid #e5e7eb !important;
-    border-radius: 0.5rem 0.5rem 0 0 !important;
-}
-
-/* Fix user info styling */
-.user-name {
-    font-weight: 600 !important;
-    margin: 0 0 0.25rem !important;
-    color: #111827 !important;
-    font-size: 0.9375rem !important;
-}
-
-.user-email {
-    font-size: 0.8125rem !important;
-    color: #6b7280 !important;
-    margin: 0 !important;
-}
-
-/* Fix dropdown items */
-.sol-dropdown-item {
-    padding: 0.75rem 1.25rem !important;
-    font-size: 0.875rem !important;
-}
-
-.sol-dropdown-item i {
-    width: 18px !important;
-    text-align: center !important;
-    color: #6b7280 !important;
-    margin-right: 0.75rem !important;
-    font-size: 0.875rem !important;
-}
-
-.sol-dropdown-item:hover {
-    background: #f3f4f6 !important;
-}
-
-/* Fix notification items */
-.notification-item {
-    padding: 0.875rem 1.25rem !important;
-    border-bottom: 1px solid #f3f4f6 !important;
-    display: flex !important;
-    gap: 0.75rem !important;
-}
-
-.notification-item:last-child {
-    border-bottom: none !important;
-}
-
-.notification-item.unread {
-    background: #eff6ff !important;
-}
-
-/* END DROPDOWN FIX */
 
 /* Column Editor */
 .column-editor {
@@ -3023,17 +2939,343 @@ select.form-control {
 .sol-btn-danger,
 .sol-btn-error {
     color: white;
-    background-color: var(--sol-danger, #ef4444);
-    border-color: var(--sol-danger, #ef4444);
+    background-color: var(--sol-danger);
+    border-color: var(--sol-danger);
 }
 
 .sol-btn-danger:hover:not(:disabled),
 .sol-btn-error:hover:not(:disabled) {
-    background-color: var(--sol-danger-dark, #dc2626);
-    border-color: var(--sol-danger-dark, #dc2626);
+    background-color: var(--sol-danger-dark);
+    border-color: var(--sol-danger-dark);
+    transform: translateY(-1px);
 }
 
 /* Fix modal z-index */
 .sol-modal-overlay {
     z-index: 2000 !important;
 }
+
+/* ===== Badge Colors Extended ===== */
+.sol-badge-primary {
+    background: var(--sol-primary-light);
+    color: var(--sol-primary-dark);
+}
+
+.sol-badge-secondary {
+    background: var(--sol-gray-200);
+    color: var(--sol-gray-700);
+}
+
+.sol-badge-danger {
+    background: var(--sol-danger-light);
+    color: var(--sol-danger-dark);
+}
+
+/* ===== Additional Button States ===== */
+.sol-btn-warning {
+    color: white;
+    background-color: var(--sol-warning);
+    border-color: var(--sol-warning);
+}
+
+.sol-btn-warning:hover:not(:disabled) {
+    background-color: var(--sol-warning-dark);
+    border-color: var(--sol-warning-dark);
+    transform: translateY(-1px);
+}
+
+.sol-btn-info {
+    color: white;
+    background-color: var(--sol-info);
+    border-color: var(--sol-info);
+}
+
+.sol-btn-info:hover:not(:disabled) {
+    background-color: var(--sol-info-dark);
+    border-color: var(--sol-info-dark);
+    transform: translateY(-1px);
+}
+
+/* ===== Button Sizes (if not already defined) ===== */
+.sol-btn-sm {
+    padding: 0.375rem 0.875rem;
+    font-size: 0.75rem;
+}
+
+.sol-btn-lg {
+    padding: 0.875rem 1.75rem;
+    font-size: 1rem;
+}
+
+/* ===== Button Icon-Only Variant ===== */
+.sol-btn-icon {
+    padding: 0.5rem;
+    min-width: 36px;
+    min-height: 36px;
+}
+
+.sol-btn-icon.sol-btn-sm {
+    padding: 0.375rem;
+    min-width: 28px;
+    min-height: 28px;
+}
+
+.sol-btn-icon.sol-btn-lg {
+    padding: 0.625rem;
+    min-width: 44px;
+    min-height: 44px;
+}
+
+/* ===== Utility Classes for Consistency ===== */
+.sol-text-primary { color: var(--sol-primary); }
+.sol-text-secondary { color: var(--sol-secondary); }
+.sol-text-success { color: var(--sol-success); }
+.sol-text-warning { color: var(--sol-warning); }
+.sol-text-danger { color: var(--sol-danger); }
+.sol-text-info { color: var(--sol-info); }
+.sol-text-muted { color: var(--sol-gray-500); }
+
+.sol-bg-primary { background-color: var(--sol-primary); }
+.sol-bg-primary-light { background-color: var(--sol-primary-light); }
+.sol-bg-success { background-color: var(--sol-success); }
+.sol-bg-success-light { background-color: var(--sol-success-light); }
+.sol-bg-warning { background-color: var(--sol-warning); }
+.sol-bg-warning-light { background-color: var(--sol-warning-light); }
+.sol-bg-danger { background-color: var(--sol-danger); }
+.sol-bg-danger-light { background-color: var(--sol-danger-light); }
+.sol-bg-info { background-color: var(--sol-info); }
+.sol-bg-info-light { background-color: var(--sol-info-light); }
+
+/* ===== Form Validation States ===== */
+.sol-form-input.is-invalid,
+.sol-form-select.is-invalid {
+    border-color: var(--sol-danger);
+}
+
+.sol-form-input.is-invalid:focus,
+.sol-form-select.is-invalid:focus {
+    border-color: var(--sol-danger);
+    box-shadow: 0 0 0 3px var(--sol-danger-light);
+}
+
+.sol-form-input.is-valid,
+.sol-form-select.is-valid {
+    border-color: var(--sol-success);
+}
+
+.sol-form-input.is-valid:focus,
+.sol-form-select.is-valid:focus {
+    border-color: var(--sol-success);
+    box-shadow: 0 0 0 3px var(--sol-success-light);
+}
+
+.sol-form-error {
+    font-size: 0.75rem;
+    color: var(--sol-danger);
+    margin-top: 0.25rem;
+}
+
+.sol-form-success {
+    font-size: 0.75rem;
+    color: var(--sol-success);
+    margin-top: 0.25rem;
+}
+
+/* ===== Loading Button State ===== */
+.sol-btn.is-loading {
+    position: relative;
+    color: transparent;
+    pointer-events: none;
+}
+
+.sol-btn.is-loading::after {
+    content: '';
+    position: absolute;
+    width: 16px;
+    height: 16px;
+    top: 50%;
+    left: 50%;
+    margin-left: -8px;
+    margin-top: -8px;
+    border: 2px solid currentColor;
+    border-radius: 50%;
+    border-right-color: transparent;
+    animation: sol-spin 0.75s linear infinite;
+}
+
+@keyframes sol-spin {
+    to { transform: rotate(360deg); }
+}
+
+/* ===== Alert Variants (if needed) ===== */
+.sol-alert {
+    padding: var(--sol-spacing-md) var(--sol-spacing-lg);
+    border-radius: var(--sol-radius-md);
+    margin-bottom: var(--sol-spacing-lg);
+    display: flex;
+    align-items: center;
+    gap: var(--sol-spacing-md);
+    border: 1px solid;
+}
+
+.sol-alert-primary {
+    color: var(--sol-primary-dark);
+    background-color: var(--sol-primary-light);
+    border-color: var(--sol-primary);
+}
+
+.sol-alert-secondary {
+    color: var(--sol-secondary-dark);
+    background-color: var(--sol-secondary-light);
+    border-color: var(--sol-secondary);
+}
+
+/* ===== Spacing Utilities ===== */
+.sol-mt-0 { margin-top: 0; }
+.sol-mt-1 { margin-top: var(--sol-spacing-xs); }
+.sol-mt-2 { margin-top: var(--sol-spacing-sm); }
+.sol-mt-3 { margin-top: var(--sol-spacing-md); }
+.sol-mt-4 { margin-top: var(--sol-spacing-lg); }
+.sol-mt-5 { margin-top: var(--sol-spacing-xl); }
+
+.sol-mb-0 { margin-bottom: 0; }
+.sol-mb-1 { margin-bottom: var(--sol-spacing-xs); }
+.sol-mb-2 { margin-bottom: var(--sol-spacing-sm); }
+.sol-mb-3 { margin-bottom: var(--sol-spacing-md); }
+.sol-mb-4 { margin-bottom: var(--sol-spacing-lg); }
+.sol-mb-5 { margin-bottom: var(--sol-spacing-xl); }
+
+.sol-p-0 { padding: 0; }
+.sol-p-1 { padding: var(--sol-spacing-xs); }
+.sol-p-2 { padding: var(--sol-spacing-sm); }
+.sol-p-3 { padding: var(--sol-spacing-md); }
+.sol-p-4 { padding: var(--sol-spacing-lg); }
+.sol-p-5 { padding: var(--sol-spacing-xl); }
+
+/* ===== Display Utilities ===== */
+.sol-d-none { display: none; }
+.sol-d-block { display: block; }
+.sol-d-inline { display: inline; }
+.sol-d-inline-block { display: inline-block; }
+.sol-d-flex { display: flex; }
+.sol-d-inline-flex { display: inline-flex; }
+
+/* ===== Flex Utilities ===== */
+.sol-justify-start { justify-content: flex-start; }
+.sol-justify-end { justify-content: flex-end; }
+.sol-justify-center { justify-content: center; }
+.sol-justify-between { justify-content: space-between; }
+.sol-justify-around { justify-content: space-around; }
+
+.sol-align-start { align-items: flex-start; }
+.sol-align-end { align-items: flex-end; }
+.sol-align-center { align-items: center; }
+.sol-align-baseline { align-items: baseline; }
+.sol-align-stretch { align-items: stretch; }
+
+.sol-flex-1 { flex: 1; }
+.sol-flex-auto { flex: auto; }
+.sol-flex-none { flex: none; }
+
+/* ===== Text Alignment ===== */
+.sol-text-left { text-align: left; }
+.sol-text-center { text-align: center; }
+.sol-text-right { text-align: right; }
+.sol-text-justify { text-align: justify; }
+
+/* ===== Border Utilities ===== */
+.sol-border { border: 1px solid var(--sol-gray-200); }
+.sol-border-top { border-top: 1px solid var(--sol-gray-200); }
+.sol-border-bottom { border-bottom: 1px solid var(--sol-gray-200); }
+.sol-border-left { border-left: 1px solid var(--sol-gray-200); }
+.sol-border-right { border-right: 1px solid var(--sol-gray-200); }
+.sol-border-0 { border: 0; }
+
+/* ===== Rounded Corners ===== */
+.sol-rounded-0 { border-radius: 0; }
+.sol-rounded-sm { border-radius: var(--sol-radius-sm); }
+.sol-rounded { border-radius: var(--sol-radius-md); }
+.sol-rounded-lg { border-radius: var(--sol-radius-lg); }
+.sol-rounded-xl { border-radius: var(--sol-radius-xl); }
+.sol-rounded-full { border-radius: var(--sol-radius-full); }
+
+/* ===== Shadow Utilities ===== */
+.sol-shadow-none { box-shadow: none; }
+.sol-shadow-sm { box-shadow: var(--sol-shadow-sm); }
+.sol-shadow { box-shadow: var(--sol-shadow-md); }
+.sol-shadow-lg { box-shadow: var(--sol-shadow-lg); }
+.sol-shadow-xl { box-shadow: var(--sol-shadow-xl); }
+
+/* ===== Width Utilities ===== */
+.sol-w-25 { width: 25%; }
+.sol-w-50 { width: 50%; }
+.sol-w-75 { width: 75%; }
+.sol-w-100 { width: 100%; }
+.sol-w-auto { width: auto; }
+
+/* ===== Height Utilities ===== */
+.sol-h-25 { height: 25%; }
+.sol-h-50 { height: 50%; }
+.sol-h-75 { height: 75%; }
+.sol-h-100 { height: 100%; }
+.sol-h-auto { height: auto; }
+
+/* ===== Position Utilities ===== */
+.sol-position-static { position: static; }
+.sol-position-relative { position: relative; }
+.sol-position-absolute { position: absolute; }
+.sol-position-fixed { position: fixed; }
+.sol-position-sticky { position: sticky; }
+
+/* ===== Overflow Utilities ===== */
+.sol-overflow-auto { overflow: auto; }
+.sol-overflow-hidden { overflow: hidden; }
+.sol-overflow-visible { overflow: visible; }
+.sol-overflow-scroll { overflow: scroll; }
+
+/* ===== Cursor Utilities ===== */
+.sol-cursor-pointer { cursor: pointer; }
+.sol-cursor-default { cursor: default; }
+.sol-cursor-move { cursor: move; }
+.sol-cursor-not-allowed { cursor: not-allowed; }
+.sol-cursor-wait { cursor: wait; }
+
+/* ===== User Select ===== */
+.sol-user-select-none { user-select: none; }
+.sol-user-select-text { user-select: text; }
+.sol-user-select-all { user-select: all; }
+
+/* ===== Opacity ===== */
+.sol-opacity-0 { opacity: 0; }
+.sol-opacity-25 { opacity: 0.25; }
+.sol-opacity-50 { opacity: 0.5; }
+.sol-opacity-75 { opacity: 0.75; }
+.sol-opacity-100 { opacity: 1; }
+
+/* ===== Z-Index ===== */
+.sol-z-0 { z-index: 0; }
+.sol-z-10 { z-index: 10; }
+.sol-z-20 { z-index: 20; }
+.sol-z-30 { z-index: 30; }
+.sol-z-40 { z-index: 40; }
+.sol-z-50 { z-index: 50; }
+.sol-z-auto { z-index: auto; }
+
+/* ===== Responsive Utilities ===== */
+@media (max-width: 768px) {
+    .sol-hide-mobile { display: none !important; }
+    .sol-show-mobile { display: block !important; }
+}
+
+@media (min-width: 769px) {
+    .sol-hide-desktop { display: none !important; }
+    .sol-show-desktop { display: block !important; }
+}
+
+/* ===== Print Utilities ===== */
+@media print {
+    .sol-no-print { display: none !important; }
+    .sol-print-only { display: block !important; }
+}
+
+/* End of Solarium Design System Complete */

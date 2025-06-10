@@ -83,7 +83,6 @@ let currentColumns = [
 ];
 
 // Column definitions
-// Sostituisci tutto l'array availableColumns con:
 const availableColumns = [
     // Colonne Base
     { key: 'tracking_number', label: 'Numero Tracking', visible: true, order: 0, required: true },
@@ -410,11 +409,6 @@ function setupTrackingTable() {
         };
     }).filter(Boolean);
     
-    // RIMUOVI QUESTA PARTE - Non creare il wrapper
-    // const tableContainer = document.getElementById('trackingTableContainer');
-    // tableContainer.innerHTML = `...`;
-    
-    // USA DIRETTAMENTE trackingTableContainer
     trackingTable = new TableManager('trackingTableContainer', {
         columns: columns,
         emptyMessage: 'Nessun tracking attivo. Aggiungi il tuo primo tracking per iniziare.',
@@ -433,7 +427,8 @@ function getColumnFormatter(key) {
                 parcel: { icon: 'fa-box', text: 'PARCEL', color: 'success' }
             };
             const config = types[value] || { icon: 'fa-question', text: value, color: 'secondary' };
-            return `<span class="badge badge-${config.color}"><i class="fas ${config.icon}"></i> ${config.text}</span>`;
+            // FIX: Usa sol-badge invece di badge
+            return `<span class="sol-badge sol-badge-${config.color}"><i class="fas ${config.icon}"></i> ${config.text}</span>`;
         },
         status: (value) => {
             const statuses = {
@@ -447,7 +442,8 @@ function getColumnFormatter(key) {
                 exception: { class: 'danger', text: 'Eccezione', icon: 'fa-times-circle' }
             };
             const config = statuses[value] || { class: 'secondary', text: value, icon: 'fa-question' };
-            return `<span class="badge badge-${config.class}"><i class="fas ${config.icon}"></i> ${config.text}</span>`;
+            // FIX: Usa sol-badge invece di badge
+            return `<span class="sol-badge sol-badge-${config.class}"><i class="fas ${config.icon}"></i> ${config.text}</span>`;
         },
         eta: (value) => {
             if (!value) return '-';
@@ -798,9 +794,9 @@ function renderTrackingForm() {
             <!-- Import Tab -->
             <div class="sol-tab-content" data-content="import">
                 <div id="importContainer">
-                    <div style="text-align: center; padding: 2rem;">
-                        <div style="background: #e3f2fd; border-radius: 12px; padding: 2rem; display: inline-block;">
-                            <i class="fas fa-ship fa-3x" style="color: #1976d2; margin-bottom: 1rem; display: block;"></i>
+                    <div class="import-container">
+                        <div class="import-shipsgo">
+                            <i class="fas fa-ship fa-3x"></i>
                             <h4>Import File ShipsGo</h4>
                             <p>Carica i file Excel esportati da ShipsGo (Mare o Aereo)</p>
                             <input type="file" id="shipsgoFile" accept=".csv,.xlsx,.xls" style="display:none" 
@@ -810,12 +806,13 @@ function renderTrackingForm() {
                             </button>
                         </div>
                         
-                        <div style="margin-top: 2rem;">
+                        <div class="import-divider">
                             <p>Oppure</p>
-                            <button class="btn btn-secondary" onclick="downloadTemplate()">
-                                <i class="fas fa-download"></i> Scarica Template CSV
-                            </button>
                         </div>
+                        
+                        <button class="btn btn-secondary" onclick="downloadTemplate()">
+                            <i class="fas fa-download"></i> Scarica Template CSV
+                        </button>
                     </div>
                 </div>
             </div>
@@ -1067,7 +1064,7 @@ async function handleDeleteTracking(id) {
         title: 'Conferma Eliminazione',
         message: 'Sei sicuro di voler eliminare questo tracking?',
         confirmText: 'Elimina',
-        confirmClass: 'sol-btn-danger',  // <-- Deve essere sol-btn-danger, non btn-danger
+        confirmClass: 'sol-btn-danger',  // FIX: Usa sol-btn-danger
         cancelText: 'Annulla'
     });
     
@@ -1198,229 +1195,3 @@ function startAutoRefresh() {
         loadTrackings();
     }, 5 * 60 * 1000);
 }
-
-// CSS additions needed for column manager
-const style = document.createElement('style');
-style.textContent = `
-    .table-header-actions {
-        text-align: right;
-        margin-bottom: 1rem;
-    }
-    
-    .column-manager {
-        max-height: 500px;
-        overflow-y: auto;
-    }
-    
-    .column-manager-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 1.5rem;
-        padding-bottom: 1rem;
-        border-bottom: 1px solid var(--sol-gray-200);
-    }
-    
-    .column-list {
-        display: flex;
-        flex-direction: column;
-        gap: 0.5rem;
-    }
-    
-    .column-item {
-        display: flex;
-        align-items: center;
-        padding: 0.75rem;
-        background: var(--sol-gray-50);
-        border-radius: 0.5rem;
-        transition: all 0.2s;
-    }
-    
-    .column-item:hover {
-        background: var(--sol-gray-100);
-    }
-    
-    .column-item.required {
-        opacity: 0.8;
-    }
-    
-    .column-drag-handle {
-        cursor: move;
-        color: var(--sol-gray-400);
-        margin-right: 1rem;
-    }
-    
-    .column-checkbox {
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-        cursor: pointer;
-        flex: 1;
-    }
-    
-    .column-checkbox input {
-        cursor: pointer;
-    }
-    
-    .column-checkbox input:disabled {
-        cursor: not-allowed;
-    }
-    
-    .column-manager-footer {
-        display: flex;
-        justify-content: space-between;
-        margin-top: 1.5rem;
-        padding-top: 1rem;
-        border-top: 1px solid var(--sol-gray-200);
-    }
-    
-    .sortable-ghost {
-        opacity: 0.4;
-    }
-    
-    .tracking-form {
-        padding: 1rem 0;
-    }
-    
-    .form-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-        gap: 1rem;
-        margin-bottom: 2rem;
-    }
-    
-    .form-actions {
-        display: flex;
-        justify-content: flex-end;
-        gap: 1rem;
-        padding-top: 1rem;
-        border-top: 1px solid var(--sol-gray-200);
-    }
-    
-    .timeline {
-        position: relative;
-        padding: 1rem 0;
-    }
-    
-    .timeline-item {
-        position: relative;
-        padding-left: 3rem;
-        padding-bottom: 2rem;
-        border-left: 2px solid var(--sol-gray-200);
-    }
-    
-    .timeline-item:last-child {
-        border-left: none;
-        padding-bottom: 0;
-    }
-    
-    .timeline-marker {
-        position: absolute;
-        left: -8px;
-        top: 0;
-        width: 16px;
-        height: 16px;
-        background: white;
-        border: 2px solid var(--sol-primary);
-        border-radius: 50%;
-    }
-    
-    .timeline-item.delivered .timeline-marker {
-        border-color: var(--sol-success);
-        background: var(--sol-success);
-    }
-    
-    .timeline-item.arrived .timeline-marker {
-        border-color: var(--sol-primary);
-        background: var(--sol-primary);
-    }
-    
-    .timeline-content {
-        background: var(--sol-gray-50);
-        padding: 1rem;
-        border-radius: 0.5rem;
-    }
-    
-    .timeline-header {
-        display: flex;
-        justify-content: space-between;
-        margin-bottom: 0.5rem;
-    }
-    
-    .timeline-title {
-        font-weight: 600;
-        color: var(--sol-gray-900);
-    }
-    
-    .timeline-date {
-        font-size: 0.875rem;
-        color: var(--sol-gray-600);
-    }
-    
-    .timeline-location {
-        font-size: 0.875rem;
-        color: var(--sol-gray-700);
-        margin-bottom: 0.5rem;
-    }
-    
-    .timeline-description {
-        font-size: 0.875rem;
-        color: var(--sol-gray-600);
-    }
-        .sol-tabs {
-    display: flex;
-    border-bottom: 2px solid var(--sol-gray-200);
-    margin-bottom: 2rem;
-}
-
-.sol-tab {
-    padding: 1rem 1.5rem;
-    background: none;
-    border: none;
-    color: var(--sol-gray-600);
-    font-weight: 500;
-    cursor: pointer;
-    border-bottom: 2px solid transparent;
-    margin-bottom: -2px;
-    transition: all 0.3s;
-}
-
-.sol-tab:hover {
-    color: var(--sol-gray-900);
-}
-
-.sol-tab.active {
-    color: var(--sol-primary);
-    border-bottom-color: var(--sol-primary);
-}
-
-.sol-tab-content {
-    display: none;
-}
-
-.sol-tab-content.active {
-    display: block;
-}
-    .btn-danger {
-    color: white;
-    background-color: #ef4444;
-    border-color: #ef4444;
-}
-
-.btn-danger:hover {
-    background-color: #dc2626;
-    border-color: #dc2626;
-}
-    // Aggiungi dopo gli altri stili CSS:
-.sol-btn-danger {
-    color: white !important;
-    background-color: #ef4444 !important;
-    border-color: #ef4444 !important;
-}
-
-.sol-btn-danger:hover {
-    background-color: #dc2626 !important;
-    border-color: #dc2626 !important;
-}
-`;
-document.head.appendChild(style);

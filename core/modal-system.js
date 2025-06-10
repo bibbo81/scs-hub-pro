@@ -136,26 +136,18 @@ export const ModalSystem = {
             content: options.message || 'Sei sicuro?',
             maxWidth: options.maxWidth || '500px',
             footer: `
-                <button class="sol-btn sol-btn-glass" onclick="modalSystem.resolveConfirm('${modalId}', false)">
-                    ${options.cancelText || 'Annulla'}
-                </button>
-                <button class="sol-btn ${options.confirmClass || 'sol-btn-primary'}" onclick="modalSystem.resolveConfirm('${modalId}', true)">
-                    ${options.confirmText || 'Conferma'}
-                </button>
-            `,
+    <button class="sol-btn sol-btn-glass" onclick="ModalSystem.resolveConfirm('${modalId}', false)">
+        ${options.cancelText || 'Annulla'}
+    </button>
+    <button class="sol-btn ${options.confirmClass || 'sol-btn-primary'}" onclick="ModalSystem.resolveConfirm('${modalId}', true)">
+        ${options.confirmText || 'Conferma'}
+    </button>
+`,
             hideClose: false,  // <-- Cambiato a false per mostrare la X
             closeOnBackdrop: false,
             closeOnEsc: true,  // <-- Cambiato a true per permettere ESC
             onClose: () => resolve(false)  // <-- Risolve con false quando si chiude
         });
-            
-            // Attach confirm handlers
-            modal.querySelectorAll('[data-confirm-result]').forEach(btn => {
-                btn.addEventListener('click', () => {
-                    const result = btn.dataset.confirmResult === 'true';
-                    this.resolveConfirm(modalId, result);
-                });
-            });
             
             // Salva resolver
             const modalData = this.activeModals.get(modalId);
@@ -164,18 +156,6 @@ export const ModalSystem = {
         }
     });
 },
-    
-    /**
-     * Handle confirm button click
-     */
-    handleConfirm(modalId, result) {
-        const resolve = this._confirmResolvers[modalId];
-        if (resolve) {
-            resolve(result);
-            delete this._confirmResolvers[modalId];
-        }
-        this.close(modalId);
-    },
     
     /**
      * Modal di progresso
