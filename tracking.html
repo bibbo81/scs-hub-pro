@@ -316,16 +316,16 @@
                 <h3 class="sol-card-title">Lista Tracking Attivi</h3>
                 <div class="sol-card-filters">
                     <select class="sol-select" id="statusFilter">
-    <option value="">Tutti gli stati</option>
-    <option value="registered">Registrato</option>
-    <option value="in_transit">In Transito</option>
-    <option value="arrived">Arrivato</option>
-    <option value="customs_cleared">Sdoganato</option>
-    <option value="out_for_delivery">In Consegna</option>
-    <option value="delivered">Consegnato</option>
-    <option value="delayed">In Ritardo</option>
-    <option value="exception">Eccezione</option>
-</select>
+                        <option value="">Tutti gli stati</option>
+                        <option value="registered">Registrato</option>
+                        <option value="in_transit">In Transito</option>
+                        <option value="arrived">Arrivato</option>
+                        <option value="customs_cleared">Sdoganato</option>
+                        <option value="out_for_delivery">In Consegna</option>
+                        <option value="delivered">Consegnato</option>
+                        <option value="delayed">In Ritardo</option>
+                        <option value="exception">Eccezione</option>
+                    </select>
                     <select class="sol-select" id="typeFilter">
                         <option value="">Tutti i tipi</option>
                         <option value="container">Container</option>
@@ -333,11 +333,12 @@
                         <option value="awb">Air Waybill</option>
                         <option value="parcel">Parcel</option>
                     </select>
-                   
-                    <!-- AGGIUNGI QUESTO BOTTONE -->
-    <button class="sol-btn sol-btn-glass" onclick="showColumnEditor()">
-        <i class="fas fa-columns"></i> Gestione Colonne
-    </button>
+                    
+                    <!-- Pulsante Gestione Colonne - UNICO E FUNZIONANTE -->
+                    <button class="sol-btn sol-btn-glass" onclick="showColumnManager()">
+                        <i class="fas fa-columns"></i> Gestione Colonne
+                    </button>
+                    
                     <!-- View Toggle Button -->
                     <button type="button" class="sol-btn-toggle-view" id="toggleView" data-view="table">
                         <i class="fas fa-table"></i>
