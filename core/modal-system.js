@@ -128,9 +128,11 @@ export const ModalSystem = {
      * @returns {Promise} Promise che risolve con true/false
      */
     confirm(options = {}) {
-    return new Promise((resolve) => {
+        console.log('[ModalSystem] Creating confirm modal...'); // AGGIUNGI QUESTA RIGA
+        return new Promise((resolve) => {
         const modalId = `modal-confirm-${Date.now()}`;
-        
+        console.log('[ModalSystem] Modal ID:', modalId); // E QUESTA
+
         const modal = this.create({
             title: options.title || 'Conferma',
             content: options.message || 'Sei sicuro?',
@@ -344,12 +346,15 @@ export const ModalSystem = {
      * Helper per confirm modal
      */
     resolveConfirm(modalId, result) {
+        console.log('[ModalSystem] resolveConfirm called:', modalId, result);
         const modalData = this.activeModals.get(modalId);
         if (modalData && modalData.resolver) {
             modalData.onClose = () => modalData.resolver(result);
             this.close(modalId);
-        }
+        } else {
+        console.log('[ModalSystem] No modal data found for:', modalId); // E QUESTA
     }
+}
 };
 
 // Export singleton
