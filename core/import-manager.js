@@ -855,19 +855,33 @@
                 if (arrDate) metadata.arrival_date = arrDate;
             }
             if (row['Transit Time']) {
+                // Debug Transit Time
+                console.log('[ImportManager] Raw Transit Time value:', row['Transit Time'], 'Type:', typeof row['Transit Time']);
+                
                 // Fix per Transit Time che può essere un numero Excel
                 const transitValue = row['Transit Time'];
                 if (typeof transitValue === 'number') {
-                    metadata.transit_time = transitValue.toString();
+                    // Potrebbe essere un numero seriale Excel?
+                    console.log('[ImportManager] Transit Time is number:', transitValue);
+                    // Se è 16, probabilmente è già il valore corretto
+                    metadata.transit_time = Math.round(transitValue).toString();
+                } else if (typeof transitValue === 'string') {
+                    // Rimuovi spazi e caratteri non numerici
+                    const cleaned = transitValue.replace(/[^\d]/g, '');
+                    metadata.transit_time = cleaned || transitValue;
                 } else {
-                    metadata.transit_time = transitValue;
+                    metadata.transit_time = String(transitValue);
                 }
+                
+                console.log('[ImportManager] Final Transit Time:', metadata.transit_time);
             }
             
             // Calcola Transit Time se manca ma abbiamo le date
             if (!metadata.transit_time && metadata.departure_date && metadata.arrival_date) {
                 const depDate = new Date(metadata.departure_date);
                 const arrDate = new Date(metadata.arrival_date);
+                console.log('[ImportManager] Calculating from dates - Dep:', metadata.departure_date, 'Arr:', metadata.arrival_date);
+                
                 if (!isNaN(depDate.getTime()) && !isNaN(arrDate.getTime())) {
                     const diffTime = Math.abs(arrDate - depDate);
                     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
