@@ -1237,38 +1237,71 @@ function generateTimelineEvents(tracking) {
 
 // Handle delete tracking
 async function handleDeleteTracking(id) {
-    const confirmed = await modalSystem.confirm({
-        title: 'Conferma Eliminazione',
-        message: 'Sei sicuro di voler eliminare questo tracking?',
-        confirmText: 'Elimina',
-        confirmClass: 'sol-btn-danger',
-        cancelText: 'Annulla'
-    });
+    console.log('[Delete] Starting delete for ID:', id);
     
-    if (!confirmed) return;
-    
-    // Remove from array
-    trackings = trackings.filter(t => t.id !== id && t.id !== id.toString());
-    
-    // Save to localStorage  
-    localStorage.setItem('trackings', JSON.stringify(trackings));
-    
-    // Update global reference
-    window.currentTrackings = trackings;
-    
-    // Close any open modals
-    modalSystem.closeAll();
-    
-    // Update UI immediately
-    updateStats();
-    trackingTable.setData(trackings);
-    
-    // Show success notification
-    notificationSystem.success('Tracking eliminato');
-    
-    // Update timeline if active
-    if (window.timelineView && window.timelineView.isActive()) {
-        window.timelineView.refresh();
+    try {
+        const confirmed = await modalSystem.confirm({
+            title: 'Conferma Eliminazione',
+            message: 'Sei sicuro di voler eliminare questo tracking?',
+            confirmText: 'Elimina',
+            confirmClass: 'sol-btn-danger',
+            cancelText: 'Annulla'
+        });
+        
+        console.log('[Delete] Confirmed:', confirmed);
+        
+        if (!confirmed) {
+            console.log('[Delete] Cancelled by user');
+            return;
+        }
+        
+        console.log('[Delete] Proceeding with deletion...');
+        console.log('[Delete] Current trackings:', trackings.length);
+        
+        // Remove from array - prova diversi modi
+        const idStr = id.toString();
+        const idNum = Number(id);
+        
+        trackings = trackings.filter(t => {
+            const keep = t.id !== id && 
+                        t.id !== idStr && 
+                        t.id !== idNum &&
+                        Number(t.id) !== idNum &&
+                        String(t.id) !== idStr;
+            if (!keep) {
+                console.log('[Delete] Removing tracking:', t);
+            }
+            return keep;
+        });
+        
+        console.log('[Delete] After filter:', trackings.length);
+        
+        // Save to localStorage  
+        localStorage.setItem('trackings', JSON.stringify(trackings));
+        
+        // Update global reference
+        window.currentTrackings = trackings;
+        
+        // Close any open modals
+        modalSystem.closeAll();
+        
+        // Force immediate UI update
+        updateStats();
+        trackingTable.setData(trackings);
+        
+        // Show success notification
+        notificationSystem.success('Tracking eliminato');
+        
+        // Update timeline if active
+        if (window.timelineView && window.timelineView.isActive()) {
+            window.timelineView.refresh();
+        }
+        
+        console.log('[Delete] Delete completed');
+        
+    } catch (error) {
+        console.error('[Delete] Error:', error);
+        notificationSystem.error('Errore durante l\'eliminazione');
     }
 }
 
