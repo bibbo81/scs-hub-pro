@@ -825,14 +825,21 @@
             
             // Calcola Transit Time per spedizioni marittime se manca
             if (!metadata.transit_time && metadata.loading_date && metadata.discharge_date) {
-                const loadDate = new Date(metadata.loading_date);
-                const dischDate = new Date(metadata.discharge_date);
-                if (!isNaN(loadDate.getTime()) && !isNaN(dischDate.getTime())) {
-                    const diffTime = Math.abs(dischDate - loadDate);
-                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                    metadata.transit_time = diffDays.toString();
-                    metadata.transit_time_calculated = true;
-                    console.log('[ImportManager] Calculated Maritime Transit Time:', diffDays, 'days');
+                // Converti le date DD/MM/YYYY in oggetti Date per il calcolo
+                const loadParts = metadata.loading_date.split('/');
+                const dischParts = metadata.discharge_date.split('/');
+                
+                if (loadParts.length === 3 && dischParts.length === 3) {
+                    const loadDate = new Date(loadParts[2], loadParts[1] - 1, loadParts[0]);
+                    const dischDate = new Date(dischParts[2], dischParts[1] - 1, dischParts[0]);
+                    
+                    if (!isNaN(loadDate.getTime()) && !isNaN(dischDate.getTime())) {
+                        const diffTime = Math.abs(dischDate - loadDate);
+                        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                        metadata.transit_time = diffDays.toString();
+                        metadata.transit_time_calculated = true;
+                        console.log('[ImportManager] Calculated Maritime Transit Time:', diffDays, 'days');
+                    }
                 }
             }
             
@@ -863,20 +870,26 @@
                 
                 // Verifica se il valore sembra errato confrontando con le date
                 if (metadata.departure_date && metadata.arrival_date) {
-                    const depDate = new Date(metadata.departure_date);
-                    const arrDate = new Date(metadata.arrival_date);
+                    // Converti le date DD/MM/YYYY in oggetti Date per il calcolo
+                    const depParts = metadata.departure_date.split('/');
+                    const arrParts = metadata.arrival_date.split('/');
                     
-                    if (!isNaN(depDate.getTime()) && !isNaN(arrDate.getTime())) {
-                        const diffTime = Math.abs(arrDate - depDate);
-                        const calculatedDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                        const savedDays = parseInt(metadata.transit_time);
+                    if (depParts.length === 3 && arrParts.length === 3) {
+                        const depDate = new Date(depParts[2], depParts[1] - 1, depParts[0]);
+                        const arrDate = new Date(arrParts[2], arrParts[1] - 1, arrParts[0]);
                         
-                        // Se la differenza è troppo grande, usa il valore calcolato
-                        if (!isNaN(savedDays) && Math.abs(savedDays - calculatedDays) > 10) {
-                            console.log('[ImportManager] Transit Time mismatch - Saved:', savedDays, 'Calculated:', calculatedDays);
-                            console.log('[ImportManager] Using calculated value instead');
-                            metadata.transit_time = calculatedDays.toString();
-                            metadata.transit_time_corrected = true;
+                        if (!isNaN(depDate.getTime()) && !isNaN(arrDate.getTime())) {
+                            const diffTime = Math.abs(arrDate - depDate);
+                            const calculatedDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                            const savedDays = parseInt(metadata.transit_time);
+                            
+                            // Se la differenza è troppo grande, usa il valore calcolato
+                            if (!isNaN(savedDays) && Math.abs(savedDays - calculatedDays) > 10) {
+                                console.log('[ImportManager] Transit Time mismatch - Saved:', savedDays, 'Calculated:', calculatedDays);
+                                console.log('[ImportManager] Using calculated value instead');
+                                metadata.transit_time = calculatedDays.toString();
+                                metadata.transit_time_corrected = true;
+                            }
                         }
                     }
                 }
@@ -1016,23 +1029,28 @@
         parseDate(dateStr) {
             if (!dateStr) return null;
             
-            // Gestisci formato DD/MM/YYYY
-            const parts = dateStr.toString().split('/');
-            if (parts.length === 3) {
-                const day = parseInt(parts[0], 10);
-                const month = parseInt(parts[1], 10) - 1; // Mesi 0-based in JS
-                const year = parseInt(parts[2], 10);
-                
-                const date = new Date(year, month, day);
-                if (!isNaN(date.getTime())) {
-                    return date.toISOString();
-                }
+            // Se è già in formato DD/MM/YYYY, ritornalo così
+            if (/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(dateStr)) {
+                return dateStr;
             }
             
-            // Prova parsing diretto
+            // Gestisci formato Excel con ore (es: 2023-12-26T23:00:00.000Z)
             const date = new Date(dateStr);
             if (!isNaN(date.getTime())) {
-                return date.toISOString();
+                // Formatta come DD/MM/YYYY
+                const day = date.getDate().toString().padStart(2, '0');
+                const month = (date.getMonth() + 1).toString().padStart(2, '0');
+                const year = date.getFullYear();
+                return `${day}/${month}/${year}`;
+            }
+            
+            // Gestisci formato DD/MM/YYYY HH:mm:ss
+            const parts = dateStr.toString().split(' ')[0].split('/');
+            if (parts.length === 3) {
+                const day = parts[0].padStart(2, '0');
+                const month = parts[1].padStart(2, '0');
+                const year = parts[2];
+                return `${day}/${month}/${year}`;
             }
             
             console.warn('[ImportManager] Invalid date:', dateStr);
