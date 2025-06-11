@@ -649,12 +649,12 @@
                 'Sailing': 'in_transit',
                 'Arrived': 'arrived',
                 'Delivered': 'delivered',
-                'Discharged': 'arrived',
+                'Discharged': 'delivered',  // CAMBIATO: era 'arrived', ora 'delivered'
                 'Gate In': 'in_transit',
                 'Gate Out': 'delivered',
                 'Loaded': 'in_transit',
                 'Loading': 'in_transit',
-                'Discharging': 'arrived',
+                'Discharging': 'delivered',  // CAMBIATO: era 'arrived', ora 'delivered'
                 'In Transit': 'in_transit',
                 'Transhipment': 'in_transit',
                 'Empty': 'delivered',
@@ -780,12 +780,20 @@
             if (row['Origin Name']) metadata.origin_name = row['Origin Name'];
             if (row['Origin Country']) metadata.origin_country = row['Origin Country'];
             if (row['Origin Country Code']) metadata.origin_country_code = row['Origin Country Code'];
-            if (row['Date Of Departure']) metadata.departure_date = row['Date Of Departure'];
+            if (row['Date Of Departure']) {
+                // Gestisci formato data DD/MM/YYYY
+                const depDate = this.parseDate(row['Date Of Departure']);
+                if (depDate) metadata.departure_date = depDate;
+            }
             if (row['Destination']) metadata.destination = row['Destination'];
             if (row['Destination Name']) metadata.destination_name = row['Destination Name'];
             if (row['Destination Country']) metadata.destination_country = row['Destination Country'];
             if (row['Destination Country Code']) metadata.destination_country_code = row['Destination Country Code'];
-            if (row['Date Of Arrival']) metadata.arrival_date = row['Date Of Arrival'];
+            if (row['Date Of Arrival']) {
+                // Gestisci formato data DD/MM/YYYY
+                const arrDate = this.parseDate(row['Date Of Arrival']);
+                if (arrDate) metadata.arrival_date = arrDate;
+            }
             if (row['Transit Time']) metadata.transit_time = row['Transit Time'];
             if (row['T5 Count']) metadata.t5_count = row['T5 Count'];
             
@@ -893,6 +901,35 @@
                 `,
                 maxWidth: '600px'
             });
+        },
+        
+        /**
+         * Parse date from DD/MM/YYYY format
+         */
+        parseDate(dateStr) {
+            if (!dateStr) return null;
+            
+            // Gestisci formato DD/MM/YYYY
+            const parts = dateStr.toString().split('/');
+            if (parts.length === 3) {
+                const day = parseInt(parts[0], 10);
+                const month = parseInt(parts[1], 10) - 1; // Mesi 0-based in JS
+                const year = parseInt(parts[2], 10);
+                
+                const date = new Date(year, month, day);
+                if (!isNaN(date.getTime())) {
+                    return date.toISOString();
+                }
+            }
+            
+            // Prova parsing diretto
+            const date = new Date(dateStr);
+            if (!isNaN(date.getTime())) {
+                return date.toISOString();
+            }
+            
+            console.warn('[ImportManager] Invalid date:', dateStr);
+            return null;
         },
         
         /**
