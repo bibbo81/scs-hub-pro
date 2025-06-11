@@ -446,6 +446,27 @@
             };
         }
     }, 1000);
+
+    // Debug Modal System
+setTimeout(() => {
+    console.log('[DEBUG] Checking Modal System...');
+    console.log('window.ModalSystem:', window.ModalSystem);
+    console.log('window.modalSystem:', window.modalSystem);
+    console.log('ModalSystem type:', typeof window.ModalSystem);
+    
+    // Forza l'esposizione globale
+    if (!window.ModalSystem && window.modalSystem) {
+        window.ModalSystem = window.modalSystem;
+        console.log('[DEBUG] ModalSystem exposed globally');
+    }
+    
+    // Test resolveConfirm
+    if (window.ModalSystem && window.ModalSystem.resolveConfirm) {
+        console.log('[DEBUG] resolveConfirm exists:', typeof window.ModalSystem.resolveConfirm);
+    } else {
+        console.log('[DEBUG] resolveConfirm NOT FOUND!');
+    }
+}, 1000);
     </script>
 
     <!-- Timeline Enhancement Script -->

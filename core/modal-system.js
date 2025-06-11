@@ -355,4 +355,8 @@ export const ModalSystem = {
 // Export singleton
 export const modalSystem = ModalSystem;
 export default ModalSystem;
-window.ModalSystem = ModalSystem;
+
+// Esponi globalmente per compatibilità con onclick
+if (typeof window !== 'undefined') {
+    window.ModalSystem = ModalSystem;
+}
