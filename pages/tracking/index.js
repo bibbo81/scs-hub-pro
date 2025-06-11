@@ -95,13 +95,13 @@ async function init() {
 
 // Initialize table using TableManager
 function initTable() {
-    const tableContainer = document.getElementById('trackingTable');
+    const tableContainer = document.getElementById('trackingTableContainer');
     if (!tableContainer) {
         throw new Error('Table container not found');
     }
     
     // Usa TableManager invece di TrackingTable
-    trackingTable = new window.TableManager('trackingTable', {
+    trackingTable = new window.TableManager('trackingTableContainer', {
         columns: [
             {
                 key: 'select',
@@ -1249,14 +1249,7 @@ window.exportAsPDF = function() {
 // Expose loadTrackings globally for ImportManager
 window.loadTrackings = loadTrackings;
 
-// Auto-init when DOM is ready
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
-} else {
-    init();
-}
-
-// Import manager normalize function - AGGIUNGI LE FUNZIONI MANCANTI
+// Import manager normalize functions - AGGIUNGI LE FUNZIONI MANCANTI
 if (!window.ImportManager) {
     window.ImportManager = {};
 }
@@ -1585,6 +1578,13 @@ window.ImportManager.normalizeTrackingData = function(row) {
         metadata: metadata
     };
 };
+
+// Auto-init when DOM is ready
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+} else {
+    init();
+}
 
 // Fix 3: Esporta trackingInit per tracking.html
 window.trackingInit = init;
