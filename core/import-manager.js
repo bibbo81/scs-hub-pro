@@ -1029,32 +1029,41 @@
         parseDate(dateStr) {
             if (!dateStr) return null;
             
+            const dateString = String(dateStr).trim();
+            
             // Se è già in formato DD/MM/YYYY, ritornalo così
-            if (/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(dateStr)) {
-                return dateStr;
+            if (/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(dateString)) {
+                return dateString;
             }
             
-            // Gestisci formato Excel con ore (es: 2023-12-26T23:00:00.000Z)
-            const date = new Date(dateStr);
-            if (!isNaN(date.getTime())) {
-                // Formatta come DD/MM/YYYY
-                const day = date.getDate().toString().padStart(2, '0');
-                const month = (date.getMonth() + 1).toString().padStart(2, '0');
-                const year = date.getFullYear();
-                return `${day}/${month}/${year}`;
+            // Gestisci formato ISO (2025-05-18T22:00:00.000Z)
+            if (dateString.includes('T') || dateString.includes('-')) {
+                const date = new Date(dateString);
+                if (!isNaN(date.getTime())) {
+                    // Usa la data UTC per evitare problemi di fuso orario
+                    const day = date.getUTCDate().toString().padStart(2, '0');
+                    const month = (date.getUTCMonth() + 1).toString().padStart(2, '0');
+                    const year = date.getUTCFullYear();
+                    return `${day}/${month}/${year}`;
+                }
             }
             
             // Gestisci formato DD/MM/YYYY HH:mm:ss
-            const parts = dateStr.toString().split(' ')[0].split('/');
-            if (parts.length === 3) {
-                const day = parts[0].padStart(2, '0');
-                const month = parts[1].padStart(2, '0');
-                const year = parts[2];
-                return `${day}/${month}/${year}`;
+            if (dateString.includes(' ')) {
+                const datePart = dateString.split(' ')[0];
+                if (datePart.includes('/')) {
+                    const parts = datePart.split('/');
+                    if (parts.length === 3) {
+                        const day = parts[0].padStart(2, '0');
+                        const month = parts[1].padStart(2, '0');
+                        const year = parts[2];
+                        return `${day}/${month}/${year}`;
+                    }
+                }
             }
             
-            console.warn('[ImportManager] Invalid date:', dateStr);
-            return null;
+            console.warn('[ImportManager] Could not parse date:', dateStr);
+            return dateString; // Ritorna come stringa se non riesce a parsare
         },
         
         /**
