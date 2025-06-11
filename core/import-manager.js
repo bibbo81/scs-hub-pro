@@ -495,7 +495,8 @@
                                 last_event_location: tracking.metadata?.pol || tracking.metadata?.origin_name || tracking.metadata?.origin || 'Import Location',
                                 origin_port: tracking.metadata?.pol || tracking.metadata?.origin,
                                 destination_port: tracking.metadata?.pod || tracking.metadata?.destination,
-                                eta: tracking.metadata?.discharge_date || tracking.metadata?.arrival_date,
+                                // Per tracking aerei, usa arrival_date come ETA se disponibile
+                                eta: tracking.metadata?.arrival_date || tracking.metadata?.discharge_date || null,
                                 // Aggiungi tutti i campi ShipsGo come colonne separate
                                 booking: tracking.metadata?.booking,
                                 container_count: tracking.metadata?.container_count,
@@ -821,7 +822,13 @@
             if (row['Container Count']) metadata.container_count = row['Container Count'];
             if (row['Tags']) metadata.tags = row['Tags'];
             if (row['Booking']) metadata.booking = row['Booking'];
-            if (row['Created At']) metadata.created_at_shipsgo = row['Created At'];
+            if (row['Created At']) {
+                // Parse e formatta Created At come DD/MM/YYYY
+                const createdAt = this.parseDate(row['Created At']);
+                if (createdAt) {
+                    metadata.created_at_shipsgo = createdAt;
+                }
+            }
             
             // Calcola Transit Time per spedizioni marittime se manca
             if (!metadata.transit_time && metadata.loading_date && metadata.discharge_date) {
@@ -1048,15 +1055,16 @@
                 }
             }
             
-            // Gestisci formato DD/MM/YYYY HH:mm:ss
-            if (dateString.includes(' ')) {
-                const datePart = dateString.split(' ')[0];
+            // Gestisci formato DD/MM/YYYY HH:mm:ss o DD/MM/YYYY, HH:mm
+            if (dateString.includes(' ') || dateString.includes(',')) {
+                // Rimuovi tutto dopo spazio o virgola
+                const datePart = dateString.split(/[\s,]/)[0];
                 if (datePart.includes('/')) {
                     const parts = datePart.split('/');
                     if (parts.length === 3) {
                         const day = parts[0].padStart(2, '0');
                         const month = parts[1].padStart(2, '0');
-                        const year = parts[2];
+                        const year = parts[2].split(' ')[0]; // Rimuovi eventuale orario residuo
                         return `${day}/${month}/${year}`;
                     }
                 }
