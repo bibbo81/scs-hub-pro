@@ -163,10 +163,6 @@ window.clearSelection = clearSelection;
 window.bulkRefreshTrackings = bulkRefreshTrackings;
 window.bulkDeleteTrackings = bulkDeleteTrackings;
 window.exportSelectedTrackings = exportSelectedTrackings;
-window.toggleExportDropdown = toggleExportDropdown;
-window.exportSelectedAsCSV = exportSelectedAsCSV;
-window.exportSelectedAsExcel = exportSelectedAsExcel;
-window.exportSelectedAsPDF = exportSelectedAsPDF;
 
 // Initialize page
 window.trackingInit = async function() {
@@ -199,15 +195,6 @@ window.trackingInit = async function() {
     window.addEventListener('trackingsUpdated', async (event) => {
         console.log('[Tracking] Trackings updated from import');
         await loadTrackings();
-    });
-    
-    // Add click listener to close dropdowns
-    document.addEventListener('click', function(event) {
-        if (!event.target.closest('.sol-dropdown')) {
-            document.querySelectorAll('.sol-dropdown-menu').forEach(menu => {
-                menu.style.display = 'none';
-            });
-        }
     });
     
     console.log('[Tracking] Page initialized successfully');
@@ -500,26 +487,9 @@ function setupBulkActions() {
                     <button class="btn btn-sm btn-danger" onclick="bulkDeleteTrackings()">
                         <i class="fas fa-trash"></i> Elimina Selezionati
                     </button>
-                    
-                    <!-- Dropdown per Export -->
-                    <div class="sol-dropdown" style="display: inline-block;">
-                        <button class="btn btn-sm btn-secondary" onclick="toggleExportDropdown(event)">
-                            <i class="fas fa-file-export"></i> Esporta Selezionati
-                            <i class="fas fa-caret-down" style="margin-left: 4px;"></i>
-                        </button>
-                        <div class="sol-dropdown-menu" id="exportDropdown" style="display: none;">
-                            <a class="sol-dropdown-item" onclick="exportSelectedAsCSV()">
-                                <i class="fas fa-file-csv"></i> Export CSV
-                            </a>
-                            <a class="sol-dropdown-item" onclick="exportSelectedAsExcel()">
-                                <i class="fas fa-file-excel" style="color: #1D6F42;"></i> Export Excel
-                            </a>
-                            <a class="sol-dropdown-item" onclick="exportSelectedAsPDF()">
-                                <i class="fas fa-file-pdf" style="color: #DC382D;"></i> Export PDF
-                            </a>
-                        </div>
-                    </div>
-                    
+                    <button class="btn btn-sm btn-secondary" onclick="exportSelectedTrackings()">
+                        <i class="fas fa-file-export"></i> Esporta Selezionati
+                    </button>
                     <button class="btn btn-sm btn-outline" onclick="clearSelection()">
                         <i class="fas fa-times"></i> Deseleziona
                     </button>
@@ -654,65 +624,6 @@ async function exportSelectedTrackings() {
     } catch (error) {
         console.error('[Tracking] Export selected error:', error);
         window.NotificationSystem?.error('Errore export: ' + error.message);
-    }
-}
-
-// Toggle dropdown menu
-function toggleExportDropdown(event) {
-    event.stopPropagation();
-    const dropdown = document.getElementById('exportDropdown');
-    const isOpen = dropdown.style.display === 'block';
-    
-    // Chiudi tutti i dropdown
-    document.querySelectorAll('.sol-dropdown-menu').forEach(menu => {
-        menu.style.display = 'none';
-    });
-    
-    // Toggle questo dropdown
-    dropdown.style.display = isOpen ? 'none' : 'block';
-}
-
-// Funzioni helper per export diretti
-async function exportSelectedAsCSV() {
-    const selected = getSelectedRows();
-    if (selected.length === 0) {
-        window.NotificationSystem?.warning('Nessun tracking selezionato');
-        return;
-    }
-    
-    const csv = convertToCSV(selected);
-    downloadCSV(csv, `tracking_export_selected_${new Date().toISOString().split('T')[0]}.csv`);
-    clearSelection();
-    notificationSystem.success(`Esportati ${selected.length} tracking in CSV`);
-}
-
-async function exportSelectedAsExcel() {
-    const selected = getSelectedRows();
-    if (selected.length === 0) {
-        window.NotificationSystem?.warning('Nessun tracking selezionato');
-        return;
-    }
-    
-    if (window.ExportManager) {
-        await window.ExportManager.exportSelected(selected, 'excel', 'selected-trackings');
-        clearSelection();
-    } else {
-        window.NotificationSystem?.error('ExportManager non disponibile');
-    }
-}
-
-async function exportSelectedAsPDF() {
-    const selected = getSelectedRows();
-    if (selected.length === 0) {
-        window.NotificationSystem?.warning('Nessun tracking selezionato');
-        return;
-    }
-    
-    if (window.ExportManager) {
-        await window.ExportManager.exportSelected(selected, 'pdf', 'selected-trackings');
-        clearSelection();
-    } else {
-        window.NotificationSystem?.error('ExportManager non disponibile');
     }
 }
 
