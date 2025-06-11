@@ -179,6 +179,12 @@ class Application {
         
         console.log(`[App] Initializing page: ${pageName}`);
         
+        // AGGIUNGI QUESTO: Inizializza sempre l'header
+        if (window.headerComponent && !document.querySelector('.sol-header')) {
+            console.log('[App] Initializing header component...');
+            await window.headerComponent.init();
+        }
+        
         // Per tracking page, aspetta che il modulo sia caricato
         if (pageName === 'tracking') {
             // Attendi un momento per permettere al modulo di caricarsi
