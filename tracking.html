@@ -459,7 +459,20 @@ setTimeout(() => {
         console.log('[DEBUG] resolveConfirm NOT FOUND!');
     }
 }, 1000);
+
+    // Fix 3: Annulla button
+    document.addEventListener('click', (e) => {
+        if (e.target.textContent.trim() === 'Annulla' && 
+            e.target.classList.contains('sol-btn-glass')) {
+            const modal = e.target.closest('.sol-modal-overlay');
+            if (modal) {
+                window.ModalSystem.close(modal.id);
+            }
+        }
+    });
     </script>
+
+    <!-- Timeline Enhancement Script -->
 
     <!-- Timeline Enhancement Script -->
     <script>

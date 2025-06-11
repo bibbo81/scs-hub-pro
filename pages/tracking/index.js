@@ -170,6 +170,12 @@ window.trackingInit = async function() {
     // Start auto-refresh
     startAutoRefresh();
     
+    // Listen for tracking updates from import
+    window.addEventListener('trackingsUpdated', async (event) => {
+        console.log('[Tracking] Trackings updated from import');
+        await loadTrackings();
+    });
+    
     console.log('[Tracking] Page initialized successfully');
 };
 
@@ -839,17 +845,23 @@ window.switchTab = function(tabName) {
     });
 };
 
-// Handle file import
+// Handle file import - MODIFICATO PER USARE IMPORTMANAGER
 window.handleFileImport = async function(file) {
     if (!file) return;
     
-    notificationSystem.info('Caricamento file in corso...');
-    
-    // Simula import per ora
-    setTimeout(() => {
-        notificationSystem.success('File caricato! Funzionalità import in sviluppo.');
-        modalSystem.closeAll();
-    }, 1500);
+    try {
+        // Use ImportManager for actual import
+        if (window.ImportManager) {
+            await window.ImportManager.importFile(file, {
+                updateExisting: false // Non aggiornare tracking esistenti
+            });
+        } else {
+            throw new Error('ImportManager non disponibile');
+        }
+    } catch (error) {
+        console.error('[Tracking] Import error:', error);
+        notificationSystem.error('Errore durante l\'import: ' + error.message);
+    }
 };
 
 // Download template
@@ -1195,3 +1207,6 @@ function startAutoRefresh() {
         loadTrackings();
     }, 5 * 60 * 1000);
 }
+
+// Make loadTrackings globally available for import
+window.loadTrackings = loadTrackings;
