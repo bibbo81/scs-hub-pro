@@ -1162,7 +1162,9 @@ window.detectTrackingType = function(value) {
     }
 };
 
-// Handle add tracking
+// ========================================
+// HANDLE ADD TRACKING - CON INTEGRAZIONE SHIPSGO
+// ========================================
 async function handleAddTracking(event) {
     event.preventDefault();
     
@@ -1190,6 +1192,114 @@ async function handleAddTracking(event) {
         return;
     }
     
+    // ========================================
+    // INTEGRAZIONE SHIPSGO API
+    // ========================================
+    
+    // Inizializza ShipsGo API se non già fatto
+    if (window.shipsGoAPI && !window.shipsGoAPI.initialized) {
+        await window.shipsGoAPI.initialize();
+    }
+    
+    // Verifica se ShipsGo è configurato per questo tipo di tracking
+    if (window.shipsGoAPI && window.shipsGoAPI.hasApiForType(formData.tracking_type)) {
+        try {
+            // Mostra loading
+            notificationSystem.info('Recupero informazioni da ShipsGo...', { duration: 0, id: 'shipsgo-loading' });
+            
+            let apiResult = null;
+            
+            // Chiama l'API appropriata in base al tipo
+            switch (formData.tracking_type) {
+                case 'container':
+                    apiResult = await window.shipsGoAPI.trackContainer(formData.tracking_number);
+                    break;
+                    
+                case 'bl':
+                    apiResult = await window.shipsGoAPI.trackBL(formData.tracking_number);
+                    break;
+                    
+                case 'awb':
+                    apiResult = await window.shipsGoAPI.trackAWB(formData.tracking_number);
+                    break;
+            }
+            
+            // Se l'API ha restituito dati, integra con formData
+            if (apiResult && apiResult.success) {
+                // Aggiorna formData con i dati da ShipsGo
+                formData.status = apiResult.status || 'registered';
+                formData.carrier_code = apiResult.carrier.code || formData.carrier_code;
+                formData.carrier_name = apiResult.carrier.name || formData.carrier_code;
+                
+                // Per tracking marittimi
+                if (formData.tracking_type === 'container' || formData.tracking_type === 'bl') {
+                    formData.vessel_name = apiResult.vessel?.name;
+                    formData.voyage_number = apiResult.vessel?.voyage;
+                    formData.vessel_imo = apiResult.vessel?.imo;
+                    formData.origin_port = apiResult.route?.origin?.port || formData.origin_port;
+                    formData.destination_port = apiResult.route?.destination?.port || formData.destination_port;
+                    formData.eta = apiResult.route?.destination?.eta || formData.eta;
+                    formData.departure_date = apiResult.route?.origin?.date;
+                }
+                
+                // Per tracking aerei
+                if (formData.tracking_type === 'awb') {
+                    formData.flight_number = apiResult.flight?.number;
+                    formData.flight_date = apiResult.flight?.date;
+                    formData.origin_airport = apiResult.route?.origin?.airport;
+                    formData.destination_airport = apiResult.route?.destination?.airport;
+                    formData.pieces = apiResult.package?.pieces;
+                    formData.weight = apiResult.package?.weight;
+                    formData.weight_unit = apiResult.package?.weightUnit;
+                    formData.eta = apiResult.route?.destination?.eta || formData.eta;
+                }
+                
+                // Aggiungi eventi se disponibili
+                if (apiResult.events && apiResult.events.length > 0) {
+                    formData.events = apiResult.events;
+                    formData.last_event_date = apiResult.events[0].date;
+                    formData.last_event_location = apiResult.events[0].location;
+                    formData.last_event_status = apiResult.events[0].status;
+                }
+                
+                // Aggiungi current location se disponibile
+                if (apiResult.currentLocation) {
+                    formData.current_location = apiResult.currentLocation.location;
+                    formData.last_update = apiResult.currentLocation.date;
+                }
+                
+                // Flag per indicare che i dati vengono da ShipsGo
+                formData.data_source = 'shipsgo';
+                formData.last_api_update = new Date().toISOString();
+                
+                // Rimuovi notifica loading
+                notificationSystem.dismiss('shipsgo-loading');
+                notificationSystem.success('Dati recuperati da ShipsGo con successo!');
+            }
+            
+        } catch (error) {
+            console.error('[Tracking] ShipsGo API error:', error);
+            // Rimuovi notifica loading
+            notificationSystem.dismiss('shipsgo-loading');
+            
+            // Non bloccare l'aggiunta, ma avvisa l'utente
+            notificationSystem.warning('Impossibile recuperare dati da ShipsGo. Tracking aggiunto manualmente.');
+            formData.data_source = 'manual';
+        }
+    } else {
+        // ShipsGo non configurato o non disponibile per questo tipo
+        formData.data_source = 'manual';
+        
+        // Mostra suggerimento solo se è un tipo supportato ma non configurato
+        if (window.shipsGoAPI && !window.shipsGoAPI.isConfigured() && 
+            (formData.tracking_type === 'container' || formData.tracking_type === 'bl' || formData.tracking_type === 'awb')) {
+            notificationSystem.info(
+                'Configura le API ShipsGo nelle <a href="/settings.html#integrations">impostazioni</a> per il tracking automatico',
+                { duration: 5000 }
+            );
+        }
+    }
+    
     // Add to trackings
     formData.id = Date.now().toString();
     trackings.push(formData);
@@ -1203,12 +1313,81 @@ async function handleAddTracking(event) {
     await loadTrackings();
 }
 
-// Handle refresh tracking
+// ========================================
+// HANDLE REFRESH TRACKING - CON INTEGRAZIONE SHIPSGO
+// ========================================
 async function handleRefreshTracking(id) {
     const tracking = trackings.find(t => t.id == id);
     if (!tracking) return;
     
-    // Simulate status progression
+    // Se ha ShipsGo configurato per questo tipo, usa l'API
+    if (window.shipsGoAPI && window.shipsGoAPI.hasApiForType(tracking.tracking_type)) {
+        try {
+            notificationSystem.info('Aggiornamento da ShipsGo...', { duration: 0, id: 'refresh-loading' });
+            
+            let apiResult = null;
+            
+            switch (tracking.tracking_type) {
+                case 'container':
+                    apiResult = await window.shipsGoAPI.trackContainer(tracking.tracking_number);
+                    break;
+                case 'bl':
+                    apiResult = await window.shipsGoAPI.trackBL(tracking.tracking_number);
+                    break;
+                case 'awb':
+                    apiResult = await window.shipsGoAPI.trackAWB(tracking.tracking_number);
+                    break;
+            }
+            
+            if (apiResult && apiResult.success) {
+                // Aggiorna tutti i dati dal risultato API
+                tracking.status = apiResult.status || tracking.status;
+                tracking.last_event_date = new Date().toISOString();
+                tracking.last_api_update = new Date().toISOString();
+                
+                // Aggiorna location
+                if (apiResult.currentLocation) {
+                    tracking.last_event_location = apiResult.currentLocation.location;
+                    tracking.current_location = apiResult.currentLocation.location;
+                }
+                
+                // Aggiorna ETA
+                if (apiResult.route?.destination?.eta) {
+                    tracking.eta = apiResult.route.destination.eta;
+                }
+                
+                // Aggiorna eventi
+                if (apiResult.events && apiResult.events.length > 0) {
+                    tracking.events = apiResult.events;
+                    tracking.last_event_status = apiResult.events[0].status;
+                }
+                
+                notificationSystem.dismiss('refresh-loading');
+                notificationSystem.success('Tracking aggiornato da ShipsGo');
+            }
+            
+        } catch (error) {
+            console.error('[Tracking] Refresh error:', error);
+            notificationSystem.dismiss('refresh-loading');
+            notificationSystem.warning('Impossibile aggiornare da ShipsGo. Usando dati simulati.');
+            
+            // Fallback alla simulazione esistente
+            simulateStatusUpdate(tracking);
+        }
+    } else {
+        // Usa la simulazione esistente se ShipsGo non è disponibile
+        simulateStatusUpdate(tracking);
+    }
+    
+    // Save
+    localStorage.setItem('trackings', JSON.stringify(trackings));
+    await loadTrackings();
+}
+
+// ========================================
+// HELPER FUNCTION - SIMULATE STATUS UPDATE
+// ========================================
+function simulateStatusUpdate(tracking) {
     const statusProgression = {
         'registered': 'in_transit',
         'in_transit': 'arrived',
@@ -1231,11 +1410,7 @@ async function handleRefreshTracking(id) {
     // Update ETA
     tracking.eta = generateETA(newStatus);
     
-    // Save
-    localStorage.setItem('trackings', JSON.stringify(trackings));
-    
-    notificationSystem.success('Tracking aggiornato');
-    await loadTrackings();
+    notificationSystem.success('Tracking aggiornato (simulazione)');
 }
 
 // Handle view timeline

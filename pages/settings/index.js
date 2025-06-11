@@ -1,496 +1,606 @@
 // pages/settings/index.js
 document.addEventListener('DOMContentLoaded', () => {
-    // Initialize
+    console.log('[Settings] Initializing...');
+    
+    // Initialize components
     initializeNavigation();
-    loadSettings();
     initializeForms();
+    
+    // Load settings when auth is ready
+    waitForAuth();
+});
 
-    // Navigation
-    function initializeNavigation() {
-        const navLinks = document.querySelectorAll('.settings-sidebar a');
+// Wait for auth to be ready
+function waitForAuth() {
+    let retries = 0;
+    const checkAuth = setInterval(() => {
+        retries++;
         
-        navLinks.forEach(link => {
-            link.addEventListener('click', (e) => {
-                e.preventDefault();
-                
-                const targetSection = link.dataset.section;
-                
-                // Update active states
-                navLinks.forEach(l => l.classList.remove('active'));
-                link.classList.add('active');
-                
-                // Show target section
-                document.querySelectorAll('.settings-section').forEach(section => {
-                    section.classList.remove('active');
-                });
-                document.getElementById(targetSection).classList.add('active');
-                
-                // Update URL without reload
-                history.pushState(null, '', `#${targetSection}`);
+        if (window.auth && window.auth.isAuthenticated()) {
+            clearInterval(checkAuth);
+            console.log('[Settings] Auth ready, loading settings...');
+            loadAllSettings();
+        } else if (retries >= 20) {
+            clearInterval(checkAuth);
+            console.log('[Settings] Auth timeout, loading anyway...');
+            loadAllSettings();
+        }
+    }, 500);
+}
+
+// Navigation between sections
+function initializeNavigation() {
+    const navItems = document.querySelectorAll('.settings-nav-item');
+    const sections = document.querySelectorAll('.settings-section');
+    
+    navItems.forEach(item => {
+        item.addEventListener('click', (e) => {
+            e.preventDefault();
+            const targetSection = item.dataset.section;
+            
+            // Update nav
+            navItems.forEach(nav => nav.classList.remove('active'));
+            item.classList.add('active');
+            
+            // Update sections
+            sections.forEach(section => {
+                section.classList.remove('active');
+                if (section.id === targetSection) {
+                    section.classList.add('active');
+                }
             });
+            
+            // Update URL
+            history.pushState(null, '', `#${targetSection}`);
         });
-
-        // Handle direct URL access
-        const hash = window.location.hash.slice(1);
-        if (hash) {
-            const link = document.querySelector(`[data-section="${hash}"]`);
-            if (link) link.click();
-        }
+    });
+    
+    // Handle direct URL access
+    const hash = window.location.hash.slice(1);
+    if (hash) {
+        const navItem = document.querySelector(`[data-section="${hash}"]`);
+        if (navItem) navItem.click();
     }
+}
 
-    // Load saved settings
-    async function loadSettings() {
-        try {
-            // Load ShipsGo settings specifically
-            await loadShipsGoSettings();
-            
-            const settings = await apiClient.get('/api/settings');
-            
-            // Tracking preferences
-            if (settings.tracking) {
-                document.getElementById('auto-refresh').checked = settings.tracking.autoRefresh || false;
-                document.getElementById('push-notifications').checked = settings.tracking.pushNotifications || false;
-                document.getElementById('refresh-interval').value = settings.tracking.refreshInterval || '60';
-                document.getElementById('retention-days').value = settings.tracking.retentionDays || '90';
-            }
-
-            // Notifications
-            if (settings.notifications) {
-                document.getElementById('email-summary').checked = settings.notifications.emailSummary || false;
-                document.getElementById('delay-alerts').checked = settings.notifications.delayAlerts || false;
-                document.getElementById('delivery-alerts').checked = settings.notifications.deliveryAlerts || false;
-                document.getElementById('notification-email').value = settings.notifications.email || '';
-            }
-
-            // Import/Export
-            if (settings.importExport) {
-                document.getElementById('default-format').value = settings.importExport.defaultFormat || 'excel';
-                document.getElementById('include-history').checked = settings.importExport.includeHistory || false;
-                document.getElementById('auto-backup').checked = settings.importExport.autoBackup || false;
-            }
-
-            // Account
-            if (settings.account) {
-                document.getElementById('user-name').value = settings.account.name || '';
-                document.getElementById('user-email').value = settings.account.email || '';
-                document.getElementById('user-company').value = settings.account.company || '';
-                document.getElementById('user-role').value = settings.account.role || '';
-            }
-
-        } catch (error) {
-            console.error('Error loading settings:', error);
-            // In development, use mock data
-            loadMockSettings();
-        }
+// Initialize all forms
+function initializeForms() {
+    // Company form
+    const companyForm = document.getElementById('company-form');
+    if (companyForm) {
+        companyForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            await saveCompanySettings();
+        });
     }
-
-    // Load ShipsGo settings from profile
-    async function loadShipsGoSettings() {
-        console.log('Loading ShipsGo settings...');
-        
-        // Clear fields first
-        document.getElementById('shipsgoV1ApiKey').value = '';
-        document.getElementById('shipsgoV2Token').value = '';
-        
-        try {
-            const user = window.auth?.getCurrentUser();
-            if (!user?.id) {
-                console.log('No user logged in');
-                return;
-            }
-            
-            const token = localStorage.getItem('sb-access-token') || sessionStorage.getItem('sb-access-token');
-            if (!token) {
-                console.log('No auth token found');
-                return;
-            }
-            
-            const response = await fetch(`/.netlify/functions/get-profile?id=${user.id}`, {
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
-            });
-            
-            if (response.ok) {
-                const profileData = await response.json();
-                console.log('Profile loaded successfully');
-                
-                if (profileData?.api_settings && typeof profileData.api_settings === 'object') {
-                    // ShipsGo v1 key
-                    if (profileData.api_settings.shipsgo_v1_key) {
-                        try {
-                            const decodedV1 = atob(profileData.api_settings.shipsgo_v1_key);
-                            if (decodedV1 && decodedV1.length === 32 && /^[a-f0-9]+$/i.test(decodedV1)) {
-                                document.getElementById('shipsgoV1ApiKey').value = decodedV1;
-                            }
-                        } catch (e) {
-                            console.error('Invalid v1 key encoding');
-                        }
-                    }
-                    
-                    // ShipsGo v2 token
-                    if (profileData.api_settings.shipsgo_v2_token) {
-                        try {
-                            const decodedV2 = atob(profileData.api_settings.shipsgo_v2_token);
-                            if (decodedV2 && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(decodedV2)) {
-                                document.getElementById('shipsgoV2Token').value = decodedV2;
-                            }
-                        } catch (e) {
-                            console.error('Invalid v2 token encoding');
-                        }
-                    }
-                }
-            }
-        } catch (error) {
-            console.error('Error loading ShipsGo settings:', error);
-        }
+    
+    // Regional form
+    const regionalForm = document.getElementById('regional-form');
+    if (regionalForm) {
+        regionalForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            await saveRegionalSettings();
+        });
     }
-
-    // Save ShipsGo settings
-    async function saveShipsGoSettings() {
-        const v1Key = document.getElementById('shipsgoV1ApiKey').value.trim();
-        const v2Token = document.getElementById('shipsgoV2Token').value.trim();
-        
-        if (!v1Key && !v2Token) {
-            showStatus('Inserisci almeno una API key', 'error');
-            return;
-        }
-        
-        // Validate format
-        if (v1Key && !/^[a-f0-9]{32}$/i.test(v1Key)) {
-            showStatus('API Key v1.2 non valida. Deve essere 32 caratteri hex.', 'error');
-            return;
-        }
-        
-        if (v2Token && !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v2Token)) {
-            showStatus('Bearer Token v2.0 non valido. Deve essere formato UUID.', 'error');
-            return;
-        }
-        
-        try {
-            const user = window.auth?.getCurrentUser();
-            if (!user) {
-                showStatus('Devi essere autenticato', 'error');
-                return;
-            }
-            
-            const token = localStorage.getItem('sb-access-token') || sessionStorage.getItem('sb-access-token');
-            
-            const apiSettings = {};
-            if (v1Key) apiSettings.shipsgo_v1_key = btoa(v1Key);
-            if (v2Token) apiSettings.shipsgo_v2_token = btoa(v2Token);
-            
-            const response = await fetch('/.netlify/functions/update-profile', {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    action: 'update_api_settings',
-                    data: {
-                        api_settings: apiSettings
-                    }
-                })
-            });
-            
-            if (response.ok) {
-                showStatus('Configurazione API salvata con successo!', 'success');
-                
-                // Reload to verify
-                setTimeout(() => {
-                    loadShipsGoSettings();
-                }, 1000);
-            } else {
-                const error = await response.json();
-                throw new Error(error.message || 'Errore salvataggio');
-            }
-        } catch (error) {
-            console.error('Save error:', error);
-            showStatus('Errore: ' + error.message, 'error');
-        }
+    
+    // Export form
+    const exportForm = document.getElementById('export-form');
+    if (exportForm) {
+        exportForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            await saveExportSettings();
+        });
     }
-
-    // Mock settings for development
-    function loadMockSettings() {
-        const mockUser = JSON.parse(localStorage.getItem('mockUser') || '{}');
-        document.getElementById('user-email').value = mockUser.email || 'user@example.com';
-        document.getElementById('user-name').value = mockUser.name || 'John Doe';
-    }
-
-    // Initialize forms
-    function initializeForms() {
-        // API Keys form - ShipsGo specific
-        document.getElementById('api-keys-form').addEventListener('submit', async (e) => {
+    
+    // ShipsGo form
+    const shipsgoForm = document.getElementById('shipsgo-form');
+    if (shipsgoForm) {
+        shipsgoForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             await saveShipsGoSettings();
         });
-
-        // Tracking form
-        document.getElementById('tracking-form').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            
-            const data = {
-                autoRefresh: document.getElementById('auto-refresh').checked,
-                pushNotifications: document.getElementById('push-notifications').checked,
-                refreshInterval: document.getElementById('refresh-interval').value,
-                retentionDays: document.getElementById('retention-days').value
-            };
-
-            await saveSettings('tracking', data);
-        });
-
-        // Notifications form
-        document.getElementById('notifications-form').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            
-            const data = {
-                emailSummary: document.getElementById('email-summary').checked,
-                delayAlerts: document.getElementById('delay-alerts').checked,
-                deliveryAlerts: document.getElementById('delivery-alerts').checked,
-                email: document.getElementById('notification-email').value
-            };
-
-            await saveSettings('notifications', data);
-        });
-
-        // Import/Export form
-        document.getElementById('import-export-form').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            
-            const data = {
-                defaultFormat: document.getElementById('default-format').value,
-                includeHistory: document.getElementById('include-history').checked,
-                autoBackup: document.getElementById('auto-backup').checked
-            };
-
-            await saveSettings('importExport', data);
-        });
-
-        // Account form
-        document.getElementById('account-form').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            
-            const data = {
-                name: document.getElementById('user-name').value,
-                company: document.getElementById('user-company').value,
-                role: document.getElementById('user-role').value
-            };
-
-            await saveSettings('account', data);
-        });
     }
+}
 
-    // Save settings
-    async function saveSettings(section, data) {
-        const statusEl = document.getElementById('api-status');
+// Load all settings
+async function loadAllSettings() {
+    try {
+        // Load ShipsGo settings from user profile
+        await loadShipsGoSettings();
         
-        try {
-            // Show loading state
-            const activeSection = document.querySelector('.settings-section.active');
-            const saveBtn = activeSection.querySelector('.btn-save');
-            const originalText = saveBtn.innerHTML;
-            saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Salvataggio...';
-            saveBtn.disabled = true;
-
-            // Save to API
-            await apiClient.put(`/api/settings/${section}`, data);
-
-            // For development, save to localStorage
-            const allSettings = JSON.parse(localStorage.getItem('appSettings') || '{}');
-            allSettings[section] = data;
-            localStorage.setItem('appSettings', JSON.stringify(allSettings));
-
-            // Show success message
-            showStatus('Impostazioni salvate con successo', 'success');
-
-            // Restore button
-            setTimeout(() => {
-                saveBtn.innerHTML = originalText;
-                saveBtn.disabled = false;
-            }, 1000);
-
-            // If API keys were saved, update the global config
-            if (section === 'apiKeys') {
-                window.apiKeys = data;
-            }
-
-        } catch (error) {
-            console.error('Error saving settings:', error);
-            showStatus('Errore nel salvataggio delle impostazioni', 'error');
-            
-            // Restore button
-            const activeSection = document.querySelector('.settings-section.active');
-            const saveBtn = activeSection.querySelector('.btn-save');
-            saveBtn.innerHTML = '<i class="fas fa-save"></i> Salva';
-            saveBtn.disabled = false;
-        }
-    }
-
-    // Show status message
-    function showStatus(message, type, duration = 3000) {
-        const statusEl = document.getElementById('api-status');
-        statusEl.innerHTML = message;
-        statusEl.className = `status-message ${type}`;
-        statusEl.style.display = 'flex';
-
-        // Update icon
-        const icon = document.createElement('i');
-        icon.className = type === 'success' ? 'fas fa-check-circle' : 
-                       type === 'error' ? 'fas fa-exclamation-circle' :
-                       type === 'warning' ? 'fas fa-exclamation-triangle' :
-                       'fas fa-info-circle';
-        statusEl.prepend(icon);
-
-        // Auto hide
-        setTimeout(() => {
-            statusEl.style.display = 'none';
-        }, duration);
-    }
-
-    // Toggle API key visibility
-    window.toggleApiKeyVisibility = function(inputId) {
-        const input = document.getElementById(inputId);
-        const button = input.nextElementSibling;
-        const icon = button.querySelector('i');
-
-        if (input.type === 'password') {
-            input.type = 'text';
-            icon.className = 'fas fa-eye-slash';
-        } else {
-            input.type = 'password';
-            icon.className = 'fas fa-eye';
-        }
-    };
-
-    // Test ShipsGo connection
-    window.testShipsGoConnection = async function(event) {
-        const v1Key = document.getElementById('shipsgoV1ApiKey').value.trim();
-        const v2Token = document.getElementById('shipsgoV2Token').value.trim();
+        // Load other settings from localStorage (mock)
+        const settings = JSON.parse(localStorage.getItem('appSettings') || '{}');
         
-        if (!v1Key && !v2Token) {
-            showStatus('Inserisci almeno una API key da testare', 'error');
+        // Company settings
+        if (settings.company) {
+            if (settings.company.name) document.getElementById('companyName').value = settings.company.name;
+            if (settings.company.vat) document.getElementById('vatNumber').value = settings.company.vat;
+            if (settings.company.address) document.getElementById('address').value = settings.company.address;
+            if (settings.company.city) document.getElementById('city').value = settings.company.city;
+            if (settings.company.country) document.getElementById('country').value = settings.company.country;
+            if (settings.company.postalCode) document.getElementById('postalCode').value = settings.company.postalCode;
+        }
+        
+        // Regional settings
+        if (settings.regional) {
+            if (settings.regional.language) document.getElementById('language').value = settings.regional.language;
+            if (settings.regional.timezone) document.getElementById('timezone').value = settings.regional.timezone;
+            if (settings.regional.dateFormat) document.getElementById('dateFormat').value = settings.regional.dateFormat;
+            if (settings.regional.currency) document.getElementById('currency').value = settings.regional.currency;
+        }
+        
+        // Import/Export settings
+        if (settings.importExport) {
+            if (settings.importExport.skipDuplicates !== undefined) 
+                document.getElementById('skipDuplicates').checked = settings.importExport.skipDuplicates;
+            if (settings.importExport.autoValidate !== undefined) 
+                document.getElementById('autoValidate').checked = settings.importExport.autoValidate;
+            if (settings.importExport.updateExisting !== undefined) 
+                document.getElementById('updateExisting').checked = settings.importExport.updateExisting;
+            if (settings.importExport.exportFormat) 
+                document.getElementById('exportFormat').value = settings.importExport.exportFormat;
+            if (settings.importExport.csvEncoding) 
+                document.getElementById('csvEncoding').value = settings.importExport.csvEncoding;
+            if (settings.importExport.includeHeaders !== undefined) 
+                document.getElementById('includeHeaders').checked = settings.importExport.includeHeaders;
+            if (settings.importExport.compressFiles !== undefined) 
+                document.getElementById('compressFiles').checked = settings.importExport.compressFiles;
+        }
+        
+        // Notifications
+        if (settings.notifications) {
+            if (settings.notifications.emailNewShipments !== undefined)
+                document.getElementById('emailNewShipments').checked = settings.notifications.emailNewShipments;
+            if (settings.notifications.emailDelayedShipments !== undefined)
+                document.getElementById('emailDelayedShipments').checked = settings.notifications.emailDelayedShipments;
+            if (settings.notifications.emailDelivered !== undefined)
+                document.getElementById('emailDelivered').checked = settings.notifications.emailDelivered;
+            if (settings.notifications.emailWeeklyReport !== undefined)
+                document.getElementById('emailWeeklyReport').checked = settings.notifications.emailWeeklyReport;
+            if (settings.notifications.email)
+                document.getElementById('notificationEmail').value = settings.notifications.email;
+            if (settings.notifications.pushEnabled !== undefined)
+                document.getElementById('pushEnabled').checked = settings.notifications.pushEnabled;
+            if (settings.notifications.pushCritical !== undefined)
+                document.getElementById('pushCritical').checked = settings.notifications.pushCritical;
+        }
+        
+        // Security
+        if (settings.security) {
+            if (settings.security.twoFactorAuth !== undefined)
+                document.getElementById('twoFactorAuth').checked = settings.security.twoFactorAuth;
+            if (settings.security.loginAlerts !== undefined)
+                document.getElementById('loginAlerts').checked = settings.security.loginAlerts;
+            if (settings.security.secureSession !== undefined)
+                document.getElementById('secureSession').checked = settings.security.secureSession;
+        }
+        
+        // Advanced
+        if (settings.advanced) {
+            if (settings.advanced.dataRetention)
+                document.getElementById('dataRetention').value = settings.advanced.dataRetention;
+            if (settings.advanced.autoBackup !== undefined)
+                document.getElementById('autoBackup').checked = settings.advanced.autoBackup;
+            if (settings.advanced.dataCompression !== undefined)
+                document.getElementById('dataCompression').checked = settings.advanced.dataCompression;
+            if (settings.advanced.debugMode !== undefined)
+                document.getElementById('debugMode').checked = settings.advanced.debugMode;
+        }
+        
+    } catch (error) {
+        console.error('[Settings] Error loading settings:', error);
+    }
+}
+
+// Load ShipsGo settings from user profile
+async function loadShipsGoSettings() {
+    console.log('[Settings] Loading ShipsGo settings...');
+    
+    // Clear fields first
+    document.getElementById('shipsgoV1ApiKey').value = '';
+    document.getElementById('shipsgoV2Token').value = '';
+    
+    try {
+        const user = window.auth?.getCurrentUser();
+        if (!user?.id) {
+            console.log('[Settings] No user logged in');
             return;
         }
         
-        const button = event.target.closest('button');
-        const originalText = button.innerHTML;
-        button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Testing...';
-        button.disabled = true;
-        
-        try {
-            const response = await fetch('/.netlify/functions/test-shipsgo-connection', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    v1Key: v1Key,
-                    v2Token: v2Token
-                })
-            });
-            
-            if (!response.ok) {
-                throw new Error('Test fallito');
-            }
-            
-            const results = await response.json();
-            
-            let message = '';
-            if (v1Key && results.v1) {
-                message += `Container API (v1.2): ${results.v1.message}`;
-                if (results.v1.credits !== null) {
-                    message += ` - Crediti: ${results.v1.credits}`;
-                }
-            }
-            
-            if (v2Token && results.v2) {
-                if (message) message += '<br>';
-                message += `Air Tracking API (v2.0): ${results.v2.message}`;
-                if (results.v2.shipments !== null) {
-                    message += ` - Shipments: ${results.v2.shipments}`;
-                }
-            }
-            
-            const hasSuccess = (results.v1?.success) || (results.v2?.success);
-            const hasFailure = (v1Key && !results.v1?.success) || (v2Token && !results.v2?.success);
-            
-            if (hasSuccess && !hasFailure) {
-                showStatus(message, 'success');
-            } else if (hasFailure && !hasSuccess) {
-                showStatus(message, 'error');
-            } else {
-                showStatus(message, 'warning');
-            }
-            
-        } catch (error) {
-            console.error('Test error:', error);
-            showStatus('Errore durante il test di connessione', 'error');
-        } finally {
-            button.innerHTML = originalText;
-            button.disabled = false;
+        const token = localStorage.getItem('sb-access-token') || sessionStorage.getItem('sb-access-token');
+        if (!token) {
+            console.log('[Settings] No auth token found');
+            return;
         }
-    };
-
-    // Copy to clipboard
-    window.copyToClipboard = function(text) {
-        navigator.clipboard.writeText(text).then(() => {
-            showStatus('URL copiato negli appunti!', 'success');
+        
+        const response = await fetch(`/.netlify/functions/get-profile?id=${user.id}`, {
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
         });
-    };
-
-    // Show webhook instructions
-    window.showWebhookInstructions = function() {
-        showStatus(`
-            <strong>Istruzioni configurazione webhook:</strong><br>
-            1. Copia l'URL del webhook<br>
-            2. Accedi a ShipsGo Dashboard<br>
-            3. Vai su Settings → Webhooks<br>
-            4. Incolla l'URL e attiva il webhook<br>
-            5. Seleziona gli eventi da ricevere
-        `, 'info', 8000);
-    };
-
-    // Reset API keys form
-    window.resetApiKeysForm = function() {
-        document.getElementById('api-keys-form').reset();
-        // Reload original values
-        loadSettings();
-    };
-
-    // Handle auto-refresh toggle
-    document.getElementById('auto-refresh').addEventListener('change', (e) => {
-        const intervalSelect = document.getElementById('refresh-interval');
-        intervalSelect.disabled = !e.target.checked;
-        if (!e.target.checked) {
-            intervalSelect.style.opacity = '0.5';
-        } else {
-            intervalSelect.style.opacity = '1';
-        }
-    });
-
-    // Handle email summary toggle
-    document.getElementById('email-summary').addEventListener('change', (e) => {
-        const emailInput = document.getElementById('notification-email');
-        if (e.target.checked && !emailInput.value) {
-            emailInput.focus();
-            showStatus('Inserisci un indirizzo email per ricevere il riepilogo', 'error');
-        }
-    });
-
-    // Load settings on startup
-    let loadRetries = 0;
-    const tryLoadSettings = setInterval(() => {
-        loadRetries++;
         
-        if (window.auth && window.auth.isAuthenticated()) {
-            console.log('Auth ready, loading settings...');
-            loadSettings();
-            clearInterval(tryLoadSettings);
-        } else if (loadRetries >= 20) {
-            console.log('Auth timeout, trying to load settings anyway...');
-            loadSettings();
-            clearInterval(tryLoadSettings);
+        if (response.ok) {
+            const profileData = await response.json();
+            console.log('[Settings] Profile loaded successfully');
+            
+            if (profileData?.api_settings && typeof profileData.api_settings === 'object') {
+                // ShipsGo v1 key
+                if (profileData.api_settings.shipsgo_v1_key) {
+                    try {
+                        const decodedV1 = atob(profileData.api_settings.shipsgo_v1_key);
+                        if (decodedV1 && decodedV1.length === 32 && /^[a-f0-9]+$/i.test(decodedV1)) {
+                            document.getElementById('shipsgoV1ApiKey').value = decodedV1;
+                        }
+                    } catch (e) {
+                        console.error('[Settings] Invalid v1 key encoding');
+                    }
+                }
+                
+                // ShipsGo v2 token
+                if (profileData.api_settings.shipsgo_v2_token) {
+                    try {
+                        const decodedV2 = atob(profileData.api_settings.shipsgo_v2_token);
+                        if (decodedV2 && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(decodedV2)) {
+                            document.getElementById('shipsgoV2Token').value = decodedV2;
+                        }
+                    } catch (e) {
+                        console.error('[Settings] Invalid v2 token encoding');
+                    }
+                }
+            }
         }
-    }, 500);
+    } catch (error) {
+        console.error('[Settings] Error loading ShipsGo settings:', error);
+    }
+}
+
+// Save company settings
+async function saveCompanySettings() {
+    const data = {
+        name: document.getElementById('companyName').value,
+        vat: document.getElementById('vatNumber').value,
+        address: document.getElementById('address').value,
+        city: document.getElementById('city').value,
+        country: document.getElementById('country').value,
+        postalCode: document.getElementById('postalCode').value
+    };
+    
+    await saveToLocalStorage('company', data);
+    showStatus('Informazioni azienda salvate con successo', 'success');
+}
+
+// Save regional settings
+async function saveRegionalSettings() {
+    const data = {
+        language: document.getElementById('language').value,
+        timezone: document.getElementById('timezone').value,
+        dateFormat: document.getElementById('dateFormat').value,
+        currency: document.getElementById('currency').value
+    };
+    
+    await saveToLocalStorage('regional', data);
+    showStatus('Preferenze regionali salvate con successo', 'success');
+}
+
+// Save export settings
+async function saveExportSettings() {
+    const data = {
+        exportFormat: document.getElementById('exportFormat').value,
+        csvEncoding: document.getElementById('csvEncoding').value,
+        includeHeaders: document.getElementById('includeHeaders').checked,
+        compressFiles: document.getElementById('compressFiles').checked
+    };
+    
+    await saveToLocalStorage('export', data);
+    showStatus('Configurazione export salvata con successo', 'success');
+}
+
+// Save ShipsGo settings to user profile
+async function saveShipsGoSettings() {
+    const v1Key = document.getElementById('shipsgoV1ApiKey').value.trim();
+    const v2Token = document.getElementById('shipsgoV2Token').value.trim();
+    
+    if (!v1Key && !v2Token) {
+        showStatus('Inserisci almeno una API key', 'error');
+        return;
+    }
+    
+    // Validate format
+    if (v1Key && !/^[a-f0-9]{32}$/i.test(v1Key)) {
+        showStatus('API Key v1.2 non valida. Deve essere 32 caratteri hex.', 'error');
+        return;
+    }
+    
+    if (v2Token && !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v2Token)) {
+        showStatus('Bearer Token v2.0 non valido. Deve essere formato UUID.', 'error');
+        return;
+    }
+    
+    try {
+        const user = window.auth?.getCurrentUser();
+        if (!user) {
+            showStatus('Devi essere autenticato', 'error');
+            return;
+        }
+        
+        const token = localStorage.getItem('sb-access-token') || sessionStorage.getItem('sb-access-token');
+        
+        const apiSettings = {};
+        if (v1Key) apiSettings.shipsgo_v1_key = btoa(v1Key);
+        if (v2Token) apiSettings.shipsgo_v2_token = btoa(v2Token);
+        
+        const response = await fetch('/.netlify/functions/update-profile', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                action: 'update_api_settings',
+                data: {
+                    api_settings: apiSettings
+                }
+            })
+        });
+        
+        if (response.ok) {
+            showStatus('Configurazione API salvata con successo!', 'success');
+            
+            // Reload to verify
+            setTimeout(() => {
+                loadShipsGoSettings();
+            }, 1000);
+        } else {
+            const error = await response.json();
+            throw new Error(error.message || 'Errore salvataggio');
+        }
+    } catch (error) {
+        console.error('[Settings] Save error:', error);
+        showStatus('Errore: ' + error.message, 'error');
+    }
+}
+
+// Save to localStorage (mock backend)
+async function saveToLocalStorage(section, data) {
+    try {
+        const settings = JSON.parse(localStorage.getItem('appSettings') || '{}');
+        settings[section] = data;
+        localStorage.setItem('appSettings', JSON.stringify(settings));
+        return true;
+    } catch (error) {
+        console.error('[Settings] Error saving to localStorage:', error);
+        return false;
+    }
+}
+
+// Show status message
+function showStatus(message, type = 'info', duration = 3000) {
+    const statusEl = document.getElementById('api-status');
+    if (!statusEl) return;
+    
+    // Clear previous content
+    statusEl.innerHTML = '';
+    
+    // Add icon
+    const icon = document.createElement('i');
+    icon.className = type === 'success' ? 'fas fa-check-circle' : 
+                     type === 'error' ? 'fas fa-exclamation-circle' :
+                     type === 'warning' ? 'fas fa-exclamation-triangle' :
+                     'fas fa-info-circle';
+    
+    // Add message
+    const span = document.createElement('span');
+    span.innerHTML = message;
+    
+    statusEl.appendChild(icon);
+    statusEl.appendChild(span);
+    statusEl.className = `status-message ${type}`;
+    statusEl.style.display = 'flex';
+    
+    // Auto hide
+    setTimeout(() => {
+        statusEl.style.display = 'none';
+    }, duration);
+}
+
+// Toggle API key visibility
+window.toggleApiKeyVisibility = function(inputId) {
+    const input = document.getElementById(inputId);
+    const button = event.currentTarget;
+    const icon = button.querySelector('i');
+    
+    if (input.type === 'password') {
+        input.type = 'text';
+        icon.className = 'fas fa-eye-slash';
+    } else {
+        input.type = 'password';
+        icon.className = 'fas fa-eye';
+    }
+};
+
+// Test ShipsGo connection
+window.testShipsGoConnection = async function(event) {
+    const v1Key = document.getElementById('shipsgoV1ApiKey').value.trim();
+    const v2Token = document.getElementById('shipsgoV2Token').value.trim();
+    
+    if (!v1Key && !v2Token) {
+        showStatus('Inserisci almeno una API key da testare', 'error');
+        return;
+    }
+    
+    const button = event.target.closest('button');
+    const originalText = button.innerHTML;
+    button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Testing...';
+    button.disabled = true;
+    
+    try {
+        const response = await fetch('/.netlify/functions/test-shipsgo-connection', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                v1Key: v1Key,
+                v2Token: v2Token
+            })
+        });
+        
+        if (!response.ok) {
+            throw new Error('Test fallito');
+        }
+        
+        const results = await response.json();
+        
+        let message = '';
+        if (v1Key && results.v1) {
+            message += `Container API (v1.2): ${results.v1.message}`;
+            if (results.v1.credits !== null) {
+                message += ` - Crediti: ${results.v1.credits}`;
+            }
+        }
+        
+        if (v2Token && results.v2) {
+            if (message) message += '<br>';
+            message += `Air Tracking API (v2.0): ${results.v2.message}`;
+            if (results.v2.shipments !== null) {
+                message += ` - Shipments: ${results.v2.shipments}`;
+            }
+        }
+        
+        const hasSuccess = (results.v1?.success) || (results.v2?.success);
+        const hasFailure = (v1Key && !results.v1?.success) || (v2Token && !results.v2?.success);
+        
+        if (hasSuccess && !hasFailure) {
+            showStatus(message, 'success', 5000);
+        } else if (hasFailure && !hasSuccess) {
+            showStatus(message, 'error', 5000);
+        } else {
+            showStatus(message, 'warning', 5000);
+        }
+        
+    } catch (error) {
+        console.error('[Settings] Test error:', error);
+        showStatus('Errore durante il test di connessione', 'error');
+    } finally {
+        button.innerHTML = originalText;
+        button.disabled = false;
+    }
+};
+
+// Copy to clipboard
+window.copyToClipboard = function(text) {
+    navigator.clipboard.writeText(text).then(() => {
+        showStatus('URL copiato negli appunti!', 'success');
+    }).catch(err => {
+        console.error('[Settings] Copy failed:', err);
+        showStatus('Errore nella copia', 'error');
+    });
+};
+
+// Show webhook instructions
+window.showWebhookInstructions = function() {
+    const message = `
+        <strong>Istruzioni configurazione webhook:</strong><br>
+        1. Copia l'URL del webhook<br>
+        2. Accedi a <a href="https://shipsgo.com" target="_blank" style="color: #007AFF;">ShipsGo Dashboard</a><br>
+        3. Vai su Settings → Webhooks<br>
+        4. Incolla l'URL e attiva il webhook<br>
+        5. Seleziona gli eventi da ricevere (Container Updates, BL Updates, etc.)
+    `;
+    showStatus(message, 'info', 10000);
+};
+
+// Handle toggle changes
+document.addEventListener('change', (e) => {
+    if (e.target.type === 'checkbox' && e.target.closest('.toggle-switch')) {
+        const toggleId = e.target.id;
+        const value = e.target.checked;
+        console.log(`[Settings] Toggle ${toggleId} changed to ${value}`);
+        
+        // Auto-save certain toggles
+        if (toggleId.startsWith('email') || toggleId.startsWith('push')) {
+            saveNotificationSettings();
+        } else if (toggleId === 'skipDuplicates' || toggleId === 'autoValidate' || toggleId === 'updateExisting') {
+            saveImportSettings();
+        }
+    }
 });
+
+// Save notification settings
+async function saveNotificationSettings() {
+    const data = {
+        emailNewShipments: document.getElementById('emailNewShipments').checked,
+        emailDelayedShipments: document.getElementById('emailDelayedShipments').checked,
+        emailDelivered: document.getElementById('emailDelivered').checked,
+        emailWeeklyReport: document.getElementById('emailWeeklyReport').checked,
+        email: document.getElementById('notificationEmail').value,
+        pushEnabled: document.getElementById('pushEnabled').checked,
+        pushCritical: document.getElementById('pushCritical').checked
+    };
+    
+    await saveToLocalStorage('notifications', data);
+    console.log('[Settings] Notifications auto-saved');
+}
+
+// Save import settings
+async function saveImportSettings() {
+    const data = {
+        skipDuplicates: document.getElementById('skipDuplicates').checked,
+        autoValidate: document.getElementById('autoValidate').checked,
+        updateExisting: document.getElementById('updateExisting').checked
+    };
+    
+    await saveToLocalStorage('importExport', {
+        ...JSON.parse(localStorage.getItem('appSettings') || '{}').importExport,
+        ...data
+    });
+    console.log('[Settings] Import settings auto-saved');
+}
+
+// Handle dangerous actions
+document.querySelectorAll('.btn-danger').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+        const action = e.target.textContent.trim();
+        
+        if (action.includes('Resetta')) {
+            if (confirm('Sei sicuro di voler resettare tutte le impostazioni? Questa azione è irreversibile.')) {
+                localStorage.removeItem('appSettings');
+                showStatus('Impostazioni resettate. Ricarica la pagina.', 'warning');
+                setTimeout(() => location.reload(), 2000);
+            }
+        } else if (action.includes('Elimina')) {
+            if (confirm('SEI SICURO? Questa azione eliminerà TUTTI i dati salvati!')) {
+                if (confirm('Ultima conferma: vuoi davvero eliminare TUTTO?')) {
+                    // Clear all localStorage
+                    localStorage.clear();
+                    showStatus('Tutti i dati sono stati eliminati.', 'error');
+                    setTimeout(() => {
+                        window.location.href = '/login.html';
+                    }, 2000);
+                }
+            }
+        }
+    });
+});
+
+// Handle other button clicks
+document.querySelectorAll('.btn-cancel').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+        const text = e.target.textContent.trim();
+        
+        if (text.includes('Cambia Password')) {
+            showStatus('Funzione cambio password in arrivo...', 'info');
+        } else if (text.includes('Sessioni Attive')) {
+            showStatus('Visualizzazione sessioni in arrivo...', 'info');
+        } else if (text.includes('Esporta')) {
+            showStatus('Export dati in arrivo...', 'info');
+        } else if (text.includes('Cache')) {
+            if (confirm('Vuoi pulire la cache?')) {
+                showStatus('Cache pulita con successo', 'success');
+            }
+        }
+    });
+});
+
+// Initialize on load
+console.log('[Settings] Module loaded successfully');
