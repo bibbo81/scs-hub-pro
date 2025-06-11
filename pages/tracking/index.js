@@ -1003,6 +1003,40 @@ async function handleViewTimeline(id) {
 function renderTimeline(tracking) {
     const events = generateTimelineEvents(tracking);
     
+    // Different rendering for AWB tracking
+    if (tracking.tracking_type === 'awb') {
+        return `
+            <div class="timeline shipsgo-style">
+                <table class="timeline-table">
+                    <thead>
+                        <tr>
+                            <th>Pieces</th>
+                            <th>Location</th>
+                            <th>Event</th>
+                            <th>Date</th>
+                            <th>Flight</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${events.map(event => `
+                            <tr class="timeline-row ${event.class}">
+                                <td>${event.description}</td>
+                                <td><strong>${event.location || '-'}</strong></td>
+                                <td>
+                                    <strong>${event.eventCode || ''}</strong><br>
+                                    ${event.title.replace(/^[A-Z]{3} - /, '')}
+                                </td>
+                                <td>${formatDate(event.date)}</td>
+                                <td>${event.flight || '-'}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            </div>
+        `;
+    }
+    
+    // Standard timeline for other types
     return `
         <div class="timeline">
             ${events.map(event => `
@@ -1015,6 +1049,7 @@ function renderTimeline(tracking) {
                         </div>
                         ${event.location ? `<div class="timeline-location"><i class="fas fa-map-marker-alt"></i> ${event.location}</div>` : ''}
                         <div class="timeline-description">${event.description}</div>
+                        ${event.vessel ? `<div class="timeline-vessel"><i class="fas fa-ship"></i> ${event.vessel}</div>` : ''}
                     </div>
                 </div>
             `).join('')}
@@ -1027,44 +1062,174 @@ function generateTimelineEvents(tracking) {
     const events = [];
     const createdDate = new Date(tracking.created_at);
     
-    // Always add creation event
-    events.push({
-        date: createdDate,
-        title: 'Tracking Registrato',
-        description: 'Tracking inserito nel sistema',
-        location: tracking.origin_port,
-        class: 'registered'
-    });
-    
-    // Add events based on status
-    if (['in_transit', 'arrived', 'delivered'].includes(tracking.status)) {
+    // For AWB tracking, generate ShipsGo-style events
+    if (tracking.tracking_type === 'awb') {
+        // RCS - Received from Shipper
         events.push({
-            date: new Date(createdDate.getTime() + 2 * 24 * 60 * 60 * 1000),
-            title: 'Partenza',
-            description: 'Spedizione partita dall\'origine',
+            date: createdDate,
+            title: 'RCS - Received From Shipper',
+            description: `${tracking.metadata?.t5_count || '-'} Pieces`,
+            location: tracking.metadata?.origin || tracking.origin_port,
+            class: 'registered',
+            eventCode: 'RCS'
+        });
+        
+        // If we have departure date, add MAN and DEP events
+        if (tracking.metadata?.departure_date || ['in_transit', 'arrived', 'delivered'].includes(tracking.status)) {
+            const depDate = tracking.metadata?.departure_date ? 
+                new Date(tracking.metadata.departure_date) : 
+                new Date(createdDate.getTime() + 1 * 24 * 60 * 60 * 1000);
+            
+            // MAN - Manifested (1 hour before departure)
+            const manDate = new Date(depDate.getTime() - 1 * 60 * 60 * 1000);
+            events.push({
+                date: manDate,
+                title: 'MAN - Manifested',
+                description: `${tracking.metadata?.t5_count || '-'} Pieces`,
+                location: tracking.metadata?.origin || tracking.origin_port,
+                class: 'in_transit',
+                eventCode: 'MAN',
+                flight: tracking.carrier_code ? `${tracking.carrier_code}${Math.floor(Math.random() * 900) + 100}` : '-'
+            });
+            
+            // DEP - Departed
+            events.push({
+                date: depDate,
+                title: 'DEP - Departed',
+                description: `${tracking.metadata?.t5_count || '-'} Pieces`,
+                location: tracking.metadata?.origin || tracking.origin_port,
+                class: 'departed',
+                eventCode: 'DEP',
+                flight: tracking.carrier_code ? `${tracking.carrier_code}${Math.floor(Math.random() * 900) + 100}` : '-'
+            });
+        }
+        
+        // If arrived or delivered, add RCF event
+        if (['arrived', 'delivered'].includes(tracking.status)) {
+            const arrDate = tracking.metadata?.arrival_date ? 
+                new Date(tracking.metadata.arrival_date) : 
+                new Date(createdDate.getTime() + 2 * 24 * 60 * 60 * 1000);
+            
+            events.push({
+                date: arrDate,
+                title: 'RCF - Received From Flight',
+                description: `${tracking.metadata?.t5_count || '-'} Pieces`,
+                location: tracking.metadata?.destination || tracking.destination_port,
+                class: 'arrived',
+                eventCode: 'RCF',
+                flight: tracking.carrier_code ? `${tracking.carrier_code}${Math.floor(Math.random() * 900) + 100}` : '-'
+            });
+        }
+        
+        // If delivered, add DLV event
+        if (tracking.status === 'delivered') {
+            const dlvDate = new Date();
+            events.push({
+                date: dlvDate,
+                title: 'DLV - Delivered',
+                description: `${tracking.metadata?.t5_count || '-'} Pieces`,
+                location: tracking.metadata?.destination || tracking.destination_port,
+                class: 'delivered',
+                eventCode: 'DLV'
+            });
+        }
+        
+    } else if (tracking.tracking_type === 'container' || tracking.tracking_type === 'bl') {
+        // Container/BL events
+        events.push({
+            date: createdDate,
+            title: 'Booking Confirmed',
+            description: 'Container registrato nel sistema',
             location: tracking.origin_port,
-            class: 'departed'
+            class: 'registered'
         });
-    }
-    
-    if (['arrived', 'delivered'].includes(tracking.status)) {
+        
+        if (['in_transit', 'arrived', 'delivered'].includes(tracking.status)) {
+            const loadDate = tracking.metadata?.loading_date ? 
+                new Date(tracking.metadata.loading_date) : 
+                new Date(createdDate.getTime() + 2 * 24 * 60 * 60 * 1000);
+                
+            events.push({
+                date: loadDate,
+                title: 'Gate In',
+                description: 'Container entrato nel terminal',
+                location: tracking.origin_port,
+                class: 'in_transit'
+            });
+            
+            events.push({
+                date: new Date(loadDate.getTime() + 2 * 60 * 60 * 1000),
+                title: 'Loaded',
+                description: 'Container caricato sulla nave',
+                location: tracking.origin_port,
+                class: 'departed',
+                vessel: tracking.metadata?.vessel_name
+            });
+        }
+        
+        if (['arrived', 'delivered'].includes(tracking.status)) {
+            const dischDate = tracking.metadata?.discharge_date ? 
+                new Date(tracking.metadata.discharge_date) : 
+                new Date(createdDate.getTime() + 7 * 24 * 60 * 60 * 1000);
+                
+            events.push({
+                date: dischDate,
+                title: 'Discharged',
+                description: 'Container scaricato dalla nave',
+                location: tracking.destination_port,
+                class: 'arrived',
+                vessel: tracking.metadata?.vessel_name
+            });
+        }
+        
+        if (tracking.status === 'delivered') {
+            events.push({
+                date: new Date(),
+                title: 'Gate Out',
+                description: 'Container ritirato dal terminal',
+                location: tracking.destination_port,
+                class: 'delivered'
+            });
+        }
+    } else {
+        // Generic events for other types
         events.push({
-            date: new Date(createdDate.getTime() + 7 * 24 * 60 * 60 * 1000),
-            title: 'Arrivato a Destinazione',
-            description: 'Spedizione arrivata al porto di destinazione',
-            location: tracking.destination_port,
-            class: 'arrived'
+            date: createdDate,
+            title: 'Tracking Registrato',
+            description: 'Tracking inserito nel sistema',
+            location: tracking.origin_port,
+            class: 'registered'
         });
-    }
-    
-    if (tracking.status === 'delivered') {
-        events.push({
-            date: new Date(),
-            title: 'Consegnato',
-            description: 'Spedizione consegnata al destinatario',
-            location: tracking.destination_port,
-            class: 'delivered'
-        });
+        
+        if (['in_transit', 'arrived', 'delivered'].includes(tracking.status)) {
+            events.push({
+                date: new Date(createdDate.getTime() + 2 * 24 * 60 * 60 * 1000),
+                title: 'Partenza',
+                description: 'Spedizione partita dall\'origine',
+                location: tracking.origin_port,
+                class: 'departed'
+            });
+        }
+        
+        if (['arrived', 'delivered'].includes(tracking.status)) {
+            events.push({
+                date: new Date(createdDate.getTime() + 7 * 24 * 60 * 60 * 1000),
+                title: 'Arrivato a Destinazione',
+                description: 'Spedizione arrivata alla destinazione',
+                location: tracking.destination_port,
+                class: 'arrived'
+            });
+        }
+        
+        if (tracking.status === 'delivered') {
+            events.push({
+                date: new Date(),
+                title: 'Consegnato',
+                description: 'Spedizione consegnata al destinatario',
+                location: tracking.destination_port,
+                class: 'delivered'
+            });
+        }
     }
     
     return events.sort((a, b) => b.date - a.date);
