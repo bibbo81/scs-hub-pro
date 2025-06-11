@@ -95,18 +95,21 @@ export class TableManager {
     }
     
     // Render table
-    renderTable() {
-        if (this.options.loading) {
-            return this.renderLoading();
-        }
-        
-        if (this.displayData.length === 0) {
-            return this.renderEmpty();
-        }
-        
-        const columns = this.getColumns();
-        
-        return `
+    // In table-manager.js, trova il metodo renderTable() e sostituiscilo completamente:
+renderTable() {
+    if (this.options.loading) {
+        return this.renderLoading();
+    }
+    
+    if (this.displayData.length === 0) {
+        return this.renderEmpty();
+    }
+    
+    const columns = this.getColumns();
+    
+    // NOTA: Aggiungiamo il wrapper div qui
+    return `
+        <div class="table-container">
             <table class="sol-table ${this.options.hoverable ? 'sol-table-hover' : ''}">
                 <thead>
                     <tr>
@@ -123,8 +126,9 @@ export class TableManager {
                     ${this.displayData.map((row, index) => this.renderRow(row, index)).join('')}
                 </tbody>
             </table>
-        `;
-    }
+        </div>
+    `;
+}
     
     // Render header
     renderHeader(column) {

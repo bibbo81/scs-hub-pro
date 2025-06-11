@@ -143,14 +143,14 @@ export const ModalSystem = {
         ${options.confirmText || 'Conferma'}
     </button>
 `,
-            hideClose: false,  // <-- Cambiato a false per mostrare la X
+            hideClose: false,
             closeOnBackdrop: false,
-            closeOnEsc: true,  // <-- Cambiato a true per permettere ESC
-            onClose: () => resolve(false)  // <-- Risolve con false quando si chiude
+            closeOnEsc: true,
+            onClose: () => resolve(false)
         });
             
-            // Salva resolver
-            const modalData = this.activeModals.get(modalId);
+        // Salva resolver
+        const modalData = this.activeModals.get(modalId);
         if (modalData) {
             modalData.resolver = resolve;
         }
@@ -355,3 +355,4 @@ export const ModalSystem = {
 // Export singleton
 export const modalSystem = ModalSystem;
 export default ModalSystem;
+window.ModalSystem = ModalSystem;
