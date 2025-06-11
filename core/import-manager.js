@@ -823,6 +823,19 @@
             if (row['Booking']) metadata.booking = row['Booking'];
             if (row['Created At']) metadata.created_at_shipsgo = row['Created At'];
             
+            // Calcola Transit Time per spedizioni marittime se manca
+            if (!metadata.transit_time && metadata.loading_date && metadata.discharge_date) {
+                const loadDate = new Date(metadata.loading_date);
+                const dischDate = new Date(metadata.discharge_date);
+                if (!isNaN(loadDate.getTime()) && !isNaN(dischDate.getTime())) {
+                    const diffTime = Math.abs(dischDate - loadDate);
+                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                    metadata.transit_time = diffDays.toString();
+                    metadata.transit_time_calculated = true;
+                    console.log('[ImportManager] Calculated Maritime Transit Time:', diffDays, 'days');
+                }
+            }
+            
             // ShipsGo Air fields
             if (row['AWB Number']) metadata.awb_number = row['AWB Number'];
             if (row['Origin']) metadata.origin = row['Origin'];
@@ -848,6 +861,18 @@
                     metadata.transit_time = transitValue.toString();
                 } else {
                     metadata.transit_time = transitValue;
+                }
+            }
+            
+            // Calcola Transit Time se manca ma abbiamo le date
+            if (!metadata.transit_time && metadata.departure_date && metadata.arrival_date) {
+                const depDate = new Date(metadata.departure_date);
+                const arrDate = new Date(metadata.arrival_date);
+                if (!isNaN(depDate.getTime()) && !isNaN(arrDate.getTime())) {
+                    const diffTime = Math.abs(arrDate - depDate);
+                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                    metadata.transit_time = diffDays.toString();
+                    console.log('[ImportManager] Calculated Transit Time:', diffDays, 'days');
                 }
             }
             if (row['T5 Count']) metadata.t5_count = row['T5 Count'];
