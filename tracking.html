@@ -403,49 +403,41 @@
         }, 100);
     });
 
-    // Fix 2: ModalSystem confirm
-    setTimeout(() => {
-        if (window.ModalSystem && !window.ModalSystem._confirmResolvers) {
-            console.log('[Modal Fix] Patching ModalSystem.confirm...');
+    // Fix 2: ModalSystem confirm - VERSIONE MIGLIORATA
+setTimeout(() => {
+    if (window.ModalSystem) {
+        console.log('[Modal Fix] Patching ModalSystem for inline onclick...');
+        
+        // Salva il metodo originale
+        const originalResolveConfirm = window.ModalSystem.resolveConfirm;
+        
+        // Override con versione che funziona sempre
+        window.ModalSystem.resolveConfirm = function(modalId, result) {
+            console.log('[Modal Fix] Intercepted resolveConfirm:', modalId, result);
             
-            window.ModalSystem._confirmResolvers = {};
+            // Prova prima il metodo originale
+            if (originalResolveConfirm) {
+                originalResolveConfirm.call(this, modalId, result);
+            }
             
-            const originalConfirm = window.ModalSystem.confirm;
-            window.ModalSystem.confirm = function(options = {}) {
-                return new Promise((resolve) => {
-                    const modalId = `modal-confirm-${Date.now()}`;
-                    
-                    const modal = this.create({
-                        title: options.title || 'Conferma',
-                        content: options.message || 'Sei sicuro?',
-                        maxWidth: options.maxWidth || '500px',
-                        footer: `
-                            <button class="sol-btn sol-btn-glass" onclick="window.ModalSystem.handleConfirm('${modalId}', false)">
-                                ${options.cancelText || 'Annulla'}
-                            </button>
-                            <button class="sol-btn ${options.confirmClass || 'sol-btn-primary'}" onclick="window.ModalSystem.handleConfirm('${modalId}', true)">
-                                ${options.confirmText || 'Conferma'}
-                            </button>
-                        `,
-                        hideClose: true,
-                        closeOnBackdrop: false,
-                        closeOnEsc: false
-                    });
-                    
-                    this._confirmResolvers[modalId] = resolve;
-                });
-            };
-            
-            window.ModalSystem.handleConfirm = function(modalId, result) {
-                const resolve = this._confirmResolvers?.[modalId];
-                if (resolve) {
-                    resolve(result);
-                    delete this._confirmResolvers[modalId];
-                }
+            // Se non ha funzionato, cerca nei resolvers
+            if (this._confirmResolvers && this._confirmResolvers[modalId]) {
+                const resolver = this._confirmResolvers[modalId];
+                delete this._confirmResolvers[modalId];
                 this.close(modalId);
-            };
-        }
-    }, 1000);
+                resolver(result);
+            } else {
+                // Fallback: cerca in tutte le modali attive
+                this.activeModals.forEach((modalData, id) => {
+                    if (id === modalId && modalData.resolver) {
+                        this.close(modalId);
+                        modalData.resolver(result);
+                    }
+                });
+            }
+        };
+    }
+}, 1500); // Aumentato il delay per sicurezza
 
     // Debug Modal System
 setTimeout(() => {
