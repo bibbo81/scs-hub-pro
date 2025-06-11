@@ -447,10 +447,50 @@ function updateStats() {
         delayed: trackings.filter(t => t.status === 'delayed').length
     };
     
-    document.getElementById('activeTrackings').textContent = stats.total;
-    document.getElementById('inTransit').textContent = stats.in_transit;
-    document.getElementById('arrived').textContent = stats.arrived;
-    document.getElementById('delivered').textContent = stats.delivered;
+    // Prima crea le stats cards se non esistono
+    const statsGrid = document.getElementById('statsGrid');
+    if (statsGrid && statsGrid.children.length === 0) {
+        statsGrid.innerHTML = `
+            <div class="sol-stat-card">
+                <i class="fas fa-box sol-stat-icon"></i>
+                <div class="sol-stat-value" id="activeTrackings">${stats.total}</div>
+                <div class="sol-stat-label">Tracking Attivi</div>
+            </div>
+            <div class="sol-stat-card">
+                <i class="fas fa-ship sol-stat-icon"></i>
+                <div class="sol-stat-value" id="inTransit">${stats.in_transit}</div>
+                <div class="sol-stat-label">In Transito</div>
+            </div>
+            <div class="sol-stat-card">
+                <i class="fas fa-anchor sol-stat-icon"></i>
+                <div class="sol-stat-value" id="arrived">${stats.arrived}</div>
+                <div class="sol-stat-label">Arrivati</div>
+            </div>
+            <div class="sol-stat-card">
+                <i class="fas fa-check-circle sol-stat-icon"></i>
+                <div class="sol-stat-value" id="delivered">${stats.delivered}</div>
+                <div class="sol-stat-label">Consegnati</div>
+            </div>
+            <div class="sol-stat-card">
+                <i class="fas fa-exclamation-triangle sol-stat-icon"></i>
+                <div class="sol-stat-value" id="delayed">${stats.delayed}</div>
+                <div class="sol-stat-label">In Ritardo</div>
+            </div>
+        `;
+    } else {
+        // Aggiorna i valori esistenti
+        const activeEl = document.getElementById('activeTrackings');
+        const transitEl = document.getElementById('inTransit');
+        const arrivedEl = document.getElementById('arrived');
+        const deliveredEl = document.getElementById('delivered');
+        const delayedEl = document.getElementById('delayed');
+        
+        if (activeEl) activeEl.textContent = stats.total;
+        if (transitEl) transitEl.textContent = stats.in_transit;
+        if (arrivedEl) arrivedEl.textContent = stats.arrived;
+        if (deliveredEl) deliveredEl.textContent = stats.delivered;
+        if (delayedEl) delayedEl.textContent = stats.delayed;
+    }
 }
 
 // Show tracking details
