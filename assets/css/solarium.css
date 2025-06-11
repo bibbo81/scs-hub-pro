@@ -3278,4 +3278,115 @@ select.form-control {
     .sol-print-only { display: block !important; }
 }
 
+/* ===== DROPDOWN POSITIONING FIX ===== */
+/* Da aggiungere in solarium.css */
+
+/* Dropdown con posizionamento dinamico */
+.sol-dropdown {
+    position: fixed !important; /* Override per posizionamento dinamico */
+    z-index: 1001;
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+/* Dropup variation (quando non c'è spazio sotto) */
+.sol-dropdown.dropup {
+    transform-origin: bottom center;
+}
+
+/* Animazioni per dropdown/dropup */
+.sol-dropdown {
+    opacity: 0;
+    transform: translateY(-10px);
+    transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.sol-dropdown[style*="display: block"] {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.sol-dropdown.dropup {
+    transform: translateY(10px);
+}
+
+.sol-dropdown.dropup[style*="display: block"] {
+    transform: translateY(0);
+}
+
+/* Freccia per dropdown normale */
+.sol-dropdown::before {
+    content: '';
+    position: absolute;
+    top: -8px;
+    right: 20px;
+    width: 0;
+    height: 0;
+    border-left: 8px solid transparent;
+    border-right: 8px solid transparent;
+    border-bottom: 8px solid var(--sol-gray-200);
+}
+
+.sol-dropdown::after {
+    content: '';
+    position: absolute;
+    top: -7px;
+    right: 20px;
+    width: 0;
+    height: 0;
+    border-left: 8px solid transparent;
+    border-right: 8px solid transparent;
+    border-bottom: 8px solid white;
+}
+
+/* Freccia per dropup */
+.sol-dropdown.dropup::before {
+    top: auto;
+    bottom: -8px;
+    border-bottom: none;
+    border-top: 8px solid var(--sol-gray-200);
+}
+
+.sol-dropdown.dropup::after {
+    top: auto;
+    bottom: -7px;
+    border-bottom: none;
+    border-top: 8px solid white;
+}
+
+/* Scrollbar personalizzata per dropdown */
+.sol-dropdown::-webkit-scrollbar {
+    width: 6px;
+}
+
+.sol-dropdown::-webkit-scrollbar-track {
+    background: var(--sol-gray-100);
+    border-radius: 3px;
+}
+
+.sol-dropdown::-webkit-scrollbar-thumb {
+    background: var(--sol-gray-400);
+    border-radius: 3px;
+}
+
+.sol-dropdown::-webkit-scrollbar-thumb:hover {
+    background: var(--sol-gray-500);
+}
+
+/* Fix per mobile */
+@media (max-width: 768px) {
+    .sol-dropdown {
+        position: fixed !important;
+        left: 8px !important;
+        right: 8px !important;
+        width: auto !important;
+        max-width: none !important;
+    }
+    
+    .sol-dropdown::before,
+    .sol-dropdown::after {
+        display: none; /* Nascondi frecce su mobile */
+    }
+}
+
 /* End of Solarium Design System Complete */

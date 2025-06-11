@@ -192,9 +192,10 @@ export class HeaderComponent {
     renderSidebar() {
         const menuItems = [
             { icon: 'fa-chart-line', label: 'Dashboard', href: '/dashboard.html' },
-            { icon: 'fa-box', label: 'Spedizioni', href: '/shipments.html' },
+            { icon: 'fa-box', label: 'Tracking', href: '/tracking.html' },
+            { icon: 'fa-cubes', label: 'Prodotti', href: '/products.html' },
+            { icon: 'fa-ship', label: 'Spedizioni', href: '/shipments.html' },
             { icon: 'fa-truck', label: 'Corrieri', href: '/carriers.html' },
-            { icon: 'fa-map-marker-alt', label: 'Tracking', href: '/tracking.html' },
             { divider: true },
             { icon: 'fa-upload', label: 'Importa Dati', href: '/import.html' },
             { icon: 'fa-file-alt', label: 'Report', href: '/reports.html' },
@@ -231,9 +232,9 @@ export class HeaderComponent {
     getUserInfo() {
         if (!this.user) {
             return {
-                name: 'Utente',
-                email: '',
-                initials: 'U'
+                name: 'Demo User',
+                email: 'demo@example.com',
+                initials: 'DU'
             };
         }
         
@@ -251,7 +252,59 @@ export class HeaderComponent {
         return window.location.pathname === href;
     }
     
-    // Event Listeners - FIXED VERSION
+    // NEW: Position dropdown dynamically
+    positionDropdown(buttonId, dropdownId) {
+        const button = document.getElementById(buttonId);
+        const dropdown = document.getElementById(dropdownId);
+        
+        if (!button || !dropdown) return;
+        
+        // Reset positioning classes
+        dropdown.classList.remove('dropup');
+        dropdown.style.position = 'fixed';
+        
+        // Get button position
+        const buttonRect = button.getBoundingClientRect();
+        const dropdownHeight = 400; // Max height approssimativo
+        const dropdownWidth = 280; // Width del dropdown
+        
+        // Calculate available space
+        const spaceBelow = window.innerHeight - buttonRect.bottom;
+        const spaceAbove = buttonRect.top;
+        const spaceRight = window.innerWidth - buttonRect.left;
+        
+        // Position vertically
+        if (spaceBelow < dropdownHeight && spaceAbove > spaceBelow) {
+            // Show above (dropup)
+            dropdown.classList.add('dropup');
+            dropdown.style.bottom = `${window.innerHeight - buttonRect.top}px`;
+            dropdown.style.top = 'auto';
+        } else {
+            // Show below (dropdown)
+            dropdown.style.top = `${buttonRect.bottom + 8}px`;
+            dropdown.style.bottom = 'auto';
+        }
+        
+        // Position horizontally
+        if (spaceRight < dropdownWidth) {
+            // Align to right edge of button
+            dropdown.style.right = `${window.innerWidth - buttonRect.right}px`;
+            dropdown.style.left = 'auto';
+        } else {
+            // Align to left edge of button
+            dropdown.style.left = `${buttonRect.left}px`;
+            dropdown.style.right = 'auto';
+        }
+        
+        // Ensure dropdown doesn't go off-screen
+        const dropdownRect = dropdown.getBoundingClientRect();
+        if (dropdownRect.right > window.innerWidth) {
+            dropdown.style.right = '8px';
+            dropdown.style.left = 'auto';
+        }
+    }
+    
+    // Event Listeners - FIXED VERSION with dynamic positioning
     attachEventListeners() {
         // Menu toggle
         document.getElementById('menuToggle')?.addEventListener('click', () => {
@@ -265,18 +318,18 @@ export class HeaderComponent {
             document.getElementById('backdrop').classList.remove('active');
         });
         
-        // User menu - Fix: previeni propagazione
+        // User menu - Fix: previeni propagazione e posiziona dinamicamente
         document.getElementById('userMenuBtn')?.addEventListener('click', (e) => {
             e.stopPropagation();
             e.preventDefault();
-            this.toggleDropdown('userDropdown');
+            this.toggleDropdown('userDropdown', 'userMenuBtn');
         });
         
-        // Notifications - Fix: previeni propagazione
+        // Notifications - Fix: previeni propagazione e posiziona dinamicamente
         document.getElementById('notificationBtn')?.addEventListener('click', (e) => {
             e.stopPropagation();
             e.preventDefault();
-            this.toggleDropdown('notificationDropdown');
+            this.toggleDropdown('notificationDropdown', 'notificationBtn');
         });
         
         // Logout
@@ -333,17 +386,33 @@ export class HeaderComponent {
         document.querySelector('.mark-all-read')?.addEventListener('click', () => {
             this.markAllNotificationsRead();
         });
+        
+        // Reposition dropdowns on window resize
+        window.addEventListener('resize', () => {
+            // Riposiziona dropdown aperti
+            const userDropdown = document.getElementById('userDropdown');
+            const notifDropdown = document.getElementById('notificationDropdown');
+            
+            if (userDropdown && userDropdown.style.display === 'block') {
+                this.positionDropdown('userMenuBtn', 'userDropdown');
+            }
+            if (notifDropdown && notifDropdown.style.display === 'block') {
+                this.positionDropdown('notificationBtn', 'notificationDropdown');
+            }
+        });
     }
     
-    // Dropdown management
-    toggleDropdown(id) {
-        const dropdown = document.getElementById(id);
+    // Dropdown management - UPDATED with positioning
+    toggleDropdown(dropdownId, buttonId) {
+        const dropdown = document.getElementById(dropdownId);
         const isOpen = dropdown.style.display === 'block';
         
         this.closeAllDropdowns();
         
         if (!isOpen) {
             dropdown.style.display = 'block';
+            // Position dropdown after showing it
+            this.positionDropdown(buttonId, dropdownId);
         }
     }
     
@@ -396,76 +465,62 @@ export class HeaderComponent {
         }
     }
     
+    getNotificationIcon(type) {
+        const icons = {
+            'shipment': 'fa-ship',
+            'delivery': 'fa-truck',
+            'warning': 'fa-exclamation-triangle',
+            'info': 'fa-info-circle',
+            'success': 'fa-check-circle'
+        };
+        return icons[type] || 'fa-bell';
+    }
+    
+    formatTime(timestamp) {
+        const date = new Date(timestamp);
+        const now = new Date();
+        const diff = now - date;
+        const minutes = Math.floor(diff / 60000);
+        const hours = Math.floor(diff / 3600000);
+        const days = Math.floor(diff / 86400000);
+        
+        if (minutes < 1) return 'Ora';
+        if (minutes < 60) return `${minutes}m fa`;
+        if (hours < 24) return `${hours}h fa`;
+        if (days < 7) return `${days}g fa`;
+        
+        return date.toLocaleDateString('it-IT');
+    }
+    
     async markAllNotificationsRead() {
         try {
             await api.post('notifications/mark-all-read');
             this.notificationCount = 0;
             this.updateNotificationBadge();
-            const items = document.querySelectorAll('.notification-item.unread');
-            items.forEach(item => item.classList.remove('unread'));
-            notificationSystem.success('Tutte le notifiche sono state segnate come lette');
+            
+            // Update UI
+            document.querySelectorAll('.notification-item.unread').forEach(item => {
+                item.classList.remove('unread');
+            });
         } catch (error) {
-            notificationSystem.error('Errore nel segnare le notifiche come lette');
+            console.error('Failed to mark notifications as read:', error);
         }
     }
     
-    getNotificationIcon(type) {
-        const icons = {
-            success: 'fa-check-circle',
-            error: 'fa-exclamation-circle',
-            warning: 'fa-exclamation-triangle',
-            info: 'fa-info-circle',
-            shipment: 'fa-box',
-            tracking: 'fa-map-marker-alt'
-        };
-        return icons[type] || 'fa-bell';
-    }
-    
-    formatTime(date) {
-        // Implementa formattazione relativa del tempo
-        const now = new Date();
-        const then = new Date(date);
-        const diff = now - then;
-        
-        const minutes = Math.floor(diff / 60000);
-        const hours = Math.floor(diff / 3600000);
-        const days = Math.floor(diff / 86400000);
-        
-        if (minutes < 60) return `${minutes} minuti fa`;
-        if (hours < 24) return `${hours} ore fa`;
-        if (days < 7) return `${days} giorni fa`;
-        
-        return then.toLocaleDateString('it-IT');
-    }
-    
-    // Search handler
+    // Search functionality
     handleSearch(query) {
-        if (this.searchTimeout) {
-            clearTimeout(this.searchTimeout);
-        }
+        clearTimeout(this.searchTimeout);
+        
+        if (!query.trim()) return;
         
         this.searchTimeout = setTimeout(() => {
-            if (query.length >= 3) {
-                // Implementa ricerca globale
-                console.log('Global search:', query);
-                // Emit search event
-                window.dispatchEvent(new CustomEvent('header:search', {
-                    detail: { query }
-                }));
-            }
+            // Implement global search
+            console.log('Searching for:', query);
+            // You can redirect to search results or show inline results
         }, 300);
     }
 }
 
-// Create singleton
+// Export singleton instance
 const headerComponent = new HeaderComponent();
-
-// Export singleton
 export default headerComponent;
-
-// Auto-init on DOM ready
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => headerComponent.init());
-} else {
-    headerComponent.init();
-}
