@@ -1,14 +1,76 @@
 // Tracking page main script
-import { TrackingTable } from '/components/tables/tracking-table.js';
-import app from '/core/app.js';
+// Usa i componenti globali già caricati da tracking.html
 
 // Globals
 let trackingTable = null;
 let trackings = [];
-const { modalSystem, notificationSystem } = app;
+const notificationSystem = window.NotificationSystem;
+const modalSystem = window.ModalSystem;
+
+// App utilities
+const app = {
+    formatDate: function(date, format = 'short') {
+        if (!date) return '-';
+        
+        const d = new Date(date);
+        if (isNaN(d.getTime())) return date; // Se non è una data valida, ritorna il valore originale
+        
+        const options = {
+            short: { day: '2-digit', month: '2-digit', year: 'numeric' },
+            long: { day: 'numeric', month: 'long', year: 'numeric' },
+            full: { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }
+        };
+        
+        return d.toLocaleDateString('it-IT', options[format] || options.short);
+    },
+    
+    utils: {
+        getStatusText: function(status) {
+            const statusMap = {
+                'registered': 'Registrato',
+                'in_transit': 'In Transito',
+                'arrived': 'Arrivato',
+                'customs_cleared': 'Sdoganato',
+                'out_for_delivery': 'In Consegna',
+                'delivered': 'Consegnato',
+                'delayed': 'In Ritardo',
+                'exception': 'Eccezione'
+            };
+            return statusMap[status] || status;
+        },
+        
+        getStatusClass: function(status) {
+            const classMap = {
+                'registered': 'status-registered',
+                'in_transit': 'status-transit',
+                'arrived': 'status-arrived',
+                'customs_cleared': 'status-customs',
+                'out_for_delivery': 'status-delivery',
+                'delivered': 'status-delivered',
+                'delayed': 'status-delayed',
+                'exception': 'status-exception'
+            };
+            return classMap[status] || 'status-default';
+        },
+        
+        getStatusIcon: function(status) {
+            const iconMap = {
+                'registered': 'fa-clipboard-check',
+                'in_transit': 'fa-truck',
+                'arrived': 'fa-warehouse',
+                'customs_cleared': 'fa-stamp',
+                'out_for_delivery': 'fa-shipping-fast',
+                'delivered': 'fa-check-circle',
+                'delayed': 'fa-exclamation-triangle',
+                'exception': 'fa-times-circle'
+            };
+            return iconMap[status] || 'fa-question-circle';
+        }
+    }
+};
 
 // Initialize page
-export async function init() {
+async function init() {
     console.log('[Tracking] Initializing page...');
     
     try {
@@ -31,161 +93,104 @@ export async function init() {
     }
 }
 
-// Initialize table
+// Initialize table using TableManager
 function initTable() {
     const tableContainer = document.getElementById('trackingTable');
     if (!tableContainer) {
         throw new Error('Table container not found');
     }
     
-    trackingTable = new TrackingTable(tableContainer, {
-        height: 'calc(100vh - 320px)',
-        layout: 'fitColumns',
-        responsiveLayout: 'collapse',
-        placeholder: 'Nessun tracking disponibile',
-        
+    // Usa TableManager invece di TrackingTable
+    trackingTable = new window.TableManager('trackingTable', {
         columns: [
             {
-                formatter: 'rowSelection',
-                titleFormatter: 'rowSelection',
-                hozAlign: 'center',
-                headerSort: false,
-                width: 40
+                key: 'select',
+                label: '<input type="checkbox" onchange="toggleSelectAll(this)">',
+                sortable: false,
+                width: '40px',
+                formatter: (value, row) => `<input type="checkbox" class="row-select" data-id="${row.id}">`
             },
             {
-                title: 'Tracking Number',
-                field: 'tracking_number',
-                headerFilter: 'input',
-                formatter: (cell) => {
-                    const data = cell.getData();
-                    return `
-                        <div class="tracking-number-cell">
-                            <span class="tracking-number">${data.tracking_number}</span>
-                            <span class="tracking-type badge badge-${data.tracking_type}">
-                                ${data.tracking_type?.toUpperCase() || 'N/A'}
-                            </span>
-                        </div>
-                    `;
-                }
+                key: 'tracking_number',
+                label: 'Tracking Number',
+                sortable: true,
+                formatter: (value, row) => `
+                    <div class="tracking-number-cell">
+                        <span class="tracking-number">${value}</span>
+                        <span class="tracking-type badge badge-${row.tracking_type}">
+                            ${row.tracking_type?.toUpperCase() || 'N/A'}
+                        </span>
+                    </div>
+                `
             },
             {
-                title: 'Carrier',
-                field: 'carrier_code',
-                headerFilter: 'select',
-                headerFilterParams: {
-                    values: true
-                },
-                formatter: (cell) => {
-                    const carrier = cell.getValue();
-                    return `<div class="carrier-badge carrier-${carrier?.toLowerCase()}">${carrier || '-'}</div>`;
-                }
+                key: 'carrier_code',
+                label: 'Carrier',
+                sortable: true,
+                formatter: (value) => `<div class="carrier-badge carrier-${value?.toLowerCase()}">${value || '-'}</div>`
             },
             {
-                title: 'Status',
-                field: 'status',
-                headerFilter: 'select',
-                headerFilterParams: {
-                    values: {
-                        '': 'Tutti',
-                        'registered': 'Registrato',
-                        'in_transit': 'In Transito',
-                        'arrived': 'Arrivato',
-                        'customs_cleared': 'Sdoganato',
-                        'out_for_delivery': 'In Consegna',
-                        'delivered': 'Consegnato',
-                        'delayed': 'In Ritardo',
-                        'exception': 'Eccezione'
-                    }
-                },
-                formatter: (cell) => {
-                    const status = cell.getValue();
-                    const statusText = app.utils.getStatusText(status);
-                    const statusClass = app.utils.getStatusClass(status);
+                key: 'status',
+                label: 'Status',
+                sortable: true,
+                formatter: (value) => {
+                    const statusText = app.utils.getStatusText(value);
+                    const statusClass = app.utils.getStatusClass(value);
                     return `<span class="status-badge ${statusClass}">${statusText}</span>`;
                 }
             },
             {
-                title: 'Origine → Destinazione',
-                field: 'route',
-                formatter: (cell) => {
-                    const data = cell.getData();
-                    return `
-                        <div class="route-cell">
-                            <span class="port">${data.origin_port || '-'}</span>
-                            <i class="fas fa-arrow-right"></i>
-                            <span class="port">${data.destination_port || '-'}</span>
-                        </div>
-                    `;
-                }
+                key: 'route',
+                label: 'Origine → Destinazione',
+                sortable: false,
+                formatter: (value, row) => `
+                    <div class="route-cell">
+                        <span class="port">${row.origin_port || '-'}</span>
+                        <i class="fas fa-arrow-right"></i>
+                        <span class="port">${row.destination_port || '-'}</span>
+                    </div>
+                `
             },
             {
-                title: 'Reference',
-                field: 'reference_number',
-                headerFilter: 'input'
+                key: 'reference_number',
+                label: 'Reference',
+                sortable: true
             },
             {
-                title: 'ETA',
-                field: 'eta',
-                sorter: 'datetime',
-                formatter: (cell) => {
-                    const value = cell.getValue();
-                    if (!value) return '-';
-                    
-                    // Se è già in formato DD/MM/YYYY, ritornalo così
-                    if (/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(value)) {
-                        return value;
-                    }
-                    
-                    // Altrimenti formatta da ISO
-                    return app.formatDate(value);
-                }
+                key: 'eta',
+                label: 'ETA',
+                sortable: true,
+                formatter: (value) => formatETA(value)
             },
             {
-                title: 'Ultimo Aggiornamento',
-                field: 'last_event_date',
-                sorter: 'datetime',
-                formatter: (cell) => {
-                    const value = cell.getValue();
-                    if (!value) return '-';
-                    
-                    // Se è già in formato DD/MM/YYYY, ritornalo così
-                    if (/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(value)) {
-                        return value;
-                    }
-                    
-                    // Altrimenti formatta da ISO
-                    return app.formatDate(value);
-                }
+                key: 'last_event_date',
+                label: 'Ultimo Aggiornamento',
+                sortable: true,
+                formatter: (value) => formatETA(value)
             },
             {
-                title: 'Azioni',
-                formatter: () => {
-                    return `
-                        <div class="action-buttons">
-                            <button class="btn-icon btn-sm" title="Aggiorna" onclick="handleRefreshTracking(this)">
-                                <i class="fas fa-sync-alt"></i>
-                            </button>
-                            <button class="btn-icon btn-sm" title="Timeline" onclick="handleViewTimeline(this)">
-                                <i class="fas fa-history"></i>
-                            </button>
-                            <button class="btn-icon btn-sm btn-danger" title="Elimina" onclick="handleDeleteTracking(this)">
-                                <i class="fas fa-trash"></i>
-                            </button>
-                        </div>
-                    `;
-                },
-                width: 120,
-                hozAlign: 'center',
-                headerSort: false
+                key: 'actions',
+                label: 'Azioni',
+                sortable: false,
+                width: '120px',
+                formatter: (value, row) => `
+                    <div class="action-buttons">
+                        <button class="btn-icon btn-sm" title="Aggiorna" onclick="handleRefreshTracking('${row.id}')">
+                            <i class="fas fa-sync-alt"></i>
+                        </button>
+                        <button class="btn-icon btn-sm" title="Timeline" onclick="handleViewTimeline('${row.id}')">
+                            <i class="fas fa-history"></i>
+                        </button>
+                        <button class="btn-icon btn-sm btn-danger" title="Elimina" onclick="handleDeleteTracking('${row.id}')">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                `
             }
         ],
-        
-        rowClick: (e, row) => {
-            // Click on row shows details
-            if (!e.target.closest('.action-buttons')) {
-                showTrackingDetails(row.getData());
-            }
-        }
+        emptyMessage: 'Nessun tracking disponibile',
+        sortable: true,
+        responsive: true
     });
 }
 
@@ -203,10 +208,15 @@ function setupEventHandlers() {
         refreshBtn.addEventListener('click', refreshAllTrackings);
     }
     
-    // Export button
-    const exportBtn = document.getElementById('exportBtn');
-    if (exportBtn) {
-        exportBtn.addEventListener('click', exportTrackings);
+    // Export buttons
+    const exportPdfBtn = document.getElementById('exportPdfBtn');
+    if (exportPdfBtn) {
+        exportPdfBtn.addEventListener('click', exportAsPDF);
+    }
+    
+    const exportExcelBtn = document.getElementById('exportExcelBtn');
+    if (exportExcelBtn) {
+        exportExcelBtn.addEventListener('click', exportAsExcel);
     }
     
     // Listen for tracking updates
@@ -224,6 +234,23 @@ function setupAutoRefresh() {
             loadTrackings();
         }
     }, 5 * 60 * 1000);
+}
+
+// Toggle select all
+window.toggleSelectAll = function(checkbox) {
+    const checkboxes = document.querySelectorAll('.row-select');
+    checkboxes.forEach(cb => cb.checked = checkbox.checked);
+};
+
+// Get selected rows
+function getSelectedRows() {
+    const selected = [];
+    document.querySelectorAll('.row-select:checked').forEach(cb => {
+        const id = cb.getAttribute('data-id');
+        const tracking = trackings.find(t => t.id == id);
+        if (tracking) selected.push(tracking);
+    });
+    return selected;
 }
 
 // Load trackings
@@ -252,12 +279,6 @@ async function loadTrackings() {
         
         // Update table
         trackingTable.setData(trackings);
-        
-        // Update timeline if active
-        window.currentTrackings = trackings;
-        if (window.timelineView && window.timelineView.isActive()) {
-            window.timelineView.refresh();
-        }
         
     } catch (error) {
         console.error('Error loading trackings:', error);
@@ -759,8 +780,8 @@ async function handleAddTracking(e) {
 }
 
 // Handle refresh tracking
-async function handleRefreshTracking(id) {
-    const tracking = trackings.find(t => t.id === id);
+window.handleRefreshTracking = async function(id) {
+    const tracking = trackings.find(t => t.id == id);
     if (!tracking) return;
     
     // Simulate status progression
@@ -791,11 +812,11 @@ async function handleRefreshTracking(id) {
     
     notificationSystem.success('Tracking aggiornato');
     await loadTrackings();
-}
+};
 
 // Handle view timeline
-async function handleViewTimeline(id) {
-    const tracking = trackings.find(t => t.id === id);
+window.handleViewTimeline = async function(id) {
+    const tracking = trackings.find(t => t.id == id);
     if (!tracking) return;
     
     modalSystem.show({
@@ -803,7 +824,33 @@ async function handleViewTimeline(id) {
         size: 'large',
         content: renderTimeline(tracking)
     });
-}
+};
+
+// Handle delete tracking
+window.handleDeleteTracking = async function(id) {
+    const tracking = trackings.find(t => t.id == id);
+    if (!tracking) return;
+    
+    const confirmed = await modalSystem.confirm({
+        title: 'Conferma Eliminazione',
+        message: `Sei sicuro di voler eliminare il tracking ${tracking.tracking_number}?`,
+        confirmText: 'Elimina',
+        confirmClass: 'sol-btn-danger'
+    });
+    
+    if (confirmed) {
+        // Remove from array
+        trackings = trackings.filter(t => t.id != id);
+        
+        // Save to localStorage
+        localStorage.setItem('trackings', JSON.stringify(trackings));
+        
+        // Reload table
+        await loadTrackings();
+        
+        notificationSystem.success('Tracking eliminato');
+    }
+};
 
 // Render timeline
 function renderTimeline(tracking) {
@@ -1148,36 +1195,9 @@ async function refreshAllTrackings() {
     notificationSystem.success(`${updated} tracking aggiornati`);
 }
 
-// Export trackings
-function exportTrackings() {
-    const selected = trackingTable.getSelectedData();
-    const toExport = selected.length > 0 ? selected : trackings;
-    
-    modalSystem.show({
-        title: 'Esporta Tracking',
-        size: 'small',
-        content: `
-            <div class="export-options">
-                <p>Esporta ${toExport.length} tracking selezionati</p>
-                <div class="format-options">
-                    <button class="sol-btn sol-btn-primary" onclick="exportAsCSV()">
-                        <i class="fas fa-file-csv"></i> Esporta CSV
-                    </button>
-                    <button class="sol-btn sol-btn-primary" onclick="exportAsExcel()">
-                        <i class="fas fa-file-excel"></i> Esporta Excel
-                    </button>
-                    <button class="sol-btn sol-btn-primary" onclick="exportAsPDF()">
-                        <i class="fas fa-file-pdf"></i> Esporta PDF
-                    </button>
-                </div>
-            </div>
-        `
-    });
-}
-
 // Export as CSV
 window.exportAsCSV = function() {
-    const selected = trackingTable.getSelectedData();
+    const selected = getSelectedRows();
     const toExport = selected.length > 0 ? selected : trackings;
     
     // Create CSV content
@@ -1197,65 +1217,258 @@ window.exportAsCSV = function() {
     a.click();
     URL.revokeObjectURL(url);
     
-    modalSystem.closeAll();
     notificationSystem.success('Export CSV completato');
 };
 
-// Export as Excel (placeholder)
+// Export as Excel
 window.exportAsExcel = function() {
-    modalSystem.closeAll();
-    notificationSystem.info('Export Excel in sviluppo...');
+    const selected = getSelectedRows();
+    const toExport = selected.length > 0 ? selected : trackings;
+    
+    if (!window.XLSX) {
+        notificationSystem.error('Libreria Excel non disponibile');
+        return;
+    }
+    
+    // Create workbook
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.json_to_sheet(toExport);
+    XLSX.utils.book_append_sheet(wb, ws, "Trackings");
+    
+    // Download
+    XLSX.writeFile(wb, `tracking_export_${new Date().toISOString().split('T')[0]}.xlsx`);
+    
+    notificationSystem.success('Export Excel completato');
 };
 
 // Export as PDF (placeholder)
 window.exportAsPDF = function() {
-    modalSystem.closeAll();
     notificationSystem.info('Export PDF in sviluppo...');
-};
-
-// Make functions available globally for onclick handlers
-window.handleRefreshTracking = function(btn) {
-    const row = btn.closest('tr');
-    const id = trackingTable.getRow(row).getData().id;
-    handleRefreshTracking(id);
-};
-
-window.handleViewTimeline = function(btn) {
-    const row = btn.closest('tr');
-    const id = trackingTable.getRow(row).getData().id;
-    handleViewTimeline(id);
-};
-
-window.handleDeleteTracking = async function(btn) {
-    const row = btn.closest('tr');
-    const data = trackingTable.getRow(row).getData();
-    
-    const confirmed = await modalSystem.confirm({
-        title: 'Conferma Eliminazione',
-        message: `Sei sicuro di voler eliminare il tracking ${data.tracking_number}?`,
-        confirmText: 'Elimina',
-        confirmClass: 'sol-btn-danger'
-    });
-    
-    if (confirmed) {
-        // Remove from array
-        trackings = trackings.filter(t => t.id !== data.id);
-        
-        // Save to localStorage
-        localStorage.setItem('trackings', JSON.stringify(trackings));
-        
-        // Reload table
-        await loadTrackings();
-        
-        notificationSystem.success('Tracking eliminato');
-    }
 };
 
 // Expose loadTrackings globally for ImportManager
 window.loadTrackings = loadTrackings;
 
-// Import manager normalize function
-window.ImportManager = window.ImportManager || {};
+// Auto-init when DOM is ready
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+} else {
+    init();
+}
+
+// Import manager normalize function - AGGIUNGI LE FUNZIONI MANCANTI
+if (!window.ImportManager) {
+    window.ImportManager = {};
+}
+
+// Normalizza carrier
+window.ImportManager.normalizeCarrier = function(carrier) {
+    if (!carrier) return '';
+    
+    const normalized = carrier.toString().trim().toUpperCase();
+    
+    // Mapping comuni
+    const carrierMap = {
+        'MAERSK LINE': 'MAERSK',
+        'MAERSK LINES': 'MAERSK',
+        'MSC': 'MSC',
+        'MEDITERRANEAN SHIPPING COMPANY': 'MSC',
+        'CMA CGM': 'CMA-CGM',
+        'CMA-CGM': 'CMA-CGM',
+        'HAPAG-LLOYD': 'HAPAG-LLOYD',
+        'HAPAG LLOYD': 'HAPAG-LLOYD',
+        'COSCO SHIPPING': 'COSCO',
+        'COSCO': 'COSCO',
+        'ONE': 'ONE',
+        'OCEAN NETWORK EXPRESS': 'ONE',
+        'EVERGREEN': 'EVERGREEN',
+        'EVERGREEN LINE': 'EVERGREEN',
+        'YANG MING': 'YANG-MING',
+        'YANG-MING': 'YANG-MING',
+        'HMM': 'HMM',
+        'HYUNDAI': 'HMM',
+        'ZIM': 'ZIM',
+        'ZIM LINE': 'ZIM',
+        'CARGOLUX': 'CV',
+        'CV': 'CV',
+        'DHL': 'DHL',
+        'FEDEX': 'FEDEX',
+        'FEDERAL EXPRESS': 'FEDEX',
+        'UPS': 'UPS',
+        'UNITED PARCEL SERVICE': 'UPS'
+    };
+    
+    return carrierMap[normalized] || normalized;
+};
+
+// Normalizza stato
+window.ImportManager.normalizeStatus = function(status) {
+    if (!status) return 'registered';
+    
+    const normalized = status.toString().trim().toLowerCase();
+    
+    // Mapping stati
+    const statusMap = {
+        // Italiano
+        'registrato': 'registered',
+        'in transito': 'in_transit',
+        'in viaggio': 'in_transit',
+        'partito': 'in_transit',
+        'arrivato': 'arrived',
+        'sdoganato': 'customs_cleared',
+        'in consegna': 'out_for_delivery',
+        'consegnato': 'delivered',
+        'in ritardo': 'delayed',
+        'eccezione': 'exception',
+        
+        // Inglese
+        'registered': 'registered',
+        'booked': 'registered',
+        'booking confirmed': 'registered',
+        'in transit': 'in_transit',
+        'sailing': 'in_transit',
+        'in voyage': 'in_transit',
+        'departed': 'in_transit',
+        'loaded': 'in_transit',
+        'arrived': 'arrived',
+        'discharged': 'arrived',
+        'customs cleared': 'customs_cleared',
+        'out for delivery': 'out_for_delivery',
+        'delivered': 'delivered',
+        'completed': 'delivered',
+        'delayed': 'delayed',
+        'exception': 'exception',
+        'on hold': 'exception'
+    };
+    
+    return statusMap[normalized] || 'registered';
+};
+
+// Rileva tipo tracking
+window.ImportManager.detectTrackingType = function(trackingNumber) {
+    if (!trackingNumber) return 'bl';
+    
+    const tn = trackingNumber.toString().trim().toUpperCase();
+    
+    // Container (4 lettere + 7 numeri)
+    if (/^[A-Z]{4}\d{7}$/.test(tn)) {
+        return 'container';
+    }
+    
+    // AWB (3 numeri + trattino + 8 numeri)
+    if (/^\d{3}-\d{8}$/.test(tn)) {
+        return 'awb';
+    }
+    
+    // Parcel (vari formati courier)
+    if (/^(DHL|FEDEX|UPS|TNT)/i.test(tn) || /^\d{10,}$/.test(tn)) {
+        return 'parcel';
+    }
+    
+    // Default
+    return 'bl';
+};
+
+// Parse date
+window.ImportManager.parseDate = function(dateStr) {
+    if (!dateStr) return null;
+    
+    const dateString = String(dateStr).trim();
+    
+    // Se è già in formato DD/MM/YYYY, ritornalo così
+    if (/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(dateString)) {
+        return dateString;
+    }
+    
+    // Gestisci formato ISO
+    if (dateString.includes('T') || dateString.includes('-')) {
+        const date = new Date(dateString);
+        if (!isNaN(date.getTime())) {
+            const day = date.getDate().toString().padStart(2, '0');
+            const month = (date.getMonth() + 1).toString().padStart(2, '0');
+            const year = date.getFullYear();
+            return `${day}/${month}/${year}`;
+        }
+    }
+    
+    // Gestisci formato DD/MM/YYYY HH:mm:ss
+    if (dateString.includes(' ') || dateString.includes(',')) {
+        const datePart = dateString.split(/[\s,]/)[0];
+        if (datePart.includes('/')) {
+            const parts = datePart.split('/');
+            if (parts.length === 3) {
+                const day = parts[0].padStart(2, '0');
+                const month = parts[1].padStart(2, '0');
+                const year = parts[2].split(' ')[0];
+                return `${day}/${month}/${year}`;
+            }
+        }
+    }
+    
+    return dateString;
+};
+
+// Extract metadata
+window.ImportManager.extractMetadata = function(row) {
+    const metadata = {};
+    
+    // ShipsGo Mare fields
+    if (row['Port Of Loading']) metadata.pol = row['Port Of Loading'];
+    if (row['Port Of Discharge']) metadata.pod = row['Port Of Discharge'];
+    if (row['Date Of Loading']) {
+        const loadDate = this.parseDate(row['Date Of Loading']);
+        if (loadDate) metadata.loading_date = loadDate;
+    }
+    if (row['Date Of Discharge']) {
+        const dischDate = this.parseDate(row['Date Of Discharge']);
+        if (dischDate) metadata.discharge_date = dischDate;
+    }
+    if (row['POL Country']) metadata.pol_country = row['POL Country'];
+    if (row['POL Country Code']) metadata.pol_country_code = row['POL Country Code'];
+    if (row['POD Country']) metadata.pod_country = row['POD Country'];
+    if (row['POD Country Code']) metadata.pod_country_code = row['POD Country Code'];
+    if (row['CO₂ Emission (Tons)']) metadata.co2_emission = row['CO₂ Emission (Tons)'];
+    if (row['Container Count']) metadata.container_count = row['Container Count'];
+    if (row['Tags']) metadata.tags = row['Tags'];
+    if (row['Booking']) metadata.booking = row['Booking'];
+    
+    // ShipsGo Air fields
+    if (row['AWB Number']) metadata.awb_number = row['AWB Number'];
+    if (row['Origin']) metadata.origin = row['Origin'];
+    if (row['Origin Name']) metadata.origin_name = row['Origin Name'];
+    if (row['Date Of Departure']) {
+        const depDate = this.parseDate(row['Date Of Departure']);
+        if (depDate) metadata.departure_date = depDate;
+    }
+    if (row['Destination']) metadata.destination = row['Destination'];
+    if (row['Destination Name']) metadata.destination_name = row['Destination Name'];
+    if (row['Date Of Arrival']) {
+        const arrDate = this.parseDate(row['Date Of Arrival']);
+        if (arrDate) metadata.arrival_date = arrDate;
+    }
+    if (row['Transit Time']) metadata.transit_time = row['Transit Time'];
+    
+    // Calcola Transit Time per spedizioni marittime se manca
+    if (!metadata.transit_time && metadata.loading_date && metadata.discharge_date) {
+        const loadParts = metadata.loading_date.split('/');
+        const dischParts = metadata.discharge_date.split('/');
+        
+        if (loadParts.length === 3 && dischParts.length === 3) {
+            const loadDate = new Date(loadParts[2], loadParts[1] - 1, loadParts[0]);
+            const dischDate = new Date(dischParts[2], dischParts[1] - 1, dischParts[0]);
+            
+            if (!isNaN(loadDate.getTime()) && !isNaN(dischDate.getTime())) {
+                const diffTime = Math.abs(dischDate - loadDate);
+                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                metadata.transit_time = diffDays.toString();
+            }
+        }
+    }
+    
+    return metadata;
+};
+
+// Normalize tracking data
 window.ImportManager.normalizeTrackingData = function(row) {
     console.log('[ImportManager] Normalizing row:', row);
     
@@ -1373,9 +1586,5 @@ window.ImportManager.normalizeTrackingData = function(row) {
     };
 };
 
-// Auto-init on DOM ready
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
-} else {
-    init();
-}
+// Fix 3: Esporta trackingInit per tracking.html
+window.trackingInit = init;
