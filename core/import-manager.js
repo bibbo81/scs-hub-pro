@@ -255,11 +255,13 @@
                         const firstSheetName = workbook.SheetNames[0];
                         const worksheet = workbook.Sheets[firstSheetName];
                         
-                        // Convert to JSON
+                        // Convert to JSON with raw values
                         const jsonData = XLSX.utils.sheet_to_json(worksheet, {
                             header: 1, // Use first row as headers
                             defval: '', // Default value for empty cells
-                            blankrows: false // Skip blank rows
+                            blankrows: false, // Skip blank rows
+                            raw: false, // Get formatted strings instead of raw values
+                            dateNF: 'dd/mm/yyyy' // Date format
                         });
                         
                         if (jsonData.length < 2) {
@@ -267,18 +269,23 @@
                         }
                         
                         // Convert array format to object format
-                        const headers = jsonData[0];
+                        const headers = jsonData[0].map(h => String(h).trim());
+                        console.log('[ImportManager] Excel headers:', headers);
+                        
                         const rows = [];
                         
                         for (let i = 1; i < jsonData.length; i++) {
                             const row = {};
                             headers.forEach((header, index) => {
-                                row[header] = jsonData[i][index] || '';
+                                const value = jsonData[i][index];
+                                // Converti tutto in stringa e pulisci
+                                row[header] = value !== undefined && value !== null ? String(value).trim() : '';
                             });
                             rows.push(row);
                         }
                         
                         console.log('[ImportManager] Parsed Excel:', rows.length, 'rows');
+                        console.log('[ImportManager] First row data:', rows[0]);
                         resolve(rows);
                         
                     } catch (error) {
@@ -833,7 +840,15 @@
                 const arrDate = this.parseDate(row['Date Of Arrival']);
                 if (arrDate) metadata.arrival_date = arrDate;
             }
-            if (row['Transit Time']) metadata.transit_time = row['Transit Time'];
+            if (row['Transit Time']) {
+                // Fix per Transit Time che può essere un numero Excel
+                const transitValue = row['Transit Time'];
+                if (typeof transitValue === 'number') {
+                    metadata.transit_time = transitValue.toString();
+                } else {
+                    metadata.transit_time = transitValue;
+                }
+            }
             if (row['T5 Count']) metadata.t5_count = row['T5 Count'];
             
             // Altri campi utili - salva TUTTI i campi
