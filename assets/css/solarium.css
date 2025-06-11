@@ -653,21 +653,21 @@ select.form-control {
 }
 
 /* ===== Icons (using simple UTF-8 symbols) ===== */
-.icon-check::before { content: '✓'; }
-.icon-x::before { content: '✕'; }
+.icon-check::before { content: 'âœ“'; }
+.icon-x::before { content: 'âœ•'; }
 .icon-plus::before { content: '+'; }
-.icon-minus::before { content: '−'; }
-.icon-search::before { content: '🔍'; }
-.icon-filter::before { content: '▼'; }
-.icon-sort::before { content: '↕'; }
-.icon-edit::before { content: '✎'; }
-.icon-trash::before { content: '🗑'; }
-.icon-download::before { content: '⬇'; }
-.icon-upload::before { content: '⬆'; }
-.icon-chevron-left::before { content: '‹'; }
-.icon-chevron-right::before { content: '›'; }
-.icon-chevron-up::before { content: '‹'; display: inline-block; transform: rotate(90deg); }
-.icon-chevron-down::before { content: '›'; display: inline-block; transform: rotate(90deg); }
+.icon-minus::before { content: 'âˆ’'; }
+.icon-search::before { content: 'ðŸ”'; }
+.icon-filter::before { content: 'â–¼'; }
+.icon-sort::before { content: 'â†•'; }
+.icon-edit::before { content: 'âœŽ'; }
+.icon-trash::before { content: 'ðŸ—‘'; }
+.icon-download::before { content: 'â¬‡'; }
+.icon-upload::before { content: 'â¬†'; }
+.icon-chevron-left::before { content: 'â€¹'; }
+.icon-chevron-right::before { content: 'â€º'; }
+.icon-chevron-up::before { content: 'â€¹'; display: inline-block; transform: rotate(90deg); }
+.icon-chevron-down::before { content: 'â€º'; display: inline-block; transform: rotate(90deg); }
 
 /* ===== Data Tables Enhanced ===== */
 .data-table {
@@ -704,7 +704,7 @@ select.form-control {
 }
 
 .data-table th[data-sort]::after {
-  content: '↕';
+  content: 'â†•';
   position: absolute;
   right: var(--sol-spacing-md);
   top: 50%;
@@ -713,12 +713,12 @@ select.form-control {
 }
 
 .data-table th[data-sort].sort-asc::after {
-  content: '↑';
+  content: 'â†‘';
   opacity: 1;
 }
 
 .data-table th[data-sort].sort-desc::after {
-  content: '↓';
+  content: 'â†“';
   opacity: 1;
 }
 
@@ -2673,7 +2673,7 @@ select.form-control {
 #userDropdown,
 #notificationDropdown {
     position: absolute !important;
-    top: 48px !important;  /* Valore fisso - header è circa 64px, quindi 48px lo mette vicino */
+    top: 48px !important;  /* Valore fisso - header Ã¨ circa 64px, quindi 48px lo mette vicino */
     right: 0 !important;
     left: auto !important;
     margin: 0 !important;
@@ -3276,6 +3276,50 @@ select.form-control {
 @media print {
     .sol-no-print { display: none !important; }
     .sol-print-only { display: block !important; }
+}
+
+/* ===== DROPDOWN POSITIONING FIX ===== */
+
+/* Fix container positioning */
+.sol-header-right {
+    position: relative;
+}
+
+/* Dropup variation - quando mostrato sopra */
+.sol-dropdown.dropup {
+    top: auto;
+    bottom: calc(100% + 0.5rem);
+}
+
+/* Assicurati che il dropdown sia visibile */
+.sol-dropdown[style*="display: block"] {
+    display: block !important;
+}
+
+/* Fix per evitare che vada fuori schermo a destra */
+@media (max-width: 480px) {
+    #userDropdown,
+    #notificationDropdown {
+        right: -1rem;
+        left: auto;
+        max-width: calc(100vw - 2rem);
+    }
+}
+
+/* Fix per mobile */
+@media (max-width: 768px) {
+    .sol-dropdown {
+        position: fixed !important;
+        left: 8px !important;
+        right: 8px !important;
+        width: auto !important;
+        max-width: none !important;
+    }
+    
+    .sol-dropdown::before,
+    .sol-dropdown::after {
+        display: none; /* Nascondi frecce su mobile */
+    }
 }
 
 /* End of Solarium Design System Complete */
