@@ -1510,15 +1510,17 @@ async function handleDeleteTracking(id) {
         // Update global reference
         window.currentTrackings = trackings;
         
-        // Close any open modals
-        modalSystem.closeAll();
-        
         // Force immediate UI update
         updateStats();
         trackingTable.setData(trackings);
         
         // Show success notification
         notificationSystem.success('Tracking eliminato');
+        
+        // Chiudi esplicitamente tutti i modal dopo un breve ritardo
+        setTimeout(() => {
+            modalSystem.closeAll();
+        }, 100);
         
         // Update timeline if active
         if (window.timelineView && window.timelineView.isActive()) {
