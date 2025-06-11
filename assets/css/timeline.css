@@ -444,3 +444,174 @@
 tr:has(.row-select:checked) {
     background-color: var(--sol-primary-light) !important;
 }
+
+/* ===== CHECKBOX AND ACTION BUTTONS STYLES ===== */
+
+/* Checkbox Styles */
+.sol-table th:has(.select-all),
+.sol-table td:has(.row-select) {
+    width: 40px;
+    text-align: center;
+    padding: 0.5rem;
+}
+
+.select-all,
+.row-select {
+    cursor: pointer;
+    width: 18px;
+    height: 18px;
+    margin: 0;
+}
+
+/* Evidenzia riga quando checkbox è selezionata */
+.sol-table tr:has(.row-select:checked) {
+    background-color: var(--sol-primary-light) !important;
+    transition: background-color 0.2s ease;
+}
+
+.sol-table tr:has(.row-select:checked):hover {
+    background-color: var(--sol-primary-lighter) !important;
+}
+
+/* Action Buttons Styles */
+.action-buttons {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: center;
+}
+
+.btn-icon {
+    background: transparent;
+    border: 1px solid var(--sol-gray-300);
+    border-radius: var(--sol-radius-sm);
+    padding: 0.375rem 0.5rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    color: var(--sol-gray-700);
+    font-size: 0.875rem;
+    line-height: 1;
+}
+
+.btn-icon:hover {
+    background: var(--sol-gray-50);
+    border-color: var(--sol-gray-400);
+    transform: translateY(-1px);
+}
+
+.btn-icon.text-danger {
+    color: var(--sol-danger);
+}
+
+.btn-icon.text-danger:hover {
+    background: var(--sol-danger-light);
+    border-color: var(--sol-danger);
+    color: var(--sol-danger-dark);
+}
+
+/* Fix per il bulk actions container */
+#bulkActionsContainer {
+    animation: slideDown 0.3s ease;
+}
+
+/* Table Container Fixes */
+.table-container {
+    overflow-x: auto;
+    border-radius: var(--sol-radius-lg);
+}
+
+.sol-table {
+    width: 100%;
+    min-width: 800px; /* Previene compressione eccessiva */
+}
+
+/* Migliora l'aspetto della tabella */
+.sol-table th {
+    background: var(--sol-gray-50);
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    letter-spacing: 0.05em;
+    white-space: nowrap;
+}
+
+/* Fix per select filter dropdown */
+select.sol-form-control,
+select.sol-select {
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23343a40' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M2 5l6 6 6-6'/%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 0.75rem center;
+    background-size: 16px 12px;
+    padding-right: 2.5rem;
+}
+
+/* Stili per i bottoni standard usati nelle bulk actions */
+.btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.5rem 1rem;
+    border-radius: var(--sol-radius-md);
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: 1px solid transparent;
+    text-decoration: none;
+    font-size: 0.875rem;
+}
+
+.btn-sm {
+    padding: 0.375rem 0.75rem;
+    font-size: 0.8125rem;
+}
+
+.btn-primary {
+    background: var(--sol-primary);
+    color: white;
+    border-color: var(--sol-primary);
+}
+
+.btn-primary:hover {
+    background: var(--sol-primary-dark);
+    border-color: var(--sol-primary-dark);
+}
+
+.btn-danger {
+    background: var(--sol-danger);
+    color: white;
+    border-color: var(--sol-danger);
+}
+
+.btn-danger:hover {
+    background: var(--sol-danger-dark);
+    border-color: var(--sol-danger-dark);
+}
+
+.btn-secondary {
+    background: var(--sol-gray-600);
+    color: white;
+    border-color: var(--sol-gray-600);
+}
+
+.btn-secondary:hover {
+    background: var(--sol-gray-700);
+    border-color: var(--sol-gray-700);
+}
+
+.btn-outline {
+    background: transparent;
+    color: var(--sol-gray-700);
+    border-color: var(--sol-gray-300);
+}
+
+.btn-outline:hover {
+    background: var(--sol-gray-50);
+    border-color: var(--sol-gray-400);
+}
+
+/* Fix per le variabili CSS mancanti */
+:root {
+    --sol-primary-light: #e3f2fd;
+    --sol-primary-lighter: #bbdefb;
+    --sol-danger-light: #ffebee;
+    --sol-danger-dark: #c62828;
+}

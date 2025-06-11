@@ -71,6 +71,7 @@ let trackingTable = null;
 let trackings = [];
 let statsCards = [];
 let currentColumns = [
+    'select',  // AGGIUNTO: checkbox come prima colonna
     'tracking_number',
     'tracking_type',
     'carrier_code',
@@ -84,57 +85,68 @@ let currentColumns = [
 
 // Column definitions
 const availableColumns = [
+    // NUOVA COLONNA SELECT
+    { 
+        key: 'select', 
+        label: '', 
+        visible: true, 
+        order: 0, 
+        required: false, 
+        isCheckbox: true,
+        width: '40px'
+    },
+    
     // Colonne Base
-    { key: 'tracking_number', label: 'Numero Tracking', visible: true, order: 0, required: true },
-    { key: 'tracking_type', label: 'Tipo', visible: true, order: 1 },
-    { key: 'carrier_code', label: 'Vettore', visible: true, order: 2 },
-    { key: 'status', label: 'Stato', visible: true, order: 3 },
-    { key: 'origin_port', label: 'Origine', visible: true, order: 4 },
-    { key: 'destination_port', label: 'Destinazione', visible: true, order: 5 },
-    { key: 'reference_number', label: 'Riferimento', visible: true, order: 6 },
+    { key: 'tracking_number', label: 'Numero Tracking', visible: true, order: 1, required: true },
+    { key: 'tracking_type', label: 'Tipo', visible: true, order: 2 },
+    { key: 'carrier_code', label: 'Vettore', visible: true, order: 3 },
+    { key: 'status', label: 'Stato', visible: true, order: 4 },
+    { key: 'origin_port', label: 'Origine', visible: true, order: 5 },
+    { key: 'destination_port', label: 'Destinazione', visible: true, order: 6 },
+    { key: 'reference_number', label: 'Riferimento', visible: true, order: 7 },
     
     // Colonne ShipsGo Mare
-    { key: 'booking', label: 'Booking', visible: false, order: 7 },
-    { key: 'container_count', label: 'Container Count', visible: false, order: 8 },
-    { key: 'port_of_loading', label: 'Port Of Loading', visible: false, order: 9 },
-    { key: 'date_of_loading', label: 'Date Of Loading', visible: false, order: 10 },
-    { key: 'pol_country', label: 'POL Country', visible: false, order: 11 },
-    { key: 'pol_country_code', label: 'POL Country Code', visible: false, order: 12 },
-    { key: 'port_of_discharge', label: 'Port Of Discharge', visible: false, order: 13 },
-    { key: 'date_of_discharge', label: 'Date Of Discharge', visible: false, order: 14 },
-    { key: 'pod_country', label: 'POD Country', visible: false, order: 15 },
-    { key: 'pod_country_code', label: 'POD Country Code', visible: false, order: 16 },
-    { key: 'co2_emission', label: 'CO₂ Emission (Tons)', visible: false, order: 17 },
-    { key: 'tags', label: 'Tags', visible: false, order: 18 },
-    { key: 'created_at_shipsgo', label: 'Created At', visible: false, order: 19 },
+    { key: 'booking', label: 'Booking', visible: false, order: 8 },
+    { key: 'container_count', label: 'Container Count', visible: false, order: 9 },
+    { key: 'port_of_loading', label: 'Port Of Loading', visible: false, order: 10 },
+    { key: 'date_of_loading', label: 'Date Of Loading', visible: false, order: 11 },
+    { key: 'pol_country', label: 'POL Country', visible: false, order: 12 },
+    { key: 'pol_country_code', label: 'POL Country Code', visible: false, order: 13 },
+    { key: 'port_of_discharge', label: 'Port Of Discharge', visible: false, order: 14 },
+    { key: 'date_of_discharge', label: 'Date Of Discharge', visible: false, order: 15 },
+    { key: 'pod_country', label: 'POD Country', visible: false, order: 16 },
+    { key: 'pod_country_code', label: 'POD Country Code', visible: false, order: 17 },
+    { key: 'co2_emission', label: 'CO₂ Emission (Tons)', visible: false, order: 18 },
+    { key: 'tags', label: 'Tags', visible: false, order: 19 },
+    { key: 'created_at_shipsgo', label: 'Created At', visible: false, order: 20 },
     
     // Colonne ShipsGo Air  
-    { key: 'awb_number', label: 'AWB Number', visible: false, order: 20 },
-    { key: 'airline', label: 'Airline', visible: false, order: 21 },
-    { key: 'origin', label: 'Origin', visible: false, order: 22 },
-    { key: 'origin_name', label: 'Origin Name', visible: false, order: 23 },
-    { key: 'date_of_departure', label: 'Date Of Departure', visible: false, order: 24 },
-    { key: 'origin_country', label: 'Origin Country', visible: false, order: 25 },
-    { key: 'origin_country_code', label: 'Origin Country Code', visible: false, order: 26 },
-    { key: 'destination', label: 'Destination', visible: false, order: 27 },
-    { key: 'destination_name', label: 'Destination Name', visible: false, order: 28 },
-    { key: 'date_of_arrival', label: 'Date Of Arrival', visible: false, order: 29 },
-    { key: 'destination_country', label: 'Destination Country', visible: false, order: 30 },
-    { key: 'destination_country_code', label: 'Destination Country Code', visible: false, order: 31 },
-    { key: 'transit_time', label: 'Transit Time', visible: false, order: 32 },
-    { key: 't5_count', label: 'T5 Count', visible: false, order: 33 },
+    { key: 'awb_number', label: 'AWB Number', visible: false, order: 21 },
+    { key: 'airline', label: 'Airline', visible: false, order: 22 },
+    { key: 'origin', label: 'Origin', visible: false, order: 23 },
+    { key: 'origin_name', label: 'Origin Name', visible: false, order: 24 },
+    { key: 'date_of_departure', label: 'Date Of Departure', visible: false, order: 25 },
+    { key: 'origin_country', label: 'Origin Country', visible: false, order: 26 },
+    { key: 'origin_country_code', label: 'Origin Country Code', visible: false, order: 27 },
+    { key: 'destination', label: 'Destination', visible: false, order: 28 },
+    { key: 'destination_name', label: 'Destination Name', visible: false, order: 29 },
+    { key: 'date_of_arrival', label: 'Date Of Arrival', visible: false, order: 30 },
+    { key: 'destination_country', label: 'Destination Country', visible: false, order: 31 },
+    { key: 'destination_country_code', label: 'Destination Country Code', visible: false, order: 32 },
+    { key: 'transit_time', label: 'Transit Time', visible: false, order: 33 },
+    { key: 't5_count', label: 'T5 Count', visible: false, order: 34 },
     
     // Colonne Sistema
-    { key: 'last_event_location', label: 'Ultima Posizione', visible: true, order: 34 },
-    { key: 'eta', label: 'ETA', visible: true, order: 35 },
-    { key: 'created_at', label: 'Data Inserimento', visible: true, order: 36 },
+    { key: 'last_event_location', label: 'Ultima Posizione', visible: true, order: 35 },
+    { key: 'eta', label: 'ETA', visible: true, order: 36 },
+    { key: 'created_at', label: 'Data Inserimento', visible: true, order: 37 },
     
     // Actions column
-    { key: 'actions', label: 'Azioni', visible: true, order: 37, required: true, isAction: true }
+    { key: 'actions', label: 'Azioni', visible: true, order: 38, required: true, isAction: true }
 ];
 
 // Default columns (saved in localStorage)
-const DEFAULT_COLUMNS = ['tracking_number', 'tracking_type', 'carrier_code', 'status', 'origin_port', 'destination_port', 'eta', 'created_at', 'actions'];
+const DEFAULT_COLUMNS = ['select', 'tracking_number', 'tracking_type', 'carrier_code', 'status', 'origin_port', 'destination_port', 'eta', 'created_at', 'actions'];
 
 // Esponi le funzioni necessarie
 window.refreshTracking = (id) => handleRefreshTracking(id);
@@ -144,6 +156,13 @@ window.showColumnManager = showColumnManager;
 window.toggleAllColumns = toggleAllColumns;
 window.applyColumnChanges = applyColumnChanges;
 window.resetDefaultColumns = resetDefaultColumns;
+window.updateSelectedCount = updateSelectedCount;
+window.toggleSelectAll = toggleSelectAll;
+window.getSelectedRows = getSelectedRows;
+window.clearSelection = clearSelection;
+window.bulkRefreshTrackings = bulkRefreshTrackings;
+window.bulkDeleteTrackings = bulkDeleteTrackings;
+window.exportSelectedTrackings = exportSelectedTrackings;
 
 // Initialize page
 window.trackingInit = async function() {
@@ -159,12 +178,12 @@ window.trackingInit = async function() {
     // Load saved columns
     loadSavedColumns();
     
-    // Setup page components
+    // Setup page components - ORDINE IMPORTANTE!
     setupStatsCards();
-    setupTrackingTable();
+    setupBulkActions();        // PRIMA della tabella
+    setupCheckboxListeners();  // Setup listeners
+    setupTrackingTable();      // POI crea la tabella
     setupEventListeners();
-    setupBulkActions();        // <-- AGGIUNGI QUESTA
-    setupCheckboxListeners();
     
     // Load initial data
     await loadTrackings();
@@ -187,6 +206,10 @@ function loadSavedColumns() {
     if (saved) {
         try {
             currentColumns = JSON.parse(saved);
+            // Assicurati che 'select' sia sempre la prima colonna
+            if (!currentColumns.includes('select')) {
+                currentColumns.unshift('select');
+            }
         } catch (e) {
             currentColumns = [...DEFAULT_COLUMNS];
         }
@@ -197,6 +220,9 @@ function loadSavedColumns() {
 
 // Show column manager modal
 function showColumnManager() {
+    // Filtra la colonna select dalla lista gestibile
+    const manageableColumns = availableColumns.filter(col => col.key !== 'select');
+    
     const content = `
         <div class="column-manager">
             <div class="column-manager-header">
@@ -206,7 +232,7 @@ function showColumnManager() {
                 </button>
             </div>
             <div class="column-list" id="columnList">
-                ${availableColumns.map(col => {
+                ${manageableColumns.map(col => {
                     const isChecked = currentColumns.includes(col.key);
                     const isRequired = col.required;
                     return `
@@ -286,7 +312,7 @@ window.updateColumnSelection = function(checkbox) {
 // Update column order based on DOM
 function updateColumnOrder() {
     const items = document.querySelectorAll('.column-item');
-    const newOrder = [];
+    const newOrder = ['select']; // Sempre prima
     
     items.forEach(item => {
         const column = item.dataset.column;
@@ -387,6 +413,22 @@ function setupTrackingTable() {
         const colDef = availableColumns.find(c => c.key === colKey);
         if (!colDef) return null;
         
+        // Gestione colonna checkbox
+        if (colDef.isCheckbox) {
+            return {
+                key: 'select',
+                label: `<input type="checkbox" class="select-all" onchange="toggleSelectAll(this)">`,
+                sortable: false,
+                width: colDef.width,
+                formatter: (value, row) => `
+                    <input type="checkbox" 
+                           class="row-select" 
+                           data-row-id="${row.id}"
+                           onchange="updateSelectedCount()">
+                `
+            };
+        }
+        
         if (colDef.isAction) {
             return {
                 key: 'actions',
@@ -412,7 +454,7 @@ function setupTrackingTable() {
         return {
             key: colKey,
             label: colDef.label,
-            sortable: !colDef.isAction,
+            sortable: !colDef.isAction && !colDef.isCheckbox,
             formatter: formatter
         };
     }).filter(Boolean);
@@ -424,97 +466,7 @@ function setupTrackingTable() {
     });
 }
 
-// Column formatters
-function getColumnFormatter(key) {
-    const formatters = {
-        tracking_type: (value) => {
-            const types = {
-                container: { icon: 'fa-cube', text: 'MARE', color: 'primary' },
-                bl: { icon: 'fa-file-alt', text: 'B/L', color: 'info' },
-                awb: { icon: 'fa-plane', text: 'AEREO', color: 'warning' },
-                parcel: { icon: 'fa-box', text: 'PARCEL', color: 'success' }
-            };
-            const config = types[value] || { icon: 'fa-question', text: value, color: 'secondary' };
-            // FIX: Usa sol-badge invece di badge
-            return `<span class="sol-badge sol-badge-${config.color}"><i class="fas ${config.icon}"></i> ${config.text}</span>`;
-        },
-        status: (value) => {
-            const statuses = {
-                registered: { class: 'secondary', text: 'Registrato', icon: 'fa-clock' },
-                in_transit: { class: 'info', text: 'In Transito', icon: 'fa-ship' },
-                arrived: { class: 'primary', text: 'Arrivato', icon: 'fa-anchor' },
-                customs_cleared: { class: 'success', text: 'Sdoganato', icon: 'fa-check' },
-                out_for_delivery: { class: 'warning', text: 'In Consegna', icon: 'fa-truck' },
-                delivered: { class: 'success', text: 'Consegnato', icon: 'fa-check-circle' },
-                delayed: { class: 'danger', text: 'In Ritardo', icon: 'fa-exclamation-triangle' },
-                exception: { class: 'danger', text: 'Eccezione', icon: 'fa-times-circle' }
-            };
-            const config = statuses[value] || { class: 'secondary', text: value, icon: 'fa-question' };
-            // FIX: Usa sol-badge invece di badge
-            return `<span class="sol-badge sol-badge-${config.class}"><i class="fas ${config.icon}"></i> ${config.text}</span>`;
-        },
-        eta: (value) => {
-    if (!value) return '-';
-    
-    // Se è già in formato DD/MM/YYYY, gestiscilo correttamente
-    if (/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(value)) {
-        const [day, month, year] = value.split('/');
-        const date = new Date(year, month - 1, day);
-        const now = new Date();
-        const isInFuture = date > now;
-        
-        return `<span class="${isInFuture ? 'text-primary' : 'text-muted'}">
-            ${value}
-            ${isInFuture ? ' <i class="fas fa-clock"></i>' : ''}
-        </span>`;
-    }
-    
-    // Altrimenti gestisci come ISO date
-    const date = new Date(value);
-    if (isNaN(date.getTime())) {
-        return value; // Ritorna il valore originale se non è una data valida
-    }
-    
-    const now = new Date();
-    const isInFuture = date > now;
-    
-    return `<span class="${isInFuture ? 'text-primary' : 'text-muted'}">
-        ${date.toLocaleDateString('it-IT')}
-        ${isInFuture ? ' <i class="fas fa-clock"></i>' : ''}
-    </span>`;
-},
-        created_at: (value) => {
-            if (!value) return '-';
-            return new Date(value).toLocaleDateString('it-IT', {
-                day: '2-digit',
-                month: '2-digit',
-                year: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit'
-            });
-        },
-        last_event_location: (value) => value || '-',
-        origin_port: (value) => value || '-',
-        destination_port: (value) => value || '-',
-        reference_number: (value) => value ? `<code>${value}</code>` : '-',
-        carrier_code: (value) => value || '-'
-    };
-    
-    return formatters[key] || ((value) => value || '-');
-}
-
-// Setup event listeners
-function setupEventListeners() {
-    // Page actions
-    document.getElementById('addTrackingBtn')?.addEventListener('click', showAddTrackingForm);
-    document.getElementById('refreshAllBtn')?.addEventListener('click', refreshAllTrackings);
-    document.getElementById('exportPdfBtn')?.addEventListener('click', exportToPDF);
-    document.getElementById('exportExcelBtn')?.addEventListener('click', exportToExcel);
-    
-    // Filters
-    document.getElementById('statusFilter')?.addEventListener('change', applyFilters);
-    document.getElementById('typeFilter')?.addEventListener('change', applyFilters);
-}
+// === BULK ACTIONS FUNCTIONS ===
 function setupBulkActions() {
     // Crea il container per le azioni bulk se non esiste
     const tableContainer = document.querySelector('.sol-card-header');
@@ -562,7 +514,7 @@ function updateSelectedCount() {
 }
 
 // Modifica la funzione toggleSelectAll esistente
-window.toggleSelectAll = function(checkbox) {
+function toggleSelectAll(checkbox) {
     const checkboxes = document.querySelectorAll('.row-select');
     checkboxes.forEach(cb => {
         cb.checked = checkbox.checked;
@@ -570,7 +522,7 @@ window.toggleSelectAll = function(checkbox) {
         cb.dispatchEvent(new Event('change'));
     });
     updateSelectedCount();
-};
+}
 
 // Aggiungi listener per i checkbox individuali
 function setupCheckboxListeners() {
@@ -581,8 +533,19 @@ function setupCheckboxListeners() {
     });
 }
 
+// Funzione per ottenere le righe selezionate
+function getSelectedRows() {
+    const selected = [];
+    document.querySelectorAll('.row-select:checked').forEach(checkbox => {
+        const rowId = checkbox.dataset.rowId;
+        const tracking = trackings.find(t => t.id == rowId);
+        if (tracking) selected.push(tracking);
+    });
+    return selected;
+}
+
 // Bulk refresh
-window.bulkRefreshTrackings = async function() {
+async function bulkRefreshTrackings() {
     const selected = getSelectedRows();
     if (selected.length === 0) return;
     
@@ -603,10 +566,10 @@ window.bulkRefreshTrackings = async function() {
     progressModal.close();
     clearSelection();
     notificationSystem.success(`${selected.length} tracking aggiornati`);
-};
+}
 
 // Bulk delete
-window.bulkDeleteTrackings = async function() {
+async function bulkDeleteTrackings() {
     const selected = getSelectedRows();
     if (selected.length === 0) return;
     
@@ -627,26 +590,119 @@ window.bulkDeleteTrackings = async function() {
     
     clearSelection();
     notificationSystem.success(`${selected.length} tracking eliminati`);
-};
+}
 
 // Export selected
-window.exportSelectedTrackings = function() {
+function exportSelectedTrackings() {
     const selected = getSelectedRows();
     if (selected.length === 0) return;
     
     const csv = convertToCSV(selected);
     downloadCSV(csv, `tracking_export_selected_${new Date().toISOString().split('T')[0]}.csv`);
     
+    clearSelection();
     notificationSystem.success(`Esportati ${selected.length} tracking`);
-};
+}
 
 // Clear selection
-window.clearSelection = function() {
+function clearSelection() {
     document.querySelectorAll('.row-select').forEach(cb => cb.checked = false);
-    const selectAll = document.querySelector('input[onchange*="toggleSelectAll"]');
+    const selectAll = document.querySelector('.select-all');
     if (selectAll) selectAll.checked = false;
     updateSelectedCount();
-};
+}
+
+// Column formatters
+function getColumnFormatter(key) {
+    const formatters = {
+        tracking_type: (value) => {
+            const types = {
+                container: { icon: 'fa-cube', text: 'MARE', color: 'primary' },
+                bl: { icon: 'fa-file-alt', text: 'B/L', color: 'info' },
+                awb: { icon: 'fa-plane', text: 'AEREO', color: 'warning' },
+                parcel: { icon: 'fa-box', text: 'PARCEL', color: 'success' }
+            };
+            const config = types[value] || { icon: 'fa-question', text: value, color: 'secondary' };
+            // FIX: Usa sol-badge invece di badge
+            return `<span class="sol-badge sol-badge-${config.color}"><i class="fas ${config.icon}"></i> ${config.text}</span>`;
+        },
+        status: (value) => {
+            const statuses = {
+                registered: { class: 'secondary', text: 'Registrato', icon: 'fa-clock' },
+                in_transit: { class: 'info', text: 'In Transito', icon: 'fa-ship' },
+                arrived: { class: 'primary', text: 'Arrivato', icon: 'fa-anchor' },
+                customs_cleared: { class: 'success', text: 'Sdoganato', icon: 'fa-check' },
+                out_for_delivery: { class: 'warning', text: 'In Consegna', icon: 'fa-truck' },
+                delivered: { class: 'success', text: 'Consegnato', icon: 'fa-check-circle' },
+                delayed: { class: 'danger', text: 'In Ritardo', icon: 'fa-exclamation-triangle' },
+                exception: { class: 'danger', text: 'Eccezione', icon: 'fa-times-circle' }
+            };
+            const config = statuses[value] || { class: 'secondary', text: value, icon: 'fa-question' };
+            // FIX: Usa sol-badge invece di badge
+            return `<span class="sol-badge sol-badge-${config.class}"><i class="fas ${config.icon}"></i> ${config.text}</span>`;
+        },
+        eta: (value) => {
+            if (!value) return '-';
+            
+            // Se è già in formato DD/MM/YYYY, gestiscilo correttamente
+            if (/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(value)) {
+                const [day, month, year] = value.split('/');
+                const date = new Date(year, month - 1, day);
+                const now = new Date();
+                const isInFuture = date > now;
+                
+                return `<span class="${isInFuture ? 'text-primary' : 'text-muted'}">
+                    ${value}
+                    ${isInFuture ? ' <i class="fas fa-clock"></i>' : ''}
+                </span>`;
+            }
+            
+            // Altrimenti gestisci come ISO date
+            const date = new Date(value);
+            if (isNaN(date.getTime())) {
+                return value; // Ritorna il valore originale se non è una data valida
+            }
+            
+            const now = new Date();
+            const isInFuture = date > now;
+            
+            return `<span class="${isInFuture ? 'text-primary' : 'text-muted'}">
+                ${date.toLocaleDateString('it-IT')}
+                ${isInFuture ? ' <i class="fas fa-clock"></i>' : ''}
+            </span>`;
+        },
+        created_at: (value) => {
+            if (!value) return '-';
+            return new Date(value).toLocaleDateString('it-IT', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        },
+        last_event_location: (value) => value || '-',
+        origin_port: (value) => value || '-',
+        destination_port: (value) => value || '-',
+        reference_number: (value) => value ? `<code>${value}</code>` : '-',
+        carrier_code: (value) => value || '-'
+    };
+    
+    return formatters[key] || ((value) => value || '-');
+}
+
+// Setup event listeners
+function setupEventListeners() {
+    // Page actions
+    document.getElementById('addTrackingBtn')?.addEventListener('click', showAddTrackingForm);
+    document.getElementById('refreshAllBtn')?.addEventListener('click', refreshAllTrackings);
+    document.getElementById('exportPdfBtn')?.addEventListener('click', exportToPDF);
+    document.getElementById('exportExcelBtn')?.addEventListener('click', exportToExcel);
+    
+    // Filters
+    document.getElementById('statusFilter')?.addEventListener('change', applyFilters);
+    document.getElementById('typeFilter')?.addEventListener('change', applyFilters);
+}
 
 // Helper per CSV
 function convertToCSV(data) {
@@ -1126,7 +1182,7 @@ async function handleAddTracking(event) {
 
 // Handle refresh tracking
 async function handleRefreshTracking(id) {
-    const tracking = trackings.find(t => t.id === id);
+    const tracking = trackings.find(t => t.id == id);
     if (!tracking) return;
     
     // Simulate status progression
@@ -1161,7 +1217,7 @@ async function handleRefreshTracking(id) {
 
 // Handle view timeline
 async function handleViewTimeline(id) {
-    const tracking = trackings.find(t => t.id === id);
+    const tracking = trackings.find(t => t.id == id);
     if (!tracking) return;
     
     modalSystem.show({
