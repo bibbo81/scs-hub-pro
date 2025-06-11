@@ -858,19 +858,27 @@
                 // Debug Transit Time
                 console.log('[ImportManager] Raw Transit Time value:', row['Transit Time'], 'Type:', typeof row['Transit Time']);
                 
-                // Fix per Transit Time che può essere un numero Excel
                 const transitValue = row['Transit Time'];
-                if (typeof transitValue === 'number') {
-                    // Potrebbe essere un numero seriale Excel?
-                    console.log('[ImportManager] Transit Time is number:', transitValue);
-                    // Se è 16, probabilmente è già il valore corretto
-                    metadata.transit_time = Math.round(transitValue).toString();
-                } else if (typeof transitValue === 'string') {
-                    // Rimuovi spazi e caratteri non numerici
-                    const cleaned = transitValue.replace(/[^\d]/g, '');
-                    metadata.transit_time = cleaned || transitValue;
-                } else {
-                    metadata.transit_time = String(transitValue);
+                metadata.transit_time = String(transitValue).trim();
+                
+                // Verifica se il valore sembra errato confrontando con le date
+                if (metadata.departure_date && metadata.arrival_date) {
+                    const depDate = new Date(metadata.departure_date);
+                    const arrDate = new Date(metadata.arrival_date);
+                    
+                    if (!isNaN(depDate.getTime()) && !isNaN(arrDate.getTime())) {
+                        const diffTime = Math.abs(arrDate - depDate);
+                        const calculatedDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                        const savedDays = parseInt(metadata.transit_time);
+                        
+                        // Se la differenza è troppo grande, usa il valore calcolato
+                        if (!isNaN(savedDays) && Math.abs(savedDays - calculatedDays) > 10) {
+                            console.log('[ImportManager] Transit Time mismatch - Saved:', savedDays, 'Calculated:', calculatedDays);
+                            console.log('[ImportManager] Using calculated value instead');
+                            metadata.transit_time = calculatedDays.toString();
+                            metadata.transit_time_corrected = true;
+                        }
+                    }
                 }
                 
                 console.log('[ImportManager] Final Transit Time:', metadata.transit_time);
