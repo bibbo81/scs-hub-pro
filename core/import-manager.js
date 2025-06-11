@@ -271,6 +271,7 @@
                         // Convert array format to object format
                         const headers = jsonData[0].map(h => String(h).trim());
                         console.log('[ImportManager] Excel headers:', headers);
+                        console.log('[ImportManager] Excel headers details:', headers.join(' | '));
                         
                         const rows = [];
                         
