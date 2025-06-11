@@ -403,76 +403,6 @@
         }, 100);
     });
 
-    // Fix 2: ModalSystem confirm - VERSIONE MIGLIORATA
-    setTimeout(() => {
-        if (window.ModalSystem) {
-            console.log('[Modal Fix] Patching ModalSystem for inline onclick...');
-            
-            // Salva il metodo originale
-            const originalResolveConfirm = window.ModalSystem.resolveConfirm;
-            
-            // Override con versione che funziona sempre
-            window.ModalSystem.resolveConfirm = function(modalId, result) {
-                console.log('[Modal Fix] Intercepted resolveConfirm:', modalId, result);
-                
-                // Prova prima il metodo originale
-                if (originalResolveConfirm) {
-                    originalResolveConfirm.call(this, modalId, result);
-                }
-                
-                // Se non ha funzionato, cerca nei resolvers
-                if (this._confirmResolvers && this._confirmResolvers[modalId]) {
-                    const resolver = this._confirmResolvers[modalId];
-                    delete this._confirmResolvers[modalId];
-                    this.close(modalId);
-                    resolver(result);
-                    return;
-                }
-                
-                // Fallback: cerca in tutte le modali attive e risolvi
-                let resolved = false;
-                this.activeModals.forEach((modalData, id) => {
-                    if (id === modalId && modalData.resolver) {
-                        this.close(modalId);
-                        modalData.resolver(result);
-                        resolved = true;
-                    }
-                });
-                
-                // Se ancora non risolto, forza la chiusura e notifica
-                if (!resolved && result === true) {
-                    this.close(modalId);
-                    // Trigger un evento custom per il delete
-                    const confirmEvent = new CustomEvent('modal:confirmed', {
-                        detail: { modalId, result }
-                    });
-                    window.dispatchEvent(confirmEvent);
-                }
-            };
-        }
-    }, 1500);
-
-    // Debug Modal System
-setTimeout(() => {
-    console.log('[DEBUG] Checking Modal System...');
-    console.log('window.ModalSystem:', window.ModalSystem);
-    console.log('window.modalSystem:', window.modalSystem);
-    console.log('ModalSystem type:', typeof window.ModalSystem);
-    
-    // Forza l'esposizione globale
-    if (!window.ModalSystem && window.modalSystem) {
-        window.ModalSystem = window.modalSystem;
-        console.log('[DEBUG] ModalSystem exposed globally');
-    }
-    
-    // Test resolveConfirm
-    if (window.ModalSystem && window.ModalSystem.resolveConfirm) {
-        console.log('[DEBUG] resolveConfirm exists:', typeof window.ModalSystem.resolveConfirm);
-    } else {
-        console.log('[DEBUG] resolveConfirm NOT FOUND!');
-    }
-}, 1000);
-
     // Fix 3: Annulla button
     document.addEventListener('click', (e) => {
         if (e.target.textContent.trim() === 'Annulla' && 
@@ -484,7 +414,7 @@ setTimeout(() => {
         }
     });
     </script>
-
+    
     <!-- SheetJS for Excel import -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
