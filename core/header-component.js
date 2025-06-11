@@ -238,12 +238,12 @@ export class HeaderComponent {
             };
         }
         
-        const name = window.authInit?.formatUserName(this.user) || 'Utente';
-        const initials = window.authInit?.getUserInitials(name) || 'U';
+        const name = window.authInit?.formatUserName(this.user) || 'Demo User';
+        const initials = window.authInit?.getUserInitials(name) || 'DU';
         
         return {
             name,
-            email: this.user.email || '',
+            email: this.user.email || 'demo@example.com',
             initials
         };
     }
@@ -252,59 +252,7 @@ export class HeaderComponent {
         return window.location.pathname === href;
     }
     
-    // NEW: Position dropdown dynamically
-    positionDropdown(buttonId, dropdownId) {
-        const button = document.getElementById(buttonId);
-        const dropdown = document.getElementById(dropdownId);
-        
-        if (!button || !dropdown) return;
-        
-        // Reset positioning classes
-        dropdown.classList.remove('dropup');
-        dropdown.style.position = 'fixed';
-        
-        // Get button position
-        const buttonRect = button.getBoundingClientRect();
-        const dropdownHeight = 400; // Max height approssimativo
-        const dropdownWidth = 280; // Width del dropdown
-        
-        // Calculate available space
-        const spaceBelow = window.innerHeight - buttonRect.bottom;
-        const spaceAbove = buttonRect.top;
-        const spaceRight = window.innerWidth - buttonRect.left;
-        
-        // Position vertically
-        if (spaceBelow < dropdownHeight && spaceAbove > spaceBelow) {
-            // Show above (dropup)
-            dropdown.classList.add('dropup');
-            dropdown.style.bottom = `${window.innerHeight - buttonRect.top}px`;
-            dropdown.style.top = 'auto';
-        } else {
-            // Show below (dropdown)
-            dropdown.style.top = `${buttonRect.bottom + 8}px`;
-            dropdown.style.bottom = 'auto';
-        }
-        
-        // Position horizontally
-        if (spaceRight < dropdownWidth) {
-            // Align to right edge of button
-            dropdown.style.right = `${window.innerWidth - buttonRect.right}px`;
-            dropdown.style.left = 'auto';
-        } else {
-            // Align to left edge of button
-            dropdown.style.left = `${buttonRect.left}px`;
-            dropdown.style.right = 'auto';
-        }
-        
-        // Ensure dropdown doesn't go off-screen
-        const dropdownRect = dropdown.getBoundingClientRect();
-        if (dropdownRect.right > window.innerWidth) {
-            dropdown.style.right = '8px';
-            dropdown.style.left = 'auto';
-        }
-    }
-    
-    // Event Listeners - FIXED VERSION with dynamic positioning
+    // Event Listeners
     attachEventListeners() {
         // Menu toggle
         document.getElementById('menuToggle')?.addEventListener('click', () => {
@@ -318,14 +266,14 @@ export class HeaderComponent {
             document.getElementById('backdrop').classList.remove('active');
         });
         
-        // User menu - Fix: previeni propagazione e posiziona dinamicamente
+        // User menu
         document.getElementById('userMenuBtn')?.addEventListener('click', (e) => {
             e.stopPropagation();
             e.preventDefault();
             this.toggleDropdown('userDropdown', 'userMenuBtn');
         });
         
-        // Notifications - Fix: previeni propagazione e posiziona dinamicamente
+        // Notifications
         document.getElementById('notificationBtn')?.addEventListener('click', (e) => {
             e.stopPropagation();
             e.preventDefault();
@@ -354,22 +302,20 @@ export class HeaderComponent {
             }
         });
         
-        // Close dropdowns on outside click - IMPORTANTE: con setTimeout
+        // Close dropdowns on outside click
         document.addEventListener('click', (e) => {
-            // Non chiudere se il click è sui bottoni o dropdown stessi
             if (!e.target.closest('#userMenuBtn') && 
                 !e.target.closest('#notificationBtn') && 
                 !e.target.closest('#userDropdown') && 
                 !e.target.closest('#notificationDropdown')) {
                 
-                // Usa setTimeout per evitare race condition
                 setTimeout(() => {
                     this.closeAllDropdowns();
                 }, 10);
             }
         });
         
-        // Previeni chiusura quando si clicca dentro il dropdown
+        // Prevent dropdown close when clicking inside
         document.getElementById('userDropdown')?.addEventListener('click', (e) => {
             if (!e.target.closest('a') && !e.target.closest('button')) {
                 e.stopPropagation();
@@ -386,39 +332,37 @@ export class HeaderComponent {
         document.querySelector('.mark-all-read')?.addEventListener('click', () => {
             this.markAllNotificationsRead();
         });
-        
-        // Reposition dropdowns on window resize
-        window.addEventListener('resize', () => {
-            // Riposiziona dropdown aperti
-            const userDropdown = document.getElementById('userDropdown');
-            const notifDropdown = document.getElementById('notificationDropdown');
-            
-            if (userDropdown && userDropdown.style.display === 'block') {
-                this.positionDropdown('userMenuBtn', 'userDropdown');
-            }
-            if (notifDropdown && notifDropdown.style.display === 'block') {
-                this.positionDropdown('notificationBtn', 'notificationDropdown');
-            }
-        });
     }
     
-    // Dropdown management - UPDATED with positioning
+    // Dropdown management - SIMPLIFIED VERSION
     toggleDropdown(dropdownId, buttonId) {
         const dropdown = document.getElementById(dropdownId);
+        const button = document.getElementById(buttonId);
         const isOpen = dropdown.style.display === 'block';
         
         this.closeAllDropdowns();
         
-        if (!isOpen) {
+        if (!isOpen && button) {
             dropdown.style.display = 'block';
-            // Position dropdown after showing it
-            this.positionDropdown(buttonId, dropdownId);
+            
+            // Check if dropdown goes below viewport
+            const dropdownRect = dropdown.getBoundingClientRect();
+            const windowHeight = window.innerHeight;
+            
+            if (dropdownRect.bottom > windowHeight - 20) {
+                // Add dropup class if not enough space below
+                dropdown.classList.add('dropup');
+            } else {
+                // Remove dropup class if there's space
+                dropdown.classList.remove('dropup');
+            }
         }
     }
     
     closeAllDropdowns() {
         document.querySelectorAll('.sol-dropdown').forEach(dropdown => {
             dropdown.style.display = 'none';
+            dropdown.classList.remove('dropup');
         });
     }
     
