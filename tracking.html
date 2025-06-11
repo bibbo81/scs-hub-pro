@@ -837,6 +837,18 @@ document.addEventListener('DOMContentLoaded', () => {
             subtree: true
         });
     });
+
+console.log('[Debug] Checking header initialization...');
+
+// Verifica se headerComponent esiste
+setTimeout(() => {
+    console.log('window.headerComponent:', window.headerComponent);
+    console.log('Header elements:');
+    console.log('- Header tag:', document.querySelector('.sol-header'));
+    console.log('- User button:', document.getElementById('userMenuBtn'));
+    console.log('- Header right:', document.querySelector('.sol-header-right'));
+}, 2000);
+    
     </script>
 
 </body>
