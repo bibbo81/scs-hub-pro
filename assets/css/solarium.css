@@ -3322,4 +3322,143 @@ select.form-control {
     }
 }
 
+/* ===== Export Dropdown Styles ===== */
+/* Dropdown Container */
+.sol-dropdown {
+    position: relative;
+    display: inline-block;
+}
+
+/* Dropdown Menu */
+.sol-dropdown-menu {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    z-index: 1000;
+    min-width: 180px;
+    margin-top: 4px;
+    background: rgba(255, 255, 255, 0.98);
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    backdrop-filter: blur(10px);
+    overflow: hidden;
+}
+
+/* Dark mode */
+[data-theme="dark"] .sol-dropdown-menu {
+    background: rgba(30, 30, 30, 0.98);
+    border-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Dropdown Items */
+.sol-dropdown-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 16px;
+    color: #333;
+    text-decoration: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: none;
+    background: transparent;
+    width: 100%;
+    text-align: left;
+    font-size: 14px;
+}
+
+.sol-dropdown-item:hover {
+    background: rgba(99, 102, 241, 0.1);
+    color: #6366f1;
+}
+
+.sol-dropdown-item i {
+    width: 16px;
+    text-align: center;
+}
+
+/* Dark mode items */
+[data-theme="dark"] .sol-dropdown-item {
+    color: #e0e0e0;
+}
+
+[data-theme="dark"] .sol-dropdown-item:hover {
+    background: rgba(99, 102, 241, 0.2);
+    color: #818cf8;
+}
+
+/* Divider */
+.sol-dropdown-divider {
+    height: 1px;
+    margin: 4px 0;
+    background: rgba(0, 0, 0, 0.08);
+}
+
+[data-theme="dark"] .sol-dropdown-divider {
+    background: rgba(255, 255, 255, 0.08);
+}
+
+/* Bulk Actions Bar Enhancement */
+.bulk-actions-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem;
+    background: var(--sol-gray-50);
+    border-radius: var(--sol-radius-md);
+    margin-bottom: 1rem;
+}
+
+.selected-count {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 600;
+    color: var(--sol-primary);
+}
+
+.bulk-actions {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+/* Button with dropdown arrow */
+.btn .fa-caret-down {
+    transition: transform 0.2s ease;
+}
+
+.btn:hover .fa-caret-down {
+    transform: translateY(1px);
+}
+
+/* Active dropdown state */
+.sol-dropdown.active .btn .fa-caret-down {
+    transform: rotate(180deg);
+}
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+    .bulk-actions-bar {
+        flex-direction: column;
+        gap: 1rem;
+        align-items: stretch;
+    }
+    
+    .bulk-actions {
+        flex-wrap: wrap;
+    }
+    
+    .bulk-actions .btn {
+        flex: 1;
+        min-width: 140px;
+    }
+    
+    .sol-dropdown-menu {
+        right: 0;
+        left: auto;
+    }
+}
+
 /* End of Solarium Design System Complete */
