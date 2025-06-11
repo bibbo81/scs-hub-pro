@@ -1241,23 +1241,35 @@ async function handleDeleteTracking(id) {
         title: 'Conferma Eliminazione',
         message: 'Sei sicuro di voler eliminare questo tracking?',
         confirmText: 'Elimina',
-        confirmClass: 'sol-btn-danger',  // FIX: Usa sol-btn-danger
+        confirmClass: 'sol-btn-danger',
         cancelText: 'Annulla'
     });
     
     if (!confirmed) return;
     
     // Remove from array
-    trackings = trackings.filter(t => t.id !== id);
+    trackings = trackings.filter(t => t.id !== id && t.id !== id.toString());
     
-    // Save to localStorage
+    // Save to localStorage  
     localStorage.setItem('trackings', JSON.stringify(trackings));
+    
+    // Update global reference
+    window.currentTrackings = trackings;
     
     // Close any open modals
     modalSystem.closeAll();
     
+    // Update UI immediately
+    updateStats();
+    trackingTable.setData(trackings);
+    
+    // Show success notification
     notificationSystem.success('Tracking eliminato');
-    await loadTrackings();
+    
+    // Update timeline if active
+    if (window.timelineView && window.timelineView.isActive()) {
+        window.timelineView.refresh();
+    }
 }
 
 // Refresh all trackings
