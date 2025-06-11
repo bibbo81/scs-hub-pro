@@ -483,11 +483,41 @@
                                 status: tracking.status || 'registered',
                                 created_at: new Date().toISOString(),
                                 updated_at: new Date().toISOString(),
-                                last_event_date: new Date().toISOString(),
-                                last_event_location: tracking.metadata?.origin_name || tracking.metadata?.pol || 'Import Location',
-                                origin_port: tracking.metadata?.origin || tracking.metadata?.pol,
-                                destination_port: tracking.metadata?.destination || tracking.metadata?.pod,
-                                eta: tracking.metadata?.arrival_date || tracking.metadata?.discharge_date,
+                                last_event_date: tracking.metadata?.loading_date || tracking.metadata?.departure_date || new Date().toISOString(),
+                                last_event_location: tracking.metadata?.pol || tracking.metadata?.origin_name || tracking.metadata?.origin || 'Import Location',
+                                origin_port: tracking.metadata?.pol || tracking.metadata?.origin,
+                                destination_port: tracking.metadata?.pod || tracking.metadata?.destination,
+                                eta: tracking.metadata?.discharge_date || tracking.metadata?.arrival_date,
+                                // Aggiungi tutti i campi ShipsGo come colonne separate
+                                booking: tracking.metadata?.booking,
+                                container_count: tracking.metadata?.container_count,
+                                port_of_loading: tracking.metadata?.pol,
+                                date_of_loading: tracking.metadata?.loading_date,
+                                pol_country: tracking.metadata?.pol_country,
+                                pol_country_code: tracking.metadata?.pol_country_code,
+                                port_of_discharge: tracking.metadata?.pod,
+                                date_of_discharge: tracking.metadata?.discharge_date,
+                                pod_country: tracking.metadata?.pod_country,
+                                pod_country_code: tracking.metadata?.pod_country_code,
+                                co2_emission: tracking.metadata?.co2_emission,
+                                tags: tracking.metadata?.tags,
+                                created_at_shipsgo: tracking.metadata?.created_at_shipsgo,
+                                // Campi aerei
+                                awb_number: tracking.metadata?.awb_number,
+                                airline: tracking.carrierCode,
+                                origin: tracking.metadata?.origin,
+                                origin_name: tracking.metadata?.origin_name,
+                                date_of_departure: tracking.metadata?.departure_date,
+                                origin_country: tracking.metadata?.origin_country,
+                                origin_country_code: tracking.metadata?.origin_country_code,
+                                destination: tracking.metadata?.destination,
+                                destination_name: tracking.metadata?.destination_name,
+                                date_of_arrival: tracking.metadata?.arrival_date,
+                                destination_country: tracking.metadata?.destination_country,
+                                destination_country_code: tracking.metadata?.destination_country_code,
+                                transit_time: tracking.metadata?.transit_time,
+                                t5_count: tracking.metadata?.t5_count,
+                                // Mantieni tutti i metadata
                                 metadata: tracking.metadata
                             };
                             
@@ -764,15 +794,26 @@
         extractMetadata(row) {
             const metadata = {};
             
-            // ShipsGo Mare fields
+            // ShipsGo Mare fields - NOMI ESATTI DAL FILE
             if (row['Port Of Loading']) metadata.pol = row['Port Of Loading'];
             if (row['Port Of Discharge']) metadata.pod = row['Port Of Discharge'];
-            if (row['Date Of Loading']) metadata.loading_date = row['Date Of Loading'];
-            if (row['Date Of Discharge']) metadata.discharge_date = row['Date Of Discharge'];
+            if (row['Date Of Loading']) {
+                const loadDate = this.parseDate(row['Date Of Loading']);
+                if (loadDate) metadata.loading_date = loadDate;
+            }
+            if (row['Date Of Discharge']) {
+                const dischDate = this.parseDate(row['Date Of Discharge']);
+                if (dischDate) metadata.discharge_date = dischDate;
+            }
+            if (row['POL Country']) metadata.pol_country = row['POL Country'];
+            if (row['POL Country Code']) metadata.pol_country_code = row['POL Country Code'];
+            if (row['POD Country']) metadata.pod_country = row['POD Country'];
+            if (row['POD Country Code']) metadata.pod_country_code = row['POD Country Code'];
             if (row['CO₂ Emission (Tons)']) metadata.co2_emission = row['CO₂ Emission (Tons)'];
             if (row['Container Count']) metadata.container_count = row['Container Count'];
             if (row['Tags']) metadata.tags = row['Tags'];
             if (row['Booking']) metadata.booking = row['Booking'];
+            if (row['Created At']) metadata.created_at_shipsgo = row['Created At'];
             
             // ShipsGo Air fields
             if (row['AWB Number']) metadata.awb_number = row['AWB Number'];
@@ -781,7 +822,6 @@
             if (row['Origin Country']) metadata.origin_country = row['Origin Country'];
             if (row['Origin Country Code']) metadata.origin_country_code = row['Origin Country Code'];
             if (row['Date Of Departure']) {
-                // Gestisci formato data DD/MM/YYYY
                 const depDate = this.parseDate(row['Date Of Departure']);
                 if (depDate) metadata.departure_date = depDate;
             }
@@ -790,20 +830,24 @@
             if (row['Destination Country']) metadata.destination_country = row['Destination Country'];
             if (row['Destination Country Code']) metadata.destination_country_code = row['Destination Country Code'];
             if (row['Date Of Arrival']) {
-                // Gestisci formato data DD/MM/YYYY
                 const arrDate = this.parseDate(row['Date Of Arrival']);
                 if (arrDate) metadata.arrival_date = arrDate;
             }
             if (row['Transit Time']) metadata.transit_time = row['Transit Time'];
             if (row['T5 Count']) metadata.t5_count = row['T5 Count'];
             
-            // Altri campi utili
+            // Altri campi utili - salva TUTTI i campi
             Object.keys(row).forEach(key => {
-                if (!metadata[key] && row[key]) {
-                    metadata[key.toLowerCase().replace(/\s+/g, '_')] = row[key];
+                if (row[key] && row[key] !== '-') {
+                    // Crea una versione snake_case della chiave
+                    const snakeKey = key.toLowerCase().replace(/\s+/g, '_').replace(/[^\w_]/g, '');
+                    if (!metadata[snakeKey]) {
+                        metadata[snakeKey] = row[key];
+                    }
                 }
             });
             
+            console.log('[ImportManager] Extracted metadata:', metadata);
             return metadata;
         },
         
