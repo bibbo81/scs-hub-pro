@@ -639,26 +639,105 @@
          * Normalizza status
          */
         normalizeStatus(statusInput) {
+            if (!statusInput) return 'registered';
+            
+            const status = statusInput.toString().trim();
+            
+            // Mapping basato sulla formula Google Sheets
             const statusMap = {
+                // Stati marittimi
+                'Sailing': 'in_transit',
+                'Arrived': 'arrived',
+                'Delivered': 'delivered',
+                'Discharged': 'arrived',
                 'Gate In': 'in_transit',
-                'Gate Out': 'in_transit',
+                'Gate Out': 'delivered',
                 'Loaded': 'in_transit',
                 'Loading': 'in_transit',
-                'Discharged': 'in_transit',
-                'Discharging': 'in_transit',
+                'Discharging': 'arrived',
                 'In Transit': 'in_transit',
-                'Sailing': 'in_transit',
                 'Transhipment': 'in_transit',
-                'Delivered': 'delivered',
                 'Empty': 'delivered',
                 'Empty Returned': 'delivered',
+                
+                // Stati FedEx
+                'On FedEx vehicle for delivery': 'out_for_delivery',
+                'At local FedEx facility': 'in_transit',
+                'Departed FedEx hub': 'in_transit',
+                'On the way': 'in_transit',
+                'Arrived at FedEx hub': 'in_transit',
+                'International shipment release - Import': 'customs_cleared',
+                'At destination sort facility': 'in_transit',
+                'Left FedEx origin facility': 'in_transit',
+                'Picked up': 'in_transit',
+                'Shipment information sent to FedEx': 'registered',
+                
+                // Stati GLS
+                'Consegnata.': 'delivered',
+                'Consegna prevista nel corso della giornata odierna.': 'out_for_delivery',
+                'Arrivata nella Sede GLS locale.': 'in_transit',
+                'In transito.': 'in_transit',
+                'Partita dalla sede mittente. In transito.': 'in_transit',
+                'La spedizione e\' stata creata dal mittente, attendiamo che ci venga affidata per l\'invio a destinazione.': 'registered',
+                'La spedizione è stata consegnata': 'delivered',
+                'LA spedizione è stata consegnata': 'delivered',
+                'La spedizione è in consegna': 'out_for_delivery',
+                'La spedizione è in transito': 'in_transit',
+                
+                // Stati generici
                 'Registered': 'registered',
                 'Pending': 'registered',
+                'Booked': 'registered',
+                'Booking Confirmed': 'registered',
                 'Delayed': 'delayed',
-                'Exception': 'exception'
+                'Exception': 'exception',
+                
+                // Stati italiani
+                'In transito': 'in_transit',
+                'Arrivata': 'arrived',
+                'Consegnato': 'delivered',
+                'Scaricato': 'arrived',
+                'Sdoganata': 'customs_cleared',
+                'In consegna': 'out_for_delivery',
+                'Spedizione creata': 'registered'
             };
             
-            return statusMap[statusInput] || 'registered';
+            // Prima prova match esatto
+            if (statusMap[status]) {
+                return statusMap[status];
+            }
+            
+            // Poi prova match case-insensitive
+            const statusLower = status.toLowerCase();
+            for (const [key, value] of Object.entries(statusMap)) {
+                if (key.toLowerCase() === statusLower) {
+                    return value;
+                }
+            }
+            
+            // Fallback: prova a dedurre dallo status
+            if (statusLower.includes('transit') || statusLower.includes('sailing') || statusLower.includes('loaded')) {
+                return 'in_transit';
+            }
+            if (statusLower.includes('delivered') || statusLower.includes('consegna')) {
+                return 'delivered';
+            }
+            if (statusLower.includes('arrived') || statusLower.includes('discharged')) {
+                return 'arrived';
+            }
+            if (statusLower.includes('customs') || statusLower.includes('sdogan')) {
+                return 'customs_cleared';
+            }
+            if (statusLower.includes('delay') || statusLower.includes('ritard')) {
+                return 'delayed';
+            }
+            if (statusLower.includes('exception') || statusLower.includes('error')) {
+                return 'exception';
+            }
+            
+            // Default: usa lo status originale se non mappato
+            console.warn('[ImportManager] Status non mappato:', status);
+            return 'registered';
         },
         
         /**
