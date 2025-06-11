@@ -452,16 +452,35 @@ function getColumnFormatter(key) {
             return `<span class="sol-badge sol-badge-${config.class}"><i class="fas ${config.icon}"></i> ${config.text}</span>`;
         },
         eta: (value) => {
-            if (!value) return '-';
-            const date = new Date(value);
-            const now = new Date();
-            const isInFuture = date > now;
-            
-            return `<span class="${isInFuture ? 'text-primary' : 'text-muted'}">
-                ${date.toLocaleDateString('it-IT')}
-                ${isInFuture ? ' <i class="fas fa-clock"></i>' : ''}
-            </span>`;
-        },
+    if (!value) return '-';
+    
+    // Se è già in formato DD/MM/YYYY, gestiscilo correttamente
+    if (/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(value)) {
+        const [day, month, year] = value.split('/');
+        const date = new Date(year, month - 1, day);
+        const now = new Date();
+        const isInFuture = date > now;
+        
+        return `<span class="${isInFuture ? 'text-primary' : 'text-muted'}">
+            ${value}
+            ${isInFuture ? ' <i class="fas fa-clock"></i>' : ''}
+        </span>`;
+    }
+    
+    // Altrimenti gestisci come ISO date
+    const date = new Date(value);
+    if (isNaN(date.getTime())) {
+        return value; // Ritorna il valore originale se non è una data valida
+    }
+    
+    const now = new Date();
+    const isInFuture = date > now;
+    
+    return `<span class="${isInFuture ? 'text-primary' : 'text-muted'}">
+        ${date.toLocaleDateString('it-IT')}
+        ${isInFuture ? ' <i class="fas fa-clock"></i>' : ''}
+    </span>`;
+},
         created_at: (value) => {
             if (!value) return '-';
             return new Date(value).toLocaleDateString('it-IT', {
