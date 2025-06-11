@@ -592,16 +592,39 @@ async function bulkDeleteTrackings() {
     notificationSystem.success(`${selected.length} tracking eliminati`);
 }
 
-// Export selected
-function exportSelectedTrackings() {
-    const selected = getSelectedRows();
-    if (selected.length === 0) return;
-    
-    const csv = convertToCSV(selected);
-    downloadCSV(csv, `tracking_export_selected_${new Date().toISOString().split('T')[0]}.csv`);
-    
-    clearSelection();
-    notificationSystem.success(`Esportati ${selected.length} tracking`);
+// Export selected - AGGIORNATA PER USARE EXPORT MANAGER
+async function exportSelectedTrackings() {
+    try {
+        const selected = getSelectedRows();
+        
+        if (selected.length === 0) {
+            window.NotificationSystem?.warning('Nessun tracking selezionato');
+            return;
+        }
+        
+        // Chiedi formato
+        const format = await window.ModalSystem?.confirm({
+            title: 'Formato Export',
+            message: 'Seleziona il formato di export:',
+            confirmText: 'Excel',
+            cancelText: 'PDF',
+            type: 'info'
+        });
+        
+        if (window.ExportManager) {
+            if (format) {
+                await window.ExportManager.exportSelected(selected, 'excel', 'selected-trackings');
+            } else if (format === false) {
+                await window.ExportManager.exportSelected(selected, 'pdf', 'selected-trackings');
+            }
+        }
+        
+        clearSelection();
+        
+    } catch (error) {
+        console.error('[Tracking] Export selected error:', error);
+        window.NotificationSystem?.error('Errore export: ' + error.message);
+    }
 }
 
 // Clear selection
@@ -1591,13 +1614,100 @@ function applyFilters() {
     }
 }
 
-// Export functions
+// Export functions - AGGIORNATE PER USARE EXPORT MANAGER
 async function exportToPDF() {
-    notificationSystem.info('Export PDF in sviluppo');
+    try {
+        // Verifica se ci sono tracking
+        if (!trackings || trackings.length === 0) {
+            window.NotificationSystem?.warning('Nessun tracking da esportare');
+            return;
+        }
+        
+        // Usa ExportManager
+        if (window.ExportManager) {
+            await window.ExportManager.exportToPDF(trackings, 'tracking-export', {
+                includeSummary: true
+            });
+        } else {
+            throw new Error('ExportManager non disponibile');
+        }
+    } catch (error) {
+        console.error('[Tracking] Export PDF error:', error);
+        window.NotificationSystem?.error('Errore export PDF: ' + error.message);
+    }
 }
 
 async function exportToExcel() {
-    notificationSystem.info('Export Excel in sviluppo');
+    try {
+        // Verifica se ci sono tracking
+        if (!trackings || trackings.length === 0) {
+            window.NotificationSystem?.warning('Nessun tracking da esportare');
+            return;
+        }
+        
+        // Usa ExportManager
+        if (window.ExportManager) {
+            await window.ExportManager.exportToExcel(trackings, 'tracking-export', {
+                includeSummary: true,
+                includeTimeline: true
+            });
+        } else {
+            throw new Error('ExportManager non disponibile');
+        }
+    } catch (error) {
+        console.error('[Tracking] Export Excel error:', error);
+        window.NotificationSystem?.error('Errore export Excel: ' + error.message);
+    }
+}
+
+// Export con filtri applicati - NUOVA FUNZIONE
+async function exportFilteredTrackings() {
+    try {
+        const statusFilter = document.getElementById('statusFilter')?.value;
+        const typeFilter = document.getElementById('typeFilter')?.value;
+        
+        // Usa i dati filtrati dalla tabella
+        const filteredData = trackingTable.filteredData || trackings;
+        
+        if (filteredData.length === 0) {
+            window.NotificationSystem?.warning('Nessun tracking da esportare con i filtri attuali');
+            return;
+        }
+        
+        const filters = {
+            status: statusFilter || null,
+            type: typeFilter || null
+        };
+        
+        if (window.ExportManager) {
+            // Chiedi formato
+            const format = await window.ModalSystem?.confirm({
+                title: 'Export Filtrati',
+                message: `Esportare ${filteredData.length} tracking filtrati?`,
+                confirmText: 'Excel',
+                cancelText: 'PDF',
+                type: 'info'
+            });
+            
+            if (format === true) {
+                await window.ExportManager.exportFiltered(
+                    trackings,
+                    filters,
+                    'excel'
+                );
+            } else if (format === false) {
+                await window.ExportManager.exportFiltered(
+                    trackings,
+                    filters,
+                    'pdf'
+                );
+            }
+        }
+        
+    } catch (error) {
+        console.error('[Tracking] Export filtered error:', error);
+        window.NotificationSystem?.error('Errore export: ' + error.message);
+    }
 }
 
 // Format helpers
@@ -1650,3 +1760,6 @@ function startAutoRefresh() {
 
 // Make loadTrackings globally available for import
 window.loadTrackings = loadTrackings;
+
+// Esponi anche la funzione per i filtri
+window.exportFilteredTrackings = exportFilteredTrackings;
