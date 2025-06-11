@@ -404,40 +404,53 @@
     });
 
     // Fix 2: ModalSystem confirm - VERSIONE MIGLIORATA
-setTimeout(() => {
-    if (window.ModalSystem) {
-        console.log('[Modal Fix] Patching ModalSystem for inline onclick...');
-        
-        // Salva il metodo originale
-        const originalResolveConfirm = window.ModalSystem.resolveConfirm;
-        
-        // Override con versione che funziona sempre
-        window.ModalSystem.resolveConfirm = function(modalId, result) {
-            console.log('[Modal Fix] Intercepted resolveConfirm:', modalId, result);
+    setTimeout(() => {
+        if (window.ModalSystem) {
+            console.log('[Modal Fix] Patching ModalSystem for inline onclick...');
             
-            // Prova prima il metodo originale
-            if (originalResolveConfirm) {
-                originalResolveConfirm.call(this, modalId, result);
-            }
+            // Salva il metodo originale
+            const originalResolveConfirm = window.ModalSystem.resolveConfirm;
             
-            // Se non ha funzionato, cerca nei resolvers
-            if (this._confirmResolvers && this._confirmResolvers[modalId]) {
-                const resolver = this._confirmResolvers[modalId];
-                delete this._confirmResolvers[modalId];
-                this.close(modalId);
-                resolver(result);
-            } else {
-                // Fallback: cerca in tutte le modali attive
+            // Override con versione che funziona sempre
+            window.ModalSystem.resolveConfirm = function(modalId, result) {
+                console.log('[Modal Fix] Intercepted resolveConfirm:', modalId, result);
+                
+                // Prova prima il metodo originale
+                if (originalResolveConfirm) {
+                    originalResolveConfirm.call(this, modalId, result);
+                }
+                
+                // Se non ha funzionato, cerca nei resolvers
+                if (this._confirmResolvers && this._confirmResolvers[modalId]) {
+                    const resolver = this._confirmResolvers[modalId];
+                    delete this._confirmResolvers[modalId];
+                    this.close(modalId);
+                    resolver(result);
+                    return;
+                }
+                
+                // Fallback: cerca in tutte le modali attive e risolvi
+                let resolved = false;
                 this.activeModals.forEach((modalData, id) => {
                     if (id === modalId && modalData.resolver) {
                         this.close(modalId);
                         modalData.resolver(result);
+                        resolved = true;
                     }
                 });
-            }
-        };
-    }
-}, 1500); // Aumentato il delay per sicurezza
+                
+                // Se ancora non risolto, forza la chiusura e notifica
+                if (!resolved && result === true) {
+                    this.close(modalId);
+                    // Trigger un evento custom per il delete
+                    const confirmEvent = new CustomEvent('modal:confirmed', {
+                        detail: { modalId, result }
+                    });
+                    window.dispatchEvent(confirmEvent);
+                }
+            };
+        }
+    }, 1500);
 
     // Debug Modal System
 setTimeout(() => {
