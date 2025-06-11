@@ -128,30 +128,39 @@ export const ModalSystem = {
      * @returns {Promise} Promise che risolve con true/false
      */
     confirm(options = {}) {
-        console.log('[ModalSystem] Creating confirm modal...'); // AGGIUNGI QUESTA RIGA
-        return new Promise((resolve) => {
+    console.log('[ModalSystem] Creating confirm modal...');
+    
+    // Inizializza _confirmResolvers se non esiste
+    if (!this._confirmResolvers) {
+        this._confirmResolvers = {};
+    }
+    
+    return new Promise((resolve) => {
         const modalId = `modal-confirm-${Date.now()}`;
-        console.log('[ModalSystem] Modal ID:', modalId); // E QUESTA
-
+        console.log('[ModalSystem] Modal ID:', modalId);
+        
+        // Salva il resolver PRIMA di creare la modal
+        this._confirmResolvers[modalId] = resolve;
+        
         const modal = this.create({
             title: options.title || 'Conferma',
             content: options.message || 'Sei sicuro?',
             maxWidth: options.maxWidth || '500px',
             footer: `
-    <button class="sol-btn sol-btn-glass" onclick="ModalSystem.resolveConfirm('${modalId}', false)">
-        ${options.cancelText || 'Annulla'}
-    </button>
-    <button class="sol-btn ${options.confirmClass || 'sol-btn-primary'}" onclick="ModalSystem.resolveConfirm('${modalId}', true)">
-        ${options.confirmText || 'Conferma'}
-    </button>
-`,
+                <button class="sol-btn sol-btn-glass" onclick="ModalSystem.resolveConfirm('${modalId}', false)">
+                    ${options.cancelText || 'Annulla'}
+                </button>
+                <button class="sol-btn ${options.confirmClass || 'sol-btn-primary'}" onclick="ModalSystem.resolveConfirm('${modalId}', true)">
+                    ${options.confirmText || 'Conferma'}
+                </button>
+            `,
             hideClose: false,
             closeOnBackdrop: false,
             closeOnEsc: true,
             onClose: () => resolve(false)
         });
             
-        // Salva resolver
+        // Salva anche nel modalData per compatibilità
         const modalData = this.activeModals.get(modalId);
         if (modalData) {
             modalData.resolver = resolve;
