@@ -234,8 +234,90 @@
          * Parse Excel
          */
         async parseExcel(file) {
-            // TODO: Implementare parser Excel
-            throw new Error('Import Excel non ancora implementato');
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                
+                reader.onload = async (e) => {
+                    try {
+                        // Check if SheetJS is available
+                        if (typeof XLSX === 'undefined') {
+                            console.warn('[ImportManager] SheetJS not loaded, attempting to load...');
+                            
+                            // Try to load SheetJS dynamically
+                            await this.loadSheetJS();
+                        }
+                        
+                        // Parse the Excel file
+                        const data = new Uint8Array(e.target.result);
+                        const workbook = XLSX.read(data, { type: 'array' });
+                        
+                        // Get the first sheet
+                        const firstSheetName = workbook.SheetNames[0];
+                        const worksheet = workbook.Sheets[firstSheetName];
+                        
+                        // Convert to JSON
+                        const jsonData = XLSX.utils.sheet_to_json(worksheet, {
+                            header: 1, // Use first row as headers
+                            defval: '', // Default value for empty cells
+                            blankrows: false // Skip blank rows
+                        });
+                        
+                        if (jsonData.length < 2) {
+                            throw new Error('File Excel vuoto o invalido');
+                        }
+                        
+                        // Convert array format to object format
+                        const headers = jsonData[0];
+                        const rows = [];
+                        
+                        for (let i = 1; i < jsonData.length; i++) {
+                            const row = {};
+                            headers.forEach((header, index) => {
+                                row[header] = jsonData[i][index] || '';
+                            });
+                            rows.push(row);
+                        }
+                        
+                        console.log('[ImportManager] Parsed Excel:', rows.length, 'rows');
+                        resolve(rows);
+                        
+                    } catch (error) {
+                        console.error('[ImportManager] Excel parse error:', error);
+                        reject(new Error('Errore nel parsing del file Excel: ' + error.message));
+                    }
+                };
+                
+                reader.onerror = (error) => {
+                    console.error('[ImportManager] File read error:', error);
+                    reject(error);
+                };
+                
+                // Read as ArrayBuffer for Excel files
+                reader.readAsArrayBuffer(file);
+            });
+        },
+        
+        /**
+         * Load SheetJS library dynamically
+         */
+        async loadSheetJS() {
+            return new Promise((resolve, reject) => {
+                if (typeof XLSX !== 'undefined') {
+                    resolve();
+                    return;
+                }
+                
+                const script = document.createElement('script');
+                script.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+                script.onload = () => {
+                    console.log('[ImportManager] SheetJS loaded successfully');
+                    resolve();
+                };
+                script.onerror = () => {
+                    reject(new Error('Failed to load SheetJS library'));
+                };
+                document.head.appendChild(script);
+            });
         },
         
         /**
