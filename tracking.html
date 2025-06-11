@@ -447,6 +447,33 @@ setTimeout(() => {
             }
         }
     });
+    
+    /// Fix 4: Force close all modals after delete confirmation
+    window.addEventListener('modalConfirmed', () => {
+        setTimeout(() => {
+            // Forza la chiusura di tutti i modal attivi
+            document.querySelectorAll('.sol-modal-overlay.active').forEach(modal => {
+                modal.classList.remove('active');
+                setTimeout(() => modal.remove(), 300);
+            });
+        }, 100);
+    });
+
+    // Intercetta handleDeleteTracking per triggherare l'evento
+    document.addEventListener('DOMContentLoaded', () => {
+        // Aspetta che handleDeleteTracking sia disponibile
+        setTimeout(() => {
+            if (window.handleDeleteTracking) {
+                const originalHandleDeleteTracking = window.handleDeleteTracking;
+                window.handleDeleteTracking = async function(id) {
+                    const result = await originalHandleDeleteTracking.call(this, id);
+                    // Dispatch event per chiudere i modal
+                    window.dispatchEvent(new CustomEvent('modalConfirmed'));
+                    return result;
+                };
+            }
+        }, 2000); // Aspetta 2 secondi per essere sicuri che tutto sia caricato
+    });
     </script>
     
     <!-- SheetJS for Excel import -->
