@@ -380,7 +380,10 @@
                    row.Container || 
                    row['Container Number'] ||
                    row['Tracking Number'] || 
-                   row['AWB Number'] ||
+                   row['AWB Number'] ||        // Per file aerei ShipsGo
+                   row['Awb Number'] ||        // Variante minuscola
+                   row.AWB ||                  // Altre possibili varianti
+                   row.awb ||
                    '';
         },
         
@@ -481,10 +484,10 @@
                                 created_at: new Date().toISOString(),
                                 updated_at: new Date().toISOString(),
                                 last_event_date: new Date().toISOString(),
-                                last_event_location: tracking.metadata?.pol || 'Import Location',
-                                origin_port: tracking.metadata?.pol,
-                                destination_port: tracking.metadata?.pod,
-                                eta: tracking.metadata?.discharge_date,
+                                last_event_location: tracking.metadata?.origin_name || tracking.metadata?.pol || 'Import Location',
+                                origin_port: tracking.metadata?.origin || tracking.metadata?.pol,
+                                destination_port: tracking.metadata?.destination || tracking.metadata?.pod,
+                                eta: tracking.metadata?.arrival_date || tracking.metadata?.discharge_date,
                                 metadata: tracking.metadata
                             };
                             
@@ -547,7 +550,11 @@
                 row.tracking_number || 
                 row.Container || 
                 row['Container Number'] ||
-                row['Tracking Number'] || 
+                row['Tracking Number'] ||
+                row['AWB Number'] ||        // Per file aerei
+                row['Awb Number'] ||
+                row.AWB ||
+                row.awb ||
                 ''
             ).toString().toUpperCase().trim();
             
@@ -561,6 +568,7 @@
                 row.carrier_code || 
                 row.Carrier || 
                 row['Shipping Line'] ||
+                row.Airline ||              // Per file aerei
                 row.carrier || 
                 ''
             ).toString().toUpperCase().trim();
@@ -677,7 +685,7 @@
         extractMetadata(row) {
             const metadata = {};
             
-            // ShipsGo fields
+            // ShipsGo Mare fields
             if (row['Port Of Loading']) metadata.pol = row['Port Of Loading'];
             if (row['Port Of Discharge']) metadata.pod = row['Port Of Discharge'];
             if (row['Date Of Loading']) metadata.loading_date = row['Date Of Loading'];
@@ -686,6 +694,21 @@
             if (row['Container Count']) metadata.container_count = row['Container Count'];
             if (row['Tags']) metadata.tags = row['Tags'];
             if (row['Booking']) metadata.booking = row['Booking'];
+            
+            // ShipsGo Air fields
+            if (row['AWB Number']) metadata.awb_number = row['AWB Number'];
+            if (row['Origin']) metadata.origin = row['Origin'];
+            if (row['Origin Name']) metadata.origin_name = row['Origin Name'];
+            if (row['Origin Country']) metadata.origin_country = row['Origin Country'];
+            if (row['Origin Country Code']) metadata.origin_country_code = row['Origin Country Code'];
+            if (row['Date Of Departure']) metadata.departure_date = row['Date Of Departure'];
+            if (row['Destination']) metadata.destination = row['Destination'];
+            if (row['Destination Name']) metadata.destination_name = row['Destination Name'];
+            if (row['Destination Country']) metadata.destination_country = row['Destination Country'];
+            if (row['Destination Country Code']) metadata.destination_country_code = row['Destination Country Code'];
+            if (row['Date Of Arrival']) metadata.arrival_date = row['Date Of Arrival'];
+            if (row['Transit Time']) metadata.transit_time = row['Transit Time'];
+            if (row['T5 Count']) metadata.t5_count = row['T5 Count'];
             
             // Altri campi utili
             Object.keys(row).forEach(key => {
