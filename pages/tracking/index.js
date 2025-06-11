@@ -163,6 +163,8 @@ window.trackingInit = async function() {
     setupStatsCards();
     setupTrackingTable();
     setupEventListeners();
+    setupBulkActions();        // <-- AGGIUNGI QUESTA
+    setupCheckboxListeners();
     
     // Load initial data
     await loadTrackings();
@@ -512,6 +514,157 @@ function setupEventListeners() {
     // Filters
     document.getElementById('statusFilter')?.addEventListener('change', applyFilters);
     document.getElementById('typeFilter')?.addEventListener('change', applyFilters);
+}
+function setupBulkActions() {
+    // Crea il container per le azioni bulk se non esiste
+    const tableContainer = document.querySelector('.sol-card-header');
+    if (tableContainer && !document.getElementById('bulkActionsContainer')) {
+        const bulkActions = document.createElement('div');
+        bulkActions.id = 'bulkActionsContainer';
+        bulkActions.style.display = 'none';
+        bulkActions.innerHTML = `
+            <div class="bulk-actions-bar">
+                <span class="selected-count">
+                    <i class="fas fa-check-square"></i>
+                    <span id="selectedCount">0</span> selezionati
+                </span>
+                <div class="bulk-actions">
+                    <button class="btn btn-sm btn-primary" onclick="bulkRefreshTrackings()">
+                        <i class="fas fa-sync-alt"></i> Aggiorna Selezionati
+                    </button>
+                    <button class="btn btn-sm btn-danger" onclick="bulkDeleteTrackings()">
+                        <i class="fas fa-trash"></i> Elimina Selezionati
+                    </button>
+                    <button class="btn btn-sm btn-secondary" onclick="exportSelectedTrackings()">
+                        <i class="fas fa-file-export"></i> Esporta Selezionati
+                    </button>
+                    <button class="btn btn-sm btn-outline" onclick="clearSelection()">
+                        <i class="fas fa-times"></i> Deseleziona
+                    </button>
+                </div>
+            </div>
+        `;
+        tableContainer.appendChild(bulkActions);
+    }
+}
+
+// Funzione per aggiornare il contatore dei selezionati
+function updateSelectedCount() {
+    const selected = getSelectedRows();
+    const count = selected.length;
+    const container = document.getElementById('bulkActionsContainer');
+    const countEl = document.getElementById('selectedCount');
+    
+    if (container) {
+        container.style.display = count > 0 ? 'block' : 'none';
+        if (countEl) countEl.textContent = count;
+    }
+}
+
+// Modifica la funzione toggleSelectAll esistente
+window.toggleSelectAll = function(checkbox) {
+    const checkboxes = document.querySelectorAll('.row-select');
+    checkboxes.forEach(cb => {
+        cb.checked = checkbox.checked;
+        // Trigger change event per aggiornare il contatore
+        cb.dispatchEvent(new Event('change'));
+    });
+    updateSelectedCount();
+};
+
+// Aggiungi listener per i checkbox individuali
+function setupCheckboxListeners() {
+    document.addEventListener('change', (e) => {
+        if (e.target.classList.contains('row-select')) {
+            updateSelectedCount();
+        }
+    });
+}
+
+// Bulk refresh
+window.bulkRefreshTrackings = async function() {
+    const selected = getSelectedRows();
+    if (selected.length === 0) return;
+    
+    const progressModal = modalSystem.progress({
+        title: 'Aggiornamento Multiplo',
+        message: 'Aggiornamento in corso...',
+        showPercentage: true
+    });
+    
+    for (let i = 0; i < selected.length; i++) {
+        const progress = ((i + 1) / selected.length) * 100;
+        progressModal.update(progress, `Aggiornamento ${i + 1} di ${selected.length}...`);
+        
+        await handleRefreshTracking(selected[i].id);
+        await new Promise(resolve => setTimeout(resolve, 300));
+    }
+    
+    progressModal.close();
+    clearSelection();
+    notificationSystem.success(`${selected.length} tracking aggiornati`);
+};
+
+// Bulk delete
+window.bulkDeleteTrackings = async function() {
+    const selected = getSelectedRows();
+    if (selected.length === 0) return;
+    
+    const confirmed = await modalSystem.confirm({
+        title: 'Conferma Eliminazione Multipla',
+        message: `Sei sicuro di voler eliminare ${selected.length} tracking?`,
+        confirmText: 'Elimina Tutti',
+        confirmClass: 'sol-btn-danger'
+    });
+    
+    if (!confirmed) return;
+    
+    const ids = selected.map(t => t.id);
+    trackings = trackings.filter(t => !ids.includes(t.id));
+    
+    localStorage.setItem('trackings', JSON.stringify(trackings));
+    await loadTrackings();
+    
+    clearSelection();
+    notificationSystem.success(`${selected.length} tracking eliminati`);
+};
+
+// Export selected
+window.exportSelectedTrackings = function() {
+    const selected = getSelectedRows();
+    if (selected.length === 0) return;
+    
+    const csv = convertToCSV(selected);
+    downloadCSV(csv, `tracking_export_selected_${new Date().toISOString().split('T')[0]}.csv`);
+    
+    notificationSystem.success(`Esportati ${selected.length} tracking`);
+};
+
+// Clear selection
+window.clearSelection = function() {
+    document.querySelectorAll('.row-select').forEach(cb => cb.checked = false);
+    const selectAll = document.querySelector('input[onchange*="toggleSelectAll"]');
+    if (selectAll) selectAll.checked = false;
+    updateSelectedCount();
+};
+
+// Helper per CSV
+function convertToCSV(data) {
+    const headers = ['tracking_number', 'tracking_type', 'carrier_code', 'status', 
+                    'origin_port', 'destination_port', 'reference_number', 'eta'];
+    
+    const rows = data.map(t => headers.map(h => t[h] || '').join(','));
+    return [headers.join(','), ...rows].join('\n');
+}
+
+function downloadCSV(content, filename) {
+    const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
 }
 
 // Load trackings from localStorage
