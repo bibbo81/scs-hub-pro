@@ -378,7 +378,7 @@
         </div>
     </main>
 
-    <!-- Fix Scripts -->
+   <!-- Fix Scripts -->
     <script>
     // Fix 1: Inizializzazione tracking
     window.addEventListener('DOMContentLoaded', function() {
@@ -402,6 +402,36 @@
             }
         }, 100);
     });
+
+    // Fix 2: ModalSystem confirm - VERSIONE CORRETTA
+    setTimeout(() => {
+        if (window.ModalSystem) {
+            console.log('[Modal Fix] Patching ModalSystem for inline onclick...');
+            
+            // Salva il metodo originale
+            const originalResolveConfirm = window.ModalSystem.resolveConfirm;
+            
+            // Override con versione che funziona sempre
+            window.ModalSystem.resolveConfirm = function(modalId, result) {
+                console.log('[Modal Fix] Intercepted resolveConfirm:', modalId, result);
+                
+                // PRIMA controlla se abbiamo resolver salvati
+                if (this._confirmResolvers && this._confirmResolvers[modalId]) {
+                    console.log('[Modal Fix] Found resolver in _confirmResolvers');
+                    const resolver = this._confirmResolvers[modalId];
+                    delete this._confirmResolvers[modalId];
+                    this.close(modalId);
+                    resolver(result);
+                    return;
+                }
+                
+                // POI prova il metodo originale
+                if (originalResolveConfirm) {
+                    originalResolveConfirm.call(this, modalId, result);
+                }
+            };
+        }
+    }, 1000);
 
     // Fix 3: Annulla button
     document.addEventListener('click', (e) => {
