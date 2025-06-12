@@ -201,54 +201,46 @@ async function loadShipsGoSettings() {
     document.getElementById('shipsgoV2Token').value = '';
     
     try {
-        const user = window.auth?.getCurrentUser();
-        if (!user?.id) {
-            console.log('[Settings] No user logged in');
-            return;
-        }
+        // Carica da localStorage per ora
+        const userProfile = JSON.parse(localStorage.getItem('userProfile') || '{}');
+        const settings = JSON.parse(localStorage.getItem('appSettings') || '{}');
         
-        const token = localStorage.getItem('sb-access-token') || sessionStorage.getItem('sb-access-token');
-        if (!token) {
-            console.log('[Settings] No auth token found');
-            return;
-        }
-        
-        const response = await fetch(`/.netlify/functions/get-profile?id=${user.id}`, {
-            headers: {
-                'Authorization': `Bearer ${token}`
+        // Prova prima dal profilo utente
+        if (userProfile?.api_settings) {
+            // ShipsGo v1 key
+            if (userProfile.api_settings.shipsgo_v1_key) {
+                try {
+                    const decodedV1 = atob(userProfile.api_settings.shipsgo_v1_key);
+                    if (decodedV1 && decodedV1.length === 32 && /^[a-f0-9]+$/i.test(decodedV1)) {
+                        document.getElementById('shipsgoV1ApiKey').value = decodedV1;
+                    }
+                } catch (e) {
+                    console.error('[Settings] Invalid v1 key encoding');
+                }
             }
-        });
-        
-        if (response.ok) {
-            const profileData = await response.json();
-            console.log('[Settings] Profile loaded successfully');
             
-            if (profileData?.api_settings && typeof profileData.api_settings === 'object') {
-                // ShipsGo v1 key
-                if (profileData.api_settings.shipsgo_v1_key) {
-                    try {
-                        const decodedV1 = atob(profileData.api_settings.shipsgo_v1_key);
-                        if (decodedV1 && decodedV1.length === 32 && /^[a-f0-9]+$/i.test(decodedV1)) {
-                            document.getElementById('shipsgoV1ApiKey').value = decodedV1;
-                        }
-                    } catch (e) {
-                        console.error('[Settings] Invalid v1 key encoding');
+            // ShipsGo v2 token
+            if (userProfile.api_settings.shipsgo_v2_token) {
+                try {
+                    const decodedV2 = atob(userProfile.api_settings.shipsgo_v2_token);
+                    if (decodedV2 && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(decodedV2)) {
+                        document.getElementById('shipsgoV2Token').value = decodedV2;
                     }
-                }
-                
-                // ShipsGo v2 token
-                if (profileData.api_settings.shipsgo_v2_token) {
-                    try {
-                        const decodedV2 = atob(profileData.api_settings.shipsgo_v2_token);
-                        if (decodedV2 && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(decodedV2)) {
-                            document.getElementById('shipsgoV2Token').value = decodedV2;
-                        }
-                    } catch (e) {
-                        console.error('[Settings] Invalid v2 token encoding');
-                    }
+                } catch (e) {
+                    console.error('[Settings] Invalid v2 token encoding');
                 }
             }
+        } 
+        // Fallback alle settings generali
+        else if (settings?.apiKeys) {
+            if (settings.apiKeys.shipsgo_v1) {
+                document.getElementById('shipsgoV1ApiKey').value = settings.apiKeys.shipsgo_v1;
+            }
+            if (settings.apiKeys.shipsgo_v2) {
+                document.getElementById('shipsgoV2Token').value = settings.apiKeys.shipsgo_v2;
+            }
         }
+        
     } catch (error) {
         console.error('[Settings] Error loading ShipsGo settings:', error);
     }
@@ -317,43 +309,38 @@ async function saveShipsGoSettings() {
     }
     
     try {
-        const user = window.auth?.getCurrentUser();
-        if (!user) {
-            showStatus('Devi essere autenticato', 'error');
-            return;
-        }
-        
-        const token = localStorage.getItem('sb-access-token') || sessionStorage.getItem('sb-access-token');
-        
+        // Per ora salva in localStorage fino a quando le Netlify Functions non sono pronte
         const apiSettings = {};
         if (v1Key) apiSettings.shipsgo_v1_key = btoa(v1Key);
         if (v2Token) apiSettings.shipsgo_v2_token = btoa(v2Token);
         
-        const response = await fetch('/.netlify/functions/update-profile', {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                action: 'update_api_settings',
-                data: {
-                    api_settings: apiSettings
-                }
-            })
-        });
+        // Salva in localStorage
+        const userProfile = JSON.parse(localStorage.getItem('userProfile') || '{}');
+        userProfile.api_settings = apiSettings;
+        localStorage.setItem('userProfile', JSON.stringify(userProfile));
         
-        if (response.ok) {
-            showStatus('Configurazione API salvata con successo!', 'success');
-            
-            // Reload to verify
-            setTimeout(() => {
-                loadShipsGoSettings();
-            }, 1000);
-        } else {
-            const error = await response.json();
-            throw new Error(error.message || 'Errore salvataggio');
+        // Salva anche nelle settings generali per retrocompatibilità
+        const settings = JSON.parse(localStorage.getItem('appSettings') || '{}');
+        settings.apiKeys = {
+            shipsgo_v1: v1Key,
+            shipsgo_v2: v2Token
+        };
+        localStorage.setItem('appSettings', JSON.stringify(settings));
+        
+        showStatus('Configurazione API salvata con successo!', 'success');
+        
+        // Aggiorna anche il modulo ShipsGo se presente
+        if (window.shipsGoAPI) {
+            window.shipsGoAPI.v1Key = v1Key;
+            window.shipsGoAPI.v2Token = v2Token;
+            window.shipsGoAPI.initialized = true;
         }
+        
+        // Reload to verify
+        setTimeout(() => {
+            loadShipsGoSettings();
+        }, 1000);
+        
     } catch (error) {
         console.error('[Settings] Save error:', error);
         showStatus('Errore: ' + error.message, 'error');
@@ -434,22 +421,14 @@ window.testShipsGoConnection = async function(event) {
     button.disabled = true;
     
     try {
-        const response = await fetch('/.netlify/functions/test-shipsgo-connection', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                v1Key: v1Key,
-                v2Token: v2Token
-            })
-        });
+        // Per ora simula il test fino a quando le Netlify Functions non sono pronte
+        showStatus('Test connessione simulato in modalità sviluppo', 'warning');
         
-        if (!response.ok) {
-            throw new Error('Test fallito');
-        }
-        
-        const results = await response.json();
+        // Simula risultati
+        const results = {
+            v1: v1Key ? { success: true, message: 'Connesso (simulato)', credits: 1000 } : null,
+            v2: v2Token ? { success: true, message: 'Connesso (simulato)', shipments: 50 } : null
+        };
         
         let message = '';
         if (v1Key && results.v1) {
@@ -467,16 +446,7 @@ window.testShipsGoConnection = async function(event) {
             }
         }
         
-        const hasSuccess = (results.v1?.success) || (results.v2?.success);
-        const hasFailure = (v1Key && !results.v1?.success) || (v2Token && !results.v2?.success);
-        
-        if (hasSuccess && !hasFailure) {
-            showStatus(message, 'success', 5000);
-        } else if (hasFailure && !hasSuccess) {
-            showStatus(message, 'error', 5000);
-        } else {
-            showStatus(message, 'warning', 5000);
-        }
+        showStatus(message + '<br><small>Nota: Test simulato in dev mode</small>', 'success', 5000);
         
     } catch (error) {
         console.error('[Settings] Test error:', error);
