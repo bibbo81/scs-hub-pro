@@ -3,150 +3,246 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Impostazioni - Supply Chain Hub</title>
+    <title>Supply Chain Hub - Impostazioni</title>
+    
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23007AFF'%3E%3Cpath d='M20 8h-3V4H3c-1.1 0-2 .9-2 2v11h2c0 1.66 1.34 3 3 3s3-1.34 3-3h6c0 1.66 1.34 3 3 3s3-1.34 3-3h2v-5l-3-4zM6 18.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm13.5-9l1.96 2.5H17V9.5h2.5zm-1.5 9c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z'/%3E%3C/svg%3E">
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Core CSS -->
     <link rel="stylesheet" href="assets/css/solarium.css">
+    
     <style>
-        .settings-container {
+        /* Settings Specific Styles */
+        .settings-layout {
             display: grid;
-            grid-template-columns: 250px 1fr;
+            grid-template-columns: 280px 1fr;
             gap: 2rem;
-            max-width: 1200px;
-            margin: 2rem auto;
-            padding: 0 1rem;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+            margin-top: 80px;
         }
 
-        /* Sidebar */
-        .settings-sidebar {
-            background: var(--card-bg);
-            border-radius: var(--radius-lg);
+        /* Settings Navigation */
+        .settings-nav {
+            background: rgba(20, 20, 30, 0.6);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
             padding: 1.5rem;
             height: fit-content;
             position: sticky;
-            top: 5rem;
+            top: 100px;
         }
 
-        .settings-sidebar nav {
-            display: flex;
-            flex-direction: column;
-            gap: 0.5rem;
+        .settings-nav-title {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--sol-text-quaternary);
+            margin-bottom: 1rem;
+            padding: 0 0.5rem;
         }
 
-        .settings-sidebar a {
+        .settings-nav-item {
             display: flex;
             align-items: center;
             gap: 0.75rem;
-            padding: 0.75rem 1rem;
-            color: var(--text-secondary);
+            padding: 0.875rem 1rem;
+            margin-bottom: 0.25rem;
+            color: var(--sol-text-secondary);
             text-decoration: none;
-            border-radius: var(--radius-md);
-            transition: all 0.2s;
-            font-weight: 500;
+            border-radius: 12px;
+            transition: all 0.2s ease;
+            cursor: pointer;
+            border: none;
+            background: transparent;
+            width: 100%;
+            text-align: left;
+            font-size: 0.9rem;
         }
 
-        .settings-sidebar a:hover {
-            background: var(--bg-secondary);
-            color: var(--text-primary);
+        .settings-nav-item:hover {
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--sol-text-primary);
+            transform: translateX(4px);
         }
 
-        .settings-sidebar a.active {
-            background: var(--primary-color);
+        .settings-nav-item.active {
+            background: linear-gradient(135deg, #007AFF 0%, #0051D5 100%);
             color: white;
+            font-weight: 500;
+            box-shadow: 0 4px 12px rgba(0, 122, 255, 0.3);
         }
 
-        .settings-sidebar i {
+        .settings-nav-item i {
             width: 20px;
             text-align: center;
+            font-size: 1rem;
         }
 
-        /* Content */
+        /* Settings Content */
         .settings-content {
-            background: var(--card-bg);
-            border-radius: var(--radius-lg);
-            padding: 2rem;
+            min-height: 600px;
         }
 
         .settings-section {
             display: none;
+            animation: fadeIn 0.3s ease-out;
         }
 
         .settings-section.active {
             display: block;
         }
 
-        .settings-section h2 {
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .settings-card {
+            background: rgba(20, 20, 30, 0.6);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+        }
+
+        .settings-card-header {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            padding-bottom: 1.5rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .settings-card-icon {
+            width: 48px;
+            height: 48px;
+            background: linear-gradient(135deg, #007AFF 0%, #0051D5 100%);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.25rem;
+        }
+
+        .settings-card-title {
+            flex: 1;
+        }
+
+        .settings-card-title h2 {
             font-size: 1.5rem;
             font-weight: 600;
-            margin-bottom: 0.5rem;
-            color: var(--text-primary);
+            margin-bottom: 0.25rem;
+            color: var(--sol-text-primary);
         }
 
-        .settings-section p {
-            color: var(--text-secondary);
-            margin-bottom: 2rem;
-        }
-
-        /* Form Groups */
-        .form-group {
-            margin-bottom: 1.5rem;
-        }
-
-        .form-group label {
-            display: block;
-            margin-bottom: 0.5rem;
-            font-weight: 500;
-            color: var(--text-primary);
-        }
-
-        .form-group input,
-        .form-group select,
-        .form-group textarea {
-            width: 100%;
-            padding: 0.75rem 1rem;
-            background: var(--bg-secondary);
-            border: 1px solid var(--border-color);
-            border-radius: var(--radius-md);
-            color: var(--text-primary);
+        .settings-card-title p {
             font-size: 0.875rem;
-            transition: all 0.2s;
+            color: var(--sol-text-tertiary);
         }
 
-        .form-group input:focus,
-        .form-group select:focus,
-        .form-group textarea:focus {
+        /* Form Styles */
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .form-label {
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: var(--sol-text-secondary);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .form-input,
+        .form-select,
+        .form-textarea {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 0.875rem 1rem;
+            color: var(--sol-text-primary);
+            font-size: 0.9rem;
+            transition: all 0.2s ease;
+            width: 100%;
+        }
+
+        .form-input:focus,
+        .form-select:focus,
+        .form-textarea:focus {
             outline: none;
-            border-color: var(--primary-color);
-            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+            border-color: #007AFF;
+            background: rgba(255, 255, 255, 0.08);
+            box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.1);
         }
 
         .form-helper {
             font-size: 0.75rem;
-            color: var(--text-secondary);
+            color: var(--sol-text-quaternary);
             margin-top: 0.25rem;
         }
 
-        /* API Key Input Group */
+        .form-helper a {
+            color: #007AFF;
+            text-decoration: none;
+        }
+
+        .form-helper a:hover {
+            text-decoration: underline;
+        }
+
+        /* API Key Group */
         .api-key-group {
             position: relative;
+            display: flex;
+            gap: 0.5rem;
         }
 
         .api-key-group input {
+            flex: 1;
             padding-right: 3rem;
         }
 
         .api-key-toggle {
             position: absolute;
-            right: 1rem;
+            right: 0.5rem;
             top: 50%;
             transform: translateY(-50%);
-            background: none;
+            background: transparent;
             border: none;
-            color: var(--text-secondary);
+            color: var(--sol-text-tertiary);
             cursor: pointer;
-            padding: 0.25rem;
+            padding: 0.5rem;
+            border-radius: 8px;
+            transition: all 0.2s ease;
         }
 
         .api-key-toggle:hover {
-            color: var(--text-primary);
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--sol-text-primary);
         }
 
         /* Toggle Switch */
@@ -154,29 +250,35 @@
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: 1rem;
-            background: var(--bg-secondary);
-            border-radius: var(--radius-md);
-            margin-bottom: 1rem;
+            padding: 1.25rem 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
         }
 
-        .toggle-info h4 {
-            font-size: 0.875rem;
+        .toggle-group:last-child {
+            border-bottom: none;
+        }
+
+        .toggle-info {
+            flex: 1;
+            margin-right: 1rem;
+        }
+
+        .toggle-label {
             font-weight: 500;
-            color: var(--text-primary);
+            color: var(--sol-text-primary);
             margin-bottom: 0.25rem;
+            display: block;
         }
 
-        .toggle-info p {
-            font-size: 0.75rem;
-            color: var(--text-secondary);
-            margin: 0;
+        .toggle-description {
+            font-size: 0.875rem;
+            color: var(--sol-text-tertiary);
         }
 
         .toggle-switch {
             position: relative;
-            width: 48px;
-            height: 24px;
+            width: 52px;
+            height: 28px;
         }
 
         .toggle-switch input {
@@ -192,429 +294,956 @@
             left: 0;
             right: 0;
             bottom: 0;
-            background-color: var(--text-tertiary);
+            background: rgba(255, 255, 255, 0.1);
             transition: .3s;
-            border-radius: 24px;
+            border-radius: 28px;
         }
 
         .toggle-slider:before {
             position: absolute;
             content: "";
-            height: 18px;
-            width: 18px;
-            left: 3px;
-            bottom: 3px;
-            background-color: white;
+            height: 20px;
+            width: 20px;
+            left: 4px;
+            bottom: 4px;
+            background: white;
             transition: .3s;
             border-radius: 50%;
         }
 
         input:checked + .toggle-slider {
-            background-color: var(--primary-color);
+            background: linear-gradient(135deg, #007AFF 0%, #0051D5 100%);
         }
 
         input:checked + .toggle-slider:before {
             transform: translateX(24px);
         }
 
-        /* Buttons */
-        .btn-group {
+        /* Actions */
+        .settings-actions {
             display: flex;
             gap: 1rem;
             margin-top: 2rem;
+            padding-top: 2rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
         }
 
         .btn-save {
-            background: var(--primary-color);
+            background: linear-gradient(135deg, #007AFF 0%, #0051D5 100%);
             color: white;
             border: none;
-            padding: 0.75rem 1.5rem;
-            border-radius: var(--radius-md);
+            padding: 0.875rem 1.75rem;
+            border-radius: 10px;
             font-weight: 500;
             cursor: pointer;
-            transition: all 0.2s;
-        }
-
-        .btn-save:hover {
-            background: var(--primary-hover);
-            transform: translateY(-1px);
-        }
-
-        .btn-cancel {
-            background: transparent;
-            color: var(--text-secondary);
-            border: 1px solid var(--border-color);
-            padding: 0.75rem 1.5rem;
-            border-radius: var(--radius-md);
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-
-        .btn-cancel:hover {
-            background: var(--bg-secondary);
-            color: var(--text-primary);
-        }
-
-        /* Status Messages */
-        .status-message {
-            padding: 0.75rem 1rem;
-            border-radius: var(--radius-md);
-            margin-bottom: 1rem;
-            display: none;
+            transition: all 0.2s ease;
+            display: flex;
             align-items: center;
             gap: 0.5rem;
         }
 
+        .btn-save:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(0, 122, 255, 0.3);
+        }
+
+        .btn-cancel {
+            background: transparent;
+            color: var(--sol-text-secondary);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 0.875rem 1.75rem;
+            border-radius: 10px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-cancel:hover {
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--sol-text-primary);
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+
+        /* Status Messages */
+        .status-message {
+            padding: 1rem 1.25rem;
+            border-radius: 10px;
+            margin-bottom: 1.5rem;
+            display: none;
+            align-items: flex-start;
+            gap: 0.75rem;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .status-message i {
+            flex-shrink: 0;
+            margin-top: 2px;
+        }
+
         .status-message.success {
-            background: rgba(34, 197, 94, 0.1);
+            background: rgba(34, 197, 94, 0.15);
             color: #22c55e;
-            border: 1px solid rgba(34, 197, 94, 0.2);
+            border: 1px solid rgba(34, 197, 94, 0.3);
         }
 
         .status-message.error {
-            background: rgba(239, 68, 68, 0.1);
+            background: rgba(239, 68, 68, 0.15);
             color: #ef4444;
-            border: 1px solid rgba(239, 68, 68, 0.2);
+            border: 1px solid rgba(239, 68, 68, 0.3);
         }
 
-        /* Responsive */
+        .status-message.warning {
+            background: rgba(251, 191, 36, 0.15);
+            color: #fbbf24;
+            border: 1px solid rgba(251, 191, 36, 0.3);
+        }
+
+        .status-message.info {
+            background: rgba(59, 130, 246, 0.15);
+            color: #3b82f6;
+            border: 1px solid rgba(59, 130, 246, 0.3);
+        }
+
+        /* Webhook Item */
+        .webhook-url-group {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .webhook-url-label {
+            font-weight: 500;
+            color: var(--sol-text-primary);
+            margin-bottom: 0.75rem;
+            display: block;
+        }
+
+        .webhook-url-input {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .webhook-url-input input {
+            flex: 1;
+            font-family: 'Monaco', 'Consolas', monospace;
+            font-size: 0.875rem;
+        }
+
+        /* Danger Zone */
+        .danger-zone {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-top: 2rem;
+        }
+
+        .danger-zone h3 {
+            color: #ef4444;
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .danger-zone p {
+            color: var(--sol-text-secondary);
+            margin-bottom: 1rem;
+            font-size: 0.875rem;
+        }
+
+        .danger-actions {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .btn-danger {
+            background: rgba(239, 68, 68, 0.2);
+            border: 1px solid #ef4444;
+            color: #ef4444;
+            padding: 0.75rem 1.25rem;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-weight: 500;
+        }
+
+        .btn-danger:hover {
+            background: rgba(239, 68, 68, 0.3);
+            transform: translateY(-1px);
+        }
+
+        /* Mobile Responsive */
         @media (max-width: 768px) {
-            .settings-container {
+            .settings-layout {
+                grid-template-columns: 1fr;
+                padding: 1rem;
+                margin-top: 60px;
+            }
+
+            .settings-nav {
+                position: static;
+                padding: 1rem;
+                margin-bottom: 1rem;
+            }
+
+            .settings-nav-item {
+                padding: 0.75rem;
+                font-size: 0.875rem;
+            }
+
+            .settings-card {
+                padding: 1.5rem;
+            }
+
+            .form-grid {
                 grid-template-columns: 1fr;
             }
 
-            .settings-sidebar {
-                position: static;
+            .settings-actions {
+                flex-direction: column;
             }
 
-            .settings-sidebar nav {
-                flex-direction: row;
-                overflow-x: auto;
-                gap: 1rem;
-                padding-bottom: 0.5rem;
-            }
-
-            .settings-sidebar a {
-                white-space: nowrap;
+            .settings-actions button {
+                width: 100%;
+                justify-content: center;
             }
         }
     </style>
 </head>
-<body class="dark-theme">
+<body>
     <!-- Header Component -->
     <div id="header-root"></div>
 
-    <!-- Settings Container -->
-    <div class="settings-container">
-        <!-- Sidebar Navigation -->
-        <aside class="settings-sidebar">
-            <nav>
-                <a href="#api-keys" class="active" data-section="api-keys">
-                    <i class="fas fa-key"></i>
-                    API Keys
-                </a>
-                <a href="#tracking" data-section="tracking">
-                    <i class="fas fa-ship"></i>
-                    Tracking
-                </a>
-                <a href="#notifications" data-section="notifications">
-                    <i class="fas fa-bell"></i>
-                    Notifiche
-                </a>
-                <a href="#import-export" data-section="import-export">
-                    <i class="fas fa-exchange-alt"></i>
-                    Import/Export
-                </a>
-                <a href="#account" data-section="account">
-                    <i class="fas fa-user"></i>
-                    Account
-                </a>
-            </nav>
-        </aside>
+    <!-- Settings Layout -->
+    <div class="settings-layout">
+        <!-- Settings Navigation -->
+        <nav class="settings-nav">
+            <div class="settings-nav-title">IMPOSTAZIONI</div>
+            
+            <button class="settings-nav-item active" data-section="general">
+                <i class="fas fa-building"></i>
+                <span>Generale</span>
+            </button>
+            
+            <button class="settings-nav-item" data-section="import-export">
+                <i class="fas fa-sync-alt"></i>
+                <span>Import/Export</span>
+            </button>
+            
+            <button class="settings-nav-item" data-section="integrations">
+                <i class="fas fa-plug"></i>
+                <span>Integrazioni</span>
+            </button>
+            
+            <button class="settings-nav-item" data-section="notifications">
+                <i class="fas fa-bell"></i>
+                <span>Notifiche</span>
+            </button>
+            
+            <button class="settings-nav-item" data-section="security">
+                <i class="fas fa-shield-alt"></i>
+                <span>Sicurezza</span>
+            </button>
+            
+            <button class="settings-nav-item" data-section="advanced">
+                <i class="fas fa-sliders-h"></i>
+                <span>Avanzate</span>
+            </button>
+        </nav>
 
         <!-- Settings Content -->
         <main class="settings-content">
-            <!-- API Keys Section -->
-            <section id="api-keys" class="settings-section active">
-                <h2>API Keys</h2>
-                <p>Gestisci le chiavi API per i servizi di tracking esterni</p>
+            <!-- General Section -->
+            <section id="general" class="settings-section active">
+                <div class="settings-card">
+                    <div class="settings-card-header">
+                        <div class="settings-card-icon">
+                            <i class="fas fa-building"></i>
+                        </div>
+                        <div class="settings-card-title">
+                            <h2>Informazioni Azienda</h2>
+                            <p>Gestisci le informazioni base della tua organizzazione</p>
+                        </div>
+                    </div>
 
+                    <form id="company-form">
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label class="form-label">
+                                    <i class="fas fa-building"></i>
+                                    Nome Azienda
+                                </label>
+                                <input type="text" class="form-input" id="companyName" placeholder="Nome Azienda SpA">
+                                <span class="form-helper">Questo nome apparirà nei report e documenti</span>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">
+                                    <i class="fas fa-id-card"></i>
+                                    Partita IVA
+                                </label>
+                                <input type="text" class="form-input" id="vatNumber" placeholder="IT12345678901">
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">
+                                    <i class="fas fa-map-marker-alt"></i>
+                                    Indirizzo
+                                </label>
+                                <input type="text" class="form-input" id="address" placeholder="Via Roma 1">
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">
+                                    <i class="fas fa-city"></i>
+                                    Città
+                                </label>
+                                <input type="text" class="form-input" id="city" placeholder="Milano">
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">
+                                    <i class="fas fa-flag"></i>
+                                    Paese
+                                </label>
+                                <select class="form-select" id="country">
+                                    <option value="IT">Italia</option>
+                                    <option value="FR">Francia</option>
+                                    <option value="DE">Germania</option>
+                                    <option value="ES">Spagna</option>
+                                    <option value="UK">Regno Unito</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">
+                                    <i class="fas fa-mail-bulk"></i>
+                                    CAP
+                                </label>
+                                <input type="text" class="form-input" id="postalCode" placeholder="20121">
+                            </div>
+                        </div>
+
+                        <div class="settings-actions">
+                            <button type="submit" class="btn-save">
+                                <i class="fas fa-save"></i>
+                                Salva Modifiche
+                            </button>
+                            <button type="button" class="btn-cancel">
+                                <i class="fas fa-times"></i>
+                                Annulla
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <div class="settings-card">
+                    <div class="settings-card-header">
+                        <div class="settings-card-icon">
+                            <i class="fas fa-globe"></i>
+                        </div>
+                        <div class="settings-card-title">
+                            <h2>Preferenze Regionali</h2>
+                            <p>Imposta lingua, fuso orario e formato dati</p>
+                        </div>
+                    </div>
+
+                    <form id="regional-form">
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label class="form-label">
+                                    <i class="fas fa-language"></i>
+                                    Lingua
+                                </label>
+                                <select class="form-select" id="language">
+                                    <option value="it">Italiano</option>
+                                    <option value="en">English</option>
+                                    <option value="fr">Français</option>
+                                    <option value="de">Deutsch</option>
+                                    <option value="es">Español</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">
+                                    <i class="fas fa-clock"></i>
+                                    Fuso Orario
+                                </label>
+                                <select class="form-select" id="timezone">
+                                    <option value="Europe/Rome">Europe/Rome (GMT+1)</option>
+                                    <option value="Europe/London">Europe/London (GMT)</option>
+                                    <option value="Europe/Paris">Europe/Paris (GMT+1)</option>
+                                    <option value="Europe/Berlin">Europe/Berlin (GMT+1)</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">
+                                    <i class="fas fa-calendar-alt"></i>
+                                    Formato Data
+                                </label>
+                                <select class="form-select" id="dateFormat">
+                                    <option value="dd/mm/yyyy">DD/MM/YYYY</option>
+                                    <option value="mm/dd/yyyy">MM/DD/YYYY</option>
+                                    <option value="yyyy-mm-dd">YYYY-MM-DD</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">
+                                    <i class="fas fa-euro-sign"></i>
+                                    Valuta Predefinita
+                                </label>
+                                <select class="form-select" id="currency">
+                                    <option value="EUR">EUR (€)</option>
+                                    <option value="USD">USD ($)</option>
+                                    <option value="GBP">GBP (£)</option>
+                                    <option value="CHF">CHF (Fr.)</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="settings-actions">
+                            <button type="submit" class="btn-save">
+                                <i class="fas fa-save"></i>
+                                Salva Preferenze
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </section>
+
+            <!-- Import/Export Section -->
+            <section id="import-export" class="settings-section">
+                <div class="settings-card">
+                    <div class="settings-card-header">
+                        <div class="settings-card-icon">
+                            <i class="fas fa-upload"></i>
+                        </div>
+                        <div class="settings-card-title">
+                            <h2>Configurazione Import</h2>
+                            <p>Imposta le regole per l'importazione dei dati</p>
+                        </div>
+                    </div>
+
+                    <div class="toggle-group">
+                        <div class="toggle-info">
+                            <label class="toggle-label">Salta record duplicati</label>
+                            <p class="toggle-description">Non importare righe che hanno lo stesso ID di tracking</p>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="skipDuplicates" checked>
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+
+                    <div class="toggle-group">
+                        <div class="toggle-info">
+                            <label class="toggle-label">Validazione automatica</label>
+                            <p class="toggle-description">Controlla la correttezza dei dati prima dell'import</p>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="autoValidate" checked>
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+
+                    <div class="toggle-group">
+                        <div class="toggle-info">
+                            <label class="toggle-label">Aggiorna record esistenti</label>
+                            <p class="toggle-description">Sovrascrive i dati esistenti se trova corrispondenze</p>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="updateExisting">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="settings-card">
+                    <div class="settings-card-header">
+                        <div class="settings-card-icon">
+                            <i class="fas fa-download"></i>
+                        </div>
+                        <div class="settings-card-title">
+                            <h2>Configurazione Export</h2>
+                            <p>Personalizza il formato dei file esportati</p>
+                        </div>
+                    </div>
+
+                    <form id="export-form">
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label class="form-label">
+                                    <i class="fas fa-file-export"></i>
+                                    Formato Predefinito
+                                </label>
+                                <select class="form-select" id="exportFormat">
+                                    <option value="xlsx">Excel (.xlsx)</option>
+                                    <option value="csv">CSV (.csv)</option>
+                                    <option value="pdf">PDF (.pdf)</option>
+                                    <option value="json">JSON (.json)</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">
+                                    <i class="fas fa-font"></i>
+                                    Encoding CSV
+                                </label>
+                                <select class="form-select" id="csvEncoding">
+                                    <option value="utf-8">UTF-8</option>
+                                    <option value="iso-8859-1">ISO-8859-1</option>
+                                    <option value="windows-1252">Windows-1252</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="toggle-group">
+                            <div class="toggle-info">
+                                <label class="toggle-label">Includi intestazioni</label>
+                                <p class="toggle-description">Aggiungi nomi delle colonne nella prima riga</p>
+                            </div>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="includeHeaders" checked>
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+
+                        <div class="toggle-group">
+                            <div class="toggle-info">
+                                <label class="toggle-label">Comprimi file</label>
+                                <p class="toggle-description">Crea un archivio ZIP per file multipli</p>
+                            </div>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="compressFiles">
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+
+                        <div class="settings-actions">
+                            <button type="submit" class="btn-save">
+                                <i class="fas fa-save"></i>
+                                Salva Configurazione
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </section>
+
+            <!-- Integrations Section -->
+            <section id="integrations" class="settings-section">
                 <div id="api-status" class="status-message">
                     <i class="fas fa-check-circle"></i>
                     <span>Impostazioni salvate con successo</span>
                 </div>
 
-                <form id="api-keys-form">
-                    <div class="form-group">
-                        <label for="shipsgo-key">ShipsGo API Key</label>
-                        <div class="api-key-group">
-                            <input 
-                                type="password" 
-                                id="shipsgo-key" 
-                                placeholder="Inserisci la tua API key ShipsGo"
-                                autocomplete="off"
-                            >
-                            <button type="button" class="api-key-toggle" onclick="toggleApiKeyVisibility('shipsgo-key')">
-                                <i class="fas fa-eye"></i>
+                <div class="settings-card">
+                    <div class="settings-card-header">
+                        <div class="settings-card-icon">
+                            <i class="fas fa-ship"></i>
+                        </div>
+                        <div class="settings-card-title">
+                            <h2>Configurazione API ShipsGo</h2>
+                            <p>Configura le API per il tracking di container marittimi e spedizioni aeree</p>
+                        </div>
+                    </div>
+
+                    <form id="shipsgo-form">
+                        <div class="form-group" style="margin-bottom: 2rem;">
+                            <label class="form-label">
+                                <i class="fas fa-anchor"></i>
+                                ShipsGo v1.2 API Key (Container Marittimi)
+                            </label>
+                            <div class="api-key-group">
+                                <input 
+                                    type="password" 
+                                    id="shipsgoV1ApiKey" 
+                                    class="form-input"
+                                    placeholder="Inserisci API Key v1.2 (32 caratteri hex)"
+                                    autocomplete="new-password"
+                                    data-lpignore="true"
+                                    data-form-type="other"
+                                >
+                                <button type="button" class="api-key-toggle" onclick="toggleApiKeyVisibility('shipsgoV1ApiKey')">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                            </div>
+                            <p class="form-helper">
+                                API Key per tracking container marittimi. Ottienila da 
+                                <a href="https://shipsgo.com/api-integration" target="_blank">shipsgo.com/api-integration</a>
+                            </p>
+                        </div>
+
+                        <div class="form-group" style="margin-bottom: 2rem;">
+                            <label class="form-label">
+                                <i class="fas fa-plane"></i>
+                                ShipsGo v2.0 Bearer Token (Spedizioni Aeree)
+                            </label>
+                            <div class="api-key-group">
+                                <input 
+                                    type="password" 
+                                    id="shipsgoV2Token" 
+                                    class="form-input"
+                                    placeholder="Inserisci Bearer Token v2.0 (formato UUID)"
+                                    autocomplete="new-password"
+                                >
+                                <button type="button" class="api-key-toggle" onclick="toggleApiKeyVisibility('shipsgoV2Token')">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                            </div>
+                            <p class="form-helper">
+                                Bearer Token per tracking AWB aerei. Richiedi accesso a 
+                                <a href="https://api.shipsgo.com/v2/docs" target="_blank">api.shipsgo.com/v2</a>
+                            </p>
+                        </div>
+
+                        <div class="settings-actions">
+                            <button type="submit" class="btn-save">
+                                <i class="fas fa-save"></i>
+                                Salva Configurazione API
+                            </button>
+                            <button type="button" class="btn-cancel" onclick="testShipsGoConnection(event)">
+                                <i class="fas fa-plug"></i>
+                                Test Connessione
                             </button>
                         </div>
-                        <div class="form-helper">
-                            Ottieni la tua API key dal <a href="https://shipsgo.com" target="_blank">portale ShipsGo</a>
+
+                        <div id="shipsgoTestResult" style="margin-top: 1.5rem; display: none;"></div>
+                    </form>
+                </div>
+
+                <div class="settings-card">
+                    <div class="settings-card-header">
+                        <div class="settings-card-icon">
+                            <i class="fas fa-link"></i>
+                        </div>
+                        <div class="settings-card-title">
+                            <h2>Webhooks</h2>
+                            <p>Configura endpoint per ricevere eventi in tempo reale</p>
                         </div>
                     </div>
 
-                    <div class="form-group">
-                        <label for="track-trace-key">Track & Trace API Key</label>
-                        <div class="api-key-group">
+                    <div class="webhook-url-group">
+                        <label class="webhook-url-label">URL Webhook per ShipsGo:</label>
+                        <div class="webhook-url-input">
                             <input 
-                                type="password" 
-                                id="track-trace-key" 
-                                placeholder="Inserisci la tua API key Track & Trace"
-                                autocomplete="off"
+                                type="text" 
+                                class="form-input" 
+                                value="https://supply-chain-hub-test.netlify.app/.netlify/functions/webhook-tracking" 
+                                readonly
                             >
-                            <button type="button" class="api-key-toggle" onclick="toggleApiKeyVisibility('track-trace-key')">
-                                <i class="fas fa-eye"></i>
+                            <button class="btn-cancel" onclick="copyToClipboard('https://supply-chain-hub-test.netlify.app/.netlify/functions/webhook-tracking')">
+                                <i class="fas fa-copy"></i>
                             </button>
                         </div>
                     </div>
 
-                    <div class="btn-group">
-                        <button type="submit" class="btn-save">
-                            <i class="fas fa-save"></i> Salva API Keys
-                        </button>
-                        <button type="button" class="btn-cancel" onclick="resetApiKeysForm()">
-                            Annulla
-                        </button>
-                    </div>
-                </form>
-            </section>
-
-            <!-- Tracking Section -->
-            <section id="tracking" class="settings-section">
-                <h2>Preferenze Tracking</h2>
-                <p>Configura le opzioni di monitoraggio delle spedizioni</p>
-
-                <form id="tracking-form">
-                    <div class="toggle-group">
-                        <div class="toggle-info">
-                            <h4>Aggiornamenti automatici</h4>
-                            <p>Controlla automaticamente lo stato delle spedizioni ogni ora</p>
-                        </div>
-                        <label class="toggle-switch">
-                            <input type="checkbox" id="auto-refresh" checked>
-                            <span class="toggle-slider"></span>
-                        </label>
-                    </div>
-
-                    <div class="toggle-group">
-                        <div class="toggle-info">
-                            <h4>Notifiche in tempo reale</h4>
-                            <p>Ricevi notifiche push per aggiornamenti importanti</p>
-                        </div>
-                        <label class="toggle-switch">
-                            <input type="checkbox" id="push-notifications">
-                            <span class="toggle-slider"></span>
-                        </label>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="refresh-interval">Intervallo di aggiornamento</label>
-                        <select id="refresh-interval">
-                            <option value="30">30 minuti</option>
-                            <option value="60" selected>1 ora</option>
-                            <option value="120">2 ore</option>
-                            <option value="240">4 ore</option>
-                            <option value="480">8 ore</option>
-                        </select>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="retention-days">Giorni di conservazione dati</label>
-                        <input 
-                            type="number" 
-                            id="retention-days" 
-                            value="90" 
-                            min="30" 
-                            max="365"
-                        >
-                        <div class="form-helper">
-                            I tracking più vecchi verranno archiviati automaticamente
-                        </div>
-                    </div>
-
-                    <div class="btn-group">
-                        <button type="submit" class="btn-save">
-                            <i class="fas fa-save"></i> Salva Preferenze
-                        </button>
-                    </div>
-                </form>
+                    <button class="btn-save" onclick="showWebhookInstructions()">
+                        <i class="fas fa-info-circle"></i>
+                        Istruzioni Configurazione
+                    </button>
+                </div>
             </section>
 
             <!-- Notifications Section -->
             <section id="notifications" class="settings-section">
-                <h2>Notifiche</h2>
-                <p>Gestisci come e quando ricevere notifiche</p>
+                <div class="settings-card">
+                    <div class="settings-card-header">
+                        <div class="settings-card-icon">
+                            <i class="fas fa-envelope"></i>
+                        </div>
+                        <div class="settings-card-title">
+                            <h2>Notifiche Email</h2>
+                            <p>Scegli quali notifiche ricevere via email</p>
+                        </div>
+                    </div>
 
-                <form id="notifications-form">
                     <div class="toggle-group">
                         <div class="toggle-info">
-                            <h4>Email di riepilogo</h4>
-                            <p>Ricevi un riepilogo giornaliero delle spedizioni</p>
+                            <label class="toggle-label">Nuove spedizioni</label>
+                            <p class="toggle-description">Ricevi una notifica quando viene creata una nuova spedizione</p>
                         </div>
                         <label class="toggle-switch">
-                            <input type="checkbox" id="email-summary" checked>
+                            <input type="checkbox" id="emailNewShipments" checked>
                             <span class="toggle-slider"></span>
                         </label>
                     </div>
 
                     <div class="toggle-group">
                         <div class="toggle-info">
-                            <h4>Avvisi ritardi</h4>
-                            <p>Notifica immediata per spedizioni in ritardo</p>
+                            <label class="toggle-label">Spedizioni in ritardo</label>
+                            <p class="toggle-description">Alert quando una spedizione supera la data di consegna prevista</p>
                         </div>
                         <label class="toggle-switch">
-                            <input type="checkbox" id="delay-alerts" checked>
+                            <input type="checkbox" id="emailDelayedShipments" checked>
                             <span class="toggle-slider"></span>
                         </label>
                     </div>
 
                     <div class="toggle-group">
                         <div class="toggle-info">
-                            <h4>Conferme consegna</h4>
-                            <p>Notifica quando una spedizione viene consegnata</p>
+                            <label class="toggle-label">Consegne completate</label>
+                            <p class="toggle-description">Conferma quando una spedizione viene consegnata</p>
                         </div>
                         <label class="toggle-switch">
-                            <input type="checkbox" id="delivery-alerts" checked>
+                            <input type="checkbox" id="emailDelivered">
                             <span class="toggle-slider"></span>
                         </label>
                     </div>
 
-                    <div class="form-group">
-                        <label for="notification-email">Email per notifiche</label>
+                    <div class="toggle-group">
+                        <div class="toggle-info">
+                            <label class="toggle-label">Report settimanali</label>
+                            <p class="toggle-description">Riepilogo settimanale delle attività</p>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="emailWeeklyReport" checked>
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+
+                    <div class="form-group" style="margin-top: 2rem;">
+                        <label class="form-label">
+                            <i class="fas fa-at"></i>
+                            Email per notifiche
+                        </label>
                         <input 
                             type="email" 
-                            id="notification-email" 
+                            id="notificationEmail" 
+                            class="form-input"
                             placeholder="email@esempio.com"
                         >
                     </div>
 
-                    <div class="btn-group">
+                    <div class="settings-actions">
                         <button type="submit" class="btn-save">
-                            <i class="fas fa-save"></i> Salva Notifiche
+                            <i class="fas fa-save"></i>
+                            Salva Notifiche
                         </button>
                     </div>
-                </form>
-            </section>
+                </div>
 
-            <!-- Import/Export Section -->
-            <section id="import-export" class="settings-section">
-                <h2>Import/Export</h2>
-                <p>Configura le opzioni di importazione ed esportazione dati</p>
-
-                <form id="import-export-form">
-                    <div class="form-group">
-                        <label for="default-format">Formato esportazione predefinito</label>
-                        <select id="default-format">
-                            <option value="excel">Excel (.xlsx)</option>
-                            <option value="csv">CSV</option>
-                            <option value="pdf">PDF</option>
-                            <option value="json">JSON</option>
-                        </select>
+                <div class="settings-card">
+                    <div class="settings-card-header">
+                        <div class="settings-card-icon">
+                            <i class="fas fa-mobile-alt"></i>
+                        </div>
+                        <div class="settings-card-title">
+                            <h2>Notifiche Push</h2>
+                            <p>Notifiche in tempo reale sul browser e dispositivi mobili</p>
+                        </div>
                     </div>
 
                     <div class="toggle-group">
                         <div class="toggle-info">
-                            <h4>Includi storico eventi</h4>
-                            <p>Esporta anche la timeline completa degli eventi</p>
+                            <label class="toggle-label">Abilita notifiche push</label>
+                            <p class="toggle-description">Ricevi notifiche in tempo reale</p>
                         </div>
                         <label class="toggle-switch">
-                            <input type="checkbox" id="include-history" checked>
+                            <input type="checkbox" id="pushEnabled">
                             <span class="toggle-slider"></span>
                         </label>
                     </div>
 
                     <div class="toggle-group">
                         <div class="toggle-info">
-                            <h4>Auto-backup settimanale</h4>
-                            <p>Crea automaticamente un backup dei dati ogni settimana</p>
+                            <label class="toggle-label">Alert critici</label>
+                            <p class="toggle-description">Solo notifiche urgenti e importanti</p>
                         </div>
                         <label class="toggle-switch">
-                            <input type="checkbox" id="auto-backup">
+                            <input type="checkbox" id="pushCritical" checked>
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Security Section -->
+            <section id="security" class="settings-section">
+                <div class="settings-card">
+                    <div class="settings-card-header">
+                        <div class="settings-card-icon">
+                            <i class="fas fa-shield-alt"></i>
+                        </div>
+                        <div class="settings-card-title">
+                            <h2>Sicurezza Account</h2>
+                            <p>Proteggi il tuo account con opzioni di sicurezza avanzate</p>
+                        </div>
+                    </div>
+
+                    <div class="toggle-group">
+                        <div class="toggle-info">
+                            <label class="toggle-label">Autenticazione a due fattori (2FA)</label>
+                            <p class="toggle-description">Aggiungi un livello extra di sicurezza al tuo account</p>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="twoFactorAuth">
                             <span class="toggle-slider"></span>
                         </label>
                     </div>
 
-                    <div class="btn-group">
-                        <button type="submit" class="btn-save">
-                            <i class="fas fa-save"></i> Salva Impostazioni
+                    <div class="toggle-group">
+                        <div class="toggle-info">
+                            <label class="toggle-label">Notifiche accesso</label>
+                            <p class="toggle-description">Ricevi un alert quando qualcuno accede al tuo account</p>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="loginAlerts" checked>
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+
+                    <div class="toggle-group">
+                        <div class="toggle-info">
+                            <label class="toggle-label">Sessione sicura</label>
+                            <p class="toggle-description">Disconnetti automaticamente dopo 30 minuti di inattività</p>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="secureSession" checked>
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+
+                    <div class="settings-actions">
+                        <button class="btn-cancel">
+                            <i class="fas fa-key"></i>
+                            Cambia Password
+                        </button>
+                        <button class="btn-cancel">
+                            <i class="fas fa-list"></i>
+                            Visualizza Sessioni Attive
                         </button>
                     </div>
-                </form>
+                </div>
             </section>
 
-            <!-- Account Section -->
-            <section id="account" class="settings-section">
-                <h2>Account</h2>
-                <p>Gestisci le informazioni del tuo profilo</p>
-
-                <form id="account-form">
-                    <div class="form-group">
-                        <label for="user-name">Nome</label>
-                        <input 
-                            type="text" 
-                            id="user-name" 
-                            placeholder="Il tuo nome"
-                        >
-                    </div>
-
-                    <div class="form-group">
-                        <label for="user-email">Email</label>
-                        <input 
-                            type="email" 
-                            id="user-email" 
-                            placeholder="email@esempio.com"
-                            disabled
-                        >
-                        <div class="form-helper">
-                            L'email non può essere modificata
+            <!-- Advanced Section -->
+            <section id="advanced" class="settings-section">
+                <div class="settings-card">
+                    <div class="settings-card-header">
+                        <div class="settings-card-icon">
+                            <i class="fas fa-database"></i>
+                        </div>
+                        <div class="settings-card-title">
+                            <h2>Gestione Dati</h2>
+                            <p>Opzioni avanzate per la gestione dei dati</p>
                         </div>
                     </div>
 
                     <div class="form-group">
-                        <label for="user-company">Azienda</label>
-                        <input 
-                            type="text" 
-                            id="user-company" 
-                            placeholder="Nome azienda"
-                        >
+                        <label class="form-label">
+                            <i class="fas fa-history"></i>
+                            Retention Dati (giorni)
+                        </label>
+                        <input type="number" class="form-input" id="dataRetention" value="365" min="30" max="3650">
+                        <span class="form-helper">I dati più vecchi verranno archiviati automaticamente</span>
                     </div>
 
-                    <div class="form-group">
-                        <label for="user-role">Ruolo</label>
-                        <input 
-                            type="text" 
-                            id="user-role" 
-                            placeholder="Es. Supply Chain Manager"
-                        >
+                    <div class="toggle-group">
+                        <div class="toggle-info">
+                            <label class="toggle-label">Backup automatico</label>
+                            <p class="toggle-description">Esegui backup giornaliero dei dati</p>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="autoBackup" checked>
+                            <span class="toggle-slider"></span>
+                        </label>
                     </div>
 
-                    <div class="btn-group">
-                        <button type="submit" class="btn-save">
-                            <i class="fas fa-save"></i> Salva Profilo
+                    <div class="toggle-group">
+                        <div class="toggle-info">
+                            <label class="toggle-label">Compressione dati</label>
+                            <p class="toggle-description">Comprimi i dati storici per risparmiare spazio</p>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="dataCompression">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+
+                    <div class="settings-actions">
+                        <button class="btn-cancel">
+                            <i class="fas fa-download"></i>
+                            Esporta Tutti i Dati
+                        </button>
+                        <button class="btn-cancel">
+                            <i class="fas fa-trash-alt"></i>
+                            Pulisci Cache
                         </button>
                     </div>
-                </form>
+                </div>
+
+                <div class="settings-card">
+                    <div class="settings-card-header">
+                        <div class="settings-card-icon">
+                            <i class="fas fa-cogs"></i>
+                        </div>
+                        <div class="settings-card-title">
+                            <h2>Configurazioni Sistema</h2>
+                            <p>Impostazioni tecniche avanzate</p>
+                        </div>
+                    </div>
+
+                    <div class="toggle-group">
+                        <div class="toggle-info">
+                            <label class="toggle-label">Modalità Debug</label>
+                            <p class="toggle-description">Mostra informazioni dettagliate per troubleshooting</p>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="debugMode">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+
+                    <div class="danger-zone">
+                        <h3>
+                            <i class="fas fa-exclamation-triangle"></i>
+                            Zona Pericolosa
+                        </h3>
+                        <p>Queste azioni sono irreversibili. Procedi con cautela.</p>
+                        <div class="danger-actions">
+                            <button class="btn-danger">
+                                <i class="fas fa-broom"></i>
+                                Resetta Impostazioni
+                            </button>
+                            <button class="btn-danger">
+                                <i class="fas fa-trash"></i>
+                                Elimina Tutti i Dati
+                            </button>
+                        </div>
+                    </div>
+                </div>
             </section>
         </main>
     </div>
 
     <!-- Core Scripts -->
-    <script src="https://kit.fontawesome.com/your-fontawesome-kit.js"></script>
-    <script src="core/auth-init.js"></script>
-    <script src="core/api-client.js"></script>
-    <script src="core/header-component.js"></script>
-    <script src="core/notification-system.js"></script>
-    <script src="pages/settings/index.js"></script>
+    <script src="/core/auth.js"></script>
+    <script src="/core/auth-init.js"></script>
+    <script src="/core/api-client.js"></script>
+    <script src="/core/header-component.js"></script>
+    <script src="/core/notification-system.js"></script>
+    
+    <!-- Page Specific Script -->
+    <script src="/pages/settings/index.js"></script>
 </body>
 </html>
