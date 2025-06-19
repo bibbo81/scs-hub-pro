@@ -24,12 +24,8 @@
     
     function initializeProgressiveEnhancement() {
             console.log('🟢 PROGRESSIVE FORM: Initializing enhancement');
-            console.log('Current showAddTrackingForm:', window.showAddTrackingForm);
-
         // Salva funzione originale
         originalShowAddTrackingForm = window.showAddTrackingForm;
-        console.log('Saved original:', originalShowAddTrackingForm);
-
         
         // Override con wrapper che decide quale versione usare
         window.showAddTrackingForm = function(options) {

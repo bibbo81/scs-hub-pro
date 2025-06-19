@@ -1,12 +1,14 @@
 // /pages/tracking/tracking-form-progressive.js
 // Progressive Enhancement del form tracking - NON sostituisce, INTEGRA!
-
 (function() {
     'use strict';
     
+    // AGGIUNGI QUESTE RIGHE
     console.log('🟢 PROGRESSIVE FORM: Script started');
     window.PROGRESSIVE_DEBUG = true;
-
+(function() {
+    'use strict';
+    
     // Salva riferimento al form originale
     let originalShowAddTrackingForm = null;
     
@@ -23,13 +25,8 @@
 }, 100);
     
     function initializeProgressiveEnhancement() {
-            console.log('🟢 PROGRESSIVE FORM: Initializing enhancement');
-            console.log('Current showAddTrackingForm:', window.showAddTrackingForm);
-
         // Salva funzione originale
         originalShowAddTrackingForm = window.showAddTrackingForm;
-        console.log('Saved original:', originalShowAddTrackingForm);
-
         
         // Override con wrapper che decide quale versione usare
         window.showAddTrackingForm = function(options) {

@@ -4,9 +4,6 @@
 (function() {
     'use strict';
     
-    console.log('🟢 PROGRESSIVE FORM: Script started');
-    window.PROGRESSIVE_DEBUG = true;
-
     // Salva riferimento al form originale
     let originalShowAddTrackingForm = null;
     
@@ -23,13 +20,8 @@
 }, 100);
     
     function initializeProgressiveEnhancement() {
-            console.log('🟢 PROGRESSIVE FORM: Initializing enhancement');
-            console.log('Current showAddTrackingForm:', window.showAddTrackingForm);
-
         // Salva funzione originale
         originalShowAddTrackingForm = window.showAddTrackingForm;
-        console.log('Saved original:', originalShowAddTrackingForm);
-
         
         // Override con wrapper che decide quale versione usare
         window.showAddTrackingForm = function(options) {
@@ -666,21 +658,13 @@
         
         // Validation
         if (!formData.tracking_number) {
-            if (window.notificationSystem) {
-                window.notificationSystem.error('Inserisci il numero di tracking');
-            } else {
-                alert('Inserisci il numero di tracking');
-            }
+            window.notificationSystem.error('Inserisci il numero di tracking');
             return;
         }
         
         // Check duplicates
         if (window.trackings?.find(t => t.tracking_number === formData.tracking_number)) {
-            if (window.notificationSystem) {
-                window.notificationSystem.error('Questo tracking è già presente nel sistema');
-            } else {
-                alert('Questo tracking è già presente nel sistema');
-            }
+            window.notificationSystem.error('Questo tracking è già presente nel sistema');
             return;
         }
         
@@ -741,13 +725,11 @@
             window.ModalSystem.closeAll();
             
             // Show success
-            if (window.notificationSystem) {
-                window.notificationSystem.success(
-                    trackingData.metadata.api_used 
-                        ? '✅ Tracking aggiunto con dati real-time!' 
-                        : '✅ Tracking aggiunto con successo!'
-                );
-            }
+            window.notificationSystem.success(
+                trackingData.metadata.api_used 
+                    ? '✅ Tracking aggiunto con dati real-time!' 
+                    : '✅ Tracking aggiunto con successo!'
+            );
             
             // Reload table
             if (window.loadTrackings) {
@@ -756,11 +738,7 @@
             
         } catch (error) {
             console.error('Error adding tracking:', error);
-            if (window.notificationSystem) {
-                window.notificationSystem.error('Errore durante l\'aggiunta: ' + error.message);
-            } else {
-                alert('Errore durante l\'aggiunta: ' + error.message);
-            }
+            window.notificationSystem.error('Errore durante l\'aggiunta: ' + error.message);
         } finally {
             submitBtn.disabled = false;
             submitBtn.innerHTML = originalText;
@@ -781,27 +759,17 @@
         const extension = file.name.toLowerCase().substring(file.name.lastIndexOf('.'));
         
         if (!validTypes.includes(extension)) {
-            if (window.notificationSystem) {
-                window.notificationSystem.error('Formato file non supportato. Usa Excel o CSV.');
-            } else {
-                alert('Formato file non supportato. Usa Excel o CSV.');
-            }
+            window.notificationSystem.error('Formato file non supportato. Usa Excel o CSV.');
             return;
         }
         
         if (file.size > 10 * 1024 * 1024) { // 10MB
-            if (window.notificationSystem) {
-                window.notificationSystem.error('File troppo grande (max 10MB)');
-            } else {
-                alert('File troppo grande (max 10MB)');
-            }
+            window.notificationSystem.error('File troppo grande (max 10MB)');
             return;
         }
         
         // Show loading
-        if (window.notificationSystem) {
-            window.notificationSystem.show('Analizzando il file...', 'info', 'import-analysis');
-        }
+        window.notificationSystem.show('Analizzando il file...', 'info', 'import-analysis');
         
         try {
             // Parse file using ImportManager
@@ -821,18 +789,12 @@
             // Show preview
             showImportPreview(pendingImport);
             
-            if (window.notificationSystem) {
-                window.notificationSystem.dismiss('import-analysis');
-            }
+            window.notificationSystem.dismiss('import-analysis');
             
         } catch (error) {
             console.error('File parse error:', error);
-            if (window.notificationSystem) {
-                window.notificationSystem.dismiss('import-analysis');
-                window.notificationSystem.error('Errore nella lettura del file: ' + error.message);
-            } else {
-                alert('Errore nella lettura del file: ' + error.message);
-            }
+            window.notificationSystem.dismiss('import-analysis');
+            window.notificationSystem.error('Errore nella lettura del file: ' + error.message);
         }
     }
     
@@ -909,11 +871,7 @@
             });
         } catch (error) {
             console.error('Import error:', error);
-            if (window.notificationSystem) {
-                window.notificationSystem.error('Errore durante l\'import: ' + error.message);
-            } else {
-                alert('Errore durante l\'import: ' + error.message);
-            }
+            window.notificationSystem.error('Errore durante l\'import: ' + error.message);
         }
         
         pendingImport = null;
