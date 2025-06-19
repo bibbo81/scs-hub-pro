@@ -4,6 +4,9 @@
 (function() {
     'use strict';
     
+    console.log('🟢 PROGRESSIVE FORM: Script started');
+    window.PROGRESSIVE_DEBUG = true;
+
     // Salva riferimento al form originale
     let originalShowAddTrackingForm = null;
     
@@ -20,6 +23,7 @@
 }, 100);
     
     function initializeProgressiveEnhancement() {
+            console.log('🟢 PROGRESSIVE FORM: Initializing enhancement');
         // Salva funzione originale
         originalShowAddTrackingForm = window.showAddTrackingForm;
         
