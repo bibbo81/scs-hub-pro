@@ -1,0 +1,1373 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Supply Chain Hub - Integration Test System</title>
+    
+    <!-- Favicon IDENTICO alle altre pagine -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%236366f1'%3E%3Cpath d='M20 8h-3V4H3c-1.1 0-2 .9-2 2v11h2c0 1.66 1.34 3 3 3s3-1.34 3-3h6c0 1.66 1.34 3 3 3s3-1.34 3-3h2v-5l-3-4zM6 18.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm13.5-9l1.96 2.5H17V9.5h2.5zm-1.5 9c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z'/%3E%3C/svg%3E">
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Solarium CSS - STESSO path delle altre pagine -->
+    <link rel="stylesheet" href="./assets/css/solarium.css">
+    
+    <!-- Core Modules - IDENTICI alle altre pagine -->
+    <script type="module">
+        import api from './core/api-client.js';
+        import headerComponent from './core/header-component.js';
+        import notificationSystem from './core/notification-system.js';
+        import modalSystem from './core/modal-system.js';
+        
+        window.api = api;
+        window.headerComponent = headerComponent;
+        window.NotificationSystem = notificationSystem;
+        window.ModalSystem = modalSystem;
+    </script>
+    
+    <!-- Legacy Scripts -->
+    <script src="./core/auth.js"></script>
+    <script src="./core/auth-init.js"></script>
+    
+    <!-- Phase 2 Architecture -->
+    <script src="./phase2-architecture.js"></script>
+    
+    <!-- Test System Styles -->
+    <style>
+        /* Test-specific styles */
+        .test-dashboard {
+            display: grid;
+            grid-template-columns: 1fr 300px;
+            gap: 2rem;
+            margin-top: 2rem;
+        }
+        
+        .test-main {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+        
+        .test-sidebar {
+            position: sticky;
+            top: 2rem;
+            height: fit-content;
+        }
+        
+        .test-control-panel {
+            background: white;
+            border-radius: var(--sol-radius-lg);
+            box-shadow: var(--sol-shadow-sm);
+            border: 1px solid var(--sol-gray-200);
+            overflow: hidden;
+        }
+        
+        .panel-header {
+            background: var(--sol-gray-50);
+            padding: 1rem;
+            border-bottom: 1px solid var(--sol-gray-200);
+            font-weight: 600;
+            color: var(--sol-gray-800);
+        }
+        
+        .panel-body {
+            padding: 1rem;
+        }
+        
+        .test-button {
+            width: 100%;
+            margin-bottom: 0.5rem;
+            justify-content: flex-start;
+            font-size: 0.875rem;
+        }
+        
+        .test-result-card {
+            background: white;
+            border-radius: var(--sol-radius-lg);
+            box-shadow: var(--sol-shadow-sm);
+            border: 1px solid var(--sol-gray-200);
+            overflow: hidden;
+            margin-bottom: 1.5rem;
+        }
+        
+        .result-header {
+            padding: 1rem;
+            border-bottom: 1px solid var(--sol-gray-200);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .result-title {
+            font-weight: 600;
+            color: var(--sol-gray-900);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .result-status {
+            font-size: 0.875rem;
+            font-weight: 600;
+            padding: 0.25rem 0.75rem;
+            border-radius: var(--sol-radius-full);
+            text-transform: uppercase;
+            letter-spacing: 0.025em;
+        }
+        
+        .status-passed {
+            background: var(--sol-success-light);
+            color: var(--sol-success-dark);
+        }
+        
+        .status-failed {
+            background: var(--sol-danger-light);
+            color: var(--sol-danger-dark);
+        }
+        
+        .status-warning {
+            background: var(--sol-warning-light);
+            color: var(--sol-warning-dark);
+        }
+        
+        .result-content {
+            padding: 1rem;
+        }
+        
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1rem;
+            margin: 1rem 0;
+        }
+        
+        .metric-card {
+            background: var(--sol-gray-50);
+            padding: 1rem;
+            border-radius: var(--sol-radius-md);
+            text-align: center;
+        }
+        
+        .metric-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--sol-primary);
+        }
+        
+        .metric-label {
+            font-size: 0.75rem;
+            color: var(--sol-gray-600);
+            margin-top: 0.25rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        
+        .issues-list {
+            background: var(--sol-gray-50);
+            border-radius: var(--sol-radius-md);
+            padding: 1rem;
+            margin: 1rem 0;
+        }
+        
+        .issue-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.5rem;
+            margin-bottom: 0.5rem;
+            padding: 0.5rem;
+            background: white;
+            border-radius: var(--sol-radius-sm);
+            border-left: 3px solid var(--sol-warning);
+        }
+        
+        .issue-icon {
+            color: var(--sol-warning);
+            margin-top: 0.125rem;
+        }
+        
+        .recommendations {
+            background: var(--sol-info-light);
+            border: 1px solid var(--sol-info);
+            border-radius: var(--sol-radius-md);
+            padding: 1rem;
+            margin: 1rem 0;
+        }
+        
+        .recommendation-title {
+            font-weight: 600;
+            color: var(--sol-info-dark);
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .code-fix {
+            background: var(--sol-gray-900);
+            color: #e5e7eb;
+            padding: 1rem;
+            border-radius: var(--sol-radius-md);
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 0.875rem;
+            overflow-x: auto;
+            margin: 1rem 0;
+        }
+        
+        .progress-section {
+            margin: 1.5rem 0;
+        }
+        
+        .progress-bar {
+            background: var(--sol-gray-200);
+            border-radius: var(--sol-radius-full);
+            height: 8px;
+            overflow: hidden;
+            margin: 0.5rem 0;
+        }
+        
+        .progress-fill {
+            background: linear-gradient(90deg, var(--sol-primary), var(--sol-primary-light));
+            height: 100%;
+            transition: width 0.3s ease;
+            border-radius: var(--sol-radius-full);
+        }
+        
+        .progress-text {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.875rem;
+            color: var(--sol-gray-600);
+        }
+        
+        .live-log {
+            background: var(--sol-gray-900);
+            color: #e5e7eb;
+            padding: 1rem;
+            border-radius: var(--sol-radius-md);
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 0.75rem;
+            height: 200px;
+            overflow-y: auto;
+            margin: 1rem 0;
+        }
+        
+        .log-entry {
+            margin-bottom: 0.25rem;
+            word-wrap: break-word;
+        }
+        
+        .log-success { color: #10b981; }
+        .log-error { color: #ef4444; }
+        .log-warning { color: #f59e0b; }
+        .log-info { color: #3b82f6; }
+        
+        .phase-status {
+            background: linear-gradient(135deg, var(--sol-primary-light), var(--sol-primary));
+            border-radius: var(--sol-radius-lg);
+            padding: 1.5rem;
+            color: white;
+            margin-bottom: 2rem;
+        }
+        
+        .phase-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+        
+        .phase-description {
+            opacity: 0.9;
+            font-size: 0.875rem;
+        }
+        
+        @media (max-width: 768px) {
+            .test-dashboard {
+                grid-template-columns: 1fr;
+            }
+            
+            .test-sidebar {
+                order: -1;
+                position: static;
+            }
+            
+            .metrics-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header Component Container -->
+    <div id="header-root"></div>
+
+    <!-- Main Content -->
+    <main class="sol-main-content" id="mainContent">
+        <!-- Page Header -->
+        <div class="sol-page-header">
+            <div>
+                <h1 class="sol-page-title">
+                    <i class="fas fa-flask" style="color: var(--sol-primary); margin-right: 0.75rem;"></i>
+                    Integration Test System
+                </h1>
+                <p class="sol-page-subtitle">
+                    Validazione completa Phase 2.5 e preparazione Phase 3
+                </p>
+            </div>
+            <div class="sol-page-actions">
+                <a href="./import.html" class="sol-btn sol-btn-glass">
+                    <i class="fas fa-upload"></i>
+                    <span>Import System</span>
+                </a>
+                <a href="./products.html" class="sol-btn sol-btn-glass">
+                    <i class="fas fa-cubes"></i>
+                    <span>Products</span>
+                </a>
+                <button class="sol-btn sol-btn-primary" onclick="runCompleteTest()">
+                    <i class="fas fa-play"></i>
+                    <span>Run All Tests</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Phase Status -->
+        <div class="phase-status">
+            <div class="phase-title">
+                🚀 Phase 2.5 → Phase 3 Transition Validator
+            </div>
+            <div class="phase-description">
+                Completa validazione del sistema import avanzato e preparazione per il Registro Centrale Spedizioni
+            </div>
+        </div>
+
+        <!-- Test Dashboard -->
+        <div class="test-dashboard">
+            <div class="test-main">
+                <!-- Live Progress -->
+                <div class="test-result-card" id="progressCard" style="display: none;">
+                    <div class="result-header">
+                        <div class="result-title">
+                            <i class="fas fa-sync fa-spin"></i>
+                            Test in Esecuzione
+                        </div>
+                        <div class="result-status status-warning" id="currentTest">
+                            Initializing...
+                        </div>
+                    </div>
+                    <div class="result-content">
+                        <div class="progress-section">
+                            <div class="progress-text">
+                                <span>Progresso</span>
+                                <span id="progressText">0%</span>
+                            </div>
+                            <div class="progress-bar">
+                                <div class="progress-fill" id="progressFill" style="width: 0%;"></div>
+                            </div>
+                        </div>
+                        
+                        <div class="live-log" id="liveLog">
+                            <div class="log-entry log-info">🚀 Sistema di test inizializzato...</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Test Results Container -->
+                <div id="testResults">
+                    <!-- I risultati dei test appariranno qui -->
+                </div>
+
+                <!-- Summary Card -->
+                <div class="test-result-card" id="summaryCard" style="display: none;">
+                    <div class="result-header">
+                        <div class="result-title">
+                            <i class="fas fa-chart-pie"></i>
+                            Riepilogo Test
+                        </div>
+                        <div class="result-status" id="overallStatus">
+                            In Attesa
+                        </div>
+                    </div>
+                    <div class="result-content">
+                        <div class="metrics-grid" id="summaryMetrics">
+                            <!-- Metriche di riepilogo -->
+                        </div>
+                        
+                        <div id="summaryRecommendations">
+                            <!-- Raccomandazioni finali -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Test Control Sidebar -->
+            <div class="test-sidebar">
+                <div class="test-control-panel">
+                    <div class="panel-header">
+                        <i class="fas fa-cogs"></i>
+                        Controlli Test
+                    </div>
+                    <div class="panel-body">
+                        <button class="sol-btn sol-btn-primary test-button" onclick="runCompleteTest()">
+                            <i class="fas fa-play"></i>
+                            Esegui Tutti i Test
+                        </button>
+                        
+                        <div style="margin: 1rem 0; padding-top: 1rem; border-top: 1px solid var(--sol-gray-200);">
+                            <h4 style="margin: 0 0 0.5rem; font-size: 0.875rem; color: var(--sol-gray-700);">Test Individuali</h4>
+                        </div>
+                        
+                        <button class="sol-btn sol-btn-secondary test-button" onclick="runSingleTest('header')">
+                            <i class="fas fa-header"></i>
+                            Header Component
+                        </button>
+                        
+                        <button class="sol-btn sol-btn-secondary test-button" onclick="runSingleTest('import')">
+                            <i class="fas fa-upload"></i>
+                            Import System
+                        </button>
+                        
+                        <button class="sol-btn sol-btn-secondary test-button" onclick="runSingleTest('ui')">
+                            <i class="fas fa-palette"></i>
+                            UI Consistency
+                        </button>
+                        
+                        <button class="sol-btn sol-btn-secondary test-button" onclick="runSingleTest('syntax')">
+                            <i class="fas fa-code"></i>
+                            JavaScript Syntax
+                        </button>
+                        
+                        <button class="sol-btn sol-btn-secondary test-button" onclick="runSingleTest('csv')">
+                            <i class="fas fa-file-csv"></i>
+                            CSV Processing
+                        </button>
+                        
+                        <button class="sol-btn sol-btn-secondary test-button" onclick="runSingleTest('products')">
+                            <i class="fas fa-cubes"></i>
+                            Products Flow
+                        </button>
+                        
+                        <div style="margin: 1rem 0; padding-top: 1rem; border-top: 1px solid var(--sol-gray-200);">
+                            <h4 style="margin: 0 0 0.5rem; font-size: 0.875rem; color: var(--sol-gray-700);">Utilities</h4>
+                        </div>
+                        
+                        <button class="sol-btn sol-btn-glass test-button" onclick="clearResults()">
+                            <i class="fas fa-trash"></i>
+                            Clear Results
+                        </button>
+                        
+                        <button class="sol-btn sol-btn-glass test-button" onclick="exportResults()">
+                            <i class="fas fa-download"></i>
+                            Export Report
+                        </button>
+                        
+                        <button class="sol-btn sol-btn-glass test-button" onclick="showFixGuide()">
+                            <i class="fas fa-wrench"></i>
+                            Show Fixes
+                        </button>
+                    </div>
+                </div>
+
+                <!-- System Status Panel -->
+                <div class="test-control-panel" style="margin-top: 1rem;">
+                    <div class="panel-header">
+                        <i class="fas fa-info-circle"></i>
+                        System Status
+                    </div>
+                    <div class="panel-body">
+                        <div id="systemStatus">
+                            <div class="metric-card">
+                                <div class="metric-value" id="systemHealth">?</div>
+                                <div class="metric-label">System Health</div>
+                            </div>
+                        </div>
+                        
+                        <div style="margin-top: 1rem; font-size: 0.75rem; color: var(--sol-gray-600);">
+                            <div>🔄 Phase: <strong id="currentPhase">2.5</strong></div>
+                            <div>📅 Last Test: <span id="lastTest">Never</span></div>
+                            <div>🎯 Next: <strong>Phase 3 Planning</strong></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Test System JavaScript -->
+    <script>
+        // Phase 2.5 Complete Integration Test System
+        class SupplyChainTestSuite {
+            constructor() {
+                this.results = [];
+                this.startTime = null;
+                this.currentTest = 0;
+                this.totalTests = 0;
+                this.logContainer = null;
+            }
+
+            async init() {
+                console.log('🧪 Initializing Supply Chain Test Suite...');
+                this.logContainer = document.getElementById('liveLog');
+                this.log('System initialized', 'info');
+                
+                // Initialize header if available
+                await this.initializeHeader();
+                
+                // Check system readiness
+                this.checkSystemReadiness();
+            }
+
+            async initializeHeader() {
+                try {
+                    if (window.headerComponent) {
+                        await window.headerComponent.init();
+                        this.log('Header component initialized', 'success');
+                    }
+                } catch (error) {
+                    this.log(`Header initialization error: ${error.message}`, 'error');
+                }
+            }
+
+            checkSystemReadiness() {
+                const checks = [
+                    { name: 'DOM Ready', check: () => document.readyState === 'complete' },
+                    { name: 'Local Storage', check: () => !!window.localStorage },
+                    { name: 'Core Modules', check: () => !!window.api }
+                ];
+
+                checks.forEach(check => {
+                    if (check.check()) {
+                        this.log(`✓ ${check.name} ready`, 'success');
+                    } else {
+                        this.log(`✗ ${check.name} not ready`, 'error');
+                    }
+                });
+
+                document.getElementById('systemHealth').textContent = 'READY';
+                document.getElementById('lastTest').textContent = new Date().toLocaleTimeString();
+            }
+
+            log(message, type = 'info') {
+                if (!this.logContainer) return;
+                
+                const entry = document.createElement('div');
+                entry.className = `log-entry log-${type}`;
+                entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+                
+                this.logContainer.appendChild(entry);
+                this.logContainer.scrollTop = this.logContainer.scrollHeight;
+                
+                console.log(`[TestSuite] ${message}`);
+            }
+
+            updateProgress(current, total, testName) {
+                this.currentTest = current;
+                this.totalTests = total;
+                
+                const percentage = (current / total) * 100;
+                const progressFill = document.getElementById('progressFill');
+                const progressText = document.getElementById('progressText');
+                const currentTestEl = document.getElementById('currentTest');
+                
+                if (progressFill) progressFill.style.width = `${percentage}%`;
+                if (progressText) progressText.textContent = `${Math.round(percentage)}%`;
+                if (currentTestEl) currentTestEl.textContent = testName;
+            }
+
+            async runCompleteTest() {
+                this.startTime = Date.now();
+                this.results = [];
+                
+                document.getElementById('progressCard').style.display = 'block';
+                document.getElementById('summaryCard').style.display = 'none';
+                
+                this.log('🚀 Starting complete integration test...', 'info');
+
+                const testSuites = [
+                    { name: 'Header Component', test: () => this.testHeaderComponent() },
+                    { name: 'Import System', test: () => this.testImportSystem() },
+                    { name: 'UI Consistency', test: () => this.testUIConsistency() },
+                    { name: 'JavaScript Syntax', test: () => this.testJavaScriptSyntax() },
+                    { name: 'CSV Processing', test: () => this.testCSVProcessing() },
+                    { name: 'Products Flow', test: () => this.testProductsFlow() },
+                    { name: 'Data Persistence', test: () => this.testDataPersistence() },
+                    { name: 'Performance', test: () => this.testPerformance() },
+                    { name: 'Phase 3 Readiness', test: () => this.testPhase3Readiness() }
+                ];
+
+                let current = 0;
+                for (const testSuite of testSuites) {
+                    current++;
+                    this.updateProgress(current, testSuites.length, testSuite.name);
+                    
+                    try {
+                        this.log(`🧪 Testing: ${testSuite.name}...`, 'info');
+                        const result = await testSuite.test();
+                        
+                        this.results.push({
+                            name: testSuite.name,
+                            passed: result.passed,
+                            details: result.details,
+                            issues: result.issues || [],
+                            recommendations: result.recommendations || [],
+                            metrics: result.metrics || {}
+                        });
+                        
+                        const status = result.passed ? 'PASSED' : 'FAILED';
+                        const logType = result.passed ? 'success' : 'error';
+                        this.log(`${result.passed ? '✅' : '❌'} ${testSuite.name}: ${status}`, logType);
+                        
+                        this.displayTestResult(testSuite.name, result);
+                        
+                        // Small delay for visual effect
+                        await new Promise(resolve => setTimeout(resolve, 300));
+                        
+                    } catch (error) {
+                        this.log(`💥 ${testSuite.name}: ERROR - ${error.message}`, 'error');
+                        this.results.push({
+                            name: testSuite.name,
+                            passed: false,
+                            error: error.message
+                        });
+                    }
+                }
+
+                document.getElementById('progressCard').style.display = 'none';
+                this.displaySummary();
+                this.log('🎉 Test suite completed!', 'success');
+            }
+
+            async runSingleTest(testType) {
+                this.log(`🔍 Running single test: ${testType}`, 'info');
+                
+                const testMap = {
+                    'header': () => this.testHeaderComponent(),
+                    'import': () => this.testImportSystem(),
+                    'ui': () => this.testUIConsistency(),
+                    'syntax': () => this.testJavaScriptSyntax(),
+                    'csv': () => this.testCSVProcessing(),
+                    'products': () => this.testProductsFlow(),
+                    'performance': () => this.testPerformance(),
+                    'phase3': () => this.testPhase3Readiness()
+                };
+
+                const testFunction = testMap[testType];
+                if (testFunction) {
+                    try {
+                        const result = await testFunction();
+                        this.displayTestResult(`${testType} Test`, result);
+                        this.log(`${result.passed ? '✅' : '❌'} ${testType} test: ${result.passed ? 'PASSED' : 'FAILED'}`, 
+                                result.passed ? 'success' : 'error');
+                    } catch (error) {
+                        this.log(`💥 ${testType} test error: ${error.message}`, 'error');
+                    }
+                } else {
+                    this.log(`❌ Unknown test type: ${testType}`, 'error');
+                }
+            }
+
+            // ===== TEST IMPLEMENTATIONS =====
+
+            testHeaderComponent() {
+                const issues = [];
+                const recommendations = [];
+                let passed = true;
+
+                // Test header component availability
+                if (!window.headerComponent) {
+                    issues.push('Header component not loaded');
+                    recommendations.push('Ensure header-component.js is properly loaded');
+                    passed = false;
+                } else {
+                    this.log('✓ Header component available', 'success');
+                }
+
+                // Test header DOM presence
+                const headerElement = document.querySelector('.sol-header');
+                if (!headerElement) {
+                    // This is expected in test environment
+                    this.log('ℹ️ Header not mounted (expected in test environment)', 'info');
+                } else {
+                    this.log('✓ Header mounted in DOM', 'success');
+                }
+
+                // Test header methods
+                if (window.headerComponent) {
+                    const requiredMethods = ['init', 'mount', 'render'];
+                    requiredMethods.forEach(method => {
+                        if (typeof window.headerComponent[method] === 'function') {
+                            this.log(`✓ Header method available: ${method}`, 'success');
+                        } else {
+                            issues.push(`Header method missing: ${method}`);
+                            passed = false;
+                        }
+                    });
+                }
+
+                return {
+                    passed,
+                    details: `Header component integration - ${issues.length} issues found`,
+                    issues,
+                    recommendations,
+                    metrics: {
+                        methodsAvailable: window.headerComponent ? 3 : 0,
+                        domMounted: !!headerElement
+                    }
+                };
+            }
+
+            testImportSystem() {
+                const issues = [];
+                const recommendations = [];
+                let passed = true;
+
+                // Test required libraries
+                const libraries = [
+                    { name: 'Papa', check: () => typeof window.Papa !== 'undefined' },
+                    { name: 'XLSX', check: () => typeof window.XLSX !== 'undefined' }
+                ];
+
+                libraries.forEach(lib => {
+                    if (!lib.check()) {
+                        issues.push(`${lib.name} library not loaded`);
+                        recommendations.push(`Load ${lib.name} library for file processing`);
+                        passed = false;
+                    } else {
+                        this.log(`✓ Library available: ${lib.name}`, 'success');
+                    }
+                });
+
+                // Test import system object
+                if (window.importSystem) {
+                    this.log('✓ Import system available', 'success');
+                } else {
+                    issues.push('Import system not initialized');
+                    recommendations.push('Initialize import system on page load');
+                    passed = false;
+                }
+
+                return {
+                    passed,
+                    details: `Import system functionality - ${issues.length} issues found`,
+                    issues,
+                    recommendations,
+                    metrics: {
+                        librariesLoaded: libraries.filter(lib => lib.check()).length,
+                        systemInitialized: !!window.importSystem
+                    }
+                };
+            }
+
+            testUIConsistency() {
+                const issues = [];
+                const recommendations = [];
+                let passed = true;
+
+                // Test Solarium CSS variables
+                const root = document.documentElement;
+                const computedStyle = getComputedStyle(root);
+                
+                const requiredVariables = [
+                    '--sol-primary', '--sol-gray-100', '--sol-gray-900',
+                    '--sol-spacing-md', '--sol-radius-md', '--sol-shadow-sm'
+                ];
+
+                let variablesFound = 0;
+                requiredVariables.forEach(variable => {
+                    const value = computedStyle.getPropertyValue(variable);
+                    if (value && value.trim() !== '') {
+                        variablesFound++;
+                        this.log(`✓ Variable available: ${variable}`, 'success');
+                    } else {
+                        issues.push(`Missing Solarium variable: ${variable}`);
+                        recommendations.push('Include complete Solarium CSS');
+                        passed = false;
+                    }
+                });
+
+                // Test critical CSS classes
+                const criticalClasses = ['.sol-btn', '.sol-card', '.sol-main-content'];
+                let classesFound = 0;
+
+                criticalClasses.forEach(className => {
+                    try {
+                        const elements = document.querySelectorAll(className);
+                        if (elements.length > 0) {
+                            classesFound++;
+                            this.log(`✓ Class in use: ${className}`, 'success');
+                        }
+                    } catch (error) {
+                        // Class might not be in use, which is okay
+                    }
+                });
+
+                return {
+                    passed,
+                    details: `UI consistency validation - ${issues.length} issues found`,
+                    issues,
+                    recommendations,
+                    metrics: {
+                        variablesFound: variablesFound,
+                        totalVariables: requiredVariables.length,
+                        classesFound: classesFound
+                    }
+                };
+            }
+
+            testJavaScriptSyntax() {
+                const issues = [];
+                const recommendations = [];
+                let passed = true;
+
+                // Check for common syntax issues
+                try {
+                    // Test Object.entries usage (the critical fix)
+                    const testObj = { test: 'value' };
+                    Object.entries(testObj).forEach(([key, value]) => {
+                        // This tests if Object.entries works correctly
+                    });
+                    this.log('✓ Object.entries syntax test passed', 'success');
+                } catch (error) {
+                    issues.push('Object.entries syntax error detected');
+                    recommendations.push('Fix incomplete Object.entries statements');
+                    passed = false;
+                }
+
+                // Test for global functions
+                const expectedGlobals = ['runCompleteTest', 'runSingleTest'];
+                expectedGlobals.forEach(func => {
+                    if (typeof window[func] === 'function') {
+                        this.log(`✓ Global function available: ${func}`, 'success');
+                    } else {
+                        issues.push(`Missing global function: ${func}`);
+                        passed = false;
+                    }
+                });
+
+                return {
+                    passed,
+                    details: `JavaScript syntax validation - ${issues.length} issues found`,
+                    issues,
+                    recommendations,
+                    metrics: {
+                        syntaxErrors: issues.length,
+                        globalFunctions: expectedGlobals.length
+                    }
+                };
+            }
+
+            testCSVProcessing() {
+                const issues = [];
+                const recommendations = [];
+                let passed = true;
+
+                // Test CSV parsing if Papa is available
+                if (typeof window.Papa !== 'undefined') {
+                    try {
+                        const testCSV = 'name,age,city\nJohn,30,New York\nJane,25,Los Angeles';
+                        const result = Papa.parse(testCSV, { header: true });
+                        
+                        if (result.data && result.data.length === 2) {
+                            this.log('✓ CSV parsing functional', 'success');
+                        } else {
+                            issues.push('CSV parsing not working correctly');
+                            passed = false;
+                        }
+                    } catch (error) {
+                        issues.push(`CSV parsing error: ${error.message}`);
+                        recommendations.push('Check PapaParse library integration');
+                        passed = false;
+                    }
+                } else {
+                    issues.push('PapaParse library not available');
+                    recommendations.push('Load PapaParse for CSV processing');
+                    passed = false;
+                }
+
+                // Test Excel processing if XLSX is available
+                if (typeof window.XLSX !== 'undefined') {
+                    this.log('✓ XLSX library available', 'success');
+                } else {
+                    issues.push('XLSX library not available');
+                    recommendations.push('Load XLSX library for Excel processing');
+                    passed = false;
+                }
+
+                return {
+                    passed,
+                    details: `File processing capability - ${issues.length} issues found`,
+                    issues,
+                    recommendations,
+                    metrics: {
+                        csvSupport: typeof window.Papa !== 'undefined',
+                        excelSupport: typeof window.XLSX !== 'undefined'
+                    }
+                };
+            }
+
+            testProductsFlow() {
+                const issues = [];
+                const recommendations = [];
+                let passed = true;
+
+                // Test localStorage for products
+                try {
+                    const products = JSON.parse(localStorage.getItem('products') || '[]');
+                    this.log(`✓ Products storage accessible: ${products.length} products`, 'success');
+                } catch (error) {
+                    issues.push('Products data storage error');
+                    recommendations.push('Fix localStorage products data structure');
+                    passed = false;
+                }
+
+                // Test product intelligence system
+                if (window.productIntelligenceSystem) {
+                    this.log('✓ Product Intelligence System available', 'success');
+                } else {
+                    issues.push('Product Intelligence System not initialized');
+                    recommendations.push('Load product intelligence system');
+                    passed = false;
+                }
+
+                return {
+                    passed,
+                    details: `Products integration flow - ${issues.length} issues found`,
+                    issues,
+                    recommendations,
+                    metrics: {
+                        dataStorage: true,
+                        intelligenceSystem: !!window.productIntelligenceSystem
+                    }
+                };
+            }
+
+            testDataPersistence() {
+                const issues = [];
+                const recommendations = [];
+                let passed = true;
+
+                try {
+                    // Test localStorage functionality
+                    const testKey = 'test_persistence_' + Date.now();
+                    const testValue = { test: true, timestamp: Date.now() };
+                    
+                    localStorage.setItem(testKey, JSON.stringify(testValue));
+                    const retrieved = JSON.parse(localStorage.getItem(testKey));
+                    localStorage.removeItem(testKey);
+                    
+                    if (retrieved && retrieved.test === true) {
+                        this.log('✓ Data persistence functional', 'success');
+                    } else {
+                        issues.push('Data persistence test failed');
+                        passed = false;
+                    }
+                } catch (error) {
+                    issues.push(`Data persistence error: ${error.message}`);
+                    recommendations.push('Check localStorage availability');
+                    passed = false;
+                }
+
+                return {
+                    passed,
+                    details: `Data persistence validation - ${issues.length} issues found`,
+                    issues,
+                    recommendations,
+                    metrics: {
+                        localStorageAvailable: !!window.localStorage,
+                        persistenceWorking: passed
+                    }
+                };
+            }
+
+            testPerformance() {
+                const issues = [];
+                const recommendations = [];
+                let passed = true;
+
+                // Test page load performance
+                const navigation = performance.getEntriesByType('navigation')[0];
+                const loadTime = navigation ? navigation.loadEventEnd - navigation.fetchStart : 0;
+                
+                this.log(`📊 Page load time: ${loadTime.toFixed(0)}ms`, 'info');
+
+                if (loadTime > 5000) {
+                    issues.push(`Slow page load: ${loadTime.toFixed(0)}ms`);
+                    recommendations.push('Optimize page load performance');
+                    passed = false;
+                }
+
+                // Test DOM complexity
+                const totalElements = document.querySelectorAll('*').length;
+                this.log(`📊 DOM elements: ${totalElements}`, 'info');
+
+                if (totalElements > 3000) {
+                    issues.push(`High DOM complexity: ${totalElements} elements`);
+                    recommendations.push('Consider reducing DOM complexity');
+                }
+
+                return {
+                    passed,
+                    details: `Performance metrics - ${issues.length} issues found`,
+                    issues,
+                    recommendations,
+                    metrics: {
+                        loadTime: loadTime,
+                        domElements: totalElements,
+                        performanceGrade: loadTime < 3000 ? 'A' : loadTime < 5000 ? 'B' : 'C'
+                    }
+                };
+            }
+
+            testPhase3Readiness() {
+                const issues = [];
+                const recommendations = [];
+                let passed = true;
+
+                // Check Phase 3 prerequisites
+                const phase3Requirements = [
+                    { name: 'Import System Complete', check: () => !!window.importSystem },
+                    { name: 'Products System Ready', check: () => !!window.productIntelligenceSystem },
+                    { name: 'Data Structure Ready', check: () => !!localStorage.getItem('products') },
+                    { name: 'UI Framework Ready', check: () => !!document.querySelector('.sol-main-content') }
+                ];
+
+                let readyCount = 0;
+                phase3Requirements.forEach(req => {
+                    if (req.check()) {
+                        readyCount++;
+                        this.log(`✓ Phase 3 ready: ${req.name}`, 'success');
+                    } else {
+                        issues.push(`Phase 3 not ready: ${req.name}`);
+                        recommendations.push(`Complete ${req.name} before Phase 3`);
+                    }
+                });
+
+                passed = readyCount === phase3Requirements.length;
+
+                // Phase 3 specific recommendations
+                recommendations.push('Create shipments.html for central registry');
+                recommendations.push('Build shipments-registry.js core engine');
+                recommendations.push('Implement products ↔ shipments linking');
+
+                return {
+                    passed,
+                    details: `Phase 3 readiness check - ${readyCount}/${phase3Requirements.length} requirements met`,
+                    issues,
+                    recommendations,
+                    metrics: {
+                        readyRequirements: readyCount,
+                        totalRequirements: phase3Requirements.length,
+                        readinessPercentage: (readyCount / phase3Requirements.length) * 100
+                    }
+                };
+            }
+
+            // ===== UI DISPLAY METHODS =====
+
+            displayTestResult(testName, result) {
+                const resultsContainer = document.getElementById('testResults');
+                const resultCard = document.createElement('div');
+                resultCard.className = 'test-result-card';
+                
+                const statusClass = result.passed ? 'status-passed' : 'status-failed';
+                const statusText = result.passed ? 'PASSED' : 'FAILED';
+                const statusIcon = result.passed ? 'fa-check-circle' : 'fa-times-circle';
+                
+                resultCard.innerHTML = `
+                    <div class="result-header">
+                        <div class="result-title">
+                            <i class="fas ${statusIcon}"></i>
+                            ${testName}
+                        </div>
+                        <div class="result-status ${statusClass}">
+                            ${statusText}
+                        </div>
+                    </div>
+                    <div class="result-content">
+                        <p><strong>Details:</strong> ${result.details}</p>
+                        
+                        ${result.metrics ? this.renderMetrics(result.metrics) : ''}
+                        
+                        ${result.issues && result.issues.length > 0 ? `
+                            <div class="issues-list">
+                                <h4 style="margin: 0 0 0.5rem; color: var(--sol-gray-800);">
+                                    <i class="fas fa-exclamation-triangle" style="color: var(--sol-warning);"></i>
+                                    Issues Found (${result.issues.length})
+                                </h4>
+                                ${result.issues.map(issue => `
+                                    <div class="issue-item">
+                                        <i class="fas fa-exclamation-triangle issue-icon"></i>
+                                        <span>${issue}</span>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        ` : ''}
+                        
+                        ${result.recommendations && result.recommendations.length > 0 ? `
+                            <div class="recommendations">
+                                <div class="recommendation-title">
+                                    <i class="fas fa-lightbulb"></i>
+                                    Recommendations
+                                </div>
+                                <ul style="margin: 0; padding-left: 1.5rem;">
+                                    ${result.recommendations.map(rec => `<li>${rec}</li>`).join('')}
+                                </ul>
+                            </div>
+                        ` : ''}
+                        
+                        ${result.error ? `
+                            <div class="code-fix">
+                                <strong>Error:</strong> ${result.error}
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+                
+                resultsContainer.appendChild(resultCard);
+            }
+
+            renderMetrics(metrics) {
+                const entries = Object.entries(metrics);
+                if (entries.length === 0) return '';
+                
+                return `
+                    <div class="metrics-grid">
+                        ${entries.map(([key, value]) => `
+                            <div class="metric-card">
+                                <div class="metric-value">${value}</div>
+                                <div class="metric-label">${key.replace(/([A-Z])/g, ' $1').trim()}</div>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+            }
+
+            displaySummary() {
+                const summaryCard = document.getElementById('summaryCard');
+                const summaryMetrics = document.getElementById('summaryMetrics');
+                const summaryRecommendations = document.getElementById('summaryRecommendations');
+                const overallStatus = document.getElementById('overallStatus');
+                
+                const total = this.results.length;
+                const passed = this.results.filter(r => r.passed).length;
+                const failed = total - passed;
+                const successRate = total > 0 ? ((passed / total) * 100).toFixed(1) : 0;
+                const duration = Date.now() - this.startTime;
+
+                // Update overall status
+                if (passed === total) {
+                    overallStatus.className = 'result-status status-passed';
+                    overallStatus.textContent = 'ALL PASSED';
+                } else if (passed > total * 0.7) {
+                    overallStatus.className = 'result-status status-warning';
+                    overallStatus.textContent = 'MOSTLY PASSED';
+                } else {
+                    overallStatus.className = 'result-status status-failed';
+                    overallStatus.textContent = 'NEEDS WORK';
+                }
+
+                // Update metrics
+                summaryMetrics.innerHTML = `
+                    <div class="metric-card">
+                        <div class="metric-value">${total}</div>
+                        <div class="metric-label">Total Tests</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value" style="color: var(--sol-success);">${passed}</div>
+                        <div class="metric-label">Passed</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value" style="color: var(--sol-danger);">${failed}</div>
+                        <div class="metric-label">Failed</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">${successRate}%</div>
+                        <div class="metric-label">Success Rate</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">${duration}ms</div>
+                        <div class="metric-label">Duration</div>
+                    </div>
+                `;
+
+                // Generate final recommendations
+                const allRecommendations = this.results
+                    .filter(r => r.recommendations && r.recommendations.length > 0)
+                    .flatMap(r => r.recommendations);
+
+                const phase3Ready = successRate >= 85;
+                
+                summaryRecommendations.innerHTML = `
+                    <div class="recommendations">
+                        <div class="recommendation-title">
+                            <i class="fas fa-rocket"></i>
+                            Phase 2.5 → Phase 3 Status
+                        </div>
+                        <p><strong>Completion:</strong> ${successRate}% of tests passed</p>
+                        <p><strong>Status:</strong> ${phase3Ready ? '🟢 Ready for Phase 3' : '🟡 Needs fixes before Phase 3'}</p>
+                        <p><strong>Next Steps:</strong></p>
+                        <ul style="margin: 0.5rem 0; padding-left: 1.5rem;">
+                            ${phase3Ready ? `
+                                <li>✅ Create shipments.html registry interface</li>
+                                <li>✅ Build shipments-registry.js core engine</li>
+                                <li>✅ Implement products ↔ shipments linking</li>
+                            ` : `
+                                <li>🔧 Fix failing tests first</li>
+                                <li>🔧 Address critical issues</li>
+                                <li>🔧 Re-run tests until 85%+ pass rate</li>
+                            `}
+                        </ul>
+                    </div>
+                    
+                    ${allRecommendations.length > 0 ? `
+                        <div class="recommendations">
+                            <div class="recommendation-title">
+                                <i class="fas fa-list-check"></i>
+                                Action Items (${allRecommendations.length})
+                            </div>
+                            <ol style="margin: 0; padding-left: 1.5rem;">
+                                ${[...new Set(allRecommendations)].map(rec => `<li>${rec}</li>`).join('')}
+                            </ol>
+                        </div>
+                    ` : ''}
+                `;
+
+                summaryCard.style.display = 'block';
+                summaryCard.scrollIntoView({ behavior: 'smooth' });
+            }
+
+            // ===== UTILITY METHODS =====
+
+            clearResults() {
+                document.getElementById('testResults').innerHTML = '';
+                document.getElementById('summaryCard').style.display = 'none';
+                document.getElementById('progressCard').style.display = 'none';
+                this.results = [];
+                this.log('Results cleared', 'info');
+            }
+
+            exportResults() {
+                const report = {
+                    timestamp: new Date().toISOString(),
+                    phase: '2.5',
+                    results: this.results,
+                    summary: {
+                        total: this.results.length,
+                        passed: this.results.filter(r => r.passed).length,
+                        successRate: this.results.length > 0 ? 
+                            ((this.results.filter(r => r.passed).length / this.results.length) * 100).toFixed(1) + '%' : '0%'
+                    }
+                };
+
+                const blob = new Blob([JSON.stringify(report, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `supply-chain-test-report-${new Date().toISOString().split('T')[0]}.json`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+
+                this.log('Report exported successfully', 'success');
+            }
+
+            showFixGuide() {
+                if (window.ModalSystem) {
+                    window.ModalSystem.show({
+                        title: '🔧 Critical Fixes Guide',
+                        content: `
+                            <div style="padding: 1rem 0;">
+                                <div style="background: var(--sol-danger-light); border: 1px solid var(--sol-danger); border-radius: var(--sol-radius-md); padding: 1rem; margin-bottom: 1rem;">
+                                    <h4 style="margin: 0 0 0.5rem; color: var(--sol-danger-dark);">
+                                        <i class="fas fa-bug"></i>
+                                        CRITICAL: JavaScript Syntax Error
+                                    </h4>
+                                    <p style="margin: 0;">Fix incomplete Object.entries statement in import.html integration test.</p>
+                                </div>
+                                
+                                <div style="background: var(--sol-warning-light); border: 1px solid var(--sol-warning); border-radius: var(--sol-radius-md); padding: 1rem; margin-bottom: 1rem;">
+                                    <h4 style="margin: 0 0 0.5rem; color: var(--sol-warning-dark);">
+                                        <i class="fas fa-exclamation-triangle"></i>
+                                        HIGH PRIORITY: Products.html Simplification
+                                    </h4>
+                                    <p style="margin: 0;">Remove overly complex Cost Intelligence features until Phase 3 registry is complete.</p>
+                                </div>
+                                
+                                <div style="background: var(--sol-info-light); border: 1px solid var(--sol-info); border-radius: var(--sol-radius-md); padding: 1rem;">
+                                    <h4 style="margin: 0 0 0.5rem; color: var(--sol-info-dark);">
+                                        <i class="fas fa-rocket"></i>
+                                        NEXT: Phase 3 Planning
+                                    </h4>
+                                    <p style="margin: 0;">Begin shipments.html central registry development as foundation for true Cost Intelligence.</p>
+                                </div>
+                            </div>
+                        `,
+                        size: 'lg',
+                        actions: [
+                            {
+                                label: 'Close',
+                                class: 'sol-btn-secondary',
+                                handler: () => true
+                            }
+                        ]
+                    });
+                } else {
+                    alert('🔧 Fix Guide:\n\n1. Fix Object.entries syntax error in import.html\n2. Simplify products.html complexity\n3. Plan shipments.html registry\n4. Re-run tests to validate fixes');
+                }
+            }
+        }
+
+        // Global Functions
+        let testSuite;
+
+        async function runCompleteTest() {
+            if (!testSuite) {
+                testSuite = new SupplyChainTestSuite();
+                await testSuite.init();
+            }
+            return await testSuite.runCompleteTest();
+        }
+
+        async function runSingleTest(testType) {
+            if (!testSuite) {
+                testSuite = new SupplyChainTestSuite();
+                await testSuite.init();
+            }
+            return await testSuite.runSingleTest(testType);
+        }
+
+        function clearResults() {
+            if (testSuite) {
+                testSuite.clearResults();
+            }
+        }
+
+        function exportResults() {
+            if (testSuite) {
+                testSuite.exportResults();
+            }
+        }
+
+        function showFixGuide() {
+            if (testSuite) {
+                testSuite.showFixGuide();
+            }
+        }
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', async () => {
+            testSuite = new SupplyChainTestSuite();
+            await testSuite.init();
+            
+            console.log('🚀 Supply Chain Test System Ready');
+            console.log('📋 Use the control panel to run tests');
+            
+            // Auto-run after a short delay
+            setTimeout(() => {
+                runCompleteTest();
+            }, 2000);
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,63 @@
+On branch main
+Your branch is up to date with 'origin/main'.
+
+Changes to be committed:
+  (use "git restore --staged <file>..." to unstage)
+	modified:   pages/tracking/index.js
+
+Changes not staged for commit:
+  (use "git add <file>..." to update what will be committed)
+  (use "git restore <file>..." to discard changes in working directory)
+	modified:   .DS_Store
+	modified:   assets/css/solarium.css
+	modified:   core/header-component.js
+	modified:   core/import-manager.js
+	modified:   core/modal-system.css
+	modified:   core/modal-system.js
+	modified:   core/notification-system.js
+	modified:   core/services/tracking-service.js
+	modified:   core/table-manager.js
+	modified:   netlify.toml
+	modified:   pages/products/index.js
+	modified:   pages/settings/index.js
+	modified:   pages/tracking/index.js
+	modified:   pages/tracking/tracking-table.css
+	modified:   products.html
+	modified:   settings.html
+	modified:   tracking.html
+
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+	.history/
+	.netlify/functions/shipsgo-proxy-function.js
+	.netlify/functions/webhook-tracking.js
+	assets/js/column-fix-debug.js
+	core/advanced-search.js
+	core/auto-sync-system.js
+	core/config/
+	core/enhanced-commercial-model.js
+	core/minimal-notification-fix.js
+	core/product-linking-system-v20-1-final.js
+	core/product-sync.js
+	core/products-link-filters-fix.js
+	core/reset-button-visibility-fix.js
+	core/services/test-tracking-service.js
+	core/shipments-registry.js
+	core/shipsgo-detector.js
+	core/simple-rollback-fix.js
+	core/tracking-config.js
+	emergency-fix/
+	git.status.txt
+	import.html
+	netlify/
+	package.json
+	pages/import/
+	pages/products/product-analytics-charts.js
+	pages/products/products-integration-test.js
+	pages/shipments/
+	phase2-architecture.js
+	ristrutturazione_sch.txt
+	shipments-initialization-fix.js
+	shipments.html
+	test-integration.html
+

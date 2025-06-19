@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reset Button Debug Tool</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f8f9fa;
+        }
+        .debug-container {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .debug-section {
+            margin-bottom: 24px;
+            padding: 16px;
+            border-left: 4px solid #007AFF;
+            background: #f0f8ff;
+            border-radius: 0 8px 8px 0;
+        }
+        .debug-output {
+            background: #1a1a1a;
+            color: #00ff00;
+            padding: 16px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            margin-top: 12px;
+        }
+        .btn {
+            background: #007AFF;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-right: 12px;
+            margin-bottom: 12px;
+        }
+        .btn:hover {
+            background: #0056CC;
+        }
+        .btn-danger {
+            background: #FF3B30;
+        }
+        .btn-danger:hover {
+            background: #D70015;
+        }
+        .btn-success {
+            background: #34C759;
+        }
+        .btn-success:hover {
+            background: #248A3D;
+        }
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        .status-ok { background: #34C759; }
+        .status-warning { background: #FF9500; }
+        .status-error { background: #FF3B30; }
+        .mock-button {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 0.375rem;
+            padding: 0.375rem 0.75rem;
+            font-size: 0.875rem;
+            color: #495057;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            margin: 8px 4px;
+        }
+        .mock-button:hover {
+            background: #e9ecef;
+            border-color: #007bff;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔍 Reset Button Debug Tool</h1>
+    
+    <div class="debug-container">
+        <h2>1. Analisi Situazione Attuale</h2>
+        <button class="btn" onclick="runFullDiagnostic()">🔍 Esegui Diagnostica Completa</button>
+        <button class="btn btn-success" onclick="createTestButton()">🧪 Crea Button Test</button>
+        <button class="btn btn-danger" onclick="emergencyFix()">🚨 Emergency Fix</button>
+        
+        <div id="diagnosticOutput" class="debug-output"></div>
+    </div>
+
+    <div class="debug-container">
+        <h2>2. Test Reset Button</h2>
+        <p>Simula il reset button problematico:</p>
+        
+        <!-- Mock reset button per test -->
+        <button id="resetLinkedFiltersBtn" class="mock-button">
+            <i class="fas fa-undo"></i> Reset
+        </button>
+        
+        <!-- Mock filters -->
+        <select id="linkedProductsFilter" class="mock-button">
+            <option value="all">Tutte le spedizioni</option>
+            <option value="with-products">Solo con prodotti</option>
+            <option value="without-products">Solo senza prodotti</option>
+        </select>
+        
+        <input type="text" id="linkedProductsSearch" class="mock-button" placeholder="Cerca..." />
+        
+        <div id="testOutput" class="debug-output"></div>
+    </div>
+
+    <div class="debug-container">
+        <h2>3. Soluzioni Proposte</h2>
+        <button class="btn" onclick="applySolution1()">✅ Soluzione 1: Clean Reset</button>
+        <button class="btn" onclick="applySolution2()">✅ Soluzione 2: Event Delegation</button>
+        <button class="btn" onclick="applySolution3()">✅ Soluzione 3: Force Recreate</button>
+        
+        <div id="solutionOutput" class="debug-output"></div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
+    <script>
+        // Mock global objects for testing
+        window.resetLinkedProductsFiltersGlobal = function() {
+            log('🔄 Mock resetLinkedProductsFiltersGlobal called');
+            const filterSelect = document.getElementById('linkedProductsFilter');
+            const searchInput = document.getElementById('linkedProductsSearch');
+            if (filterSelect) filterSelect.value = 'all';
+            if (searchInput) searchInput.value = '';
+            log('✅ Mock reset completed');
+        };
+        
+        window.enhancedApplyLinkedProductsFilters = function() {
+            log('🔄 Mock enhancedApplyLinkedProductsFilters called');
+        };
+        
+        window.productLinkingV20Final = {
+            populateLinkedProductsGrid: function() {
+                log('🔄 Mock populateLinkedProductsGrid called');
+            },
+            resetLinkedProductsFilters: function() {
+                log('🔄 Mock resetLinkedProductsFilters called');
+            }
+        };
+        
+        // Mock notification system
+        window.NotificationSystem = {
+            show: function(title, message, type, duration) {
+                log(`📢 Notification: ${title} - ${message} (${type})`);
+            }
+        };
+
+        function log(message) {
+            const outputs = ['diagnosticOutput', 'testOutput', 'solutionOutput'];
+            outputs.forEach(id => {
+                const output = document.getElementById(id);
+                if (output && output.style.display !== 'none') {
+                    output.textContent += new Date().toLocaleTimeString() + ' - ' + message + '\n';
+                    output.scrollTop = output.scrollHeight;
+                }
+            });
+        }
+
+        function clearOutput(outputId) {
+            const output = document.getElementById(outputId);
+            if (output) output.textContent = '';
+        }
+
+        function runFullDiagnostic() {
+            clearOutput('diagnosticOutput');
+            log('🔍 === DIAGNOSTICA COMPLETA RESET BUTTON ===');
+            
+            // 1. Verifica esistenza button
+            const resetBtn = document.getElementById('resetLinkedFiltersBtn');
+            log('1. Reset Button Element: ' + (resetBtn ? '✅ TROVATO' : '❌ NON TROVATO'));
+            if (resetBtn) {
+                log('   - Visible: ' + (resetBtn.offsetParent !== null ? '✅ VISIBILE' : '❌ NASCOSTO'));
+                log('   - Disabled: ' + (resetBtn.disabled ? '❌ DISABILITATO' : '✅ ABILITATO'));
+                log('   - Classes: ' + resetBtn.className);
+                log('   - Style: ' + resetBtn.style.cssText);
+            }
+            
+            // 2. Verifica event listeners
+            log('2. Event Listeners:');
+            if (resetBtn) {
+                log('   - onclick: ' + (resetBtn.onclick ? '✅ PRESENTE' : '❌ ASSENTE'));
+                log('   - addEventListener: ' + (resetBtn.addEventListener ? '✅ SUPPORTATO' : '❌ NON SUPPORTATO'));
+            }
+            
+            // 3. Verifica funzioni globali
+            log('3. Funzioni Globali:');
+            log('   - resetLinkedProductsFiltersGlobal: ' + (typeof window.resetLinkedProductsFiltersGlobal));
+            log('   - enhancedApplyLinkedProductsFilters: ' + (typeof window.enhancedApplyLinkedProductsFilters));
+            log('   - productLinkingV20Final: ' + (!!window.productLinkingV20Final));
+            
+            // 4. Verifica elementi filtri
+            log('4. Elementi Filtri:');
+            const filterSelect = document.getElementById('linkedProductsFilter');
+            const searchInput = document.getElementById('linkedProductsSearch');
+            log('   - Filter Select: ' + (filterSelect ? '✅ TROVATO' : '❌ NON TROVATO') + (filterSelect ? ` (value: ${filterSelect.value})` : ''));
+            log('   - Search Input: ' + (searchInput ? '✅ TROVATO' : '❌ NON TROVATO') + (searchInput ? ` (value: "${searchInput.value}")` : ''));
+            
+            // 5. Test click simulato
+            log('5. Test Click Simulato:');
+            if (resetBtn) {
+                try {
+                    resetBtn.click();
+                    log('   - Click executed: ✅ SUCCESS');
+                } catch (error) {
+                    log('   - Click error: ❌ ' + error.message);
+                }
+            }
+            
+            log('🔍 === FINE DIAGNOSTICA ===');
+        }
+
+        function createTestButton() {
+            clearOutput('testOutput');
+            log('🧪 Creazione button di test...');
+            
+            const existingTest = document.getElementById('testResetBtn');
+            if (existingTest) existingTest.remove();
+            
+            const testBtn = document.createElement('button');
+            testBtn.id = 'testResetBtn';
+            testBtn.className = 'mock-button';
+            testBtn.innerHTML = '<i class="fas fa-test-tube"></i> Test Reset';
+            
+            // Aggiungi listener pulito
+            testBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                log('🧪 Test button clicked!');
+                
+                // Esegui reset
+                const filterSelect = document.getElementById('linkedProductsFilter');
+                const searchInput = document.getElementById('linkedProductsSearch');
+                
+                if (filterSelect) {
+                    filterSelect.value = 'all';
+                    log('   - Filter reset: ✅');
+                }
+                if (searchInput) {
+                    searchInput.value = '';
+                    log('   - Search reset: ✅');
+                }
+                
+                log('✅ Test reset completed successfully!');
+            });
+            
+            document.querySelector('.debug-container:nth-child(2)').appendChild(testBtn);
+            log('✅ Test button creato e funzionante');
+        }
+
+        function emergencyFix() {
+            clearOutput('diagnosticOutput');
+            log('🚨 EMERGENCY FIX IN CORSO...');
+            
+            const resetBtn = document.getElementById('resetLinkedFiltersBtn');
+            if (!resetBtn) {
+                log('❌ Reset button non trovato');
+                return;
+            }
+            
+            // 1. Rimuovi tutti i listener esistenti clonando
+            log('1. Cloning button per rimuovere listeners...');
+            const newBtn = resetBtn.cloneNode(true);
+            resetBtn.parentNode.replaceChild(newBtn, resetBtn);
+            
+            // 2. Forza visibilità
+            log('2. Forzando visibilità...');
+            newBtn.style.cssText = `
+                display: inline-block !important;
+                visibility: visible !important;
+                opacity: 1 !important;
+                position: relative !important;
+                z-index: 1000 !important;
+                background: #f8f9fa !important;
+                border: 1px solid #dee2e6 !important;
+                border-radius: 0.375rem !important;
+                padding: 0.375rem 0.75rem !important;
+                font-size: 0.875rem !important;
+                color: #495057 !important;
+                cursor: pointer !important;
+            `;
+            
+            // 3. Aggiungi nuovo listener semplice
+            log('3. Aggiungendo nuovo listener...');
+            newBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                log('🔄 Emergency reset triggered');
+                
+                try {
+                    // Reset diretto
+                    const filterSelect = document.getElementById('linkedProductsFilter');
+                    const searchInput = document.getElementById('linkedProductsSearch');
+                    
+                    if (filterSelect) {
+                        filterSelect.value = 'all';
+                        filterSelect.style.background = '#e8f5e8';
+                        setTimeout(() => filterSelect.style.background = '', 500);
+                    }
+                    
+                    if (searchInput) {
+                        searchInput.value = '';
+                        searchInput.style.background = '#e8f5e8';
+                        setTimeout(() => searchInput.style.background = '', 500);
+                    }
+                    
+                    // Chiama funzioni se disponibili
+                    if (window.enhancedApplyLinkedProductsFilters) {
+                        setTimeout(() => {
+                            window.enhancedApplyLinkedProductsFilters();
+                        }, 100);
+                    }
+                    
+                    // Notifica successo
+                    if (window.NotificationSystem) {
+                        window.NotificationSystem.show('Reset', 'Filtri azzerati con emergency fix', 'success', 1500);
+                    }
+                    
+                    log('✅ Emergency reset completato');
+                } catch (error) {
+                    log('❌ Errore emergency reset: ' + error.message);
+                }
+            });
+            
+            // 4. Test immediato
+            log('4. Test emergency button...');
+            setTimeout(() => {
+                newBtn.click();
+            }, 500);
+            
+            log('🚨 EMERGENCY FIX COMPLETATO');
+        }
+
+        function applySolution1() {
+            clearOutput('solutionOutput');
+            log('✅ SOLUZIONE 1: Clean Reset Implementation');
+            
+            const code = `
+// Soluzione 1: Reset button con implementazione pulita
+function fixResetButtonClean() {
+    const resetBtn = document.getElementById('resetLinkedFiltersBtn');
+    if (!resetBtn) {
+        console.error('Reset button non trovato');
+        return false;
+    }
+    
+    // Rimuovi tutti i listener esistenti
+    const newBtn = resetBtn.cloneNode(true);
+    resetBtn.parentNode.replaceChild(newBtn, resetBtn);
+    
+    // Funzione reset semplice e robusta
+    function performReset() {
+        const filterSelect = document.getElementById('linkedProductsFilter');
+        const searchInput = document.getElementById('linkedProductsSearch');
+        
+        // Reset valori
+        if (filterSelect) filterSelect.value = 'all';
+        if (searchInput) searchInput.value = '';
+        
+        // Visual feedback
+        [filterSelect, searchInput].forEach(el => {
+            if (el) {
+                el.style.background = '#d4edda';
+                setTimeout(() => el.style.background = '', 500);
+            }
+        });
+        
+        // Applica filtri
+        setTimeout(() => {
+            if (window.enhancedApplyLinkedProductsFilters) {
+                window.enhancedApplyLinkedProductsFilters();
+            } else if (window.productLinkingV20Final?.populateLinkedProductsGrid) {
+                window.productLinkingV20Final.populateLinkedProductsGrid();
+            }
+        }, 100);
+        
+        // Notifica
+        setTimeout(() => {
+            if (window.NotificationSystem?.show) {
+                window.NotificationSystem.show('Reset', 'Filtri azzerati', 'success', 1500);
+            }
+        }, 200);
+    }
+    
+    // Aggiungi listener pulito
+    newBtn.addEventListener('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        performReset();
+    });
+    
+    // Test immediato
+    console.log('Reset button fixed - testing...');
+    performReset();
+    
+    return true;
+}
+
+// Esegui fix
+fixResetButtonClean();
+            `;
+            
+            log('Codice Soluzione 1:');
+            log(code);
+            
+            // Esegui la soluzione
+            try {
+                eval(code);
+                log('✅ Soluzione 1 applicata con successo');
+            } catch (error) {
+                log('❌ Errore applicazione Soluzione 1: ' + error.message);
+            }
+        }
+
+        function applySolution2() {
+            clearOutput('solutionOutput');
+            log('✅ SOLUZIONE 2: Event Delegation');
+            
+            const code = `
+// Soluzione 2: Event delegation per robustezza
+function fixResetButtonDelegation() {
+    // Rimuovi listener diretti esistenti
+    const resetBtn = document.getElementById('resetLinkedFiltersBtn');
+    if (resetBtn) {
+        resetBtn.onclick = null;
+        resetBtn.removeEventListener('click', arguments.callee);
+    }
+    
+    // Event delegation sul documento
+    document.addEventListener('click', function(e) {
+        if (e.target.id === 'resetLinkedFiltersBtn' || 
+            e.target.closest('#resetLinkedFiltersBtn')) {
+            
+            e.preventDefault();
+            e.stopPropagation();
+            
+            console.log('Reset via event delegation');
+            
+            // Reset logic
+            const filterSelect = document.getElementById('linkedProductsFilter');
+            const searchInput = document.getElementById('linkedProductsSearch');
+            
+            if (filterSelect) {
+                filterSelect.value = 'all';
+                filterSelect.style.boxShadow = '0 0 0 2px #28a745';
+                setTimeout(() => filterSelect.style.boxShadow = '', 1000);
+            }
+            
+            if (searchInput) {
+                searchInput.value = '';
+                searchInput.style.boxShadow = '0 0 0 2px #28a745';
+                setTimeout(() => searchInput.style.boxShadow = '', 1000);
+            }
+            
+            // Apply filters
+            setTimeout(() => {
+                if (window.enhancedApplyLinkedProductsFilters) {
+                    window.enhancedApplyLinkedProductsFilters();
+                }
+            }, 150);
+            
+            // Feedback
+            if (window.NotificationSystem) {
+                window.NotificationSystem.show('Success', 'Reset via delegation', 'success', 1500);
+            }
+        }
+    }, true); // Use capture phase
+    
+    console.log('Event delegation reset handler installed');
+    return true;
+}
+
+// Esegui fix
+fixResetButtonDelegation();
+            `;
+            
+            log('Codice Soluzione 2:');
+            log(code);
+            
+            try {
+                eval(code);
+                log('✅ Soluzione 2 applicata con successo');
+            } catch (error) {
+                log('❌ Errore applicazione Soluzione 2: ' + error.message);
+            }
+        }
+
+        function applySolution3() {
+            clearOutput('solutionOutput');
+            log('✅ SOLUZIONE 3: Force Recreate Button');
+            
+            const code = `
+// Soluzione 3: Ricrea completamente il button
+function fixResetButtonRecreate() {
+    const container = document.querySelector('#resetLinkedFiltersBtn')?.parentElement;
+    if (!container) {
+        console.error('Container del reset button non trovato');
+        return false;
+    }
+    
+    // Rimuovi button esistente
+    const existingBtn = document.getElementById('resetLinkedFiltersBtn');
+    if (existingBtn) existingBtn.remove();
+    
+    // Crea nuovo button
+    const newBtn = document.createElement('button');
+    newBtn.id = 'resetLinkedFiltersBtn';
+    newBtn.className = 'sol-btn sol-btn-sm sol-btn-glass';
+    newBtn.innerHTML = '<i class="fas fa-undo"></i> Reset';
+    newBtn.title = 'Reset filtri prodotti collegati';
+    
+    // Stili forzati
+    newBtn.style.cssText = \`
+        display: inline-flex !important;
+        align-items: center !important;
+        gap: 0.5rem !important;
+        padding: 0.375rem 0.75rem !important;
+        background: #f8f9fa !important;
+        border: 1px solid #dee2e6 !important;
+        border-radius: 0.375rem !important;
+        color: #495057 !important;
+        cursor: pointer !important;
+        font-size: 0.875rem !important;
+        transition: all 0.2s ease !important;
+        margin-left: auto !important;
+    \`;
+    
+    // Handler robusto
+    newBtn.addEventListener('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        e.stopImmediatePropagation();
+        
+        console.log('🔄 Reset ricreato - executing...');
+        
+        // Disable button temporaneamente
+        this.disabled = true;
+        this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Reset...';
+        
+        setTimeout(() => {
+            try {
+                // Reset filters
+                const filterSelect = document.getElementById('linkedProductsFilter');
+                const searchInput = document.getElementById('linkedProductsSearch');
+                
+                if (filterSelect) {
+                    filterSelect.value = 'all';
+                    filterSelect.dispatchEvent(new Event('change', { bubbles: true }));
+                }
+                
+                if (searchInput) {
+                    searchInput.value = '';
+                    searchInput.dispatchEvent(new Event('input', { bubbles: true }));
+                }
+                
+                // Visual feedback
+                this.innerHTML = '<i class="fas fa-check"></i> Completato';
+                this.style.background = '#d4edda';
+                this.style.borderColor = '#c3e6cb';
+                this.style.color = '#155724';
+                
+                // Apply filters
+                if (window.enhancedApplyLinkedProductsFilters) {
+                    window.enhancedApplyLinkedProductsFilters();
+                }
+                
+                // Success notification
+                if (window.NotificationSystem) {
+                    window.NotificationSystem.show('Reset', 'Filtri azzerati (button ricreato)', 'success', 2000);
+                }
+                
+                // Reset button appearance
+                setTimeout(() => {
+                    this.disabled = false;
+                    this.innerHTML = '<i class="fas fa-undo"></i> Reset';
+                    this.style.background = '#f8f9fa';
+                    this.style.borderColor = '#dee2e6';
+                    this.style.color = '#495057';
+                }, 2000);
+                
+            } catch (error) {
+                console.error('Errore nel reset ricreato:', error);
+                this.disabled = false;
+                this.innerHTML = '<i class="fas fa-exclamation"></i> Errore';
+                this.style.background = '#f8d7da';
+                this.style.borderColor = '#f5c6cb';
+                this.style.color = '#721c24';
+            }
+        }, 100);
+    });
+    
+    // Hover effects
+    newBtn.addEventListener('mouseenter', function() {
+        if (!this.disabled) {
+            this.style.background = '#e9ecef';
+            this.style.borderColor = '#007bff';
+            this.style.transform = 'translateY(-1px)';
+        }
+    });
+    
+    newBtn.addEventListener('mouseleave', function() {
+        if (!this.disabled) {
+            this.style.background = '#f8f9fa';
+            this.style.borderColor = '#dee2e6';
+            this.style.transform = 'translateY(0)';
+        }
+    });
+    
+    // Inserisci nel container
+    container.appendChild(newBtn);
+    
+    console.log('✅ Reset button ricreato con successo');
+    
+    // Test immediato
+    setTimeout(() => {
+        console.log('Testing recreated button...');
+        newBtn.click();
+    }, 500);
+    
+    return true;
+}
+
+// Esegui fix
+fixResetButtonRecreate();
+            `;
+            
+            log('Codice Soluzione 3:');
+            log(code);
+            
+            try {
+                eval(code);
+                log('✅ Soluzione 3 applicata con successo');
+            } catch (error) {
+                log('❌ Errore applicazione Soluzione 3: ' + error.message);
+            }
+        }
+
+        // Auto-run diagnostica al caricamento
+        setTimeout(() => {
+            runFullDiagnostic();
+        }, 1000);
+    </script>
+</body>
+</html>

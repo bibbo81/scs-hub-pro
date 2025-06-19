@@ -1,0 +1,157 @@
+/* ===== HEADER TABELLA COERENTI CON SOLARIUM DESIGN ===== */
+
+/* Header tabella con stile Solarium */
+.data-table thead,
+.sol-table thead {
+    background-color: var(--sol-gray-50);
+}
+
+.data-table th,
+.sol-table th {
+    padding: var(--sol-spacing-md) var(--sol-spacing-lg);
+    font-weight: 600;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--sol-gray-600);
+    border-bottom: 2px solid var(--sol-gray-200);
+    text-align: center !important;
+    vertical-align: middle !important;
+    position: relative;
+    user-select: none;
+    background-color: var(--sol-gray-50);
+}
+
+/* Header sortabili */
+.data-table th.sortable,
+.sol-table th.sortable {
+    cursor: pointer;
+    transition: background-color var(--sol-transition-fast);
+}
+
+.data-table th.sortable:hover,
+.sol-table th.sortable:hover {
+    background-color: var(--sol-gray-100);
+}
+
+/* Indicatori di ordinamento */
+.data-table th.sortable::after,
+.sol-table th.sortable::after {
+    content: '↕';
+    position: absolute;
+    right: var(--sol-spacing-md);
+    top: 50%;
+    transform: translateY(-50%);
+    opacity: 0.3;
+    font-size: 0.875rem;
+}
+
+.data-table th.sort-asc::after,
+.sol-table th.sort-asc::after {
+    content: '↑';
+    opacity: 1;
+    color: var(--sol-primary);
+}
+
+.data-table th.sort-desc::after,
+.sol-table th.sort-desc::after {
+    content: '↓';
+    opacity: 1;
+    color: var(--sol-primary);
+}
+
+/* Celle della tabella */
+.data-table td,
+.sol-table td {
+    padding: var(--sol-spacing-md) var(--sol-spacing-lg);
+    border-bottom: 1px solid var(--sol-gray-100);
+    text-align: center !important;
+    vertical-align: middle !important;
+    color: var(--sol-gray-700);
+}
+
+/* Hover sulle righe */
+.data-table tbody tr,
+.sol-table tbody tr {
+    transition: background-color var(--sol-transition-fast);
+}
+
+.data-table tbody tr:hover,
+.sol-table tbody tr:hover {
+    background-color: var(--sol-gray-50);
+}
+
+/* Righe selezionate */
+.data-table tbody tr.selected,
+.sol-table tbody tr.selected {
+    background-color: var(--sol-primary-light);
+}
+
+/* Wrapper tabella con bordi arrotondati e ombra */
+.table-container {
+    background-color: white;
+    border-radius: var(--sol-radius-lg);
+    overflow: hidden;
+    box-shadow: var(--sol-shadow-sm);
+}
+
+/* Prima e ultima colonna - padding speciali */
+.data-table th:first-child,
+.data-table td:first-child,
+.sol-table th:first-child,
+.sol-table td:first-child {
+    padding-left: var(--sol-spacing-lg);
+}
+
+.data-table th:last-child,
+.data-table td:last-child,
+.sol-table th:last-child,
+.sol-table td:last-child {
+    padding-right: var(--sol-spacing-lg);
+}
+
+/* Colonna checkbox - larghezza fissa e centratura */
+.data-table th:has(.select-all),
+.data-table td:has(.row-select) {
+    width: 40px;
+    padding: var(--sol-spacing-sm);
+}
+
+/* Badge e elementi inline centrati */
+.sol-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.25rem;
+}
+
+/* Pulsanti azioni sempre centrati */
+.action-buttons {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: center !important;
+}
+
+/* Stile per i pulsanti nelle azioni */
+.btn-icon {
+    padding: 0.5rem;
+    border: none;
+    background: transparent;
+    color: var(--sol-gray-600);
+    cursor: pointer;
+    border-radius: var(--sol-radius-sm);
+    transition: all var(--sol-transition-fast);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn-icon:hover {
+    background: var(--sol-gray-100);
+    color: var(--sol-gray-900);
+}
+
+.btn-icon.text-danger:hover {
+    background: var(--sol-danger-light);
+    color: var(--sol-danger);
+}

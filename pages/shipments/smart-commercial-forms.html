@@ -1,0 +1,1994 @@
+<!-- smart-commercial-forms.html - V15.0 SMART FORMS SYSTEM -->
+<!-- Path: /pages/shipments/smart-commercial-forms.html -->
+
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Commercial Forms V15.0</title>
+    
+    <!-- CSS LINKS -->
+    <link rel="stylesheet" href="/assets/css/solarium.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        /* Fix per iframe styling */
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f8f9fa;
+        }
+        
+        .form-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        /* ===== SMART COMMERCIAL FORMS STYLES V15.0 ===== */
+        
+        .smart-commercial-form {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: var(--sol-radius-lg);
+            box-shadow: var(--sol-shadow-lg);
+            overflow: hidden;
+        }
+        
+        .form-header {
+            background: linear-gradient(135deg, var(--sol-primary), var(--sol-primary-dark));
+            color: white;
+            padding: 2rem;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .form-header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 200px;
+            height: 200px;
+            background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+            pointer-events: none;
+        }
+        
+        .form-title {
+            margin: 0 0 0.5rem;
+            font-size: 1.75rem;
+            font-weight: 700;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .form-subtitle {
+            margin: 0;
+            opacity: 0.9;
+            font-size: 1rem;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .form-progress {
+            margin-top: 1.5rem;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .progress-bar {
+            height: 8px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 0.5rem;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: white;
+            transition: width 0.3s ease;
+            border-radius: 4px;
+        }
+        
+        .progress-text {
+            font-size: 0.875rem;
+            opacity: 0.9;
+        }
+        
+        .form-navigation {
+            display: flex;
+            background: var(--sol-gray-50);
+            border-bottom: 1px solid var(--sol-gray-200);
+            overflow-x: auto;
+        }
+        
+        .nav-section {
+            flex: 1;
+            min-width: 200px;
+            text-align: center;
+            padding: 1.5rem 1rem;
+            position: relative;
+            cursor: pointer;
+            transition: all var(--sol-transition-fast);
+            border-bottom: 3px solid transparent;
+        }
+        
+        .nav-section:hover {
+            background: white;
+        }
+        
+        .nav-section.active {
+            background: white;
+            border-bottom-color: var(--sol-primary);
+        }
+        
+        .nav-section.completed {
+            background: var(--sol-success-light);
+            color: var(--sol-success-dark);
+        }
+        
+        .nav-section.error {
+            background: var(--sol-danger-light);
+            color: var(--sol-danger-dark);
+        }
+        
+        .nav-icon {
+            display: block;
+            font-size: 1.5rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .nav-title {
+            font-size: 0.875rem;
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+        
+        .nav-status {
+            font-size: 0.75rem;
+            opacity: 0.8;
+        }
+        
+        .form-content {
+            padding: 2rem;
+            min-height: 600px;
+        }
+        
+        .form-section {
+            display: none;
+            animation: fadeIn 0.3s ease-in;
+        }
+        
+        .form-section.active {
+            display: block;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .section-header {
+            margin-bottom: 2rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--sol-gray-200);
+        }
+        
+        .section-title {
+            margin: 0 0 0.5rem;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--sol-gray-800);
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+        
+        .section-description {
+            margin: 0;
+            color: var(--sol-gray-600);
+            font-size: 1rem;
+            line-height: 1.5;
+        }
+        
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+        
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+        
+        .form-label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: var(--sol-gray-700);
+            font-size: 0.875rem;
+        }
+        
+        .form-label.required::after {
+            content: ' *';
+            color: var(--sol-danger);
+        }
+        
+        .form-input,
+        .form-select,
+        .form-textarea {
+            width: 100%;
+            padding: 0.75rem;
+            border: 2px solid var(--sol-gray-200);
+            border-radius: var(--sol-radius-md);
+            font-size: 1rem;
+            transition: all var(--sol-transition-fast);
+            background: white;
+        }
+        
+        .form-input:focus,
+        .form-select:focus,
+        .form-textarea:focus {
+            outline: none;
+            border-color: var(--sol-primary);
+            box-shadow: 0 0 0 3px rgba(0,122,255,0.1);
+        }
+        
+        .form-input.error,
+        .form-select.error,
+        .form-textarea.error {
+            border-color: var(--sol-danger);
+            box-shadow: 0 0 0 3px rgba(220,53,69,0.1);
+        }
+        
+        .form-input.valid,
+        .form-select.valid,
+        .form-textarea.valid {
+            border-color: var(--sol-success);
+            box-shadow: 0 0 0 3px rgba(40,167,69,0.1);
+        }
+        
+        .form-help {
+            margin-top: 0.25rem;
+            font-size: 0.75rem;
+            color: var(--sol-gray-500);
+            line-height: 1.4;
+        }
+        
+        .form-error {
+            margin-top: 0.25rem;
+            font-size: 0.75rem;
+            color: var(--sol-danger);
+            font-weight: 500;
+        }
+        
+        .input-group {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .input-addon {
+            background: var(--sol-gray-100);
+            border: 2px solid var(--sol-gray-200);
+            border-radius: var(--sol-radius-md);
+            padding: 0.75rem;
+            font-weight: 600;
+            color: var(--sol-gray-700);
+            white-space: nowrap;
+        }
+        
+        .currency-input {
+            position: relative;
+        }
+        
+        .currency-symbol {
+            position: absolute;
+            left: 0.75rem;
+            top: 50%;
+            transform: translateY(-50%);
+            font-weight: 600;
+            color: var(--sol-gray-600);
+            pointer-events: none;
+        }
+        
+        .currency-input .form-input {
+            padding-left: 2rem;
+        }
+        
+        .supplier-selector {
+            position: relative;
+        }
+        
+        .supplier-dropdown {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border: 1px solid var(--sol-gray-200);
+            border-radius: var(--sol-radius-md);
+            box-shadow: var(--sol-shadow-lg);
+            max-height: 200px;
+            overflow-y: auto;
+            z-index: 1000;
+            display: none;
+        }
+        
+        .supplier-dropdown.show {
+            display: block;
+        }
+        
+        .supplier-option {
+            padding: 0.75rem;
+            cursor: pointer;
+            border-bottom: 1px solid var(--sol-gray-100);
+            transition: background var(--sol-transition-fast);
+        }
+        
+        .supplier-option:hover {
+            background: var(--sol-gray-50);
+        }
+        
+        .supplier-option:last-child {
+            border-bottom: none;
+        }
+        
+        .supplier-name {
+            font-weight: 600;
+            color: var(--sol-gray-800);
+        }
+        
+        .supplier-code {
+            font-size: 0.875rem;
+            color: var(--sol-gray-600);
+        }
+        
+        .containers-section {
+            background: var(--sol-gray-50);
+            padding: 1.5rem;
+            border-radius: var(--sol-radius-lg);
+            border: 1px solid var(--sol-gray-200);
+        }
+        
+        .containers-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+        
+        .containers-list {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+        
+        .container-item {
+            background: white;
+            padding: 1.5rem;
+            border-radius: var(--sol-radius-md);
+            border: 1px solid var(--sol-gray-200);
+            position: relative;
+        }
+        
+        .container-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+        
+        .container-title {
+            font-weight: 600;
+            color: var(--sol-gray-800);
+        }
+        
+        .remove-container {
+            background: none;
+            border: none;
+            color: var(--sol-danger);
+            cursor: pointer;
+            padding: 0.25rem;
+            border-radius: 50%;
+            transition: background var(--sol-transition-fast);
+        }
+        
+        .remove-container:hover {
+            background: var(--sol-danger-light);
+        }
+        
+        .container-fields {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+        }
+        
+        .add-container {
+            background: var(--sol-primary-light);
+            color: var(--sol-primary);
+            border: 2px dashed var(--sol-primary);
+            padding: 1rem;
+            border-radius: var(--sol-radius-md);
+            cursor: pointer;
+            text-align: center;
+            transition: all var(--sol-transition-fast);
+            margin-top: 1rem;
+        }
+        
+        .add-container:hover {
+            background: var(--sol-primary);
+            color: white;
+        }
+        
+        .cross-reference-panel {
+            background: var(--sol-info-light);
+            border: 1px solid var(--sol-info);
+            border-radius: var(--sol-radius-lg);
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        
+        .cross-reference-header {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+            color: var(--sol-info-dark);
+            font-weight: 600;
+        }
+        
+        .cross-reference-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+        
+        .cross-reference-item {
+            background: white;
+            padding: 0.5rem 1rem;
+            border-radius: var(--sol-radius-sm);
+            border: 1px solid var(--sol-info);
+            font-size: 0.875rem;
+            cursor: pointer;
+            transition: all var(--sol-transition-fast);
+        }
+        
+        .cross-reference-item:hover {
+            background: var(--sol-info);
+            color: white;
+        }
+        
+        .form-actions {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 2rem;
+            border-top: 1px solid var(--sol-gray-200);
+            background: var(--sol-gray-50);
+        }
+        
+        .actions-left {
+            display: flex;
+            gap: 1rem;
+        }
+        
+        .actions-right {
+            display: flex;
+            gap: 1rem;
+        }
+        
+        .validation-summary {
+            background: white;
+            border: 1px solid var(--sol-gray-200);
+            border-radius: var(--sol-radius-lg);
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        
+        .validation-header {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+            font-weight: 600;
+        }
+        
+        .validation-score {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        
+        .score-circle {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 1.25rem;
+            color: white;
+        }
+        
+        .score-high { background: var(--sol-success); }
+        .score-medium { background: var(--sol-warning); }
+        .score-low { background: var(--sol-danger); }
+        
+        .validation-issues {
+            flex: 1;
+        }
+        
+        .validation-issue {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 0.5rem;
+            font-size: 0.875rem;
+        }
+        
+        .validation-issue.error {
+            color: var(--sol-danger);
+        }
+        
+        .validation-issue.warning {
+            color: var(--sol-warning);
+        }
+        
+        .auto-save-indicator {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.875rem;
+            color: var(--sol-gray-600);
+        }
+        
+        .save-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+            padding: 0.25rem 0.5rem;
+            border-radius: var(--sol-radius-sm);
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+        
+        .save-status.saving {
+            background: var(--sol-warning-light);
+            color: var(--sol-warning);
+        }
+        
+        .save-status.saved {
+            background: var(--sol-success-light);
+            color: var(--sol-success);
+        }
+        
+        .save-status.error {
+            background: var(--sol-danger-light);
+            color: var(--sol-danger);
+        }
+        
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .smart-commercial-form {
+                margin: 0;
+                border-radius: 0;
+            }
+            
+            .form-header {
+                padding: 1.5rem;
+            }
+            
+            .form-title {
+                font-size: 1.5rem;
+            }
+            
+            .form-navigation {
+                flex-direction: column;
+            }
+            
+            .nav-section {
+                min-width: auto;
+                text-align: left;
+                padding: 1rem;
+            }
+            
+            .form-content {
+                padding: 1.5rem;
+            }
+            
+            .form-grid {
+                grid-template-columns: 1fr;
+                gap: 1.5rem;
+            }
+            
+            .container-fields {
+                grid-template-columns: 1fr;
+            }
+            
+            .form-actions {
+                padding: 1.5rem;
+                flex-direction: column;
+                gap: 1rem;
+            }
+            
+            .actions-left,
+            .actions-right {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Smart Commercial Form Container -->
+    <div class="smart-commercial-form" id="smartCommercialForm">
+        <!-- Form Header -->
+        <div class="form-header">
+            <h1 class="form-title">
+                <i class="fas fa-file-contract"></i>
+                Dati Commerciali Avanzati
+            </h1>
+            <p class="form-subtitle">
+                Gestione completa documenti commerciali PO → PI → CI → BL
+            </p>
+            <div class="form-progress">
+                <div class="progress-bar">
+                    <div class="progress-fill" id="formProgressBar" style="width: 0%"></div>
+                </div>
+                <div class="progress-text">
+                    <span id="formProgressText">0% completato</span>
+                    <span id="formProgressStep">(0 di 6 sezioni)</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Form Navigation -->
+        <div class="form-navigation" id="formNavigation">
+            <div class="nav-section active" data-section="purchase_order">
+                <i class="nav-icon fas fa-file-contract"></i>
+                <div class="nav-title">Purchase Order</div>
+                <div class="nav-status">Non completato</div>
+            </div>
+            <div class="nav-section" data-section="proforma_invoice">
+                <i class="nav-icon fas fa-file-invoice"></i>
+                <div class="nav-title">Proforma Invoice</div>
+                <div class="nav-status">Non completato</div>
+            </div>
+            <div class="nav-section" data-section="commercial_invoice">
+                <i class="nav-icon fas fa-receipt"></i>
+                <div class="nav-title">Commercial Invoice</div>
+                <div class="nav-status">Non completato</div>
+            </div>
+            <div class="nav-section" data-section="transport_document">
+                <i class="nav-icon fas fa-ship"></i>
+                <div class="nav-title">Bill of Lading</div>
+                <div class="nav-status">Non completato</div>
+            </div>
+            <div class="nav-section" data-section="cargo_details">
+                <i class="nav-icon fas fa-boxes"></i>
+                <div class="nav-title">Dettagli Carico</div>
+                <div class="nav-status">Non completato</div>
+            </div>
+            <div class="nav-section" data-section="financial_terms">
+                <i class="nav-icon fas fa-euro-sign"></i>
+                <div class="nav-title">Termini Finanziari</div>
+                <div class="nav-status">Non completato</div>
+            </div>
+        </div>
+
+        <!-- Form Content -->
+        <div class="form-content">
+            <!-- Cross-Reference Panel -->
+            <div class="cross-reference-panel" id="crossReferencePanel" style="display: none;">
+                <div class="cross-reference-header">
+                    <i class="fas fa-link"></i>
+                    Riferimenti Correlati
+                </div>
+                <div class="cross-reference-list" id="crossReferenceList">
+                    <!-- Cross-references will be populated here -->
+                </div>
+            </div>
+
+            <!-- Validation Summary -->
+            <div class="validation-summary" id="validationSummary" style="display: none;">
+                <div class="validation-header">
+                    <i class="fas fa-clipboard-check"></i>
+                    Validazione Dati
+                </div>
+                <div class="validation-score">
+                    <div class="score-circle score-high" id="validationScore">0</div>
+                    <div class="validation-issues">
+                        <div id="validationIssues">
+                            <!-- Validation issues will be populated here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Purchase Order Section -->
+            <div class="form-section active" id="section-purchase_order">
+                <div class="section-header">
+                    <h2 class="section-title">
+                        <i class="fas fa-file-contract"></i>
+                        Purchase Order (PO)
+                    </h2>
+                    <p class="section-description">
+                        Inserisci i dettagli del Purchase Order per avviare il workflow commerciale
+                    </p>
+                </div>
+
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label class="form-label required">Numero PO</label>
+                        <input type="text" class="form-input" id="poNumber" 
+                               placeholder="PO-2024-XXXX" autocomplete="off">
+                        <div class="form-help">Formato: PO-YYYY-XXXXX</div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Data PO</label>
+                        <input type="date" class="form-input" id="poDate">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Valore PO</label>
+                        <div class="currency-input">
+                            <span class="currency-symbol">€</span>
+                            <input type="number" class="form-input" id="poValue" 
+                                   placeholder="0.00" step="0.01" min="0">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Stato PO</label>
+                        <select class="form-select" id="poStatus">
+                            <option value="draft">Bozza</option>
+                            <option value="confirmed">Confermato</option>
+                            <option value="partial">Parziale</option>
+                            <option value="completed">Completato</option>
+                            <option value="cancelled">Annullato</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Supplier Section -->
+                <h3>Fornitore</h3>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label class="form-label">Codice Fornitore</label>
+                        <input type="text" class="form-input" id="supplierCode" 
+                               placeholder="SUP-001">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Nome Fornitore</label>
+                        <div class="supplier-selector">
+                            <input type="text" class="form-input" id="supplierName" 
+                                   placeholder="Nome o ragione sociale" autocomplete="off">
+                            <div class="supplier-dropdown" id="supplierDropdown">
+                                <!-- Supplier suggestions will be populated here -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Termini Pagamento</label>
+                        <input type="text" class="form-input" id="paymentTerms" 
+                               placeholder="Es. 30 giorni fine mese">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Proforma Invoice Section -->
+            <div class="form-section" id="section-proforma_invoice">
+                <div class="section-header">
+                    <h2 class="section-title">
+                        <i class="fas fa-file-invoice"></i>
+                        Proforma Invoice (PI)
+                    </h2>
+                    <p class="section-description">
+                        Gestisci i dettagli della Proforma Invoice collegata al PO
+                    </p>
+                </div>
+
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label class="form-label">Numero PI</label>
+                        <input type="text" class="form-input" id="piNumber" 
+                               placeholder="PI-2024-XXXX">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Data PI</label>
+                        <input type="date" class="form-input" id="piDate">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Valore PI</label>
+                        <div class="currency-input">
+                            <span class="currency-symbol">€</span>
+                            <input type="number" class="form-input" id="piValue" 
+                                   placeholder="0.00" step="0.01" min="0">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Stato PI</label>
+                        <select class="form-select" id="piStatus">
+                            <option value="draft">Bozza</option>
+                            <option value="sent">Inviata</option>
+                            <option value="approved">Approvata</option>
+                            <option value="revised">Revisionata</option>
+                            <option value="cancelled">Annullata</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Termini Pagamento</label>
+                        <select class="form-select" id="piPaymentTerms">
+                            <option value="30_days">30 giorni</option>
+                            <option value="60_days">60 giorni</option>
+                            <option value="90_days">90 giorni</option>
+                            <option value="advance">Anticipo</option>
+                            <option value="cod">Contrassegno</option>
+                            <option value="custom">Personalizzato</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Data Validità</label>
+                        <input type="date" class="form-input" id="validityDate">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Commercial Invoice Section -->
+            <div class="form-section" id="section-commercial_invoice">
+                <div class="section-header">
+                    <h2 class="section-title">
+                        <i class="fas fa-receipt"></i>
+                        Commercial Invoice (CI)
+                    </h2>
+                    <p class="section-description">
+                        Gestisci la fattura commerciale finale per la spedizione
+                    </p>
+                </div>
+
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label class="form-label">Numero CI</label>
+                        <input type="text" class="form-input" id="ciNumber" 
+                               placeholder="CI-2024-XXXX">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Data CI</label>
+                        <input type="date" class="form-input" id="ciDate">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Valore CI</label>
+                        <div class="currency-input">
+                            <span class="currency-symbol">€</span>
+                            <input type="number" class="form-input" id="ciValue" 
+                                   placeholder="0.00" step="0.01" min="0">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Stato Pagamento</label>
+                        <select class="form-select" id="paymentStatus">
+                            <option value="pending">In Attesa</option>
+                            <option value="partial">Parziale</option>
+                            <option value="paid">Pagato</option>
+                            <option value="overdue">Scaduto</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Data Scadenza</label>
+                        <input type="date" class="form-input" id="dueDate">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Data Pagamento</label>
+                        <input type="date" class="form-input" id="paymentDate">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Transport Document Section -->
+            <div class="form-section" id="section-transport_document">
+                <div class="section-header">
+                    <h2 class="section-title">
+                        <i class="fas fa-ship"></i>
+                        Bill of Lading (BL)
+                    </h2>
+                    <p class="section-description">
+                        Documenti di trasporto e dettagli logistici
+                    </p>
+                </div>
+
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label class="form-label required">Numero BL</label>
+                        <input type="text" class="form-input" id="blNumber" 
+                               placeholder="MAEU123456789">
+                        <div class="form-help">Formato container: 4 lettere + 9 cifre</div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Data BL</label>
+                        <input type="date" class="form-input" id="blDate">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Tipo BL</label>
+                        <select class="form-select" id="blType">
+                            <option value="original">Originale</option>
+                            <option value="copy">Copia</option>
+                            <option value="telex_release">Telex Release</option>
+                            <option value="express_release">Express Release</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Termini Trasporto</label>
+                        <select class="form-select" id="freightTerms">
+                            <option value="prepaid">Prepagato</option>
+                            <option value="collect">Da Riscuotere</option>
+                            <option value="third_party">Terza Parte</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Numero Originali</label>
+                        <input type="number" class="form-input" id="numberOfOriginals" 
+                               min="1" max="5" value="3">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Cargo Details Section -->
+            <div class="form-section" id="section-cargo_details">
+                <div class="section-header">
+                    <h2 class="section-title">
+                        <i class="fas fa-boxes"></i>
+                        Dettagli Carico
+                    </h2>
+                    <p class="section-description">
+                        Specifiche tecniche del carico e informazioni doganali
+                    </p>
+                </div>
+
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label class="form-label required">Peso Totale (kg)</label>
+                        <div class="input-group">
+                            <input type="number" class="form-input" id="totalWeight" 
+                                   placeholder="0.0" step="0.1" min="0">
+                            <span class="input-addon">kg</span>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Peso Netto (kg)</label>
+                        <div class="input-group">
+                            <input type="number" class="form-input" id="netWeight" 
+                                   placeholder="0.0" step="0.1" min="0">
+                            <span class="input-addon">kg</span>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label required">Volume CBM (m³)</label>
+                        <div class="input-group">
+                            <input type="number" class="form-input" id="cbm" 
+                                   placeholder="0.000" step="0.001" min="0">
+                            <span class="input-addon">m³</span>
+                        </div>
+                        <div class="form-help">Cubic Meters - Volume totale del carico</div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label required">Numero Colli</label>
+                        <input type="number" class="form-input" id="packageCount" 
+                               placeholder="1" min="1">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Tipo Imballo</label>
+                        <select class="form-select" id="packageType">
+                            <option value="cartons">Cartoni</option>
+                            <option value="pallets">Pallet</option>
+                            <option value="crates">Casse</option>
+                            <option value="bags">Sacchi</option>
+                            <option value="drums">Fusti</option>
+                            <option value="other">Altro</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Codice HS</label>
+                        <input type="text" class="form-input" id="commodityCode" 
+                               placeholder="8471.30.00" pattern="\d{4}\.\d{2}\.\d{2}">
+                        <div class="form-help">Harmonized System Code (es. 8471.30.00)</div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label required">Descrizione Merce</label>
+                    <textarea class="form-textarea" id="commodityDescription" 
+                              rows="3" placeholder="Descrizione dettagliata della merce..."></textarea>
+                </div>
+
+                <!-- Container Information (if container shipment) -->
+                <div class="containers-section" id="containersSection" style="display: none;">
+                    <div class="containers-header">
+                        <h3>Informazioni Container</h3>
+                        <button type="button" class="sol-btn sol-btn-primary" id="addContainerBtn">
+                            <i class="fas fa-plus"></i> Aggiungi Container
+                        </button>
+                    </div>
+                    <div class="containers-list" id="containersList">
+                        <!-- Container items will be added here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Financial Terms Section -->
+            <div class="form-section" id="section-financial_terms">
+                <div class="section-header">
+                    <h2 class="section-title">
+                        <i class="fas fa-euro-sign"></i>
+                        Termini Finanziari
+                    </h2>
+                    <p class="section-description">
+                        Condizioni commerciali e finanziarie della spedizione
+                    </p>
+                </div>
+
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label class="form-label required">Valore Totale</label>
+                        <div class="currency-input">
+                            <span class="currency-symbol">€</span>
+                            <input type="number" class="form-input" id="totalValue" 
+                                   placeholder="0.00" step="0.01" min="0">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label required">Incoterms</label>
+                        <select class="form-select" id="incoterms">
+                            <option value="EXW">EXW - Ex Works</option>
+                            <option value="FCA">FCA - Free Carrier</option>
+                            <option value="FOB">FOB - Free On Board</option>
+                            <option value="CFR">CFR - Cost and Freight</option>
+                            <option value="CIF">CIF - Cost Insurance Freight</option>
+                            <option value="DAP">DAP - Delivered At Place</option>
+                            <option value="DDP">DDP - Delivered Duty Paid</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Metodo Pagamento</label>
+                        <select class="form-select" id="paymentMethod">
+                            <option value="T/T">T/T - Bonifico</option>
+                            <option value="L/C">L/C - Lettera di Credito</option>
+                            <option value="D/P">D/P - Documents against Payment</option>
+                            <option value="D/A">D/A - Documents against Acceptance</option>
+                            <option value="Cash">Contanti</option>
+                            <option value="Open_Account">Conto Aperto</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Valuta</label>
+                        <select class="form-select" id="currency">
+                            <option value="EUR">EUR - Euro</option>
+                            <option value="USD">USD - Dollaro</option>
+                            <option value="GBP">GBP - Sterlina</option>
+                            <option value="CNY">CNY - Yuan</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Tasso di Cambio</label>
+                        <input type="number" class="form-input" id="exchangeRate" 
+                               placeholder="1.0000" step="0.0001" min="0">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Termini Credito</label>
+                        <input type="text" class="form-input" id="creditTerms" 
+                               placeholder="Es. NET 30 days">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Form Actions -->
+        <div class="form-actions">
+            <div class="actions-left">
+                <div class="auto-save-indicator">
+                    <i class="fas fa-save"></i>
+                    <span>Salvataggio automatico:</span>
+                    <span class="save-status saved" id="saveStatus">
+                        <i class="fas fa-check"></i>
+                        Salvato
+                    </span>
+                </div>
+            </div>
+            <div class="actions-right">
+                <button type="button" class="sol-btn sol-btn-glass" id="resetFormBtn">
+                    <i class="fas fa-undo"></i>
+                    Reset Form
+                </button>
+                <button type="button" class="sol-btn sol-btn-glass" id="validateFormBtn">
+                    <i class="fas fa-check-circle"></i>
+                    Valida Dati
+                </button>
+                <button type="button" class="sol-btn sol-btn-primary" id="saveFormBtn">
+                    <i class="fas fa-save"></i>
+                    Salva e Completa
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Smart Commercial Forms JavaScript -->
+    <script>
+        class SmartCommercialForms {
+            constructor() {
+                this.currentSection = 'purchase_order';
+                this.formData = {};
+                this.validationResults = {};
+                this.autoSaveInterval = null;
+                this.hasUnsavedChanges = false;
+                this.supplierData = [];
+                
+                this.init();
+            }
+            
+            init() {
+                console.log('🏢 Initializing Smart Commercial Forms V15.0...');
+                
+                this.loadSupplierData();
+                this.setupEventListeners();
+                this.setupValidation();
+                this.setupAutoSave();
+                
+                console.log('✅ Smart Commercial Forms initialized');
+            }
+            
+            setupValidation() {
+                console.log('📋 Setting up form validation...');
+                
+                // Mark required fields
+                document.querySelectorAll('.form-label.required').forEach(label => {
+                    const input = label.parentElement.querySelector('.form-input, .form-select, .form-textarea');
+                    if (input) {
+                        input.setAttribute('required', 'true');
+                    }
+                });
+                
+                // Additional validation setup
+                this.validationRules = {
+                    poNumber: {
+                        pattern: /^PO-\d{4}-\w+$/,
+                        message: 'Formato non valido. Usa: PO-YYYY-XXXXX'
+                    },
+                    piNumber: {
+                        pattern: /^PI-\d{4}-\w+$/,
+                        message: 'Formato non valido. Usa: PI-YYYY-XXXXX'
+                    },
+                    ciNumber: {
+                        pattern: /^CI-\d{4}-\w+$/,
+                        message: 'Formato non valido. Usa: CI-YYYY-XXXXX'
+                    },
+                    blNumber: {
+                        pattern: /^[A-Z]{4}\d{9}$/,
+                        message: 'Formato non valido. Usa: 4 lettere + 9 cifre'
+                    },
+                    commodityCode: {
+                        pattern: /^\d{4}\.\d{2}\.\d{2}$/,
+                        message: 'Formato HS Code non valido. Usa: XXXX.XX.XX'
+                    }
+                };
+                
+                console.log('✅ Validation setup complete');
+            }
+            
+            setupEventListeners() {
+                // Navigation
+                document.querySelectorAll('.nav-section').forEach(section => {
+                    section.addEventListener('click', () => {
+                        this.switchSection(section.dataset.section);
+                    });
+                });
+                
+                // Form inputs
+                document.querySelectorAll('.form-input, .form-select, .form-textarea').forEach(input => {
+                    input.addEventListener('input', () => {
+                        this.handleInputChange(input);
+                    });
+                    
+                    input.addEventListener('blur', () => {
+                        this.validateField(input);
+                    });
+                });
+                
+                // Supplier search
+                const supplierInput = document.getElementById('supplierName');
+                if (supplierInput) {
+                    supplierInput.addEventListener('input', (e) => {
+                        this.handleSupplierSearch(e.target.value);
+                    });
+                }
+                
+                // Container management
+                document.getElementById('addContainerBtn')?.addEventListener('click', () => {
+                    this.addContainer();
+                });
+                
+                // Form actions
+                document.getElementById('resetFormBtn')?.addEventListener('click', () => {
+                    this.resetForm();
+                });
+                
+                document.getElementById('validateFormBtn')?.addEventListener('click', () => {
+                    this.validateForm();
+                });
+                
+                document.getElementById('saveFormBtn')?.addEventListener('click', () => {
+                    this.saveForm();
+                });
+            }
+            
+            switchSection(sectionId) {
+                // Update navigation
+                document.querySelectorAll('.nav-section').forEach(nav => {
+                    nav.classList.remove('active');
+                });
+                document.querySelector(`[data-section="${sectionId}"]`).classList.add('active');
+                
+                // Update content
+                document.querySelectorAll('.form-section').forEach(section => {
+                    section.classList.remove('active');
+                });
+                document.getElementById(`section-${sectionId}`).classList.add('active');
+                
+                this.currentSection = sectionId;
+                this.updateProgress();
+                this.updateCrossReferences();
+            }
+            
+            handleInputChange(input) {
+                const fieldName = input.id;
+                const value = input.type === 'number' ? parseFloat(input.value) || 0 : input.value;
+                
+                // Update form data
+                this.formData[fieldName] = value;
+                
+                // Mark for auto-save
+                this.markForAutoSave();
+                
+                // Real-time validation
+                if (input.classList.contains('error')) {
+                    this.validateField(input);
+                }
+                
+                // Smart defaults and suggestions
+                this.handleSmartDefaults(fieldName, value);
+            }
+            
+            handleSmartDefaults(fieldName, value) {
+                // Auto-fill related fields based on smart logic
+                switch (fieldName) {
+                    case 'poNumber':
+                        if (value && !this.formData.piNumber) {
+                            const piNumber = value.replace('PO-', 'PI-');
+                            document.getElementById('piNumber').value = piNumber;
+                            this.formData.piNumber = piNumber;
+                        }
+                        break;
+                        
+                    case 'piNumber':
+                        if (value && !this.formData.ciNumber) {
+                            const ciNumber = value.replace('PI-', 'CI-');
+                            document.getElementById('ciNumber').value = ciNumber;
+                            this.formData.ciNumber = ciNumber;
+                        }
+                        break;
+                        
+                    case 'poValue':
+                        if (value && !this.formData.piValue) {
+                            document.getElementById('piValue').value = value;
+                            this.formData.piValue = value;
+                        }
+                        break;
+                        
+                    case 'totalWeight':
+                        this.calculateVolumeDensity();
+                        break;
+                        
+                    case 'cbm':
+                        this.calculateVolumeDensity();
+                        this.validateContainerCapacity();
+                        break;
+                }
+            }
+            
+            calculateVolumeDensity() {
+                const weight = this.formData.totalWeight || 0;
+                const volume = this.formData.cbm || 0;
+                
+                if (weight > 0 && volume > 0) {
+                    const density = weight / volume;
+                    
+                    // Show density info
+                    const densityInfo = document.createElement('div');
+                    densityInfo.className = 'form-help';
+                    densityInfo.textContent = `Densità: ${density.toFixed(0)} kg/m³`;
+                    
+                    // Remove existing density info
+                    const existingInfo = document.querySelector('.density-info');
+                    if (existingInfo) existingInfo.remove();
+                    
+                    densityInfo.classList.add('density-info');
+                    document.getElementById('cbm').parentNode.appendChild(densityInfo);
+                    
+                    // Validate density range
+                    if (density < 50 || density > 1000) {
+                        this.addValidationWarning('cbm', 'Densità non realistica per spedizioni commerciali');
+                    }
+                }
+            }
+            
+            validateContainerCapacity() {
+                // Placeholder for container capacity validation
+                const cbm = this.formData.cbm || 0;
+                
+                if (cbm > 0) {
+                    // Show container section if volume is significant
+                    if (cbm > 10) {
+                        document.getElementById('containersSection').style.display = 'block';
+                    }
+                }
+            }
+            
+            addValidationWarning(fieldId, message) {
+                const field = document.getElementById(fieldId);
+                if (!field) return;
+                
+                // Remove existing warning
+                const existingWarning = field.parentNode.querySelector('.form-warning');
+                if (existingWarning) existingWarning.remove();
+                
+                // Add new warning
+                const warning = document.createElement('div');
+                warning.className = 'form-help form-warning';
+                warning.style.color = 'var(--sol-warning)';
+                warning.textContent = `⚠️ ${message}`;
+                field.parentNode.appendChild(warning);
+            }
+            
+            validateField(input) {
+                const fieldName = input.id;
+                const value = input.value;
+                
+                // Clear previous validation
+                input.classList.remove('error', 'valid');
+                const existingError = input.parentNode.querySelector('.form-error');
+                if (existingError) existingError.remove();
+                
+                // Field-specific validation
+                let isValid = true;
+                let errorMessage = '';
+                
+                // Check if required field is empty
+                if (input.hasAttribute('required') && !value) {
+                    isValid = false;
+                    errorMessage = 'Campo obbligatorio';
+                } else if (value && this.validationRules[fieldName]) {
+                    // Check pattern validation
+                    const rule = this.validationRules[fieldName];
+                    if (!rule.pattern.test(value)) {
+                        isValid = false;
+                        errorMessage = rule.message;
+                    }
+                } else {
+                    // Additional field-specific validation
+                    switch (fieldName) {
+                        case 'totalWeight':
+                        case 'netWeight':
+                        case 'cbm':
+                            if (value && parseFloat(value) <= 0) {
+                                isValid = false;
+                                errorMessage = 'Il valore deve essere maggiore di zero';
+                            }
+                            break;
+                    }
+                }
+                
+                // Show validation result
+                if (!isValid && errorMessage) {
+                    input.classList.add('error');
+                    const errorEl = document.createElement('div');
+                    errorEl.className = 'form-error';
+                    errorEl.textContent = errorMessage;
+                    input.parentNode.appendChild(errorEl);
+                } else if (value) {
+                    input.classList.add('valid');
+                }
+                
+                this.validationResults[fieldName] = { isValid, errorMessage };
+                this.updateSectionStatus();
+                
+                return isValid;
+            }
+            
+            validateForm() {
+                let overallValid = true;
+                const errors = [];
+                const warnings = [];
+                
+                // Validate all fields
+                document.querySelectorAll('.form-input, .form-select, .form-textarea').forEach(input => {
+                    if (!this.validateField(input)) {
+                        overallValid = false;
+                        const label = input.parentElement.querySelector('.form-label')?.textContent.replace(' *', '') || input.id;
+                        errors.push(`${label}: ${this.validationResults[input.id]?.errorMessage || 'Errore validazione'}`);
+                    }
+                });
+                
+                // Cross-field validation
+                const crossValidation = this.performCrossValidation();
+                if (crossValidation.errors.length > 0) {
+                    overallValid = false;
+                    errors.push(...crossValidation.errors);
+                }
+                warnings.push(...crossValidation.warnings);
+                
+                // Calculate score
+                const score = this.calculateValidationScore(errors.length, warnings.length);
+                
+                // Show validation summary
+                this.showValidationSummary(score, errors, warnings);
+                
+                return overallValid;
+            }
+            
+            performCrossValidation() {
+                const errors = [];
+                const warnings = [];
+                
+                // PO vs PI value check
+                const poValue = this.formData.poValue;
+                const piValue = this.formData.piValue;
+                if (poValue && piValue) {
+                    const variance = Math.abs(poValue - piValue) / poValue;
+                    if (variance > 0.05) {
+                        warnings.push('Differenza significativa tra valore PO e PI (>5%)');
+                    }
+                }
+                
+                // Weight vs CBM ratio check
+                const weight = this.formData.totalWeight;
+                const cbm = this.formData.cbm;
+                if (weight && cbm) {
+                    const ratio = weight / cbm;
+                    if (ratio < 50 || ratio > 1000) {
+                        warnings.push('Rapporto peso/volume non realistico');
+                    }
+                }
+                
+                // Incoterms vs Freight terms consistency
+                const incoterms = this.formData.incoterms;
+                const freightTerms = this.formData.freightTerms;
+                if (incoterms && freightTerms) {
+                    const prepaidIncoterms = ['CIF', 'CFR', 'CPT', 'CIP', 'DDP', 'DAP'];
+                    const collectIncoterms = ['FOB', 'FCA', 'EXW'];
+                    
+                    if (prepaidIncoterms.includes(incoterms) && freightTerms === 'collect') {
+                        warnings.push('Incoterms e termini trasporto potrebbero essere inconsistenti');
+                    }
+                    if (collectIncoterms.includes(incoterms) && freightTerms === 'prepaid') {
+                        warnings.push('Incoterms e termini trasporto potrebbero essere inconsistenti');
+                    }
+                }
+                
+                return { errors, warnings };
+            }
+            
+            calculateValidationScore(errorCount, warningCount) {
+                let score = 100;
+                score -= errorCount * 20; // -20 points per error
+                score -= warningCount * 5; // -5 points per warning
+                return Math.max(0, score);
+            }
+            
+            showValidationSummary(score, errors, warnings) {
+                const summary = document.getElementById('validationSummary');
+                const scoreEl = document.getElementById('validationScore');
+                const issuesEl = document.getElementById('validationIssues');
+                
+                // Update score
+                scoreEl.textContent = score;
+                scoreEl.className = `score-circle ${score >= 80 ? 'score-high' : score >= 60 ? 'score-medium' : 'score-low'}`;
+                
+                // Update issues
+                issuesEl.innerHTML = '';
+                
+                errors.forEach(error => {
+                    const issueEl = document.createElement('div');
+                    issueEl.className = 'validation-issue error';
+                    issueEl.innerHTML = `<i class="fas fa-exclamation-circle"></i> ${error}`;
+                    issuesEl.appendChild(issueEl);
+                });
+                
+                warnings.forEach(warning => {
+                    const issueEl = document.createElement('div');
+                    issueEl.className = 'validation-issue warning';
+                    issueEl.innerHTML = `<i class="fas fa-exclamation-triangle"></i> ${warning}`;
+                    issuesEl.appendChild(issueEl);
+                });
+                
+                if (errors.length === 0 && warnings.length === 0) {
+                    issuesEl.innerHTML = '<div class="validation-issue"><i class="fas fa-check"></i> Tutti i dati sono validi</div>';
+                }
+                
+                summary.style.display = 'block';
+            }
+            
+            setupAutoSave() {
+                console.log('💾 Setting up auto-save...');
+                
+                this.autoSaveInterval = setInterval(() => {
+                    if (this.hasUnsavedChanges) {
+                        this.autoSave();
+                    }
+                }, 30000); // Auto-save every 30 seconds
+                
+                // Save on page unload
+                window.addEventListener('beforeunload', (e) => {
+                    if (this.hasUnsavedChanges) {
+                        this.saveFormData();
+                        e.preventDefault();
+                        e.returnValue = '';
+                    }
+                });
+            }
+            
+            markForAutoSave() {
+                this.hasUnsavedChanges = true;
+                this.updateSaveStatus('unsaved');
+            }
+            
+            autoSave() {
+                this.updateSaveStatus('saving');
+                
+                // Save to localStorage
+                this.saveFormData();
+                
+                // Simulate save operation
+                setTimeout(() => {
+                    this.hasUnsavedChanges = false;
+                    this.updateSaveStatus('saved');
+                }, 1000);
+            }
+            
+            saveFormData() {
+                try {
+                    localStorage.setItem('smartCommercialForm', JSON.stringify(this.formData));
+                    localStorage.setItem('smartCommercialFormTimestamp', new Date().toISOString());
+                    return true;
+                } catch (e) {
+                    console.error('Error saving form data:', e);
+                    return false;
+                }
+            }
+            
+            updateSaveStatus(status) {
+                const statusEl = document.getElementById('saveStatus');
+                
+                statusEl.className = `save-status ${status}`;
+                
+                switch (status) {
+                    case 'saving':
+                        statusEl.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Salvando...';
+                        break;
+                    case 'saved':
+                        statusEl.innerHTML = '<i class="fas fa-check"></i> Salvato';
+                        break;
+                    case 'error':
+                        statusEl.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Errore';
+                        break;
+                    default:
+                        statusEl.innerHTML = '<i class="fas fa-clock"></i> Da salvare';
+                }
+            }
+            
+            updateProgress() {
+                const sections = ['purchase_order', 'proforma_invoice', 'commercial_invoice', 'transport_document', 'cargo_details', 'financial_terms'];
+                const completedSections = sections.filter(section => this.isSectionComplete(section));
+                
+                const progress = (completedSections.length / sections.length) * 100;
+                
+                document.getElementById('formProgressBar').style.width = `${progress}%`;
+                document.getElementById('formProgressText').textContent = `${Math.round(progress)}% completato`;
+                document.getElementById('formProgressStep').textContent = `(${completedSections.length} di ${sections.length} sezioni)`;
+            }
+            
+            isSectionComplete(sectionId) {
+                const requiredFields = this.getRequiredFieldsForSection(sectionId);
+                return requiredFields.every(fieldId => {
+                    const field = document.getElementById(fieldId);
+                    return field && field.value && this.validationResults[fieldId]?.isValid !== false;
+                });
+            }
+            
+            getRequiredFieldsForSection(sectionId) {
+                const requiredFields = {
+                    purchase_order: ['poNumber'],
+                    proforma_invoice: ['piNumber'],
+                    commercial_invoice: ['ciNumber'],
+                    transport_document: ['blNumber'],
+                    cargo_details: ['totalWeight', 'cbm', 'packageCount', 'commodityDescription'],
+                    financial_terms: ['totalValue', 'incoterms']
+                };
+                
+                return requiredFields[sectionId] || [];
+            }
+            
+            updateSectionStatus() {
+                document.querySelectorAll('.nav-section').forEach(navSection => {
+                    const sectionId = navSection.dataset.section;
+                    const isComplete = this.isSectionComplete(sectionId);
+                    const hasErrors = this.sectionHasErrors(sectionId);
+                    
+                    navSection.classList.remove('completed', 'error');
+                    
+                    if (hasErrors) {
+                        navSection.classList.add('error');
+                        navSection.querySelector('.nav-status').textContent = 'Errori da correggere';
+                    } else if (isComplete) {
+                        navSection.classList.add('completed');
+                        navSection.querySelector('.nav-status').textContent = 'Completato';
+                    } else {
+                        navSection.querySelector('.nav-status').textContent = 'Non completato';
+                    }
+                });
+                
+                this.updateProgress();
+            }
+            
+            sectionHasErrors(sectionId) {
+                const fields = this.getRequiredFieldsForSection(sectionId);
+                return fields.some(fieldId => this.validationResults[fieldId]?.isValid === false);
+            }
+            
+            updateCrossReferences() {
+                // Show related documents/shipments
+                const references = this.findCrossReferences();
+                
+                if (references.length > 0) {
+                    const panel = document.getElementById('crossReferencePanel');
+                    const list = document.getElementById('crossReferenceList');
+                    
+                    list.innerHTML = references.map(ref => `
+                        <div class="cross-reference-item" onclick="window.smartForms.viewReference('${ref.id}')">
+                            ${ref.type}: ${ref.reference}
+                        </div>
+                    `).join('');
+                    
+                    panel.style.display = 'block';
+                } else {
+                    document.getElementById('crossReferencePanel').style.display = 'none';
+                }
+            }
+            
+            findCrossReferences() {
+                // Simulate finding cross-references
+                const references = [];
+                
+                if (this.formData.poNumber) {
+                    // Find related PI, CI, BL
+                    if (this.formData.piNumber) {
+                        references.push({ type: 'PI', reference: this.formData.piNumber, id: 'pi-1' });
+                    }
+                    if (this.formData.ciNumber) {
+                        references.push({ type: 'CI', reference: this.formData.ciNumber, id: 'ci-1' });
+                    }
+                }
+                
+                return references;
+            }
+            
+            viewReference(refId) {
+                console.log('Viewing reference:', refId);
+                // Implement reference viewing logic
+            }
+            
+            loadSupplierData() {
+                // Load supplier data from localStorage or API
+                this.supplierData = [
+                    { code: 'SUP-001', name: 'Acme Manufacturing Ltd', country: 'China' },
+                    { code: 'SUP-002', name: 'Best Electronics Co', country: 'Taiwan' },
+                    { code: 'SUP-003', name: 'Global Trade Partners', country: 'Hong Kong' }
+                ];
+            }
+            
+            handleSupplierSearch(query) {
+                const dropdown = document.getElementById('supplierDropdown');
+                
+                if (query.length < 2) {
+                    dropdown.classList.remove('show');
+                    return;
+                }
+                
+                const filtered = this.supplierData.filter(supplier => 
+                    supplier.name.toLowerCase().includes(query.toLowerCase()) ||
+                    supplier.code.toLowerCase().includes(query.toLowerCase())
+                );
+                
+                if (filtered.length > 0) {
+                    dropdown.innerHTML = filtered.map(supplier => `
+                        <div class="supplier-option" onclick="window.smartForms.selectSupplier('${supplier.code}', '${supplier.name}')">
+                            <div class="supplier-name">${supplier.name}</div>
+                            <div class="supplier-code">${supplier.code} - ${supplier.country}</div>
+                        </div>
+                    `).join('');
+                    dropdown.classList.add('show');
+                } else {
+                    dropdown.classList.remove('show');
+                }
+            }
+            
+            selectSupplier(code, name) {
+                document.getElementById('supplierCode').value = code;
+                document.getElementById('supplierName').value = name;
+                document.getElementById('supplierDropdown').classList.remove('show');
+                
+                this.formData.supplierCode = code;
+                this.formData.supplierName = name;
+                this.markForAutoSave();
+            }
+            
+            addContainer() {
+                const containersList = document.getElementById('containersList');
+                const containerCount = containersList.children.length;
+                
+                const containerHtml = `
+                    <div class="container-item" data-container-index="${containerCount}">
+                        <div class="container-header">
+                            <h4 class="container-title">Container ${containerCount + 1}</h4>
+                            <button type="button" class="remove-container" onclick="window.smartForms.removeContainer(this)">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                        <div class="container-fields">
+                            <div class="form-group">
+                                <label class="form-label">Numero Container</label>
+                                <input type="text" class="form-input container-input" data-field="containerNumber" placeholder="ABCD1234567">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Tipo Container</label>
+                                <select class="form-select container-input" data-field="containerType">
+                                    <option value="20GP">20GP</option>
+                                    <option value="40GP">40GP</option>
+                                    <option value="40HC">40HC</option>
+                                    <option value="45HC">45HC</option>
+                                    <option value="20RF">20RF</option>
+                                    <option value="40RF">40RF</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Numero Sigillo</label>
+                                <input type="text" class="form-input container-input" data-field="sealNumber" placeholder="12345">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Peso Carico (kg)</label>
+                                <input type="number" class="form-input container-input" data-field="weight" min="0" step="0.1">
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                containersList.insertAdjacentHTML('beforeend', containerHtml);
+                
+                // Add event listeners to new container inputs
+                const newContainer = containersList.lastElementChild;
+                newContainer.querySelectorAll('.container-input').forEach(input => {
+                    input.addEventListener('input', () => {
+                        this.handleContainerInputChange(input, containerCount);
+                    });
+                });
+            }
+            
+            removeContainer(button) {
+                const container = button.closest('.container-item');
+                const index = parseInt(container.dataset.containerIndex);
+                
+                container.remove();
+                
+                // Remove from form data
+                if (this.formData.containers && this.formData.containers[index]) {
+                    this.formData.containers.splice(index, 1);
+                }
+                
+                // Update container numbering
+                this.updateContainerNumbers();
+                this.markForAutoSave();
+            }
+            
+            updateContainerNumbers() {
+                const containers = document.querySelectorAll('.container-item');
+                containers.forEach((container, index) => {
+                    container.dataset.containerIndex = index;
+                    container.querySelector('.container-title').textContent = `Container ${index + 1}`;
+                });
+            }
+            
+            handleContainerInputChange(input, containerIndex) {
+                if (!this.formData.containers) {
+                    this.formData.containers = [];
+                }
+                
+                if (!this.formData.containers[containerIndex]) {
+                    this.formData.containers[containerIndex] = {};
+                }
+                
+                const field = input.dataset.field;
+                const value = input.type === 'number' ? parseFloat(input.value) || 0 : input.value;
+                
+                this.formData.containers[containerIndex][field] = value;
+                this.markForAutoSave();
+            }
+            
+            resetForm() {
+                if (confirm('Sei sicuro di voler azzerare tutti i dati del form?')) {
+                    document.querySelectorAll('.form-input, .form-select, .form-textarea').forEach(input => {
+                        input.value = '';
+                        input.classList.remove('error', 'valid');
+                    });
+                    
+                    document.querySelectorAll('.form-error').forEach(error => error.remove());
+                    document.querySelectorAll('.form-warning').forEach(warning => warning.remove());
+                    
+                    // Clear containers
+                    document.getElementById('containersList').innerHTML = '';
+                    
+                    this.formData = {};
+                    this.validationResults = {};
+                    this.hasUnsavedChanges = false;
+                    this.updateSectionStatus();
+                    this.updateProgress();
+                    
+                    // Clear localStorage
+                    localStorage.removeItem('smartCommercialForm');
+                    localStorage.removeItem('smartCommercialFormTimestamp');
+                    
+                    this.updateSaveStatus('saved');
+                }
+            }
+            
+            saveForm() {
+                if (this.validateForm()) {
+                    this.updateSaveStatus('saving');
+                    
+                    // Save to localStorage
+                    const saved = this.saveFormData();
+                    
+                    // Simulate save operation
+                    setTimeout(() => {
+                        if (saved) {
+                            // Save to enhanced commercial model if available
+                            if (window.enhancedCommercialModel) {
+                                window.enhancedCommercialModel.saveCommercialData(this.formData);
+                            }
+                            
+                            this.updateSaveStatus('saved');
+                            this.hasUnsavedChanges = false;
+                            
+                            // Show success message
+                            if (window.NotificationSystem) {
+                                window.NotificationSystem.show('Dati Salvati', 'Dati commerciali salvati con successo', 'success');
+                            } else {
+                                alert('Dati commerciali salvati con successo!');
+                            }
+                            
+                            // Trigger update event
+                            window.dispatchEvent(new CustomEvent('commercialDataUpdated', {
+                                detail: { data: this.formData }
+                            }));
+                        } else {
+                            this.updateSaveStatus('error');
+                            if (window.NotificationSystem) {
+                                window.NotificationSystem.show('Errore Salvataggio', 'Errore durante il salvataggio dei dati', 'error');
+                            } else {
+                                alert('Errore durante il salvataggio dei dati');
+                            }
+                        }
+                    }, 1500);
+                } else {
+                    if (window.NotificationSystem) {
+                        window.NotificationSystem.show('Errori Validazione', 'Correggi gli errori prima di salvare', 'error');
+                    } else {
+                        alert('Correggi gli errori prima di salvare');
+                    }
+                }
+            }
+            
+            loadFormData() {
+                try {
+                    const savedData = localStorage.getItem('smartCommercialForm');
+                    const savedTimestamp = localStorage.getItem('smartCommercialFormTimestamp');
+                    
+                    if (savedData) {
+                        this.formData = JSON.parse(savedData);
+                        
+                        // Populate form fields
+                        Object.keys(this.formData).forEach(fieldName => {
+                            const field = document.getElementById(fieldName);
+                            if (field && fieldName !== 'containers') {
+                                field.value = this.formData[fieldName];
+                            }
+                        });
+                        
+                        // Load containers if any
+                        if (this.formData.containers && this.formData.containers.length > 0) {
+                            document.getElementById('containersSection').style.display = 'block';
+                            this.formData.containers.forEach((containerData, index) => {
+                                this.addContainer();
+                                
+                                // Populate container fields
+                                const container = document.querySelector(`[data-container-index="${index}"]`);
+                                if (container) {
+                                    Object.keys(containerData).forEach(field => {
+                                        const input = container.querySelector(`[data-field="${field}"]`);
+                                        if (input) {
+                                            input.value = containerData[field];
+                                        }
+                                    });
+                                }
+                            });
+                        }
+                        
+                        console.log(`📄 Form data loaded from ${savedTimestamp}`);
+                        return true;
+                    }
+                    
+                    return false;
+                } catch (e) {
+                    console.error('Error loading form data:', e);
+                    return false;
+                }
+            }
+        }
+        
+        // Initialize when DOM is ready
+        document.addEventListener('DOMContentLoaded', () => {
+            window.smartForms = new SmartCommercialForms();
+            
+            // Try to load saved data
+            window.smartForms.loadFormData();
+            
+            // Close dropdowns when clicking outside
+            document.addEventListener('click', (e) => {
+                if (!e.target.closest('.supplier-selector')) {
+                    document.getElementById('supplierDropdown').classList.remove('show');
+                }
+            });
+        });
+        
+        console.log('[SmartCommercialForms] Smart Commercial Forms System V15.0 loaded');
+    </script>
+</body>
+</html>

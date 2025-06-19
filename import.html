@@ -1,0 +1,1226 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Supply Chain Hub - Advanced Import System</title>
+    <meta name="description" content="Sistema di import universale con mapping intelligente per qualsiasi gestionale">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%236366f1'%3E%3Cpath d='M20 8h-3V4H3c-1.1 0-2 .9-2 2v11h2c0 1.66 1.34 3 3 3s3-1.34 3-3h6c0 1.66 1.34 3 3 3s3-1.34 3-3h2v-5l-3-4zM6 18.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm13.5-9l1.96 2.5H17V9.5h2.5zm-1.5 9c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z'/%3E%3C/svg%3E">
+    
+    <!-- Solarium Design System - FIX: path relativo consistente -->
+    <link rel="stylesheet" href="./assets/css/solarium.css">
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Import Libraries -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+    
+    <!-- Core Modules - FIX: path relativi consistenti -->
+    <script type="module" src="./core/header-component.js"></script>
+    <script type="module" src="./core/notification-system.js"></script>
+    <script type="module" src="./core/modal-system.js"></script>
+    <script src="./phase2-architecture.js"></script>
+    
+    <!-- Import System Styles -->
+    <style>
+        /* ===== ADVANCED IMPORT SYSTEM STYLES ===== */
+        
+        /* Main Container */
+        .import-wizard {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: var(--sol-spacing-xl);
+        }
+        
+        /* Wizard Steps Enhanced */
+        .wizard-steps {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 3rem;
+            position: relative;
+            padding: 0 2rem;
+        }
+        
+        .wizard-steps::before {
+            content: '';
+            position: absolute;
+            top: 20px;
+            left: 25%;
+            right: 25%;
+            height: 2px;
+            background: var(--sol-gray-200);
+            z-index: 1;
+        }
+        
+        .wizard-step {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+            flex: 1;
+            max-width: 200px;
+            z-index: 2;
+        }
+        
+        .step-circle {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background: var(--sol-gray-200);
+            color: var(--sol-gray-600);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 1.125rem;
+            transition: all var(--sol-transition-base);
+            border: 3px solid white;
+            box-shadow: var(--sol-shadow-md);
+        }
+        
+        .wizard-step.active .step-circle {
+            background: var(--sol-primary);
+            color: white;
+            transform: scale(1.1);
+        }
+        
+        .wizard-step.completed .step-circle {
+            background: var(--sol-success);
+            color: white;
+        }
+        
+        .step-label {
+            margin-top: 0.75rem;
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--sol-gray-600);
+            text-align: center;
+        }
+        
+        .wizard-step.active .step-label {
+            color: var(--sol-primary);
+        }
+        
+        .step-description {
+            margin-top: 0.25rem;
+            font-size: 0.75rem;
+            color: var(--sol-gray-500);
+            text-align: center;
+        }
+        
+        /* Step Content Container */
+        .step-content {
+            background: white;
+            border-radius: var(--sol-radius-xl);
+            box-shadow: var(--sol-shadow-lg);
+            overflow: hidden;
+            min-height: 600px;
+        }
+        
+        .step-panel {
+            display: none;
+            padding: var(--sol-spacing-2xl);
+        }
+        
+        .step-panel.active {
+            display: block;
+            animation: sol-fade-in 0.5s ease-out;
+        }
+        
+        /* Upload Zone */
+        .upload-zone {
+            border: 3px dashed var(--sol-gray-300);
+            border-radius: var(--sol-radius-xl);
+            padding: 4rem 2rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all var(--sol-transition-base);
+            background: linear-gradient(135deg, var(--sol-gray-50) 0%, white 100%);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .upload-zone:hover {
+            border-color: var(--sol-primary);
+            background: var(--sol-primary-light);
+            transform: scale(1.02);
+        }
+        
+        .upload-content {
+            position: relative;
+            z-index: 1;
+        }
+        
+        .upload-icon {
+            font-size: 4rem;
+            color: var(--sol-primary);
+            margin-bottom: 1.5rem;
+            display: block;
+        }
+        
+        .upload-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--sol-gray-900);
+            margin-bottom: 0.5rem;
+        }
+        
+        .upload-subtitle {
+            font-size: 1rem;
+            color: var(--sol-gray-600);
+            margin-bottom: 1.5rem;
+        }
+        
+        .file-types {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            margin-top: 2rem;
+        }
+        
+        .file-type {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            background: white;
+            border-radius: var(--sol-radius-lg);
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: var(--sol-gray-700);
+            box-shadow: var(--sol-shadow-sm);
+        }
+        
+        /* Template Gallery */
+        .template-gallery {
+            margin-top: 3rem;
+        }
+        
+        .gallery-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--sol-gray-900);
+            margin-bottom: 1.5rem;
+            text-align: center;
+        }
+        
+        .template-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+        }
+        
+        .template-card {
+            background: white;
+            border: 2px solid var(--sol-gray-200);
+            border-radius: var(--sol-radius-lg);
+            padding: 1.5rem;
+            cursor: pointer;
+            transition: all var(--sol-transition-base);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .template-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: var(--sol-gradient-primary);
+            transform: scaleX(0);
+            transition: transform var(--sol-transition-base);
+        }
+        
+        .template-card:hover {
+            border-color: var(--sol-primary);
+            transform: translateY(-4px);
+            box-shadow: var(--sol-shadow-xl);
+        }
+        
+        .template-card:hover::before {
+            transform: scaleX(1);
+        }
+        
+        .template-icon {
+            font-size: 2.5rem;
+            color: var(--sol-primary);
+            margin-bottom: 1rem;
+        }
+        
+        .template-name {
+            font-size: 1.125rem;
+            font-weight: 600;
+            color: var(--sol-gray-900);
+            margin-bottom: 0.5rem;
+        }
+        
+        .template-description {
+            font-size: 0.875rem;
+            color: var(--sol-gray-600);
+            line-height: 1.5;
+        }
+        
+        /* Mapping Interface */
+        .mapping-container {
+            display: grid;
+            grid-template-columns: 1fr 100px 1fr;
+            gap: 2rem;
+            min-height: 500px;
+        }
+        
+        .mapping-section {
+            background: var(--sol-gray-50);
+            border-radius: var(--sol-radius-lg);
+            padding: 1.5rem;
+            overflow-y: auto;
+            max-height: 600px;
+        }
+        
+        .section-title {
+            font-size: 1.125rem;
+            font-weight: 700;
+            color: var(--sol-gray-900);
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .columns-list,
+        .fields-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+        
+        /* Source Columns */
+        .source-column {
+            background: white;
+            border: 2px solid var(--sol-gray-200);
+            border-radius: var(--sol-radius-md);
+            padding: 1rem;
+            cursor: move;
+            transition: all var(--sol-transition-fast);
+            position: relative;
+        }
+        
+        .source-column:hover {
+            border-color: var(--sol-primary);
+            transform: translateY(-2px);
+            box-shadow: var(--sol-shadow-md);
+        }
+        
+        .source-column.mapped {
+            border-color: var(--sol-success);
+            background: var(--sol-success-light);
+        }
+        
+        .column-header {
+            font-weight: 600;
+            color: var(--sol-gray-900);
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .column-name {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .column-edit-icon {
+            cursor: pointer;
+            color: var(--sol-gray-400);
+            font-size: 0.875rem;
+            transition: color var(--sol-transition-fast);
+        }
+        
+        .column-edit-icon:hover {
+            color: var(--sol-primary);
+        }
+        
+        .column-type {
+            font-size: 0.75rem;
+            color: var(--sol-gray-500);
+            background: var(--sol-gray-100);
+            padding: 0.125rem 0.5rem;
+            border-radius: var(--sol-radius-sm);
+        }
+        
+        .column-sample {
+            font-size: 0.875rem;
+            color: var(--sol-gray-600);
+            background: var(--sol-gray-100);
+            padding: 0.5rem;
+            border-radius: var(--sol-radius-sm);
+            margin-top: 0.5rem;
+            font-family: var(--sol-font-mono);
+        }
+        
+        /* Target Fields */
+        .target-field {
+            background: white;
+            border: 2px solid var(--sol-gray-200);
+            border-radius: var(--sol-radius-md);
+            padding: 1rem;
+            transition: all var(--sol-transition-fast);
+            min-height: 80px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        
+        .target-field.required {
+            border-left: 4px solid var(--sol-danger);
+        }
+        
+        .target-field.mapped {
+            border-color: var(--sol-success);
+            background: var(--sol-success-light);
+        }
+        
+        .target-field.drag-over {
+            border-color: var(--sol-primary);
+            background: var(--sol-primary-light);
+            transform: scale(1.05);
+        }
+        
+        .field-label {
+            font-weight: 600;
+            color: var(--sol-gray-900);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .field-required {
+            color: var(--sol-danger);
+            font-size: 0.875rem;
+        }
+        
+        .field-description {
+            font-size: 0.75rem;
+            color: var(--sol-gray-600);
+            margin-top: 0.25rem;
+        }
+        
+        .field-mapping {
+            margin-top: 0.5rem;
+            font-size: 0.875rem;
+        }
+        
+        .mapped-column {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: var(--sol-success);
+            font-weight: 500;
+        }
+        
+        .unmapped {
+            color: var(--sol-gray-400);
+            font-style: italic;
+        }
+        
+        /* Validation Section */
+        .validation-overview {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        
+        .validation-card {
+            background: white;
+            border-radius: var(--sol-radius-lg);
+            padding: 1.5rem;
+            border: 2px solid var(--sol-gray-200);
+            text-align: center;
+        }
+        
+        .validation-card.success {
+            border-color: var(--sol-success);
+            background: var(--sol-success-light);
+        }
+        
+        .validation-card.warning {
+            border-color: var(--sol-warning);
+            background: var(--sol-warning-light);
+        }
+        
+        .validation-card.error {
+            border-color: var(--sol-danger);
+            background: var(--sol-danger-light);
+        }
+        
+        .validation-icon {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .validation-count {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 0.25rem;
+        }
+        
+        .validation-label {
+            font-size: 0.875rem;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        
+        /* Navigation Buttons */
+        .wizard-navigation {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 2rem;
+            padding-top: 2rem;
+            border-top: 1px solid var(--sol-gray-200);
+        }
+        
+        .nav-button {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: var(--sol-radius-md);
+            font-weight: 500;
+            cursor: pointer;
+            transition: all var(--sol-transition-fast);
+        }
+        
+        .nav-button.primary {
+            background: var(--sol-primary);
+            color: white;
+        }
+        
+        .nav-button.primary:hover {
+            background: var(--sol-primary-dark);
+            transform: translateY(-1px);
+        }
+        
+        .nav-button.secondary {
+            background: var(--sol-gray-200);
+            color: var(--sol-gray-700);
+        }
+        
+        .nav-button.secondary:hover {
+            background: var(--sol-gray-300);
+        }
+        
+        .nav-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+        
+        /* Progress Bar */
+        .progress-container {
+            background: var(--sol-gray-100);
+            border-radius: var(--sol-radius-lg);
+            padding: 2rem;
+            margin: 2rem 0;
+            display: none;
+        }
+        
+        .progress-container.active {
+            display: block;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: var(--sol-gray-200);
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 1rem 0;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: var(--sol-primary);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+        
+        .progress-text {
+            text-align: center;
+            font-weight: 500;
+            color: var(--sol-gray-700);
+        }
+        
+        /* Data Type Selectors */
+        .column-type-selector {
+            margin-top: 0.5rem;
+            padding-top: 0.5rem;
+            border-top: 1px solid var(--sol-gray-200);
+        }
+        
+        .type-indicator {
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+            margin-bottom: 0.25rem;
+            font-size: 0.75rem;
+        }
+        
+        /* Responsive Design */
+        @media (max-width: 1024px) {
+            .mapping-container {
+                grid-template-columns: 1fr;
+                gap: 1.5rem;
+            }
+            
+            .wizard-steps {
+                flex-wrap: wrap;
+                gap: 1rem;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .import-wizard {
+                padding: var(--sol-spacing-lg);
+            }
+            
+            .step-content {
+                min-height: auto;
+            }
+            
+            .step-panel {
+                padding: var(--sol-spacing-lg);
+            }
+            
+            .template-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .validation-overview {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .hide-mobile {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- ✅ FIX 1: Header Component Container -->
+    <div id="headerPlaceholder"></div>
+    
+    <!-- Main Content -->
+    <main class="sol-main-content">
+        <div class="import-wizard">
+            <!-- Page Header -->
+            <div class="sol-page-header">
+                <div>
+                    <h1 class="sol-page-title">
+                        <i class="fas fa-magic" style="color: var(--sol-primary);"></i>
+                        Advanced Import System
+                    </h1>
+                    <p class="sol-page-subtitle">
+                        Sistema di import universale - Compatibile con qualsiasi gestionale
+                    </p>
+                </div>
+                <div class="sol-page-actions">
+                    <button class="sol-btn sol-btn-glass" onclick="showTemplateManager()">
+                        <i class="fas fa-folder-open"></i>
+                        Template Salvati
+                    </button>
+                    <button class="sol-btn sol-btn-glass" onclick="resetWizard()">
+                        <i class="fas fa-redo"></i>
+                        Ricomincia
+                    </button>
+                    <!-- 🆕 NUOVO: Test Buttons -->
+                    <a href="./test-integration.html" class="sol-btn sol-btn-glass">
+                        <i class="fas fa-flask"></i>
+                        <span class="hide-mobile">Test System</span>
+                    </a>
+                    <button class="sol-btn sol-btn-glass" onclick="runPageTest()">
+                        <i class="fas fa-bolt"></i>
+                        <span class="hide-mobile">Quick Test</span>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Wizard Steps -->
+            <div class="wizard-steps">
+                <div class="wizard-step active" data-step="1">
+                    <div class="step-circle">1</div>
+                    <div class="step-label">Carica File</div>
+                    <div class="step-description">CSV, Excel o qualsiasi formato</div>
+                </div>
+                <div class="wizard-step" data-step="2">
+                    <div class="step-circle">2</div>
+                    <div class="step-label">Mapping Campi</div>
+                    <div class="step-description">Associa colonne automaticamente</div>
+                </div>
+                <div class="wizard-step" data-step="3">
+                    <div class="step-circle">3</div>
+                    <div class="step-label">Validazione</div>
+                    <div class="step-description">Controlla qualità dati</div>
+                </div>
+                <div class="wizard-step" data-step="4">
+                    <div class="step-circle">4</div>
+                    <div class="step-label">Import</div>
+                    <div class="step-description">Integra con prodotti</div>
+                </div>
+            </div>
+            
+            <!-- Step Content -->
+            <div class="step-content">
+                <!-- Step 1: File Upload -->
+                <div class="step-panel active" data-step="1">
+                    <div class="upload-zone" id="uploadZone">
+                        <div class="upload-content">
+                            <i class="fas fa-cloud-upload-alt upload-icon"></i>
+                            <h3 class="upload-title">Trascina il tuo file qui</h3>
+                            <p class="upload-subtitle">
+                                O clicca per selezionare dal tuo computer
+                            </p>
+                            <div class="file-types">
+                                <div class="file-type">
+                                    <i class="fas fa-file-csv" style="color: #10b981;"></i>
+                                    CSV
+                                </div>
+                                <div class="file-type">
+                                    <i class="fas fa-file-excel" style="color: #059669;"></i>
+                                    Excel
+                                </div>
+                                <div class="file-type">
+                                    <i class="fas fa-file-alt" style="color: #3b82f6;"></i>
+                                    TXT
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <input type="file" id="fileInput" accept=".csv,.xlsx,.xls,.txt" style="display: none;">
+                    
+                    <!-- Template Gallery -->
+                    <div class="template-gallery">
+                        <h3 class="gallery-title">
+                            <i class="fas fa-download"></i>
+                            Template di Esempio
+                        </h3>
+                        <div class="template-grid">
+                            <div class="template-card" onclick="downloadTemplate('products')">
+                                <i class="fas fa-cubes template-icon"></i>
+                                <h4 class="template-name">Template Prodotti</h4>
+                                <p class="template-description">
+                                    Formato standard per import prodotti con SKU, descrizioni e specifiche
+                                </p>
+                            </div>
+                            <div class="template-card" onclick="downloadTemplate('shipments')">
+                                <i class="fas fa-ship template-icon"></i>
+                                <h4 class="template-name">Template Spedizioni</h4>
+                                <p class="template-description">
+                                    Include tracking, date, costi e informazioni logistiche complete
+                                </p>
+                            </div>
+                            <div class="template-card" onclick="downloadTemplate('inventory')">
+                                <i class="fas fa-warehouse template-icon"></i>
+                                <h4 class="template-name">Template Inventario</h4>
+                                <p class="template-description">
+                                    Gestione stock, movimenti e valorizzazione magazzino
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Step 2: Field Mapping -->
+                <div class="step-panel" data-step="2">
+                    <div class="mapping-container">
+                        <!-- Source Columns -->
+                        <div class="mapping-section">
+                            <h3 class="section-title">
+                                <i class="fas fa-file-import"></i>
+                                Colonne del File
+                            </h3>
+                            <div class="columns-list" id="sourceColumns">
+                                <!-- Dynamic content -->
+                            </div>
+                        </div>
+                        
+                        <!-- Mapping Visualization -->
+                        <div class="mapping-arrows">
+                            <div class="arrow-hint">
+                                <i class="fas fa-arrows-alt-h" style="font-size: 1.5rem; color: var(--sol-primary);"></i>
+                                <br>
+                                <small>Trascina per mappare</small>
+                            </div>
+                            <svg class="mapping-svg" id="mappingSvg">
+                                <!-- Dynamic mapping lines -->
+                            </svg>
+                        </div>
+                        
+                        <!-- Target Fields -->
+                        <div class="mapping-section">
+                            <h3 class="section-title">
+                                <i class="fas fa-bullseye"></i>
+                                Campi Sistema
+                                <button class="sol-btn sol-btn-sm sol-btn-glass" onclick="toggleManualMapping()" id="manualMappingBtn">
+                                    <i class="fas fa-cog"></i> Mapping Manuale
+                                </button>
+                            </h3>
+                            <div class="fields-list" id="targetFields">
+                                <!-- Dynamic content -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Step 3: Validation -->
+                <div class="step-panel" data-step="3">
+                    <!-- Validation Overview -->
+                    <div class="validation-overview" id="validationOverview">
+                        <div class="validation-card success">
+                            <i class="fas fa-check-circle validation-icon" style="color: var(--sol-success);"></i>
+                            <div class="validation-count" id="validCount">0</div>
+                            <div class="validation-label">Righe Valide</div>
+                        </div>
+                        <div class="validation-card warning">
+                            <i class="fas fa-exclamation-triangle validation-icon" style="color: var(--sol-warning);"></i>
+                            <div class="validation-count" id="warningCount">0</div>
+                            <div class="validation-label">Avvisi</div>
+                        </div>
+                        <div class="validation-card error">
+                            <i class="fas fa-times-circle validation-icon" style="color: var(--sol-danger);"></i>
+                            <div class="validation-count" id="errorCount">0</div>
+                            <div class="validation-label">Errori</div>
+                        </div>
+                        <div class="validation-card">
+                            <i class="fas fa-database validation-icon" style="color: var(--sol-info);"></i>
+                            <div class="validation-count" id="totalCount">0</div>
+                            <div class="validation-label">Totale Righe</div>
+                        </div>
+                    </div>
+                    
+                    <!-- Data Preview -->
+                    <div class="preview-container">
+                        <div class="preview-header">
+                            <h3 class="preview-title">Anteprima Dati</h3>
+                            <div class="preview-filters">
+                                <select class="filter-select" id="validationFilter">
+                                    <option value="all">Tutti</option>
+                                    <option value="valid">Solo Validi</option>
+                                    <option value="warning">Con Avvisi</option>
+                                    <option value="error">Con Errori</option>
+                                </select>
+                                <button class="sol-btn sol-btn-sm sol-btn-glass" onclick="exportValidationReport()">
+                                    <i class="fas fa-download"></i>
+                                    Report
+                                </button>
+                            </div>
+                        </div>
+                        <div class="preview-table-wrapper">
+                            <table class="preview-table" id="previewTable">
+                                <thead id="previewTableHead"></thead>
+                                <tbody id="previewTableBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Step 4: Import Execution -->
+                <div class="step-panel" data-step="4">
+                    <div class="import-summary">
+                        <i class="fas fa-rocket import-icon"></i>
+                        <h3 class="import-title">Pronto per l'Import</h3>
+                        <p>Tutti i dati sono stati validati e sono pronti per essere integrati nel sistema</p>
+                        
+                        <div class="import-stats" id="importStats">
+                            <div class="stat-item">
+                                <div class="stat-value" id="statsValid">0</div>
+                                <div class="stat-label">Righe da Importare</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-value" id="statsProducts">0</div>
+                                <div class="stat-label">Nuovi Prodotti</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-value" id="statsUpdates">0</div>
+                                <div class="stat-label">Aggiornamenti</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-value" id="statsTemplate">No</div>
+                                <div class="stat-label">Salva Template</div>
+                            </div>
+                        </div>
+                        
+                        <!-- Template Save Options -->
+                        <div class="sol-form" style="margin: 2rem 0;">
+                            <div class="sol-form-group">
+                                <label class="sol-form-label">
+                                    <input type="checkbox" id="saveTemplate" style="margin-right: 0.5rem;">
+                                    Salva configurazione come template
+                                </label>
+                                <input type="text" id="templateName" class="sol-form-input" 
+                                       placeholder="Nome template (es: Import SAP Prodotti)"
+                                       style="margin-top: 0.5rem; display: none;">
+                            </div>
+                        </div>
+                        
+                        <!-- Progress Container -->
+                        <div class="progress-container" id="progressContainer">
+                            <div class="progress-text" id="progressText">Inizializzazione...</div>
+                            <div class="progress-bar">
+                                <div class="progress-fill" id="progressFill"></div>
+                            </div>
+                            <div id="progressDetails"></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Navigation -->
+                <div class="wizard-navigation">
+                    <button class="nav-button secondary" id="prevBtn" onclick="previousStep()" style="display: none;">
+                        <i class="fas fa-arrow-left"></i>
+                        Indietro
+                    </button>
+                    <div></div>
+                    <button class="nav-button primary" id="nextBtn" onclick="nextStep()">
+                        Avanti
+                        <i class="fas fa-arrow-right"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Import System JavaScript -->
+    <script>
+        // ===== ADVANCED IMPORT SYSTEM ENGINE =====
+        
+        class AdvancedImportSystem {
+            constructor() {
+                this.currentStep = 1;
+                this.fileData = null;
+                this.sourceColumns = [];
+                this.fieldMappings = {};
+                this.validationResults = [];
+                this.productIntelligence = null;
+                
+                this.init();
+            }
+            
+            init() {
+                this.setupEventListeners();
+                this.loadPhase2Architecture();
+                console.log('🚀 Advanced Import System initialized');
+            }
+            
+            loadPhase2Architecture() {
+                if (window.Phase2Architecture) {
+                    this.productIntelligence = window.Phase2Architecture.initialize();
+                    console.log('✅ Product Intelligence System connected');
+                }
+            }
+            
+            setupEventListeners() {
+                const uploadZone = document.getElementById('uploadZone');
+                const fileInput = document.getElementById('fileInput');
+                
+                uploadZone.addEventListener('click', () => fileInput.click());
+                uploadZone.addEventListener('dragover', this.handleDragOver.bind(this));
+                uploadZone.addEventListener('dragleave', this.handleDragLeave.bind(this));
+                uploadZone.addEventListener('drop', this.handleDrop.bind(this));
+                
+                fileInput.addEventListener('change', (e) => {
+                    if (e.target.files.length > 0) {
+                        this.processFile(e.target.files[0]);
+                    }
+                });
+                
+                document.getElementById('saveTemplate').addEventListener('change', (e) => {
+                    const nameInput = document.getElementById('templateName');
+                    nameInput.style.display = e.target.checked ? 'block' : 'none';
+                    document.getElementById('statsTemplate').textContent = e.target.checked ? 'Sì' : 'No';
+                });
+                
+                document.getElementById('validationFilter').addEventListener('change', this.filterValidationResults.bind(this));
+            }
+            
+            handleDragOver(e) {
+                e.preventDefault();
+                document.getElementById('uploadZone').classList.add('drag-over');
+            }
+            
+            handleDragLeave(e) {
+                e.preventDefault();
+                document.getElementById('uploadZone').classList.remove('drag-over');
+            }
+            
+            handleDrop(e) {
+                e.preventDefault();
+                document.getElementById('uploadZone').classList.remove('drag-over');
+                
+                const files = e.dataTransfer.files;
+                if (files.length > 0) {
+                    this.processFile(files[0]);
+                }
+            }
+            
+            async processFile(file) {
+                this.showNotification('Processing', `Analyzing ${file.name}...`, 'info');
+                
+                try {
+                    const extension = file.name.split('.').pop().toLowerCase();
+                    let data;
+                    
+                    if (extension === 'csv') {
+                        data = await this.parseCSV(file);
+                    } else if (['xlsx', 'xls'].includes(extension)) {
+                        data = await this.parseExcel(file);
+                    } else {
+                        throw new Error('Formato file non supportato');
+                    }
+                    
+                    this.fileData = {
+                        name: file.name,
+                        size: file.size,
+                        type: extension,
+                        data: data,
+                        columns: data.length > 0 ? Object.keys(data[0]) : []
+                    };
+                    
+                    this.sourceColumns = this.fileData.columns;
+                    this.analyzeColumns();
+                    this.renderMappingInterface();
+                    this.nextStep();
+                    
+                } catch (error) {
+                    console.error('File processing error:', error);
+                    this.showNotification('Error', error.message, 'error');
+                }
+            }
+            
+            parseCSV(file) {
+                return new Promise((resolve, reject) => {
+                    Papa.parse(file, {
+                        header: true,
+                        dynamicTyping: true,
+                        skipEmptyLines: true,
+                        complete: (results) => {
+                            if (results.errors.length > 0) {
+                                reject(new Error('Errore parsing CSV'));
+                            } else {
+                                resolve(results.data);
+                            }
+                        }
+                    });
+                });
+            }
+            
+            parseExcel(file) {
+                return new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        try {
+                            const workbook = XLSX.read(e.target.result, { type: 'array' });
+                            const sheetName = workbook.SheetNames[0];
+                            const worksheet = workbook.Sheets[sheetName];
+                            const data = XLSX.utils.sheet_to_json(worksheet);
+                            resolve(data);
+                        } catch (error) {
+                            reject(error);
+                        }
+                    };
+                    reader.readAsArrayBuffer(file);
+                });
+            }
+            
+            // System methods...
+            nextStep() {
+                if (this.currentStep < 4) {
+                    document.querySelector(`.wizard-step[data-step="${this.currentStep}"]`).classList.remove('active');
+                    document.querySelector(`.step-panel[data-step="${this.currentStep}"]`).classList.remove('active');
+                    
+                    this.currentStep++;
+                    
+                    document.querySelector(`.wizard-step[data-step="${this.currentStep}"]`).classList.add('active');
+                    document.querySelector(`.step-panel[data-step="${this.currentStep}"]`).classList.add('active');
+                    
+                    document.querySelector(`.wizard-step[data-step="${this.currentStep - 1}"]`).classList.add('completed');
+                    
+                    this.updateNavigationButtons();
+                    
+                    if (this.currentStep === 3) {
+                        this.validateData();
+                    } else if (this.currentStep === 4) {
+                        this.prepareImport();
+                    }
+                }
+            }
+            
+            previousStep() {
+                if (this.currentStep > 1) {
+                    document.querySelector(`.wizard-step[data-step="${this.currentStep}"]`).classList.remove('active');
+                    document.querySelector(`.step-panel[data-step="${this.currentStep}"]`).classList.remove('active');
+                    
+                    this.currentStep--;
+                    
+                    document.querySelector(`.wizard-step[data-step="${this.currentStep}"]`).classList.add('active');
+                    document.querySelector(`.step-panel[data-step="${this.currentStep}"]`).classList.add('active');
+                    
+                    document.querySelector(`.wizard-step[data-step="${this.currentStep}"]`).classList.remove('completed');
+                    
+                    this.updateNavigationButtons();
+                }
+            }
+            
+            updateNavigationButtons() {
+                const prevBtn = document.getElementById('prevBtn');
+                const nextBtn = document.getElementById('nextBtn');
+                
+                prevBtn.style.display = this.currentStep > 1 ? 'inline-flex' : 'none';
+                
+                if (this.currentStep === 4) {
+                    nextBtn.innerHTML = '<i class="fas fa-rocket"></i> Avvia Import';
+                    nextBtn.onclick = () => this.executeImport();
+                } else {
+                    nextBtn.innerHTML = 'Avanti <i class="fas fa-arrow-right"></i>';
+                    nextBtn.onclick = () => this.nextStep();
+                }
+                
+                if (this.currentStep === 2 && Object.keys(this.fieldMappings).length === 0) {
+                    nextBtn.disabled = true;
+                } else {
+                    nextBtn.disabled = false;
+                }
+            }
+            
+            showNotification(title, message, type = 'info') {
+                if (window.NotificationSystem) {
+                    window.NotificationSystem.show(title, message, type);
+                } else {
+                    console.log(`[${type.toUpperCase()}] ${title}: ${message}`);
+                }
+            }
+            
+            // Placeholder methods for remaining functionality
+            analyzeColumns() { /* Implementation from original */ }
+            renderMappingInterface() { /* Implementation from original */ }
+            validateData() { /* Implementation from original */ }
+            prepareImport() { /* Implementation from original */ }
+            executeImport() { /* Implementation from original */ }
+            filterValidationResults() { /* Implementation from original */ }
+        }
+        
+        // Initialize system
+        let importSystem;
+        document.addEventListener('DOMContentLoaded', () => {
+            importSystem = new AdvancedImportSystem();
+            window.importSystem = importSystem;
+        });
+        
+        // Global functions
+        function nextStep() {
+            importSystem.nextStep();
+        }
+        
+        function previousStep() {
+            importSystem.previousStep();
+        }
+        
+        function downloadTemplate(type) {
+            console.log('Downloading template:', type);
+        }
+        
+        function showTemplateManager() {
+            console.log('Opening template manager...');
+        }
+        
+        function resetWizard() {
+            if (confirm('Sei sicuro di voler ricominciare?')) {
+                location.reload();
+            }
+        }
+        
+        function exportValidationReport() {
+            console.log('Exporting validation report...');
+        }
+        
+        function toggleManualMapping() {
+            console.log('Opening manual mapping modal...');
+        }
+        
+        // ✅ FIX 2: Initialize header component
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Wait for header component to be available
+            let attempts = 0;
+            const waitForHeader = setInterval(async () => {
+                attempts++;
+                
+                if (window.headerComponent) {
+                    clearInterval(waitForHeader);
+                    
+                    try {
+                        // Mount header to the placeholder
+                        const placeholder = document.getElementById('headerPlaceholder');
+                        if (placeholder) {
+                            await window.headerComponent.init();
+                            console.log('✅ Header component initialized');
+                        }
+                    } catch (error) {
+                        console.error('❌ Header initialization error:', error);
+                    }
+                } else if (attempts > 20) {
+                    clearInterval(waitForHeader);
+                    console.warn('⚠️ Header component not found after 2 seconds');
+                }
+            }, 100);
+        });
+        
+        // 🆕 Quick Test Function
+        function runPageTest() {
+            console.log('🧪 Running import.html quick test...');
+            
+            const tests = [
+                { name: 'Import System', test: () => !!window.importSystem },
+                { name: 'File Input', test: () => !!document.getElementById('fileInput') },
+                { name: 'Upload Zone', test: () => !!document.getElementById('uploadZone') },
+                { name: 'Papa Parse', test: () => typeof window.Papa !== 'undefined' },
+                { name: 'XLSX Library', test: () => typeof window.XLSX !== 'undefined' },
+                { name: 'Header Component', test: () => !!window.headerComponent }
+            ];
+            
+            let passed = 0;
+            tests.forEach(test => {
+                if (test.test()) {
+                    console.log(`✅ ${test.name}: PASSED`);
+                    passed++;
+                } else {
+                    console.log(`❌ ${test.name}: FAILED`);
+                }
+            });
+            
+            const message = `Import Test: ${passed}/${tests.length} passed`;
+            if (window.NotificationSystem) {
+                window.NotificationSystem.show('Quick Test', message, 
+                    passed === tests.length ? 'success' : 'warning');
+            }
+            
+            return { passed, total: tests.length };
+        }
+    </script>
+    
+    <!-- ✅ FIX 3: Include enhancement scripts -->
+    <script src="./pages/import/import-enhancements.js"></script>
+    <script src="./pages/import/system-fields-editor.js"></script>
+</body>
+</html>

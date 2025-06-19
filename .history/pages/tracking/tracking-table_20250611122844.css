@@ -1,0 +1,60 @@
+/* Tracking Table Overflow Styles */
+.table-container {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch; /* Smooth scrolling su iOS */
+}
+
+.data-table {
+    min-width: 100%;
+    width: max-content;
+}
+
+/* Scrollbar personalizzata */
+.table-container::-webkit-scrollbar {
+    height: 8px;
+}
+
+.table-container::-webkit-scrollbar-track {
+    background: var(--sol-gray-100);
+    border-radius: 4px;
+}
+
+.table-container::-webkit-scrollbar-thumb {
+    background: var(--sol-gray-400);
+    border-radius: 4px;
+}
+
+.table-container::-webkit-scrollbar-thumb:hover {
+    background: var(--sol-gray-500);
+}
+
+/* Responsive - mostra indicatore di scroll su mobile */
+@media (max-width: 768px) {
+    .table-container {
+        position: relative;
+        margin: 0 -1rem; /* Estendi fino ai bordi su mobile */
+        padding: 0 1rem;
+    }
+    
+    /* Ombra per indicare che c'è più contenuto */
+    .table-container::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        width: 30px;
+        background: linear-gradient(to right, transparent, rgba(0,0,0,0.05));
+        pointer-events: none;
+    }
+}
+
+/* Fix per colonne action sempre visibili */
+.data-table th:last-child,
+.data-table td:last-child {
+    position: sticky;
+    right: 0;
+    background: white;
+    box-shadow: -2px 0 4px rgba(0,0,0,0.05);
+}

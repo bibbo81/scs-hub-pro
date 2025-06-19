@@ -1,0 +1,1056 @@
+/* ===== TRACKING TABLE - STILE SOLARIUM CON SCROLLING ===== */
+
+/* Container con scrolling orizzontale */
+.table-container {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch; /* Smooth scrolling su iOS */
+    background-color: white;
+    border-radius: var(--sol-radius-lg);
+    box-shadow: var(--sol-shadow-sm);
+}
+
+.data-table {
+    min-width: 100%;
+    width: max-content;
+}
+
+/* Scrollbar personalizzata */
+.table-container::-webkit-scrollbar {
+    height: 8px;
+}
+
+.table-container::-webkit-scrollbar-track {
+    background: var(--sol-gray-100);
+    border-radius: 4px;
+}
+
+.table-container::-webkit-scrollbar-thumb {
+    background: var(--sol-gray-400);
+    border-radius: 4px;
+}
+
+.table-container::-webkit-scrollbar-thumb:hover {
+    background: var(--sol-gray-500);
+}
+
+/* Header tabella con stile Solarium */
+.data-table thead,
+.sol-table thead {
+    background-color: var(--sol-gray-50);
+}
+
+.data-table th,
+.sol-table th {
+    padding: var(--sol-spacing-md) var(--sol-spacing-lg);
+    font-weight: 600;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--sol-gray-600);
+    border-bottom: 2px solid var(--sol-gray-200);
+    text-align: center !important;
+    vertical-align: middle !important;
+    position: relative;
+    user-select: none;
+    background-color: var(--sol-gray-50);
+}
+
+/* Header sortabili */
+.data-table th.sortable,
+.sol-table th.sortable {
+    cursor: pointer;
+    transition: background-color var(--sol-transition-fast);
+}
+
+.data-table th.sortable:hover,
+.sol-table th.sortable:hover {
+    background-color: var(--sol-gray-100);
+}
+
+/* Indicatori di ordinamento */
+.data-table th.sortable::after,
+.sol-table th.sortable::after {
+    content: '↕';
+    position: absolute;
+    right: var(--sol-spacing-md);
+    top: 50%;
+    transform: translateY(-50%);
+    opacity: 0.3;
+    font-size: 0.875rem;
+}
+
+.data-table th.sort-asc::after,
+.sol-table th.sort-asc::after {
+    content: '↑';
+    opacity: 1;
+    color: var(--sol-primary);
+}
+
+.data-table th.sort-desc::after,
+.sol-table th.sort-desc::after {
+    content: '↓';
+    opacity: 1;
+    color: var(--sol-primary);
+}
+
+/* Celle della tabella */
+.data-table td,
+.sol-table td {
+    padding: var(--sol-spacing-md) var(--sol-spacing-lg);
+    border-bottom: 1px solid var(--sol-gray-100);
+    text-align: center !important;
+    vertical-align: middle !important;
+    color: var(--sol-gray-700);
+}
+
+/* Hover sulle righe */
+.data-table tbody tr,
+.sol-table tbody tr {
+    transition: background-color var(--sol-transition-fast);
+}
+
+.data-table tbody tr:hover,
+.sol-table tbody tr:hover {
+    background-color: var(--sol-gray-50);
+}
+
+/* Righe selezionate */
+.data-table tbody tr.selected,
+.sol-table tbody tr.selected {
+    background-color: var(--sol-primary-light);
+}
+
+/* Prima e ultima colonna - padding speciali */
+.data-table th:first-child,
+.data-table td:first-child,
+.sol-table th:first-child,
+.sol-table td:first-child {
+    padding-left: var(--sol-spacing-lg);
+}
+
+.data-table th:last-child,
+.data-table td:last-child,
+.sol-table th:last-child,
+.sol-table td:last-child {
+    padding-right: var(--sol-spacing-lg);
+}
+
+/* Colonna checkbox - larghezza fissa e centratura */
+.data-table th:has(.select-all),
+.data-table td:has(.row-select) {
+    width: 40px;
+    padding: var(--sol-spacing-sm);
+}
+
+/* Badge e elementi inline centrati */
+.sol-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.25rem;
+}
+
+/* Pulsanti azioni sempre centrati */
+.action-buttons {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: center !important;
+}
+
+/* Stile per i pulsanti nelle azioni */
+.btn-icon {
+    padding: 0.5rem;
+    border: none;
+    background: transparent;
+    color: var(--sol-gray-600);
+    cursor: pointer;
+    border-radius: var(--sol-radius-sm);
+    transition: all var(--sol-transition-fast);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn-icon:hover {
+    background: var(--sol-gray-100);
+    color: var(--sol-gray-900);
+}
+
+.btn-icon.text-danger:hover {
+    background: var(--sol-danger-light);
+    color: var(--sol-danger);
+}
+
+/* Responsive - mostra indicatore di scroll su mobile */
+@media (max-width: 768px) {
+    .table-container {
+        position: relative;
+        margin: 0 -1rem; /* Estendi fino ai bordi su mobile */
+        padding: 0 1rem;
+        border-radius: 0; /* Rimuovi bordi arrotondati su mobile */
+    }
+    
+    /* Ombra per indicare che c'è più contenuto */
+    .table-container::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        width: 30px;
+        background: linear-gradient(to right, transparent, rgba(0,0,0,0.05));
+        pointer-events: none;
+    }
+}
+
+/* Fix per colonne action sempre visibili */
+.data-table th:last-child,
+.data-table td:last-child {
+    position: sticky;
+    right: 0;
+    background: white;
+    box-shadow: -2px 0 4px rgba(0,0,0,0.05);
+}
+
+/* Fix per header sticky su scroll verticale (opzionale) */
+.data-table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+/* ===== COLUMN DRAG & DROP STYLES ===== */
+
+/* Header trascinabili */
+.data-table th:not(.no-drag),
+.sol-table th:not(.no-drag) {
+    cursor: move;
+    position: relative;
+    user-select: none;
+    transition: background-color var(--sol-transition-fast);
+}
+
+/* Drag handle bar */
+.data-table th:not(.no-drag)::before,
+.sol-table th:not(.no-drag)::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 4px;
+    height: 60%;
+    background: var(--sol-gray-300);
+    border-radius: 2px;
+    opacity: 0;
+    transition: all var(--sol-transition-fast);
+}
+
+/* Dots pattern per drag handle */
+.data-table th:not(.no-drag)::after,
+.sol-table th:not(.no-drag)::after {
+    content: '⋮⋮';
+    position: absolute;
+    left: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 0.75rem;
+    color: var(--sol-gray-400);
+    opacity: 0;
+    transition: all var(--sol-transition-fast);
+    pointer-events: none;
+}
+
+/* Mostra drag handle al hover */
+.data-table th:not(.no-drag):hover::before,
+.sol-table th:not(.no-drag):hover::before {
+    opacity: 1;
+    background: var(--sol-primary);
+}
+
+.data-table th:not(.no-drag):hover::after,
+.sol-table th:not(.no-drag):hover::after {
+    opacity: 1;
+    color: var(--sol-primary);
+}
+
+/* Hover state */
+.data-table th:not(.no-drag):hover,
+.sol-table th:not(.no-drag):hover {
+    background-color: var(--sol-gray-100);
+}
+
+/* Stati durante il drag */
+.column-drag-ghost {
+    opacity: 0.4;
+    background: var(--sol-primary-light) !important;
+}
+
+.column-drag-chosen {
+    background: var(--sol-primary-light) !important;
+    box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
+}
+
+.column-drag-active {
+    cursor: grabbing !important;
+}
+
+/* Indicatore di posizione durante il drag */
+.sortable-drag {
+    background: white !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    transform: scale(1.02);
+}
+
+/* Placeholder durante il drag */
+.sortable-fallback {
+    background: var(--sol-primary-light) !important;
+    opacity: 0.8;
+}
+
+/* Colonne non trascinabili */
+.data-table th.no-drag,
+.sol-table th.no-drag {
+    cursor: default;
+}
+
+.data-table th.no-drag::before,
+.data-table th.no-drag::after,
+.sol-table th.no-drag::before,
+.sol-table th.no-drag::after {
+    display: none;
+}
+
+/* Transizione smooth per il riordino */
+.data-table th,
+.data-table td,
+.sol-table th,
+.sol-table td {
+    transition: transform var(--sol-transition-base);
+}
+
+/* Mobile - disabilita drag su schermi piccoli */
+@media (max-width: 768px) {
+    .data-table th:not(.no-drag),
+    .sol-table th:not(.no-drag) {
+        cursor: default;
+    }
+    
+    .data-table th::before,
+    .data-table th::after,
+    .sol-table th::before,
+    .sol-table th::after {
+        display: none;
+    }
+}
+/* ===== TRACKING CONTROLS STYLING ===== */
+
+/* Container per controlli tabella */
+.sol-table-controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+/* Gruppo di ricerca */
+.sol-table-search {
+    position: relative;
+    flex: 1;
+    max-width: 400px;
+}
+
+/* Icona di ricerca */
+.sol-table-search i {
+    position: absolute;
+    left: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--sol-gray-400);
+    pointer-events: none;
+    font-size: 0.875rem;
+}
+
+/* Input di ricerca */
+.sol-table-search-input {
+    width: 100%;
+    padding: 0.625rem 1rem 0.625rem 2.75rem;
+    font-size: 0.875rem;
+    line-height: 1.5;
+    color: var(--sol-gray-900);
+    background-color: white;
+    border: 1px solid var(--sol-gray-300);
+    border-radius: var(--sol-radius-md);
+    transition: all var(--sol-transition-fast);
+}
+
+.sol-table-search-input:focus {
+    outline: none;
+    border-color: var(--sol-primary);
+    box-shadow: 0 0 0 3px var(--sol-primary-light);
+    background-color: white;
+}
+
+.sol-table-search-input::placeholder {
+    color: var(--sol-gray-400);
+}
+
+/* Azioni tabella (pulsanti export, etc.) */
+.sol-table-actions {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+/* Container paginazione */
+.sol-table-pagination {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 1.5rem;
+    background-color: var(--sol-gray-50);
+    border-top: 1px solid var(--sol-gray-200);
+    border-radius: 0 0 var(--sol-radius-lg) var(--sol-radius-lg);
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+/* Info paginazione */
+.sol-table-info {
+    font-size: 0.875rem;
+    color: var(--sol-gray-600);
+}
+
+/* Controlli paginazione */
+.sol-table-pagination-controls {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+/* Select page size - STILE COERENTE */
+.sol-table-pagesize {
+    padding: 0.625rem 2.5rem 0.625rem 1rem;
+    font-size: 0.875rem;
+    line-height: 1.5;
+    color: var(--sol-gray-900);
+    background-color: white;
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 0.75rem center;
+    background-size: 1rem;
+    border: 1px solid var(--sol-gray-300);
+    border-radius: var(--sol-radius-md);
+    cursor: pointer;
+    transition: all var(--sol-transition-fast);
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+}
+
+.sol-table-pagesize:hover {
+    border-color: var(--sol-gray-400);
+    background-color: var(--sol-gray-50);
+}
+
+.sol-table-pagesize:focus {
+    outline: none;
+    border-color: var(--sol-primary);
+    box-shadow: 0 0 0 3px var(--sol-primary-light);
+    background-color: white;
+}
+
+/* Pulsanti paginazione */
+.sol-pagination-btn {
+    padding: 0.625rem 0.875rem;
+    font-size: 0.875rem;
+    line-height: 1.5;
+    color: var(--sol-gray-700);
+    background-color: white;
+    border: 1px solid var(--sol-gray-300);
+    border-radius: var(--sol-radius-md);
+    cursor: pointer;
+    transition: all var(--sol-transition-fast);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 36px;
+}
+
+.sol-pagination-btn:hover:not(:disabled) {
+    background-color: var(--sol-gray-50);
+    border-color: var(--sol-gray-400);
+    transform: translateY(-1px);
+}
+
+.sol-pagination-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.sol-pagination-btn i {
+    font-size: 0.75rem;
+}
+
+/* Info paginazione */
+.sol-pagination-info {
+    font-size: 0.875rem;
+    color: var(--sol-gray-700);
+    font-weight: 500;
+}
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+    .sol-table-controls {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .sol-table-search {
+        max-width: 100%;
+    }
+    
+    .sol-table-pagination {
+        flex-direction: column;
+        align-items: stretch;
+        text-align: center;
+    }
+    
+    .sol-table-pagination-controls {
+        justify-content: center;
+    }
+}
+
+/* ===== ADVANCED SEARCH STYLES ===== */
+
+/* Container ricerca con clear button */
+.sol-table-search {
+    position: relative;
+    flex: 1;
+    max-width: 500px;
+}
+
+/* Clear button */
+.search-clear {
+    position: absolute;
+    right: 0.75rem;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    color: var(--sol-gray-400);
+    cursor: pointer;
+    padding: 0.25rem;
+    border-radius: var(--sol-radius-sm);
+    transition: all var(--sol-transition-fast);
+}
+
+.search-clear:hover {
+    color: var(--sol-gray-600);
+    background: var(--sol-gray-100);
+}
+
+/* Info risultati */
+.search-info {
+    font-size: 0.875rem;
+    color: var(--sol-gray-600);
+    margin-left: 1rem;
+}
+
+/* Suggerimenti ricerca */
+.search-suggestions {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    margin-top: 0.25rem;
+    background: white;
+    border: 1px solid var(--sol-gray-200);
+    border-radius: var(--sol-radius-md);
+    box-shadow: var(--sol-shadow-lg);
+    max-height: 200px;
+    overflow-y: auto;
+    z-index: 100;
+}
+
+.suggestion-item {
+    padding: 0.75rem 1rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-size: 0.875rem;
+    transition: background var(--sol-transition-fast);
+}
+
+.suggestion-item:hover {
+    background: var(--sol-gray-50);
+}
+
+.suggestion-item i {
+    color: var(--sol-gray-400);
+    width: 16px;
+}
+
+/* Highlight risultati nella tabella */
+.search-highlight {
+    background: var(--sol-warning-light);
+    padding: 0 2px;
+    border-radius: 2px;
+}
+.sol-table-search {
+    position: relative;
+    display: flex;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.sol-table-search i.fa-search {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #666;
+    z-index: 5;
+}
+
+.sol-table-search-input {
+    padding: 10px 40px 10px 40px; /* Spazio per icona ricerca e pulsante X */
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    width: 100%;
+    font-size: 14px;
+    transition: border-color 0.3s, box-shadow 0.3s;
+}
+
+.sol-table-search-input:focus {
+    outline: none;
+    border-color: #007bff;
+    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+}
+
+.search-clear {
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 6px;
+    color: #666;
+    z-index: 10;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+}
+
+.search-clear:hover {
+    color: #333;
+    background-color: rgba(0,0,0,0.1);
+}
+
+/* Suggerimenti di ricerca */
+.search-suggestions {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: white;
+    border: 1px solid #ddd;
+    border-top: none;
+    border-radius: 0 0 6px 6px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    z-index: 1000;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.suggestion-item {
+    padding: 10px 12px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border-bottom: 1px solid #f0f0f0;
+    font-size: 14px;
+    transition: background-color 0.2s;
+}
+
+.suggestion-item:hover {
+    background-color: #f8f9fa;
+}
+
+.suggestion-item:last-child {
+    border-bottom: none;
+}
+
+.suggestion-item i {
+    color: #666;
+    width: 14px;
+}
+
+/* Info ricerca */
+.search-info {
+    font-size: 0.85em;
+    color: #666;
+    margin-top: 6px;
+    font-style: italic;
+}
+
+/* Controlli tabella */
+.sol-table-controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 20px;
+    gap: 20px;
+}
+
+.sol-table-actions {
+    display: flex;
+    gap: 8px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .sol-table-controls {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .sol-table-search {
+        margin-bottom: 15px;
+    }
+    
+    .sol-table-actions {
+        justify-content: center;
+    }
+}
+
+/* Stili base tabella se non già definiti */
+.sol-table-wrapper {
+    background: white;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.sol-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.sol-table th {
+    background-color: #f8f9fa;
+    padding: 12px;
+    text-align: left;
+    font-weight: 600;
+    border-bottom: 2px solid #dee2e6;
+}
+
+.sol-table td {
+    padding: 12px;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.sol-table-hover tbody tr:hover {
+    background-color: #f8f9fa;
+}
+
+/* Loading e empty states */
+.sol-table-loading,
+.sol-table-empty {
+    text-align: center;
+    padding: 40px;
+    color: #666;
+}
+
+.loading-spinner {
+    border: 2px solid #f3f3f3;
+    border-top: 2px solid #007bff;
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    animation: spin 1s linear infinite;
+    margin: 0 auto 16px;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Paginazione */
+.sol-table-pagination {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 20px;
+    background-color: #f8f9fa;
+    border-top: 1px solid #dee2e6;
+}
+
+.sol-table-pagination-controls {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.sol-pagination-btn {
+    padding: 6px 12px;
+    border: 1px solid #ddd;
+    background: white;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: all 0.2s;
+}
+
+.sol-pagination-btn:hover:not(:disabled) {
+    background-color: #e9ecef;
+}
+
+.sol-pagination-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* table-styles.css - Stili per TableManager e ricerca avanzata */
+
+/* Fix per il posizionamento della X di cancellazione ricerca */
+.sol-table-search {
+    position: relative;
+    display: flex;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.sol-table-search i.fa-search {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #666;
+    z-index: 5;
+}
+
+.sol-table-search-input {
+    padding: 10px 40px 10px 40px; /* Spazio per icona ricerca e pulsante X */
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    width: 100%;
+    font-size: 14px;
+    transition: border-color 0.3s, box-shadow 0.3s;
+}
+
+.sol-table-search-input:focus {
+    outline: none;
+    border-color: #007bff;
+    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+}
+
+.search-clear {
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 6px;
+    color: #666;
+    z-index: 10;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+}
+
+.search-clear:hover {
+    color: #333;
+    background-color: rgba(0,0,0,0.1);
+}
+
+/* Suggerimenti di ricerca */
+.search-suggestions {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: white;
+    border: 1px solid #ddd;
+    border-top: none;
+    border-radius: 0 0 6px 6px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    z-index: 1000;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.suggestion-item {
+    padding: 10px 12px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border-bottom: 1px solid #f0f0f0;
+    font-size: 14px;
+    transition: background-color 0.2s;
+    min-height: 40px;
+}
+
+.suggestion-item .suggestion-text {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.suggestion-item:hover {
+    background-color: #f8f9fa;
+}
+
+.suggestion-item:last-child {
+    border-bottom: none;
+}
+
+.suggestion-item i {
+    color: #666;
+    width: 16px;
+    flex-shrink: 0;
+    text-align: center;
+    margin-right: 4px;
+}
+
+/* Info ricerca */
+.search-info {
+    font-size: 0.85em;
+    color: #666;
+    margin-top: 6px;
+    font-style: italic;
+}
+
+/* Controlli tabella */
+.sol-table-controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 20px;
+    gap: 20px;
+}
+
+.sol-table-actions {
+    display: flex;
+    gap: 8px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .sol-table-controls {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .sol-table-search {
+        margin-bottom: 15px;
+    }
+    
+    .sol-table-actions {
+        justify-content: center;
+    }
+}
+
+/* Stili base tabella se non già definiti */
+.sol-table-wrapper {
+    background: white;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.sol-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.sol-table th {
+    background-color: #f8f9fa;
+    padding: 12px;
+    text-align: left;
+    font-weight: 600;
+    border-bottom: 2px solid #dee2e6;
+}
+
+.sol-table td {
+    padding: 12px;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.sol-table-hover tbody tr:hover {
+    background-color: #f8f9fa;
+}
+
+/* Loading e empty states */
+.sol-table-loading,
+.sol-table-empty {
+    text-align: center;
+    padding: 40px;
+    color: #666;
+}
+
+.loading-spinner {
+    border: 2px solid #f3f3f3;
+    border-top: 2px solid #007bff;
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    animation: spin 1s linear infinite;
+    margin: 0 auto 16px;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Paginazione */
+.sol-table-pagination {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 20px;
+    background-color: #f8f9fa;
+    border-top: 1px solid #dee2e6;
+}
+
+.sol-table-pagination-controls {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.sol-pagination-btn {
+    padding: 6px 12px;
+    border: 1px solid #ddd;
+    background: white;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: all 0.2s;
+}
+
+.sol-pagination-btn:hover:not(:disabled) {
+    background-color: #e9ecef;
+}
+
+.sol-pagination-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}

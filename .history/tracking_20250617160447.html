@@ -1,0 +1,1746 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema Tracking Completo</title>
+    <link rel="stylesheet" href="/css/solarium.css">
+    <link rel="stylesheet" href="/css/timeline.css">
+    <style>
+        /* ===== CUSTOM STYLES PER TRACKING SYSTEM ===== */
+        
+        /* Override per perfetta integrazione con Solarium Design System */
+        .page-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: var(--sol-spacing-lg);
+        }
+        
+        /* Header perfettamente allineato */
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: var(--sol-spacing-2xl);
+            padding-bottom: var(--sol-spacing-lg);
+            border-bottom: 1px solid var(--sol-gray-200);
+        }
+        
+        .page-title {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--sol-gray-900);
+            margin: 0;
+        }
+        
+        .page-actions {
+            display: flex;
+            gap: var(--sol-spacing-md);
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        
+        /* Filters Section - Design System Compliant */
+        .filters-section {
+            background: white;
+            border-radius: var(--sol-radius-lg);
+            padding: var(--sol-spacing-xl);
+            margin-bottom: var(--sol-spacing-xl);
+            box-shadow: var(--sol-shadow-sm);
+            border: 1px solid var(--sol-gray-100);
+        }
+        
+        .filters-row {
+            display: flex;
+            gap: var(--sol-spacing-lg);
+            align-items: flex-end;
+            flex-wrap: wrap;
+        }
+        
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: var(--sol-spacing-sm);
+            min-width: 200px;
+        }
+        
+        .filter-group.flex-grow {
+            flex: 1;
+        }
+        
+        .filter-group label {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--sol-gray-700);
+        }
+        
+        /* Search Input con Solarium Design */
+        .search-input {
+            position: relative;
+        }
+        
+        .search-input i {
+            position: absolute;
+            left: var(--sol-spacing-md);
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--sol-gray-400);
+            pointer-events: none;
+        }
+        
+        .search-input input {
+            padding-left: 2.5rem;
+        }
+        
+        /* Table Section - PERFETTAMENTE ALLINEATA A SOLARIUM */
+        .table-section {
+            background: white;
+            border-radius: var(--sol-radius-lg);
+            box-shadow: var(--sol-shadow-sm);
+            border: 1px solid var(--sol-gray-100);
+            overflow: hidden;
+        }
+        
+        .table-header {
+            padding: var(--sol-spacing-xl);
+            border-bottom: 1px solid var(--sol-gray-200);
+            background: var(--sol-gray-50);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: var(--sol-spacing-md);
+        }
+        
+        .table-header h2 {
+            margin: 0;
+            color: var(--sol-gray-800);
+            font-size: 1.25rem;
+            font-weight: 600;
+        }
+        
+        .table-controls {
+            display: flex;
+            gap: var(--sol-spacing-md);
+            align-items: center;
+        }
+        
+        /* Tabella con Design System Classes */
+        .table-container {
+            overflow-x: auto;
+        }
+        
+        .data-table {
+            width: 100%;
+            background-color: white;
+            border-collapse: collapse;
+        }
+        
+        .data-table thead {
+            background-color: var(--sol-gray-50);
+        }
+        
+        .data-table th {
+            padding: var(--sol-spacing-md) var(--sol-spacing-lg);
+            font-weight: 600;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--sol-gray-600);
+            border-bottom: 2px solid var(--sol-gray-200);
+            text-align: left;
+            white-space: nowrap;
+            user-select: none;
+        }
+        
+        .data-table th[data-sort] {
+            cursor: pointer;
+            transition: background-color var(--sol-transition-fast);
+            position: relative;
+        }
+        
+        .data-table th[data-sort]:hover {
+            background-color: var(--sol-gray-100);
+        }
+        
+        .data-table th[data-sort]::after {
+            content: '↕';
+            position: absolute;
+            right: var(--sol-spacing-md);
+            top: 50%;
+            transform: translateY(-50%);
+            opacity: 0.3;
+            font-size: 0.875rem;
+        }
+        
+        .data-table th[data-sort].sort-asc::after {
+            content: '↑';
+            opacity: 1;
+            color: var(--sol-primary);
+        }
+        
+        .data-table th[data-sort].sort-desc::after {
+            content: '↓';
+            opacity: 1;
+            color: var(--sol-primary);
+        }
+        
+        .data-table td {
+            padding: var(--sol-spacing-md) var(--sol-spacing-lg);
+            border-bottom: 1px solid var(--sol-gray-100);
+            color: var(--sol-gray-900);
+            font-size: 0.875rem;
+        }
+        
+        .data-table tbody tr {
+            transition: background-color var(--sol-transition-fast);
+        }
+        
+        .data-table tbody tr:hover {
+            background-color: var(--sol-gray-50);
+        }
+        
+        .data-table tbody tr:has(.row-select:checked) {
+            background-color: var(--sol-primary-light) !important;
+        }
+        
+        .data-table tbody tr:has(.row-select:checked):hover {
+            background-color: rgba(99, 102, 241, 0.15) !important;
+        }
+        
+        /* Badges con Solarium Design */
+        .sol-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+            padding: 0.25rem 0.75rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+            border-radius: var(--sol-radius-full);
+            text-transform: uppercase;
+            letter-spacing: 0.025em;
+            white-space: nowrap;
+        }
+        
+        .status-badge {
+            padding: 0.375rem 0.875rem;
+            border-radius: var(--sol-radius-full);
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            white-space: nowrap;
+        }
+        
+        /* Status Colors - Solarium Compliant */
+        .status-delivered { 
+            background: var(--sol-success-light); 
+            color: var(--sol-success-dark); 
+        }
+        .status-in_transit { 
+            background: var(--sol-info-light); 
+            color: var(--sol-info-dark); 
+        }
+        .status-arrived { 
+            background: var(--sol-primary-light); 
+            color: var(--sol-primary-dark); 
+        }
+        .status-out_for_delivery { 
+            background: var(--sol-warning-light); 
+            color: var(--sol-warning-dark); 
+        }
+        .status-customs_cleared { 
+            background: var(--sol-info-light); 
+            color: var(--sol-info-dark); 
+        }
+        .status-exception { 
+            background: var(--sol-danger-light); 
+            color: var(--sol-danger-dark); 
+        }
+        .status-registered { 
+            background: var(--sol-gray-200); 
+            color: var(--sol-gray-700); 
+        }
+        
+        /* Type Badges */
+        .type-air { 
+            background: var(--sol-warning-light); 
+            color: var(--sol-warning-dark); 
+        }
+        .type-container { 
+            background: var(--sol-info-light); 
+            color: var(--sol-info-dark); 
+        }
+        .type-package { 
+            background: var(--sol-primary-light); 
+            color: var(--sol-primary-dark); 
+        }
+        
+        /* Action Buttons Solarium Style */
+        .action-buttons {
+            display: flex;
+            gap: 0.375rem;
+            justify-content: center;
+        }
+        
+        .sol-btn-icon {
+            background: transparent;
+            border: 1px solid var(--sol-gray-300);
+            border-radius: var(--sol-radius-sm);
+            padding: 0.375rem 0.5rem;
+            cursor: pointer;
+            transition: all var(--sol-transition-fast);
+            color: var(--sol-gray-700);
+            font-size: 0.875rem;
+            line-height: 1;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .sol-btn-icon:hover {
+            background: var(--sol-gray-50);
+            border-color: var(--sol-gray-400);
+            transform: translateY(-1px);
+            box-shadow: var(--sol-shadow-sm);
+        }
+        
+        .sol-btn-icon.sol-text-danger {
+            color: var(--sol-danger);
+        }
+        
+        .sol-btn-icon.sol-text-danger:hover {
+            background: var(--sol-danger-light);
+            border-color: var(--sol-danger);
+            color: var(--sol-danger-dark);
+        }
+        
+        /* Checkbox Styles Solarium */
+        .data-table th:has(.select-all),
+        .data-table td:has(.row-select) {
+            width: 40px;
+            text-align: center;
+            padding: var(--sol-spacing-sm);
+        }
+        
+        .select-all,
+        .row-select {
+            cursor: pointer;
+            width: 18px;
+            height: 18px;
+            margin: 0;
+            accent-color: var(--sol-primary);
+        }
+        
+        /* Bulk Actions Bar Solarium */
+        .bulk-actions-bar {
+            background: var(--sol-primary-light);
+            border: 1px solid var(--sol-primary);
+            border-radius: var(--sol-radius-md);
+            padding: var(--sol-spacing-md) var(--sol-spacing-lg);
+            margin: var(--sol-spacing-lg) 0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            animation: slideDown 0.3s ease;
+        }
+        
+        .selected-count {
+            display: flex;
+            align-items: center;
+            gap: var(--sol-spacing-sm);
+            font-weight: 600;
+            color: var(--sol-primary-dark);
+        }
+        
+        .bulk-actions {
+            display: flex;
+            gap: var(--sol-spacing-sm);
+        }
+        
+        /* Pagination Solarium Style */
+        .table-pagination {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: var(--sol-spacing-lg);
+            border-top: 1px solid var(--sol-gray-200);
+            background-color: var(--sol-gray-50);
+        }
+        
+        .pagination-info {
+            color: var(--sol-gray-600);
+            font-size: 0.875rem;
+        }
+        
+        .pagination-controls {
+            display: flex;
+            gap: var(--sol-spacing-xs);
+        }
+        
+        .pagination-btn {
+            padding: var(--sol-spacing-sm) var(--sol-spacing-md);
+            border: 1px solid var(--sol-gray-300);
+            background-color: white;
+            color: var(--sol-gray-700);
+            border-radius: var(--sol-radius-md);
+            cursor: pointer;
+            transition: all var(--sol-transition-fast);
+            font-size: 0.875rem;
+        }
+        
+        .pagination-btn:hover:not(:disabled) {
+            background-color: var(--sol-gray-50);
+            border-color: var(--sol-gray-400);
+        }
+        
+        .pagination-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .pagination-btn.active {
+            background-color: var(--sol-primary);
+            color: white;
+            border-color: var(--sol-primary);
+        }
+        
+        /* Mobile Responsive */
+        @media (max-width: 768px) {
+            .page-container {
+                padding: var(--sol-spacing-md);
+            }
+            
+            .page-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: var(--sol-spacing-md);
+            }
+            
+            .page-actions {
+                width: 100%;
+            }
+            
+            .filters-row {
+                flex-direction: column;
+            }
+            
+            .filter-group {
+                min-width: auto;
+                width: 100%;
+            }
+            
+            .table-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: var(--sol-spacing-md);
+            }
+            
+            .table-controls {
+                width: 100%;
+                justify-content: space-between;
+            }
+            
+            .data-table {
+                font-size: 0.8125rem;
+            }
+            
+            .data-table th,
+            .data-table td {
+                padding: var(--sol-spacing-sm) var(--sol-spacing-md);
+            }
+            
+            .action-buttons {
+                flex-direction: column;
+                gap: 0.25rem;
+            }
+            
+            .sol-btn-icon {
+                padding: 0.25rem 0.375rem;
+                font-size: 0.75rem;
+            }
+        }
+        
+        /* Animation per bulk actions */
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        /* Loading state */
+        .table-loading {
+            padding: var(--sol-spacing-2xl);
+            text-align: center;
+            color: var(--sol-gray-500);
+        }
+        
+        .table-loading i {
+            font-size: 2rem;
+            margin-bottom: var(--sol-spacing-md);
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        /* Empty state */
+        .table-empty {
+            padding: var(--sol-spacing-2xl);
+            text-align: center;
+            color: var(--sol-gray-500);
+        }
+        
+        .table-empty i {
+            font-size: 3rem;
+            margin-bottom: var(--sol-spacing-md);
+            opacity: 0.3;
+        }
+    </style>
+</head>
+<body>
+    <div class="page-container">
+        <!-- Header -->
+        <div class="page-header">
+            <div>
+                <h1 class="page-title">Lista Tracking Attivi</h1>
+            </div>
+            <div class="page-actions">
+                <!-- Filters -->
+                <select id="statusFilter" class="sol-form-control">
+                    <option value="">Tutti gli stati</option>
+                    <option value="delivered">Consegnato</option>
+                    <option value="in_transit">In Transito</option>
+                    <option value="arrived">Arrivato</option>
+                    <option value="out_for_delivery">In Consegna</option>
+                    <option value="customs_cleared">Sdoganato</option>
+                    <option value="exception">Eccezione</option>
+                    <option value="registered">Registrato</option>
+                </select>
+                
+                <select id="typeFilter" class="sol-form-control">
+                    <option value="">Tutti i tipi</option>
+                    <option value="air">Aereo</option>
+                    <option value="container">Container</option>
+                    <option value="package">Pacco</option>
+                </select>
+                
+                <button id="columnEditorBtn" class="sol-btn sol-btn-primary">
+                    <i>⚙️</i> Gestione Colonne
+                </button>
+                <button id="toggleViewBtn" class="sol-btn sol-btn-secondary sol-btn-toggle-view">
+                    <i>📋</i> Vista Tabella
+                </button>
+            </div>
+        </div>
+
+        <!-- Filters Section -->
+        <div class="filters-section">
+            <div class="filters-row">
+                <div class="filter-group flex-grow">
+                    <label for="searchInput">Ricerca</label>
+                    <div class="search-input">
+                        <i>🔍</i>
+                        <input type="text" id="searchInput" class="sol-form-control" placeholder="Cerca per numero tracking, origine, destinazione...">
+                    </div>
+                </div>
+                
+                <div class="filter-group">
+                    <label>&nbsp;</label>
+                    <button id="importBtn" class="sol-btn sol-btn-primary">
+                        <i>📥</i> Importa
+                    </button>
+                </div>
+                
+                <div class="filter-group">
+                    <label>&nbsp;</label>
+                    <button id="addTrackingBtn" class="sol-btn sol-btn-primary">
+                        <i>➕</i> Nuovo
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bulk Actions (Hidden by default) -->
+        <div id="bulkActionsContainer"></div>
+
+        <!-- Table Section -->
+        <div class="table-section">
+            <div class="table-header">
+                <h2>Spedizioni Attive</h2>
+                <div class="table-controls">
+                    <span id="recordCount" class="pagination-info">Caricamento...</span>
+                </div>
+            </div>
+            
+            <div class="table-container">
+                <table class="data-table sol-table" id="trackingTable">
+                    <thead>
+                        <tr>
+                            <th>
+                                <input type="checkbox" class="select-all" id="selectAll">
+                            </th>
+                            <th data-sort="tracking_number">NUMERO TRACKING ↕</th>
+                            <th data-sort="type">TIPO ↕</th>
+                            <th data-sort="carrier_code">VETTORE ↕</th>
+                            <th data-sort="status">STATO ↕</th>
+                            <th data-sort="origin_port">ORIGINE ↕</th>
+                            <th data-sort="destination_port">DESTINAZIONE ↕</th>
+                            <th data-sort="riferimento">RIFERIMENTO ↕</th>
+                            <th data-sort="booking">BOOKING ↕</th>
+                            <th data-sort="container_count">CONTAINER COUNT ↕</th>
+                            <th data-sort="port_of_loading">PORT OF LOADING ↕</th>
+                            <th data-sort="date_of_loading">DATE OF LOADING ↕</th>
+                            <th>AZIONI</th>
+                        </tr>
+                    </thead>
+                    <tbody id="trackingTableBody">
+                        <tr>
+                            <td colspan="13" class="table-loading">
+                                <i>⏳</i><br>
+                                Caricamento dati tracking...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Pagination -->
+            <div class="table-pagination">
+                <div class="pagination-info">
+                    <span id="paginationInfo">Mostrando 0 di 0 risultati</span>
+                </div>
+                <div class="pagination-controls">
+                    <select id="pageSize" class="pagination-btn">
+                        <option value="20">20 per pagina</option>
+                        <option value="50">50 per pagina</option>
+                        <option value="100">100 per pagina</option>
+                    </select>
+                    <button id="prevPage" class="pagination-btn" disabled>‹ Precedente</button>
+                    <span id="pageNumbers"></span>
+                    <button id="nextPage" class="pagination-btn" disabled>Successiva ›</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Timeline View (Hidden by default) -->
+        <div id="timelineView" class="sol-timeline-container" style="display: none;">
+            <div class="sol-timeline-header">
+                <h2>Vista Timeline</h2>
+                <div class="sol-timeline-legend">
+                    <div class="legend-item">
+                        <i class="text-success">●</i> Consegnato
+                    </div>
+                    <div class="legend-item">
+                        <i class="text-info">●</i> In Transito
+                    </div>
+                    <div class="legend-item">
+                        <i class="text-warning">●</i> In Consegna
+                    </div>
+                    <div class="legend-item">
+                        <i class="text-danger">●</i> Eccezione
+                    </div>
+                </div>
+            </div>
+            <div id="timelineContent" class="sol-timeline-content">
+                <div class="sol-timeline-loading">
+                    <i>⏳</i>
+                    <p>Caricamento timeline...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="/js/core/modal-system.js"></script>
+    <script src="/js/core/data-manager.js"></script>
+    <script src="/js/core/import-manager.js"></script>
+    <script src="/js/components/column-editor.js"></script>
+    <script src="/js/components/timeline-view.js"></script>
+    <script>
+        // ===== TRACKING INDEX - VERSIONE FINALE PERFETTA =====
+        console.log('🚀 Inizializzazione Tracking System Finale...');
+
+        // Stato globale dell'applicazione
+        window.TrackingApp = {
+            data: [],
+            filteredData: [],
+            currentView: 'table',
+            currentPage: 1,
+            pageSize: 20,
+            totalPages: 0,
+            sortField: null,
+            sortDirection: 'asc',
+            selectedItems: new Set(),
+            
+            // Configurazione colonne
+            columns: [
+                { key: 'tracking_number', label: 'Numero Tracking', visible: true, sortable: true },
+                { key: 'type', label: 'Tipo', visible: true, sortable: true },
+                { key: 'carrier_code', label: 'Vettore', visible: true, sortable: true },
+                { key: 'status', label: 'Stato', visible: true, sortable: true },
+                { key: 'origin_port', label: 'Origine', visible: true, sortable: true },
+                { key: 'destination_port', label: 'Destinazione', visible: true, sortable: true },
+                { key: 'riferimento', label: 'Riferimento', visible: true, sortable: true },
+                { key: 'booking', label: 'Booking', visible: true, sortable: true },
+                { key: 'container_count', label: 'Container Count', visible: true, sortable: true },
+                { key: 'port_of_loading', label: 'Port of Loading', visible: true, sortable: true },
+                { key: 'date_of_loading', label: 'Date of Loading', visible: true, sortable: true },
+                { key: 'awb_number', label: 'AWB Number', visible: false, sortable: true },
+                { key: 'origin_country', label: 'Origin Country', visible: false, sortable: true },
+                { key: 'origin_country_code', label: 'Origin Country Code', visible: false, sortable: true },
+                { key: 'destination_country', label: 'Destination Country', visible: false, sortable: true },
+                { key: 'destination_country_code', label: 'Destination Country Code', visible: false, sortable: true },
+                { key: 't5_count', label: 'T5 Count', visible: false, sortable: true },
+                { key: 'transit_time', label: 'Transit Time', visible: false, sortable: true },
+                { key: 'eta', label: 'ETA', visible: false, sortable: true },
+                { key: 'ultima_posizione', label: 'Ultima Posizione', visible: false, sortable: true }
+            ]
+        };
+
+        // ===== FORMATTER DELLE COLONNE - COMPLETI E PERFETTI =====
+        function getColumnFormatter() {
+            return {
+                tracking_number: (value, row) => {
+                    return value || row.metadata?.tracking_number || '-';
+                },
+                
+                type: (value, row) => {
+                    const typeMap = {
+                        'air': { label: 'AEREO', class: 'type-air' },
+                        'awb': { label: 'AEREO', class: 'type-air' },
+                        'container': { label: 'MARE', class: 'type-container' },
+                        'package': { label: 'PACCO', class: 'type-package' }
+                    };
+                    const typeInfo = typeMap[value] || { label: value?.toUpperCase() || 'N/A', class: 'type-package' };
+                    return `<span class="sol-badge ${typeInfo.class}">${typeInfo.label}</span>`;
+                },
+                
+                carrier_code: (value, row) => {
+                    return value || row.metadata?.carrier_code || row.metadata?.Airline || row.metadata?.Carrier || '-';
+                },
+                
+                status: (value, row) => {
+                    const statusMap = {
+                        'delivered': 'CONSEGNATO',
+                        'in_transit': 'IN TRANSITO', 
+                        'arrived': 'ARRIVATO',
+                        'out_for_delivery': 'IN CONSEGNA',
+                        'customs_cleared': 'SDOGANATO',
+                        'exception': 'ECCEZIONE',
+                        'registered': 'REGISTRATO'
+                    };
+                    const statusLabel = statusMap[value] || value?.toUpperCase() || 'SCONOSCIUTO';
+                    return `<span class="status-badge status-${value || 'registered'}">${statusLabel}</span>`;
+                },
+                
+                origin_port: (value, row) => {
+                    return value || row.metadata?.origin_port || row.metadata?.Origin || '-';
+                },
+                
+                destination_port: (value, row) => {
+                    return value || row.metadata?.destination_port || row.metadata?.Destination || '-';
+                },
+                
+                riferimento: (value, row) => {
+                    return value || row.metadata?.riferimento || row.metadata?.Reference || '-';
+                },
+                
+                booking: (value, row) => {
+                    return value || row.metadata?.booking || row.metadata?.Booking || '-';
+                },
+                
+                container_count: (value, row) => {
+                    return value || row.metadata?.container_count || row.metadata?.['Container Count'] || '-';
+                },
+                
+                port_of_loading: (value, row) => {
+                    return value || row.metadata?.port_of_loading || row.metadata?.['Port Of Loading'] || '-';
+                },
+                
+                date_of_loading: (value, row) => {
+                    const dateValue = value || row.metadata?.date_of_loading || row.metadata?.['Date Of Loading'];
+                    if (!dateValue) return '-';
+                    
+                    try {
+                        // Se è già in formato DD/MM/YYYY, restituisci così
+                        if (typeof dateValue === 'string' && dateValue.match(/^\d{2}\/\d{2}\/\d{4}$/)) {
+                            return dateValue;
+                        }
+                        
+                        const date = new Date(dateValue);
+                        if (isNaN(date.getTime())) return dateValue;
+                        
+                        return date.toLocaleDateString('it-IT', {
+                            day: '2-digit',
+                            month: '2-digit', 
+                            year: 'numeric'
+                        });
+                    } catch {
+                        return dateValue;
+                    }
+                },
+                
+                // ===== FORMATTER AGGIUNTIVI PER COLONNE AIR =====
+                awb_number: (value, row) => {
+                    return value || row.metadata?.awb_number || row.metadata?.['AWB Number'] || row.tracking_number || '-';
+                },
+                
+                origin_country: (value, row) => {
+                    return value || row.metadata?.origin_country || row.metadata?.['Origin Country'] || '-';
+                },
+                
+                origin_country_code: (value, row) => {
+                    return value || row.metadata?.origin_country_code || row.metadata?.['Origin Country Code'] || '-';
+                },
+                
+                destination_country: (value, row) => {
+                    return value || row.metadata?.destination_country || row.metadata?.['Destination Country'] || '-';
+                },
+                
+                destination_country_code: (value, row) => {
+                    return value || row.metadata?.destination_country_code || row.metadata?.['Destination Country Code'] || '-';
+                },
+                
+                t5_count: (value, row) => {
+                    return value || row.metadata?.t5_count || row.metadata?.['T5 Count'] || '-';
+                },
+                
+                transit_time: (value, row) => {
+                    // Transit time già calcolato correttamente dall'import
+                    if (value) return value;
+                    if (row.metadata?.transit_time) return row.metadata.transit_time;
+                    
+                    // Calcolo fallback per AIR (Date Of Departure vs Date Of Arrival)
+                    const departure = row.metadata?.['Date Of Departure'] || row.metadata?.date_of_departure;
+                    const arrival = row.metadata?.['Date Of Arrival'] || row.metadata?.date_of_arrival;
+                    
+                    if (departure && arrival) {
+                        try {
+                            const depDate = new Date(departure);
+                            const arrDate = new Date(arrival);
+                            
+                            if (!isNaN(depDate.getTime()) && !isNaN(arrDate.getTime())) {
+                                const diffTime = Math.abs(arrDate - depDate);
+                                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                                return diffDays;
+                            }
+                        } catch (e) {
+                            console.warn('Error calculating transit time:', e);
+                        }
+                    }
+                    
+                    return '-';
+                },
+                
+                eta: (value, row) => {
+                    // ETA intelligente basata sul tipo di spedizione
+                    if (value) return formatDate(value);
+                    
+                    // Per AIR: usa Date Of Arrival
+                    if (row.type === 'air' || row.type === 'awb') {
+                        const arrival = row.metadata?.['Date Of Arrival'] || row.metadata?.date_of_arrival;
+                        if (arrival) return formatDate(arrival);
+                    }
+                    
+                    // Per SEA: usa Date Of Discharge
+                    if (row.type === 'container') {
+                        const discharge = row.metadata?.['Date Of Discharge'] || row.metadata?.date_of_discharge;
+                        if (discharge) return formatDate(discharge);
+                    }
+                    
+                    return row.eta ? formatDate(row.eta) : '-';
+                },
+                
+                ultima_posizione: (value, row) => {
+                    if (value) return value;
+                    
+                    // Logica intelligente basata sullo stato
+                    if (row.status === 'delivered' || row.status === 'arrived') {
+                        // Per delivered/arrived, mostra la destinazione
+                        return row.destination_port || row.metadata?.destination_port || row.metadata?.Destination || '-';
+                    } else if (row.status === 'in_transit') {
+                        // Per in_transit, mostra "In transito verso [destinazione]"
+                        const dest = row.destination_port || row.metadata?.destination_port || row.metadata?.Destination;
+                        return dest ? `In transito verso ${dest}` : 'In transito';
+                    } else {
+                        // Per altri stati, mostra l'origine o posizione corrente
+                        return row.origin_port || row.metadata?.origin_port || row.metadata?.Origin || '-';
+                    }
+                }
+            };
+        }
+
+        // Helper per formattare le date
+        function formatDate(dateValue) {
+            if (!dateValue) return '-';
+            
+            try {
+                // Se è già in formato DD/MM/YYYY, restituisci così
+                if (typeof dateValue === 'string' && dateValue.match(/^\d{2}\/\d{2}\/\d{4}$/)) {
+                    return dateValue;
+                }
+                
+                const date = new Date(dateValue);
+                if (isNaN(date.getTime())) return dateValue;
+                
+                return date.toLocaleDateString('it-IT', {
+                    day: '2-digit',
+                    month: '2-digit',
+                    year: 'numeric'
+                });
+            } catch {
+                return dateValue;
+            }
+        }
+
+        // ===== RENDERING DELLA TABELLA =====
+        function renderTable() {
+            const tbody = document.getElementById('trackingTableBody');
+            const formatter = getColumnFormatter();
+            
+            if (!window.TrackingApp.filteredData.length) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="${getVisibleColumnsCount() + 2}" class="table-empty">
+                            <i>📦</i><br>
+                            Nessun tracking trovato
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+            
+            // Calcola i dati per la pagina corrente
+            const startIndex = (window.TrackingApp.currentPage - 1) * window.TrackingApp.pageSize;
+            const endIndex = startIndex + window.TrackingApp.pageSize;
+            const pageData = window.TrackingApp.filteredData.slice(startIndex, endIndex);
+            
+            tbody.innerHTML = pageData.map(item => {
+                const isSelected = window.TrackingApp.selectedItems.has(item.id);
+                return `
+                    <tr data-id="${item.id}" ${isSelected ? 'class="selected"' : ''}>
+                        <td>
+                            <input type="checkbox" class="row-select" data-id="${item.id}" ${isSelected ? 'checked' : ''}>
+                        </td>
+                        ${window.TrackingApp.columns
+                            .filter(col => col.visible)
+                            .map(col => `<td>${formatter[col.key] ? formatter[col.key](item[col.key], item) : (item[col.key] || '-')}</td>`)
+                            .join('')
+                        }
+                        <td>
+                            <div class="action-buttons">
+                                <button class="sol-btn-icon" onclick="editTracking('${item.id}')" title="Modifica">
+                                    ✏️
+                                </button>
+                                <button class="sol-btn-icon" onclick="viewDetails('${item.id}')" title="Dettagli">
+                                    👁️
+                                </button>
+                                <button class="sol-btn-icon sol-text-danger" onclick="deleteTracking('${item.id}')" title="Elimina">
+                                    🗑️
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+            
+            // Aggiorna info paginazione
+            updatePaginationInfo();
+            
+            // Aggiorna stato bulk actions
+            updateBulkActionsVisibility();
+        }
+
+        function getVisibleColumnsCount() {
+            return window.TrackingApp.columns.filter(col => col.visible).length;
+        }
+
+        // ===== GESTIONE HEADER TABELLA DINAMICO =====
+        function updateTableHeaders() {
+            const thead = document.querySelector('#trackingTable thead tr');
+            const visibleColumns = window.TrackingApp.columns.filter(col => col.visible);
+            
+            thead.innerHTML = `
+                <th>
+                    <input type="checkbox" class="select-all" id="selectAll">
+                </th>
+                ${visibleColumns.map(col => `
+                    <th data-sort="${col.key}" class="${window.TrackingApp.sortField === col.key ? `sort-${window.TrackingApp.sortDirection}` : ''}">
+                        ${col.label.toUpperCase()} ${col.sortable ? '↕' : ''}
+                    </th>
+                `).join('')}
+                <th>AZIONI</th>
+            `;
+            
+            // Re-attach event listeners
+            attachTableEventListeners();
+        }
+
+        // ===== EVENT LISTENERS =====
+        function attachEventListeners() {
+            console.log('📌 Attaching event listeners...');
+            
+            // Search
+            document.getElementById('searchInput')?.addEventListener('input', (e) => {
+                debounce(() => applyFilters(), 300)();
+            });
+            
+            // Filters
+            document.getElementById('statusFilter')?.addEventListener('change', applyFilters);
+            document.getElementById('typeFilter')?.addEventListener('change', applyFilters);
+            
+            // Buttons
+            document.getElementById('importBtn')?.addEventListener('click', showImportModal);
+            document.getElementById('addTrackingBtn')?.addEventListener('click', showAddTrackingModal);
+            document.getElementById('columnEditorBtn')?.addEventListener('click', showColumnEditor);
+            document.getElementById('toggleViewBtn')?.addEventListener('click', toggleView);
+            
+            // Pagination
+            document.getElementById('pageSize')?.addEventListener('change', (e) => {
+                window.TrackingApp.pageSize = parseInt(e.target.value);
+                window.TrackingApp.currentPage = 1;
+                renderTable();
+            });
+            
+            document.getElementById('prevPage')?.addEventListener('click', () => {
+                if (window.TrackingApp.currentPage > 1) {
+                    window.TrackingApp.currentPage--;
+                    renderTable();
+                }
+            });
+            
+            document.getElementById('nextPage')?.addEventListener('click', () => {
+                if (window.TrackingApp.currentPage < window.TrackingApp.totalPages) {
+                    window.TrackingApp.currentPage++;
+                    renderTable();
+                }
+            });
+            
+            attachTableEventListeners();
+        }
+
+        function attachTableEventListeners() {
+            // Select All
+            document.getElementById('selectAll')?.addEventListener('change', (e) => {
+                const checkboxes = document.querySelectorAll('.row-select');
+                checkboxes.forEach(cb => {
+                    cb.checked = e.target.checked;
+                    if (e.target.checked) {
+                        window.TrackingApp.selectedItems.add(cb.dataset.id);
+                    } else {
+                        window.TrackingApp.selectedItems.delete(cb.dataset.id);
+                    }
+                });
+                updateBulkActionsVisibility();
+            });
+            
+            // Individual checkboxes
+            document.querySelectorAll('.row-select').forEach(cb => {
+                cb.addEventListener('change', (e) => {
+                    if (e.target.checked) {
+                        window.TrackingApp.selectedItems.add(e.target.dataset.id);
+                    } else {
+                        window.TrackingApp.selectedItems.delete(e.target.dataset.id);
+                    }
+                    
+                    // Update select all state
+                    const allCheckboxes = document.querySelectorAll('.row-select');
+                    const checkedCheckboxes = document.querySelectorAll('.row-select:checked');
+                    const selectAll = document.getElementById('selectAll');
+                    
+                    if (selectAll) {
+                        selectAll.checked = allCheckboxes.length === checkedCheckboxes.length;
+                        selectAll.indeterminate = checkedCheckboxes.length > 0 && checkedCheckboxes.length < allCheckboxes.length;
+                    }
+                    
+                    updateBulkActionsVisibility();
+                });
+            });
+            
+            // Sort headers
+            document.querySelectorAll('th[data-sort]').forEach(th => {
+                th.addEventListener('click', () => {
+                    const field = th.dataset.sort;
+                    if (window.TrackingApp.sortField === field) {
+                        window.TrackingApp.sortDirection = window.TrackingApp.sortDirection === 'asc' ? 'desc' : 'asc';
+                    } else {
+                        window.TrackingApp.sortField = field;
+                        window.TrackingApp.sortDirection = 'asc';
+                    }
+                    sortData();
+                    updateTableHeaders();
+                    renderTable();
+                });
+            });
+        }
+
+        // ===== UTILITY FUNCTIONS =====
+        function debounce(func, wait) {
+            let timeout;
+            return function executedFunction(...args) {
+                const later = () => {
+                    clearTimeout(timeout);
+                    func(...args);
+                };
+                clearTimeout(timeout);
+                timeout = setTimeout(later, wait);
+            };
+        }
+
+        function applyFilters() {
+            const searchTerm = document.getElementById('searchInput')?.value.toLowerCase() || '';
+            const statusFilter = document.getElementById('statusFilter')?.value || '';
+            const typeFilter = document.getElementById('typeFilter')?.value || '';
+            
+            window.TrackingApp.filteredData = window.TrackingApp.data.filter(item => {
+                const matchesSearch = !searchTerm || 
+                    item.tracking_number?.toLowerCase().includes(searchTerm) ||
+                    item.origin_port?.toLowerCase().includes(searchTerm) ||
+                    item.destination_port?.toLowerCase().includes(searchTerm) ||
+                    item.carrier_code?.toLowerCase().includes(searchTerm);
+                    
+                const matchesStatus = !statusFilter || item.status === statusFilter;
+                const matchesType = !typeFilter || item.type === typeFilter;
+                
+                return matchesSearch && matchesStatus && matchesType;
+            });
+            
+            window.TrackingApp.currentPage = 1;
+            window.TrackingApp.totalPages = Math.ceil(window.TrackingApp.filteredData.length / window.TrackingApp.pageSize);
+            renderTable();
+        }
+
+        function sortData() {
+            if (!window.TrackingApp.sortField) return;
+            
+            window.TrackingApp.filteredData.sort((a, b) => {
+                let aVal = a[window.TrackingApp.sortField] || '';
+                let bVal = b[window.TrackingApp.sortField] || '';
+                
+                // Convert to strings for comparison
+                aVal = aVal.toString().toLowerCase();
+                bVal = bVal.toString().toLowerCase();
+                
+                if (window.TrackingApp.sortDirection === 'asc') {
+                    return aVal.localeCompare(bVal);
+                } else {
+                    return bVal.localeCompare(aVal);
+                }
+            });
+        }
+
+        function updatePaginationInfo() {
+            const start = ((window.TrackingApp.currentPage - 1) * window.TrackingApp.pageSize) + 1;
+            const end = Math.min(window.TrackingApp.currentPage * window.TrackingApp.pageSize, window.TrackingApp.filteredData.length);
+            const total = window.TrackingApp.filteredData.length;
+            
+            document.getElementById('paginationInfo').textContent = 
+                `Mostrando ${start} - ${end} di ${total} risultati`;
+            
+            document.getElementById('recordCount').textContent = 
+                `${total} spedizioni`;
+            
+            // Update pagination buttons
+            document.getElementById('prevPage').disabled = window.TrackingApp.currentPage === 1;
+            document.getElementById('nextPage').disabled = window.TrackingApp.currentPage >= window.TrackingApp.totalPages;
+        }
+
+        // ===== BULK ACTIONS =====
+        function updateBulkActionsVisibility() {
+            const selectedCount = window.TrackingApp.selectedItems.size;
+            const container = document.getElementById('bulkActionsContainer');
+            
+            if (selectedCount > 0) {
+                container.innerHTML = `
+                    <div class="bulk-actions-bar">
+                        <div class="selected-count">
+                            <i>☑️</i> ${selectedCount} elemento${selectedCount > 1 ? 'i' : ''} selezionat${selectedCount > 1 ? 'i' : 'o'}
+                        </div>
+                        <div class="bulk-actions">
+                            <button class="sol-btn sol-btn-sm sol-btn-primary" onclick="bulkEdit()">
+                                ✏️ Modifica
+                            </button>
+                            <button class="sol-btn sol-btn-sm sol-btn-secondary" onclick="bulkExport()">
+                                📤 Esporta
+                            </button>
+                            <button class="sol-btn sol-btn-sm sol-btn-danger" onclick="bulkDelete()">
+                                🗑️ Elimina
+                            </button>
+                        </div>
+                    </div>
+                `;
+                container.style.display = 'block';
+            } else {
+                container.style.display = 'none';
+            }
+        }
+
+        // ===== ACTION FUNCTIONS =====
+        function editTracking(id) {
+            console.log('Edit tracking:', id);
+            window.ModalSystem?.show({
+                title: 'Modifica Tracking',
+                content: `<p>Modifica tracking ID: ${id}</p><p>Feature in sviluppo...</p>`,
+                size: 'lg'
+            });
+        }
+
+        function viewDetails(id) {
+            const item = window.TrackingApp.data.find(t => t.id === id);
+            if (!item) return;
+            
+            window.ModalSystem?.show({
+                title: `Dettagli Tracking: ${item.tracking_number}`,
+                content: `
+                    <div class="sol-form">
+                        <div class="sol-form-grid">
+                            <div class="sol-form-group">
+                                <label class="sol-form-label">Numero Tracking</label>
+                                <div class="sol-form-value">${item.tracking_number}</div>
+                            </div>
+                            <div class="sol-form-group">
+                                <label class="sol-form-label">Tipo</label>
+                                <div class="sol-form-value">${item.type}</div>
+                            </div>
+                            <div class="sol-form-group">
+                                <label class="sol-form-label">Vettore</label>
+                                <div class="sol-form-value">${item.carrier_code || '-'}</div>
+                            </div>
+                            <div class="sol-form-group">
+                                <label class="sol-form-label">Stato</label>
+                                <div class="sol-form-value">${item.status}</div>
+                            </div>
+                            <div class="sol-form-group">
+                                <label class="sol-form-label">Origine</label>
+                                <div class="sol-form-value">${item.origin_port || '-'}</div>
+                            </div>
+                            <div class="sol-form-group">
+                                <label class="sol-form-label">Destinazione</label>
+                                <div class="sol-form-value">${item.destination_port || '-'}</div>
+                            </div>
+                        </div>
+                        ${item.metadata ? `
+                            <div style="margin-top: 1.5rem;">
+                                <h4>Metadata</h4>
+                                <pre style="background: var(--sol-gray-50); padding: 1rem; border-radius: 0.5rem; font-size: 0.875rem; overflow-x: auto;">${JSON.stringify(item.metadata, null, 2)}</pre>
+                            </div>
+                        ` : ''}
+                    </div>
+                `,
+                size: 'lg'
+            });
+        }
+
+        function deleteTracking(id) {
+            window.ModalSystem?.confirm({
+                title: 'Conferma Eliminazione',
+                message: 'Sei sicuro di voler eliminare questo tracking?',
+                confirmText: 'Elimina',
+                cancelText: 'Annulla',
+                confirmClass: 'sol-btn-danger'
+            }).then(confirmed => {
+                if (confirmed) {
+                    window.TrackingApp.data = window.TrackingApp.data.filter(item => item.id !== id);
+                    window.TrackingApp.selectedItems.delete(id);
+                    applyFilters();
+                    console.log('Tracking eliminato:', id);
+                }
+            });
+        }
+
+        function bulkEdit() {
+            console.log('Bulk edit:', Array.from(window.TrackingApp.selectedItems));
+            window.ModalSystem?.show({
+                title: 'Modifica Multipla',
+                content: '<p>Feature di modifica multipla in sviluppo...</p>'
+            });
+        }
+
+        function bulkExport() {
+            const selectedData = window.TrackingApp.data.filter(item => 
+                window.TrackingApp.selectedItems.has(item.id)
+            );
+            
+            console.log('Bulk export:', selectedData);
+            window.ModalSystem?.show({
+                title: 'Esportazione',
+                content: `<p>Esportando ${selectedData.length} elementi...</p><p>Feature in sviluppo...</p>`
+            });
+        }
+
+        function bulkDelete() {
+            window.ModalSystem?.confirm({
+                title: 'Conferma Eliminazione Multipla',
+                message: `Sei sicuro di voler eliminare ${window.TrackingApp.selectedItems.size} elementi selezionati?`,
+                confirmText: 'Elimina Tutto',
+                cancelText: 'Annulla',
+                confirmClass: 'sol-btn-danger'
+            }).then(confirmed => {
+                if (confirmed) {
+                    window.TrackingApp.data = window.TrackingApp.data.filter(item => 
+                        !window.TrackingApp.selectedItems.has(item.id)
+                    );
+                    window.TrackingApp.selectedItems.clear();
+                    applyFilters();
+                    console.log('Bulk delete completato');
+                }
+            });
+        }
+
+        // ===== IMPORT & EXPORT =====
+        function showImportModal() {
+            console.log('🚀 Opening import modal...');
+            
+            window.ModalSystem?.show({
+                title: 'Importa Tracking',
+                content: `
+                    <div class="sol-form">
+                        <div class="sol-form-group">
+                            <label class="sol-form-label">Seleziona file da importare</label>
+                            <input type="file" id="importFile" class="sol-form-input" accept=".xlsx,.xls,.csv">
+                            <div class="sol-form-hint">
+                                Formati supportati: Excel (.xlsx, .xls), CSV
+                            </div>
+                        </div>
+                        
+                        <div class="sol-form-group">
+                            <label class="sol-form-label">Tipo di file</label>
+                            <select id="fileTypeSelect" class="sol-form-select">
+                                <option value="">Rileva automaticamente</option>
+                                <option value="shipsgo_air">ShipsGo - Air/AWB</option>
+                                <option value="shipsgo_sea">ShipsGo - Sea/Container</option>
+                                <option value="generic">Generico</option>
+                            </select>
+                        </div>
+                    </div>
+                `,
+                size: 'md',
+                buttons: [
+                    {
+                        text: 'Annulla',
+                        class: 'sol-btn-secondary',
+                        onclick: () => true
+                    },
+                    {
+                        text: 'Importa',
+                        class: 'sol-btn-primary',
+                        onclick: () => {
+                            const fileInput = document.getElementById('importFile');
+                            const fileType = document.getElementById('fileTypeSelect').value;
+                            
+                            if (!fileInput.files[0]) {
+                                window.ModalSystem?.alert({
+                                    type: 'warning',
+                                    title: 'Attenzione',
+                                    message: 'Seleziona un file da importare'
+                                });
+                                return false;
+                            }
+                            
+                            handleFileImport(fileInput.files[0], fileType);
+                            return true;
+                        }
+                    }
+                ]
+            });
+        }
+
+        function handleFileImport(file, fileType) {
+            console.log('🚀 Starting file import:', file.name, 'Type:', fileType);
+            
+            const progressModal = window.ModalSystem?.progress({
+                title: 'Importazione in corso',
+                message: 'Caricamento file...',
+                closable: false
+            });
+            
+            if (!window.ImportManager) {
+                console.error('❌ ImportManager not available');
+                progressModal?.close();
+                window.ModalSystem?.alert({
+                    type: 'error',
+                    title: 'Errore',
+                    message: 'Sistema di importazione non disponibile'
+                });
+                return;
+            }
+            
+            // Status mapping per ShipsGo
+            const statusMapping = {
+                'Sailing': 'in_transit',
+                'In Transit': 'in_transit',
+                'Arrived': 'arrived',
+                'Discharged': 'arrived',
+                'On FedEx vehicle for delivery': 'out_for_delivery',
+                'Delivered': 'delivered',
+                'International shipment release - Import': 'customs_cleared',
+                'Shipment information sent to FedEx': 'registered',
+                'Registered': 'registered',
+                'Pending': 'registered',
+                'Booked': 'registered',
+                'Booking Confirmed': 'registered'
+            };
+            
+            window.ImportManager.importFile(file, {
+                fileType: fileType,
+                statusMapping: statusMapping,
+                onProgress: (progress, message) => {
+                    progressModal?.update(progress, message);
+                }
+            }).then(result => {
+                console.log('✅ Import completed:', result);
+                progressModal?.close();
+                
+                if (result.success) {
+                    // Aggiungi i nuovi dati
+                    const newData = result.data.map(item => ({
+                        ...item,
+                        id: item.id || `tracking_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+                    }));
+                    
+                    window.TrackingApp.data.push(...newData);
+                    applyFilters();
+                    
+                    window.ModalSystem?.alert({
+                        type: 'success',
+                        title: 'Importazione Completata',
+                        message: `Importati ${result.data.length} tracking con successo!`
+                    });
+                    
+                    console.log('📊 New data added to TrackingApp:', newData.length, 'items');
+                } else {
+                    window.ModalSystem?.alert({
+                        type: 'error',
+                        title: 'Errore Importazione',
+                        message: result.error || 'Errore durante l\'importazione'
+                    });
+                }
+            }).catch(error => {
+                console.error('❌ Import error:', error);
+                progressModal?.close();
+                window.ModalSystem?.alert({
+                    type: 'error',
+                    title: 'Errore',
+                    message: 'Errore durante l\'importazione del file'
+                });
+            });
+        }
+
+        function showAddTrackingModal() {
+            window.ModalSystem?.show({
+                title: 'Nuovo Tracking',
+                content: `
+                    <div class="sol-form">
+                        <div class="sol-form-grid">
+                            <div class="sol-form-group">
+                                <label class="sol-form-label">Numero Tracking *</label>
+                                <input type="text" id="newTrackingNumber" class="sol-form-input" required>
+                            </div>
+                            <div class="sol-form-group">
+                                <label class="sol-form-label">Tipo *</label>
+                                <select id="newTrackingType" class="sol-form-select" required>
+                                    <option value="">Seleziona tipo</option>
+                                    <option value="air">Aereo</option>
+                                    <option value="container">Container</option>
+                                    <option value="package">Pacco</option>
+                                </select>
+                            </div>
+                            <div class="sol-form-group">
+                                <label class="sol-form-label">Vettore</label>
+                                <input type="text" id="newCarrierCode" class="sol-form-input">
+                            </div>
+                            <div class="sol-form-group">
+                                <label class="sol-form-label">Stato</label>
+                                <select id="newStatus" class="sol-form-select">
+                                    <option value="registered">Registrato</option>
+                                    <option value="in_transit">In Transito</option>
+                                    <option value="arrived">Arrivato</option>
+                                    <option value="out_for_delivery">In Consegna</option>
+                                    <option value="delivered">Consegnato</option>
+                                    <option value="exception">Eccezione</option>
+                                </select>
+                            </div>
+                            <div class="sol-form-group">
+                                <label class="sol-form-label">Origine</label>
+                                <input type="text" id="newOriginPort" class="sol-form-input">
+                            </div>
+                            <div class="sol-form-group">
+                                <label class="sol-form-label">Destinazione</label>
+                                <input type="text" id="newDestinationPort" class="sol-form-input">
+                            </div>
+                        </div>
+                    </div>
+                `,
+                size: 'lg',
+                buttons: [
+                    {
+                        text: 'Annulla',
+                        class: 'sol-btn-secondary',
+                        onclick: () => true
+                    },
+                    {
+                        text: 'Crea Tracking',
+                        class: 'sol-btn-primary',
+                        onclick: () => {
+                            const trackingNumber = document.getElementById('newTrackingNumber').value.trim();
+                            const type = document.getElementById('newTrackingType').value;
+                            
+                            if (!trackingNumber || !type) {
+                                window.ModalSystem?.alert({
+                                    type: 'warning',
+                                    title: 'Campi obbligatori',
+                                    message: 'Compila almeno Numero Tracking e Tipo'
+                                });
+                                return false;
+                            }
+                            
+                            const newTracking = {
+                                id: `tracking_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+                                tracking_number: trackingNumber,
+                                type: type,
+                                carrier_code: document.getElementById('newCarrierCode').value.trim() || null,
+                                status: document.getElementById('newStatus').value || 'registered',
+                                origin_port: document.getElementById('newOriginPort').value.trim() || null,
+                                destination_port: document.getElementById('newDestinationPort').value.trim() || null,
+                                created_at: new Date().toISOString(),
+                                updated_at: new Date().toISOString()
+                            };
+                            
+                            window.TrackingApp.data.push(newTracking);
+                            applyFilters();
+                            
+                            console.log('✅ New tracking created:', newTracking);
+                            return true;
+                        }
+                    }
+                ]
+            });
+        }
+
+        function showColumnEditor() {
+            if (!window.ColumnEditor) {
+                window.ModalSystem?.alert({
+                    type: 'warning',
+                    title: 'Feature non disponibile',
+                    message: 'Editor colonne non caricato'
+                });
+                return;
+            }
+            
+            window.ColumnEditor.show(window.TrackingApp.columns, (updatedColumns) => {
+                window.TrackingApp.columns = updatedColumns;
+                updateTableHeaders();
+                renderTable();
+            });
+        }
+
+        function toggleView() {
+            const tableView = document.querySelector('.table-section');
+            const timelineView = document.getElementById('timelineView');
+            const toggleBtn = document.getElementById('toggleViewBtn');
+            
+            if (window.TrackingApp.currentView === 'table') {
+                // Switch to timeline
+                window.TrackingApp.currentView = 'timeline';
+                tableView.style.display = 'none';
+                timelineView.style.display = 'block';
+                toggleBtn.innerHTML = '<i>📋</i> Vista Tabella';
+                toggleBtn.classList.add('timeline-active');
+                
+                // Load timeline data
+                if (window.TimelineView) {
+                    window.TimelineView.render(window.TrackingApp.filteredData);
+                }
+            } else {
+                // Switch to table
+                window.TrackingApp.currentView = 'table';
+                tableView.style.display = 'block';
+                timelineView.style.display = 'none';
+                toggleBtn.innerHTML = '<i>📈</i> Vista Timeline';
+                toggleBtn.classList.remove('timeline-active');
+            }
+        }
+
+        // ===== INIZIALIZZAZIONE =====
+        async function initializeApp() {
+            console.log('🚀 Initializing Tracking App...');
+            
+            try {
+                // Carica dati sample
+                await loadSampleData();
+                
+                // Setup UI
+                attachEventListeners();
+                updateTableHeaders();
+                applyFilters();
+                
+                console.log('✅ Tracking App initialized successfully');
+                console.log('📊 Loaded data:', window.TrackingApp.data.length, 'items');
+                
+                // Test modal system
+                if (window.ModalSystem) {
+                    console.log('✅ Modal System available');
+                } else {
+                    console.warn('⚠️ Modal System not available');
+                }
+                
+            } catch (error) {
+                console.error('❌ Error initializing app:', error);
+                document.getElementById('trackingTableBody').innerHTML = `
+                    <tr>
+                        <td colspan="13" class="table-empty">
+                            <i>❌</i><br>
+                            Errore nel caricamento dell'applicazione
+                        </td>
+                    </tr>
+                `;
+            }
+        }
+
+        async function loadSampleData() {
+            // Dati di esempio per test
+            const sampleData = [
+                {
+                    id: 'track_001',
+                    tracking_number: '999-33019420',
+                    type: 'air',
+                    carrier_code: 'AIR CHINA',
+                    status: 'delivered',
+                    origin_port: 'PEK',
+                    destination_port: 'FCO',
+                    riferimento: 'CAVI FIBRA ODA 105',
+                    metadata: {
+                        'AWB Number': '999-33019420',
+                        'Origin Country': 'China',
+                        'Origin Country Code': 'CN',
+                        'Destination Country': 'Italy',
+                        'Destination Country Code': 'IT',
+                        'Date Of Departure': '19/05/2024',
+                        'Date Of Arrival': '20/05/2024',
+                        'T5 Count': '2',
+                        transit_time: '1'
+                    }
+                },
+                {
+                    id: 'track_002',
+                    tracking_number: 'MRKU2556409',
+                    type: 'container',
+                    carrier_code: 'MAERSK LINE',
+                    status: 'arrived',
+                    origin_port: 'NINGBO',
+                    destination_port: 'ROTTERDAM',
+                    riferimento: 'HUNAN DONGGYІ + SHAODONG',
+                    booking: 'MRKU2556409',
+                    container_count: '1',
+                    port_of_loading: 'NINGBO',
+                    date_of_loading: '27/12/2023',
+                    metadata: {
+                        'Container Count': '1',
+                        'Port Of Loading': 'NINGBO',
+                        'Date Of Loading': '27/12/2023'
+                    }
+                },
+                {
+                    id: 'track_003',
+                    tracking_number: 'CORU2073657',
+                    type: 'container',
+                    carrier_code: 'MSC',
+                    status: 'arrived',
+                    origin_port: 'YANTIAN (SHENZHEN)',
+                    destination_port: 'NAPOLI (NAPLES)',
+                    riferimento: 'Z.SAIFUTE + CAREABLE',
+                    booking: 'CORU2073657',
+                    container_count: '1',
+                    port_of_loading: 'YANTIAN (SHENZHEN)',
+                    date_of_loading: '10/01/2024',
+                    metadata: {
+                        'Container Count': '1',
+                        'Port Of Loading': 'YANTIAN (SHENZHEN)',
+                        'Date Of Loading': '10/01/2024'
+                    }
+                },
+                {
+                    id: 'track_004',
+                    tracking_number: 'OOLU8798569',
+                    type: 'container',
+                    carrier_code: 'COSCO',
+                    status: 'arrived',
+                    origin_port: 'NINGBO',
+                    destination_port: 'NAPOLI (NAPLES)',
+                    riferimento: 'YIWU',
+                    booking: 'OOLU8798569',
+                    container_count: '1',
+                    port_of_loading: 'NINGBO',
+                    date_of_loading: '12/12/2023',
+                    metadata: {
+                        'Container Count': '1',
+                        'Port Of Loading': 'NINGBO',
+                        'Date Of Loading': '12/12/2023'
+                    }
+                }
+            ];
+            
+            window.TrackingApp.data = sampleData;
+            console.log('✅ Sample data loaded:', sampleData.length, 'items');
+        }
+
+        // ===== GLOBAL FUNCTIONS FOR DEBUGGING =====
+        window.TrackingAppDebug = {
+            getData: () => window.TrackingApp.data,
+            getFilteredData: () => window.TrackingApp.filteredData,
+            getSelectedItems: () => Array.from(window.TrackingApp.selectedItems),
+            testModal: () => {
+                window.ModalSystem?.confirm({
+                    title: 'Test Modal',
+                    message: 'Questo è un test del sistema modal. I bottoni sono corretti?'
+                }).then(result => {
+                    console.log('Modal result:', result);
+                });
+            },
+            addTestData: () => {
+                const testItem = {
+                    id: `test_${Date.now()}`,
+                    tracking_number: `TEST${Math.random().toString(36).substr(2, 8).toUpperCase()}`,
+                    type: 'air',
+                    carrier_code: 'TEST CARRIER',
+                    status: 'in_transit',
+                    origin_port: 'TEST ORIGIN',
+                    destination_port: 'TEST DESTINATION'
+                };
+                window.TrackingApp.data.push(testItem);
+                applyFilters();
+                console.log('Test data added:', testItem);
+            },
+            clearData: () => {
+                window.TrackingApp.data = [];
+                window.TrackingApp.selectedItems.clear();
+                applyFilters();
+                console.log('All data cleared');
+            }
+        };
+
+        // ===== START THE APP =====
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('🚀 DOM Content Loaded - Starting Tracking App...');
+            setTimeout(initializeApp, 100); // Small delay to ensure all scripts are loaded
+        });
+
+        // Fallback initialization
+        if (document.readyState === 'complete' || document.readyState === 'interactive') {
+            console.log('🚀 Document already ready - Starting Tracking App...');
+            setTimeout(initializeApp, 100);
+        }
+
+        console.log('✅ Tracking System Final Perfect - Script loaded!');
+        console.log('🎯 Debug: window.TrackingAppDebug available');
+        console.log('🎯 Test Modal: window.TrackingAppDebug.testModal()');
+    </script>
+</body>
+</html>

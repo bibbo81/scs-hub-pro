@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Debug Ricerca Avanzata</title>
+    <style>
+        body { font-family: monospace; padding: 20px; }
+        .test { margin: 10px 0; padding: 10px; border: 1px solid #ccc; }
+        .success { background: #d4edda; }
+        .error { background: #f8d7da; }
+        .info { background: #d1ecf1; }
+        button { margin: 5px; padding: 10px; }
+    </style>
+</head>
+<body>
+    <h1>Debug Ricerca Avanzata</h1>
+    
+    <div class="test">
+        <h3>Test 1: Verifica Componenti</h3>
+        <button onclick="checkComponents()">Verifica Componenti</button>
+        <div id="components-result"></div>
+    </div>
+
+    <div class="test">
+        <h3>Test 2: Verifica Dati</h3>
+        <button onclick="checkData()">Verifica Dati</button>
+        <div id="data-result"></div>
+    </div>
+
+    <div class="test">
+        <h3>Test 3: Test Ricerca Diretta</h3>
+        <button onclick="testDirectSearch()">Test Ricerca "consegnato"</button>
+        <div id="search-result"></div>
+    </div>
+
+    <div class="test">
+        <h3>Test 4: Fix Manuale</h3>
+        <button onclick="applyManualFix()">Applica Fix e Riprova</button>
+        <div id="fix-result"></div>
+    </div>
+
+    <script>
+    function checkComponents() {
+        const result = document.getElementById('components-result');
+        let html = '<h4>Stato Componenti:</h4><ul>';
+        
+        // Verifica TableManager
+        const hasTableManager = !!window.trackingTable;
+        html += `<li>trackingTable: ${hasTableManager ? '✅ Presente' : '❌ Mancante'}</li>`;
+        
+        if (hasTableManager) {
+            const hasAdvancedSearch = !!window.trackingTable.advancedSearch;
+            html += `<li>trackingTable.advancedSearch: ${hasAdvancedSearch ? '✅ Presente' : '❌ Mancante'}</li>`;
+            
+            if (hasAdvancedSearch) {
+                const searchInMetadata = window.trackingTable.advancedSearch.options.searchInMetadata;
+                html += `<li>searchInMetadata: ${searchInMetadata ? '✅ Abilitato' : '❌ Disabilitato'}</li>`;
+                
+                // Verifica se ha il metodo searchWithStatusMapping
+                const hasMapping = typeof window.trackingTable.advancedSearch.searchWithStatusMapping === 'function';
+                html += `<li>searchWithStatusMapping: ${hasMapping ? '✅ Presente' : '❌ Mancante'}</li>`;
+                
+                // Verifica getStatusMapping
+                const hasStatusMapping = typeof window.trackingTable.advancedSearch.getStatusMapping === 'function';
+                html += `<li>getStatusMapping: ${hasStatusMapping ? '✅ Presente' : '❌ Mancante'}</li>`;
+            }
+        }
+        
+        html += '</ul>';
+        result.innerHTML = html;
+        result.className = hasTableManager ? 'info' : 'error';
+    }
+
+    function checkData() {
+        const result = document.getElementById('data-result');
+        let html = '<h4>Dati Tracking:</h4>';
+        
+        if (window.trackingTable && window.trackingTable.data) {
+            const data = window.trackingTable.data;
+            html += `<p>Totale tracking: ${data.length}</p>`;
+            
+            // Conta per status
+            const statusCount = {};
+            data.forEach(row => {
+                const status = row.status || 'unknown';
+                statusCount[status] = (statusCount[status] || 0) + 1;
+            });
+            
+            html += '<h5>Distribuzione Status:</h5><ul>';
+            for (const [status, count] of Object.entries(statusCount)) {
+                html += `<li>${status}: ${count}</li>`;
+            }
+            html += '</ul>';
+            
+            // Mostra primo tracking con status delivered se esiste
+            const delivered = data.find(t => t.status === 'delivered');
+            if (delivered) {
+                html += '<h5>Esempio tracking delivered:</h5>';
+                html += `<pre>${JSON.stringify(delivered, null, 2)}</pre>`;
+            }
+        } else {
+            html += '<p>❌ Nessun dato trovato</p>';
+        }
+        
+        result.innerHTML = html;
+        result.className = 'info';
+    }
+
+    function testDirectSearch() {
+        const result = document.getElementById('search-result');
+        let html = '<h4>Test Ricerca Diretta:</h4>';
+        
+        if (!window.trackingTable || !window.trackingTable.advancedSearch) {
+            html += '<p>❌ AdvancedSearch non disponibile</p>';
+            result.innerHTML = html;
+            result.className = 'error';
+            return;
+        }
+        
+        const search = window.trackingTable.advancedSearch;
+        const data = window.trackingTable.data || [];
+        
+        // Test 1: Ricerca "consegnato"
+        html += '<h5>Test "consegnato":</h5>';
+        const results1 = search.search(data, 'consegnato');
+        html += `<p>Risultati trovati: ${results1.length}</p>`;
+        
+        // Test 2: Ricerca "delivered"
+        html += '<h5>Test "delivered":</h5>';
+        const results2 = search.search(data, 'delivered');
+        html += `<p>Risultati trovati: ${results2.length}</p>`;
+        
+        // Test 3: Test mapping diretto
+        html += '<h5>Test Status Mapping:</h5>';
+        if (search.getStatusMapping) {
+            const mapping = search.getStatusMapping();
+            html += '<p>Mapping "consegnato":</p>';
+            html += `<pre>${JSON.stringify(mapping['consegnato'], null, 2)}</pre>`;
+            
+            // Test searchWithStatusMapping
+            if (search.searchWithStatusMapping) {
+                const testRow = { status: 'delivered' };
+                const match = search.searchWithStatusMapping(testRow, 'consegnato');
+                html += `<p>Test searchWithStatusMapping: ${match ? '✅ Match' : '❌ No match'}</p>`;
+            }
+        } else {
+            html += '<p>❌ getStatusMapping non trovato</p>';
+        }
+        
+        result.innerHTML = html;
+        result.className = results1.length > 0 ? 'success' : 'error';
+    }
+
+    function applyManualFix() {
+        const result = document.getElementById('fix-result');
+        let html = '<h4>Applicazione Fix Manuale:</h4>';
+        
+        if (!window.trackingTable || !window.trackingTable.advancedSearch) {
+            html += '<p>❌ Componenti mancanti</p>';
+            result.innerHTML = html;
+            result.className = 'error';
+            return;
+        }
+        
+        const search = window.trackingTable.advancedSearch;
+        
+        // Override del metodo globalSearch
+        search.globalSearch = function(data, query) {
+            const searchTerm = query.toLowerCase();
+            console.log('[FIX] globalSearch chiamato con:', searchTerm);
+            
+            return data.filter(row => {
+                // Ricerca normale
+                if (this.searchInRow(row, searchTerm)) {
+                    return true;
+                }
+                
+                // Ricerca con mapping status
+                if (this.searchWithStatusMapping && this.searchWithStatusMapping(row, searchTerm)) {
+                    console.log('[FIX] Match trovato con mapping status:', row);
+                    return true;
+                }
+                
+                return false;
+            });
+        };
+        
+        // Assicurati che searchWithStatusMapping esista
+        if (!search.searchWithStatusMapping) {
+            search.searchWithStatusMapping = function(row, searchTerm) {
+                const statusMap = this.getStatusMapping();
+                const rowStatus = row.status?.toLowerCase();
+                
+                if (!rowStatus) return false;
+                
+                // Mapping array (italiano -> stati inglesi)
+                const mappedStates = statusMap[searchTerm];
+                if (Array.isArray(mappedStates)) {
+                    return mappedStates.some(state => rowStatus === state.toLowerCase());
+                }
+                
+                // Mapping singolo
+                if (mappedStates && rowStatus === mappedStates.toLowerCase()) {
+                    return true;
+                }
+                
+                // Mapping inverso
+                const italianStatus = statusMap[rowStatus];
+                if (italianStatus && italianStatus.toLowerCase() === searchTerm) {
+                    return true;
+                }
+                
+                return false;
+            };
+        }
+        
+        html += '<p>✅ Fix applicato!</p>';
+        html += '<p>Ora prova a cercare "consegnato" nella tabella principale.</p>';
+        
+        // Test immediato
+        const data = window.trackingTable.data || [];
+        const results = search.search(data, 'consegnato');
+        html += `<p>Test immediato: ${results.length} risultati trovati</p>`;
+        
+        result.innerHTML = html;
+        result.className = 'success';
+        
+        // Forza un refresh della tabella
+        if (window.trackingTable.searchTerm) {
+            window.trackingTable.applyFilters();
+        }
+    }
+
+    // Auto-run check on load
+    setTimeout(() => {
+        console.log('=== AUTO DEBUG ===');
+        checkComponents();
+        checkData();
+    }, 1000);
+    </script>
+</body>
+</html>

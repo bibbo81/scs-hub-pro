@@ -1,6 +1,6 @@
-// pages/settings/index.js
+// pages/settings/index.js - VERSIONE FIXED
 document.addEventListener('DOMContentLoaded', () => {
-    console.log('[Settings] Initializing...');
+    console.log('[Settings] Initializing with error handling...');
     
     // Initialize components
     initializeNavigation();
@@ -30,8 +30,8 @@ function waitForAuth() {
 
 // Navigation between sections
 function initializeNavigation() {
-    const navItems = document.querySelectorAll('.settings-nav-item');
-    const sections = document.querySelectorAll('.settings-section');
+    const navItems = document.querySelectorAll('.sol-tab[data-section]');
+    const sections = document.querySelectorAll('.sol-tab-content');
     
     navItems.forEach(item => {
         item.addEventListener('click', (e) => {
@@ -111,80 +111,59 @@ async function loadAllSettings() {
         // Load other settings from localStorage (mock)
         const settings = JSON.parse(localStorage.getItem('appSettings') || '{}');
         
-        // Company settings
+        // Company settings - WITH NULL CHECKS
         if (settings.company) {
-            if (settings.company.name) document.getElementById('companyName').value = settings.company.name;
-            if (settings.company.vat) document.getElementById('vatNumber').value = settings.company.vat;
-            if (settings.company.address) document.getElementById('address').value = settings.company.address;
-            if (settings.company.city) document.getElementById('city').value = settings.company.city;
-            if (settings.company.country) document.getElementById('country').value = settings.company.country;
-            if (settings.company.postalCode) document.getElementById('postalCode').value = settings.company.postalCode;
+            safeSetValue('companyName', settings.company.name);
+            safeSetValue('vatNumber', settings.company.vat);
+            safeSetValue('address', settings.company.address);
+            safeSetValue('city', settings.company.city);
+            safeSetValue('country', settings.company.country);
+            safeSetValue('postalCode', settings.company.postalCode);
         }
         
-        // Regional settings
+        // Regional settings - WITH NULL CHECKS
         if (settings.regional) {
-            if (settings.regional.language) document.getElementById('language').value = settings.regional.language;
-            if (settings.regional.timezone) document.getElementById('timezone').value = settings.regional.timezone;
-            if (settings.regional.dateFormat) document.getElementById('dateFormat').value = settings.regional.dateFormat;
-            if (settings.regional.currency) document.getElementById('currency').value = settings.regional.currency;
+            safeSetValue('language', settings.regional.language);
+            safeSetValue('timezone', settings.regional.timezone);
+            safeSetValue('dateFormat', settings.regional.dateFormat);
+            safeSetValue('currency', settings.regional.currency);
         }
         
-        // Import/Export settings
+        // Import/Export settings - WITH NULL CHECKS
         if (settings.importExport) {
-            if (settings.importExport.skipDuplicates !== undefined) 
-                document.getElementById('skipDuplicates').checked = settings.importExport.skipDuplicates;
-            if (settings.importExport.autoValidate !== undefined) 
-                document.getElementById('autoValidate').checked = settings.importExport.autoValidate;
-            if (settings.importExport.updateExisting !== undefined) 
-                document.getElementById('updateExisting').checked = settings.importExport.updateExisting;
-            if (settings.importExport.exportFormat) 
-                document.getElementById('exportFormat').value = settings.importExport.exportFormat;
-            if (settings.importExport.csvEncoding) 
-                document.getElementById('csvEncoding').value = settings.importExport.csvEncoding;
-            if (settings.importExport.includeHeaders !== undefined) 
-                document.getElementById('includeHeaders').checked = settings.importExport.includeHeaders;
-            if (settings.importExport.compressFiles !== undefined) 
-                document.getElementById('compressFiles').checked = settings.importExport.compressFiles;
+            safeSetChecked('skipDuplicates', settings.importExport.skipDuplicates);
+            safeSetChecked('autoValidate', settings.importExport.autoValidate);
+            safeSetChecked('updateExisting', settings.importExport.updateExisting);
+            safeSetValue('exportFormat', settings.importExport.exportFormat);
+            safeSetValue('csvEncoding', settings.importExport.csvEncoding);
+            safeSetChecked('includeHeaders', settings.importExport.includeHeaders);
+            safeSetChecked('compressFiles', settings.importExport.compressFiles);
         }
         
-        // Notifications
+        // Notifications - WITH NULL CHECKS
         if (settings.notifications) {
-            if (settings.notifications.emailNewShipments !== undefined)
-                document.getElementById('emailNewShipments').checked = settings.notifications.emailNewShipments;
-            if (settings.notifications.emailDelayedShipments !== undefined)
-                document.getElementById('emailDelayedShipments').checked = settings.notifications.emailDelayedShipments;
-            if (settings.notifications.emailDelivered !== undefined)
-                document.getElementById('emailDelivered').checked = settings.notifications.emailDelivered;
-            if (settings.notifications.emailWeeklyReport !== undefined)
-                document.getElementById('emailWeeklyReport').checked = settings.notifications.emailWeeklyReport;
-            if (settings.notifications.email)
-                document.getElementById('notificationEmail').value = settings.notifications.email;
-            if (settings.notifications.pushEnabled !== undefined)
-                document.getElementById('pushEnabled').checked = settings.notifications.pushEnabled;
-            if (settings.notifications.pushCritical !== undefined)
-                document.getElementById('pushCritical').checked = settings.notifications.pushCritical;
+            safeSetChecked('emailNewShipments', settings.notifications.emailNewShipments);
+            safeSetChecked('emailDelayedShipments', settings.notifications.emailDelayedShipments);
+            safeSetChecked('emailDelivered', settings.notifications.emailDelivered);
+            safeSetChecked('emailWeeklyReport', settings.notifications.emailWeeklyReport);
+            safeSetValue('notificationEmail', settings.notifications.email);
+            safeSetChecked('pushEnabled', settings.notifications.pushEnabled);
+            safeSetChecked('pushCritical', settings.notifications.pushCritical);
         }
         
-        // Security
+        // Security - WITH NULL CHECKS
         if (settings.security) {
-            if (settings.security.twoFactorAuth !== undefined)
-                document.getElementById('twoFactorAuth').checked = settings.security.twoFactorAuth;
-            if (settings.security.loginAlerts !== undefined)
-                document.getElementById('loginAlerts').checked = settings.security.loginAlerts;
-            if (settings.security.secureSession !== undefined)
-                document.getElementById('secureSession').checked = settings.security.secureSession;
+            safeSetChecked('twoFactorAuth', settings.security.twoFactorAuth);
+            safeSetChecked('loginAlerts', settings.security.loginAlerts);
+            safeSetChecked('secureSession', settings.security.secureSession);
         }
         
-        // Advanced
+        // Advanced - WITH NULL CHECKS
         if (settings.advanced) {
-            if (settings.advanced.dataRetention)
-                document.getElementById('dataRetention').value = settings.advanced.dataRetention;
-            if (settings.advanced.autoBackup !== undefined)
-                document.getElementById('autoBackup').checked = settings.advanced.autoBackup;
-            if (settings.advanced.dataCompression !== undefined)
-                document.getElementById('dataCompression').checked = settings.advanced.dataCompression;
-            if (settings.advanced.debugMode !== undefined)
-                document.getElementById('debugMode').checked = settings.advanced.debugMode;
+            safeSetValue('dataRetention', settings.advanced.dataRetention);
+            safeSetChecked('autoBackup', settings.advanced.autoBackup);
+            safeSetChecked('dataCompression', settings.advanced.dataCompression);
+            safeSetChecked('debugMode', settings.advanced.debugMode);
         }
         
     } catch (error) {
@@ -192,13 +171,38 @@ async function loadAllSettings() {
     }
 }
 
+// SAFE HELPER FUNCTIONS - PREVENT NULL ERRORS
+function safeSetValue(elementId, value) {
+    const element = document.getElementById(elementId);
+    if (element && value !== undefined && value !== null) {
+        element.value = value;
+    }
+}
+
+function safeSetChecked(elementId, checked) {
+    const element = document.getElementById(elementId);
+    if (element && checked !== undefined && checked !== null) {
+        element.checked = checked;
+    }
+}
+
+function safeGetValue(elementId, defaultValue = '') {
+    const element = document.getElementById(elementId);
+    return element ? element.value : defaultValue;
+}
+
+function safeGetChecked(elementId, defaultValue = false) {
+    const element = document.getElementById(elementId);
+    return element ? element.checked : defaultValue;
+}
+
 // Load ShipsGo settings from user profile
 async function loadShipsGoSettings() {
     console.log('[Settings] Loading ShipsGo settings...');
     
     // Clear fields first
-    document.getElementById('shipsgoV1ApiKey').value = '';
-    document.getElementById('shipsgoV2Token').value = '';
+    safeSetValue('shipsgoV1ApiKey', '');
+    safeSetValue('shipsgoV2Token', '');
     
     try {
         // Carica da localStorage per ora
@@ -212,7 +216,7 @@ async function loadShipsGoSettings() {
                 try {
                     const decodedV1 = atob(userProfile.api_settings.shipsgo_v1_key);
                     if (decodedV1 && decodedV1.length === 32 && /^[a-f0-9]+$/i.test(decodedV1)) {
-                        document.getElementById('shipsgoV1ApiKey').value = decodedV1;
+                        safeSetValue('shipsgoV1ApiKey', decodedV1);
                     }
                 } catch (e) {
                     console.error('[Settings] Invalid v1 key encoding');
@@ -224,7 +228,7 @@ async function loadShipsGoSettings() {
                 try {
                     const decodedV2 = atob(userProfile.api_settings.shipsgo_v2_token);
                     if (decodedV2 && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(decodedV2)) {
-                        document.getElementById('shipsgoV2Token').value = decodedV2;
+                        safeSetValue('shipsgoV2Token', decodedV2);
                     }
                 } catch (e) {
                     console.error('[Settings] Invalid v2 token encoding');
@@ -233,12 +237,8 @@ async function loadShipsGoSettings() {
         } 
         // Fallback alle settings generali
         else if (settings?.apiKeys) {
-            if (settings.apiKeys.shipsgo_v1) {
-                document.getElementById('shipsgoV1ApiKey').value = settings.apiKeys.shipsgo_v1;
-            }
-            if (settings.apiKeys.shipsgo_v2) {
-                document.getElementById('shipsgoV2Token').value = settings.apiKeys.shipsgo_v2;
-            }
+            safeSetValue('shipsgoV1ApiKey', settings.apiKeys.shipsgo_v1);
+            safeSetValue('shipsgoV2Token', settings.apiKeys.shipsgo_v2);
         }
         
     } catch (error) {
@@ -249,12 +249,12 @@ async function loadShipsGoSettings() {
 // Save company settings
 async function saveCompanySettings() {
     const data = {
-        name: document.getElementById('companyName').value,
-        vat: document.getElementById('vatNumber').value,
-        address: document.getElementById('address').value,
-        city: document.getElementById('city').value,
-        country: document.getElementById('country').value,
-        postalCode: document.getElementById('postalCode').value
+        name: safeGetValue('companyName'),
+        vat: safeGetValue('vatNumber'),
+        address: safeGetValue('address'),
+        city: safeGetValue('city'),
+        country: safeGetValue('country'),
+        postalCode: safeGetValue('postalCode')
     };
     
     await saveToLocalStorage('company', data);
@@ -264,10 +264,10 @@ async function saveCompanySettings() {
 // Save regional settings
 async function saveRegionalSettings() {
     const data = {
-        language: document.getElementById('language').value,
-        timezone: document.getElementById('timezone').value,
-        dateFormat: document.getElementById('dateFormat').value,
-        currency: document.getElementById('currency').value
+        language: safeGetValue('language'),
+        timezone: safeGetValue('timezone'),
+        dateFormat: safeGetValue('dateFormat'),
+        currency: safeGetValue('currency')
     };
     
     await saveToLocalStorage('regional', data);
@@ -277,10 +277,10 @@ async function saveRegionalSettings() {
 // Save export settings
 async function saveExportSettings() {
     const data = {
-        exportFormat: document.getElementById('exportFormat').value,
-        csvEncoding: document.getElementById('csvEncoding').value,
-        includeHeaders: document.getElementById('includeHeaders').checked,
-        compressFiles: document.getElementById('compressFiles').checked
+        exportFormat: safeGetValue('exportFormat'),
+        csvEncoding: safeGetValue('csvEncoding'),
+        includeHeaders: safeGetChecked('includeHeaders'),
+        compressFiles: safeGetChecked('compressFiles')
     };
     
     await saveToLocalStorage('export', data);
@@ -289,8 +289,8 @@ async function saveExportSettings() {
 
 // Save ShipsGo settings to user profile
 async function saveShipsGoSettings() {
-    const v1Key = document.getElementById('shipsgoV1ApiKey').value.trim();
-    const v2Token = document.getElementById('shipsgoV2Token').value.trim();
+    const v1Key = safeGetValue('shipsgoV1ApiKey').trim();
+    const v2Token = safeGetValue('shipsgoV2Token').trim();
     
     if (!v1Key && !v2Token) {
         showStatus('Inserisci almeno una API key', 'error');
@@ -362,6 +362,13 @@ async function saveToLocalStorage(section, data) {
 
 // Show status message
 function showStatus(message, type = 'info', duration = 3000) {
+    // Use NotificationSystem for better UX if available
+    if (window.NotificationSystem) {
+        window.NotificationSystem.show(message, type, duration);
+        return;
+    }
+    
+    // Fallback to status element
     const statusEl = document.getElementById('api-status');
     if (!statusEl) return;
     
@@ -381,7 +388,7 @@ function showStatus(message, type = 'info', duration = 3000) {
     
     statusEl.appendChild(icon);
     statusEl.appendChild(span);
-    statusEl.className = `status-message ${type}`;
+    statusEl.className = `sol-alert sol-alert-${type}`;
     statusEl.style.display = 'flex';
     
     // Auto hide
@@ -396,6 +403,8 @@ window.toggleApiKeyVisibility = function(inputId) {
     const button = event.currentTarget;
     const icon = button.querySelector('i');
     
+    if (!input) return; // Safety check
+    
     if (input.type === 'password') {
         input.type = 'text';
         icon.className = 'fas fa-eye-slash';
@@ -407,8 +416,8 @@ window.toggleApiKeyVisibility = function(inputId) {
 
 // Test ShipsGo connection
 window.testShipsGoConnection = async function(event) {
-    const v1Key = document.getElementById('shipsgoV1ApiKey').value.trim();
-    const v2Token = document.getElementById('shipsgoV2Token').value.trim();
+    const v1Key = safeGetValue('shipsgoV1ApiKey').trim();
+    const v2Token = safeGetValue('shipsgoV2Token').trim();
     
     if (!v1Key && !v2Token) {
         showStatus('Inserisci almeno una API key da testare', 'error');
@@ -480,7 +489,7 @@ window.showWebhookInstructions = function() {
     showStatus(message, 'info', 10000);
 };
 
-// Handle toggle changes
+// Handle toggle changes - WITH SAFE CHECKS
 document.addEventListener('change', (e) => {
     if (e.target.type === 'checkbox' && e.target.closest('.toggle-switch')) {
         const toggleId = e.target.id;
@@ -496,40 +505,47 @@ document.addEventListener('change', (e) => {
     }
 });
 
-// Save notification settings
+// Save notification settings - WITH SAFE CHECKS
 async function saveNotificationSettings() {
-    const data = {
-        emailNewShipments: document.getElementById('emailNewShipments').checked,
-        emailDelayedShipments: document.getElementById('emailDelayedShipments').checked,
-        emailDelivered: document.getElementById('emailDelivered').checked,
-        emailWeeklyReport: document.getElementById('emailWeeklyReport').checked,
-        email: document.getElementById('notificationEmail').value,
-        pushEnabled: document.getElementById('pushEnabled').checked,
-        pushCritical: document.getElementById('pushCritical').checked
-    };
-    
-    await saveToLocalStorage('notifications', data);
-    console.log('[Settings] Notifications auto-saved');
+    try {
+        const data = {
+            emailNewShipments: safeGetChecked('emailNewShipments'),
+            emailDelayedShipments: safeGetChecked('emailDelayedShipments'),
+            emailDelivered: safeGetChecked('emailDelivered'),
+            emailWeeklyReport: safeGetChecked('emailWeeklyReport'),
+            email: safeGetValue('notificationEmail'),
+            pushEnabled: safeGetChecked('pushEnabled'),
+            pushCritical: safeGetChecked('pushCritical')
+        };
+        
+        await saveToLocalStorage('notifications', data);
+        console.log('[Settings] Notifications auto-saved');
+    } catch (error) {
+        console.error('[Settings] Error saving notifications:', error);
+    }
 }
 
-// Save import settings
+// Save import settings - WITH SAFE CHECKS
 async function saveImportSettings() {
-    const data = {
-        skipDuplicates: document.getElementById('skipDuplicates').checked,
-        autoValidate: document.getElementById('autoValidate').checked,
-        updateExisting: document.getElementById('updateExisting').checked
-    };
-    
-    await saveToLocalStorage('importExport', {
-        ...JSON.parse(localStorage.getItem('appSettings') || '{}').importExport,
-        ...data
-    });
-    console.log('[Settings] Import settings auto-saved');
+    try {
+        const currentSettings = JSON.parse(localStorage.getItem('appSettings') || '{}');
+        const data = {
+            ...currentSettings.importExport,
+            skipDuplicates: safeGetChecked('skipDuplicates'),
+            autoValidate: safeGetChecked('autoValidate'),
+            updateExisting: safeGetChecked('updateExisting')
+        };
+        
+        await saveToLocalStorage('importExport', data);
+        console.log('[Settings] Import settings auto-saved');
+    } catch (error) {
+        console.error('[Settings] Error saving import settings:', error);
+    }
 }
 
 // Handle dangerous actions
-document.querySelectorAll('.btn-danger').forEach(btn => {
-    btn.addEventListener('click', (e) => {
+document.addEventListener('click', (e) => {
+    if (e.target.matches('.sol-btn-danger')) {
         const action = e.target.textContent.trim();
         
         if (action.includes('Resetta')) {
@@ -550,12 +566,10 @@ document.querySelectorAll('.btn-danger').forEach(btn => {
                 }
             }
         }
-    });
-});
-
-// Handle other button clicks
-document.querySelectorAll('.btn-cancel').forEach(btn => {
-    btn.addEventListener('click', (e) => {
+    }
+    
+    // Handle other button clicks
+    if (e.target.matches('.sol-btn-secondary')) {
         const text = e.target.textContent.trim();
         
         if (text.includes('Cambia Password')) {
@@ -569,8 +583,8 @@ document.querySelectorAll('.btn-cancel').forEach(btn => {
                 showStatus('Cache pulita con successo', 'success');
             }
         }
-    });
+    }
 });
 
 // Initialize on load
-console.log('[Settings] Module loaded successfully');
+console.log('[Settings] Module loaded successfully with error handling');
