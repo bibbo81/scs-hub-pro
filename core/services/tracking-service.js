@@ -1,7 +1,5 @@
-// core/services/tracking-service.js - VERSIONE OTTIMIZZATA E CORRETTA
-// Service layer completo con integrazione ShipsGo e endpoint corretti
-
-import TrackingConfig from '../config/tracking-config.js';
+// core/services/tracking-service.js - VERSIONE MINIMAL FIX
+// Service layer con fix endpoint ma senza import TrackingConfig
 
 class TrackingService {
     constructor() {
@@ -59,20 +57,18 @@ class TrackingService {
             
             if (settings.shipsgo_v1_key) {
                 this.apiConfig.v1 = {
-                    baseUrl: TrackingConfig.apis.shipsgo_v1.baseUrl,
+                    baseUrl: 'https://shipsgo.com/api/v1.2',
                     authCode: settings.shipsgo_v1_key,
-                    enabled: settings.shipsgo_v1_enabled !== false,
-                    endpoints: TrackingConfig.apis.shipsgo_v1.endpoints
+                    enabled: settings.shipsgo_v1_enabled !== false
                 };
                 console.log('[TrackingService] ShipsGo v1.2 configured');
             }
             
             if (settings.shipsgo_v2_token) {
                 this.apiConfig.v2 = {
-                    baseUrl: TrackingConfig.apis.shipsgo_v2.baseUrl,
+                    baseUrl: 'https://api.shipsgo.com/api/v2',
                     userToken: settings.shipsgo_v2_token,
-                    enabled: settings.shipsgo_v2_enabled !== false,
-                    endpoints: TrackingConfig.apis.shipsgo_v2.endpoints
+                    enabled: settings.shipsgo_v2_enabled !== false
                 };
                 console.log('[TrackingService] ShipsGo v2.0 configured');
             }
@@ -144,7 +140,7 @@ class TrackingService {
 
         // Auto-detect tipo se necessario
         if (trackingType === 'auto') {
-            trackingType = TrackingConfig.detectType(trackingNumber);
+            trackingType = this.detectTrackingType(trackingNumber);
             console.log('[TrackingService] 🎯 Auto-detected type:', trackingType);
         }
 
@@ -196,7 +192,7 @@ class TrackingService {
     }
 
     // ========================================
-    // TRACKING CONTAINER (ShipsGo v1.2)
+    // TRACKING CONTAINER (ShipsGo v1.2) - ENDPOINT CORRETTI
     // ========================================
 
     async trackContainer(trackingNumber, options = {}) {
@@ -244,7 +240,7 @@ class TrackingService {
                 method: 'POST',
                 data: {
                     containerNumber: containerNumber.toUpperCase(),
-                    shippingLine: 'MSC' // Aggiungi shipping line di default
+                    shippingLine: 'MSC'
                 }
             })
         });
@@ -290,7 +286,7 @@ class TrackingService {
     }
 
     // ========================================
-    // TRACKING AWB (ShipsGo v2.0)
+    // TRACKING AWB (ShipsGo v2.0) - ENDPOINT CORRETTI
     // ========================================
 
     async trackAirShipment(awbNumber, options = {}) {
@@ -338,7 +334,7 @@ class TrackingService {
                 method: 'POST',
                 data: {
                     awbNumber: awbNumber.toUpperCase(),
-                    airline: 'CV' // Cargolux di default
+                    airline: 'CV'
                 }
             })
         });
@@ -384,7 +380,7 @@ class TrackingService {
     }
 
     // ========================================
-    // NORMALIZZAZIONE RISPOSTE
+    // NORMALIZZAZIONE RISPOSTE (METODI STANDALONE)
     // ========================================
 
     normalizeContainerResponse(data, trackingNumber) {
@@ -394,7 +390,7 @@ class TrackingService {
             success: true,
             trackingNumber: trackingNumber,
             trackingType: 'container',
-            status: TrackingConfig.normalizeStatus(containerData.status, 'container'),
+            status: this.normalizeStatus(containerData.status),
             lastUpdate: new Date().toISOString(),
             
             carrier: {
@@ -441,7 +437,7 @@ class TrackingService {
             success: true,
             trackingNumber: awbNumber,
             trackingType: 'awb',
-            status: TrackingConfig.normalizeStatus(awbData.status, 'awb'),
+            status: this.normalizeStatus(awbData.status),
             lastUpdate: new Date().toISOString(),
             
             carrier: {
@@ -499,7 +495,7 @@ class TrackingService {
             return data.events.map(event => ({
                 date: this.parseShipsGoDate(event.date || event.eventDate),
                 type: event.type || event.eventType,
-                status: TrackingConfig.normalizeStatus(event.status, 'container'),
+                status: this.normalizeStatus(event.status),
                 location: event.location || event.place,
                 description: event.description || event.event,
                 details: event.details,
@@ -541,7 +537,7 @@ class TrackingService {
             return data.events.map(event => ({
                 date: this.parseShipsGoDate(event.date || event.eventDate),
                 type: event.eventCode || event.type,
-                status: TrackingConfig.normalizeStatus(event.status, 'awb'),
+                status: this.normalizeStatus(event.status),
                 location: event.location || event.locationName,
                 description: event.description || event.event,
                 flight: event.flightNumber
@@ -575,8 +571,49 @@ class TrackingService {
     }
 
     // ========================================
-    // UTILITY E HELPERS
+    // UTILITY E HELPERS (STANDALONE)
     // ========================================
+
+    normalizeStatus(status) {
+        if (!status) return 'registered';
+        
+        const statusMap = {
+            // Container statuses
+            'Sailing': 'in_transit',
+            'Arrived': 'arrived',
+            'Delivered': 'delivered',
+            'Discharged': 'arrived',
+            'Gate In': 'in_transit',
+            'Gate Out': 'delivered',
+            'Loaded': 'in_transit',
+            'Loading': 'in_transit',
+            'Discharging': 'arrived',
+            'In Transit': 'in_transit',
+            'Transhipment': 'in_transit',
+            'Empty': 'delivered',
+            'Empty Returned': 'delivered',
+            'Booking Confirmed': 'registered',
+            'Booked': 'registered',
+            
+            // AWB statuses
+            'RCS': 'registered',
+            'MAN': 'in_transit',
+            'DEP': 'in_transit',
+            'ARR': 'arrived',
+            'RCF': 'arrived',
+            'DLV': 'delivered',
+            'NFD': 'exception',
+            'AWD': 'exception',
+            
+            // Generic
+            'Registered': 'registered',
+            'Pending': 'registered',
+            'Delayed': 'delayed',
+            'Exception': 'exception'
+        };
+        
+        return statusMap[status] || 'registered';
+    }
 
     parseShipsGoDate(dateStr) {
         if (!dateStr) return null;
@@ -604,6 +641,47 @@ class TrackingService {
             console.error('[TrackingService] Date parse error:', error);
             return null;
         }
+    }
+
+    detectTrackingType(trackingNumber) {
+        const patterns = {
+            container: /^[A-Z]{4}\d{7}$/,
+            bl: /^[A-Z]{4}\d{8,12}$/,
+            awb: /^\d{3}-?\d{8}$/,
+            parcel: /^[A-Z0-9]{10,30}$/
+        };
+
+        for (const [type, pattern] of Object.entries(patterns)) {
+            if (pattern.test(trackingNumber)) {
+                return type;
+            }
+        }
+
+        return 'container'; // Default
+    }
+
+    detectCarrier(trackingNumber) {
+        const patterns = {
+            'MSC': /^MSC/i,
+            'MAERSK': /^(MAEU|MSKU|MRKU)/i,
+            'CMA-CGM': /^(CMAU|CGMU)/i,
+            'COSCO': /^(COSU|CSNU)/i,
+            'HAPAG-LLOYD': /^(HLCU|HLXU)/i,
+            'ONE': /^(ONEY|ONEU)/i,
+            'EVERGREEN': /^(EGLV|EGHU)/i,
+            'DHL': /^\d{10}$/,
+            'FEDEX': /^\d{12}$/,
+            'UPS': /^1Z/i,
+            'CARGOLUX': /^\d{3}-?\d{8}$/
+        };
+
+        for (const [carrier, pattern] of Object.entries(patterns)) {
+            if (pattern.test(trackingNumber)) {
+                return carrier;
+            }
+        }
+
+        return 'GENERIC';
     }
 
     normalizeCarrierCode(carrierInput) {
@@ -692,7 +770,7 @@ class TrackingService {
     // ========================================
 
     async getMockTrackingData(trackingNumber, trackingType) {
-        const carrier = TrackingConfig.detectCarrier(trackingNumber);
+        const carrier = this.detectCarrier(trackingNumber);
         const now = new Date();
         
         // Simula network delay
@@ -701,13 +779,13 @@ class TrackingService {
         const mockData = {
             success: true,
             trackingNumber: trackingNumber,
-            trackingType: trackingType || TrackingConfig.detectType(trackingNumber),
+            trackingType: trackingType || this.detectTrackingType(trackingNumber),
             status: ['registered', 'in_transit', 'arrived', 'delivered'][Math.floor(Math.random() * 4)],
             lastUpdate: new Date().toISOString(),
             
             carrier: {
-                code: carrier.code,
-                name: carrier.name
+                code: carrier,
+                name: this.getCarrierName(carrier)
             },
             
             route: {
@@ -783,6 +861,25 @@ class TrackingService {
             lastUpdate: new Date().toISOString(),
             mockData: true
         };
+    }
+
+    getCarrierName(code) {
+        const names = {
+            'MSC': 'Mediterranean Shipping Company',
+            'MAERSK': 'Maersk Line',
+            'CMA-CGM': 'CMA CGM',
+            'COSCO': 'COSCO Shipping',
+            'HAPAG-LLOYD': 'Hapag-Lloyd',
+            'ONE': 'Ocean Network Express',
+            'EVERGREEN': 'Evergreen Line',
+            'DHL': 'DHL Express',
+            'FEDEX': 'FedEx',
+            'UPS': 'UPS',
+            'CARGOLUX': 'Cargolux',
+            'GENERIC': 'Generic Carrier'
+        };
+
+        return names[code] || code;
     }
 
     // ========================================
