@@ -11,12 +11,13 @@
     const ENABLE_ENHANCED = localStorage.getItem('enableEnhancedTracking') !== 'false';
     
     // Attendi che il sistema sia pronto
-    const initInterval = setInterval(() => {
-        if (window.showAddTrackingForm && window.ModalSystem && window.notificationSystem) {
-            clearInterval(initInterval);
-            initializeProgressiveEnhancement();
-        }
-    }, 100);
+   const initInterval = setInterval(() => {
+    // Rimuovi notificationSystem dal check iniziale
+    if (window.showAddTrackingForm && window.ModalSystem) {
+        clearInterval(initInterval);
+        initializeProgressiveEnhancement();
+    }
+}, 100);
     
     function initializeProgressiveEnhancement() {
         // Salva funzione originale
@@ -657,13 +658,21 @@
         
         // Validation
         if (!formData.tracking_number) {
-            window.notificationSystem.error('Inserisci il numero di tracking');
+            if (window.notificationSystem) {
+                window.notificationSystem.error('Inserisci il numero di tracking');
+            } else {
+                alert('Inserisci il numero di tracking');
+            }
             return;
         }
         
         // Check duplicates
         if (window.trackings?.find(t => t.tracking_number === formData.tracking_number)) {
-            window.notificationSystem.error('Questo tracking è già presente nel sistema');
+            if (window.notificationSystem) {
+                window.notificationSystem.error('Questo tracking è già presente nel sistema');
+            } else {
+                alert('Questo tracking è già presente nel sistema');
+            }
             return;
         }
         
@@ -724,11 +733,13 @@
             window.ModalSystem.closeAll();
             
             // Show success
-            window.notificationSystem.success(
-                trackingData.metadata.api_used 
-                    ? '✅ Tracking aggiunto con dati real-time!' 
-                    : '✅ Tracking aggiunto con successo!'
-            );
+            if (window.notificationSystem) {
+                window.notificationSystem.success(
+                    trackingData.metadata.api_used 
+                        ? '✅ Tracking aggiunto con dati real-time!' 
+                        : '✅ Tracking aggiunto con successo!'
+                );
+            }
             
             // Reload table
             if (window.loadTrackings) {
@@ -737,7 +748,11 @@
             
         } catch (error) {
             console.error('Error adding tracking:', error);
-            window.notificationSystem.error('Errore durante l\'aggiunta: ' + error.message);
+            if (window.notificationSystem) {
+                window.notificationSystem.error('Errore durante l\'aggiunta: ' + error.message);
+            } else {
+                alert('Errore durante l\'aggiunta: ' + error.message);
+            }
         } finally {
             submitBtn.disabled = false;
             submitBtn.innerHTML = originalText;
@@ -758,17 +773,27 @@
         const extension = file.name.toLowerCase().substring(file.name.lastIndexOf('.'));
         
         if (!validTypes.includes(extension)) {
-            window.notificationSystem.error('Formato file non supportato. Usa Excel o CSV.');
+            if (window.notificationSystem) {
+                window.notificationSystem.error('Formato file non supportato. Usa Excel o CSV.');
+            } else {
+                alert('Formato file non supportato. Usa Excel o CSV.');
+            }
             return;
         }
         
         if (file.size > 10 * 1024 * 1024) { // 10MB
-            window.notificationSystem.error('File troppo grande (max 10MB)');
+            if (window.notificationSystem) {
+                window.notificationSystem.error('File troppo grande (max 10MB)');
+            } else {
+                alert('File troppo grande (max 10MB)');
+            }
             return;
         }
         
         // Show loading
-        window.notificationSystem.show('Analizzando il file...', 'info', 'import-analysis');
+        if (window.notificationSystem) {
+            window.notificationSystem.show('Analizzando il file...', 'info', 'import-analysis');
+        }
         
         try {
             // Parse file using ImportManager
@@ -788,12 +813,18 @@
             // Show preview
             showImportPreview(pendingImport);
             
-            window.notificationSystem.dismiss('import-analysis');
+            if (window.notificationSystem) {
+                window.notificationSystem.dismiss('import-analysis');
+            }
             
         } catch (error) {
             console.error('File parse error:', error);
-            window.notificationSystem.dismiss('import-analysis');
-            window.notificationSystem.error('Errore nella lettura del file: ' + error.message);
+            if (window.notificationSystem) {
+                window.notificationSystem.dismiss('import-analysis');
+                window.notificationSystem.error('Errore nella lettura del file: ' + error.message);
+            } else {
+                alert('Errore nella lettura del file: ' + error.message);
+            }
         }
     }
     
@@ -870,7 +901,11 @@
             });
         } catch (error) {
             console.error('Import error:', error);
-            window.notificationSystem.error('Errore durante l\'import: ' + error.message);
+            if (window.notificationSystem) {
+                window.notificationSystem.error('Errore durante l\'import: ' + error.message);
+            } else {
+                alert('Errore durante l\'import: ' + error.message);
+            }
         }
         
         pendingImport = null;
