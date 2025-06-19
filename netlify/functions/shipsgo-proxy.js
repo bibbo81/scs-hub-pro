@@ -1,15 +1,23 @@
-// netlify/functions/shipsgo-proxy.js - VERSIONE CORRETTA
+// netlify/functions/shipsgo-proxy.js - CORS FIX
 exports.handler = async (event, context) => {
     console.log('[ShipsGo-Proxy] Request received');
 
+    // CORS headers più permissivi
     const corsHeaders = {
         'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Shipsgo-User-Token',
-        'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS'
+        'Access-Control-Allow-Headers': '*',
+        'Access-Control-Allow-Methods': '*',
+        'Access-Control-Max-Age': '86400',
+        'Content-Type': 'application/json'
     };
 
+    // Handle preflight OPTIONS
     if (event.httpMethod === 'OPTIONS') {
-        return { statusCode: 200, headers: corsHeaders, body: '' };
+        return { 
+            statusCode: 200, 
+            headers: corsHeaders, 
+            body: '' 
+        };
     }
 
     try {
@@ -26,7 +34,7 @@ exports.handler = async (event, context) => {
             endpoint = '/ContainerService/GetShippingLineList',
             method = 'GET',
             params = {},
-            body: requestBody = null
+            data = {}
         } = requestData;
 
         // API Configuration
@@ -68,18 +76,26 @@ exports.handler = async (event, context) => {
         // Fetch options
         const fetchOptions = {
             method: method.toUpperCase(),
-            headers: { 'Content-Type': 'application/json' }
+            headers: { 
+                'Content-Type': 'application/json',
+                'User-Agent': 'SCH-TrackingSystem/1.0'
+            }
         };
 
         if (isV2) {
             fetchOptions.headers['X-Shipsgo-User-Token'] = config.userToken;
         }
 
-        if (requestBody && ['POST', 'PUT'].includes(method.toUpperCase())) {
-            fetchOptions.body = JSON.stringify(requestBody);
+        if (data && Object.keys(data).length > 0 && ['POST', 'PUT'].includes(method.toUpperCase())) {
+            const bodyData = { ...data };
+            if (!isV2) {
+                bodyData.authCode = config.authCode;
+            }
+            fetchOptions.body = JSON.stringify(bodyData);
         }
 
-        // Make request
+        // Make request to ShipsGo
+        console.log('[ShipsGo-Proxy] Calling ShipsGo...');
         const response = await fetch(targetUrl, fetchOptions);
         const responseText = await response.text();
         
@@ -98,13 +114,16 @@ exports.handler = async (event, context) => {
             metadata: {
                 targetUrl: targetUrl.replace(/(authCode|User-Token)=[^&]+/g, '$1=***'),
                 version,
-                endpoint
+                endpoint,
+                timestamp: new Date().toISOString()
             }
         };
 
+        console.log('[ShipsGo-Proxy] Success:', result.success);
+
         return {
-            statusCode: response.ok ? 200 : response.status,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            statusCode: 200,
+            headers: corsHeaders,
             body: JSON.stringify(result, null, 2)
         };
 
@@ -113,7 +132,7 @@ exports.handler = async (event, context) => {
         
         return {
             statusCode: 500,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            headers: corsHeaders,
             body: JSON.stringify({
                 success: false,
                 error: error.message,
