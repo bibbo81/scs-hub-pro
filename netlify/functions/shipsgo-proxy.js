@@ -74,7 +74,7 @@ exports.handler = async (event, context) => {
                 authCode: process.env.SHIPSGO_V1_KEY || '2dc0c6d92ccb59e7d903825c4ebeb521'
             },
             v2: {
-                baseUrl: 'https://api.shipsgo.com/api/v2',
+                baseUrl: 'https://api.shipsgo.com/v2',
                 userToken: process.env.SHIPSGO_V2_TOKEN || '505751c2-2745-4d83-b4e7-d35ccddd0628'
             }
         };
