@@ -1,5 +1,7 @@
-// core/services/tracking-service.js - VERSIONE OTTIMIZZATA
-// Service layer completo con integrazione ShipsGo e enrichment automatico
+// core/services/tracking-service.js - VERSIONE OTTIMIZZATA E CORRETTA
+// Service layer completo con integrazione ShipsGo e endpoint corretti
+
+import TrackingConfig from '../config/tracking-config.js';
 
 class TrackingService {
     constructor() {
@@ -57,18 +59,20 @@ class TrackingService {
             
             if (settings.shipsgo_v1_key) {
                 this.apiConfig.v1 = {
-                    baseUrl: 'https://shipsgo.com/api/v1.2',
+                    baseUrl: TrackingConfig.apis.shipsgo_v1.baseUrl,
                     authCode: settings.shipsgo_v1_key,
-                    enabled: settings.shipsgo_v1_enabled !== false
+                    enabled: settings.shipsgo_v1_enabled !== false,
+                    endpoints: TrackingConfig.apis.shipsgo_v1.endpoints
                 };
                 console.log('[TrackingService] ShipsGo v1.2 configured');
             }
             
             if (settings.shipsgo_v2_token) {
                 this.apiConfig.v2 = {
-                    baseUrl: 'https://api.shipsgo.com/api/v2',
+                    baseUrl: TrackingConfig.apis.shipsgo_v2.baseUrl,
                     userToken: settings.shipsgo_v2_token,
-                    enabled: settings.shipsgo_v2_enabled !== false
+                    enabled: settings.shipsgo_v2_enabled !== false,
+                    endpoints: TrackingConfig.apis.shipsgo_v2.endpoints
                 };
                 console.log('[TrackingService] ShipsGo v2.0 configured');
             }
@@ -140,7 +144,7 @@ class TrackingService {
 
         // Auto-detect tipo se necessario
         if (trackingType === 'auto') {
-            trackingType = this.detectTrackingType(trackingNumber);
+            trackingType = TrackingConfig.detectType(trackingNumber);
             console.log('[TrackingService] 🎯 Auto-detected type:', trackingType);
         }
 
@@ -229,14 +233,19 @@ class TrackingService {
     }
 
     async addContainerToShipsGo(containerNumber) {
-        // Usa proxy per development/Netlify
         const proxyUrl = '/.netlify/functions/shipsgo-proxy';
         
-        const response = await fetch(`${proxyUrl}?version=v1.2&endpoint=container/add`, {
+        const response = await fetch(proxyUrl, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                containerNumber: containerNumber.toUpperCase()
+                version: 'v1.2',
+                endpoint: '/ContainerService/AddContainer',
+                method: 'POST',
+                data: {
+                    containerNumber: containerNumber.toUpperCase(),
+                    shippingLine: 'MSC' // Aggiungi shipping line di default
+                }
             })
         });
 
@@ -258,9 +267,17 @@ class TrackingService {
     async getContainerInfo(containerNumber) {
         const proxyUrl = '/.netlify/functions/shipsgo-proxy';
         
-        const response = await fetch(`${proxyUrl}?version=v1.2&endpoint=container/info&containerNumber=${containerNumber.toUpperCase()}`, {
-            method: 'GET',
-            headers: { 'Content-Type': 'application/json' }
+        const response = await fetch(proxyUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                version: 'v1.2',
+                endpoint: '/ContainerService/GetContainerInfo',
+                method: 'GET',
+                params: {
+                    containerNumber: containerNumber.toUpperCase()
+                }
+            })
         });
 
         const proxyResponse = await response.json();
@@ -312,11 +329,17 @@ class TrackingService {
     async addAWBToShipsGo(awbNumber) {
         const proxyUrl = '/.netlify/functions/shipsgo-proxy';
         
-        const response = await fetch(`${proxyUrl}?version=v2.0&endpoint=airtracking/shipments`, {
+        const response = await fetch(proxyUrl, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                awbNumber: awbNumber.toUpperCase()
+                version: 'v2',
+                endpoint: '/air/shipments',
+                method: 'POST',
+                data: {
+                    awbNumber: awbNumber.toUpperCase(),
+                    airline: 'CV' // Cargolux di default
+                }
             })
         });
 
@@ -338,9 +361,17 @@ class TrackingService {
     async getAWBInfo(awbNumber) {
         const proxyUrl = '/.netlify/functions/shipsgo-proxy';
         
-        const response = await fetch(`${proxyUrl}?version=v2.0&endpoint=airtracking/shipments&awbNumber=${awbNumber.toUpperCase()}`, {
-            method: 'GET',
-            headers: { 'Content-Type': 'application/json' }
+        const response = await fetch(proxyUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                version: 'v2',
+                endpoint: '/air/shipments',
+                method: 'GET',
+                params: {
+                    awbNumber: awbNumber.toUpperCase()
+                }
+            })
         });
 
         const proxyResponse = await response.json();
@@ -363,7 +394,7 @@ class TrackingService {
             success: true,
             trackingNumber: trackingNumber,
             trackingType: 'container',
-            status: this.normalizeStatus(containerData.status),
+            status: TrackingConfig.normalizeStatus(containerData.status, 'container'),
             lastUpdate: new Date().toISOString(),
             
             carrier: {
@@ -410,7 +441,7 @@ class TrackingService {
             success: true,
             trackingNumber: awbNumber,
             trackingType: 'awb',
-            status: this.normalizeStatus(awbData.status),
+            status: TrackingConfig.normalizeStatus(awbData.status, 'awb'),
             lastUpdate: new Date().toISOString(),
             
             carrier: {
@@ -468,7 +499,7 @@ class TrackingService {
             return data.events.map(event => ({
                 date: this.parseShipsGoDate(event.date || event.eventDate),
                 type: event.type || event.eventType,
-                status: this.normalizeStatus(event.status),
+                status: TrackingConfig.normalizeStatus(event.status, 'container'),
                 location: event.location || event.place,
                 description: event.description || event.event,
                 details: event.details,
@@ -510,7 +541,7 @@ class TrackingService {
             return data.events.map(event => ({
                 date: this.parseShipsGoDate(event.date || event.eventDate),
                 type: event.eventCode || event.type,
-                status: this.normalizeStatus(event.status),
+                status: TrackingConfig.normalizeStatus(event.status, 'awb'),
                 location: event.location || event.locationName,
                 description: event.description || event.event,
                 flight: event.flightNumber
@@ -547,65 +578,6 @@ class TrackingService {
     // UTILITY E HELPERS
     // ========================================
 
-    normalizeStatus(status) {
-        if (!status) return 'registered';
-        
-        const statusMap = {
-            // Container statuses
-            'Sailing': 'in_transit',
-            'Arrived': 'arrived',
-            'Delivered': 'delivered',
-            'Discharged': 'arrived',
-            'Gate In': 'in_transit',
-            'Gate Out': 'delivered',
-            'Loaded': 'in_transit',
-            'Loading': 'in_transit',
-            'Discharging': 'arrived',
-            'In Transit': 'in_transit',
-            'Transhipment': 'in_transit',
-            'Empty': 'delivered',
-            'Empty Returned': 'delivered',
-            
-            // AWB statuses
-            'RCS': 'registered',
-            'MAN': 'in_transit',
-            'DEP': 'in_transit',
-            'ARR': 'arrived',
-            'RCF': 'arrived',
-            'DLV': 'delivered',
-            
-            // Express statuses
-            'On FedEx vehicle for delivery': 'out_for_delivery',
-            'At local FedEx facility': 'in_transit',
-            'Departed FedEx hub': 'in_transit',
-            'On the way': 'in_transit',
-            'Arrived at FedEx hub': 'in_transit',
-            'International shipment release - Import': 'customs_cleared',
-            'At destination sort facility': 'in_transit',
-            'Left FedEx origin facility': 'in_transit',
-            'Picked up': 'in_transit',
-            'Shipment information sent to FedEx': 'registered',
-            
-            // Italian statuses
-            'Consegnata.': 'delivered',
-            'Consegna prevista nel corso della giornata odierna.': 'out_for_delivery',
-            'Arrivata nella Sede GLS locale.': 'in_transit',
-            'In transito.': 'in_transit',
-            'Partita dalla sede mittente. In transito.': 'in_transit',
-            'La spedizione e\' stata creata dal mittente, attendiamo che ci venga affidata per l\'invio a destinazione.': 'registered',
-            
-            // Generic
-            'Registered': 'registered',
-            'Pending': 'registered',
-            'Booked': 'registered',
-            'Booking Confirmed': 'registered',
-            'Delayed': 'delayed',
-            'Exception': 'exception'
-        };
-        
-        return statusMap[status] || 'registered';
-    }
-
     parseShipsGoDate(dateStr) {
         if (!dateStr) return null;
         
@@ -632,47 +604,6 @@ class TrackingService {
             console.error('[TrackingService] Date parse error:', error);
             return null;
         }
-    }
-
-    detectTrackingType(trackingNumber) {
-        const patterns = {
-            container: /^[A-Z]{4}\d{7}$/,
-            bl: /^[A-Z]{4}\d{8,12}$/,
-            awb: /^\d{3}-?\d{8}$/,
-            parcel: /^[A-Z0-9]{10,30}$/
-        };
-
-        for (const [type, pattern] of Object.entries(patterns)) {
-            if (pattern.test(trackingNumber)) {
-                return type;
-            }
-        }
-
-        return 'container'; // Default
-    }
-
-    detectCarrier(trackingNumber) {
-        const patterns = {
-            'MSC': /^MSC/i,
-            'MAERSK': /^(MAEU|MSKU|MRKU)/i,
-            'CMA-CGM': /^(CMAU|CGMU)/i,
-            'COSCO': /^(COSU|CSNU)/i,
-            'HAPAG-LLOYD': /^(HLCU|HLXU)/i,
-            'ONE': /^(ONEY|ONEU)/i,
-            'EVERGREEN': /^(EGLV|EGHU)/i,
-            'DHL': /^\d{10}$/,
-            'FEDEX': /^\d{12}$/,
-            'UPS': /^1Z/i,
-            'CARGOLUX': /^\d{3}-?\d{8}$/
-        };
-
-        for (const [carrier, pattern] of Object.entries(patterns)) {
-            if (pattern.test(trackingNumber)) {
-                return carrier;
-            }
-        }
-
-        return 'GENERIC';
     }
 
     normalizeCarrierCode(carrierInput) {
@@ -761,7 +692,7 @@ class TrackingService {
     // ========================================
 
     async getMockTrackingData(trackingNumber, trackingType) {
-        const carrier = this.detectCarrier(trackingNumber);
+        const carrier = TrackingConfig.detectCarrier(trackingNumber);
         const now = new Date();
         
         // Simula network delay
@@ -770,13 +701,13 @@ class TrackingService {
         const mockData = {
             success: true,
             trackingNumber: trackingNumber,
-            trackingType: trackingType || this.detectTrackingType(trackingNumber),
+            trackingType: trackingType || TrackingConfig.detectType(trackingNumber),
             status: ['registered', 'in_transit', 'arrived', 'delivered'][Math.floor(Math.random() * 4)],
             lastUpdate: new Date().toISOString(),
             
             carrier: {
-                code: carrier,
-                name: this.getCarrierName(carrier)
+                code: carrier.code,
+                name: carrier.name
             },
             
             route: {
@@ -854,25 +785,6 @@ class TrackingService {
         };
     }
 
-    getCarrierName(code) {
-        const names = {
-            'MSC': 'Mediterranean Shipping Company',
-            'MAERSK': 'Maersk Line',
-            'CMA-CGM': 'CMA CGM',
-            'COSCO': 'COSCO Shipping',
-            'HAPAG-LLOYD': 'Hapag-Lloyd',
-            'ONE': 'Ocean Network Express',
-            'EVERGREEN': 'Evergreen Line',
-            'DHL': 'DHL Express',
-            'FEDEX': 'FedEx',
-            'UPS': 'UPS',
-            'CARGOLUX': 'Cargolux',
-            'GENERIC': 'Generic Carrier'
-        };
-
-        return names[code] || code;
-    }
-
     // ========================================
     // RATE LIMITING E UTILITY
     // ========================================
@@ -945,8 +857,14 @@ class TrackingService {
 
         if (this.apiConfig.v1?.enabled) {
             try {
-                const response = await fetch(`${proxyUrl}?version=v1.2&endpoint=test`, { 
-                    method: 'GET' 
+                const response = await fetch(proxyUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        version: 'v1.2',
+                        endpoint: '/ContainerService/GetShippingLineList',
+                        method: 'GET'
+                    })
                 });
                 const proxyResponse = await response.json();
                 
@@ -965,8 +883,14 @@ class TrackingService {
 
         if (this.apiConfig.v2?.enabled) {
             try {
-                const response = await fetch(`${proxyUrl}?version=v2.0&endpoint=test`, {
-                    method: 'GET'
+                const response = await fetch(proxyUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        version: 'v2',
+                        endpoint: '/air/airlines',
+                        method: 'GET'
+                    })
                 });
                 const proxyResponse = await response.json();
                 
