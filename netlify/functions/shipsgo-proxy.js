@@ -1,8 +1,13 @@
-// netlify/functions/shipsgo-proxy.js - RESPONSE FORMAT FIX
-exports.handler = async (event, context) => {
-    console.log('[ShipsGo-Proxy] Request received');
+// netlify/functions/shipsgo-proxy.js - NODE-FETCH COMPATIBILITY FIX
+// Fix per Node.js < 18 che non ha fetch nativo
 
-    // SIMPLIFIED CORS headers for better compatibility
+// Import node-fetch per compatibilità
+const fetch = require('node-fetch');
+
+exports.handler = async (event, context) => {
+    console.log('[ShipsGo-Proxy] Request received - Node version:', process.version);
+
+    // CORS headers semplificati
     const corsHeaders = {
         'Access-Control-Allow-Origin': '*',
         'Access-Control-Allow-Headers': 'Content-Type, Authorization',
@@ -16,6 +21,20 @@ exports.handler = async (event, context) => {
             statusCode: 200, 
             headers: corsHeaders, 
             body: JSON.stringify({ success: true })
+        };
+    }
+
+    // Debug endpoint per verificare Node version
+    if (event.queryStringParameters?.debug === 'true') {
+        return {
+            statusCode: 200,
+            headers: corsHeaders,
+            body: JSON.stringify({
+                success: true,
+                node_version: process.version,
+                fetch_available: typeof fetch === 'function',
+                timestamp: new Date().toISOString()
+            })
         };
     }
 
@@ -67,24 +86,24 @@ exports.handler = async (event, context) => {
         const cleanEndpoint = endpoint.startsWith('/') ? endpoint : '/' + endpoint;
         let targetUrl = config.baseUrl + cleanEndpoint;
         
-        const urlObj = new URL(targetUrl);
+        const url = new URL(targetUrl);
         
         // Add auth for v1.2
         if (!isV2) {
-            urlObj.searchParams.set('authCode', config.authCode);
+            url.searchParams.set('authCode', config.authCode);
         }
         
         // Add other params
         Object.keys(params).forEach(key => {
             if (key !== 'authCode') {
-                urlObj.searchParams.set(key, params[key]);
+                url.searchParams.set(key, params[key]);
             }
         });
 
-        targetUrl = urlObj.toString();
+        targetUrl = url.toString();
         console.log('[ShipsGo-Proxy] Target URL:', targetUrl.replace(/(authCode|User-Token)=[^&]+/g, '$1=***'));
 
-        // Fetch options
+        // Fetch options con node-fetch
         const fetchOptions = {
             method: method.toUpperCase(),
             headers: { 
@@ -106,8 +125,9 @@ exports.handler = async (event, context) => {
             fetchOptions.body = JSON.stringify(bodyData);
         }
 
-        // Make request to ShipsGo
-        console.log('[ShipsGo-Proxy] Calling ShipsGo API...');
+        // Make request to ShipsGo con node-fetch
+        console.log('[ShipsGo-Proxy] Calling ShipsGo API with node-fetch...');
+        
         const response = await fetch(targetUrl, fetchOptions);
         
         // Get response text first
@@ -126,7 +146,7 @@ exports.handler = async (event, context) => {
             };
         }
 
-        // SIMPLIFIED response format for better Promise resolution
+        // CLEAN response format
         const result = {
             success: response.ok,
             status: response.status,
@@ -136,23 +156,34 @@ exports.handler = async (event, context) => {
         // Add error info if needed
         if (!response.ok) {
             result.error = response.statusText;
-            result.statusText = response.statusText;
         }
 
         console.log('[ShipsGo-Proxy] Response success:', result.success);
-        console.log('[ShipsGo-Proxy] Data type:', typeof result.data);
 
-        // CRITICAL FIX: Return CLEAN JSON without pretty print
+        // Return CLEAN JSON
         return {
             statusCode: 200,
             headers: corsHeaders,
-            body: JSON.stringify(result) // NO pretty print indentation
+            body: JSON.stringify(result)
         };
 
     } catch (error) {
         console.error('[ShipsGo-Proxy] Function error:', error);
         
-        // SIMPLIFIED error response
+        // Check se è un errore di fetch
+        if (error.message.includes('fetch is not defined')) {
+            return {
+                statusCode: 500,
+                headers: corsHeaders,
+                body: JSON.stringify({
+                    success: false,
+                    error: 'Fetch API not available - Node.js version too old',
+                    node_version: process.version,
+                    solution: 'Install node-fetch or upgrade to Node.js 18+'
+                })
+            };
+        }
+        
         return {
             statusCode: 500,
             headers: corsHeaders,

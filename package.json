@@ -19,6 +19,7 @@
   },
   "homepage": "https://github.com/bibbo81/scs-hub-pro#readme",
   "dependencies": {
-    "@supabase/supabase-js": "^2.50.0"
+    "@supabase/supabase-js": "^2.50.0",
+    "node-fetch": "^2.6.7"
   }
 }
