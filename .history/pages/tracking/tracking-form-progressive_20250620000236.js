@@ -678,7 +678,7 @@
                 cursor: pointer;
                 transition: all 0.3s;
                 font-size: 14px;
-                font-weight: 600;
+                font-weight: 500;
                 color: #6c757d;
                 border-bottom: 3px solid transparent;
                 display: flex;

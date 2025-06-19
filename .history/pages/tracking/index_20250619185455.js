@@ -1316,20 +1316,7 @@ function setupEventListeners() {
     };
     
     // Page actions
-    safeAddListener('#addTrackingBtn', 'click', function(e) {
-    e.preventDefault();
-    e.stopPropagation();
-    
-    if (this.isOpening) return;
-    this.isOpening = true;
-    setTimeout(() => this.isOpening = false, 1000);
-    
-    if (window.showEnhancedTrackingForm) {
-        window.showEnhancedTrackingForm();
-    } else {
-        showAddTrackingForm();
-    }
-}, 'Add Tracking');
+    safeAddListener('#addTrackingBtn', 'click', showAddTrackingForm, 'Add Tracking');
     safeAddListener('#refreshAllBtn', 'click', refreshAllTrackings, 'Refresh All');
     safeAddListener('#exportPdfBtn', 'click', exportToPDF, 'Export PDF');
     safeAddListener('#exportExcelBtn', 'click', exportToExcel, 'Export Excel');

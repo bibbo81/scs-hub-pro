@@ -397,78 +397,76 @@
                                 </div>
                             </div>
                             
-                            <!-- Colonna 2: Dettagli Completi (Tipo + Geografia) -->
-                            <div class="form-card details-card">
+                            <!-- Colonna 2: Tipo e Classificazione -->
+                            <div class="form-card type-card">
                                 <div class="card-header">
-                                    <h3><i class="fas fa-cog"></i> Dettagli & Geografia</h3>
+                                    <h3><i class="fas fa-tags"></i> Tipo & Classificazione</h3>
                                 </div>
                                 <div class="card-body">
-                                    <!-- Sezione Tipo -->
-                                    <div class="details-section">
-                                        <h5 class="section-title">🏷️ Classificazione</h5>
-                                        <div class="field-row">
-                                            <div class="field-group half-width">
-                                                <label>Tipo Tracking</label>
-                                                <select id="enh_trackingType" class="enhanced-select">
-                                                    <option value="auto">🔍 Auto-detect</option>
-                                                    <option value="container">🚢 Container Marittimo</option>
-                                                    <option value="awb">✈️ Air Waybill</option>
-                                                    <option value="bl">📄 Bill of Lading</option>
-                                                    <option value="parcel">📦 Parcel/Package</option>
-                                                </select>
-                                            </div>
-                                            
-                                            <div class="field-group half-width">
-                                                <label>Vettore</label>
-                                                <select id="enh_carrier" class="enhanced-select">
-                                                    <option value="">🔄 Seleziona automaticamente</option>
-                                                </select>
-                                            </div>
-                                        </div>
-                                        
-                                        <div class="field-group">
-                                            <label>Stato Iniziale</label>
-                                            <select id="enh_status" class="enhanced-select">
-                                                <option value="registered">📝 Registrato</option>
-                                                <option value="in_transit">🚛 In Transito</option>
-                                                <option value="arrived">📍 Arrivato a destinazione</option>
-                                                <option value="customs_cleared">✅ Sdoganato</option>
-                                                <option value="delivered">🎯 Consegnato</option>
-                                            </select>
-                                        </div>
+                                    <div class="field-group">
+                                        <label>Tipo Tracking</label>
+                                        <select id="enh_trackingType" class="enhanced-select">
+                                            <option value="auto">🔍 Auto-detect</option>
+                                            <option value="container">🚢 Container Marittimo</option>
+                                            <option value="awb">✈️ Air Waybill</option>
+                                            <option value="bl">📄 Bill of Lading</option>
+                                            <option value="parcel">📦 Parcel/Package</option>
+                                        </select>
                                     </div>
                                     
-                                    <!-- Sezione Geografia -->
-                                    <div class="details-section">
-                                        <h5 class="section-title">🌍 Geografia</h5>
-                                        <div class="field-group">
-                                            <label>Porto/Aeroporto Origine</label>
-                                            <input type="text" 
-                                                   id="enh_origin" 
-                                                   class="enhanced-input" 
-                                                   placeholder="Es: SHANGHAI, HONG KONG, MXP Milano">
-                                        </div>
-                                        
-                                        <div class="field-group">
-                                            <label>Porto/Aeroporto Destinazione</label>
-                                            <input type="text" 
-                                                   id="enh_destination" 
-                                                   class="enhanced-input" 
-                                                   placeholder="Es: GENOVA, LA SPEZIA, FCO Roma">
-                                        </div>
-                                        
-                                        <div class="field-group">
-                                            <label>Numero Riferimento</label>
-                                            <input type="text" 
-                                                   id="enh_reference" 
-                                                   class="enhanced-input" 
-                                                   placeholder="Es: PO-2024-001, REF123456">
-                                        </div>
+                                    <div class="field-group">
+                                        <label>Vettore</label>
+                                        <select id="enh_carrier" class="enhanced-select">
+                                            <option value="">🔄 Seleziona automaticamente</option>
+                                        </select>
+                                    </div>
+                                    
+                                    <div class="field-group">
+                                        <label>Stato Iniziale</label>
+                                        <select id="enh_status" class="enhanced-select">
+                                            <option value="registered">📝 Registrato</option>
+                                            <option value="in_transit">🚛 In Transito</option>
+                                            <option value="arrived">📍 Arrivato a destinazione</option>
+                                            <option value="customs_cleared">✅ Sdoganato</option>
+                                            <option value="delivered">🎯 Consegnato</option>
+                                        </select>
                                     </div>
                                 </div>
                             </div>
                             
-                            <!-- Colonna 3: Preview Live Estesa -->
+                            <!-- Colonna 3: Geografia e Rotta -->
+                            <div class="form-card route-card">
+                                <div class="card-header">
+                                    <h3><i class="fas fa-route"></i> Geografia & Rotta</h3>
+                                </div>
+                                <div class="card-body">
+                                    <div class="field-group">
+                                        <label>🌍 Porto/Aeroporto Origine</label>
+                                        <input type="text" 
+                                               id="enh_origin" 
+                                               class="enhanced-input" 
+                                               placeholder="Es: SHANGHAI, HONG KONG, MXP Milano">
+                                    </div>
+                                    
+                                    <div class="field-group">
+                                        <label>🎯 Porto/Aeroporto Destinazione</label>
+                                        <input type="text" 
+                                               id="enh_destination" 
+                                               class="enhanced-input" 
+                                               placeholder="Es: GENOVA, LA SPEZIA, FCO Roma">
+                                    </div>
+                                    
+                                    <div class="field-group">
+                                        <label>📋 Numero Riferimento</label>
+                                        <input type="text" 
+                                               id="enh_reference" 
+                                               class="enhanced-input" 
+                                               placeholder="Es: PO-2024-001, REF123456">
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Colonna 4: Preview Live Estesa -->
                             <div class="form-card preview-card">
                                 <div class="card-header">
                                     <h3><i class="fas fa-eye"></i> Anteprima Live</h3>
@@ -506,7 +504,7 @@
                                 </div>
                             </div>
                             
-                            <!-- Colonna 4: API e Controlli Avanzati -->
+                            <!-- Colonna 5: API e Controlli Avanzati -->
                             <div class="form-card api-card">
                                 <div class="card-header">
                                     <h3><i class="fas fa-cog"></i> API & Controlli</h3>
@@ -678,7 +676,7 @@
                 cursor: pointer;
                 transition: all 0.3s;
                 font-size: 14px;
-                font-weight: 600;
+                font-weight: 500;
                 color: #6c757d;
                 border-bottom: 3px solid transparent;
                 display: flex;
@@ -708,35 +706,37 @@
                 flex-direction: column;
             }
             
-            /* Form ottimizzato - PADDING ULTERIORMENTE RIDOTTO */
+            /* Form ottimizzato */
             .optimized-fullwidth-form {
                 flex: 1;
-                padding: 15px 30px 0 30px;
+                padding: 30px 30px 0 30px;
                 display: flex;
                 flex-direction: column;
                 height: calc(100% - 60px);
             }
             
-            /* Grid ottimizzato per 4 colonne invece di 5 - MARGIN OTTIMIZZATO */
+            /* Grid ottimizzato per 5 colonne */
             .optimized-grid {
                 display: grid;
-                grid-template-columns: 1.2fr 1.1fr 1fr 0.9fr;
-                gap: 15px;
+                grid-template-columns: repeat(5, 1fr);
+                gap: 24px;
                 flex: 1;
-                margin-bottom: 10px;
+                margin-bottom: 24px;
             }
             
-            /* Cards del form - NIENTE PIÙ SCROLLING */
+            /* Cards del form - RIDOTTE */
             .form-card {
                 background: white;
                 border: 1px solid #e9ecef;
                 border-radius: 8px;
-                overflow: visible;
+                overflow: hidden;
                 box-shadow: 0 1px 4px rgba(0,0,0,0.08);
                 display: flex;
                 flex-direction: column;
                 transition: all 0.3s;
                 height: fit-content;
+                min-height: 220px;
+                max-height: 280px;
             }
             
             .form-card:hover {
@@ -744,52 +744,27 @@
             }
             
             .primary-card {
-                background: linear-gradient(135deg, #6c7b95 0%, #8892b0 100%);
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
                 color: white;
             }
             
-            .details-card {
-                background: linear-gradient(135deg, #8b95a8 0%, #9ca5b8 100%);
+            .type-card {
+                background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
                 color: white;
             }
             
-            .details-section {
-                margin-bottom: 12px;
-            }
-            
-            .details-section:last-child {
-                margin-bottom: 0;
-            }
-            
-            .section-title {
-                font-size: 11px;
-                font-weight: 600;
-                color: rgba(255,255,255,0.9);
-                margin: 0 0 6px 0;
-                padding-bottom: 3px;
-                border-bottom: 1px solid rgba(255,255,255,0.2);
-                text-transform: uppercase;
-                letter-spacing: 0.3px;
-            }
-            
-            .field-row {
-                display: flex;
-                gap: 8px;
-                margin-bottom: 7px;
-            }
-            
-            .half-width {
-                flex: 1;
-                margin-bottom: 0 !important;
+            .route-card {
+                background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+                color: white;
             }
             
             .preview-card {
-                background: linear-gradient(135deg, #78a083 0%, #87af92 100%);
+                background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
                 color: white;
             }
             
             .api-card {
-                background: linear-gradient(135deg, #a68b78 0%, #b59a87 100%);
+                background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
                 color: white;
             }
             
@@ -802,26 +777,26 @@
             
             .card-header h3 {
                 margin: 0;
-                font-size: 13px;
+                font-size: 12px;
                 font-weight: 600;
                 display: flex;
                 align-items: center;
-                gap: 5px;
+                gap: 4px;
             }
             
             .card-body {
                 flex: 1;
                 padding: 12px;
-                overflow: visible;
+                overflow-y: auto;
             }
             
-            /* Input principale - FONT PIÙ GRANDE */
+            /* Input principale - RIDOTTO */
             .main-tracking-input {
                 width: 100%;
-                padding: 12px 14px;
+                padding: 10px 12px;
                 border: 2px solid rgba(255,255,255,0.3);
                 border-radius: 6px;
-                font-size: 15px;
+                font-size: 14px;
                 font-weight: 500;
                 background: rgba(255,255,255,0.9);
                 color: #333;
@@ -840,22 +815,22 @@
                 display: flex;
                 align-items: center;
                 gap: 6px;
-                font-size: 11px;
+                font-size: 10px;
                 color: rgba(255,255,255,0.8);
-                margin-bottom: 8px;
+                margin-bottom: 10px;
             }
             
-            /* Examples section - FONT MIGLIORATO */
+            /* Examples section - COMPATTA */
             .examples-section h4 {
-                margin: 0 0 6px 0;
-                font-size: 12px;
+                margin: 0 0 8px 0;
+                font-size: 11px;
                 color: rgba(255,255,255,0.9);
             }
             
             .examples-list {
                 display: flex;
                 flex-direction: column;
-                gap: 3px;
+                gap: 4px;
             }
             
             .example-item {
@@ -864,7 +839,7 @@
                 background: rgba(255,255,255,0.1);
                 cursor: pointer;
                 transition: all 0.3s;
-                padding: 5px 7px;
+                padding: 6px 8px;
                 text-align: left;
             }
             
@@ -880,29 +855,29 @@
             }
             
             .example-icon {
-                font-size: 13px;
+                font-size: 12px;
             }
             
             .example-details strong {
                 display: block;
-                font-size: 10px;
+                font-size: 9px;
                 margin-bottom: 1px;
             }
             
             .example-details code {
-                font-size: 9px;
+                font-size: 8px;
                 opacity: 0.8;
                 font-family: monospace;
             }
             
-            /* Field groups - FONT MIGLIORATO */
+            /* Field groups - COMPATTI */
             .field-group {
-                margin-bottom: 7px;
+                margin-bottom: 8px;
             }
             
             .field-group label {
                 display: block;
-                font-size: 10px;
+                font-size: 9px;
                 font-weight: 600;
                 margin-bottom: 3px;
                 text-transform: uppercase;
@@ -912,10 +887,10 @@
             
             .enhanced-input, .enhanced-select {
                 width: 100%;
-                padding: 7px 9px;
+                padding: 6px 8px;
                 border: 1px solid rgba(255,255,255,0.3);
                 border-radius: 4px;
-                font-size: 12px;
+                font-size: 11px;
                 transition: all 0.3s;
                 background: rgba(255,255,255,0.9);
                 color: #333;
@@ -928,19 +903,18 @@
                 box-shadow: 0 0 0 2px rgba(255,255,255,0.2);
             }
             
-            /* Live preview - RIDISEGNATA */
+            /* Live preview */
             .live-preview {
-                background: rgba(255,255,255,0.15);
+                background: rgba(255,255,255,0.1);
                 border-radius: 8px;
-                padding: 14px;
-                border: 1px solid rgba(255,255,255,0.2);
+                padding: 16px;
             }
             
             .preview-main {
                 text-align: center;
-                margin-bottom: 14px;
-                padding-bottom: 12px;
-                border-bottom: 1px solid rgba(255,255,255,0.3);
+                margin-bottom: 16px;
+                padding-bottom: 16px;
+                border-bottom: 1px solid rgba(255,255,255,0.2);
             }
             
             .preview-number strong {
@@ -948,47 +922,35 @@
                 color: white;
                 display: block;
                 margin-bottom: 4px;
-                font-weight: 600;
             }
             
             .preview-type {
                 font-size: 12px;
-                color: rgba(255,255,255,0.9);
-                font-style: italic;
+                color: rgba(255,255,255,0.8);
             }
             
             .preview-details {
                 display: flex;
                 flex-direction: column;
-                gap: 6px;
+                gap: 8px;
             }
             
             .preview-row {
                 display: flex;
                 justify-content: space-between;
-                align-items: flex-start;
+                align-items: center;
                 font-size: 11px;
-                line-height: 1.3;
             }
             
             .preview-row .label {
-                color: white;
-                font-weight: 700;
+                color: rgba(255,255,255,0.7);
+                font-weight: 600;
                 text-transform: uppercase;
-                letter-spacing: 0.3px;
-                font-size: 10px;
-                flex-shrink: 0;
-                min-width: 55px;
             }
             
             .preview-row .value {
-                color: rgba(255,255,255,0.95);
+                color: white;
                 font-weight: 500;
-                text-align: right;
-                flex: 1;
-                margin-left: 8px;
-                word-break: break-word;
-                font-size: 11px;
             }
             
             /* API section */
@@ -1008,7 +970,7 @@
             
             .toggle-header h4 {
                 margin: 0;
-                font-size: 14px;
+                font-size: 13px;
                 color: white;
             }
             
@@ -1058,7 +1020,7 @@
             }
             
             .api-description {
-                font-size: 12px;
+                font-size: 11px;
                 color: rgba(255,255,255,0.8);
                 line-height: 1.4;
                 margin: 0 0 12px 0;
@@ -1074,13 +1036,13 @@
                 display: flex;
                 align-items: center;
                 gap: 8px;
-                font-size: 12px;
+                font-size: 11px;
                 color: rgba(255,255,255,0.9);
             }
             
             .benefit i {
                 color: #28a745;
-                font-size: 11px;
+                font-size: 10px;
             }
             
             /* System status */
@@ -1105,16 +1067,16 @@
             }
             
             .status-text {
-                font-size: 13px;
+                font-size: 12px;
                 color: rgba(255,255,255,0.9);
             }
             
-            /* Footer integrato - PADDING RIDOTTO */
+            /* Footer integrato - SEMPRE VISIBILE */
             .integrated-footer {
                 background: #f8f9fa;
                 border-top: 1px solid #e9ecef;
-                padding: 15px 30px;
-                margin: 15px -30px 0 -30px;
+                padding: 20px 30px;
+                margin: 20px -30px 0 -30px;
                 display: flex;
                 justify-content: space-between;
                 align-items: center;
@@ -1180,13 +1142,13 @@
             
             .import-layout-new {
                 display: grid;
-                grid-template-columns: 1fr 1fr;
+                grid-template-columns: 1.5fr 1fr;
                 gap: 24px;
                 height: auto;
                 min-height: 400px;
             }
             
-            /* Drop zone più compatta ORIZZONTALMENTE ma più alta VERTICALMENTE */
+            /* Drop zone più compatta */
             .compact-drop-zone {
                 border: 3px dashed #007bff;
                 border-radius: 12px;
@@ -1196,8 +1158,8 @@
                 justify-content: center;
                 cursor: pointer;
                 transition: all 0.3s;
-                height: 400px;
-                max-height: 400px;
+                height: 300px;
+                max-height: 300px;
             }
             
             .compact-drop-zone:hover,
@@ -1277,16 +1239,16 @@
             }
             
             .features-list {
-                display: grid;
-                grid-template-columns: 1fr 1fr;
-                gap: 10px;
+                display: flex;
+                flex-direction: column;
+                gap: 12px;
             }
             
             .feature-item {
                 display: flex;
                 align-items: flex-start;
-                gap: 8px;
-                padding: 10px;
+                gap: 12px;
+                padding: 12px;
                 background: #f8f9fa;
                 border: 1px solid #e9ecef;
                 border-radius: 6px;
@@ -1299,8 +1261,8 @@
             }
             
             .feature-icon {
-                font-size: 16px;
-                width: 24px;
+                font-size: 18px;
+                width: 28px;
                 text-align: center;
                 flex-shrink: 0;
                 margin-top: 1px;
@@ -1312,18 +1274,17 @@
             }
             
             .feature-text strong {
-                margin: 0 0 2px 0;
+                margin: 0 0 3px 0;
                 color: #333;
-                font-size: 11px;
+                font-size: 12px;
                 font-weight: 600;
-                line-height: 1.2;
             }
             
             .feature-text span {
                 margin: 0;
                 color: #6c757d;
-                font-size: 9px;
-                line-height: 1.2;
+                font-size: 10px;
+                line-height: 1.3;
             }
             
             /* Responsive ottimizzato */
@@ -1344,12 +1305,7 @@
                 }
                 
                 .compact-drop-zone {
-                    height: 350px;
-                }
-                
-                .features-list {
-                    grid-template-columns: 1fr;
-                    gap: 8px;
+                    height: 250px;
                 }
             }
             
@@ -1393,25 +1349,20 @@
                     padding: 16px;
                 }
                 
-                .compact-drop-zone {
-                    height: 300px;
-                }
-                
-                .features-list {
-                    grid-template-columns: 1fr;
-                    gap: 6px;
-                }
-                
                 .feature-item {
-                    padding: 6px;
+                    padding: 8px;
                 }
                 
                 .feature-text strong {
-                    font-size: 9px;
+                    font-size: 10px;
                 }
                 
                 .feature-text span {
-                    font-size: 7px;
+                    font-size: 8px;
+                }
+                
+                .compact-drop-zone {
+                    height: 200px;
                 }
                 
                 .drop-content-compact {

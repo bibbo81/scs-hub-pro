@@ -678,7 +678,7 @@
                 cursor: pointer;
                 transition: all 0.3s;
                 font-size: 14px;
-                font-weight: 600;
+                font-weight: 500;
                 color: #6c757d;
                 border-bottom: 3px solid transparent;
                 display: flex;
@@ -708,22 +708,22 @@
                 flex-direction: column;
             }
             
-            /* Form ottimizzato - PADDING ULTERIORMENTE RIDOTTO */
+            /* Form ottimizzato - PADDING RIDOTTO */
             .optimized-fullwidth-form {
                 flex: 1;
-                padding: 15px 30px 0 30px;
+                padding: 20px 30px 0 30px;
                 display: flex;
                 flex-direction: column;
                 height: calc(100% - 60px);
             }
             
-            /* Grid ottimizzato per 4 colonne invece di 5 - MARGIN OTTIMIZZATO */
+            /* Grid ottimizzato per 4 colonne invece di 5 - GAP RIDOTTO */
             .optimized-grid {
                 display: grid;
                 grid-template-columns: 1.2fr 1.1fr 1fr 0.9fr;
                 gap: 15px;
                 flex: 1;
-                margin-bottom: 10px;
+                margin-bottom: 15px;
             }
             
             /* Cards del form - NIENTE PIÙ SCROLLING */
