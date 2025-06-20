@@ -2683,16 +2683,16 @@ carriers.sort((a, b) => {
     
     // Close modal after success
     setTimeout(() => {
-        closeAllModals();
-        // Fix: Forza il refresh della tabella
-        if (window.loadTrackings) {
-            window.loadTrackings();
-        } else if (window.refreshTrackingList) {
-            window.refreshTrackingList();
-        }
-        // Dispatch event per notificare altri componenti
-        window.dispatchEvent(new Event('trackingsUpdated'));
-    }, 2000);
+    closeAllModals();
+    // Fix: Forza il refresh della tabella
+    if (window.loadTrackings) {
+        window.loadTrackings();
+    } else if (window.refreshTrackingList) {
+        window.refreshTrackingList();
+    }
+    // Dispatch event per notificare altri componenti
+    window.dispatchEvent(new Event('trackingsUpdated'));
+}, 2000);
 } else {
                 updateWorkflowStep(2, 'error', 'Errore');
                 showWorkflowResult(false, result.message);
@@ -2733,27 +2733,30 @@ carriers.sort((a, b) => {
     formData.trackingType,
     { forceRefresh: true }
 );
-                    
-                if (apiResponse.success && apiResponse.data) {
 
-                        // Mappa i dati GET correttamente
-                        const mappedData = {
-    trackingNumber: formData.trackingNumber, // SEMPRE presente
-trackingType: formData.trackingType || 'container',
-// FIX: Prendi carrier dall'oggetto apiResponse
-carrier: apiResponse.carrier?.name || apiResponse.carrier?.code || formData.carrier || '-',
-origin: apiResponse.route?.origin?.port || formData.origin || '-',
-destination: apiResponse.route?.destination?.port || formData.destination || '-',
-status: apiResponse.status || formData.status || 'registered',
-reference: formData.reference || '-',
-// Aggiungi altri dati dall'API se disponibili
-lastUpdate: apiResponse.lastUpdate || new Date().toISOString(),
-events: apiResponse.events || []
-};
-                        
-                        // Sostituisci formData con i dati mappati
-                        Object.assign(formData, mappedData);
-                        updateWorkflowStep(1, 'completed', 'Dati recuperati');
+// AGGIUNGI QUESTI LOG
+console.log('📡 API Response:', apiResponse);
+console.log('📡 API Success?', apiResponse?.success);
+                    
+if (apiResponse && apiResponse.success) {  // ← FIX QUI: rimuovi "&& apiResponse.data"
+    console.log('✅ ENTRO nel mapping API');
+    
+    // Mappa i dati GET correttamente
+    const mappedData = {
+        trackingNumber: formData.trackingNumber,
+        trackingType: formData.trackingType || 'container',
+        carrier: apiResponse.carrier?.name || apiResponse.carrier?.code || formData.carrier || '-',
+        origin: apiResponse.route?.origin?.port || formData.origin || '-',
+        destination: apiResponse.route?.destination?.port || formData.destination || '-',
+        status: apiResponse.status || formData.status || 'registered',
+        reference: formData.reference || '-',
+        lastUpdate: apiResponse.lastUpdate || new Date().toISOString(),
+        events: apiResponse.events || []
+    };
+    
+    // Sostituisci formData con i dati mappati
+    Object.assign(formData, mappedData);
+    updateWorkflowStep(1, 'completed', 'Dati recuperati');
                     } else if (formData.apiOperation === 'auto') {
                         // Se GET fallisce in modalità auto, prova POST
                         updateWorkflowStep(1, 'pending', 'Registrazione container...');
