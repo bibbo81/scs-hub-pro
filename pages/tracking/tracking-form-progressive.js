@@ -2477,7 +2477,12 @@
                 // Aggiungi opzioni
                 if (carriers.length > 0) {
                     // Ordina alfabeticamente
-                    carriers.sort((a, b) => a.name.localeCompare(b.name));
+                    carriers = carriers.filter(c => c && (c.name || c.code));
+carriers.sort((a, b) => {
+    const nameA = (a.name || c.code || '').toString();
+    const nameB = (b.name || b.code || '').toString();
+    return nameA.localeCompare(nameB);
+});
                     
                     // Crea optgroup per i più comuni
                     const commonCarriers = getCommonCarriers(type);
