@@ -1,8 +1,5 @@
-// netlify/functions/shipsgo-proxy.js - NODE-FETCH COMPATIBILITY FIX
-// Fix per Node.js < 18 che non ha fetch nativo
-
-// Import node-fetch per compatibilità
-const fetch = require('node-fetch');
+// netlify/functions/shipsgo-proxy.js - NETLIFY COMPATIBLE VERSION
+// Fix per Netlify Functions con fetch nativo
 
 exports.handler = async (event, context) => {
     console.log('[ShipsGo-Proxy] Request received - Node version:', process.version);
@@ -33,7 +30,8 @@ exports.handler = async (event, context) => {
                 success: true,
                 node_version: process.version,
                 fetch_available: typeof fetch === 'function',
-                timestamp: new Date().toISOString()
+                timestamp: new Date().toISOString(),
+                environment: 'netlify'
             })
         };
     }
@@ -64,7 +62,8 @@ exports.handler = async (event, context) => {
             endpoint = '/ContainerService/GetShippingLineList',
             method = 'GET',
             params = {},
-            data = {}
+            data = {},
+            contentType = 'application/json'
         } = requestData;
 
         // API Configuration
@@ -103,30 +102,45 @@ exports.handler = async (event, context) => {
         targetUrl = url.toString();
         console.log('[ShipsGo-Proxy] Target URL:', targetUrl.replace(/(authCode|User-Token)=[^&]+/g, '$1=***'));
 
-        // Fetch options con node-fetch
+        // Fetch options
         const fetchOptions = {
             method: method.toUpperCase(),
             headers: { 
                 'Content-Type': 'application/json',
                 'User-Agent': 'SCH-TrackingSystem/1.0'
-            },
-            timeout: 30000 // 30 second timeout
+            }
         };
 
         if (isV2) {
             fetchOptions.headers['X-Shipsgo-User-Token'] = config.userToken;
         }
 
+        // Handle POST data based on content type
         if (data && Object.keys(data).length > 0 && ['POST', 'PUT'].includes(method.toUpperCase())) {
-            const bodyData = { ...data };
-            if (!isV2) {
-                bodyData.authCode = config.authCode;
+            if (contentType === 'application/x-www-form-urlencoded') {
+                // ✅ URL-encoded format per ShipsGo v1.2 POST
+                const params = new URLSearchParams();
+                Object.entries(data).forEach(([key, value]) => {
+                    if (value !== null && value !== undefined && value !== '') {
+                        params.append(key, value.toString());
+                    }
+                });
+                fetchOptions.body = params.toString();
+                fetchOptions.headers['Content-Type'] = 'application/x-www-form-urlencoded';
+                
+                console.log('[ShipsGo-Proxy] URL-encoded POST body:', params.toString().replace(/authCode=[^&]+/, 'authCode=***'));
+            } else {
+                // JSON format (per v2.0 APIs)
+                const bodyData = { ...data };
+                if (!isV2) {
+                    bodyData.authCode = config.authCode;
+                }
+                fetchOptions.body = JSON.stringify(bodyData);
             }
-            fetchOptions.body = JSON.stringify(bodyData);
         }
 
-        // Make request to ShipsGo con node-fetch
-        console.log('[ShipsGo-Proxy] Calling ShipsGo API with node-fetch...');
+        // Make request to ShipsGo using native fetch
+        console.log('[ShipsGo-Proxy] Calling ShipsGo API...');
         
         const response = await fetch(targetUrl, fetchOptions);
         
@@ -170,27 +184,14 @@ exports.handler = async (event, context) => {
     } catch (error) {
         console.error('[ShipsGo-Proxy] Function error:', error);
         
-        // Check se è un errore di fetch
-        if (error.message.includes('fetch is not defined')) {
-            return {
-                statusCode: 500,
-                headers: corsHeaders,
-                body: JSON.stringify({
-                    success: false,
-                    error: 'Fetch API not available - Node.js version too old',
-                    node_version: process.version,
-                    solution: 'Install node-fetch or upgrade to Node.js 18+'
-                })
-            };
-        }
-        
         return {
             statusCode: 500,
             headers: corsHeaders,
             body: JSON.stringify({
                 success: false,
                 error: error.message,
-                code: 'PROXY_ERROR'
+                code: 'PROXY_ERROR',
+                timestamp: new Date().toISOString()
             })
         };
     }
