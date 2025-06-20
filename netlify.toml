@@ -6,9 +6,17 @@
   to = "/tracking.html"
   status = 200
 
+# FIX: Redirect da /netlify/functions a /.netlify/functions (CON PUNTO)
+[[redirects]]
+  from = "/netlify/functions/*"
+  to = "/.netlify/functions/:splat"
+  status = 200
+  force = true
+
+# FIX: Anche /api deve puntare a /.netlify/functions (CON PUNTO)
 [[redirects]]
   from = "/api/*"
-  to = "/netlify/functions/:splat"
+  to = "/.netlify/functions/:splat"
   status = 200
 
 [[headers]]
