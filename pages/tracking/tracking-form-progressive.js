@@ -2678,17 +2678,22 @@ carriers.sort((a, b) => {
             const result = await processEnhancedTracking(formData);
             
             if (result.success) {
-                updateWorkflowStep(2, 'completed', 'Completato');
-                showWorkflowResult(true, result.message);
-                
-                // Close modal after success
-                setTimeout(() => {
-                    closeAllModals();
-                    if (window.refreshTrackingList) {
-                        window.refreshTrackingList();
-                    }
-                }, 2000);
-            } else {
+    updateWorkflowStep(2, 'completed', 'Completato');
+    showWorkflowResult(true, result.message);
+    
+    // Close modal after success
+    setTimeout(() => {
+        closeAllModals();
+        // Fix: Forza il refresh della tabella
+        if (window.loadTrackings) {
+            window.loadTrackings();
+        } else if (window.refreshTrackingList) {
+            window.refreshTrackingList();
+        }
+        // Dispatch event per notificare altri componenti
+        window.dispatchEvent(new Event('trackingsUpdated'));
+    }, 2000);
+} else {
                 updateWorkflowStep(2, 'error', 'Errore');
                 showWorkflowResult(false, result.message);
             }
@@ -2723,27 +2728,27 @@ carriers.sort((a, b) => {
             try {
                 if (formData.apiOperation === 'get' || formData.apiOperation === 'auto') {
                     // Per GET: prima ottieni i dati, poi salvali
-                    const apiResponse = await window.trackingService.getTrackingInfo(
-                        formData.trackingNumber,
-                        formData.trackingType
-                    );
+                    const apiResponse = await window.trackingService.track(
+    formData.trackingNumber,
+    formData.trackingType,
+    { forceRefresh: true }
+);
                     
-                    if (apiResponse.success && apiResponse.data) {
+                if (apiResponse.success && apiResponse.data) {
+
                         // Mappa i dati GET correttamente
                         const mappedData = {
     trackingNumber: formData.trackingNumber, // SEMPRE presente
-    trackingType: formData.trackingType || 'container',
-    // FIX: Converti carrier da oggetto a stringa se necessario
-    carrier: typeof apiResponse.data.carrier === 'object' 
-        ? (apiResponse.data.carrier.code || apiResponse.data.carrier.name || formData.carrier || '-')
-        : (apiResponse.data.carrier || apiResponse.data.shippingLine || formData.carrier || '-'),
-    origin: apiResponse.data.origin || apiResponse.data.pol || formData.origin || '-',
-    destination: apiResponse.data.destination || apiResponse.data.pod || formData.destination || '-',
-    status: apiResponse.data.status || formData.status || 'registered',
-    reference: formData.reference || '-',
-    // Aggiungi altri dati dall'API se disponibili
-    lastUpdate: apiResponse.data.lastUpdate || new Date().toISOString(),
-    events: apiResponse.data.events || []
+trackingType: formData.trackingType || 'container',
+// FIX: Prendi carrier dall'oggetto apiResponse
+carrier: apiResponse.carrier?.name || apiResponse.carrier?.code || formData.carrier || '-',
+origin: apiResponse.route?.origin?.port || formData.origin || '-',
+destination: apiResponse.route?.destination?.port || formData.destination || '-',
+status: apiResponse.status || formData.status || 'registered',
+reference: formData.reference || '-',
+// Aggiungi altri dati dall'API se disponibili
+lastUpdate: apiResponse.lastUpdate || new Date().toISOString(),
+events: apiResponse.events || []
 };
                         
                         // Sostituisci formData con i dati mappati
