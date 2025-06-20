@@ -1427,592 +1427,6 @@
                 }
             }
             </style>
-            
-            <!-- WORKFLOW MODAL STYLES -->
-            <style>
-            .workflow-modal-overlay {
-                position: fixed;
-                top: 0;
-                left: 0;
-                right: 0;
-                bottom: 0;
-                background: rgba(0, 0, 0, 0.8);
-                backdrop-filter: blur(4px);
-                z-index: 10000;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                opacity: 0;
-                transition: opacity 0.3s ease;
-            }
-            
-            .workflow-modal-overlay.active {
-                opacity: 1;
-            }
-            
-            .workflow-modal {
-                background: white;
-                border-radius: 12px;
-                padding: 30px;
-                max-width: 800px;
-                width: 90%;
-                max-height: 80vh;
-                overflow-y: auto;
-                box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-            }
-            
-            .workflow-modal h3 {
-                margin: 0 0 25px 0;
-                color: #333;
-                font-size: 24px;
-                text-align: center;
-            }
-            
-            .workflow-container {
-                display: flex;
-                align-items: center;
-                justify-content: space-between;
-                margin-bottom: 30px;
-            }
-            
-            .workflow-step {
-                flex: 1;
-                text-align: center;
-                padding: 20px;
-                border-radius: 8px;
-                background: #f8f9fa;
-                transition: all 0.3s ease;
-            }
-            
-            .workflow-step.completed {
-                background: #d4f4dd;
-            }
-            
-            .workflow-step.error {
-                background: #ffebee;
-            }
-            
-            .step-icon {
-                font-size: 48px;
-                margin-bottom: 15px;
-                color: #6c757d;
-            }
-            
-            .workflow-step.completed .step-icon {
-                color: #28a745;
-            }
-            
-            .workflow-step.error .step-icon {
-                color: #dc3545;
-            }
-            
-            .step-content h4 {
-                margin: 0 0 8px 0;
-                font-size: 16px;
-                color: #333;
-            }
-            
-            .step-content p {
-                margin: 0 0 12px 0;
-                font-size: 14px;
-                color: #6c757d;
-            }
-            
-            .step-status {
-                font-size: 14px;
-                font-weight: 500;
-                padding: 6px 12px;
-                border-radius: 20px;
-                display: inline-block;
-            }
-            
-            .step-status.pending {
-                background: #fff3cd;
-                color: #856404;
-            }
-            
-            .step-status.waiting {
-                background: #e9ecef;
-                color: #6c757d;
-            }
-            
-            .step-status.success {
-                background: #28a745;
-                color: white;
-            }
-            
-            .step-status.error {
-                background: #dc3545;
-                color: white;
-            }
-            
-            .workflow-arrow {
-                font-size: 24px;
-                color: #6c757d;
-                margin: 0 20px;
-            }
-            
-            .workflow-result {
-                background: #f8f9fa;
-                border-radius: 8px;
-                padding: 20px;
-                margin-top: 20px;
-            }
-            
-            .workflow-result h4 {
-                margin: 0 0 15px 0;
-                color: #333;
-            }
-            
-            .result-success {
-                display: flex;
-                align-items: center;
-                gap: 15px;
-                color: #28a745;
-            }
-            
-            .result-success i {
-                font-size: 36px;
-            }
-            
-            .result-error {
-                display: flex;
-                align-items: center;
-                gap: 15px;
-                color: #dc3545;
-            }
-            
-            .result-error i {
-                font-size: 36px;
-            }
-            
-            .workflow-close {
-                display: block;
-                margin: 20px auto 0;
-                padding: 10px 24px;
-                background: #007bff;
-                color: white;
-                border: none;
-                border-radius: 6px;
-                font-size: 16px;
-                cursor: pointer;
-                transition: background 0.3s ease;
-            }
-            
-            .workflow-close:hover {
-                background: #0056b3;
-            }
-            
-            @media (max-width: 768px) {
-                .workflow-container {
-                    flex-direction: column;
-                }
-                
-                .workflow-arrow {
-                    transform: rotate(90deg);
-                    margin: 20px 0;
-                }
-                
-                .workflow-step {
-                    width: 100%;
-                }
-                }
-            }
-            </style>
-            
-            <!-- ERROR MODAL STYLES -->
-            <style>
-            .error-modal-overlay {
-                position: fixed;
-                top: 0;
-                left: 0;
-                right: 0;
-                bottom: 0;
-                background: rgba(0, 0, 0, 0.6);
-                backdrop-filter: blur(4px);
-                z-index: 10001;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                opacity: 0;
-                transition: opacity 0.3s ease;
-            }
-            
-            .error-modal-overlay.active {
-                opacity: 1;
-            }
-            
-            .error-modal {
-                background: white;
-                border-radius: 12px;
-                padding: 30px;
-                max-width: 500px;
-                width: 90%;
-                box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-                transform: scale(0.9);
-                transition: transform 0.3s ease;
-            }
-            
-            .error-modal-overlay.active .error-modal {
-                transform: scale(1);
-            }
-            
-            .error-modal.info {
-                border-top: 4px solid #3b82f6;
-            }
-            
-            .error-modal.warning {
-                border-top: 4px solid #f59e0b;
-            }
-            
-            .error-modal.error {
-                border-top: 4px solid #ef4444;
-            }
-            
-            .error-icon {
-                text-align: center;
-                margin-bottom: 20px;
-            }
-            
-            .error-icon i {
-                font-size: 48px;
-            }
-            
-            .error-modal.info .error-icon i {
-                color: #3b82f6;
-            }
-            
-            .error-modal.warning .error-icon i {
-                color: #f59e0b;
-            }
-            
-            .error-modal.error .error-icon i {
-                color: #ef4444;
-            }
-            
-            .error-content h3 {
-                margin: 0 0 12px 0;
-                font-size: 20px;
-                color: #333;
-                text-align: center;
-            }
-            
-            .error-content p {
-                margin: 0 0 16px 0;
-                color: #666;
-                text-align: center;
-                line-height: 1.5;
-            }
-            
-            .error-details {
-                background: #f8f9fa;
-                border-radius: 6px;
-                padding: 12px;
-                margin-top: 12px;
-                font-size: 14px;
-                color: #666;
-                font-family: monospace;
-            }
-            
-            .error-actions {
-                display: flex;
-                gap: 10px;
-                justify-content: center;
-                margin-top: 24px;
-                flex-wrap: wrap;
-            }
-            
-            .error-action-btn,
-            .error-close-btn {
-                padding: 10px 20px;
-                border: none;
-                border-radius: 6px;
-                font-size: 14px;
-                font-weight: 500;
-                cursor: pointer;
-                transition: all 0.3s ease;
-            }
-            
-            .error-action-btn {
-                background: #007bff;
-                color: white;
-            }
-            
-            .error-action-btn:hover {
-                background: #0056b3;
-                transform: translateY(-1px);
-            }
-            
-            .error-close-btn {
-                background: #e9ecef;
-                color: #495057;
-            }
-            
-            .error-close-btn:hover {
-                background: #dee2e6;
-            }
-            
-            .format-examples {
-                display: grid;
-                gap: 20px;
-            }
-            
-            .format-group h4 {
-                margin: 0 0 12px 0;
-                color: #333;
-            }
-            
-            .format-group ul {
-                list-style: none;
-                padding: 0;
-                margin: 0;
-            }
-            
-            .format-group li {
-                padding: 8px 0;
-                border-bottom: 1px solid #e9ecef;
-            }
-            
-            .format-group li:last-child {
-                border-bottom: none;
-            }
-            
-            .format-group code {
-                background: #f8f9fa;
-                padding: 4px 8px;
-                border-radius: 4px;
-                font-family: monospace;
-                color: #e83e8c;
-            }
-            
-            .rate-limit-info ul {
-                list-style: disc;
-                padding-left: 20px;
-                margin: 10px 0;
-            }
-            
-            .current-usage {
-                background: #f8f9fa;
-                border-radius: 6px;
-                padding: 12px;
-                margin-top: 16px;
-            }
-            
-            .current-usage h4 {
-                margin: 0 0 8px 0;
-                color: #333;
-                font-size: 14px;
-            }
-            
-            .current-usage p {
-                margin: 0;
-                color: #666;
-            }
-            
-            /* Quick Actions Styles */
-            .quick-actions-overlay {
-                position: fixed;
-                top: 0;
-                left: 0;
-                right: 0;
-                bottom: 0;
-                background: rgba(0, 0, 0, 0.7);
-                backdrop-filter: blur(4px);
-                z-index: 10002;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                opacity: 0;
-                transition: opacity 0.3s ease;
-            }
-            
-            .quick-actions-overlay.active {
-                opacity: 1;
-            }
-            
-            .quick-actions-modal {
-                background: white;
-                border-radius: 12px;
-                max-width: 500px;
-                width: 90%;
-                box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-                overflow: hidden;
-                transform: scale(0.9);
-                transition: transform 0.3s ease;
-            }
-            
-            .quick-actions-overlay.active .quick-actions-modal {
-                transform: scale(1);
-            }
-            
-            .quick-actions-header {
-                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                color: white;
-                padding: 20px;
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-            }
-            
-            .quick-actions-header h3 {
-                margin: 0;
-                font-size: 20px;
-            }
-            
-            .quick-close {
-                background: rgba(255, 255, 255, 0.2);
-                border: none;
-                color: white;
-                width: 36px;
-                height: 36px;
-                border-radius: 50%;
-                cursor: pointer;
-                transition: all 0.3s ease;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-            }
-            
-            .quick-close:hover {
-                background: rgba(255, 255, 255, 0.3);
-                transform: rotate(90deg);
-            }
-            
-            .container-info {
-                padding: 20px;
-                background: #f8f9fa;
-                border-bottom: 1px solid #e9ecef;
-            }
-            
-            .info-main {
-                display: flex;
-                align-items: center;
-                gap: 12px;
-                margin-bottom: 12px;
-            }
-            
-            .container-number {
-                font-size: 24px;
-                font-weight: 700;
-                color: #333;
-                font-family: monospace;
-            }
-            
-            .container-status {
-                padding: 4px 12px;
-                border-radius: 20px;
-                font-size: 12px;
-                font-weight: 600;
-                text-transform: uppercase;
-            }
-            
-            .container-status.status-in_transit {
-                background: #3b82f6;
-                color: white;
-            }
-            
-            .container-status.status-arrived {
-                background: #10b981;
-                color: white;
-            }
-            
-            .container-status.status-delivered {
-                background: #059669;
-                color: white;
-            }
-            
-            .info-row {
-                display: flex;
-                justify-content: space-between;
-                padding: 8px 0;
-                border-bottom: 1px solid #e9ecef;
-            }
-            
-            .info-row:last-child {
-                border-bottom: none;
-            }
-            
-            .info-label {
-                color: #6c757d;
-                font-size: 14px;
-            }
-            
-            .info-value {
-                color: #333;
-                font-weight: 500;
-                font-size: 14px;
-            }
-            
-            .quick-actions {
-                padding: 20px;
-            }
-            
-            .quick-actions h4 {
-                margin: 0 0 16px 0;
-                color: #333;
-                font-size: 16px;
-            }
-            
-            .action-buttons-grid {
-                display: grid;
-                grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-                gap: 12px;
-            }
-            
-            .action-btn {
-                background: white;
-                border: 2px solid #e9ecef;
-                border-radius: 8px;
-                padding: 16px;
-                cursor: pointer;
-                transition: all 0.3s ease;
-                display: flex;
-                flex-direction: column;
-                align-items: center;
-                gap: 8px;
-            }
-            
-            .action-btn:hover {
-                border-color: #007bff;
-                transform: translateY(-2px);
-                box-shadow: 0 4px 12px rgba(0, 123, 255, 0.15);
-            }
-            
-            .action-btn.primary {
-                background: #007bff;
-                color: white;
-                border-color: #007bff;
-            }
-            
-            .action-btn.primary:hover {
-                background: #0056b3;
-                border-color: #0056b3;
-            }
-            
-            .action-btn i {
-                font-size: 24px;
-            }
-            
-            .action-btn span {
-                font-size: 14px;
-                font-weight: 500;
-            }
-            
-            .last-update {
-                padding: 12px 20px;
-                background: #f8f9fa;
-                text-align: center;
-                font-size: 12px;
-                color: #6c757d;
-                border-top: 1px solid #e9ecef;
-            }
-            
-            @media (max-width: 480px) {
-                .action-buttons-grid {
-                    grid-template-columns: 1fr;
-                }
-            }
-            </style>
         `;
     }
     
@@ -2146,7 +1560,7 @@
         
         // Type change updates carriers
         typeSelect.addEventListener('change', () => {
-            updateCarrierWithShipsGoData(typeSelect.value);
+            updateCarrierOptions(typeSelect.value);
         });
         
         // Example buttons
@@ -2161,7 +1575,7 @@
         form.addEventListener('submit', handleEnhancedSubmit);
         
         // Initialize carriers
-        updateCarrierWithShipsGoData('auto');
+        updateCarrierOptions('auto');
     }
     
     function setupImportInteractions() {
@@ -2245,7 +1659,7 @@
             
             // Auto-update form fields
             document.getElementById('enh_trackingType').value = type;
-            updateCarrierWithShipsGoData(type);
+            updateCarrierOptions(type);
             
             if (carrier) {
                 setTimeout(() => {
@@ -2254,19 +1668,6 @@
             }
         } else {
             showDetectionError();
-        }
-        
-        // Verifica se il container esiste già
-        const containerPattern = /^[A-Z]{4}\d{7}$/;
-        if (containerPattern.test(trackingNumber.trim().toUpperCase())) {
-            // Ritarda un po' per non interferire con la digitazione
-            clearTimeout(window.existingCheckTimeout);
-            window.existingCheckTimeout = setTimeout(async () => {
-                const exists = await QuickContainerActions.checkAndShowActions(trackingNumber.trim().toUpperCase());
-                if (exists) {
-                    console.log('Container già presente nel sistema');
-                }
-            }, 1500);
         }
     }
     
@@ -2300,212 +1701,104 @@
         }
     }
     
-    // ========================================
-    // NUOVE FUNZIONI PER CARRIERS CON SHIPSGO
-    // ========================================
-    
-    async function updateCarrierWithShipsGoData(type) {
+    function updateCarrierOptions(type) {
         const select = document.getElementById('enh_carrier');
         if (!select) return;
         
-        // Clear current options
-        select.innerHTML = '<option value="">Seleziona vettore...</option>';
+        select.innerHTML = '<option value="">Seleziona automaticamente</option>';
         
-        // Se abbiamo il tracking service con API keys, usa i dati live
-        if (window.trackingService && window.trackingService.hasApiKeys()) {
-            try {
-                // Mostra loading
-                select.innerHTML = '<option value="">Caricamento vettori...</option>';
-                select.disabled = true;
-                
-                let carriers = [];
-                
-                if (type === 'container' || type === 'bl') {
-                    // Ottieni shipping lines da ShipsGo
-                    const response = await fetch('/netlify/functions/shipsgo-proxy', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            version: 'v1.2',
-                            endpoint: '/ContainerService/GetShippingLineList',
-                            method: 'GET'
-                        })
-                    });
-                    
-                    const result = await response.json();
-                    if (result.success && Array.isArray(result.data)) {
-                        carriers = result.data.map(line => ({
-                            code: line.ShippingLineCode || line.Code,
-                            name: line.ShippingLineName || line.Name
-                        }));
-                    }
-                } else if (type === 'awb') {
-                    // Ottieni airlines da ShipsGo v2
-                    const response = await fetch('/netlify/functions/shipsgo-proxy', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            version: 'v2',
-                            endpoint: '/air/airlines',
-                            method: 'GET'
-                        })
-                    });
-                    
-                    const result = await response.json();
-                    if (result.success && Array.isArray(result.data)) {
-                        carriers = result.data.map(airline => ({
-                            code: airline.AirlineCode || airline.Code,
-                            name: airline.AirlineName || airline.Name
-                        }));
-                    }
-                }
-                
-                // Riabilita select
-                select.disabled = false;
-                select.innerHTML = '<option value="">Seleziona vettore...</option>';
-                
-                // Aggiungi opzioni
-                if (carriers.length > 0) {
-                    // Ordina alfabeticamente
-                    carriers.sort((a, b) => a.name.localeCompare(b.name));
-                    
-                    // Crea optgroup per i più comuni
-                    const commonCarriers = getCommonCarriers(type);
-                    const commonCodes = commonCarriers.map(c => c.code);
-                    
-                    // Vettori comuni
-                    const optgroupCommon = document.createElement('optgroup');
-                    optgroupCommon.label = '⭐ Più utilizzati';
-                    
-                    commonCarriers.forEach(carrier => {
-                        const found = carriers.find(c => c.code === carrier.code);
-                        if (found) {
-                            const option = document.createElement('option');
-                            option.value = found.code;
-                            option.textContent = found.name;
-                            optgroupCommon.appendChild(option);
-                        }
-                    });
-                    
-                    if (optgroupCommon.children.length > 0) {
-                        select.appendChild(optgroupCommon);
-                    }
-                    
-                    // Altri vettori
-                    const optgroupOthers = document.createElement('optgroup');
-                    optgroupOthers.label = '📋 Tutti i vettori';
-                    
-                    carriers.forEach(carrier => {
-                        if (!commonCodes.includes(carrier.code)) {
-                            const option = document.createElement('option');
-                            option.value = carrier.code;
-                            option.textContent = carrier.name;
-                            optgroupOthers.appendChild(option);
-                        }
-                    });
-                    
-                    if (optgroupOthers.children.length > 0) {
-                        select.appendChild(optgroupOthers);
-                    }
-                    
-                    console.log(`✅ Caricati ${carriers.length} vettori da ShipsGo`);
-                } else {
-                    // Fallback ai vettori statici
-                    populateStaticCarriers(type);
-                }
-                
-            } catch (error) {
-                console.error('Error loading carriers from ShipsGo:', error);
-                // Fallback ai vettori statici
-                select.disabled = false;
-                populateStaticCarriers(type);
-            }
-        } else {
-            // Usa vettori statici se non ci sono API keys
-            populateStaticCarriers(type);
-        }
-    }
-    
-    function populateStaticCarriers(type) {
-        const select = document.getElementById('enh_carrier');
         const carriers = getCarriersByType(type);
-        
-        if (carriers.length > 0) {
-            // Crea optgroup
-            const optgroup = document.createElement('optgroup');
-            optgroup.label = type === 'container' ? '🚢 Marittimi' : 
-                             type === 'awb' ? '✈️ Aerei' : '📦 Express';
-            
-            carriers.forEach(carrier => {
-                const option = document.createElement('option');
-                option.value = carrier.code;
-                option.textContent = `${carrier.code} - ${carrier.name}`;
-                optgroup.appendChild(option);
-            });
-            
-            select.appendChild(optgroup);
-        }
+        carriers.forEach(carrier => {
+            const option = document.createElement('option');
+            option.value = carrier.code;
+            option.textContent = `${carrier.code} - ${carrier.name}`;
+            select.appendChild(option);
+        });
     }
     
-    function getCommonCarriers(type) {
-        if (type === 'container' || type === 'bl') {
+    function getCarriersByType(type) {
+        if (type === 'container') {
             return [
                 { code: 'MSK', name: 'Maersk Line' },
                 { code: 'MSC', name: 'Mediterranean Shipping Company' },
-                { code: 'CMA CGM', name: 'CMA CGM' },
-                { code: 'COSCO', name: 'COSCO Shipping Lines' },
-                { code: 'HAPAG-LLOYD', name: 'Hapag-Lloyd' }
+                { code: 'HAPAG-LLOYD', name: 'Hapag-Lloyd' },
+                { code: 'EVERGREEN', name: 'Evergreen Marine' },
+                { code: 'COSCO', name: 'COSCO Shipping Lines' }
             ];
         } else if (type === 'awb') {
             return [
-                { code: 'CV', name: 'Cargolux' },
-                { code: 'LH', name: 'Lufthansa Cargo' },
-                { code: 'EK', name: 'Emirates SkyCargo' },
-                { code: 'QR', name: 'Qatar Airways Cargo' },
-                { code: 'TK', name: 'Turkish Cargo' }
+                { code: 'LUFTHANSA', name: 'Lufthansa Cargo' },
+                { code: 'EMIRATES', name: 'Emirates SkyCargo' },
+                { code: 'FEDEX', name: 'FedEx' },
+                { code: 'UPS', name: 'UPS' },
+                { code: 'DHL', name: 'DHL Express' }
             ];
         }
         return [];
     }
     
-    function getCarriersByType(type) {
-        const carriers = {
-            container: [
-                { code: 'MSK', name: 'Maersk Line' },
-                { code: 'MSC', name: 'Mediterranean Shipping Company' },
-                { code: 'CMA CGM', name: 'CMA CGM' },
-                { code: 'COSCO', name: 'COSCO Shipping Lines' },
-                { code: 'HAPAG-LLOYD', name: 'Hapag-Lloyd' },
-                { code: 'ONE', name: 'Ocean Network Express' },
-                { code: 'EVERGREEN', name: 'Evergreen Line' },
-                { code: 'YML', name: 'Yang Ming Line' },
-                { code: 'ZIM', name: 'ZIM Integrated Shipping' }
-            ],
-            awb: [
-                { code: 'CV', name: 'Cargolux' },
-                { code: 'LH', name: 'Lufthansa Cargo' },
-                { code: 'EK', name: 'Emirates SkyCargo' },
-                { code: 'QR', name: 'Qatar Airways Cargo' },
-                { code: 'TK', name: 'Turkish Cargo' },
-                { code: 'CX', name: 'Cathay Pacific Cargo' },
-                { code: 'SQ', name: 'Singapore Airlines Cargo' },
-                { code: 'AF', name: 'Air France Cargo' }
-            ],
-            bl: [
-                { code: 'MSK', name: 'Maersk Line' },
-                { code: 'MSC', name: 'Mediterranean Shipping Company' },
-                { code: 'CMA CGM', name: 'CMA CGM' }
-            ],
-            parcel: [
-                { code: 'DHL', name: 'DHL Express' },
-                { code: 'UPS', name: 'UPS' },
-                { code: 'FEDEX', name: 'FedEx' },
-                { code: 'TNT', name: 'TNT Express' }
-            ]
-        };
+    // ========================================
+    // FILE IMPORT LOGIC
+    // ========================================
+    
+    function handleFileSelect(file) {
+        console.log('📁 File selected:', file.name);
         
-        return carriers[type] || carriers.container;
+        // Validate file type
+        const validTypes = [
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'application/vnd.ms-excel',
+            'text/csv'
+        ];
+        
+        if (!validTypes.includes(file.type) && !file.name.match(/\.(xlsx|xls|csv)$/i)) {
+            alert('Tipo file non supportato. Usa .xlsx, .xls o .csv');
+            return;
+        }
+        
+        // Store for later processing
+        pendingImport = { file };
+        
+        // Show preview/confirmation
+        showImportPreview(file);
     }
+    
+    function showImportPreview(file) {
+        // Use existing ImportManager for preview
+        if (window.ImportManager && window.ImportManager.showPreview) {
+            window.ImportManager.showPreview(file, {
+                onConfirm: () => confirmImport(),
+                onCancel: () => { pendingImport = null; }
+            });
+        } else {
+            // Fallback to direct import
+            confirmImport();
+        }
+    }
+    
+    window.confirmImport = async function() {
+        if (!pendingImport) return;
+        
+        // Close modal
+        closeCustomModal();
+        
+        // Use ImportManager to process
+        try {
+            await window.ImportManager.importFile(pendingImport.file, {
+                updateExisting: false,
+                shipsgoType: 'auto'
+            });
+        } catch (error) {
+            console.error('Import error:', error);
+            if (window.notificationSystem) {
+                window.notificationSystem.error('Errore durante l\'import: ' + error.message);
+            } else {
+                alert('Errore durante l\'import: ' + error.message);
+            }
+        }
+        
+        pendingImport = null;
+    };
     
     // ========================================
     // FORM SUBMISSION
@@ -2514,456 +1807,178 @@
     async function handleEnhancedSubmit(e) {
         e.preventDefault();
         
-        const btn = document.getElementById('enhSubmitBtn');
-        const originalText = btn.innerHTML;
-        btn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Elaborazione...';
-        btn.disabled = true;
+        const submitBtn = document.getElementById('enhSubmitBtn');
+        const originalText = submitBtn.innerHTML;
         
-        try {
-            // Collect form data
-            const formData = {
-                trackingNumber: document.getElementById('enh_trackingNumber').value,
-                trackingType: document.getElementById('enh_trackingType').value,
-                carrier: document.getElementById('enh_carrier').value,
-                origin: document.getElementById('enh_origin').value,
-                destination: document.getElementById('enh_destination').value,
-                status: document.getElementById('enh_status').value,
-                reference: document.getElementById('enh_reference').value,
-                useApi: document.getElementById('enh_useApi').checked
-            };
-            
-            // Show workflow modal
-            showWorkflowModal();
-            
-            // Process tracking
-            const result = await processEnhancedTracking(formData);
-            
-            if (result.success) {
-                updateWorkflowStep(2, 'completed', 'Completato');
-                showWorkflowResult(true, result.message);
-                
-                // Close modal after success
-                setTimeout(() => {
-                    closeAllModals();
-                    if (window.refreshTrackingList) {
-                        window.refreshTrackingList();
-                    }
-                }, 2000);
+        // Get form data
+        const formData = {
+            tracking_number: document.getElementById('enh_trackingNumber').value.trim().toUpperCase(),
+            tracking_type: document.getElementById('enh_trackingType').value,
+            carrier_code: document.getElementById('enh_carrier').value,
+            origin_port: document.getElementById('enh_origin').value.toUpperCase(),
+            destination_port: document.getElementById('enh_destination').value.toUpperCase(),
+            reference_number: document.getElementById('enh_reference').value,
+            status: document.getElementById('enh_status').value,
+            use_api: document.getElementById('enh_useApi').checked,
+            created_at: new Date().toISOString()
+        };
+        
+        // Validation
+        if (!formData.tracking_number) {
+            if (window.notificationSystem) {
+                window.notificationSystem.error('Inserisci il numero di tracking');
             } else {
-                updateWorkflowStep(2, 'error', 'Errore');
-                showWorkflowResult(false, result.message);
+                alert('Inserisci il numero di tracking');
             }
-        } catch (error) {
-            console.error('Submit error:', error);
-            updateWorkflowStep(2, 'error', 'Errore');
-            showWorkflowResult(false, error.message);
-        } finally {
-            btn.innerHTML = originalText;
-            btn.disabled = false;
-        }
-    }
-    
-    async function processEnhancedTracking(formData) {
-        updateWorkflowStep(0, 'completed', 'Validato');
-        
-        // If using API, fetch live data
-        if (formData.useApi && window.trackingService) {
-            updateWorkflowStep(1, 'pending', 'Recupero dati...');
-            
-            try {
-                const apiData = await window.trackingService.getTrackingInfo(
-                    formData.trackingNumber,
-                    formData.trackingType
-                );
-                
-                if (apiData.success) {
-                    // Merge API data with form data
-                    Object.assign(formData, apiData.data);
-                    updateWorkflowStep(1, 'completed', 'Dati recuperati');
-                } else {
-                    updateWorkflowStep(1, 'completed', 'Dati manuali');
-                }
-            } catch (error) {
-                console.warn('API fetch failed, using manual data:', error);
-                updateWorkflowStep(1, 'completed', 'Dati manuali');
-            }
-        } else {
-            updateWorkflowStep(1, 'completed', 'Dati manuali');
-        }
-        
-        // Save tracking
-        updateWorkflowStep(2, 'pending', 'Salvataggio...');
-        
-        if (window.trackingManager) {
-            return await window.trackingManager.addTracking(formData);
-        } else {
-            // Fallback to localStorage
-            const trackings = JSON.parse(localStorage.getItem('trackings') || '[]');
-            trackings.push({
-                ...formData,
-                id: Date.now(),
-                createdAt: new Date().toISOString()
-            });
-            localStorage.setItem('trackings', JSON.stringify(trackings));
-            return { success: true, message: 'Tracking aggiunto con successo!' };
-        }
-    }
-    
-    // ========================================
-    // FILE IMPORT
-    // ========================================
-    
-    async function handleFileSelect(file) {
-        if (!window.ImportManager) {
-            showErrorModal(
-                'Import non disponibile',
-                'Il modulo di import non è ancora caricato. Riprova tra qualche istante.',
-                'warning'
-            );
             return;
         }
         
-        try {
-            const result = await window.ImportManager.handleImport(file);
-            if (result.success) {
-                closeCustomModal();
-                if (window.refreshTrackingList) {
-                    window.refreshTrackingList();
-                }
+        // Check duplicates
+        if (window.trackings?.find(t => t.tracking_number === formData.tracking_number)) {
+            if (window.notificationSystem) {
+                window.notificationSystem.error('Questo tracking è già presente nel sistema');
+            } else {
+                alert('Questo tracking è già presente nel sistema');
             }
+            return;
+        }
+        
+        // Show loading
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Aggiunta in corso...';
+        
+        try {
+            let trackingData = { ...formData };
+            
+            // Try API if enabled
+            if (formData.use_api && window.trackingService?.track) {
+                try {
+                    const apiResult = await window.trackingService.track(
+                        formData.tracking_number,
+                        formData.tracking_type === 'auto' ? undefined : formData.tracking_type
+                    );
+                    
+                    if (apiResult.success) {
+                        // Merge API data with form data
+                        trackingData = {
+                            ...trackingData,
+                            ...apiResult.data,
+                            id: Date.now().toString(),
+                            // Preserve user inputs
+                            reference_number: formData.reference_number || apiResult.data.reference_number,
+                            metadata: {
+                                ...apiResult.metadata,
+                                source: 'enhanced_form',
+                                api_used: true
+                            }
+                        };
+                    }
+                } catch (apiError) {
+                    console.warn('API call failed, using manual data:', apiError);
+                    trackingData.metadata = { 
+                        source: 'enhanced_form', 
+                        api_used: false,
+                        api_error: apiError.message 
+                    };
+                }
+            } else {
+                trackingData.id = Date.now().toString();
+                trackingData.metadata = { 
+                    source: 'enhanced_form', 
+                    api_used: false 
+                };
+            }
+            
+            // Add to trackings array
+            if (!window.trackings) window.trackings = [];
+            window.trackings.push(trackingData);
+            
+            // Save to localStorage
+            localStorage.setItem('trackings', JSON.stringify(window.trackings));
+            
+            // Close modal
+            closeCustomModal();
+            
+            // Show success
+            if (window.notificationSystem) {
+                window.notificationSystem.success(
+                    trackingData.metadata.api_used 
+                        ? '✅ Tracking aggiunto con dati real-time!' 
+                        : '✅ Tracking aggiunto con successo!'
+                );
+            } else {
+                alert('Tracking aggiunto con successo!');
+            }
+            
+            // Refresh table if available
+            if (window.renderTrackingTable) {
+                window.renderTrackingTable();
+            }
+            if (window.updateStats) {
+                window.updateStats();
+            }
+            
         } catch (error) {
-            console.error('Import error:', error);
-            showErrorModal(
-                'Errore import',
-                error.message,
-                'error'
-            );
+            console.error('Submit error:', error);
+            if (window.notificationSystem) {
+                window.notificationSystem.error('Errore durante l\'aggiunta: ' + error.message);
+            } else {
+                alert('Errore durante l\'aggiunta: ' + error.message);
+            }
+        } finally {
+            // Restore button
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = originalText;
         }
     }
     
     // ========================================
-    // UI HELPERS
-    // ========================================
-    
-    function showWorkflowModal() {
-        const overlay = document.createElement('div');
-        overlay.className = 'workflow-modal-overlay';
-        overlay.innerHTML = `
-            <div class="workflow-modal">
-                <h3>🚀 Elaborazione Tracking</h3>
-                <div class="workflow-container">
-                    <div class="workflow-step" data-step="0">
-                        <div class="step-icon">📋</div>
-                        <div class="step-content">
-                            <h4>Validazione</h4>
-                            <p>Controllo dati inseriti</p>
-                            <span class="step-status pending">In corso...</span>
-                        </div>
-                    </div>
-                    
-                    <div class="workflow-arrow">→</div>
-                    
-                    <div class="workflow-step" data-step="1">
-                        <div class="step-icon">🔄</div>
-                        <div class="step-content">
-                            <h4>API Check</h4>
-                            <p>Recupero dati live</p>
-                            <span class="step-status waiting">In attesa</span>
-                        </div>
-                    </div>
-                    
-                    <div class="workflow-arrow">→</div>
-                    
-                    <div class="workflow-step" data-step="2">
-                        <div class="step-icon">💾</div>
-                        <div class="step-content">
-                            <h4>Salvataggio</h4>
-                            <p>Registrazione tracking</p>
-                            <span class="step-status waiting">In attesa</span>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="workflow-result" style="display: none;">
-                    <!-- Result will be injected here -->
-                </div>
-            </div>
-        `;
-        
-        document.body.appendChild(overlay);
-        setTimeout(() => overlay.classList.add('active'), 10);
-    }
-    
-    function updateWorkflowStep(stepIndex, status, statusText) {
-        const step = document.querySelector(`[data-step="${stepIndex}"]`);
-        if (!step) return;
-        
-        step.className = `workflow-step ${status}`;
-        const statusEl = step.querySelector('.step-status');
-        statusEl.className = `step-status ${status === 'completed' ? 'success' : status === 'error' ? 'error' : status}`;
-        statusEl.textContent = statusText;
-    }
-    
-    function showWorkflowResult(success, message) {
-        const resultDiv = document.querySelector('.workflow-result');
-        if (!resultDiv) return;
-        
-        resultDiv.innerHTML = success ? `
-            <div class="result-success">
-                <i class="fas fa-check-circle"></i>
-                <div>
-                    <h4>Operazione completata!</h4>
-                    <p>${message}</p>
-                </div>
-            </div>
-        ` : `
-            <div class="result-error">
-                <i class="fas fa-exclamation-circle"></i>
-                <div>
-                    <h4>Operazione fallita</h4>
-                    <p>${message}</p>
-                </div>
-            </div>
-        `;
-        
-        resultDiv.style.display = 'block';
-        
-        // Add close button
-        const closeBtn = document.createElement('button');
-        closeBtn.className = 'workflow-close';
-        closeBtn.textContent = 'Chiudi';
-        closeBtn.onclick = closeAllModals;
-        resultDiv.appendChild(closeBtn);
-    }
-    
-    function showErrorModal(title, message, type = 'error') {
-        const overlay = document.createElement('div');
-        overlay.className = 'error-modal-overlay';
-        
-        const iconMap = {
-            info: 'fa-info-circle',
-            warning: 'fa-exclamation-triangle',
-            error: 'fa-exclamation-circle'
-        };
-        
-        overlay.innerHTML = `
-            <div class="error-modal ${type}">
-                <div class="error-icon">
-                    <i class="fas ${iconMap[type]}"></i>
-                </div>
-                <div class="error-content">
-                    <h3>${title}</h3>
-                    <p>${message}</p>
-                </div>
-                <div class="error-actions">
-                    <button class="error-close-btn" onclick="this.closest('.error-modal-overlay').remove()">
-                        Chiudi
-                    </button>
-                </div>
-            </div>
-        `;
-        
-        document.body.appendChild(overlay);
-        setTimeout(() => overlay.classList.add('active'), 10);
-    }
-    
-    function closeAllModals() {
-        document.querySelectorAll('.workflow-modal-overlay, .error-modal-overlay').forEach(el => {
-            el.classList.remove('active');
-            setTimeout(() => el.remove(), 300);
-        });
-        closeCustomModal();
-    }
-    
-    // ========================================
-    // PREFILL FORM
+    // UTILITIES
     // ========================================
     
     function prefillForm(data) {
-        if (data.trackingNumber) {
-            document.getElementById('enh_trackingNumber').value = data.trackingNumber;
+        if (data.tracking_number) {
+            document.getElementById('enh_trackingNumber').value = data.tracking_number;
         }
-        if (data.trackingType) {
-            document.getElementById('enh_trackingType').value = data.trackingType;
-            updateCarrierWithShipsGoData(data.trackingType);
+        if (data.tracking_type) {
+            document.getElementById('enh_trackingType').value = data.tracking_type;
         }
-        if (data.carrier) {
-            setTimeout(() => {
-                document.getElementById('enh_carrier').value = data.carrier;
-            }, 500);
+        if (data.carrier_code) {
+            document.getElementById('enh_carrier').value = data.carrier_code;
         }
-        if (data.origin) {
-            document.getElementById('enh_origin').value = data.origin;
+        if (data.origin_port) {
+            document.getElementById('enh_origin').value = data.origin_port;
         }
-        if (data.destination) {
-            document.getElementById('enh_destination').value = data.destination;
+        if (data.destination_port) {
+            document.getElementById('enh_destination').value = data.destination_port;
         }
-        if (data.status) {
-            document.getElementById('enh_status').value = data.status;
-        }
-        if (data.reference) {
-            document.getElementById('enh_reference').value = data.reference;
+        if (data.reference_number) {
+            document.getElementById('enh_reference').value = data.reference_number;
         }
     }
-    
-    // ========================================
-    // SETTINGS TOGGLE
-    // ========================================
     
     function addEnhancedToggle() {
-        // Add toggle to settings if settings module exists
-        if (window.SettingsManager) {
-            window.SettingsManager.addSetting({
-                id: 'enableEnhancedTracking',
-                label: 'Form Tracking Enhanced',
-                type: 'toggle',
-                defaultValue: true,
-                onChange: (value) => {
-                    localStorage.setItem('enableEnhancedTracking', value);
-                    if (!value) {
-                        alert('Ricarica la pagina per tornare al form classico');
-                    }
+        // Aggiungi opzione nelle impostazioni per abilitare/disabilitare
+        console.log('✅ Enhanced tracking form toggle can be added to settings');
+        
+        // Quick toggle for testing (solo in sviluppo)
+        if (window.location.hostname === 'localhost' || window.location.search.includes('debug=true')) {
+            // Aggiungi toggle temporaneo
+            setTimeout(() => {
+                if (document.querySelector('.page-actions') && !document.getElementById('enhancedToggle')) {
+                    const toggle = document.createElement('button');
+                    toggle.id = 'enhancedToggle';
+                    toggle.className = 'btn btn-sm btn-outline-secondary';
+                    toggle.innerHTML = '🚀 Enhanced: ' + (ENABLE_ENHANCED ? 'ON' : 'OFF');
+                    toggle.onclick = () => {
+                        const newState = localStorage.getItem('enableEnhancedTracking') !== 'false' ? 'false' : 'true';
+                        localStorage.setItem('enableEnhancedTracking', newState);
+                        location.reload();
+                    };
+                    document.querySelector('.page-actions').appendChild(toggle);
                 }
-            });
+            }, 1000);
         }
     }
-    
-    // ========================================
-    // QUICK CONTAINER ACTIONS INTEGRATION
-    // ========================================
-    
-    window.QuickContainerActions = {
-        async checkAndShowActions(containerNumber) {
-            // Verifica se il container esiste già nel sistema
-            if (!window.trackingManager) return false;
-            
-            const existingContainer = await window.trackingManager.findByNumber(containerNumber);
-            if (existingContainer) {
-                this.showQuickActionsModal(existingContainer);
-                return true;
-            }
-            return false;
-        },
-        
-        showQuickActionsModal(container) {
-            const overlay = document.createElement('div');
-            overlay.className = 'quick-actions-overlay';
-            
-            const statusClass = `status-${container.status || 'registered'}`;
-            const statusLabels = {
-                registered: 'Registrato',
-                in_transit: 'In Transito',
-                arrived: 'Arrivato',
-                customs_cleared: 'Sdoganato',
-                delivered: 'Consegnato'
-            };
-            
-            overlay.innerHTML = `
-                <div class="quick-actions-modal">
-                    <div class="quick-actions-header">
-                        <h3>🚢 Container Già Presente</h3>
-                        <button class="quick-close" onclick="this.closest('.quick-actions-overlay').remove()">
-                            <i class="fas fa-times"></i>
-                        </button>
-                    </div>
-                    
-                    <div class="container-info">
-                        <div class="info-main">
-                            <span class="container-number">${container.trackingNumber}</span>
-                            <span class="container-status ${statusClass}">
-                                ${statusLabels[container.status] || container.status}
-                            </span>
-                        </div>
-                        
-                        <div class="info-row">
-                            <span class="info-label">Vettore:</span>
-                            <span class="info-value">${container.carrier || '-'}</span>
-                        </div>
-                        
-                        <div class="info-row">
-                            <span class="info-label">Origine:</span>
-                            <span class="info-value">${container.origin || '-'}</span>
-                        </div>
-                        
-                        <div class="info-row">
-                            <span class="info-label">Destinazione:</span>
-                            <span class="info-value">${container.destination || '-'}</span>
-                        </div>
-                        
-                        <div class="info-row">
-                            <span class="info-label">Riferimento:</span>
-                            <span class="info-value">${container.reference || '-'}</span>
-                        </div>
-                    </div>
-                    
-                    <div class="quick-actions">
-                        <h4>Azioni Rapide</h4>
-                        <div class="action-buttons-grid">
-                            <button class="action-btn primary" onclick="QuickContainerActions.viewDetails('${container.id}')">
-                                <i class="fas fa-eye"></i>
-                                <span>Visualizza Dettagli</span>
-                            </button>
-                            
-                            <button class="action-btn" onclick="QuickContainerActions.updateStatus('${container.id}')">
-                                <i class="fas fa-sync"></i>
-                                <span>Aggiorna Stato</span>
-                            </button>
-                            
-                            <button class="action-btn" onclick="QuickContainerActions.viewEvents('${container.id}')">
-                                <i class="fas fa-history"></i>
-                                <span>Timeline Eventi</span>
-                            </button>
-                            
-                            <button class="action-btn" onclick="QuickContainerActions.addNote('${container.id}')">
-                                <i class="fas fa-sticky-note"></i>
-                                <span>Aggiungi Nota</span>
-                            </button>
-                        </div>
-                    </div>
-                    
-                    <div class="last-update">
-                        Ultimo aggiornamento: ${new Date(container.updatedAt || container.createdAt).toLocaleString('it-IT')}
-                    </div>
-                </div>
-            `;
-            
-            document.body.appendChild(overlay);
-            setTimeout(() => overlay.classList.add('active'), 10);
-        },
-        
-        viewDetails(containerId) {
-            // Close modal and navigate to details
-            document.querySelector('.quick-actions-overlay').remove();
-            closeCustomModal();
-            if (window.location.pathname !== '/tracking-details.html') {
-                window.location.href = `/tracking-details.html?id=${containerId}`;
-            }
-        },
-        
-        updateStatus(containerId) {
-            // Trigger status update
-            document.querySelector('.quick-actions-overlay').remove();
-            if (window.trackingService) {
-                window.trackingService.forceUpdate(containerId);
-            }
-        },
-        
-        viewEvents(containerId) {
-            // Show events timeline
-            document.querySelector('.quick-actions-overlay').remove();
-            closeCustomModal();
-            if (window.EventsViewer) {
-                window.EventsViewer.show(containerId);
-            }
-        },
-        
-        addNote(containerId) {
-            // Show note dialog
-            document.querySelector('.quick-actions-overlay').remove();
-            if (window.NotesManager) {
-                window.NotesManager.showAddNote(containerId);
-            }
-        }
-    };
     
 })();

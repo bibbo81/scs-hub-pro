@@ -1,0 +1,744 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Phase 3 - ShipsGo Integration</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        
+        .test-section {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .test-section h2 {
+            margin-top: 0;
+            color: #007bff;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .test-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 16px;
+            margin-top: 20px;
+        }
+        
+        .test-card {
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 16px;
+            transition: all 0.3s ease;
+        }
+        
+        .test-card:hover {
+            border-color: #007bff;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,123,255,0.15);
+        }
+        
+        .test-card h3 {
+            margin: 0 0 12px 0;
+            color: #333;
+            font-size: 16px;
+        }
+        
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            width: 100%;
+            margin-top: 10px;
+        }
+        
+        button:hover {
+            background: #0056b3;
+            transform: translateY(-1px);
+        }
+        
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .status {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            display: inline-block;
+            margin-top: 8px;
+        }
+        
+        .status.success {
+            background: #d4f4dd;
+            color: #28a745;
+        }
+        
+        .status.error {
+            background: #ffebee;
+            color: #dc3545;
+        }
+        
+        .status.pending {
+            background: #fff3cd;
+            color: #856404;
+        }
+        
+        .result-box {
+            background: #f8f9fa;
+            border-radius: 6px;
+            padding: 12px;
+            margin-top: 12px;
+            font-size: 13px;
+            color: #666;
+            display: none;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        
+        .result-box.show {
+            display: block;
+        }
+        
+        .result-box pre {
+            margin: 0;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+        
+        .test-input {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin: 8px 0;
+            font-size: 14px;
+        }
+        
+        .test-input:focus {
+            outline: none;
+            border-color: #007bff;
+            box-shadow: 0 0 0 3px rgba(0,123,255,0.1);
+        }
+        
+        .info-box {
+            background: #e3f2fd;
+            border: 1px solid #2196f3;
+            border-radius: 6px;
+            padding: 16px;
+            margin-bottom: 20px;
+        }
+        
+        .info-box h3 {
+            margin: 0 0 8px 0;
+            color: #1976d2;
+        }
+        
+        .info-box ul {
+            margin: 8px 0;
+            padding-left: 20px;
+        }
+        
+        .test-containers {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-top: 8px;
+        }
+        
+        .container-tag {
+            background: #e0e0e0;
+            padding: 4px 12px;
+            border-radius: 16px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .container-tag:hover {
+            background: #007bff;
+            color: white;
+        }
+        
+        .log-area {
+            background: #263238;
+            color: #aed581;
+            padding: 16px;
+            border-radius: 6px;
+            font-family: 'Monaco', 'Consolas', monospace;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+            margin-top: 20px;
+        }
+        
+        .log-entry {
+            margin-bottom: 4px;
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+        }
+        
+        .log-time {
+            color: #64b5f6;
+            white-space: nowrap;
+        }
+        
+        .log-message {
+            flex: 1;
+        }
+        
+        .log-error {
+            color: #ff5252;
+        }
+        
+        .log-success {
+            color: #69f0ae;
+        }
+        
+        .log-warning {
+            color: #ffd54f;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 Test Suite - Phase 3 ShipsGo Integration</h1>
+        
+        <div class="info-box">
+            <h3>📋 Test Prerequisites</h3>
+            <ul>
+                <li>API ShipsGo configurate in Settings</li>
+                <li>Proxy Netlify functions attive su <code>/api/*</code></li>
+                <li>tracking-service.js con endpoint corretti</li>
+                <li>tracking-form-progressive.js aggiornato</li>
+            </ul>
+        </div>
+        
+        <!-- Test 1: API Connection -->
+        <div class="test-section">
+            <h2>🔌 Test 1: Connessione API</h2>
+            <div class="test-grid">
+                <div class="test-card">
+                    <h3>ShipsGo v1.2 (Container)</h3>
+                    <button onclick="testAPIConnection('v1')">Test Connessione</button>
+                    <div id="v1-status" class="status pending">Non testato</div>
+                    <div id="v1-result" class="result-box"></div>
+                </div>
+                
+                <div class="test-card">
+                    <h3>ShipsGo v2.0 (Air)</h3>
+                    <button onclick="testAPIConnection('v2')">Test Connessione</button>
+                    <div id="v2-status" class="status pending">Non testato</div>
+                    <div id="v2-result" class="result-box"></div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Test 2: Shipping Lines -->
+        <div class="test-section">
+            <h2>🚢 Test 2: Caricamento Shipping Lines</h2>
+            <div class="test-grid">
+                <div class="test-card">
+                    <h3>Get Shipping Lines List</h3>
+                    <button onclick="testShippingLines()">Carica Lista Vettori</button>
+                    <div id="lines-status" class="status pending">Non testato</div>
+                    <div id="lines-result" class="result-box"></div>
+                </div>
+                
+                <div class="test-card">
+                    <h3>Get Airlines List</h3>
+                    <button onclick="testAirlines()">Carica Lista Airlines</button>
+                    <div id="airlines-status" class="status pending">Non testato</div>
+                    <div id="airlines-result" class="result-box"></div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Test 3: Workflow POST->GET -->
+        <div class="test-section">
+            <h2>🔄 Test 3: Workflow POST → GET</h2>
+            <div class="test-card">
+                <h3>Test Container Workflow Completo</h3>
+                <input type="text" 
+                       id="test-container" 
+                       class="test-input" 
+                       placeholder="Inserisci container (es: MSKU1234567)"
+                       value="MSKU9876543">
+                
+                <div class="test-containers">
+                    <span class="container-tag" onclick="setTestContainer('MSKU9876543')">MSKU9876543</span>
+                    <span class="container-tag" onclick="setTestContainer('MSCU1234567')">MSCU1234567</span>
+                    <span class="container-tag" onclick="setTestContainer('HLCU7654321')">HLCU7654321</span>
+                </div>
+                
+                <button onclick="testWorkflow()">▶️ Avvia Test Workflow</button>
+                <div id="workflow-status" class="status pending">Non testato</div>
+                <div id="workflow-result" class="result-box"></div>
+            </div>
+        </div>
+        
+        <!-- Test 4: Error Handling -->
+        <div class="test-section">
+            <h2>⚠️ Test 4: Gestione Errori</h2>
+            <div class="test-grid">
+                <div class="test-card">
+                    <h3>Container Già Esistente</h3>
+                    <button onclick="testExistingContainer()">Test Error ALREADY_EXISTS</button>
+                    <div id="existing-status" class="status pending">Non testato</div>
+                </div>
+                
+                <div class="test-card">
+                    <h3>Formato Non Valido</h3>
+                    <button onclick="testInvalidFormat()">Test Error INVALID_FORMAT</button>
+                    <div id="format-status" class="status pending">Non testato</div>
+                </div>
+                
+                <div class="test-card">
+                    <h3>Rate Limit</h3>
+                    <button onclick="testRateLimit()">Test Error RATE_LIMIT</button>
+                    <div id="rate-status" class="status pending">Non testato</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Test 5: UI Components -->
+        <div class="test-section">
+            <h2>🎨 Test 5: Componenti UI</h2>
+            <div class="test-grid">
+                <div class="test-card">
+                    <h3>Enhanced Form Modal</h3>
+                    <button onclick="testEnhancedForm()">Apri Form Enhanced</button>
+                    <div id="form-status" class="status pending">Non testato</div>
+                </div>
+                
+                <div class="test-card">
+                    <h3>Workflow Visualization</h3>
+                    <button onclick="testWorkflowVisualization()">Test Workflow UI</button>
+                    <div id="workflow-ui-status" class="status pending">Non testato</div>
+                </div>
+                
+                <div class="test-card">
+                    <h3>Quick Actions Modal</h3>
+                    <button onclick="testQuickActions()">Test Quick Actions</button>
+                    <div id="quick-status" class="status pending">Non testato</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Live Log -->
+        <div class="test-section">
+            <h2>📜 Live Log</h2>
+            <div class="log-area" id="logArea">
+                <div class="log-entry">
+                    <span class="log-time">[00:00:00]</span>
+                    <span class="log-message">Test suite inizializzato. Pronto per i test.</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Logging utility
+        function log(message, type = 'info') {
+            const logArea = document.getElementById('logArea');
+            const now = new Date();
+            const time = now.toTimeString().split(' ')[0];
+            
+            const entry = document.createElement('div');
+            entry.className = 'log-entry';
+            entry.innerHTML = `
+                <span class="log-time">[${time}]</span>
+                <span class="log-message log-${type}">${message}</span>
+            `;
+            
+            logArea.appendChild(entry);
+            logArea.scrollTop = logArea.scrollHeight;
+            
+            // Also log to console
+            console.log(`[${type.toUpperCase()}] ${message}`);
+        }
+        
+        // Update status helper
+        function updateStatus(elementId, status, message = '') {
+            const statusEl = document.getElementById(elementId);
+            if (statusEl) {
+                statusEl.className = `status ${status}`;
+                statusEl.textContent = message || status.toUpperCase();
+            }
+        }
+        
+        // Show result helper
+        function showResult(elementId, content) {
+            const resultEl = document.getElementById(elementId);
+            if (resultEl) {
+                resultEl.innerHTML = `<pre>${JSON.stringify(content, null, 2)}</pre>`;
+                resultEl.classList.add('show');
+            }
+        }
+        
+        // Test 1: API Connection
+        async function testAPIConnection(version) {
+            log(`Testing API connection for ShipsGo ${version}...`);
+            const statusId = `${version}-status`;
+            const resultId = `${version}-result`;
+            
+            updateStatus(statusId, 'pending', 'Testing...');
+            
+            try {
+                const endpoint = version === 'v1' ? 
+                    '/ContainerService/GetShippingLineList' : 
+                    '/air/airlines';
+                
+                const response = await fetch('/api/shipsgo-proxy', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        version: version === 'v1' ? 'v1.2' : 'v2',
+                        endpoint: endpoint,
+                        method: 'GET'
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    updateStatus(statusId, 'success', '✅ Connected');
+                    showResult(resultId, {
+                        status: result.status,
+                        dataCount: Array.isArray(result.data) ? result.data.length : 1,
+                        sample: Array.isArray(result.data) ? result.data[0] : result.data
+                    });
+                    log(`✅ ShipsGo ${version} connected successfully`, 'success');
+                } else {
+                    updateStatus(statusId, 'error', '❌ Failed');
+                    showResult(resultId, result);
+                    log(`❌ ShipsGo ${version} connection failed: ${result.error}`, 'error');
+                }
+            } catch (error) {
+                updateStatus(statusId, 'error', '❌ Error');
+                showResult(resultId, { error: error.message });
+                log(`❌ Test failed: ${error.message}`, 'error');
+            }
+        }
+        
+        // Test 2: Shipping Lines
+        async function testShippingLines() {
+            log('Loading shipping lines from ShipsGo...');
+            updateStatus('lines-status', 'pending', 'Loading...');
+            
+            try {
+                const response = await fetch('/api/shipsgo-proxy', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        version: 'v1.2',
+                        endpoint: '/ContainerService/GetShippingLineList',
+                        method: 'GET'
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success && Array.isArray(result.data)) {
+                    updateStatus('lines-status', 'success', `✅ ${result.data.length} lines`);
+                    showResult('lines-result', result.data.slice(0, 10));
+                    log(`✅ Loaded ${result.data.length} shipping lines`, 'success');
+                } else {
+                    updateStatus('lines-status', 'error', '❌ Failed');
+                    showResult('lines-result', result);
+                    log(`❌ Failed to load shipping lines`, 'error');
+                }
+            } catch (error) {
+                updateStatus('lines-status', 'error', '❌ Error');
+                log(`❌ Error: ${error.message}`, 'error');
+            }
+        }
+        
+        // Test Airlines
+        async function testAirlines() {
+            log('Loading airlines from ShipsGo v2...');
+            updateStatus('airlines-status', 'pending', 'Loading...');
+            
+            try {
+                const response = await fetch('/api/shipsgo-proxy', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        version: 'v2',
+                        endpoint: '/air/airlines',
+                        method: 'GET'
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success && Array.isArray(result.data)) {
+                    updateStatus('airlines-status', 'success', `✅ ${result.data.length} airlines`);
+                    showResult('airlines-result', result.data.slice(0, 10));
+                    log(`✅ Loaded ${result.data.length} airlines`, 'success');
+                } else {
+                    updateStatus('airlines-status', 'error', '❌ Failed');
+                    showResult('airlines-result', result);
+                    log(`❌ Failed to load airlines`, 'error');
+                }
+            } catch (error) {
+                updateStatus('airlines-status', 'error', '❌ Error');
+                log(`❌ Error: ${error.message}`, 'error');
+            }
+        }
+        
+        // Test 3: Workflow
+        async function testWorkflow() {
+            const containerNumber = document.getElementById('test-container').value.trim().toUpperCase();
+            if (!containerNumber) {
+                alert('Inserisci un numero di container');
+                return;
+            }
+            
+            log(`Starting workflow test for container: ${containerNumber}`);
+            updateStatus('workflow-status', 'pending', 'Testing workflow...');
+            document.getElementById('workflow-result').innerHTML = '';
+            
+            try {
+                // Step 1: POST - Add Container
+                log('Step 1: Adding container to ShipsGo...');
+                const postResponse = await fetch('/api/shipsgo-proxy', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        version: 'v1.2',
+                        endpoint: '/ContainerService/PostContainerInfo',
+                        method: 'POST',
+                        contentType: 'application/x-www-form-urlencoded',
+                        data: {
+                            authCode: '2dc0c6d92ccb59e7d903825c4ebeb521', // Demo key
+                            containerNumber: containerNumber,
+                            shippingLine: 'OTHERS'
+                        }
+                    })
+                });
+                
+                const postResult = await postResponse.json();
+                log(`POST Result: ${JSON.stringify(postResult)}`, postResult.success ? 'success' : 'error');
+                
+                let requestId = containerNumber;
+                
+                if (postResult.success) {
+                    // Extract requestId if available
+                    if (typeof postResult.data === 'number') {
+                        requestId = postResult.data.toString();
+                    } else if (postResult.data?.requestId) {
+                        requestId = postResult.data.requestId;
+                    }
+                    log(`✅ Container added. RequestId: ${requestId}`, 'success');
+                } else if (postResult.data?.message?.includes('already exists')) {
+                    log(`⚠️ Container already exists in ShipsGo`, 'warning');
+                    // Try to extract requestId from error message
+                    const match = postResult.data.message.match(/requestId[:\s]+(\w+)/i);
+                    if (match) {
+                        requestId = match[1];
+                        log(`Extracted requestId from error: ${requestId}`, 'info');
+                    }
+                } else {
+                    throw new Error(postResult.error || 'Failed to add container');
+                }
+                
+                // Wait a bit
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                
+                // Step 2: GET - Retrieve Container Info
+                log('Step 2: Retrieving container info...');
+                const getResponse = await fetch('/api/shipsgo-proxy', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        version: 'v1.2',
+                        endpoint: '/ContainerService/GetContainerInfo',
+                        method: 'GET',
+                        params: {
+                            requestId: requestId,
+                            mappoint: 'true'
+                        }
+                    })
+                });
+                
+                const getResult = await getResponse.json();
+                
+                if (getResult.success) {
+                    let containerData = getResult.data;
+                    if (Array.isArray(containerData) && containerData.length > 0) {
+                        containerData = containerData[0];
+                    }
+                    
+                    updateStatus('workflow-status', 'success', '✅ Workflow completed');
+                    showResult('workflow-result', {
+                        workflow: 'POST → GET Success',
+                        requestId: requestId,
+                        container: containerNumber,
+                        data: containerData
+                    });
+                    log(`✅ Workflow completed successfully`, 'success');
+                } else {
+                    throw new Error(getResult.error || 'Failed to get container info');
+                }
+                
+            } catch (error) {
+                updateStatus('workflow-status', 'error', '❌ Workflow failed');
+                showResult('workflow-result', { error: error.message });
+                log(`❌ Workflow failed: ${error.message}`, 'error');
+            }
+        }
+        
+        // Helper to set test container
+        function setTestContainer(value) {
+            document.getElementById('test-container').value = value;
+        }
+        
+        // Test 4: Error Handling
+        function testExistingContainer() {
+            log('Testing ALREADY_EXISTS error handler...');
+            if (window.TrackingErrorHandler) {
+                window.TrackingErrorHandler.showError('ALREADY_EXISTS', {
+                    trackingNumber: 'MSKU1234567',
+                    requestId: '5051594',
+                    details: 'Container MSKU1234567 already exists with requestId: 5051594'
+                });
+                updateStatus('existing-status', 'success', '✅ Shown');
+                log('✅ Error modal displayed', 'success');
+            } else {
+                updateStatus('existing-status', 'error', '❌ Not found');
+                log('❌ TrackingErrorHandler not found', 'error');
+            }
+        }
+        
+        function testInvalidFormat() {
+            log('Testing INVALID_FORMAT error handler...');
+            if (window.TrackingErrorHandler) {
+                window.TrackingErrorHandler.showError('INVALID_FORMAT', {
+                    trackingNumber: 'INVALID123',
+                    details: 'The tracking number INVALID123 is not in a recognized format'
+                });
+                updateStatus('format-status', 'success', '✅ Shown');
+                log('✅ Error modal displayed', 'success');
+            } else {
+                updateStatus('format-status', 'error', '❌ Not found');
+                log('❌ TrackingErrorHandler not found', 'error');
+            }
+        }
+        
+        function testRateLimit() {
+            log('Testing RATE_LIMIT error handler...');
+            if (window.TrackingErrorHandler) {
+                window.TrackingErrorHandler.showError('RATE_LIMIT', {
+                    details: 'You have exceeded the rate limit of 100 requests per minute'
+                });
+                updateStatus('rate-status', 'success', '✅ Shown');
+                log('✅ Error modal displayed', 'success');
+            } else {
+                updateStatus('rate-status', 'error', '❌ Not found');
+                log('❌ TrackingErrorHandler not found', 'error');
+            }
+        }
+        
+        // Test 5: UI Components
+        function testEnhancedForm() {
+            log('Opening enhanced tracking form...');
+            if (window.showEnhancedTrackingForm) {
+                window.showEnhancedTrackingForm();
+                updateStatus('form-status', 'success', '✅ Opened');
+                log('✅ Enhanced form opened', 'success');
+            } else {
+                updateStatus('form-status', 'error', '❌ Not found');
+                log('❌ showEnhancedTrackingForm not found', 'error');
+            }
+        }
+        
+        function testWorkflowVisualization() {
+            log('Testing workflow visualization...');
+            if (window.showWorkflowProgress) {
+                const workflow = window.showWorkflowProgress('TEST123456');
+                
+                // Simulate workflow steps
+                setTimeout(() => {
+                    workflow.updateStep('step-add', 'success', 'Container registered');
+                    setTimeout(() => {
+                        workflow.updateStep('step-requestid', 'success', 'Request ID: 12345');
+                        setTimeout(() => {
+                            workflow.updateStep('step-fetch', 'success', 'Data retrieved');
+                            workflow.showResult({
+                                success: true,
+                                containerNumber: 'TEST123456',
+                                requestId: '12345',
+                                status: 'In Transit',
+                                vessel: 'MSC OSCAR'
+                            });
+                        }, 1000);
+                    }, 1000);
+                }, 1000);
+                
+                updateStatus('workflow-ui-status', 'success', '✅ Shown');
+                log('✅ Workflow visualization displayed', 'success');
+            } else {
+                updateStatus('workflow-ui-status', 'error', '❌ Not found');
+                log('❌ showWorkflowProgress not found', 'error');
+            }
+        }
+        
+        function testQuickActions() {
+            log('Testing quick actions modal...');
+            if (window.QuickContainerActions) {
+                window.QuickContainerActions.showQuickActionsModal({
+                    tracking_number: 'MSKU1234567',
+                    status: 'in_transit',
+                    carrier_code: 'MAERSK',
+                    vessel: { name: 'MILAN MAERSK' },
+                    route: {
+                        origin: { port: 'SHANGHAI' },
+                        destination: { port: 'ROTTERDAM' }
+                    },
+                    eta: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
+                });
+                updateStatus('quick-status', 'success', '✅ Shown');
+                log('✅ Quick actions modal displayed', 'success');
+            } else {
+                updateStatus('quick-status', 'error', '❌ Not found');
+                log('❌ QuickContainerActions not found', 'error');
+            }
+        }
+        
+        // Initialize
+        log('Test suite ready. Click any test button to start.', 'info');
+    </script>
+</body>
+</html>
