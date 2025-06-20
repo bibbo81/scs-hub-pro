@@ -526,35 +526,7 @@
                                             </p>
                                         </div>
                                         
-                                        <!-- NUOVO SELETTORE OPERAZIONI -->
-<div class="api-operation-selector">
-    <h5>🔧 Tipo Operazione</h5>
-    <div class="operation-radio-group">
-        <div class="operation-radio">
-            <input type="radio" id="op_auto" name="api_operation" value="auto" checked>
-            <label for="op_auto">
-                <i class="fas fa-magic"></i> Auto
-                <small style="display:block;opacity:0.8;margin-top:2px;">POST + GET</small>
-            </label>
-        </div>
-        <div class="operation-radio">
-            <input type="radio" id="op_post" name="api_operation" value="post">
-            <label for="op_post">
-                <i class="fas fa-plus"></i> POST
-                <small style="display:block;opacity:0.8;margin-top:2px;">Solo registra</small>
-            </label>
-        </div>
-        <div class="operation-radio">
-            <input type="radio" id="op_get" name="api_operation" value="get">
-            <label for="op_get">
-                <i class="fas fa-download"></i> GET
-                <small style="display:block;opacity:0.8;margin-top:2px;">Solo recupera</small>
-            </label>
-        </div>
-    </div>
-</div>
-
-<div class="api-benefits">    
+                                            
 
                                         <div class="api-benefits">
                                             <div class="benefit">
@@ -2058,74 +2030,6 @@
                     grid-template-columns: 1fr;
                 }
             }
-
-/* API Operation Selector Styles */
-.api-operation-selector {
-    background: rgba(255,255,255,0.1);
-    border-radius: 8px;
-    padding: 16px;
-    margin-bottom: 16px;
-    margin-top: -10px;
-}
-
-.api-operation-selector h5 {
-    font-size: 13px;
-    font-weight: 600;
-    color: white;
-    margin: 0 0 12px 0;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-}
-
-.operation-radio-group {
-    display: flex;
-    gap: 12px;
-    flex-wrap: wrap;
-}
-
-.operation-radio {
-    position: relative;
-    flex: 1;
-    min-width: 100px;
-}
-
-.operation-radio input[type="radio"] {
-    position: absolute;
-    opacity: 0;
-}
-
-.operation-radio label {
-    display: block;
-    padding: 10px 16px;
-    background: rgba(255,255,255,0.2);
-    border: 2px solid rgba(255,255,255,0.3);
-    border-radius: 6px;
-    cursor: pointer;
-    transition: all 0.3s;
-    text-align: center;
-    font-size: 12px;
-    font-weight: 500;
-    color: rgba(255,255,255,0.9);
-}
-
-.operation-radio input[type="radio"]:checked + label {
-    background: rgba(40, 167, 69, 0.3);
-    border-color: rgba(40, 167, 69, 0.8);
-    color: white;
-}
-
-.operation-radio label:hover {
-    background: rgba(255,255,255,0.3);
-    border-color: rgba(255,255,255,0.5);
-}
-
-.operation-radio label small {
-    display: block;
-    font-size: 9px;
-    opacity: 0.8;
-    margin-top: 2px;
-}
-    
             </style>
         `;
     }

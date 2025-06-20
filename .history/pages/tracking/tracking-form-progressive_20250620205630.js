@@ -2125,7 +2125,6 @@
     opacity: 0.8;
     margin-top: 2px;
 }
-    
             </style>
         `;
     }
