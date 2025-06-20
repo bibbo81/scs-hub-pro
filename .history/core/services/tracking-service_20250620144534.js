@@ -260,20 +260,8 @@ class TrackingService {
         return proxyResponse.data;
     }
 
-    async getContainerInfo(containerNumber, options = {}) {
+    sync getContainerInfo(containerNumber) {
     const proxyUrl = '/netlify/functions/shipsgo-proxy';
-    
-    const params = {
-        requestId: containerNumber.toUpperCase()
-    };
-    
-    params.mappoint = options.mapPoint !== undefined ? options.mapPoint : 'true';
-    
-    if (options.requestId && options.requestId.trim()) {
-        params.requestId = options.requestId.trim();
-    }
-    
-    console.log('[TrackingService] 📦 GetContainerInfo FIXED params:', params);
     
     const response = await fetch(proxyUrl, {
         method: 'POST',
@@ -282,18 +270,20 @@ class TrackingService {
             version: 'v1.2',
             endpoint: '/ContainerService/GetContainerInfo',
             method: 'GET',
-            params: params
+            params: {
+                containerNumber: containerNumber.toUpperCase()  // ❌ PROBLEMA
+            }
         })
     });
 
-    const proxyResponse = await response.json();
-    
-    if (!proxyResponse.success) {
-        throw new Error(proxyResponse.data?.message || proxyResponse.error || 'Failed to get container info');
-    }
+        const proxyResponse = await response.json();
+        
+        if (!proxyResponse.success) {
+            throw new Error(proxyResponse.data?.message || proxyResponse.error || 'Failed to get container info');
+        }
 
-    return proxyResponse.data;
-}
+        return proxyResponse.data;
+    }
 
     // ========================================
     // TRACKING AWB (ShipsGo v2.0) - ENDPOINT CORRETTI

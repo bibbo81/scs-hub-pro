@@ -260,40 +260,30 @@ class TrackingService {
         return proxyResponse.data;
     }
 
-    async getContainerInfo(containerNumber, options = {}) {
-    const proxyUrl = '/netlify/functions/shipsgo-proxy';
-    
-    const params = {
-        requestId: containerNumber.toUpperCase()
-    };
-    
-    params.mappoint = options.mapPoint !== undefined ? options.mapPoint : 'true';
-    
-    if (options.requestId && options.requestId.trim()) {
-        params.requestId = options.requestId.trim();
-    }
-    
-    console.log('[TrackingService] 📦 GetContainerInfo FIXED params:', params);
-    
-    const response = await fetch(proxyUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-            version: 'v1.2',
-            endpoint: '/ContainerService/GetContainerInfo',
-            method: 'GET',
-            params: params
-        })
-    });
+    async getContainerInfo(containerNumber) {
+        const proxyUrl = '/netlify/functions/shipsgo-proxy';
+        
+        const response = await fetch(proxyUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                version: 'v1.2',
+                endpoint: '/ContainerService/GetContainerInfo',
+                method: 'GET',
+                params: {
+                    containerNumber: containerNumber.toUpperCase()
+                }
+            })
+        });
 
-    const proxyResponse = await response.json();
-    
-    if (!proxyResponse.success) {
-        throw new Error(proxyResponse.data?.message || proxyResponse.error || 'Failed to get container info');
-    }
+        const proxyResponse = await response.json();
+        
+        if (!proxyResponse.success) {
+            throw new Error(proxyResponse.data?.message || proxyResponse.error || 'Failed to get container info');
+        }
 
-    return proxyResponse.data;
-}
+        return proxyResponse.data;
+    }
 
     // ========================================
     // TRACKING AWB (ShipsGo v2.0) - ENDPOINT CORRETTI

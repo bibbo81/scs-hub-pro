@@ -260,7 +260,7 @@ class TrackingService {
         return proxyResponse.data;
     }
 
-    async getContainerInfo(containerNumber, options = {}) {
+   async getContainerInfo(containerNumber, options = {}) {
     const proxyUrl = '/netlify/functions/shipsgo-proxy';
     
     const params = {
@@ -269,6 +269,15 @@ class TrackingService {
     
     params.mappoint = options.mapPoint !== undefined ? options.mapPoint : 'true';
     
+    // ✅ FIXED: Parametri corretti da Postman
+    const params = {
+        requestId: containerNumber.toUpperCase()  // ✅ FIXED: era containerNumber
+    };
+    
+    // ✅ FIXED: mappoint tutto lowercase (non mapPoint)
+    params.mappoint = options.mapPoint !== undefined ? options.mapPoint : 'true';
+    
+    // Override requestId se specificato manualmente  
     if (options.requestId && options.requestId.trim()) {
         params.requestId = options.requestId.trim();
     }
@@ -282,7 +291,7 @@ class TrackingService {
             version: 'v1.2',
             endpoint: '/ContainerService/GetContainerInfo',
             method: 'GET',
-            params: params
+            params: params  // ✅ requestId + mappoint
         })
     });
 
@@ -292,6 +301,9 @@ class TrackingService {
         throw new Error(proxyResponse.data?.message || proxyResponse.error || 'Failed to get container info');
     }
 
+    console.log('[TrackingService] ✅ GET Response received, data size:', 
+        JSON.stringify(proxyResponse.data).length, 'bytes');
+    
     return proxyResponse.data;
 }
 
