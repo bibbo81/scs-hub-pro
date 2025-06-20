@@ -2793,6 +2793,7 @@ carriers.sort((a, b) => {
         
         // Assicurati che tutti i campi abbiano un valore valido
         const finalData = {
+    // Campi con i nomi originali (per compatibilità)
     trackingNumber: formData.trackingNumber, // OBBLIGATORIO, non deve mai essere '-'
     trackingType: formData.trackingType || 'container',
     // FIX: Assicurati che carrier sia sempre una stringa
@@ -2804,10 +2805,21 @@ carriers.sort((a, b) => {
     status: formData.status || 'registered',
     reference: formData.reference || '-',
     createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString()
+    updatedAt: new Date().toISOString(),
+    
+    // AGGIUNGI: Campi con i nomi che si aspetta la tabella
+    tracking_number: formData.trackingNumber,
+    tracking_type: formData.trackingType || 'container',
+    carrier_code: typeof formData.carrier === 'object' 
+        ? (formData.carrier.code || formData.carrier.name || '-')
+        : (formData.carrier || '-'),
+    origin_port: formData.origin || '-',
+    destination_port: formData.destination || '-',
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
 };
-        
-        if (!finalData.trackingNumber || finalData.trackingNumber === '-') {
+
+if (!finalData.trackingNumber || finalData.trackingNumber === '-') {
     throw new Error('Tracking number mancante');
 } else {
             // Fallback to localStorage
