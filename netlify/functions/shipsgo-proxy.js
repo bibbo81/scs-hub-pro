@@ -103,8 +103,9 @@ exports.handler = async (event, context) => {
         console.log('[ShipsGo-Proxy] Target URL:', targetUrl.replace(/(authCode|User-Token)=[^&]+/g, '$1=***'));
 
         // Fetch options
+        const upperMethod = method.toUpperCase();
         const fetchOptions = {
-            method: method.toUpperCase(),
+            method: upperMethod,
             headers: { 
                 'Content-Type': 'application/json',
                 'User-Agent': 'SCH-TrackingSystem/1.0'
@@ -115,28 +116,37 @@ exports.handler = async (event, context) => {
             fetchOptions.headers['X-Shipsgo-User-Token'] = config.userToken;
         }
 
-        // Handle POST data based on content type
-        if (data && Object.keys(data).length > 0 && ['POST', 'PUT'].includes(method.toUpperCase())) {
-            if (contentType === 'application/x-www-form-urlencoded') {
-                // ✅ URL-encoded format per ShipsGo v1.2 POST
-                const params = new URLSearchParams();
-                Object.entries(data).forEach(([key, value]) => {
-                    if (value !== null && value !== undefined && value !== '') {
-                        params.append(key, value.toString());
-                    }
-                });
-                fetchOptions.body = params.toString();
-                fetchOptions.headers['Content-Type'] = 'application/x-www-form-urlencoded';
-                
-                console.log('[ShipsGo-Proxy] URL-encoded POST body:', params.toString().replace(/authCode=[^&]+/, 'authCode=***'));
-            } else {
-                // JSON format (per v2.0 APIs)
-                const bodyData = { ...data };
-                if (!isV2) {
-                    bodyData.authCode = config.authCode;
-                }
-                fetchOptions.body = JSON.stringify(bodyData);
+        // ✅ ADD URL-ENCODED SUPPORT FOR POST REQUESTS
+        if (contentType === 'application/x-www-form-urlencoded' && upperMethod === 'POST') {
+            console.log('[ShipsGo-Proxy] 🔄 Converting to URL-encoded format');
+            
+            // Create URLSearchParams for form data
+            const params = new URLSearchParams();
+            
+            // Add authCode to the form data (not headers) for v1.2 POST
+            if (!isV2 && config.authCode) {
+                params.append('authCode', config.authCode);
             }
+            
+            // Add all other data fields
+            Object.entries(data).forEach(([key, value]) => {
+                if (value !== null && value !== undefined && value !== '') {
+                    params.append(key, value.toString());
+                }
+            });
+            
+            // Update fetch options for URL-encoded
+            fetchOptions.body = params.toString();
+            fetchOptions.headers['Content-Type'] = 'application/x-www-form-urlencoded';
+            
+            console.log('[ShipsGo-Proxy] 📝 URL-encoded body:', params.toString().replace(/authCode=[^&]+/, 'authCode=***'));
+        } else if (data && Object.keys(data).length > 0 && ['POST', 'PUT'].includes(upperMethod)) {
+            // JSON format (per v2.0 APIs)
+            const bodyData = { ...data };
+            if (!isV2) {
+                bodyData.authCode = config.authCode;
+            }
+            fetchOptions.body = JSON.stringify(bodyData);
         }
 
         // Make request to ShipsGo using native fetch

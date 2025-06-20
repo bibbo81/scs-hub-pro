@@ -208,13 +208,21 @@ class TrackingService {
         }
 
         try {
-            // Step 1: Aggiungi container (se non esiste)
+            let requestId = trackingNumber;
+            
+            // Step 1: Aggiungi container (se non esiste) e ottieni requestId
             if (!options.skipAdd) {
-                await this.addContainerToShipsGo(trackingNumber);
+                const addResult = await this.addContainerToShipsGo(trackingNumber);
+                
+                // Se abbiamo ottenuto un requestId, usalo per il GET
+                if (addResult.requestId) {
+                    requestId = addResult.requestId;
+                    console.log('[TrackingService] 📌 Using requestId for GET:', requestId);
+                }
             }
             
-            // Step 2: Recupera informazioni
-            const containerInfo = await this.getContainerInfo(trackingNumber);
+            // Step 2: Recupera informazioni usando il requestId
+            const containerInfo = await this.getContainerInfo(requestId, options);
             
             // Step 3: Normalizza risposta
             const result = this.normalizeContainerResponse(containerInfo, trackingNumber);
@@ -231,6 +239,8 @@ class TrackingService {
     async addContainerToShipsGo(containerNumber) {
         const proxyUrl = '/netlify/functions/shipsgo-proxy';
         
+        console.log('[TrackingService] ➕ Adding container to ShipsGo:', containerNumber);
+        
         const response = await fetch(proxyUrl, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -238,62 +248,94 @@ class TrackingService {
                 version: 'v1.2',
                 endpoint: '/ContainerService/AddContainer',
                 method: 'POST',
+                contentType: 'application/x-www-form-urlencoded',  // ✅ AGGIUNTO per URL-encoded
                 data: {
+                    authCode: this.apiConfig.v1?.authCode || '2dc0c6d92ccb59e7d903825c4ebeb521',
                     containerNumber: containerNumber.toUpperCase(),
-                    shippingLine: 'MSC'
+                    shippingLine: 'OTHERS'  // Potrebbe essere migliorato con auto-detect
                 }
             })
         });
 
         const proxyResponse = await response.json();
         
+        console.log('[TrackingService] 📥 Add container response:', proxyResponse);
+        
         if (!proxyResponse.success) {
             const data = proxyResponse.data;
+            // Handle "already exists" case
             if (data?.message?.includes('already exists')) {
                 console.log('[TrackingService] 📦 Container already exists in ShipsGo');
+                
+                // Try to extract requestId from error message
+                const requestIdMatch = data.message.match(/requestId[:\s]+(\w+)/i);
+                if (requestIdMatch) {
+                    console.log('[TrackingService] 🎯 Extracted requestId:', requestIdMatch[1]);
+                    return { 
+                        success: true, 
+                        exists: true, 
+                        requestId: requestIdMatch[1] 
+                    };
+                }
+                
                 return { success: true, exists: true };
             }
+            
             throw new Error(data?.message || proxyResponse.error || 'Failed to add container to ShipsGo');
         }
 
-        console.log('[TrackingService] ➕ Container added to ShipsGo');
-        return proxyResponse.data;
+        console.log('[TrackingService] ✅ Container added successfully');
+        
+        // Extract requestId from successful response
+        const requestId = proxyResponse.data?.requestId || proxyResponse.data?.RequestId;
+        if (requestId) {
+            console.log('[TrackingService] 🎯 Got requestId:', requestId);
+        }
+        
+        return {
+            success: true,
+            requestId: requestId,
+            ...proxyResponse.data
+        };
     }
 
     async getContainerInfo(containerNumber, options = {}) {
-    const proxyUrl = '/netlify/functions/shipsgo-proxy';
-    
-    const params = {
-        requestId: containerNumber.toUpperCase()
-    };
-    
-    params.mappoint = options.mapPoint !== undefined ? options.mapPoint : 'true';
-    
-    if (options.requestId && options.requestId.trim()) {
-        params.requestId = options.requestId.trim();
-    }
-    
-    console.log('[TrackingService] 📦 GetContainerInfo FIXED params:', params);
-    
-    const response = await fetch(proxyUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-            version: 'v1.2',
-            endpoint: '/ContainerService/GetContainerInfo',
-            method: 'GET',
-            params: params
-        })
-    });
+        const proxyUrl = '/netlify/functions/shipsgo-proxy';
+        
+        // ✅ FIX: Usa requestId invece di containerNumber
+        const params = {
+            requestId: containerNumber.toUpperCase()
+        };
+        
+        // ✅ FIX: Usa mappoint (lowercase) invece di mapPoint
+        params.mappoint = options.mapPoint !== undefined ? options.mapPoint : 'true';
+        
+        // Se viene passato un requestId specifico, usalo
+        if (options.requestId && options.requestId.trim()) {
+            params.requestId = options.requestId.trim();
+        }
+        
+        console.log('[TrackingService] 📦 GetContainerInfo FIXED params:', params);
+        
+        const response = await fetch(proxyUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                version: 'v1.2',
+                endpoint: '/ContainerService/GetContainerInfo',
+                method: 'GET',
+                params: params
+            })
+        });
 
-    const proxyResponse = await response.json();
-    
-    if (!proxyResponse.success) {
-        throw new Error(proxyResponse.data?.message || proxyResponse.error || 'Failed to get container info');
-    }
+        const proxyResponse = await response.json();
+        
+        if (!proxyResponse.success) {
+            throw new Error(proxyResponse.data?.message || proxyResponse.error || 'Failed to get container info');
+        }
 
-    return proxyResponse.data;
-}
+        return proxyResponse.data;
+    }
 
     // ========================================
     // TRACKING AWB (ShipsGo v2.0) - ENDPOINT CORRETTI
