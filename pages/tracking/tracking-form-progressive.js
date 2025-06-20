@@ -2479,7 +2479,7 @@
                     // Ordina alfabeticamente
                     carriers = carriers.filter(c => c && (c.name || c.code));
 carriers.sort((a, b) => {
-    const nameA = (a.name || c.code || '').toString();
+    const nameA = (a.name || a.code || '').toString();
     const nameB = (b.name || b.code || '').toString();
     return nameA.localeCompare(nameB);
 });
@@ -3365,5 +3365,14 @@ carriers.sort((a, b) => {
     console.log('   - window.TrackingErrorHandler:', typeof window.TrackingErrorHandler);
     console.log('   - window.QuickContainerActions:', typeof window.QuickContainerActions);
     console.log('   - window.showEnhancedTrackingForm:', typeof window.showEnhancedTrackingForm);
-    
+    // AGGIUNGI QUESTO ALLA FINE DEL FILE tracking-form-progressive.js
+// PRIMA della chiusura })();
+
+    // ESPONI FUNZIONI PER DEBUG
+    window.updateCarrierWithShipsGoData = updateCarrierWithShipsGoData;
+    window.detectTrackingType = detectTrackingType;
+    window.processEnhancedTracking = processEnhancedTracking;
+    console.log('✅ PROGRESSIVE FORM: Funzioni di debug esposte');
+    console.log('   - window.updateCarrierWithShipsGoData:', typeof window.updateCarrierWithShipsGoData);
+    console.log('   - window.detectTrackingType:', typeof window.detectTrackingType);
 })();
