@@ -247,6 +247,7 @@ class TrackingService {
             body: JSON.stringify({
                 version: 'v1.2',
                 endpoint: '/ContainerService/PostContainerInfo',
+
                 method: 'POST',
                 contentType: 'application/x-www-form-urlencoded',  // ✅ AGGIUNTO per URL-encoded
                 data: {
