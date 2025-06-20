@@ -2443,12 +2443,24 @@
                     });
                     
                     const result = await response.json();
-                    if (result.success && Array.isArray(result.data)) {
-                        carriers = result.data.map(line => ({
-                            code: line.ShippingLineCode || line.Code,
-                            name: line.ShippingLineName || line.Name
-                        }));
-                    }
+if (result.success && Array.isArray(result.data)) {
+    // Gestisci sia oggetti che stringhe
+    carriers = result.data.map(line => {
+        if (typeof line === 'string') {
+            // Se è una stringa, usa la stringa sia come code che come name
+            return {
+                code: line,
+                name: line
+            };
+        } else {
+            // Se è un oggetto, usa i campi appropriati
+            return {
+                code: line.ShippingLineCode || line.Code || line,
+                name: line.ShippingLineName || line.Name || line
+            };
+        }
+    });
+}
                 } else if (type === 'awb') {
                     // Ottieni airlines da ShipsGo v2
                     const response = await fetch('/netlify/functions/shipsgo-proxy', {
@@ -2719,17 +2731,20 @@ carriers.sort((a, b) => {
                     if (apiResponse.success && apiResponse.data) {
                         // Mappa i dati GET correttamente
                         const mappedData = {
-                            trackingNumber: formData.trackingNumber,
-                            trackingType: formData.trackingType || 'container',
-                            carrier: apiResponse.data.carrier || apiResponse.data.shippingLine || formData.carrier || '-',
-                            origin: apiResponse.data.origin || apiResponse.data.pol || formData.origin || '-',
-                            destination: apiResponse.data.destination || apiResponse.data.pod || formData.destination || '-',
-                            status: apiResponse.data.status || formData.status || 'registered',
-                            reference: formData.reference || '-',
-                            // Aggiungi altri dati dall'API se disponibili
-                            lastUpdate: apiResponse.data.lastUpdate || new Date().toISOString(),
-                            events: apiResponse.data.events || []
-                        };
+    trackingNumber: formData.trackingNumber, // SEMPRE presente
+    trackingType: formData.trackingType || 'container',
+    // FIX: Converti carrier da oggetto a stringa se necessario
+    carrier: typeof apiResponse.data.carrier === 'object' 
+        ? (apiResponse.data.carrier.code || apiResponse.data.carrier.name || formData.carrier || '-')
+        : (apiResponse.data.carrier || apiResponse.data.shippingLine || formData.carrier || '-'),
+    origin: apiResponse.data.origin || apiResponse.data.pol || formData.origin || '-',
+    destination: apiResponse.data.destination || apiResponse.data.pod || formData.destination || '-',
+    status: apiResponse.data.status || formData.status || 'registered',
+    reference: formData.reference || '-',
+    // Aggiungi altri dati dall'API se disponibili
+    lastUpdate: apiResponse.data.lastUpdate || new Date().toISOString(),
+    events: apiResponse.data.events || []
+};
                         
                         // Sostituisci formData con i dati mappati
                         Object.assign(formData, mappedData);
@@ -2778,20 +2793,23 @@ carriers.sort((a, b) => {
         
         // Assicurati che tutti i campi abbiano un valore valido
         const finalData = {
-            trackingNumber: formData.trackingNumber || '-',
-            trackingType: formData.trackingType || 'container',
-            carrier: formData.carrier || '-',
-            origin: formData.origin || '-',
-            destination: formData.destination || '-',
-            status: formData.status || 'registered',
-            reference: formData.reference || '-',
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString()
-        };
+    trackingNumber: formData.trackingNumber, // OBBLIGATORIO, non deve mai essere '-'
+    trackingType: formData.trackingType || 'container',
+    // FIX: Assicurati che carrier sia sempre una stringa
+    carrier: typeof formData.carrier === 'object' 
+        ? (formData.carrier.code || formData.carrier.name || '-')
+        : (formData.carrier || '-'),
+    origin: formData.origin || '-',
+    destination: formData.destination || '-',
+    status: formData.status || 'registered',
+    reference: formData.reference || '-',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+};
         
-        if (window.trackingManager) {
-            return await window.trackingManager.addTracking(finalData);
-        } else {
+        if (!finalData.trackingNumber || finalData.trackingNumber === '-') {
+    throw new Error('Tracking number mancante');
+} else {
             // Fallback to localStorage
             const trackings = JSON.parse(localStorage.getItem('trackings') || '[]');
             trackings.push({
