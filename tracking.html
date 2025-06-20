@@ -56,7 +56,7 @@
             const url = args[0];
             
             // Intercetta chiamate a Netlify functions
-            if (url.includes('/.netlify/functions/')) {
+            if (url.includes('/netlify/functions/')) {
                 console.log('[ForceMock] Intercepting:', url);
                 
                 // Mock per notifications

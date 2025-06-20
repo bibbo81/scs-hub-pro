@@ -3,7 +3,7 @@ import notificationSystem from '/core/notification-system.js';
 
 export class ApiClient {
     constructor() {
-        this.baseUrl = '/.netlify/functions';
+        this.baseUrl = '/netlify/functions';
         this.token = null;
         this.defaultHeaders = {
             'Content-Type': 'application/json'

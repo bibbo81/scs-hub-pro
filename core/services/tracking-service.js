@@ -229,7 +229,7 @@ class TrackingService {
     }
 
     async addContainerToShipsGo(containerNumber) {
-        const proxyUrl = '/.netlify/functions/shipsgo-proxy';
+        const proxyUrl = '/netlify/functions/shipsgo-proxy';
         
         const response = await fetch(proxyUrl, {
             method: 'POST',
@@ -261,7 +261,7 @@ class TrackingService {
     }
 
     async getContainerInfo(containerNumber) {
-        const proxyUrl = '/.netlify/functions/shipsgo-proxy';
+        const proxyUrl = '/netlify/functions/shipsgo-proxy';
         
         const response = await fetch(proxyUrl, {
             method: 'POST',
@@ -323,7 +323,7 @@ class TrackingService {
     }
 
     async addAWBToShipsGo(awbNumber) {
-        const proxyUrl = '/.netlify/functions/shipsgo-proxy';
+        const proxyUrl = '/netlify/functions/shipsgo-proxy';
         
         const response = await fetch(proxyUrl, {
             method: 'POST',
@@ -355,7 +355,7 @@ class TrackingService {
     }
 
     async getAWBInfo(awbNumber) {
-        const proxyUrl = '/.netlify/functions/shipsgo-proxy';
+        const proxyUrl = '/netlify/functions/shipsgo-proxy';
         
         const response = await fetch(proxyUrl, {
             method: 'POST',
@@ -950,7 +950,7 @@ class TrackingService {
             overall: false
         };
 
-        const proxyUrl = '/.netlify/functions/shipsgo-proxy';
+        const proxyUrl = '/netlify/functions/shipsgo-proxy';
 
         if (this.apiConfig.v1?.enabled) {
             try {

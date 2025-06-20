@@ -399,7 +399,7 @@
             try {
                 log('api-output', 'Testing GET /get-trackings...', 'info');
                 
-                const response = await fetch('/.netlify/functions/get-trackings', {
+                const response = await fetch('/netlify/functions/get-trackings', {
                     headers: {
                         'Authorization': 'Bearer mock-token'
                     }
