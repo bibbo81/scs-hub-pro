@@ -2673,7 +2673,10 @@ carriers.sort((a, b) => {
                     // Fix: Forza il refresh della tabella con tutti i metodi possibili
                     if (window.loadTrackings) {
                         console.log('🔄 Refresh tabella con loadTrackings()');
-                        window.loadTrackings();
+                        // Aggiungi un piccolo delay per assicurarti che il DOM sia pronto
+                        setTimeout(() => {
+                            window.loadTrackings();
+                        }, 100);
                     } else if (window.refreshTrackingList) {
                         console.log('🔄 Refresh tabella con refreshTrackingList()');
                         window.refreshTrackingList();
@@ -2778,6 +2781,39 @@ carriers.sort((a, b) => {
         
         return '-';
     }
+
+    // Funzione di utilità per formattare la data nel formato DD/MM/YYYY
+    function formatDateDDMMYYYY(isoDateString) {
+        if (!isoDateString || isoDateString === '-') return '-';
+        try {
+            const date = new Date(isoDateString);
+            const day = String(date.getDate()).padStart(2, '0');
+            const month = String(date.getMonth() + 1).padStart(2, '0'); // Mesi 0-based
+            const year = date.getFullYear();
+            return `${day}/${month}/${year}`;
+        } catch (e) {
+            console.error('Errore nella formattazione della data:', isoDateString, e);
+            return '-';
+        }
+    }
+
+    // Funzione di utilità per formattare data e ora nel formato DD/MM/YYYY HH:mm:ss
+    function formatDateTime(isoDateString) {
+        if (!isoDateString || isoDateString === '-') return '-';
+        try {
+            const date = new Date(isoDateString);
+            const day = String(date.getDate()).padStart(2, '0');
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const year = date.getFullYear();
+            const hours = String(date.getHours()).padStart(2, '0');
+            const minutes = String(date.getMinutes()).padStart(2, '0');
+            const seconds = String(date.getSeconds()).padStart(2, '0');
+            return `${day}/${month}/${year}, ${hours}:${minutes}:${seconds}`;
+        } catch (e) {
+            console.error('Errore nella formattazione di data e ora:', isoDateString, e);
+            return '-';
+        }
+    }
     
     async function processEnhancedTracking(formData) {
         updateWorkflowStep(0, 'completed', 'Validato');
@@ -2866,7 +2902,7 @@ if (apiResponse.events && Array.isArray(apiResponse.events)) {
                             dateOfDeparture: departureDate,
                         };
                         
-                        // Sostituisci formData con i dati mappati
+                        // Sostituisci formData con i data mappati
                         Object.assign(formData, mappedData);
                         updateWorkflowStep(1, 'completed', 'Dati recuperati');
                     } else if (formData.apiOperation === 'auto') {
@@ -2950,6 +2986,10 @@ if (apiResponse.events && Array.isArray(apiResponse.events)) {
             dateOfDeparture: formData.date_of_loading || formData.dateOfDeparture || '-',
             departure_date: formData.date_of_loading || formData.departure_date || '-',
 
+            // IMPORTANTE: Aggiungi questi campi specifici che la tabella cerca
+            // La tabella cerca esattamente questi nomi di campo:
+            departure: formatDateDDMMYYYY(formData.date_of_loading || formData.date_of_departure || formData.departure_date), // Per DATE OF DEPARTURE
+            created_at: formatDateTime(new Date().toISOString()), // Per CREATED AT
             
             // Container Count - tutte le varianti
             container_count: '1', // Default sempre 1
@@ -2969,7 +3009,7 @@ if (apiResponse.events && Array.isArray(apiResponse.events)) {
                             apiResponse?.bookingNumber || '-',
             
             // Created At - tutte le varianti
-            created_at: new Date().toISOString(),
+            // created_at è già sovrascritto sopra per la tabella
             createdAt: new Date().toISOString(),
             created: new Date().toISOString(),
             
@@ -2997,9 +3037,11 @@ if (apiResponse.events && Array.isArray(apiResponse.events)) {
         console.log('🔍 finalData includes these fields:', Object.keys(finalData).sort());
         console.log('✅ destination_country_code:', finalData.destination_country_code);
         console.log('✅ date_of_departure:', finalData.date_of_departure);
+        console.log('✅ departure (for table):', finalData.departure); // Added for table
         console.log('✅ container_count:', finalData.container_count);
         console.log('✅ booking:', finalData.booking);
         console.log('✅ ts_count:', finalData.ts_count);
+        console.log('✅ created_at (for table):', finalData.created_at); // Added for table
 
         if (!finalData.trackingNumber || finalData.trackingNumber === '-') {
             throw new Error('Tracking number mancante');
@@ -3626,6 +3668,7 @@ if (apiResponse.events && Array.isArray(apiResponse.events)) {
         console.log('  - dateOfDeparture:', lastTracking.dateOfDeparture);
         console.log('  - departure_date:', lastTracking.departure_date);
         console.log('  - departureDate:', lastTracking.departureDate);
+        console.log('  - departure (for table):', lastTracking.departure); // Check the new field
         
         // Verifica container count
         console.log('\n📦 CONTAINER COUNT:');
