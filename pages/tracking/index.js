@@ -128,7 +128,7 @@ const availableColumns = [
 { key: 'airline', label: 'Airline', visible: false, order: 22 },
 { key: 'origin', label: 'Origin', visible: false, order: 23 },
 { key: 'origin_name', label: 'Origin Name', visible: false, order: 24 },  // NASCOSTA
-{ key: 'date_of_departure', label: 'Date Of Departure', visible: false, order: 25 },
+{ key: 'date_of_departure', label: 'Date Of Departure', visible: true, order: 25 }, // MODIFICA 3
 { key: 'origin_country', label: 'Origin Country', visible: true, order: 26 },  // ← CAMBIA IN TRUE
 { key: 'origin_country_code', label: 'Origin Country Code', visible: true, order: 27 },  // ← CAMBIA IN TRUE
 { key: 'destination', label: 'Destination', visible: false, order: 28 },  // NASCOSTA
@@ -142,7 +142,7 @@ const availableColumns = [
     // Colonne Sistema
     { key: 'last_event_location', label: 'Ultima Posizione', visible: true, order: 35 },
     { key: 'eta', label: 'ETA', visible: true, order: 36 },
-    { key: 'created_at', label: 'Data Inserimento', visible: true, order: 37 },
+    { key: 'created_at', label: 'Data Inserimento', visible: false, order: 37 }, // MODIFICA 1
     
     // Actions column
     { key: 'actions', label: 'Azioni', visible: true, order: 38, required: true, isAction: true }
@@ -156,12 +156,9 @@ const DEFAULT_COLUMNS = ['select',
     'status', 
     'origin_port', 
     'destination_port',
-    'origin_country',           // ← AGGIUNGI
-    'origin_country_code',      // ← AGGIUNGI
-    'destination_country',      // ← AGGIUNGI
-    'destination_country_code', // ← AGGIUNGI
+    'date_of_departure',  // MODIFICA 2
     'eta', 
-    'created_at', 
+    // 'created_at',       // MODIFICA 2
     'actions'
 ];
 
@@ -911,13 +908,26 @@ destination_name: (value, row) => {
         },
         
         // DATE FORMATTERS
-        date_of_departure: (value, row) => {
-            // Solo per AIR
-            if (row.tracking_type !== 'awb') return '-';
+        date_of_departure: (value, row) => { // MODIFICA 4
+            // UNIFICATO: Per SEA usa Date Of Loading, per AIR usa Date Of Departure
             
+            // Per SEA: usa Date Of Loading
+            if (row.tracking_type === 'container' || row.tracking_type === 'bl') {
+                const date = row.metadata?.['Date Of Loading'] || 
+                             row.metadata?.date_of_loading ||
+                             row.date_of_loading ||
+                             row.departure ||  // tracking-form-progressive salva qui
+                             row.date_of_departure ||
+                             value;
+                return formatDateOnly(date);
+            }
+            
+            // Per AIR: usa Date Of Departure
             const date = value || 
-                        row.metadata?.['Date Of Departure'] || 
-                        row.metadata?.date_of_departure;
+                         row.metadata?.['Date Of Departure'] || 
+                         row.metadata?.date_of_departure ||
+                         row.departure ||  // tracking-form-progressive salva qui
+                         row.date_of_departure;
             return formatDateOnly(date);
         },
         
@@ -1613,7 +1623,6 @@ function showAddTrackingForm() {
 function renderTrackingForm() {
     return `
         <div class="sol-form">
-            <!-- Tab Navigation -->
             <div class="sol-tabs">
                 <button class="sol-tab active" data-tab="single" onclick="switchTab('single')">
                     <i class="fas fa-plus"></i>
@@ -1625,7 +1634,6 @@ function renderTrackingForm() {
                 </button>
             </div>
             
-            <!-- Single Tab -->
             <div class="sol-tab-content active" data-content="single">
                 <form id="trackingForm" class="tracking-form">
                     <div class="form-grid">
@@ -1706,7 +1714,6 @@ function renderTrackingForm() {
                 </form>
             </div>
             
-            <!-- Import Tab -->
             <div class="sol-tab-content" data-content="import">
                 <div id="importContainer">
                     <div class="import-container">
