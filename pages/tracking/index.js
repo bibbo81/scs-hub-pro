@@ -253,6 +253,8 @@ function loadSavedColumns() {
             if (!currentColumns.includes('select')) {
                 currentColumns.unshift('select');
             }
+            // AGGIUNGI: Rimuovi sempre created_at
+            currentColumns = currentColumns.filter(col => col !== 'created_at');
         } catch (e) {
             currentColumns = [...DEFAULT_COLUMNS];
         }
