@@ -299,106 +299,226 @@ class TrackingService {
         };
     }
 
-   async getContainerInfo(containerNumber, options = {}) {
-    const proxyUrl = '/netlify/functions/shipsgo-proxy';
-    
-    // ✅ FIX: Usa requestId invece di containerNumber
-    const params = {
-        requestId: containerNumber.toUpperCase()
-    };
-    
-    // ✅ FIX: Usa mappoint (lowercase) invece di mapPoint
-    params.mappoint = options.mapPoint !== undefined ? options.mapPoint : 'true';
-    
-    // Se viene passato un requestId specifico, usalo
-    if (options.requestId && options.requestId.trim()) {
-        params.requestId = options.requestId.trim();
-    }
-    
-    console.log('[TrackingService] 📦 GetContainerInfo FIXED params:', params);
-    
-    const response = await fetch(proxyUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-            version: 'v1.2',
-            endpoint: '/ContainerService/GetContainerInfo',
-            method: 'GET',
-            params: params
-        })
-    });
-
-    const proxyResponse = await response.json();
-    
-    if (!proxyResponse.success) {
-        throw new Error(proxyResponse.data?.message || proxyResponse.error || 'Failed to get container info');
-    }
-
-    // ✅ FIX: Gestisci la risposta come array
-    let containerData = proxyResponse.data;
-    
-    // Se la risposta è un array, prendi il primo elemento
-    if (Array.isArray(containerData) && containerData.length > 0) {
-        containerData = containerData[0];
-        console.log('[TrackingService] 📋 Extracted first container from array response');
-    }
-    
-    return containerData;
-}
-
-// ANCHE: Aggiorna il metodo normalizeContainerResponse per gestire i nomi dei campi corretti
-// Cerca normalizeContainerResponse (circa riga 600) e aggiorna questi mapping:
-
-normalizeContainerResponse(data, trackingNumber) {
-    const containerData = data.data || data;
-    
-    return {
-        success: true,
-        trackingNumber: trackingNumber,
-        trackingType: 'container',
-        status: this.normalizeStatus(containerData.Status || containerData.status),
-        lastUpdate: new Date().toISOString(),
+    async getContainerInfo(containerNumber, options = {}) {
+        const proxyUrl = '/netlify/functions/shipsgo-proxy';
         
-        carrier: {
-            code: this.normalizeCarrierCode(containerData.ShippingLine || containerData.shippingLine || containerData.carrier),
-            name: containerData.ShippingLine || containerData.shippingLine || containerData.carrier
-        },
+        // ✅ FIX: Usa requestId invece di containerNumber
+        const params = {
+            requestId: containerNumber.toUpperCase()
+        };
         
-        route: {
-            origin: {
-                port: containerData.Pol || containerData.pol || containerData.portOfLoading,
-                country: containerData.FromCountry || containerData.polCountry,
-                date: this.parseShipsGoDate(containerData.LoadingDate || containerData.DepartureDate || containerData.etd || containerData.loadingDate)
-            },
-            destination: {
-                port: containerData.Pod || containerData.pod || containerData.portOfDischarge,
-                country: containerData.ToCountry || containerData.podCountry,
-                eta: this.parseShipsGoDate(containerData.ETA || containerData.eta || containerData.ArrivalDate || containerData.dischargeDate)
-            }
-        },
+        // ✅ FIX: Usa mappoint (lowercase) invece di mapPoint
+        params.mappoint = options.mapPoint !== undefined ? options.mapPoint : 'true';
         
-        // ✅ FIX: Usa 'Vessel' invece di 'vesselName'
-        vessel: containerData.Vessel || containerData.VesselName ? {
-            name: containerData.Vessel || containerData.VesselName || containerData.vesselName,
-            voyage: containerData.VesselVoyage || containerData.voyage,
-            imo: containerData.VesselIMO || containerData.vesselIMO
-        } : null,
-        
-        events: this.extractContainerEvents(containerData),
-        
-        metadata: {
-            source: 'shipsgo_v1',
-            enriched_at: new Date().toISOString(),
-            raw: containerData,
-            booking: containerData.ReferenceNo || containerData.bookingNumber,
-            containerSize: containerData.ContainerTEU || containerData.containerSize,
-            co2Emission: containerData.Co2Emission || containerData.co2Emission,
-            transitTime: containerData.FormatedTransitTime,
-            dischargeDate: containerData.DischargeDate,
-            arrivalDate: containerData.ArrivalDate
+        // Se viene passato un requestId specifico, usalo
+        if (options.requestId && options.requestId.trim()) {
+            params.requestId = options.requestId.trim();
         }
-    };
-}
+        
+        console.log('[TrackingService] 📦 GetContainerInfo FIXED params:', params);
+        
+        const response = await fetch(proxyUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                version: 'v1.2',
+                endpoint: '/ContainerService/GetContainerInfo',
+                method: 'GET',
+                params: params
+            })
+        });
+
+        const proxyResponse = await response.json();
+        
+        if (!proxyResponse.success) {
+            throw new Error(proxyResponse.data?.message || proxyResponse.error || 'Failed to get container info');
+        }
+
+        // ✅ FIX: Gestisci la risposta come array
+        let containerData = proxyResponse.data;
+        
+        // Se la risposta è un array, prendi il primo elemento
+        if (Array.isArray(containerData) && containerData.length > 0) {
+            containerData = containerData[0];
+            console.log('[TrackingService] 📋 Extracted first container from array response');
+        }
+        
+        return containerData;
+    }
+
+    // ========================================
+    // API TO COLUMN MAPPING
+    // ========================================
+
+    /**
+     * Mappa i campi della risposta API ShipsGo ai nomi delle colonne usate nel sistema
+     * Questo garantisce compatibilità con il column mapping esistente per import/export
+     */
+    mapApiResponseToColumnNames(apiData) {
+        // Mapping dei campi API → Column Names del sistema
+        const fieldMapping = {
+            // API Field → System Column Name
+            'ShippingLine': 'carrier_code',
+            'ContainerNumber': 'tracking_number',
+            'Status': 'current_status',
+            'StatusId': 'status_id',
+            'FromCountry': 'origin_country',
+            'Pol': 'origin_port',  // Port of Loading
+            'ToCountry': 'destination_country',
+            'Pod': 'destination_port',  // Port of Discharge
+            'LoadingDate': 'loading_date',
+            'DepartureDate': 'departure_date',
+            'ArrivalDate': 'arrival_date',
+            'DischargeDate': 'discharge_date',
+            'ETA': 'eta',
+            'FirstETA': 'first_eta',
+            'Vessel': 'vessel_name',
+            'VesselIMO': 'vessel_imo',
+            'VesselVoyage': 'voyage',
+            'ContainerType': 'container_type',
+            'ContainerTEU': 'container_size',
+            'EmptyToShipperDate': 'empty_to_shipper',
+            'GateInDate': 'gate_in',
+            'GateOutDate': 'gate_out',
+            'EmptyReturnDate': 'empty_return',
+            'FormatedTransitTime': 'transit_time',
+            'Co2Emission': 'co2_emission',
+            'LiveMapUrl': 'live_map_url',
+            'BLReferenceNo': 'bl_reference',
+            'ReferenceNo': 'reference_number',
+            
+            // Per AWB/Air tracking
+            'AirlineCode': 'carrier_code',
+            'AirlineName': 'carrier_name',
+            'AWBNumber': 'tracking_number',
+            'FlightNumber': 'vessel_name',  // Usa vessel_name anche per flight
+            'DepartureAirport': 'origin_port',
+            'ArrivalAirport': 'destination_port',
+            'EstimatedDeparture': 'departure_date',
+            'EstimatedArrival': 'arrival_date',
+            
+            // Campi comuni alternativi (minuscole)
+            'carrier': 'carrier_code',
+            'shippingLine': 'carrier_code',
+            'containerNumber': 'tracking_number',
+            'awbNumber': 'tracking_number',
+            'status': 'current_status',
+            'pol': 'origin_port',
+            'pod': 'destination_port',
+            'etd': 'departure_date',
+            'eta': 'arrival_date',
+            'vesselName': 'vessel_name',
+            'voyage': 'voyage'
+        };
+        
+        // Crea oggetto con nomi mappati
+        const mappedData = {};
+        
+        // Mappa tutti i campi
+        for (const [apiField, systemColumn] of Object.entries(fieldMapping)) {
+            if (apiData[apiField] !== undefined && apiData[apiField] !== null) {
+                mappedData[systemColumn] = apiData[apiField];
+            }
+        }
+        
+        // Gestisci campi speciali che richiedono elaborazione
+        if (apiData.LoadingDate || apiData.DepartureDate) {
+            const dateObj = apiData.LoadingDate || apiData.DepartureDate;
+            if (dateObj && dateObj.Date) {
+                mappedData.loading_date = dateObj.Date;
+                mappedData.departure_date = dateObj.Date;
+                mappedData.is_actual_departure = dateObj.IsActual || false;
+            }
+        }
+        
+        if (apiData.ArrivalDate || apiData.DischargeDate) {
+            const dateObj = apiData.ArrivalDate || apiData.DischargeDate;
+            if (dateObj && dateObj.Date) {
+                mappedData.arrival_date = dateObj.Date;
+                mappedData.discharge_date = dateObj.Date;
+                mappedData.is_actual_arrival = dateObj.IsActual || false;
+            }
+        }
+        
+        // Gestisci TS Ports (transshipment ports)
+        if (apiData.TSPorts && Array.isArray(apiData.TSPorts)) {
+            mappedData.transshipment_ports = apiData.TSPorts.map(port => ({
+                port_name: port.Port,
+                arrival_date: port.ArrivalDate?.Date,
+                departure_date: port.DepartureDate?.Date,
+                vessel_name: port.Vessel,
+                vessel_imo: port.VesselIMO,
+                voyage: port.VesselVoyage
+            }));
+        }
+        
+        // Mantieni anche i dati originali per reference
+        mappedData._raw_api_response = apiData;
+        
+        return mappedData;
+    }
+
+    // ========================================
+    // NORMALIZZAZIONE RISPOSTE (METODI STANDALONE)
+    // ========================================
+
+    normalizeContainerResponse(data, trackingNumber) {
+        const containerData = data.data || data;
+        
+        // Usa il mapper per convertire i nomi dei campi
+        const mappedData = this.mapApiResponseToColumnNames(containerData);
+        
+        return {
+            success: true,
+            trackingNumber: trackingNumber,
+            trackingType: 'container',
+            // Usa i dati mappati invece di accedere direttamente
+            status: this.normalizeStatus(mappedData.current_status || containerData.Status || 'registered'),
+            lastUpdate: new Date().toISOString(),
+            
+            carrier: {
+                code: this.normalizeCarrierCode(mappedData.carrier_code || 'UNKNOWN'),
+                name: mappedData.carrier_name || mappedData.carrier_code || 'Unknown Carrier'
+            },
+            
+            route: {
+                origin: {
+                    port: mappedData.origin_port || '-',
+                    country: mappedData.origin_country || '-',
+                    date: mappedData.departure_date || mappedData.loading_date
+                },
+                destination: {
+                    port: mappedData.destination_port || '-',
+                    country: mappedData.destination_country || '-',
+                    eta: mappedData.eta || mappedData.arrival_date
+                }
+            },
+            
+            vessel: mappedData.vessel_name ? {
+                name: mappedData.vessel_name,
+                imo: mappedData.vessel_imo,
+                voyage: mappedData.voyage
+            } : null,
+            
+            // Includi tutti i campi mappati per uso futuro
+            mappedFields: mappedData,
+            
+            events: this.extractContainerEvents(containerData),
+            
+            metadata: {
+                source: 'shipsgo_v1',
+                enriched_at: new Date().toISOString(),
+                raw: containerData,
+                mapped: mappedData,
+                booking: mappedData.reference_number || mappedData.bl_reference,
+                containerSize: mappedData.container_size,
+                containerType: mappedData.container_type,
+                co2Emission: mappedData.co2_emission,
+                transitTime: mappedData.transit_time,
+                liveMapUrl: mappedData.live_map_url
+            }
+        };
+    }
 
     // ========================================
     // TRACKING AWB (ShipsGo v2.0) - ENDPOINT CORRETTI
@@ -494,84 +614,36 @@ normalizeContainerResponse(data, trackingNumber) {
         return proxyResponse.data;
     }
 
-    // ========================================
-    // NORMALIZZAZIONE RISPOSTE (METODI STANDALONE)
-    // ========================================
-
-    normalizeContainerResponse(data, trackingNumber) {
-        const containerData = data.data || data;
-        
-        return {
-            success: true,
-            trackingNumber: trackingNumber,
-            trackingType: 'container',
-            status: this.normalizeStatus(containerData.status),
-            lastUpdate: new Date().toISOString(),
-            
-            carrier: {
-                code: this.normalizeCarrierCode(containerData.shippingLine || containerData.carrier),
-                name: containerData.shippingLine || containerData.carrier
-            },
-            
-            route: {
-                origin: {
-                    port: containerData.pol || containerData.portOfLoading,
-                    country: containerData.polCountry,
-                    date: this.parseShipsGoDate(containerData.etd || containerData.loadingDate)
-                },
-                destination: {
-                    port: containerData.pod || containerData.portOfDischarge,
-                    country: containerData.podCountry,
-                    eta: this.parseShipsGoDate(containerData.eta || containerData.dischargeDate)
-                }
-            },
-            
-            vessel: containerData.vesselName ? {
-                name: containerData.vesselName,
-                voyage: containerData.voyage,
-                imo: containerData.vesselIMO
-            } : null,
-            
-            events: this.extractContainerEvents(containerData),
-            
-            metadata: {
-                source: 'shipsgo_v1',
-                enriched_at: new Date().toISOString(),
-                raw: containerData,
-                booking: containerData.bookingNumber,
-                containerSize: containerData.containerSize,
-                co2Emission: containerData.co2Emission
-            }
-        };
-    }
-
     normalizeAWBResponse(data, awbNumber) {
         const awbData = data.data || data;
+        
+        // Usa il mapper per convertire i nomi dei campi
+        const mappedData = this.mapApiResponseToColumnNames(awbData);
         
         return {
             success: true,
             trackingNumber: awbNumber,
             trackingType: 'awb',
-            status: this.normalizeStatus(awbData.status),
+            status: this.normalizeStatus(mappedData.current_status || awbData.status || 'registered'),
             lastUpdate: new Date().toISOString(),
             
             carrier: {
-                code: this.normalizeCarrierCode(awbData.airline || awbData.carrier),
-                name: awbData.airline || awbData.carrier
+                code: this.normalizeCarrierCode(mappedData.carrier_code || awbData.airline || 'UNKNOWN'),
+                name: mappedData.carrier_name || awbData.airline || awbData.carrier
             },
             
             route: {
                 origin: {
-                    port: awbData.origin,
+                    port: mappedData.origin_port || awbData.origin,
                     name: awbData.originName,
-                    country: awbData.originCountry,
-                    date: this.parseShipsGoDate(awbData.departureDate)
+                    country: mappedData.origin_country || awbData.originCountry,
+                    date: mappedData.departure_date || this.parseShipsGoDate(awbData.departureDate)
                 },
                 destination: {
-                    port: awbData.destination,
+                    port: mappedData.destination_port || awbData.destination,
                     name: awbData.destinationName,
-                    country: awbData.destinationCountry,
-                    eta: this.parseShipsGoDate(awbData.arrivalDate)
+                    country: mappedData.destination_country || awbData.destinationCountry,
+                    eta: mappedData.arrival_date || this.parseShipsGoDate(awbData.arrivalDate)
                 }
             },
             
@@ -586,12 +658,16 @@ normalizeContainerResponse(data, trackingNumber) {
                 weightUnit: awbData.weightUnit || 'kg'
             },
             
+            // Includi tutti i campi mappati per uso futuro
+            mappedFields: mappedData,
+            
             events: this.extractAWBEvents(awbData),
             
             metadata: {
                 source: 'shipsgo_v2',
                 enriched_at: new Date().toISOString(),
                 raw: awbData,
+                mapped: mappedData,
                 transitTime: awbData.transitTime,
                 t5Count: awbData.t5Count
             }
@@ -619,25 +695,25 @@ normalizeContainerResponse(data, trackingNumber) {
         }
         
         // Eventi base se non disponibili quelli dettagliati
-        if (data.loadingDate) {
+        if (data.LoadingDate || data.loadingDate) {
             events.push({
-                date: this.parseShipsGoDate(data.loadingDate),
+                date: this.parseShipsGoDate(data.LoadingDate || data.loadingDate),
                 type: 'LOADED_ON_VESSEL',
                 status: 'in_transit',
-                location: data.pol || data.portOfLoading,
+                location: data.Pol || data.pol || data.portOfLoading,
                 description: 'Container loaded on vessel',
-                vessel: data.vesselName
+                vessel: data.Vessel || data.vesselName
             });
         }
         
-        if (data.dischargeDate) {
+        if (data.DischargeDate || data.dischargeDate) {
             events.push({
-                date: this.parseShipsGoDate(data.dischargeDate),
+                date: this.parseShipsGoDate(data.DischargeDate || data.dischargeDate),
                 type: 'DISCHARGED_FROM_VESSEL',
                 status: 'arrived',
-                location: data.pod || data.portOfDischarge,
+                location: data.Pod || data.pod || data.portOfDischarge,
                 description: 'Container discharged from vessel',
-                vessel: data.vesselName
+                vessel: data.Vessel || data.vesselName
             });
         }
         
@@ -730,25 +806,37 @@ normalizeContainerResponse(data, trackingNumber) {
         return statusMap[status] || 'registered';
     }
 
-    parseShipsGoDate(dateStr) {
-        if (!dateStr) return null;
+    parseShipsGoDate(dateInput) {
+        if (!dateInput) return null;
         
         try {
-            // Gestisci diversi formati date ShipsGo
-            if (dateStr.includes('/')) {
-                // MM/DD/YYYY or DD/MM/YYYY
-                const parts = dateStr.split(' ')[0].split('/');
-                if (parts.length === 3) {
-                    // Assume MM/DD/YYYY (formato US ShipsGo)
-                    const date = new Date(parts[2], parts[0] - 1, parts[1]);
-                    return date.toISOString();
+            // Handle ShipsGo date object format { Date: "2024-01-15", IsActual: true }
+            if (dateInput && typeof dateInput === 'object' && dateInput.Date) {
+                return dateInput.Date;
+            }
+            
+            // Handle string dates
+            if (typeof dateInput === 'string') {
+                // Check if it's already in ISO format
+                if (dateInput.match(/^\d{4}-\d{2}-\d{2}/)) {
+                    return dateInput.split('T')[0]; // Return just the date part
+                }
+                
+                // Handle MM/DD/YYYY or DD/MM/YYYY
+                if (dateInput.includes('/')) {
+                    const parts = dateInput.split(' ')[0].split('/');
+                    if (parts.length === 3) {
+                        // Assume MM/DD/YYYY (formato US ShipsGo)
+                        const date = new Date(parts[2], parts[0] - 1, parts[1]);
+                        return date.toISOString().split('T')[0];
+                    }
                 }
             }
             
-            // ISO format
-            const date = new Date(dateStr);
+            // Try to parse as-is
+            const date = new Date(dateInput);
             if (!isNaN(date.getTime())) {
-                return date.toISOString();
+                return date.toISOString().split('T')[0];
             }
             
             return null;
