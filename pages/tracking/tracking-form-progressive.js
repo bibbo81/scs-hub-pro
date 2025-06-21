@@ -2330,7 +2330,7 @@
         } else if (/^\d{3}-\d{8}/.test(trackingNumber)) {
             type = 'awb';
             carrier = 'LUFTHANSA';
-        } else if (/^[A-Z]{2}\d{6,}/.test(trackingNumber)) {
+        } else if (/^[A-Z]{2}\d{6,}$/.test(trackingNumber)) {
             type = 'bl';
         }
         
@@ -2827,6 +2827,25 @@ carriers.sort((a, b) => {
             current_status: formData.current_status || formData.status || 'registered',
             reference: formData.reference || '-',
             
+            // NUOVI CAMPI PER LE COLONNE MANCANTI
+            destination_country_code: apiResponse?.route?.destination?.countryCode || 
+                                      formData.destination_country_code || 
+                                      extractCountryCode(formData.destination) || '-',
+            
+            date_of_departure: apiResponse?.route?.origin?.date || 
+                               formData.date_of_departure || 
+                               formData.departure_date || '-',
+            
+            container_count: formData.container_count || '1', // Default 1 container
+            
+            riferimento: formData.reference || formData.riferimento || '-',
+            
+            booking: apiResponse?.booking || 
+                     formData.booking || 
+                     formData.booking_number || '-',
+            
+            ts_count: formData.ts_count || '0', // Transhipment count
+            
             // Timestamps
             createdAt: formData.createdAt || new Date().toISOString(),
             updatedAt: new Date().toISOString(),
@@ -2845,15 +2864,50 @@ carriers.sort((a, b) => {
             id: Date.now()
         };
 
+        // Funzione helper per estrarre country code dalla destinazione
+        function extractCountryCode(destination) {
+            if (!destination || destination === '-') return '-';
+            
+            // Mappa comune porti -> country codes
+            const portToCountry = {
+                'GENOVA': 'IT',
+                'LA SPEZIA': 'IT',
+                'MILANO': 'IT',
+                'SHANGHAI': 'CN',
+                'HONG KONG': 'HK',
+                'SINGAPORE': 'SG',
+                'ROTTERDAM': 'NL',
+                'HAMBURG': 'DE',
+                'ANTWERP': 'BE',
+                'LE HAVRE': 'FR',
+                'NEW YORK': 'US',
+                'LOS ANGELES': 'US',
+                'SANTOS': 'BR',
+                'BARCELONA': 'ES',
+                'VALENCIA': 'ES'
+            };
+            
+            const upperDest = destination.toUpperCase();
+            for (const [port, code] of Object.entries(portToCountry)) {
+                if (upperDest.includes(port)) {
+                    return code;
+                }
+            }
+            
+            return '-';
+        }
+
         // IMPORTANTE: Se ci sono campi mappati nei metadata, assicurati che siano al livello principale
         if (finalData.metadata?.mapped) {
             Object.assign(finalData, finalData.metadata.mapped);
         }
 
         console.log('🔍 finalData includes these fields:', Object.keys(finalData).sort());
-        console.log('✅ origin_country:', finalData.origin_country);
-        console.log('✅ date_of_loading:', finalData.date_of_loading);
-        console.log('✅ co2_emission:', finalData.co2_emission);
+        console.log('✅ destination_country_code:', finalData.destination_country_code);
+        console.log('✅ date_of_departure:', finalData.date_of_departure);
+        console.log('✅ container_count:', finalData.container_count);
+        console.log('✅ booking:', finalData.booking);
+        console.log('✅ ts_count:', finalData.ts_count);
 
         if (!finalData.trackingNumber || finalData.trackingNumber === '-') {
             throw new Error('Tracking number mancante');
