@@ -2678,22 +2678,34 @@ carriers.sort((a, b) => {
             const result = await processEnhancedTracking(formData);
             
             if (result.success) {
-    updateWorkflowStep(2, 'completed', 'Completato');
-    showWorkflowResult(true, result.message);
-    
-    // Close modal after success
-    setTimeout(() => {
-    closeAllModals();
-    // Fix: Forza il refresh della tabella
-    if (window.loadTrackings) {
-        window.loadTrackings();
-    } else if (window.refreshTrackingList) {
-        window.refreshTrackingList();
-    }
-    // Dispatch event per notificare altri componenti
-    window.dispatchEvent(new Event('trackingsUpdated'));
-}, 2000);
-} else {
+                updateWorkflowStep(2, 'completed', 'Completato');
+                showWorkflowResult(true, result.message);
+                
+                // Close modal after success
+                setTimeout(() => {
+                    closeAllModals();
+                    // Fix: Forza il refresh della tabella con tutti i metodi possibili
+                    if (window.loadTrackings) {
+                        console.log('🔄 Refresh tabella con loadTrackings()');
+                        window.loadTrackings();
+                    } else if (window.refreshTrackingList) {
+                        console.log('🔄 Refresh tabella con refreshTrackingList()');
+                        window.refreshTrackingList();
+                    }
+                    
+                    // Dispatch event per notificare altri componenti
+                    window.dispatchEvent(new Event('trackingsUpdated'));
+                    
+                    // Fallback: se la tabella non si aggiorna, forza reload dopo 500ms
+                    setTimeout(() => {
+                        const table = document.querySelector('#trackingTableBody');
+                        if (table && table.children.length === 0) {
+                            console.log('⚠️ Tabella vuota, forzo reload pagina');
+                            location.reload();
+                        }
+                    }, 500);
+                }, 2000);
+            } else {
                 updateWorkflowStep(2, 'error', 'Errore');
                 showWorkflowResult(false, result.message);
             }
@@ -2729,34 +2741,38 @@ carriers.sort((a, b) => {
                 if (formData.apiOperation === 'get' || formData.apiOperation === 'auto') {
                     // Per GET: prima ottieni i dati, poi salvali
                     const apiResponse = await window.trackingService.track(
-    formData.trackingNumber,
-    formData.trackingType,
-    { forceRefresh: true }
-);
+                        formData.trackingNumber,
+                        formData.trackingType,
+                        { forceRefresh: true }
+                    );
 
-// AGGIUNGI QUESTI LOG
-console.log('📡 API Response:', apiResponse);
-console.log('📡 API Success?', apiResponse?.success);
+                    // AGGIUNGI QUESTI LOG
+                    console.log('📡 API Response:', apiResponse);
+                    console.log('📡 API Success?', apiResponse?.success);
                     
-if (apiResponse && apiResponse.success) {  // ← FIX QUI: rimuovi "&& apiResponse.data"
-    console.log('✅ ENTRO nel mapping API');
-    
-    // Mappa i dati GET correttamente
-    const mappedData = {
-        trackingNumber: formData.trackingNumber,
-        trackingType: formData.trackingType || 'container',
-        carrier: apiResponse.carrier?.name || apiResponse.carrier?.code || formData.carrier || '-',
-        origin: apiResponse.route?.origin?.port || formData.origin || '-',
-        destination: apiResponse.route?.destination?.port || formData.destination || '-',
-        status: apiResponse.status || formData.status || 'registered',
-        reference: formData.reference || '-',
-        lastUpdate: apiResponse.lastUpdate || new Date().toISOString(),
-        events: apiResponse.events || []
-    };
-    
-    // Sostituisci formData con i dati mappati
-    Object.assign(formData, mappedData);
-    updateWorkflowStep(1, 'completed', 'Dati recuperati');
+                    if (apiResponse && apiResponse.success) {  // FIX: rimuovi "&& apiResponse.data"
+                        console.log('✅ ENTRO nel mapping API');
+                        
+                        // Mappa i dati GET correttamente
+                        const mappedData = {
+                            trackingNumber: formData.trackingNumber,
+                            trackingType: formData.trackingType || 'container',
+                            carrier: apiResponse.carrier?.code || apiResponse.carrier?.name || formData.carrier || 'UNKNOWN', // FIX: era "ccarrier"
+                            origin: apiResponse.route?.origin?.port || formData.origin || '-',
+                            destination: apiResponse.route?.destination?.port || formData.destination || '-',
+                            status: apiResponse.status || formData.status || 'registered',
+                            reference: formData.reference || '-',
+                            lastUpdate: apiResponse.lastUpdate || new Date().toISOString(),
+                            events: apiResponse.events || [],
+                            // AGGIUNGI: Salva anche i metadata
+                            metadata: apiResponse.metadata || {},
+                            vessel: apiResponse.vessel || null,
+                            route: apiResponse.route || null
+                        };
+                        
+                        // Sostituisci formData con i dati mappati
+                        Object.assign(formData, mappedData);
+                        updateWorkflowStep(1, 'completed', 'Dati recuperati');
                     } else if (formData.apiOperation === 'auto') {
                         // Se GET fallisce in modalità auto, prova POST
                         updateWorkflowStep(1, 'pending', 'Registrazione container...');
@@ -2801,35 +2817,45 @@ if (apiResponse && apiResponse.success) {  // ← FIX QUI: rimuovi "&& apiRespon
         
         // Assicurati che tutti i campi abbiano un valore valido
         const finalData = {
-    // Campi con i nomi originali (per compatibilità)
-    trackingNumber: formData.trackingNumber, // OBBLIGATORIO, non deve mai essere '-'
-    trackingType: formData.trackingType || 'container',
-    // FIX: Assicurati che carrier sia sempre una stringa
-    carrier: typeof formData.carrier === 'object' 
-        ? (formData.carrier.code || formData.carrier.name || '-')
-        : (formData.carrier || '-'),
-    origin: formData.origin || '-',
-    destination: formData.destination || '-',
-    status: formData.status || 'registered',
-    reference: formData.reference || '-',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    
-    // AGGIUNGI: Campi con i nomi che si aspetta la tabella
-    tracking_number: formData.trackingNumber,
-    tracking_type: formData.trackingType || 'container',
-    carrier_code: typeof formData.carrier === 'object' 
-        ? (formData.carrier.code || formData.carrier.name || '-')
-        : (formData.carrier || '-'),
-    origin_port: formData.origin || '-',
-    destination_port: formData.destination || '-',
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString()
-};
+            // Campi con i nomi originali (per compatibilità)
+            trackingNumber: formData.trackingNumber,
+            trackingType: formData.trackingType || 'container',
+            // FIX: Assicurati che carrier sia sempre una stringa
+            carrier: typeof formData.carrier === 'object' 
+                ? (formData.carrier.code || formData.carrier.name || '-')
+                : (formData.carrier || '-'),
+            origin: formData.origin || '-',
+            destination: formData.destination || '-',
+            status: formData.status || 'registered',
+            reference: formData.reference || '-',
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+            
+            // AGGIUNGI: Campi con i nomi che si aspetta la tabella
+            tracking_number: formData.trackingNumber,
+            tracking_type: formData.trackingType || 'container',
+            carrier_code: typeof formData.carrier === 'object' 
+                ? (formData.carrier.code || formData.carrier.name || '-')
+                : (formData.carrier || '-'),
+            origin_port: formData.origin || '-',
+            destination_port: formData.destination || '-',
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+            
+            // NUOVO: Aggiungi metadata e dati extra dall'API
+            metadata: formData.metadata || {},
+            events: formData.events || [],
+            vessel: formData.vessel || null,
+            route: formData.route || null,
+            lastUpdate: formData.lastUpdate || new Date().toISOString(),
+            
+            // Flag per indicare che i dati vengono dall'API
+            dataSource: formData.metadata?.source || 'manual'
+        };
 
-if (!finalData.trackingNumber || finalData.trackingNumber === '-') {
-    throw new Error('Tracking number mancante');
-} else {
+        if (!finalData.trackingNumber || finalData.trackingNumber === '-') {
+            throw new Error('Tracking number mancante');
+        } else {
             // Fallback to localStorage
             const trackings = JSON.parse(localStorage.getItem('trackings') || '[]');
             trackings.push({
@@ -3403,9 +3429,7 @@ if (!finalData.trackingNumber || finalData.trackingNumber === '-') {
     console.log('   - window.TrackingErrorHandler:', typeof window.TrackingErrorHandler);
     console.log('   - window.QuickContainerActions:', typeof window.QuickContainerActions);
     console.log('   - window.showEnhancedTrackingForm:', typeof window.showEnhancedTrackingForm);
-    // AGGIUNGI QUESTO ALLA FINE DEL FILE tracking-form-progressive.js
-// PRIMA della chiusura })();
-
+    
     // ESPONI FUNZIONI PER DEBUG
     window.updateCarrierWithShipsGoData = updateCarrierWithShipsGoData;
     window.detectTrackingType = detectTrackingType;
@@ -3413,4 +3437,23 @@ if (!finalData.trackingNumber || finalData.trackingNumber === '-') {
     console.log('✅ PROGRESSIVE FORM: Funzioni di debug esposte');
     console.log('   - window.updateCarrierWithShipsGoData:', typeof window.updateCarrierWithShipsGoData);
     console.log('   - window.detectTrackingType:', typeof window.detectTrackingType);
+    
+    // FIX 4: Debug helper per verificare l'ultimo tracking salvato
+    window.debugLastTracking = function() {
+        const trackings = JSON.parse(localStorage.getItem('trackings') || '[]');
+        if (trackings.length > 0) {
+            const lastTracking = trackings[trackings.length - 1];
+            console.log('📦 Ultimo tracking salvato:', JSON.stringify(lastTracking, null, 2));
+            console.log('🔍 Campi chiave:');
+            console.log('  - carrier:', lastTracking.carrier);
+            console.log('  - carrier_code:', lastTracking.carrier_code);
+            console.log('  - metadata:', lastTracking.metadata);
+            console.log('  - events:', lastTracking.events?.length || 0, 'eventi');
+            console.log('  - dataSource:', lastTracking.dataSource);
+            return lastTracking;
+        } else {
+            console.log('❌ Nessun tracking in localStorage');
+            return null;
+        }
+    };
 })();
