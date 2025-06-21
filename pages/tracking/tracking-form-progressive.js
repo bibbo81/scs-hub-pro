@@ -2896,11 +2896,6 @@ carriers.sort((a, b) => {
         const finalData = {
             // Prima includi TUTTI i campi mappati dall'API (se esistono)
             ...formData, // Usare formData che ora contiene i mappedData
-            // Poi includi tutti i campi da formData (che potrebbero contenere i dati mappati)
-            // ...formData, // Rimosso duplicato
-            // Infine, assicurati che i campi essenziali siano sempre presenti
-            trackingNumber: formData.trackingNumber,
-            trackingType: formData.trackingType || 'container',
             
             // Se abbiamo dati mappati nei metadata, estraili al livello principale
             ...(formData.metadata?.mapped || {}),
@@ -2924,14 +2919,9 @@ carriers.sort((a, b) => {
             destination_country: apiResponse?.route?.destination?.country || '-',
             
             // Date of Departure - tutte le varianti
-            date_of_departure: formData.date_of_loading || // USA QUESTO CAMPO!
-                               formData.date_of_departure || 
-                               apiResponse?.route?.origin?.date || '-',
-            dateOfDeparture: formData.date_of_loading || // USA QUESTO CAMPO!
-                             formData.date_of_departure || 
-                             apiResponse?.route?.origin?.date || '-',
-            departure_date: apiResponse?.route?.origin?.date || '-',
-            departureDate: apiResponse?.route?.origin?.date || '-',
+            date_of_departure: formData.date_of_loading || mappedData.date_of_departure || '-',
+            dateOfDeparture: formData.date_of_loading || mappedData.dateOfDeparture || '-',
+            departure_date: formData.date_of_loading || mappedData.departure_date || '-',
             
             // Container Count - tutte le varianti
             container_count: '1', // Default sempre 1
