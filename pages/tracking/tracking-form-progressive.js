@@ -2932,9 +2932,10 @@ carriers.sort((a, b) => {
             destination_country: apiResponse?.route?.destination?.country || '-',
             
             // Date of Departure - tutte le varianti
-            date_of_departure: formData.date_of_loading || mappedData.date_of_departure || '-',
-            dateOfDeparture: formData.date_of_loading || mappedData.dateOfDeparture || '-',
-            departure_date: formData.date_of_loading || mappedData.departure_date || '-',
+            date_of_departure: formData.date_of_loading || formData.date_of_departure || '-',
+            dateOfDeparture: formData.date_of_loading || formData.dateOfDeparture || '-',
+            departure_date: formData.date_of_loading || formData.departure_date || '-',
+
             
             // Container Count - tutte le varianti
             container_count: '1', // Default sempre 1
