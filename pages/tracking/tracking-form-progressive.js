@@ -2641,7 +2641,9 @@ carriers.sort((a, b) => {
                 status: document.getElementById('enh_status').value,
                 reference: document.getElementById('enh_reference').value,
                 useApi: document.getElementById('enh_useApi').checked,
-                apiOperation: document.querySelector('input[name="api_operation"]:checked')?.value || 'auto'
+                apiOperation: document.querySelector('input[name="api_operation"]:checked')?.value || 'auto',
+                // Aggiunto per il FIX 1
+                date_of_loading: null // Questo verrà popolato da ImportManager o da altro se necessario
             };
             
             // Validazione base
@@ -2732,6 +2734,7 @@ carriers.sort((a, b) => {
             'HONG KONG': 'HK',
             'SINGAPORE': 'SG',
             'ROTTERDAM': 'NL',
+            'TANJUNG PELEPAS': 'MY', // AGGIUNGI QUESTA RIGA!
             'HAMBURG': 'DE',
             'ANTWERP': 'BE',
             'LE HAVRE': 'FR',
@@ -2898,17 +2901,17 @@ carriers.sort((a, b) => {
             
             // AGGIUNGI TUTTE LE VARIANTI DEI NOMI
             // Destination Country Code - tutte le varianti
-            destination_country_code: apiResponse?.route?.destination?.countryCode || 
-                                      extractCountryCode(formData.destination) || '-',
-            destinationCountryCode: apiResponse?.route?.destination?.countryCode || 
-                                    extractCountryCode(formData.destination) || '-',
+            destination_country_code: extractCountryCode(formData.destination || formData.destination_port) || '-',
+            destinationCountryCode: extractCountryCode(formData.destination || formData.destination_port) || '-',
             destination_country: apiResponse?.route?.destination?.country || '-',
             
             // Date of Departure - tutte le varianti
-            date_of_departure: apiResponse?.route?.origin?.date || 
-                               apiResponse?.departureDate || '-',
-            dateOfDeparture: apiResponse?.route?.origin?.date || 
-                             apiResponse?.departureDate || '-',
+            date_of_departure: formData.date_of_loading || // USA QUESTO CAMPO!
+                               formData.date_of_departure || 
+                               apiResponse?.route?.origin?.date || '-',
+            dateOfDeparture: formData.date_of_loading || // USA QUESTO CAMPO!
+                             formData.date_of_departure || 
+                             apiResponse?.route?.origin?.date || '-',
             departure_date: apiResponse?.route?.origin?.date || '-',
             departureDate: apiResponse?.route?.origin?.date || '-',
             
