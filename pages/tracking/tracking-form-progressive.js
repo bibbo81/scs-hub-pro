@@ -148,7 +148,6 @@
                 </div>
             </div>
             
-            <!-- CUSTOM MODAL STYLES INLINE -->
             <style>
             .custom-fullwidth-modal {
                 position: fixed !important;
@@ -319,7 +318,6 @@
     function renderFullWidthForm() {
         return `
             <div class="fullwidth-form-wrapper">
-                <!-- Tab Navigation Integrata -->
                 <div class="integrated-tabs">
                     <button class="integrated-tab active" data-target="single">
                         <i class="fas fa-plus"></i> Tracking Singolo
@@ -329,14 +327,11 @@
                     </button>
                 </div>
                 
-                <!-- Single Tab - OTTIMIZZATO PER FULL WIDTH -->
                 <div class="tab-content active" data-tab="single">
                     <form id="enhancedSingleForm" class="optimized-fullwidth-form">
                         
-                        <!-- Grid ottimizzato per sfruttare tutto lo spazio -->
                         <div class="optimized-grid">
                             
-                            <!-- Colonna 1: Input Principale con Examples -->
                             <div class="form-card primary-card">
                                 <div class="card-header">
                                     <h3><i class="fas fa-search"></i> Numero Tracking</h3>
@@ -392,13 +387,11 @@
                                 </div>
                             </div>
                             
-                            <!-- Colonna 2: Dettagli Completi (Tipo + Geografia) -->
                             <div class="form-card details-card">
                                 <div class="card-header">
                                     <h3><i class="fas fa-cog"></i> Dettagli & Geografia</h3>
                                 </div>
                                 <div class="card-body">
-                                    <!-- Sezione Tipo -->
                                     <div class="details-section">
                                         <h5 class="section-title">🏷️ Classificazione</h5>
                                         <div class="field-row">
@@ -433,7 +426,6 @@
                                         </div>
                                     </div>
                                     
-                                    <!-- Sezione Geografia -->
                                     <div class="details-section">
                                         <h5 class="section-title">🌍 Geografia</h5>
                                         <div class="field-group">
@@ -463,7 +455,6 @@
                                 </div>
                             </div>
                             
-                            <!-- Colonna 3: Preview Live Estesa -->
                             <div class="form-card preview-card">
                                 <div class="card-header">
                                     <h3><i class="fas fa-eye"></i> Anteprima Live</h3>
@@ -501,7 +492,6 @@
                                 </div>
                             </div>
                             
-                            <!-- Colonna 4: API e Controlli Avanzati -->
                             <div class="form-card api-card">
                                 <div class="card-header">
                                     <h3><i class="fas fa-cog"></i> API & Controlli</h3>
@@ -521,7 +511,6 @@
                                             </p>
                                         </div>
                                         
-                                        <!-- NUOVO SELETTORE OPERAZIONI -->
                                         <div class="api-operation-selector">
                                             <h5>🔧 Tipo Operazione</h5>
                                             <div class="operation-radio-group">
@@ -579,7 +568,6 @@
                             </div>
                         </div>
                         
-                        <!-- Footer Actions Integrato -->
                         <div class="integrated-footer">
                             <div class="footer-info">
                                 <i class="fas fa-info-circle"></i>
@@ -597,11 +585,9 @@
                     </form>
                 </div>
                 
-                <!-- Import Tab - RIDISEGNATO COME SCREENSHOT -->
                 <div class="tab-content" data-tab="import">
                     <div class="import-fullwidth">
                         <div class="import-layout-new">
-                            <!-- Drop Zone più compatta a sinistra -->
                             <div class="compact-drop-zone" id="enhDropZone">
                                 <div class="drop-content-compact">
                                     <div class="drop-visual">
@@ -618,7 +604,6 @@
                                 <input type="file" id="enhFileInput" accept=".xlsx,.xls,.csv" style="display: none;">
                             </div>
                             
-                            <!-- Features a destra - COME SCREENSHOT -->
                             <div class="features-sidebar">
                                 <h3>📊 Funzionalità Import Avanzate</h3>
                                 <div class="features-list">
@@ -682,7 +667,6 @@
 
     function getFormStyles() {
         return `
-            <!-- STYLES OTTIMIZZATI PER FULL WIDTH -->
             <style>
             .fullwidth-form-wrapper {
                 height: 100%;
@@ -2733,6 +2717,8 @@ carriers.sort((a, b) => {
     async function processEnhancedTracking(formData) {
         updateWorkflowStep(0, 'completed', 'Validato');
         
+        let apiResponse = null; // Initialize apiResponse
+        
         // If using API, fetch live data based on operation type
         if (formData.useApi && window.trackingService) {
             updateWorkflowStep(1, 'pending', 'Connessione API...');
@@ -2740,7 +2726,7 @@ carriers.sort((a, b) => {
             try {
                 if (formData.apiOperation === 'get' || formData.apiOperation === 'auto') {
                     // Per GET: prima ottieni i dati, poi salvali
-                    const apiResponse = await window.trackingService.track(
+                    apiResponse = await window.trackingService.track( // Assign to apiResponse
                         formData.trackingNumber,
                         formData.trackingType,
                         { forceRefresh: true }
@@ -2817,41 +2803,57 @@ carriers.sort((a, b) => {
         
         // Assicurati che tutti i campi abbiano un valore valido
         const finalData = {
-            // Campi con i nomi originali (per compatibilità)
+            // Prima includi TUTTI i campi mappati dall'API (se esistono)
+            ...(apiResponse?.mappedFields || {}), 
+            // Poi includi tutti i campi da formData (che potrebbero contenere i dati mappati)
+            ...formData, 
+            // Infine, assicurati che i campi essenziali siano sempre presenti
             trackingNumber: formData.trackingNumber,
             trackingType: formData.trackingType || 'container',
-            // FIX: Assicurati che carrier sia sempre una stringa
-            carrier: typeof formData.carrier === 'object' 
-                ? (formData.carrier.code || formData.carrier.name || '-')
-                : (formData.carrier || '-'),
-            origin: formData.origin || '-',
-            destination: formData.destination || '-',
-            status: formData.status || 'registered',
-            reference: formData.reference || '-',
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
             
-            // AGGIUNGI: Campi con i nomi che si aspetta la tabella
+            // Se abbiamo dati mappati nei metadata, estraili al livello principale
+            ...(formData.metadata?.mapped || {}),
+            
+            // Campi critici con fallback
             tracking_number: formData.trackingNumber,
             tracking_type: formData.trackingType || 'container',
-            carrier_code: typeof formData.carrier === 'object' 
-                ? (formData.carrier.code || formData.carrier.name || '-')
-                : (formData.carrier || '-'),
-            origin_port: formData.origin || '-',
-            destination_port: formData.destination || '-',
-            created_at: new Date().toISOString(),
+            carrier: formData.carrier || formData.carrier_code || 'UNKNOWN',
+            carrier_code: formData.carrier_code || formData.carrier || 'UNKNOWN',
+            origin: formData.origin || formData.origin_port || '-',
+            origin_port: formData.origin_port || formData.origin || '-',
+            destination: formData.destination || formData.destination_port || '-',
+            destination_port: formData.destination_port || formData.destination || '-',
+            status: formData.status || 'registered',
+            current_status: formData.current_status || formData.status || 'registered',
+            reference: formData.reference || '-',
+            
+            // Timestamps
+            createdAt: formData.createdAt || new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+            created_at: formData.created_at || new Date().toISOString(),
             updated_at: new Date().toISOString(),
             
-            // NUOVO: Aggiungi metadata e dati extra dall'API
+            // Mantieni i dati strutturati
             metadata: formData.metadata || {},
             events: formData.events || [],
             vessel: formData.vessel || null,
             route: formData.route || null,
             lastUpdate: formData.lastUpdate || new Date().toISOString(),
+            dataSource: formData.metadata?.source || 'manual',
             
-            // Flag per indicare che i dati vengono dall'API
-            dataSource: formData.metadata?.source || 'manual'
+            // ID univoco
+            id: Date.now()
         };
+
+        // IMPORTANTE: Se ci sono campi mappati nei metadata, assicurati che siano al livello principale
+        if (finalData.metadata?.mapped) {
+            Object.assign(finalData, finalData.metadata.mapped);
+        }
+
+        console.log('🔍 finalData includes these fields:', Object.keys(finalData).sort());
+        console.log('✅ origin_country:', finalData.origin_country);
+        console.log('✅ date_of_loading:', finalData.date_of_loading);
+        console.log('✅ co2_emission:', finalData.co2_emission);
 
         if (!finalData.trackingNumber || finalData.trackingNumber === '-') {
             throw new Error('Tracking number mancante');
@@ -2943,8 +2945,7 @@ carriers.sort((a, b) => {
                 </div>
                 
                 <div class="workflow-result" style="display: none;">
-                    <!-- Result will be injected here -->
-                </div>
+                    </div>
             </div>
         `;
         
