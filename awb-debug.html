@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AWB Debug Panel - ShipsGo IDs</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        
+        .debug-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            padding: 30px;
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+        
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+        }
+        
+        .actions {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+        
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .btn-primary {
+            background: #007bff;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #0056b3;
+        }
+        
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+        
+        .btn-secondary:hover {
+            background: #545b62;
+        }
+        
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+        
+        .btn-success:hover {
+            background: #218838;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+        
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 12px 20px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+        }
+        
+        .info {
+            background: #d1ecf1;
+            color: #0c5460;
+            padding: 12px 20px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+        }
+        
+        .awb-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        
+        .awb-table th {
+            background: #f8f9fa;
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+            border-bottom: 2px solid #dee2e6;
+        }
+        
+        .awb-table td {
+            padding: 12px;
+            border-bottom: 1px solid #dee2e6;
+        }
+        
+        .awb-table tr:hover {
+            background: #f8f9fa;
+        }
+        
+        .id-badge {
+            background: #007bff;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 14px;
+        }
+        
+        .awb-number {
+            font-family: monospace;
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .status-badge {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        
+        .status-delivered {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .status-in_progress {
+            background: #cce5ff;
+            color: #004085;
+        }
+        
+        .status-pending {
+            background: #fff3cd;
+            color: #856404;
+        }
+        
+        .cached-info {
+            margin-top: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 6px;
+        }
+        
+        .cached-info h3 {
+            margin-top: 0;
+            color: #495057;
+        }
+        
+        .cache-list {
+            margin-top: 15px;
+        }
+        
+        .cache-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #dee2e6;
+        }
+        
+        .cache-item:last-child {
+            border-bottom: none;
+        }
+        
+        .quick-test {
+            margin-top: 30px;
+            padding: 20px;
+            background: #e9ecef;
+            border-radius: 6px;
+        }
+        
+        .test-input {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        
+        .test-input input {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+            font-family: monospace;
+        }
+        
+        .result-box {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            font-family: monospace;
+            white-space: pre-wrap;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .no-data {
+            text-align: center;
+            padding: 40px;
+            color: #6c757d;
+        }
+        
+        .highlight {
+            background: #fff3cd;
+            padding: 2px 4px;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body>
+    <div class="debug-container">
+        <h1>🔍 AWB Debug Panel - ShipsGo IDs</h1>
+        <p class="subtitle">Visualizza e gestisci gli ID numerici ShipsGo per gli AWB</p>
+        
+        <div class="actions">
+            <button class="btn-primary" onclick="fetchAWBList()">
+                📋 Carica Lista AWB da ShipsGo
+            </button>
+            <button class="btn-secondary" onclick="showLocalCache()">
+                💾 Mostra Cache Locale
+            </button>
+            <button class="btn-secondary" onclick="showStoredTrackings()">
+                📦 Mostra Tracking Salvati
+            </button>
+            <button class="btn-success" onclick="exportMapping()">
+                📥 Esporta Mapping CSV
+            </button>
+        </div>
+        
+        <div id="messages"></div>
+        
+        <div id="content">
+            <div class="no-data">
+                Clicca "Carica Lista AWB" per vedere tutti gli AWB registrati in ShipsGo con i loro ID
+            </div>
+        </div>
+        
+        <div class="quick-test">
+            <h3>🧪 Test Rapido AWB</h3>
+            <p>Inserisci un numero AWB per testare il recupero dell'ID:</p>
+            <div class="test-input">
+                <input type="text" id="testAwb" placeholder="Es: 999-33019420" value="999-33019420">
+                <button class="btn-primary" onclick="testAWB()">Test AWB</button>
+            </div>
+            <div id="testResult"></div>
+        </div>
+        
+        <div class="cached-info">
+            <h3>📊 Informazioni Sistema</h3>
+            <div id="systemInfo">
+                <p>Caricamento informazioni...</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Inizializzazione
+        document.addEventListener('DOMContentLoaded', function() {
+            updateSystemInfo();
+        });
+        
+        function showMessage(message, type = 'info') {
+            const messagesDiv = document.getElementById('messages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = type;
+            messageDiv.textContent = message;
+            messagesDiv.innerHTML = '';
+            messagesDiv.appendChild(messageDiv);
+            
+            setTimeout(() => {
+                messageDiv.remove();
+            }, 5000);
+        }
+        
+        async function fetchAWBList() {
+            const content = document.getElementById('content');
+            content.innerHTML = '<div class="loading">Caricamento lista AWB da ShipsGo...</div>';
+            
+            try {
+                const response = await fetch('/netlify/functions/shipsgo-proxy', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        version: 'v2',
+                        endpoint: '/air/shipments',
+                        method: 'GET'
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success && Array.isArray(result.data)) {
+                    displayAWBList(result.data);
+                    showMessage(`Trovati ${result.data.length} AWB in ShipsGo`, 'info');
+                    
+                    // Salva in cache locale
+                    if (window.trackingService) {
+                        result.data.forEach(awb => {
+                            if (awb.awb_number && awb.id) {
+                                window.trackingService.awbIdCache.set(awb.awb_number.toUpperCase(), awb.id);
+                            }
+                        });
+                        window.trackingService.saveAWBIdCache();
+                    }
+                } else {
+                    throw new Error(result.error || 'Errore nel recupero della lista AWB');
+                }
+            } catch (error) {
+                content.innerHTML = `<div class="error">Errore: ${error.message}</div>`;
+                showMessage('Errore nel caricamento della lista AWB', 'error');
+            }
+        }
+        
+        function displayAWBList(awbList) {
+            const content = document.getElementById('content');
+            
+            if (awbList.length === 0) {
+                content.innerHTML = '<div class="no-data">Nessun AWB trovato in ShipsGo</div>';
+                return;
+            }
+            
+            let html = `
+                <h3>📋 Lista AWB Registrati (${awbList.length} totali)</h3>
+                <table class="awb-table">
+                    <thead>
+                        <tr>
+                            <th>ShipsGo ID</th>
+                            <th>AWB Number</th>
+                            <th>Airline</th>
+                            <th>Reference</th>
+                            <th>Status</th>
+                            <th>Origin → Destination</th>
+                            <th>Transit Time</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+            
+            awbList.forEach(awb => {
+                const statusClass = `status-${(awb.status || 'pending').toLowerCase().replace(' ', '_')}`;
+                const origin = awb.route?.origin?.location?.iata || '-';
+                const destination = awb.route?.destination?.location?.iata || '-';
+                
+                html += `
+                    <tr>
+                        <td><span class="id-badge">${awb.id}</span></td>
+                        <td><span class="awb-number">${awb.awb_number || '-'}</span></td>
+                        <td>${awb.airline?.name || awb.airline?.iata || '-'}</td>
+                        <td>${awb.reference || '-'}</td>
+                        <td><span class="status-badge ${statusClass}">${awb.status || '-'}</span></td>
+                        <td>${origin} → ${destination}</td>
+                        <td>${awb.route?.transit_time ? awb.route.transit_time + ' days' : '-'}</td>
+                    </tr>
+                `;
+            });
+            
+            html += `
+                    </tbody>
+                </table>
+            `;
+            
+            content.innerHTML = html;
+        }
+        
+        function showLocalCache() {
+            const content = document.getElementById('content');
+            
+            try {
+                const cached = localStorage.getItem('awbIdCache');
+                const cacheData = cached ? JSON.parse(cached) : {};
+                const entries = Object.entries(cacheData);
+                
+                if (entries.length === 0) {
+                    content.innerHTML = '<div class="no-data">Nessun AWB in cache locale</div>';
+                    return;
+                }
+                
+                let html = `
+                    <h3>💾 Cache Locale AWB → ID (${entries.length} entries)</h3>
+                    <div class="cache-list">
+                `;
+                
+                entries.forEach(([awb, id]) => {
+                    html += `
+                        <div class="cache-item">
+                            <span class="awb-number">${awb}</span>
+                            <span class="id-badge">${id}</span>
+                        </div>
+                    `;
+                });
+                
+                html += '</div>';
+                content.innerHTML = html;
+                
+            } catch (error) {
+                content.innerHTML = `<div class="error">Errore lettura cache: ${error.message}</div>`;
+            }
+        }
+        
+        function showStoredTrackings() {
+            const content = document.getElementById('content');
+            
+            try {
+                const trackings = JSON.parse(localStorage.getItem('trackings') || '[]');
+                const awbTrackings = trackings.filter(t => t.tracking_type === 'awb');
+                
+                if (awbTrackings.length === 0) {
+                    content.innerHTML = '<div class="no-data">Nessun AWB salvato nei tracking</div>';
+                    return;
+                }
+                
+                let html = `
+                    <h3>📦 AWB Salvati nel Sistema (${awbTrackings.length} totali)</h3>
+                    <table class="awb-table">
+                        <thead>
+                            <tr>
+                                <th>AWB Number</th>
+                                <th>ShipsGo ID</th>
+                                <th>Carrier</th>
+                                <th>Status</th>
+                                <th>Origin → Destination</th>
+                                <th>Created At</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                `;
+                
+                awbTrackings.forEach(tracking => {
+                    const shipsgoId = tracking.metadata?.shipsgo_id || '-';
+                    const hasId = shipsgoId !== '-';
+                    
+                    html += `
+                        <tr>
+                            <td><span class="awb-number">${tracking.tracking_number}</span></td>
+                            <td>${hasId ? `<span class="id-badge">${shipsgoId}</span>` : '<span class="highlight">NO ID</span>'}</td>
+                            <td>${tracking.carrier_code || tracking.carrier || '-'}</td>
+                            <td>${tracking.status || '-'}</td>
+                            <td>${tracking.origin_port || '-'} → ${tracking.destination_port || '-'}</td>
+                            <td>${new Date(tracking.created_at).toLocaleDateString('it-IT')}</td>
+                        </tr>
+                    `;
+                });
+                
+                html += `
+                        </tbody>
+                    </table>
+                `;
+                
+                content.innerHTML = html;
+                
+            } catch (error) {
+                content.innerHTML = `<div class="error">Errore lettura tracking: ${error.message}</div>`;
+            }
+        }
+        
+        async function testAWB() {
+            const awbNumber = document.getElementById('testAwb').value.trim();
+            const resultDiv = document.getElementById('testResult');
+            
+            if (!awbNumber) {
+                resultDiv.innerHTML = '<div class="error">Inserisci un numero AWB</div>';
+                return;
+            }
+            
+            resultDiv.innerHTML = '<div class="loading">Test in corso...</div>';
+            
+            try {
+                // Step 1: Check cache
+                const cached = localStorage.getItem('awbIdCache');
+                const cacheData = cached ? JSON.parse(cached) : {};
+                const cachedId = cacheData[awbNumber.toUpperCase()];
+                
+                let result = `AWB: ${awbNumber}\n`;
+                result += `Cache locale: ${cachedId ? 'ID ' + cachedId : 'Non trovato'}\n\n`;
+                
+                // Step 2: Try to find in list
+                const response = await fetch('/netlify/functions/shipsgo-proxy', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        version: 'v2',
+                        endpoint: '/air/shipments',
+                        method: 'GET'
+                    })
+                });
+                
+                const listResult = await response.json();
+                
+                if (listResult.success && Array.isArray(listResult.data)) {
+                    const found = listResult.data.find(awb => 
+                        awb.awb_number === awbNumber.toUpperCase() ||
+                        awb.awbNumber === awbNumber.toUpperCase()
+                    );
+                    
+                    if (found) {
+                        result += `✅ Trovato in ShipsGo!\n`;
+                        result += `ID: ${found.id}\n`;
+                        result += `Status: ${found.status}\n`;
+                        result += `Airline: ${found.airline?.name || found.airline?.iata || '-'}\n`;
+                        
+                        // Step 3: Try GET with ID
+                        if (found.id) {
+                            result += `\n📡 Test GET /air/shipments/${found.id}...\n`;
+                            
+                            const detailResponse = await fetch('/netlify/functions/shipsgo-proxy', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    version: 'v2',
+                                    endpoint: `/air/shipments/${found.id}`,
+                                    method: 'GET'
+                                })
+                            });
+                            
+                            const detailResult = await detailResponse.json();
+                            
+                            if (detailResult.success) {
+                                result += `✅ GET con ID funziona!\n`;
+                                result += `Dettagli: ${JSON.stringify(detailResult.data, null, 2)}`;
+                            } else {
+                                result += `❌ GET fallito: ${detailResult.error}`;
+                            }
+                        }
+                    } else {
+                        result += `❌ AWB non trovato in ShipsGo\n`;
+                        result += `Suggerimento: Aggiungi prima l'AWB con POST`;
+                    }
+                } else {
+                    result += `❌ Errore recupero lista: ${listResult.error}`;
+                }
+                
+                resultDiv.innerHTML = `<div class="result-box">${result}</div>`;
+                
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">Errore test: ${error.message}</div>`;
+            }
+        }
+        
+        function exportMapping() {
+            try {
+                // Recupera tutti i dati
+                const cached = localStorage.getItem('awbIdCache');
+                const cacheData = cached ? JSON.parse(cached) : {};
+                const trackings = JSON.parse(localStorage.getItem('trackings') || '[]');
+                const awbTrackings = trackings.filter(t => t.tracking_type === 'awb');
+                
+                // Crea CSV
+                let csv = 'AWB Number,ShipsGo ID,Source,Status,Carrier\n';
+                
+                // Dalla cache
+                Object.entries(cacheData).forEach(([awb, id]) => {
+                    const tracking = awbTrackings.find(t => t.tracking_number === awb);
+                    csv += `${awb},${id},Cache,${tracking?.status || '-'},${tracking?.carrier_code || '-'}\n`;
+                });
+                
+                // Download
+                const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(blob);
+                link.download = `awb_id_mapping_${new Date().toISOString().split('T')[0]}.csv`;
+                link.click();
+                URL.revokeObjectURL(link.href);
+                
+                showMessage('Mapping esportato con successo!', 'info');
+                
+            } catch (error) {
+                showMessage('Errore nell\'export: ' + error.message, 'error');
+            }
+        }
+        
+        function updateSystemInfo() {
+            const infoDiv = document.getElementById('systemInfo');
+            
+            try {
+                const cached = localStorage.getItem('awbIdCache');
+                const cacheData = cached ? JSON.parse(cached) : {};
+                const cacheSize = Object.keys(cacheData).length;
+                
+                const trackings = JSON.parse(localStorage.getItem('trackings') || '[]');
+                const awbCount = trackings.filter(t => t.tracking_type === 'awb').length;
+                const awbWithIds = trackings.filter(t => 
+                    t.tracking_type === 'awb' && t.metadata?.shipsgo_id
+                ).length;
+                
+                let html = `
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+                        <div>
+                            <strong>AWB in Cache:</strong> ${cacheSize}
+                        </div>
+                        <div>
+                            <strong>AWB Totali:</strong> ${awbCount}
+                        </div>
+                        <div>
+                            <strong>AWB con ID:</strong> ${awbWithIds}
+                        </div>
+                        <div>
+                            <strong>AWB senza ID:</strong> ${awbCount - awbWithIds}
+                        </div>
+                    </div>
+                `;
+                
+                infoDiv.innerHTML = html;
+                
+            } catch (error) {
+                infoDiv.innerHTML = `<div class="error">Errore: ${error.message}</div>`;
+            }
+        }
+    </script>
+</body>
+</html>
