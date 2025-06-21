@@ -2734,7 +2734,7 @@ carriers.sort((a, b) => {
             'HONG KONG': 'HK',
             'SINGAPORE': 'SG',
             'ROTTERDAM': 'NL',
-            'TANJUNG PELEPAS': 'MY', // AGGIUNGI QUESTA RIGA!
+            'TANJUNG PELEPAS': 'MY',
             'HAMBURG': 'DE',
             'ANTWERP': 'BE',
             'LE HAVRE': 'FR',
@@ -2746,7 +2746,12 @@ carriers.sort((a, b) => {
             'VALENCIA': 'ES',
             'LONDON': 'GB',
             'DUBAI': 'AE',
-            'MUMBAI': 'IN'
+            'MUMBAI': 'IN',
+            'SOUTH AFRICA': 'ZA',
+            'CAPE TOWN': 'ZA',
+            'DURBAN': 'ZA',
+            'PORT ELIZABETH': 'ZA',
+            'JOHANNESBURG': 'ZA', // per aeroporto
         };
         
         const upperDest = destination.toUpperCase();
@@ -2891,6 +2896,14 @@ carriers.sort((a, b) => {
         
         // Save tracking with validated data
         updateWorkflowStep(2, 'pending', 'Salvataggio...');
+
+        // DEBUG: Verifica cosa c'è in formData
+        console.log('🔍 DEBUG formData PRIMA di finalData:', {
+            date_of_loading: formData.date_of_loading,
+            date_of_departure: formData.date_of_departure,
+            departure_date: formData.departure_date,
+            tutti_i_campi: Object.keys(formData)
+        });
         
         // Assicurati che tutti i campi abbiano un valore valido
         const finalData = {
