@@ -2379,7 +2379,7 @@
             `;
         }
     }
-    async function detectAndUpdateType(trackingNumber) { // Added 'async' here
+    function detectAndUpdateType(trackingNumber) {
         // Simple detection logic
         let type = 'unknown';
         let carrier = '';
@@ -2516,7 +2516,7 @@
     // NUOVE FUNZIONI PER CARRIERS CON SHIPSGO
     // ========================================
 
-    async function updateCarrierWithShipsGoData(type) { // This function is now correctly marked as async
+    async function updateCarrierWithShipsGoData(type) {
         const select = document.getElementById('enh_carrier');
         if (!select) return;
 
@@ -2545,24 +2545,24 @@
                     });
 
                     const result = await response.json();
-                    if (result.success && Array.isArray(result.data)) {
-                        // Gestisci sia oggetti che stringhe
-                        carriers = result.data.map(line => {
-                            if (typeof line === 'string') {
-                                // Se è una stringa, usa la stringa sia come code che come name
-                                return {
-                                    code: line,
-                                    name: line
-                                };
-                            } else {
-                                // Se è un oggetto, usa i campi appropriati
-                                return {
-                                    code: line.ShippingLineCode || line.Code || line,
-                                    name: line.ShippingLineName || line.Name || line
-                                };
-                            }
-                        });
-                    }
+if (result.success && Array.isArray(result.data)) {
+    // Gestisci sia oggetti che stringhe
+    carriers = result.data.map(line => {
+        if (typeof line === 'string') {
+            // Se è una stringa, usa la stringa sia come code che come name
+            return {
+                code: line,
+                name: line
+            };
+        } else {
+            // Se è un oggetto, usa i campi appropriati
+            return {
+                code: line.ShippingLineCode || line.Code || line,
+                name: line.ShippingLineName || line.Name || line
+            };
+        }
+    });
+}
                 } else if (type === 'awb') {
                     // Ottieni airlines da ShipsGo v2
                     const response = await fetch('/netlify/functions/shipsgo-proxy', {
@@ -2592,11 +2592,11 @@
                 if (carriers.length > 0) {
                     // Ordina alfabeticamente
                     carriers = carriers.filter(c => c && (c.name || c.code));
-                    carriers.sort((a, b) => {
-                        const nameA = (a.name || a.code || '').toString();
-                        const nameB = (b.name || b.code || '').toString();
-                        return nameA.localeCompare(nameB);
-                    });
+carriers.sort((a, b) => {
+    const nameA = (a.name || a.code || '').toString();
+    const nameB = (b.name || b.code || '').toString();
+    return nameA.localeCompare(nameB);
+});
 
                     // Crea optgroup per i più comuni
                     const commonCarriers = getCommonCarriers(type);
@@ -2970,31 +2970,31 @@
                         console.log('✅ ENTRO nel mapping API');
                         // AGGIUNGI: Estrai departure date dagli eventi
                         // AGGIUNGI: Estrai departure date dagli eventi
-                        let departureDate = '-';
-                        if (apiResponse.events && Array.isArray(apiResponse.events)) {
-                            // Prima cerca "departed"
-                            let departureEvent = apiResponse.events.find(event =>
-                                event.description?.toLowerCase().includes('departed') ||
-                                event.event_type?.toLowerCase() === 'departure' ||
-                                event.activity?.toLowerCase().includes('departed')
-                            );
+let departureDate = '-';
+if (apiResponse.events && Array.isArray(apiResponse.events)) {
+    // Prima cerca "departed"
+    let departureEvent = apiResponse.events.find(event =>
+        event.description?.toLowerCase().includes('departed') ||
+        event.event_type?.toLowerCase() === 'departure' ||
+        event.activity?.toLowerCase().includes('departed')
+    );
 
-                            // Se non trova "departed", usa "loaded on vessel"
-                            if (!departureEvent) {
-                                departureEvent = apiResponse.events.find(event =>
-                                    event.description?.toLowerCase().includes('loaded on vessel') ||
-                                    event.type === 'LOADED_ON_VESSEL'
-                                );
-                                if (departureEvent) {
-                                    console.log('📦 Usando "loaded on vessel" come departure date');
-                                }
-                            }
+    // Se non trova "departed", usa "loaded on vessel"
+    if (!departureEvent) {
+        departureEvent = apiResponse.events.find(event =>
+            event.description?.toLowerCase().includes('loaded on vessel') ||
+            event.type === 'LOADED_ON_VESSEL'
+        );
+        if (departureEvent) {
+            console.log('📦 Usando "loaded on vessel" come departure date');
+        }
+    }
 
-                            if (departureEvent) {
-                                departureDate = departureEvent.date || departureEvent.event_date || '-';
-                                console.log('📅 Departure date trovata:', departureDate);
-                            }
-                        }
+    if (departureEvent) {
+        departureDate = departureEvent.date || departureEvent.event_date || '-';
+        console.log('📅 Departure date trovata:', departureDate);
+    }
+}
 
                         // Mappa i dati GET correttamente
                         const mappedData = {

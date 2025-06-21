@@ -3,16 +3,16 @@
 
 (function() {
     'use strict';
-
+    
     console.log('🟢 PROGRESSIVE FORM: Script started');
     window.PROGRESSIVE_DEBUG = true;
 
     // Salva riferimento al form originale
     let originalShowAddTrackingForm = null;
-
+    
     // Flag per abilitare/disabilitare enhanced version
     const ENABLE_ENHANCED = localStorage.getItem('enableEnhancedTracking') !== 'false';
-
+    
     // SOLUZIONE: Usa MutationObserver per detectare quando showAddTrackingForm viene definita
     function waitForShowAddTrackingForm() {
         return new Promise((resolve) => {
@@ -21,7 +21,7 @@
                 resolve();
                 return;
             }
-
+            
             // Altrimenti aspetta che venga definita
             const checkInterval = setInterval(() => {
                 if (window.showAddTrackingForm) {
@@ -29,7 +29,7 @@
                     resolve();
                 }
             }, 50);
-
+            
             // Timeout di sicurezza (30 secondi)
             setTimeout(() => {
                 clearInterval(checkInterval);
@@ -38,14 +38,14 @@
             }, 30000);
         });
     }
-
+    
     // SOLUZIONE: Inizializza solo dopo che TUTTO è pronto
     async function initializeWhenReady() {
         console.log('🟢 PROGRESSIVE FORM: Waiting for dependencies...');
-
+        
         // Aspetta che showAddTrackingForm sia definita
         await waitForShowAddTrackingForm();
-
+        
         // Aspetta che ModalSystem sia pronto
         await new Promise((resolve) => {
             const checkModal = setInterval(() => {
@@ -55,14 +55,14 @@
                 }
             }, 50);
         });
-
+        
         console.log('🟢 PROGRESSIVE FORM: All dependencies ready!');
         initializeProgressiveEnhancement();
     }
-
+    
     // Avvia l'inizializzazione
     initializeWhenReady();
-
+    
     function initializeProgressiveEnhancement() {
         console.log('🟢 PROGRESSIVE FORM: Initializing enhancement');
         console.log('Current showAddTrackingForm:', typeof window.showAddTrackingForm);
@@ -80,7 +80,7 @@
         // Override con wrapper che decide quale versione usare
         window.showAddTrackingForm = function(options) {
             console.log('🎯 PROGRESSIVE FORM: Wrapper called with enhanced=' + (ENABLE_ENHANCED && isEnhancedReady()));
-
+            
             if (ENABLE_ENHANCED && isEnhancedReady()) {
                 showEnhancedTrackingForm(options);
             } else {
@@ -89,17 +89,17 @@
                 originalShowAddTrackingForm(options);
             }
         };
-
+        
         // Esponi la funzione enhanced per test diretti
         window.showEnhancedTrackingForm = showEnhancedTrackingForm;
         window.originalShowAddTrackingForm = originalShowAddTrackingForm;
-
+        
         // Aggiungi toggle nelle impostazioni
         addEnhancedToggle();
-
+        
         console.log('✅ [Progressive Enhancement] Tracking form wrapper installed successfully');
     }
-
+    
     function isEnhancedReady() {
         const ready = !!(window.trackingService && window.ImportManager);
         console.log('🔍 Enhanced ready check:', {
@@ -109,16 +109,16 @@
         });
         return ready;
     }
-
+    
     // ========================================
     // ENHANCED FORM - VERSIONE FULL-WIDTH
     // ========================================
-
+    
     function showEnhancedTrackingForm(options = {}) {
         console.log('🚀 PROGRESSIVE FORM: Creating custom full-width modal');
-
+        
         createCustomFullWidthModal();
-
+        
         // Setup dopo rendering
         setTimeout(() => {
             setupEnhancedInteractions();
@@ -132,7 +132,7 @@
     function createCustomFullWidthModal() {
         // Rimuovi modal esistenti per evitare conflitti
         document.querySelectorAll('.custom-fullwidth-modal').forEach(el => el.remove());
-
+        
         // Crea modal custom da zero
         const modalOverlay = document.createElement('div');
         modalOverlay.className = 'custom-fullwidth-modal';
@@ -147,7 +147,7 @@
                     ${renderFullWidthForm()}
                 </div>
             </div>
-
+            
             <style>
             .custom-fullwidth-modal {
                 position: fixed !important;
@@ -164,11 +164,11 @@
                 opacity: 0 !important;
                 transition: opacity 0.3s ease !important;
             }
-
+            
             .custom-fullwidth-modal.active {
                 opacity: 1 !important;
             }
-
+            
             .custom-modal-backdrop {
                 position: absolute !important;
                 top: 0 !important;
@@ -178,7 +178,7 @@
                 background: transparent !important;
                 cursor: pointer !important;
             }
-
+            
             .custom-modal-container {
                 position: relative !important;
                 width: 98vw !important;
@@ -192,11 +192,11 @@
                 transform: scale(0.9) translateY(30px) !important;
                 transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
             }
-
+            
             .custom-fullwidth-modal.active .custom-modal-container {
                 transform: scale(1) translateY(0) !important;
             }
-
+            
             .custom-modal-header {
                 background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
                 color: white !important;
@@ -207,14 +207,14 @@
                 border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
                 flex-shrink: 0 !important;
             }
-
+            
             .custom-modal-header h2 {
                 margin: 0 !important;
                 font-size: 24px !important;
                 font-weight: 600 !important;
                 color: white !important;
             }
-
+            
             .custom-modal-close {
                 background: rgba(220, 53, 69, 0.2) !important;
                 border: 2px solid rgba(220, 53, 69, 0.3) !important;
@@ -231,20 +231,20 @@
                 justify-content: center !important;
                 font-weight: bold !important;
             }
-
+            
             .custom-modal-close:hover {
                 background: rgba(255, 59, 48, 0.9) !important;
                 border-color: rgba(255, 59, 48, 0.9) !important;
                 transform: scale(1.1) !important;
             }
-
+            
             .custom-modal-content {
                 flex: 1 !important;
                 overflow-y: auto !important;
                 overflow-x: hidden !important;
                 position: relative !important;
             }
-
+            
             /* Responsive per custom modal */
             @media (max-width: 1200px) {
                 .custom-modal-container {
@@ -252,37 +252,37 @@
                     height: 95vh !important;
                 }
             }
-
+            
             @media (max-width: 768px) {
                 .custom-modal-container {
                     width: 100vw !important;
                     height: 100vh !important;
                     border-radius: 0 !important;
                 }
-
+                
                 .custom-modal-header {
                     padding: 16px 20px !important;
                 }
-
+                
                 .custom-modal-header h2 {
                     font-size: 20px !important;
                 }
             }
             </style>
         `;
-
+        
         // Aggiungi al DOM
         document.body.appendChild(modalOverlay);
-
+        
         // Animazione di apertura
         requestAnimationFrame(() => {
             modalOverlay.classList.add('active');
         });
-
+        
         // Setup click handlers
         const backdrop = modalOverlay.querySelector('.custom-modal-backdrop');
         backdrop.addEventListener('click', closeCustomModal);
-
+        
         // Escape key handler
         const escapeHandler = (e) => {
             if (e.key === 'Escape') {
@@ -290,10 +290,10 @@
             }
         };
         document.addEventListener('keydown', escapeHandler);
-
+        
         // Store handler for cleanup
         modalOverlay._escapeHandler = escapeHandler;
-
+        
         console.log('✅ Custom full-width modal created successfully');
     }
 
@@ -301,14 +301,14 @@
     window.closeCustomModal = function() {
         const modal = document.querySelector('.custom-fullwidth-modal');
         if (!modal) return;
-
+        
         modal.classList.remove('active');
-
+        
         // Cleanup escape handler
         if (modal._escapeHandler) {
             document.removeEventListener('keydown', modal._escapeHandler);
         }
-
+        
         setTimeout(() => {
             modal.remove();
             console.log('✅ Custom modal closed and removed');
@@ -326,30 +326,30 @@
                         <i class="fas fa-upload"></i> Import Multiplo
                     </button>
                 </div>
-
+                
                 <div class="tab-content active" data-tab="single">
                     <form id="enhancedSingleForm" class="optimized-fullwidth-form">
-
+                        
                         <div class="optimized-grid">
-
+                            
                             <div class="form-card primary-card">
                                 <div class="card-header">
                                     <h3><i class="fas fa-search"></i> Numero Tracking</h3>
                                 </div>
                                 <div class="card-body">
                                     <div class="main-input-wrapper">
-                                        <input type="text"
-                                               id="enh_trackingNumber"
-                                               class="main-tracking-input"
+                                        <input type="text" 
+                                               id="enh_trackingNumber" 
+                                               class="main-tracking-input" 
                                                placeholder="Es: MSKU1234567, 176-12345678"
                                                required>
-
+                                        
                                         <div class="detection-status">
                                             <i class="fas fa-search status-icon"></i>
                                             <span class="status-text">Auto-detection attiva...</span>
                                         </div>
                                     </div>
-
+                                    
                                     <div class="examples-section">
                                         <h4>🚀 Esempi Veloci:</h4>
                                         <div class="examples-list">
@@ -362,7 +362,7 @@
                                                     </div>
                                                 </div>
                                             </button>
-
+                                            
                                             <button type="button" class="example-item" data-example="176-12345678">
                                                 <div class="example-visual">
                                                     <span class="example-icon">✈️</span>
@@ -372,7 +372,7 @@
                                                     </div>
                                                 </div>
                                             </button>
-
+                                            
                                             <button type="button" class="example-item" data-example="GESU1234567">
                                                 <div class="example-visual">
                                                     <span class="example-icon">📦</span>
@@ -386,7 +386,7 @@
                                     </div>
                                 </div>
                             </div>
-
+                            
                             <div class="form-card details-card">
                                 <div class="card-header">
                                     <h3><i class="fas fa-cog"></i> Dettagli & Geografia</h3>
@@ -405,7 +405,7 @@
                                                     <option value="parcel">📦 Parcel/Package</option>
                                                 </select>
                                             </div>
-
+                                            
                                             <div class="field-group half-width">
                                                 <label>Vettore</label>
                                                 <select id="enh_carrier" class="enhanced-select">
@@ -413,7 +413,7 @@
                                                 </select>
                                             </div>
                                         </div>
-
+                                        
                                         <div class="field-group">
                                             <label>Stato Iniziale</label>
                                             <select id="enh_status" class="enhanced-select">
@@ -425,36 +425,36 @@
                                             </select>
                                         </div>
                                     </div>
-
+                                    
                                     <div class="details-section">
                                         <h5 class="section-title">🌍 Geografia</h5>
                                         <div class="field-group">
                                             <label>Porto/Aeroporto Origine</label>
-                                            <input type="text"
-                                                   id="enh_origin"
-                                                   class="enhanced-input"
+                                            <input type="text" 
+                                                   id="enh_origin" 
+                                                   class="enhanced-input" 
                                                    placeholder="Es: SHANGHAI, HONG KONG, MXP Milano">
                                         </div>
-
+                                        
                                         <div class="field-group">
                                             <label>Porto/Aeroporto Destinazione</label>
-                                            <input type="text"
-                                                   id="enh_destination"
-                                                   class="enhanced-input"
+                                            <input type="text" 
+                                                   id="enh_destination" 
+                                                   class="enhanced-input" 
                                                    placeholder="Es: GENOVA, LA SPEZIA, FCO Roma">
                                         </div>
-
+                                        
                                         <div class="field-group">
                                             <label>Numero Riferimento</label>
-                                            <input type="text"
-                                                   id="enh_reference"
-                                                   class="enhanced-input"
+                                            <input type="text" 
+                                                   id="enh_reference" 
+                                                   class="enhanced-input" 
                                                    placeholder="Es: PO-2024-001, REF123456">
                                         </div>
                                     </div>
                                 </div>
                             </div>
-
+                            
                             <div class="form-card preview-card">
                                 <div class="card-header">
                                     <h3><i class="fas fa-eye"></i> Anteprima Live</h3>
@@ -469,7 +469,7 @@
                                                 <span id="previewType">Tipo tracking</span>
                                             </div>
                                         </div>
-
+                                        
                                         <div class="preview-details">
                                             <div class="preview-row">
                                                 <span class="label">Vettore:</span>
@@ -491,7 +491,7 @@
                                     </div>
                                 </div>
                             </div>
-
+                            
                             <div class="form-card api-card">
                                 <div class="card-header">
                                     <h3><i class="fas fa-cog"></i> API & Controlli</h3>
@@ -510,7 +510,7 @@
                                                 Recupera automaticamente informazioni aggiornate e stati di tracking in tempo reale tramite API ShipsGo
                                             </p>
                                         </div>
-
+                                        
                                         <div class="api-operation-selector">
                                             <h5>🔧 Tipo Operazione</h5>
                                             <div class="operation-radio-group">
@@ -537,7 +537,7 @@
                                                 </div>
                                             </div>
                                         </div>
-
+                                        
                                         <div class="api-benefits">
                                             <div class="benefit">
                                                 <i class="fas fa-check-circle"></i>
@@ -557,7 +557,7 @@
                                             </div>
                                         </div>
                                     </div>
-
+                                    
                                     <div class="system-status">
                                         <div class="status-row">
                                             <i class="fas fa-circle status-dot online"></i>
@@ -567,7 +567,7 @@
                                 </div>
                             </div>
                         </div>
-
+                        
                         <div class="integrated-footer">
                             <div class="footer-info">
                                 <i class="fas fa-info-circle"></i>
@@ -584,7 +584,7 @@
                         </div>
                     </form>
                 </div>
-
+                
                 <div class="tab-content" data-tab="import">
                     <div class="import-fullwidth">
                         <div class="import-layout-new">
@@ -603,7 +603,7 @@
                                 </div>
                                 <input type="file" id="enhFileInput" accept=".xlsx,.xls,.csv" style="display: none;">
                             </div>
-
+                            
                             <div class="features-sidebar">
                                 <h3>📊 Funzionalità Import Avanzate</h3>
                                 <div class="features-list">
@@ -614,7 +614,7 @@
                                             <span>Rilevamento automatico del formato file e della struttura dati</span>
                                         </div>
                                     </div>
-
+                                    
                                     <div class="feature-item">
                                         <div class="feature-icon">🗂️</div>
                                         <div class="feature-text">
@@ -622,7 +622,7 @@
                                             <span>Associazione automatica delle colonne con i campi tracking</span>
                                         </div>
                                     </div>
-
+                                    
                                     <div class="feature-item">
                                         <div class="feature-icon">👁️</div>
                                         <div class="feature-text">
@@ -630,7 +630,7 @@
                                             <span>Anteprima completa dei dati prima dell'import definitivo</span>
                                         </div>
                                     </div>
-
+                                    
                                     <div class="feature-item">
                                         <div class="feature-icon">⚡</div>
                                         <div class="feature-text">
@@ -638,7 +638,7 @@
                                             <span>Elaborazione rapida di grandi quantità di tracking</span>
                                         </div>
                                     </div>
-
+                                    
                                     <div class="feature-item">
                                         <div class="feature-icon">🔧</div>
                                         <div class="feature-text">
@@ -646,7 +646,7 @@
                                             <span>Validazione automatica e segnalazione errori</span>
                                         </div>
                                     </div>
-
+                                    
                                     <div class="feature-item">
                                         <div class="feature-icon">📈</div>
                                         <div class="feature-text">
@@ -660,7 +660,7 @@
                     </div>
                 </div>
             </div>
-
+            
             ${getFormStyles()}
         `;
     }
@@ -674,7 +674,7 @@
                 flex-direction: column;
                 font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
             }
-
+            
             /* Tab integrati */
             .integrated-tabs {
                 background: #f8f9fa;
@@ -683,7 +683,7 @@
                 display: flex;
                 gap: 2px;
             }
-
+            
             .integrated-tab {
                 padding: 16px 24px;
                 border: none;
@@ -698,29 +698,29 @@
                 align-items: center;
                 gap: 8px;
             }
-
+            
             .integrated-tab:hover {
                 background: rgba(0, 123, 255, 0.05);
                 color: #007bff;
             }
-
+            
             .integrated-tab.active {
                 color: #007bff;
                 border-bottom-color: #007bff;
                 background: white;
             }
-
+            
             /* Tab content */
             .tab-content {
                 display: none;
                 flex: 1;
             }
-
+            
             .tab-content.active {
                 display: flex;
                 flex-direction: column;
             }
-
+            
             /* Form ottimizzato - PADDING ULTERIORMENTE RIDOTTO */
             .optimized-fullwidth-form {
                 flex: 1;
@@ -730,7 +730,7 @@
                 height: 100%;
                 overflow: hidden;
             }
-
+            
             /* Grid ottimizzato per 4 colonne invece di 5 - MARGIN OTTIMIZZATO */
             .optimized-grid {
                 display: grid;
@@ -739,7 +739,7 @@
                 flex: 1;
                 margin-bottom: 10px;
             }
-
+            
             /* Cards del form - NIENTE PIÙ SCROLLING */
             .form-card {
                 background: white;
@@ -752,29 +752,29 @@
                 transition: all 0.3s;
                 height: fit-content;
             }
-
+            
             .form-card:hover {
                 box-shadow: 0 2px 8px rgba(0,0,0,0.12);
             }
-
+            
             .primary-card {
                 background: linear-gradient(135deg, #6c7b95 0%, #8892b0 100%);
                 color: white;
             }
-
+            
             .details-card {
                 background: linear-gradient(135deg, #8b95a8 0%, #9ca5b8 100%);
                 color: white;
             }
-
+            
             .details-section {
                 margin-bottom: 12px;
             }
-
+            
             .details-section:last-child {
                 margin-bottom: 0;
             }
-
+            
             .section-title {
                 font-size: 11px;
                 font-weight: 600;
@@ -785,35 +785,35 @@
                 text-transform: uppercase;
                 letter-spacing: 0.3px;
             }
-
+            
             .field-row {
                 display: flex;
                 gap: 8px;
                 margin-bottom: 7px;
             }
-
+            
             .half-width {
                 flex: 1;
                 margin-bottom: 0 !important;
             }
-
+            
             .preview-card {
                 background: linear-gradient(135deg, #78a083 0%, #87af92 100%);
                 color: white;
             }
-
+            
             .api-card {
                 background: linear-gradient(135deg, #a68b78 0%, #b59a87 100%);
                 color: white;
             }
-
+            
             .card-header {
                 padding: 8px 12px;
                 border-bottom: 1px solid rgba(255,255,255,0.2);
                 background: rgba(255,255,255,0.1);
                 flex-shrink: 0;
             }
-
+            
             .card-header h3 {
                 margin: 0;
                 font-size: 13px;
@@ -822,13 +822,13 @@
                 align-items: center;
                 gap: 5px;
             }
-
+            
             .card-body {
                 flex: 1;
                 padding: 12px;
                 overflow: visible;
             }
-
+            
             /* Input principale - FONT PIÙ GRANDE */
             .main-tracking-input {
                 width: 100%;
@@ -842,14 +842,14 @@
                 transition: all 0.3s;
                 margin-bottom: 8px;
             }
-
+            
             .main-tracking-input:focus {
                 outline: none;
                 border-color: rgba(255,255,255,0.8);
                 background: white;
                 box-shadow: 0 0 0 3px rgba(255,255,255,0.2);
             }
-
+            
             .detection-status {
                 display: flex;
                 align-items: center;
@@ -858,20 +858,20 @@
                 color: rgba(255,255,255,0.8);
                 margin-bottom: 8px;
             }
-
+            
             /* Examples section - FONT MIGLIORATO */
             .examples-section h4 {
                 margin: 0 0 6px 0;
                 font-size: 12px;
                 color: rgba(255,255,255,0.9);
             }
-
+            
             .examples-list {
                 display: flex;
                 flex-direction: column;
                 gap: 3px;
             }
-
+            
             .example-item {
                 border: 1px solid rgba(255,255,255,0.3);
                 border-radius: 4px;
@@ -881,39 +881,39 @@
                 padding: 5px 7px;
                 text-align: left;
             }
-
+            
             .example-item:hover {
                 background: rgba(255,255,255,0.2);
                 transform: translateY(-1px);
             }
-
+            
             .example-visual {
                 display: flex;
                 align-items: center;
                 gap: 6px;
             }
-
+            
             .example-icon {
                 font-size: 13px;
             }
-
+            
             .example-details strong {
                 display: block;
                 font-size: 10px;
                 margin-bottom: 1px;
             }
-
+            
             .example-details code {
                 font-size: 9px;
                 opacity: 0.8;
                 font-family: monospace;
             }
-
+            
             /* Field groups - FONT MIGLIORATO */
             .field-group {
                 margin-bottom: 7px;
             }
-
+            
             .field-group label {
                 display: block;
                 font-size: 10px;
@@ -923,7 +923,7 @@
                 letter-spacing: 0.3px;
                 color: rgba(255,255,255,0.8);
             }
-
+            
             .enhanced-input, .enhanced-select {
                 width: 100%;
                 padding: 7px 9px;
@@ -934,14 +934,14 @@
                 background: rgba(255,255,255,0.9);
                 color: #333;
             }
-
+            
             .enhanced-input:focus, .enhanced-select:focus {
                 outline: none;
                 border-color: rgba(255,255,255,0.8);
                 background: white;
                 box-shadow: 0 0 0 2px rgba(255,255,255,0.2);
             }
-
+            
             /* Live preview - RIDISEGNATA */
             .live-preview {
                 background: rgba(255,255,255,0.15);
@@ -949,14 +949,14 @@
                 padding: 14px;
                 border: 1px solid rgba(255,255,255,0.2);
             }
-
+            
             .preview-main {
                 text-align: center;
                 margin-bottom: 14px;
                 padding-bottom: 12px;
                 border-bottom: 1px solid rgba(255,255,255,0.3);
             }
-
+            
             .preview-number strong {
                 font-size: 16px;
                 color: white;
@@ -964,19 +964,19 @@
                 margin-bottom: 4px;
                 font-weight: 600;
             }
-
+            
             .preview-type {
                 font-size: 12px;
                 color: rgba(255,255,255,0.9);
                 font-style: italic;
             }
-
+            
             .preview-details {
                 display: flex;
                 flex-direction: column;
                 gap: 6px;
             }
-
+            
             .preview-row {
                 display: flex;
                 justify-content: space-between;
@@ -984,7 +984,7 @@
                 font-size: 11px;
                 line-height: 1.3;
             }
-
+            
             .preview-row .label {
                 color: white;
                 font-weight: 700;
@@ -994,7 +994,7 @@
                 flex-shrink: 0;
                 min-width: 55px;
             }
-
+            
             .preview-row .value {
                 color: rgba(255,255,255,0.95);
                 font-weight: 500;
@@ -1004,7 +1004,7 @@
                 word-break: break-word;
                 font-size: 11px;
             }
-
+            
             /* API section */
             .api-section {
                 background: rgba(255,255,255,0.1);
@@ -1012,32 +1012,32 @@
                 padding: 16px;
                 margin-bottom: 16px;
             }
-
+            
             .toggle-header {
                 display: flex;
                 justify-content: space-between;
                 align-items: center;
                 margin-bottom: 12px;
             }
-
+            
             .toggle-header h4 {
                 margin: 0;
                 font-size: 14px;
                 color: white;
             }
-
+            
             .modern-toggle {
                 position: relative;
                 width: 48px;
                 height: 28px;
             }
-
+            
             .modern-toggle input {
                 opacity: 0;
                 width: 0;
                 height: 0;
             }
-
+            
             .toggle-track {
                 position: absolute;
                 cursor: pointer;
@@ -1049,7 +1049,7 @@
                 transition: .3s;
                 border-radius: 28px;
             }
-
+            
             .toggle-track:before {
                 position: absolute;
                 content: "";
@@ -1062,28 +1062,28 @@
                 border-radius: 50%;
                 box-shadow: 0 2px 4px rgba(0,0,0,0.2);
             }
-
+            
             .modern-toggle input:checked + .toggle-track {
                 background: rgba(40, 167, 69, 0.8);
             }
-
+            
             .modern-toggle input:checked + .toggle-track:before {
                 transform: translateX(20px);
             }
-
+            
             .api-description {
                 font-size: 12px;
                 color: rgba(255,255,255,0.8);
                 line-height: 1.4;
                 margin: 0 0 12px 0;
             }
-
+            
             .api-benefits {
                 display: flex;
                 flex-direction: column;
                 gap: 6px;
             }
-
+            
             .benefit {
                 display: flex;
                 align-items: center;
@@ -1091,38 +1091,38 @@
                 font-size: 12px;
                 color: rgba(255,255,255,0.9);
             }
-
+            
             .benefit i {
                 color: #28a745;
                 font-size: 11px;
             }
-
+            
             /* System status */
             .system-status {
                 background: rgba(255,255,255,0.1);
                 border-radius: 6px;
                 padding: 12px;
             }
-
+            
             .status-row {
                 display: flex;
                 align-items: center;
                 gap: 8px;
             }
-
+            
             .status-dot {
                 font-size: 8px;
             }
-
+            
             .status-dot.online {
                 color: #28a745;
             }
-
+            
             .status-text {
                 font-size: 13px;
                 color: rgba(255,255,255,0.9);
             }
-
+            
             /* Footer integrato - FIXED POSITION */
             .integrated-footer {
                 background: #f8f9fa;
@@ -1138,7 +1138,7 @@
                 z-index: 100;
                 box-shadow: 0 -2px 8px rgba(0,0,0,0.1);
             }
-
+            
             .footer-info {
                 display: flex;
                 align-items: center;
@@ -1146,12 +1146,12 @@
                 font-size: 13px;
                 color: #6c757d;
             }
-
+            
             .footer-actions {
                 display: flex;
                 gap: 12px;
             }
-
+            
             .action-btn {
                 padding: 12px 24px;
                 border: none;
@@ -1164,31 +1164,31 @@
                 align-items: center;
                 gap: 8px;
             }
-
+            
             .btn-cancel {
                 background: #dc3545 !important;
                 color: white !important;
                 border: none !important;
             }
-
+            
             .btn-cancel:hover {
                 background: #c82333 !important;
                 box-shadow: 0 4px 12px rgba(220, 53, 69, 0.3) !important;
             }
-
+            
             .btn-submit {
                 background: #007bff !important;
                 color: white !important;
                 opacity: 1 !important;
                 font-weight: 600 !important;
             }
-
+            
             .btn-submit:hover {
                 background: #0056b3 !important;
                 box-shadow: 0 4px 12px rgba(0, 123, 255, 0.3) !important;
                 transform: translateY(-1px);
             }
-
+            
             /* Import section - NUOVO LAYOUT COMPATTO */
             .import-fullwidth {
                 flex: 1;
@@ -1196,7 +1196,7 @@
                 height: calc(100% - 60px);
                 overflow-y: auto;
             }
-
+            
             .import-layout-new {
                 display: grid;
                 grid-template-columns: 1fr 1fr;
@@ -1204,7 +1204,7 @@
                 height: auto;
                 min-height: 400px;
             }
-
+            
             /* Drop zone più compatta ORIZZONTALMENTE ma più alta VERTICALMENTE */
             .compact-drop-zone {
                 border: 3px dashed #007bff;
@@ -1218,38 +1218,38 @@
                 height: 400px;
                 max-height: 400px;
             }
-
+            
             .compact-drop-zone:hover,
             .compact-drop-zone.dragover {
                 background: linear-gradient(135deg, #e6f3ff 0%, #cce7ff 100%);
                 border-color: #0056b3;
                 transform: scale(1.01);
             }
-
+            
             .drop-content-compact {
                 text-align: center;
                 padding: 30px 20px;
             }
-
+            
             .drop-icon {
                 font-size: 48px;
                 margin-bottom: 12px;
                 color: #007bff;
             }
-
+            
             .drop-content-compact h2 {
                 margin: 0 0 6px 0;
                 color: #333;
                 font-size: 18px;
                 font-weight: 600;
             }
-
+            
             .drop-content-compact p {
                 margin: 0 0 12px 0;
                 color: #6c757d;
                 font-size: 13px;
             }
-
+            
             .file-btn {
                 background: none;
                 border: none;
@@ -1259,13 +1259,13 @@
                 font-weight: 500;
                 font-size: 13px;
             }
-
+            
             .format-badges {
                 display: flex;
                 gap: 6px;
                 justify-content: center;
             }
-
+            
             .badge {
                 background: #007bff;
                 color: white;
@@ -1274,7 +1274,7 @@
                 font-size: 10px;
                 font-weight: 500;
             }
-
+            
             /* Features sidebar - COME SCREENSHOT */
             .features-sidebar {
                 background: white;
@@ -1284,7 +1284,7 @@
                 box-shadow: 0 2px 4px rgba(0,0,0,0.1);
                 height: fit-content;
             }
-
+            
             .features-sidebar h3 {
                 text-align: center;
                 margin: 0 0 20px 0;
@@ -1294,13 +1294,13 @@
                 padding-bottom: 12px;
                 border-bottom: 2px solid #e9ecef;
             }
-
+            
             .features-list {
                 display: grid;
                 grid-template-columns: 1fr 1fr;
                 gap: 10px;
             }
-
+            
             .feature-item {
                 display: flex;
                 align-items: flex-start;
@@ -1311,12 +1311,12 @@
                 border-radius: 6px;
                 transition: all 0.3s;
             }
-
+            
             .feature-item:hover {
                 background: #e9ecef;
                 transform: translateY(-1px);
             }
-
+            
             .feature-icon {
                 font-size: 16px;
                 width: 24px;
@@ -1324,12 +1324,12 @@
                 flex-shrink: 0;
                 margin-top: 1px;
             }
-
+            
             .feature-text {
                 display: flex;
                 flex-direction: column;
             }
-
+            
             .feature-text strong {
                 margin: 0 0 2px 0;
                 color: #333;
@@ -1337,115 +1337,115 @@
                 font-weight: 600;
                 line-height: 1.2;
             }
-
+            
             .feature-text span {
                 margin: 0;
                 color: #6c757d;
                 font-size: 9px;
                 line-height: 1.2;
             }
-
+            
             /* Responsive ottimizzato */
             @media (max-width: 1400px) {
                 .optimized-grid {
                     grid-template-columns: repeat(4, 1fr);
                 }
             }
-
+            
             @media (max-width: 1100px) {
                 .optimized-grid {
                     grid-template-columns: repeat(3, 1fr);
                 }
-
+                
                 .import-layout-new {
                     grid-template-columns: 1fr;
                     gap: 16px;
                 }
-
+                
                 .compact-drop-zone {
                     height: 350px;
                 }
-
+                
                 .features-list {
                     grid-template-columns: 1fr;
                     gap: 8px;
                 }
             }
-
+            
             @media (max-width: 900px) {
                 .optimized-grid {
                     grid-template-columns: repeat(2, 1fr);
                 }
-
+                
                 .features-sidebar {
                     padding: 16px;
                 }
-
+                
                 .features-sidebar h3 {
                     font-size: 16px;
                     margin-bottom: 16px;
                 }
             }
-
+            
             @media (max-width: 600px) {
                 .optimized-grid {
                     grid-template-columns: 1fr;
                 }
-
+                
                 .integrated-footer {
                     flex-direction: column;
                     gap: 16px;
                     padding: 16px 20px;
                     margin: 16px -20px 0 -20px;
                 }
-
+                
                 .action-btn {
                     width: 100%;
                     justify-content: center;
                 }
-
+                
                 .optimized-fullwidth-form {
                     padding: 20px 20px 0 20px;
                 }
-
+                
                 .import-fullwidth {
                     padding: 16px;
                 }
-
+                
                 .compact-drop-zone {
                     height: 300px;
                 }
-
+                
                 .features-list {
                     grid-template-columns: 1fr;
                     gap: 6px;
                 }
-
+                
                 .feature-item {
                     padding: 6px;
                 }
-
+                
                 .feature-text strong {
                     font-size: 9px;
                 }
-
+                
                 .feature-text span {
                     font-size: 7px;
                 }
-
+                
                 .drop-content-compact {
                     padding: 20px 15px;
                 }
-
+                
                 .drop-content-compact h2 {
                     font-size: 16px;
                 }
-
+                
                 .drop-icon {
                     font-size: 36px;
                 }
             }
-
+            
             /* WORKFLOW MODAL STYLES */
             .workflow-modal-overlay {
                 position: fixed;
@@ -1462,11 +1462,11 @@
                 opacity: 0;
                 transition: opacity 0.3s ease;
             }
-
+            
             .workflow-modal-overlay.active {
                 opacity: 1;
             }
-
+            
             .workflow-modal {
                 background: white;
                 border-radius: 12px;
@@ -1477,21 +1477,21 @@
                 overflow-y: auto;
                 box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
             }
-
+            
             .workflow-modal h3 {
                 margin: 0 0 25px 0;
                 color: #333;
                 font-size: 24px;
                 text-align: center;
             }
-
+            
             .workflow-container {
                 display: flex;
                 align-items: center;
                 justify-content: space-between;
                 margin-bottom: 30px;
             }
-
+            
             .workflow-step {
                 flex: 1;
                 text-align: center;
@@ -1500,41 +1500,41 @@
                 background: #f8f9fa;
                 transition: all 0.3s ease;
             }
-
+            
             .workflow-step.completed {
                 background: #d4f4dd;
             }
-
+            
             .workflow-step.error {
                 background: #ffebee;
             }
-
+            
             .step-icon {
                 font-size: 48px;
                 margin-bottom: 15px;
                 color: #6c757d;
             }
-
+            
             .workflow-step.completed .step-icon {
                 color: #28a745;
             }
-
+            
             .workflow-step.error .step-icon {
                 color: #dc3545;
             }
-
+            
             .step-content h4 {
                 margin: 0 0 8px 0;
                 font-size: 16px;
                 color: #333;
             }
-
+            
             .step-content p {
                 margin: 0 0 12px 0;
                 font-size: 14px;
                 color: #6c757d;
             }
-
+            
             .step-status {
                 font-size: 14px;
                 font-weight: 500;
@@ -1542,67 +1542,67 @@
                 border-radius: 20px;
                 display: inline-block;
             }
-
+            
             .step-status.pending {
                 background: #fff3cd;
                 color: #856404;
             }
-
+            
             .step-status.waiting {
                 background: #e9ecef;
                 color: #6c757d;
             }
-
+            
             .step-status.success {
                 background: #28a745;
                 color: white;
             }
-
+            
             .step-status.error {
                 background: #dc3545;
                 color: white;
             }
-
+            
             .workflow-arrow {
                 font-size: 24px;
                 color: #6c757d;
                 margin: 0 20px;
             }
-
+            
             .workflow-result {
                 background: #f8f9fa;
                 border-radius: 8px;
                 padding: 20px;
                 margin-top: 20px;
             }
-
+            
             .workflow-result h4 {
                 margin: 0 0 15px 0;
                 color: #333;
             }
-
+            
             .result-success {
                 display: flex;
                 align-items: center;
                 gap: 15px;
                 color: #28a745;
             }
-
+            
             .result-success i {
                 font-size: 36px;
             }
-
+            
             .result-error {
                 display: flex;
                 align-items: center;
                 gap: 15px;
                 color: #dc3545;
             }
-
+            
             .result-error i {
                 font-size: 36px;
             }
-
+            
             .workflow-close {
                 display: block;
                 margin: 20px auto 0;
@@ -1615,26 +1615,26 @@
                 cursor: pointer;
                 transition: background 0.3s ease;
             }
-
+            
             .workflow-close:hover {
                 background: #0056b3;
             }
-
+            
             @media (max-width: 768px) {
                 .workflow-container {
                     flex-direction: column;
                 }
-
+                
                 .workflow-arrow {
                     transform: rotate(90deg);
                     margin: 20px 0;
                 }
-
+                
                 .workflow-step {
                     width: 100%;
                 }
             }
-
+            
             /* ERROR MODAL STYLES */
             .error-modal-overlay {
                 position: fixed;
@@ -1651,11 +1651,11 @@
                 opacity: 0;
                 transition: opacity 0.3s ease;
             }
-
+            
             .error-modal-overlay.active {
                 opacity: 1;
             }
-
+            
             .error-modal {
                 background: white;
                 border-radius: 12px;
@@ -1666,58 +1666,58 @@
                 transform: scale(0.9);
                 transition: transform 0.3s ease;
             }
-
+            
             .error-modal-overlay.active .error-modal {
                 transform: scale(1);
             }
-
+            
             .error-modal.info {
                 border-top: 4px solid #3b82f6;
             }
-
+            
             .error-modal.warning {
                 border-top: 4px solid #f59e0b;
             }
-
+            
             .error-modal.error {
                 border-top: 4px solid #ef4444;
             }
-
+            
             .error-icon {
                 text-align: center;
                 margin-bottom: 20px;
             }
-
+            
             .error-icon i {
                 font-size: 48px;
             }
-
+            
             .error-modal.info .error-icon i {
                 color: #3b82f6;
             }
-
+            
             .error-modal.warning .error-icon i {
                 color: #f59e0b;
             }
-
+            
             .error-modal.error .error-icon i {
                 color: #ef4444;
             }
-
+            
             .error-content h3 {
                 margin: 0 0 12px 0;
                 font-size: 20px;
                 color: #333;
                 text-align: center;
             }
-
+            
             .error-content p {
                 margin: 0 0 16px 0;
                 color: #666;
                 text-align: center;
                 line-height: 1.5;
             }
-
+            
             .error-details {
                 background: #f8f9fa;
                 border-radius: 6px;
@@ -1727,7 +1727,7 @@
                 color: #666;
                 font-family: monospace;
             }
-
+            
             .error-actions {
                 display: flex;
                 gap: 10px;
@@ -1735,7 +1735,7 @@
                 margin-top: 24px;
                 flex-wrap: wrap;
             }
-
+            
             .error-action-btn,
             .error-close-btn {
                 padding: 10px 20px;
@@ -1746,51 +1746,51 @@
                 cursor: pointer;
                 transition: all 0.3s ease;
             }
-
+            
             .error-action-btn {
                 background: #007bff;
                 color: white;
             }
-
+            
             .error-action-btn:hover {
                 background: #0056b3;
                 transform: translateY(-1px);
             }
-
+            
             .error-close-btn {
                 background: #e9ecef;
                 color: #495057;
             }
-
+            
             .error-close-btn:hover {
                 background: #dee2e6;
             }
-
+            
             .format-examples {
                 display: grid;
                 gap: 20px;
             }
-
+            
             .format-group h4 {
                 margin: 0 0 12px 0;
                 color: #333;
             }
-
+            
             .format-group ul {
                 list-style: none;
                 padding: 0;
                 margin: 0;
             }
-
+            
             .format-group li {
                 padding: 8px 0;
                 border-bottom: 1px solid #e9ecef;
             }
-
+            
             .format-group li:last-child {
                 border-bottom: none;
             }
-
+            
             .format-group code {
                 background: #f8f9fa;
                 padding: 4px 8px;
@@ -1798,31 +1798,24 @@
                 font-family: monospace;
                 color: #e83e8c;
             }
-
+            
             .rate-limit-info ul {
                 list-style: disc;
                 padding-left: 20px;
                 margin: 10px 0;
             }
-
-            .current-usage {
-                background: #f8f9fa;
-                border-radius: 6px;
-                padding: 12px;
-                margin-top: 16px;
-            }
-
+            
             .current-usage h4 {
                 margin: 0 0 8px 0;
                 color: #333;
                 font-size: 14px;
             }
-
+            
             .current-usage p {
                 margin: 0;
                 color: #666;
             }
-
+            
             /* Quick Actions Styles */
             .quick-actions-overlay {
                 position: fixed;
@@ -1839,11 +1832,11 @@
                 opacity: 0;
                 transition: opacity 0.3s ease;
             }
-
+            
             .quick-actions-overlay.active {
                 opacity: 1;
             }
-
+            
             .quick-actions-modal {
                 background: white;
                 border-radius: 12px;
@@ -1854,11 +1847,11 @@
                 transform: scale(0.9);
                 transition: transform 0.3s ease;
             }
-
+            
             .quick-actions-overlay.active .quick-actions-modal {
                 transform: scale(1);
             }
-
+            
             .quick-actions-header {
                 background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
                 color: white;
@@ -1867,12 +1860,12 @@
                 justify-content: space-between;
                 align-items: center;
             }
-
+            
             .quick-actions-header h3 {
                 margin: 0;
                 font-size: 20px;
             }
-
+            
             .quick-close {
                 background: rgba(255, 255, 255, 0.2);
                 border: none;
@@ -1886,32 +1879,32 @@
                 align-items: center;
                 justify-content: center;
             }
-
+            
             .quick-close:hover {
                 background: rgba(255, 255, 255, 0.3);
                 transform: rotate(90deg);
             }
-
+            
             .container-info {
                 padding: 20px;
                 background: #f8f9fa;
                 border-bottom: 1px solid #e9ecef;
             }
-
+            
             .info-main {
                 display: flex;
                 align-items: center;
                 gap: 12px;
                 margin-bottom: 12px;
             }
-
+            
             .container-number {
                 font-size: 24px;
                 font-weight: 700;
                 color: #333;
                 font-family: monospace;
             }
-
+            
             .container-status {
                 padding: 4px 12px;
                 border-radius: 20px;
@@ -1919,60 +1912,60 @@
                 font-weight: 600;
                 text-transform: uppercase;
             }
-
+            
             .container-status.status-in_transit {
                 background: #3b82f6;
                 color: white;
             }
-
+            
             .container-status.status-arrived {
                 background: #10b981;
                 color: white;
             }
-
+            
             .container-status.status-delivered {
                 background: #059669;
                 color: white;
             }
-
+            
             .info-row {
                 display: flex;
                 justify-content: space-between;
                 padding: 8px 0;
                 border-bottom: 1px solid #e9ecef;
             }
-
+            
             .info-row:last-child {
                 border-bottom: none;
             }
-
+            
             .info-label {
                 color: #6c757d;
                 font-size: 14px;
             }
-
+            
             .info-value {
                 color: #333;
                 font-weight: 500;
                 font-size: 14px;
             }
-
+            
             .quick-actions {
                 padding: 20px;
             }
-
+            
             .quick-actions h4 {
                 margin: 0 0 16px 0;
                 color: #333;
                 font-size: 16px;
             }
-
+            
             .action-buttons-grid {
                 display: grid;
                 grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
                 gap: 12px;
             }
-
+            
             .action-btn {
                 background: white;
                 border: 2px solid #e9ecef;
@@ -1985,33 +1978,33 @@
                 align-items: center;
                 gap: 8px;
             }
-
+            
             .action-btn:hover {
                 border-color: #007bff;
                 transform: translateY(-2px);
                 box-shadow: 0 4px 12px rgba(0, 123, 255, 0.15);
             }
-
+            
             .action-btn.primary {
                 background: #007bff;
                 color: white;
                 border-color: #007bff;
             }
-
+            
             .action-btn.primary:hover {
                 background: #0056b3;
                 border-color: #0056b3;
             }
-
+            
             .action-btn i {
                 font-size: 24px;
             }
-
+            
             .action-btn span {
                 font-size: 14px;
                 font-weight: 500;
             }
-
+            
             .last-update {
                 padding: 12px 20px;
                 background: #f8f9fa;
@@ -2020,7 +2013,7 @@
                 color: #6c757d;
                 border-top: 1px solid #e9ecef;
             }
-
+            
             /* Field error styles */
             .field-error {
                 color: #dc3545;
@@ -2028,12 +2021,12 @@
                 margin-top: 4px;
                 display: block;
             }
-
+            
             input.error, select.error {
                 border-color: #dc3545 !important;
                 box-shadow: 0 0 0 2px rgba(220, 53, 69, 0.2) !important;
             }
-
+            
             @media (max-width: 480px) {
                 .action-buttons-grid {
                     grid-template-columns: 1fr;
@@ -2106,31 +2099,42 @@
                 opacity: 0.8;
                 margin-top: 2px;
             }
+            
+            /* AWB ID Badge styles */
+            .awb-id-badge {
+                background: #28a745;
+                color: white;
+                padding: 4px 12px;
+                border-radius: 4px;
+                font-size: 12px;
+                margin-top: 8px;
+                display: inline-block;
+            }
             </style>
         `;
     }
-
+    
     // Variables per l'import
     let pendingImport = null;
     let detectedData = null;
-
+    
     // 🔧 FIX TAB SWITCHING - Versione corretta
     function setupEnhancedInteractions() {
         console.log('🔧 PROGRESSIVE FORM: Setting up interactions (FIXED)');
-
+        
         // Tab switching - VERSIONE CORRETTA
         document.querySelectorAll('.integrated-tab').forEach(btn => {
             btn.addEventListener('click', function(e) {
                 e.preventDefault();
                 e.stopPropagation();
-
+                
                 const targetTab = this.dataset.target;
                 console.log('🔄 Tab clicked:', targetTab);
-
+                
                 // Update buttons
                 document.querySelectorAll('.integrated-tab').forEach(b => b.classList.remove('active'));
                 this.classList.add('active');
-
+                
                 // Update content - USA IL SELECTOR CORRETTO
                 document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
                 const targetContent = document.querySelector(`[data-tab="${targetTab}"]`);
@@ -2142,14 +2146,14 @@
                 }
             });
         });
-
+        
         // Single form interactions
         setupSingleFormInteractions();
-
-        // Import interactions
+        
+        // Import interactions  
         setupImportInteractions();
     }
-
+    
     // 🔄 REAL-TIME PREVIEW
     function setupRealtimePreview() {
         const inputs = {
@@ -2161,7 +2165,7 @@
             status: document.getElementById('enh_status'),
             reference: document.getElementById('enh_reference')
         };
-
+        
         const previews = {
             number: document.getElementById('previewNumber'),
             type: document.getElementById('previewType'),
@@ -2170,7 +2174,7 @@
             status: document.getElementById('previewStatus'),
             reference: document.getElementById('previewReference')
         };
-
+        
         function updatePreview() {
             if (inputs.trackingNumber && previews.number) {
                 previews.number.textContent = inputs.trackingNumber.value || '-';
@@ -2202,7 +2206,7 @@
                 previews.reference.textContent = inputs.reference.value || '-';
             }
         }
-
+        
         // Attach listeners
         Object.values(inputs).forEach(input => {
             if (input) {
@@ -2210,39 +2214,39 @@
                 input.addEventListener('change', updatePreview);
             }
         });
-
+        
         // Initial update
         updatePreview();
     }
-
+    
     function setupSingleFormInteractions() {
         const form = document.getElementById('enhancedSingleForm');
         const trackingInput = document.getElementById('enh_trackingNumber');
         const typeSelect = document.getElementById('enh_trackingType');
         const carrierSelect = document.getElementById('enh_carrier');
-
+        
         // Auto-detection
         let detectionTimeout;
         trackingInput.addEventListener('input', (e) => {
             clearTimeout(detectionTimeout);
             const value = e.target.value.trim();
-
+            
             if (value.length < 3) {
                 clearDetection();
                 return;
             }
-
+            
             showDetectionSpinner();
             detectionTimeout = setTimeout(() => {
                 detectAndUpdateType(value);
             }, 500);
         });
-
+        
         // Type change updates carriers
         typeSelect.addEventListener('change', () => {
             updateCarrierWithShipsGoData(typeSelect.value);
         });
-
+        
         // Example buttons
         document.querySelectorAll('.example-item').forEach(btn => {
             btn.addEventListener('click', () => {
@@ -2250,40 +2254,40 @@
                 trackingInput.dispatchEvent(new Event('input'));
             });
         });
-
+        
         // Form submit
         form.addEventListener('submit', handleEnhancedSubmit);
-
+        
         // Initialize carriers
         updateCarrierWithShipsGoData('auto');
     }
-
+    
     function setupImportInteractions() {
         const dropZone = document.getElementById('enhDropZone');
         const fileInput = document.getElementById('enhFileInput');
-
+        
         if (!dropZone || !fileInput) return;
-
+        
         // Drag & Drop
         dropZone.addEventListener('dragover', (e) => {
             e.preventDefault();
             dropZone.classList.add('dragover');
         });
-
+        
         dropZone.addEventListener('dragleave', () => {
             dropZone.classList.remove('dragover');
         });
-
+        
         dropZone.addEventListener('drop', (e) => {
             e.preventDefault();
             dropZone.classList.remove('dragover');
-
+            
             const files = e.dataTransfer.files;
             if (files.length > 0) {
                 handleFileSelect(files[0]);
             }
         });
-
+        
         // File input
         fileInput.addEventListener('change', (e) => {
             if (e.target.files.length > 0) {
@@ -2291,36 +2295,63 @@
             }
         });
     }
-
+    
     // ========================================
     // AUTO-DETECTION LOGIC
     // ========================================
-
+    
     function showDetectionSpinner() {
         const statusIcon = document.querySelector('.status-icon');
         const statusText = document.querySelector('.status-text');
-
+        
         if (statusIcon && statusText) {
             statusIcon.className = 'fas fa-circle-notch fa-spin status-icon';
             statusText.textContent = 'Rilevamento...';
         }
     }
-
+    
     function clearDetection() {
         const statusIcon = document.querySelector('.status-icon');
         const statusText = document.querySelector('.status-text');
-
+        
         if (statusIcon && statusText) {
             statusIcon.className = 'fas fa-search status-icon';
             statusText.textContent = 'Auto-detection attiva...';
         }
         detectedData = null;
-        // Rimuovi il badge dell'AWB ID se presente
-        const inputWrapper = document.querySelector('.main-input-wrapper');
-        const existingBadge = inputWrapper.querySelector('.awb-id-badge');
-        if (existingBadge) existingBadge.remove();
     }
-
+    
+    function showDetectionResult(type, carrier) {
+        const statusIcon = document.querySelector('.status-icon');
+        const statusText = document.querySelector('.status-text');
+        
+        detectedData = { type, carrier };
+        
+        const typeLabels = {
+            container: '🚢 Container',
+            awb: '✈️ Air Waybill',
+            bl: '📄 Bill of Lading'
+        };
+        
+        if (statusIcon && statusText) {
+            statusIcon.className = 'fas fa-check-circle status-icon';
+            statusIcon.style.color = '#28a745';
+            statusText.textContent = `Rilevato: ${typeLabels[type]}${carrier ? ` (${carrier})` : ''}`;
+        }
+    }
+    
+    function showDetectionError() {
+        const statusIcon = document.querySelector('.status-icon');
+        const statusText = document.querySelector('.status-text');
+        
+        if (statusIcon && statusText) {
+            statusIcon.className = 'fas fa-exclamation-triangle status-icon';
+            statusIcon.style.color = '#dc3545';
+            statusText.textContent = 'Tipo non riconosciuto';
+        }
+    }
+    
+    // PASSO 2: Aggiungi le nuove funzioni UI dopo showDetectionError()
     function showAWBIdSearching() {
         const statusEl = document.querySelector('.detection-status');
         if (statusEl) {
@@ -2330,7 +2361,7 @@
             `;
         }
     }
-
+    
     function showAWBIdFound(shipsgoId) {
         const statusEl = document.querySelector('.detection-status');
         if (statusEl) {
@@ -2339,12 +2370,12 @@
                 <span class="status-text">✈️ AWB trovato - ID: ${shipsgoId}</span>
             `;
         }
-
+        
         // Aggiungi anche un badge visibile sotto l'input
         const inputWrapper = document.querySelector('.main-input-wrapper');
         const existingBadge = inputWrapper.querySelector('.awb-id-badge');
         if (existingBadge) existingBadge.remove();
-
+        
         const badge = document.createElement('div');
         badge.className = 'awb-id-badge';
         badge.style.cssText = `
@@ -2359,7 +2390,7 @@
         badge.innerHTML = `<i class="fas fa-database"></i> ShipsGo ID: ${shipsgoId}`;
         inputWrapper.appendChild(badge);
     }
-
+    
     function showAWBIdNotFound() {
         const statusEl = document.querySelector('.detection-status');
         if (statusEl) {
@@ -2369,7 +2400,7 @@
             `;
         }
     }
-
+    
     function showAWBIdError() {
         const statusEl = document.querySelector('.detection-status');
         if (statusEl) {
@@ -2379,11 +2410,12 @@
             `;
         }
     }
-    async function detectAndUpdateType(trackingNumber) { // Added 'async' here
+    
+    async function detectAndUpdateType(trackingNumber) {
         // Simple detection logic
         let type = 'unknown';
         let carrier = '';
-
+        
         if (/^[A-Z]{4}\d{7}/.test(trackingNumber)) {
             type = 'container';
             if (trackingNumber.startsWith('MSKU')) carrier = 'MSK';
@@ -2395,14 +2427,14 @@
         } else if (/^[A-Z]{2}\d{6,}$/.test(trackingNumber)) {
             type = 'bl';
         }
-
+        
         if (type !== 'unknown') {
             showDetectionResult(type, carrier);
-
+            
             // Auto-update form fields
             document.getElementById('enh_trackingType').value = type;
             updateCarrierWithShipsGoData(type);
-
+            
             if (carrier) {
                 setTimeout(() => {
                     document.getElementById('enh_carrier').value = carrier;
@@ -2411,7 +2443,7 @@
         } else {
             showDetectionError();
         }
-
+        
         // Verifica se il container esiste già
         const containerPattern = /^[A-Z]{4}\d{7}$/;
         if (containerPattern.test(trackingNumber.trim().toUpperCase())) {
@@ -2424,30 +2456,31 @@
                 }
             }, 1500);
         }
-        // NUOVO: Se è un AWB, cerca automaticamente lo shipsgo_id
+        
+        // PASSO 3: NUOVO - Se è un AWB, cerca automaticamente lo shipsgo_id
         if (type === 'awb' && window.trackingService) {
             console.log('🔍 Ricerca automatica ShipsGo ID per AWB:', trackingNumber);
-
+            
             try {
                 // Mostra indicatore di caricamento
                 showAWBIdSearching();
-
+                
                 // Cerca l'AWB nella lista ShipsGo
                 const awbList = await window.trackingService.getAirShipmentsList();
-                const foundAwb = awbList.find(awb =>
+                const foundAwb = awbList.find(awb => 
                     awb.awb_number === trackingNumber.toUpperCase() ||
                     awb.awbNumber === trackingNumber.toUpperCase()
                 );
-
+                
                 if (foundAwb && foundAwb.id) {
                     console.log('✅ AWB trovato con ID:', foundAwb.id);
-
+                    
                     // Salva l'ID in memoria
                     window.detectedAwbId = foundAwb.id;
-
+                    
                     // Mostra l'ID nell'interfaccia
                     showAWBIdFound(foundAwb.id);
-
+                    
                     // Pre-compila altri campi se disponibili
                     if (foundAwb.status) {
                         const statusMap = {
@@ -2481,57 +2514,27 @@
             }
         }
     }
-
-    function showDetectionResult(type, carrier) {
-        const statusIcon = document.querySelector('.status-icon');
-        const statusText = document.querySelector('.status-text');
-
-        detectedData = { type, carrier };
-
-        const typeLabels = {
-            container: '🚢 Container',
-            awb: '✈️ Air Waybill',
-            bl: '📄 Bill of Lading'
-        };
-
-        if (statusIcon && statusText) {
-            statusIcon.className = 'fas fa-check-circle status-icon';
-            statusIcon.style.color = '#28a745';
-            statusText.textContent = `Rilevato: ${typeLabels[type]}${carrier ? ` (${carrier})` : ''}`;
-        }
-    }
-
-    function showDetectionError() {
-        const statusIcon = document.querySelector('.status-icon');
-        const statusText = document.querySelector('.status-text');
-
-        if (statusIcon && statusText) {
-            statusIcon.className = 'fas fa-exclamation-triangle status-icon';
-            statusIcon.style.color = '#dc3545';
-            statusText.textContent = 'Tipo non riconosciuto';
-        }
-    }
-
+    
     // ========================================
     // NUOVE FUNZIONI PER CARRIERS CON SHIPSGO
     // ========================================
-
-    async function updateCarrierWithShipsGoData(type) { // This function is now correctly marked as async
+    
+    async function updateCarrierWithShipsGoData(type) {
         const select = document.getElementById('enh_carrier');
         if (!select) return;
-
+        
         // Clear current options
         select.innerHTML = '<option value="">Seleziona vettore...</option>';
-
+        
         // Se abbiamo il tracking service con API keys, usa i dati live
         if (window.trackingService && window.trackingService.hasApiKeys()) {
             try {
                 // Mostra loading
                 select.innerHTML = '<option value="">Caricamento vettori...</option>';
                 select.disabled = true;
-
+                
                 let carriers = [];
-
+                
                 if (type === 'container' || type === 'bl') {
                     // Ottieni shipping lines da ShipsGo
                     const response = await fetch('/netlify/functions/shipsgo-proxy', {
@@ -2543,26 +2546,26 @@
                             method: 'GET'
                         })
                     });
-
+                    
                     const result = await response.json();
-                    if (result.success && Array.isArray(result.data)) {
-                        // Gestisci sia oggetti che stringhe
-                        carriers = result.data.map(line => {
-                            if (typeof line === 'string') {
-                                // Se è una stringa, usa la stringa sia come code che come name
-                                return {
-                                    code: line,
-                                    name: line
-                                };
-                            } else {
-                                // Se è un oggetto, usa i campi appropriati
-                                return {
-                                    code: line.ShippingLineCode || line.Code || line,
-                                    name: line.ShippingLineName || line.Name || line
-                                };
-                            }
-                        });
-                    }
+if (result.success && Array.isArray(result.data)) {
+    // Gestisci sia oggetti che stringhe
+    carriers = result.data.map(line => {
+        if (typeof line === 'string') {
+            // Se è una stringa, usa la stringa sia come code che come name
+            return {
+                code: line,
+                name: line
+            };
+        } else {
+            // Se è un oggetto, usa i campi appropriati
+            return {
+                code: line.ShippingLineCode || line.Code || line,
+                name: line.ShippingLineName || line.Name || line
+            };
+        }
+    });
+}
                 } else if (type === 'awb') {
                     // Ottieni airlines da ShipsGo v2
                     const response = await fetch('/netlify/functions/shipsgo-proxy', {
@@ -2574,7 +2577,7 @@
                             method: 'GET'
                         })
                     });
-
+                    
                     const result = await response.json();
                     if (result.success && Array.isArray(result.data)) {
                         carriers = result.data.map(airline => ({
@@ -2583,29 +2586,29 @@
                         }));
                     }
                 }
-
+                
                 // Riabilita select
                 select.disabled = false;
                 select.innerHTML = '<option value="">Seleziona vettore...</option>';
-
+                
                 // Aggiungi opzioni
                 if (carriers.length > 0) {
                     // Ordina alfabeticamente
                     carriers = carriers.filter(c => c && (c.name || c.code));
-                    carriers.sort((a, b) => {
-                        const nameA = (a.name || a.code || '').toString();
-                        const nameB = (b.name || b.code || '').toString();
-                        return nameA.localeCompare(nameB);
-                    });
-
+carriers.sort((a, b) => {
+    const nameA = (a.name || a.code || '').toString();
+    const nameB = (b.name || b.code || '').toString();
+    return nameA.localeCompare(nameB);
+});
+                    
                     // Crea optgroup per i più comuni
                     const commonCarriers = getCommonCarriers(type);
                     const commonCodes = commonCarriers.map(c => c.code);
-
+                    
                     // Vettori comuni
                     const optgroupCommon = document.createElement('optgroup');
                     optgroupCommon.label = '⭐ Più utilizzati';
-
+                    
                     commonCarriers.forEach(carrier => {
                         const found = carriers.find(c => c.code === carrier.code);
                         if (found) {
@@ -2615,15 +2618,15 @@
                             optgroupCommon.appendChild(option);
                         }
                     });
-
+                    
                     if (optgroupCommon.children.length > 0) {
                         select.appendChild(optgroupCommon);
                     }
-
+                    
                     // Altri vettori
                     const optgroupOthers = document.createElement('optgroup');
                     optgroupOthers.label = '📋 Tutti i vettori';
-
+                    
                     carriers.forEach(carrier => {
                         if (!commonCodes.includes(carrier.code)) {
                             const option = document.createElement('option');
@@ -2632,17 +2635,17 @@
                             optgroupOthers.appendChild(option);
                         }
                     });
-
+                    
                     if (optgroupOthers.children.length > 0) {
                         select.appendChild(optgroupOthers);
                     }
-
+                    
                     console.log(`✅ Caricati ${carriers.length} vettori da ShipsGo`);
                 } else {
                     // Fallback ai vettori statici
                     populateStaticCarriers(type);
                 }
-
+                
             } catch (error) {
                 console.error('Error loading carriers from ShipsGo:', error);
                 // Fallback ai vettori statici
@@ -2654,28 +2657,28 @@
             populateStaticCarriers(type);
         }
     }
-
+    
     function populateStaticCarriers(type) {
         const select = document.getElementById('enh_carrier');
         const carriers = getCarriersByType(type);
-
+        
         if (carriers.length > 0) {
             // Crea optgroup
             const optgroup = document.createElement('optgroup');
-            optgroup.label = type === 'container' ? '🚢 Marittimi' :
+            optgroup.label = type === 'container' ? '🚢 Marittimi' : 
                              type === 'awb' ? '✈️ Aerei' : '📦 Express';
-
+            
             carriers.forEach(carrier => {
                 const option = document.createElement('option');
                 option.value = carrier.code;
                 option.textContent = `${carrier.code} - ${carrier.name}`;
                 optgroup.appendChild(option);
             });
-
+            
             select.appendChild(optgroup);
         }
     }
-
+    
     function getCommonCarriers(type) {
         if (type === 'container' || type === 'bl') {
             return [
@@ -2696,7 +2699,7 @@
         }
         return [];
     }
-
+    
     function getCarriersByType(type) {
         const carriers = {
             container: [
@@ -2732,22 +2735,22 @@
                 { code: 'TNT', name: 'TNT Express' }
             ]
         };
-
+        
         return carriers[type] || carriers.container;
     }
-
+    
     // ========================================
     // FORM SUBMISSION
     // ========================================
-
+    
     async function handleEnhancedSubmit(e) {
         e.preventDefault();
-
+        
         const btn = document.getElementById('enhSubmitBtn');
         const originalText = btn.innerHTML;
         btn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Elaborazione...';
         btn.disabled = true;
-
+        
         try {
             // Collect form data
             const formData = {
@@ -2763,28 +2766,28 @@
                 // Aggiunto per il FIX 1
                 date_of_loading: null // Questo verrà popolato da ImportManager o da altro se necessario
             };
-
+            
             // Validazione base
             if (!formData.trackingNumber) {
                 window.TrackingErrorHandler.showValidationError('enh_trackingNumber', 'Il numero tracking è obbligatorio');
                 return;
             }
-
+            
             // Auto-detect tipo se necessario
             if (formData.trackingType === 'auto') {
                 formData.trackingType = detectTrackingType(formData.trackingNumber);
             }
-
+            
             // Show workflow modal
             showWorkflowModal();
-
+            
             // Process tracking
             const result = await processEnhancedTracking(formData);
-
+            
             if (result.success) {
                 updateWorkflowStep(2, 'completed', 'Completato');
                 showWorkflowResult(true, result.message);
-
+                
                 // Close modal after success
                 setTimeout(() => {
                     closeAllModals();
@@ -2799,10 +2802,10 @@
                         console.log('🔄 Refresh tabella con refreshTrackingList()');
                         window.refreshTrackingList();
                     }
-
+                    
                     // Dispatch event per notificare altri componenti
                     window.dispatchEvent(new Event('trackingsUpdated'));
-
+                    
                     // Fallback: se la tabella non si aggiorna, forza reload dopo 500ms
                     setTimeout(() => {
                         const table = document.querySelector('#trackingTableBody');
@@ -2825,7 +2828,7 @@
             btn.disabled = false;
         }
     }
-
+    
     function detectTrackingType(trackingNumber) {
         if (/^[A-Z]{4}\d{7}$/.test(trackingNumber)) {
             return 'container';
@@ -2840,7 +2843,7 @@
     // AGGIUNGI QUESTA FUNZIONE PRIMA di const finalData = {
     function extractCountryCode(destination) {
         if (!destination || destination === '-') return '-';
-
+        
         // Mappa estesa dei porti
         const portToCountry = {
             'GENOVA': 'IT',
@@ -2874,29 +2877,29 @@
             'PORT ELIZABETH': 'ZA',
             'JOHANNESBURG': 'ZA', // per aeroporto
         };
-
+        
         const upperDest = destination.toUpperCase();
-
+        
         // Prima prova match esatto
         for (const [port, code] of Object.entries(portToCountry)) {
             if (upperDest === port) {
                 return code;
             }
         }
-
+        
         // Poi prova match parziale
         for (const [port, code] of Object.entries(portToCountry)) {
             if (upperDest.includes(port)) {
                 return code;
             }
         }
-
+        
         // Se c'è un codice paese di 2 lettere alla fine, usalo
         const countryMatch = upperDest.match(/\b([A-Z]{2})\b$/);
         if (countryMatch) {
             return countryMatch[1];
         }
-
+        
         return '-';
     }
 
@@ -2932,16 +2935,16 @@
             return '-';
         }
     }
-
+    
     async function processEnhancedTracking(formData) {
         updateWorkflowStep(0, 'completed', 'Validato');
-
+        
         let apiResponse = null; // Initialize apiResponse
-
+        
         // If using API, fetch live data based on operation type
         if (formData.useApi && window.trackingService) {
             updateWorkflowStep(1, 'pending', 'Connessione API...');
-
+            
             try {
                 if (formData.apiOperation === 'get' || formData.apiOperation === 'auto') {
                     // Per GET: prima ottieni i dati, poi salvali
@@ -2954,7 +2957,7 @@
                     // AGGIUNGI QUESTI LOG
                     console.log('📡 API Response:', apiResponse);
                     console.log('📡 API Success?', apiResponse?.success);
-
+                    
                     // Dopo la chiamata API (riga ~1120)
                     if (apiResponse && apiResponse.success) {
                         console.log('🌐 API RESPONSE COMPLETA:', apiResponse);
@@ -2965,36 +2968,36 @@
                             metadata: apiResponse.metadata
                         });
                     }
-
+                    
                     if (apiResponse && apiResponse.success) {
                         console.log('✅ ENTRO nel mapping API');
                         // AGGIUNGI: Estrai departure date dagli eventi
                         // AGGIUNGI: Estrai departure date dagli eventi
-                        let departureDate = '-';
-                        if (apiResponse.events && Array.isArray(apiResponse.events)) {
-                            // Prima cerca "departed"
-                            let departureEvent = apiResponse.events.find(event =>
-                                event.description?.toLowerCase().includes('departed') ||
-                                event.event_type?.toLowerCase() === 'departure' ||
-                                event.activity?.toLowerCase().includes('departed')
-                            );
-
-                            // Se non trova "departed", usa "loaded on vessel"
-                            if (!departureEvent) {
-                                departureEvent = apiResponse.events.find(event =>
-                                    event.description?.toLowerCase().includes('loaded on vessel') ||
-                                    event.type === 'LOADED_ON_VESSEL'
-                                );
-                                if (departureEvent) {
-                                    console.log('📦 Usando "loaded on vessel" come departure date');
-                                }
-                            }
-
-                            if (departureEvent) {
-                                departureDate = departureEvent.date || departureEvent.event_date || '-';
-                                console.log('📅 Departure date trovata:', departureDate);
-                            }
-                        }
+let departureDate = '-';
+if (apiResponse.events && Array.isArray(apiResponse.events)) {
+    // Prima cerca "departed"
+    let departureEvent = apiResponse.events.find(event => 
+        event.description?.toLowerCase().includes('departed') ||
+        event.event_type?.toLowerCase() === 'departure' ||
+        event.activity?.toLowerCase().includes('departed')
+    );
+    
+    // Se non trova "departed", usa "loaded on vessel"
+    if (!departureEvent) {
+        departureEvent = apiResponse.events.find(event => 
+            event.description?.toLowerCase().includes('loaded on vessel') ||
+            event.type === 'LOADED_ON_VESSEL'
+        );
+        if (departureEvent) {
+            console.log('📦 Usando "loaded on vessel" come departure date');
+        }
+    }
+    
+    if (departureEvent) {
+        departureDate = departureEvent.date || departureEvent.event_date || '-';
+        console.log('📅 Departure date trovata:', departureDate);
+    }
+}
 
                         // Mappa i dati GET correttamente
                         const mappedData = {
@@ -3013,13 +3016,13 @@
                             route: apiResponse.route || null,
                             departureDate: apiResponse.departureDate || null, // Aggiungi departureDate dall'API
                             bookingNumber: apiResponse.bookingNumber || null, // Aggiungi bookingNumber dall'API
-
+                            
                             // AGGIUNGI QUESTI:
                             date_of_departure: departureDate,
                             departure_date: departureDate,
                             dateOfDeparture: departureDate,
                         };
-
+                        
                         // Sostituisci formData con i data mappati
                         Object.assign(formData, mappedData);
                         updateWorkflowStep(1, 'completed', 'Dati recuperati');
@@ -3031,7 +3034,7 @@
                             formData.trackingType,
                             formData.carrier
                         );
-
+                        
                         if (postResponse.success) {
                             updateWorkflowStep(1, 'completed', 'Container registrato');
                         } else {
@@ -3047,7 +3050,7 @@
                         formData.trackingType,
                         formData.carrier
                     );
-
+                    
                     if (postResponse.success) {
                         updateWorkflowStep(1, 'completed', 'Container registrato');
                     } else {
@@ -3061,7 +3064,7 @@
         } else {
             updateWorkflowStep(1, 'completed', 'Dati manuali');
         }
-
+        
         // Save tracking with validated data
         updateWorkflowStep(2, 'pending', 'Salvataggio...');
 
@@ -3072,10 +3075,10 @@
             departure_date: formData.departure_date,
             tutti_i_campi: Object.keys(formData)
         });
-
+        
         // Assicurati che tutti i campi abbiano un valore valido
         const finalData = {
-            // Se è un AWB e abbiamo rilevato un ID, includiamolo nei metadata
+            // PASSO 4: Se è un AWB e abbiamo rilevato un ID, includiamolo nei metadata
             ...(formData.trackingType === 'awb' && window.detectedAwbId ? {
                 metadata: {
                     ...formData.metadata,
@@ -3083,12 +3086,13 @@
                     shipsgo_id_auto_detected: true
                 }
             } : {}),
+            
             // Prima includi TUTTI i campi mappati dall'API (se esistono)
             ...formData, // Usare formData che ora contiene i mappedData
-
+            
             // Se abbiamo dati mappati nei metadata, estraili al livello principale
             ...(formData.metadata?.mapped || {}),
-
+            
             // Campi critici con fallback
             tracking_number: formData.trackingNumber,
             tracking_type: formData.trackingType || 'container',
@@ -3100,13 +3104,13 @@
             destination_port: formData.destination_port || formData.destination || '-',
             status: formData.status || 'registered',
             current_status: formData.current_status || formData.status || 'registered',
-
+            
             // AGGIUNGI TUTTE LE VARIANTI DEI NOMI
             // Destination Country Code - tutte le varianti
             destination_country_code: extractCountryCode(formData.destination || formData.destination_port) || '-',
             destinationCountryCode: extractCountryCode(formData.destination || formData.destination_port) || '-',
             destination_country: apiResponse?.route?.destination?.country || '-',
-
+            
             // Date of Departure - tutte le varianti
             date_of_departure: formData.date_of_loading || formData.date_of_departure || '-',
             dateOfDeparture: formData.date_of_loading || formData.dateOfDeparture || '-',
@@ -3116,38 +3120,38 @@
             // La tabella cerca esattamente questi nomi di campo:
             departure: formatDateDDMMYYYY(formData.date_of_loading || formData.date_of_departure || formData.departure_date), // Per DATE OF DEPARTURE
             created_at: formatDateTime(new Date().toISOString()), // Per CREATED AT
-
+            
             // Container Count - tutte le varianti
             container_count: '1', // Default sempre 1
             containerCount: '1',
             containers: '1',
-
+            
             // Riferimento - tutte le varianti
             riferimento: formData.reference || '-',
             reference: formData.reference || '-',
-
+            
             // Booking - tutte le varianti
-            booking: apiResponse?.booking ||
+            booking: apiResponse?.booking || 
                      apiResponse?.bookingNumber || '-',
-            bookingNumber: apiResponse?.booking ||
+            bookingNumber: apiResponse?.booking || 
                            apiResponse?.bookingNumber || '-',
-            booking_number: apiResponse?.booking ||
+            booking_number: apiResponse?.booking || 
                             apiResponse?.bookingNumber || '-',
-
+            
             // Created At - tutte le varianti
             // created_at è già sovrascritto sopra per la tabella
             createdAt: new Date().toISOString(),
             created: new Date().toISOString(),
-
+            
             // TS Count
             ts_count: '0',
             tsCount: '0',
             transhipmentCount: '0',
-
+            
             // Timestamps
             updatedAt: new Date().toISOString(),
             updated_at: new Date().toISOString(),
-
+            
             // Mantieni i dati strutturati
             metadata: formData.metadata || {},
             events: formData.events || [],
@@ -3155,10 +3159,16 @@
             route: formData.route || null,
             lastUpdate: formData.lastUpdate || new Date().toISOString(),
             dataSource: formData.metadata?.source || 'manual',
-
+            
             // ID univoco
             id: Date.now()
         };
+        
+        // PASSO 5: Pulisci la variabile globale dopo l'uso
+        if (window.detectedAwbId) {
+            console.log('🧹 Cleanup detectedAwbId:', window.detectedAwbId);
+            window.detectedAwbId = null;
+        }
 
         console.log('🔍 finalData includes these fields:', Object.keys(finalData).sort());
         console.log('✅ destination_country_code:', finalData.destination_country_code);
@@ -3181,17 +3191,12 @@
             localStorage.setItem('trackings', JSON.stringify(trackings));
             return { success: true, message: 'Tracking aggiunto con successo!' };
         }
-        // Pulisci la variabile globale dopo l'uso
-        if (window.detectedAwbId) {
-            console.log('🧹 Cleanup detectedAwbId:', window.detectedAwbId);
-            window.detectedAwbId = null;
-        }
     }
-
+    
     // ========================================
     // FILE IMPORT
     // ========================================
-
+    
     async function handleFileSelect(file) {
         if (!window.ImportManager) {
             showErrorModal(
@@ -3201,7 +3206,7 @@
             );
             return;
         }
-
+        
         try {
             const result = await window.ImportManager.handleImport(file);
             if (result.success) {
@@ -3219,11 +3224,11 @@
             );
         }
     }
-
+    
     // ========================================
     // UI HELPERS
     // ========================================
-
+    
     function showWorkflowModal() {
         const overlay = document.createElement('div');
         overlay.className = 'workflow-modal-overlay';
@@ -3239,9 +3244,9 @@
                             <span class="step-status pending">In corso...</span>
                         </div>
                     </div>
-
+                    
                     <div class="workflow-arrow">→</div>
-
+                    
                     <div class="workflow-step" data-step="1">
                         <div class="step-icon">🔄</div>
                         <div class="step-content">
@@ -3250,9 +3255,9 @@
                             <span class="step-status waiting">In attesa</span>
                         </div>
                     </div>
-
+                    
                     <div class="workflow-arrow">→</div>
-
+                    
                     <div class="workflow-step" data-step="2">
                         <div class="step-icon">💾</div>
                         <div class="step-content">
@@ -3262,30 +3267,30 @@
                         </div>
                     </div>
                 </div>
-
+                
                 <div class="workflow-result" style="display: none;">
                     </div>
             </div>
         `;
-
+        
         document.body.appendChild(overlay);
         setTimeout(() => overlay.classList.add('active'), 10);
     }
-
+    
     function updateWorkflowStep(stepIndex, status, statusText) {
         const step = document.querySelector(`[data-step="${stepIndex}"]`);
         if (!step) return;
-
+        
         step.className = `workflow-step ${status}`;
         const statusEl = step.querySelector('.step-status');
         statusEl.className = `step-status ${status === 'completed' ? 'success' : status === 'error' ? 'error' : status}`;
         statusEl.textContent = statusText;
     }
-
+    
     function showWorkflowResult(success, message) {
         const resultDiv = document.querySelector('.workflow-result');
         if (!resultDiv) return;
-
+        
         resultDiv.innerHTML = success ? `
             <div class="result-success">
                 <i class="fas fa-check-circle"></i>
@@ -3303,9 +3308,9 @@
                 </div>
             </div>
         `;
-
+        
         resultDiv.style.display = 'block';
-
+        
         // Add close button
         const closeBtn = document.createElement('button');
         closeBtn.className = 'workflow-close';
@@ -3313,17 +3318,17 @@
         closeBtn.onclick = closeAllModals;
         resultDiv.appendChild(closeBtn);
     }
-
+    
     function showErrorModal(title, message, type = 'error') {
         const overlay = document.createElement('div');
         overlay.className = 'error-modal-overlay';
-
+        
         const iconMap = {
             info: 'fa-info-circle',
             warning: 'fa-exclamation-triangle',
             error: 'fa-exclamation-circle'
         };
-
+        
         overlay.innerHTML = `
             <div class="error-modal ${type}">
                 <div class="error-icon">
@@ -3340,11 +3345,11 @@
                 </div>
             </div>
         `;
-
+        
         document.body.appendChild(overlay);
         setTimeout(() => overlay.classList.add('active'), 10);
     }
-
+    
     function closeAllModals() {
         document.querySelectorAll('.workflow-modal-overlay, .error-modal-overlay').forEach(el => {
             el.classList.remove('active');
@@ -3352,11 +3357,11 @@
         });
         closeCustomModal();
     }
-
+    
     // ========================================
     // PREFILL FORM
     // ========================================
-
+    
     function prefillForm(data) {
         if (data.trackingNumber) {
             document.getElementById('enh_trackingNumber').value = data.trackingNumber;
@@ -3383,451 +3388,19 @@
             document.getElementById('enh_reference').value = data.reference;
         }
     }
-
+    
     // ========================================
     // SETTINGS TOGGLE
     // ========================================
-
+    
     function addEnhancedToggle() {
         // Add toggle to settings if settings module exists
         if (window.SettingsManager) {
-            window.SettingsManager.addSetting({
-                id: 'enableEnhancedTracking',
-                label: 'Form Tracking Enhanced',
-                type: 'toggle',
-                defaultValue: true,
-                onChange: (value) => {
-                    localStorage.setItem('enableEnhancedTracking', value);
-                    if (!value) {
-                        alert('Ricarica la pagina per tornare al form classico');
-                    }
-                }
-            });
-        }
-    }
-
-    // ========================================
-    // QUICK CONTAINER ACTIONS INTEGRATION
-    // ========================================
-
-    window.QuickContainerActions = {
-        async checkAndShowActions(containerNumber) {
-            // Verifica se il container esiste già nel sistema
-            if (!window.trackingManager) return false;
-
-            const existingContainer = await window.trackingManager.findByNumber(containerNumber);
-            if (existingContainer) {
-                this.showQuickActionsModal(existingContainer);
-                return true;
+            window.SettingsManager.addSetting({usage {
+                background: #f8f9fa;
+                border-radius: 6px;
+                padding: 12px;
+                margin-top: 16px;
             }
-            return false;
-        },
-
-        showQuickActionsModal(container) {
-            const overlay = document.createElement('div');
-            overlay.className = 'quick-actions-overlay';
-
-            const statusClass = `status-${container.status || 'registered'}`;
-            const statusLabels = {
-                registered: 'Registrato',
-                in_transit: 'In Transito',
-                arrived: 'Arrivato',
-                customs_cleared: 'Sdoganato',
-                delivered: 'Consegnato'
-            };
-
-            overlay.innerHTML = `
-                <div class="quick-actions-modal">
-                    <div class="quick-actions-header">
-                        <h3>🚢 Container Già Presente</h3>
-                        <button class="quick-close" onclick="this.closest('.quick-actions-overlay').remove()">
-                            <i class="fas fa-times"></i>
-                        </button>
-                    </div>
-
-                    <div class="container-info">
-                        <div class="info-main">
-                            <span class="container-number">${container.trackingNumber}</span>
-                            <span class="container-status ${statusClass}">
-                                ${statusLabels[container.status] || container.status}
-                            </span>
-                        </div>
-
-                        <div class="info-row">
-                            <span class="info-label">Vettore:</span>
-                            <span class="info-value">${container.carrier || '-'}</span>
-                        </div>
-
-                        <div class="info-row">
-                            <span class="info-label">Origine:</span>
-                            <span class="info-value">${container.origin || '-'}</span>
-                        </div>
-
-                        <div class="info-row">
-                            <span class="info-label">Destinazione:</span>
-                            <span class="info-value">${container.destination || '-'}</span>
-                        </div>
-
-                        <div class="info-row">
-                            <span class="info-label">Riferimento:</span>
-                            <span class="info-value">${container.reference || '-'}</span>
-                        </div>
-                    </div>
-
-                    <div class="quick-actions">
-                        <h4>Azioni Rapide</h4>
-                        <div class="action-buttons-grid">
-                            <button class="action-btn primary" onclick="QuickContainerActions.viewDetails('${container.id}')">
-                                <i class="fas fa-eye"></i>
-                                <span>Visualizza Dettagli</span>
-                            </button>
-
-                            <button class="action-btn" onclick="QuickContainerActions.updateStatus('${container.id}')">
-                                <i class="fas fa-sync"></i>
-                                <span>Aggiorna Stato</span>
-                            </button>
-
-                            <button class="action-btn" onclick="QuickContainerActions.viewEvents('${container.id}')">
-                                <i class="fas fa-history"></i>
-                                <span>Timeline Eventi</span>
-                            </button>
-
-                            <button class="action-btn" onclick="QuickContainerActions.addNote('${container.id}')">
-                                <i class="fas fa-sticky-note"></i>
-                                <span>Aggiungi Nota</span>
-                            </button>
-                        </div>
-                    </div>
-
-                    <div class="last-update">
-                        Ultimo aggiornamento: ${new Date(container.updatedAt || container.createdAt).toLocaleString('it-IT')}
-                    </div>
-                </div>
-            `;
-
-            document.body.appendChild(overlay);
-            setTimeout(() => overlay.classList.add('active'), 10);
-        },
-
-        viewDetails(containerId) {
-            // Close modal and navigate to details
-            document.querySelector('.quick-actions-overlay').remove();
-            closeCustomModal();
-            if (window.location.pathname !== '/tracking-details.html') {
-                window.location.href = `/tracking-details.html?id=${containerId}`;
-            }
-        },
-
-        updateStatus(containerId) {
-            // Trigger status update
-            document.querySelector('.quick-actions-overlay').remove();
-            if (window.trackingService) {
-                window.trackingService.forceUpdate(containerId);
-            }
-        },
-
-        viewEvents(containerId) {
-            // Show events timeline
-            document.querySelector('.quick-actions-overlay').remove();
-            closeCustomModal();
-            if (window.EventsViewer) {
-                window.EventsViewer.show(containerId);
-            }
-        },
-
-        addNote(containerId) {
-            // Show note dialog
-            document.querySelector('.quick-actions-overlay').remove();
-            if (window.NotesManager) {
-                window.NotesManager.showAddNote(containerId);
-            }
-        }
-    };
-
-    // ========================================
-    // ESPOSIZIONE GLOBALE DELLE FUNZIONI MANCANTI
-    // ========================================
-
-    // 1. CREA E ESPONI showWorkflowProgress
-    window.showWorkflowProgress = function(options = {}) {
-        console.log('🚀 showWorkflowProgress called with:', options);
-
-        // Se options contiene steps, crea un workflow personalizzato
-        if (options.steps) {
-            const overlay = document.createElement('div');
-            overlay.className = 'workflow-modal-overlay';
-            overlay.innerHTML = `
-                <div class="workflow-modal">
-                    <h3>${options.title || '🚀 Elaborazione in corso'}</h3>
-                    <div class="workflow-container">
-                        ${options.steps.map((step, index) => `
-                            <div class="workflow-step" data-step="${index}">
-                                <div class="step-icon">${step.icon || '📋'}</div>
-                                <div class="step-content">
-                                    <h4>${step.title}</h4>
-                                    <p>${step.description || ''}</p>
-                                    <span class="step-status ${index === 0 ? 'pending' : 'waiting'}">
-                                        ${index === 0 ? 'In corso...' : 'In attesa'}
-                                    </span>
-                                </div>
-                            </div>
-                            ${index < options.steps.length - 1 ? '<div class="workflow-arrow">→</div>' : ''}
-                        `).join('')}
-                    </div>
-                    <div class="workflow-result" style="display: none;"></div>
-                </div>
-            `;
-
-            document.body.appendChild(overlay);
-            setTimeout(() => overlay.classList.add('active'), 10);
-
-            // Ritorna oggetto controller
-            return {
-                updateStep: (stepIndex, status, statusText) => {
-                    updateWorkflowStep(stepIndex, status, statusText);
-                },
-                showResult: (success, message) => {
-                    showWorkflowResult(success, message);
-                },
-                close: () => {
-                    overlay.classList.remove('active');
-                    setTimeout(() => overlay.remove(), 300);
-                }
-            };
-        } else {
-            // Comportamento default - mostra il workflow standard
-            showWorkflowModal();
-            return {
-                updateStep: updateWorkflowStep,
-                showResult: showWorkflowResult,
-                close: closeAllModals
-            };
-        }
-    };
-
-    // 2. CREA E ESPONI TrackingErrorHandler
-    window.TrackingErrorHandler = class {
-        constructor() {
-            console.log('✅ TrackingErrorHandler initialized');
-        }
-
-        static show(error) {
-            console.log('🔴 TrackingErrorHandler.show called with:', error);
-
-            // Mappa errori comuni
-            const errorMapping = {
-                'ALREADY_EXISTS': {
-                    title: 'Container già presente',
-                    message: 'Questo container è già stato registrato nel sistema.',
-                    type: 'warning',
-                    actions: [
-                        {
-                            label: 'Visualizza Container',
-                            action: () => {
-                                if (error.containerId) {
-                                    window.location.href = `/tracking-details.html?id=${error.containerId}`;
-                                }
-                            }
-                        }
-                    ]
-                },
-                'RATE_LIMIT': {
-                    title: 'Limite richieste raggiunto',
-                    message: 'Hai raggiunto il limite di richieste API. Riprova tra qualche minuto.',
-                    type: 'warning'
-                },
-                'INVALID_FORMAT': {
-                    title: 'Formato non valido',
-                    message: error.message || 'Il formato del tracking number non è valido.',
-                    type: 'error',
-                    details: error.expectedFormat
-                },
-                'API_ERROR': {
-                    title: 'Errore API',
-                    message: error.message || 'Si è verificato un errore durante la comunicazione con il server.',
-                    type: 'error'
-                }
-            };
-
-            const errorConfig = errorMapping[error.code] || {
-                title: error.title || 'Errore',
-                message: error.message || 'Si è verificato un errore imprevisto.',
-                type: error.type || 'error'
-            };
-
-            // Crea modal errore
-            const overlay = document.createElement('div');
-            overlay.className = 'error-modal-overlay';
-
-            const iconMap = {
-                info: 'fa-info-circle',
-                warning: 'fa-exclamation-triangle',
-                error: 'fa-exclamation-circle'
-            };
-
-            overlay.innerHTML = `
-                <div class="error-modal ${errorConfig.type}">
-                    <div class="error-icon">
-                        <i class="fas ${iconMap[errorConfig.type]}"></i>
-                    </div>
-                    <div class="error-content">
-                        <h3>${errorConfig.title}</h3>
-                        <p>${errorConfig.message}</p>
-                        ${errorConfig.details ? `
-                            <div class="error-details">
-                                ${errorConfig.details}
-                            </div>
-                        ` : ''}
-                    </div>
-                    <div class="error-actions">
-                        ${errorConfig.actions ? errorConfig.actions.map(action => `
-                            <button class="error-action-btn" data-action="${action.label}">
-                                ${action.label}
-                            </button>
-                        `).join('') : ''}
-                        <button class="error-close-btn">Chiudi</button>
-                    </div>
-                </div>
-            `;
-
-            document.body.appendChild(overlay);
-            setTimeout(() => overlay.classList.add('active'), 10);
-
-            // Gestisci click sui bottoni
-            overlay.querySelector('.error-close-btn').onclick = () => {
-                overlay.classList.remove('active');
-                setTimeout(() => overlay.remove(), 300);
-            };
-
-            // Gestisci azioni custom
-            if (errorConfig.actions) {
-                errorConfig.actions.forEach(action => {
-                    const btn = overlay.querySelector(`[data-action="${action.label}"]`);
-                    if (btn) {
-                        btn.onclick = () => {
-                            action.action();
-                            overlay.remove();
-                        };
-                    }
-                });
-            }
-        }
-
-        static showValidationError(field, message) {
-            console.log('🟡 Validation error:', field, message);
-            const input = document.getElementById(field);
-            if (input) {
-                input.classList.add('error');
-                input.focus();
-
-                // Mostra messaggio inline
-                let errorEl = input.parentElement.querySelector('.field-error');
-                if (!errorEl) {
-                    errorEl = document.createElement('div');
-                    errorEl.className = 'field-error';
-                    input.parentElement.appendChild(errorEl);
-                }
-                errorEl.textContent = message;
-
-                // Rimuovi errore dopo 5 secondi
-                setTimeout(() => {
-                    input.classList.remove('error');
-                    errorEl.remove();
-                }, 5000);
-            }
-        }
-
-        static clearErrors() {
-            document.querySelectorAll('.error').forEach(el => el.classList.remove('error'));
-            document.querySelectorAll('.field-error').forEach(el => el.remove());
-        }
-    };
-
-    // 3. LOG di conferma
-    console.log('✅ PROGRESSIVE FORM: Funzioni esposte globalmente');
-    console.log('   - window.showWorkflowProgress:', typeof window.showWorkflowProgress);
-    console.log('   - window.TrackingErrorHandler:', typeof window.TrackingErrorHandler);
-    console.log('   - window.QuickContainerActions:', typeof window.QuickContainerActions);
-    console.log('   - window.showEnhancedTrackingForm:', typeof window.showEnhancedTrackingForm);
-
-    // ESPONI FUNZIONI PER DEBUG
-    window.updateCarrierWithShipsGoData = updateCarrierWithShipsGoData;
-    window.detectTrackingType = detectTrackingType;
-    window.processEnhancedTracking = processEnhancedTracking;
-    console.log('✅ PROGRESSIVE FORM: Funzioni di debug esposte');
-    console.log('   - window.updateCarrierWithShipsGoData:', typeof window.updateCarrierWithShipsGoData);
-    console.log('   - window.detectTrackingType:', typeof window.detectTrackingType);
-
-    // FIX 4: Debug helper per verificare l'ultimo tracking salvato
-    window.debugLastTracking = function() {
-        const trackings = JSON.parse(localStorage.getItem('trackings') || '[]');
-        if (trackings.length > 0) {
-            const lastTracking = trackings[trackings.length - 1];
-            console.log('📦 Ultimo tracking salvato:', JSON.stringify(lastTracking, null, 2));
-            console.log('🔍 Campi chiave:');
-            console.log('  - carrier:', lastTracking.carrier);
-            console.log('  - carrier_code:', lastTracking.carrier_code);
-            console.log('  - metadata:', lastTracking.metadata);
-            console.log('  - events:', lastTracking.events?.length || 0, 'eventi');
-            console.log('  - dataSource:', lastTracking.dataSource);
-            return lastTracking;
-        } else {
-            console.log('❌ Nessun tracking in localStorage');
-            return null;
-        }
-    };
-
-    // Aggiungi questa funzione di debug in tracking-form-progressive.js
-    window.debugTableColumns = function() {
-        // Recupera l'ultimo tracking
-        const trackings = JSON.parse(localStorage.getItem('trackings') || '[]');
-        const lastTracking = trackings[trackings.length - 1];
-
-        console.log('🔍 DEBUG COLONNE MANCANTI:');
-        console.log('=====================================');
-
-        // Verifica destination country code
-        console.log('📍 DESTINATION COUNTRY CODE:');
-        console.log('  - destination_country_code:', lastTracking.destination_country_code);
-        console.log('  - destinationCountryCode:', lastTracking.destinationCountryCode);
-        console.log('  - destination:', lastTracking.destination);
-        console.log('  - destination_port:', lastTracking.destination_port);
-
-        // Verifica date of departure
-        console.log('\n📅 DATE OF DEPARTURE:');
-        console.log('  - date_of_departure:', lastTracking.date_of_departure);
-        console.log('  - dateOfDeparture:', lastTracking.dateOfDeparture);
-        console.log('  - departure_date:', lastTracking.departure_date);
-        console.log('  - departureDate:', lastTracking.departureDate);
-        console.log('  - departure (for table):', lastTracking.departure); // Check the new field
-
-        // Verifica container count
-        console.log('\n📦 CONTAINER COUNT:');
-        console.log('  - container_count:', lastTracking.container_count);
-        console.log('  - containerCount:', lastTracking.containerCount);
-        console.log('  - containers:', lastTracking.containers);
-
-        // Verifica riferimento
-        console.log('\n📋 RIFERIMENTO:');
-        console.log('  - riferimento:', lastTracking.riferimento);
-        console.log('  - reference:', lastTracking.reference);
-
-        // Verifica booking
-        console.log('\n🎫 BOOKING:');
-        console.log('  - booking:', lastTracking.booking);
-        console.log('  - bookingNumber:', lastTracking.bookingNumber);
-        console.log('  - booking_number:', lastTracking.booking_number);
-
-        // Verifica created at
-        console.log('\n🕐 CREATED AT:');
-        console.log('  - created_at:', lastTracking.created_at);
-        console.log('  - createdAt:', lastTracking.createdAt);
-        console.log('  - created:', lastTracking.created);
-
-        // Mostra TUTTI i campi disponibili
-        console.log('\n📊 TUTTI I CAMPI DISPONIBILI:');
-        console.log(Object.keys(lastTracking).sort());
-
-        return lastTracking;
-    };
-})();
+            
+            .current-
