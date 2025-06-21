@@ -2815,18 +2815,32 @@ carriers.sort((a, b) => {
                     if (apiResponse && apiResponse.success) {
                         console.log('✅ ENTRO nel mapping API');
                         // AGGIUNGI: Estrai departure date dagli eventi
-                        let departureDate = '-';
-                        if (apiResponse.events && Array.isArray(apiResponse.events)) {
-                            const departureEvent = apiResponse.events.find(event => 
-                                event.description?.toLowerCase().includes('departed') ||
-                                event.event_type?.toLowerCase() === 'departure' ||
-                                event.activity?.toLowerCase().includes('departed')
-                            );
-                            if (departureEvent) {
-                                departureDate = departureEvent.date || departureEvent.event_date || '-';
-                                console.log('📅 Departure date trovata negli eventi:', departureDate);
-                            }
-                        }
+                        // AGGIUNGI: Estrai departure date dagli eventi
+let departureDate = '-';
+if (apiResponse.events && Array.isArray(apiResponse.events)) {
+    // Prima cerca "departed"
+    let departureEvent = apiResponse.events.find(event => 
+        event.description?.toLowerCase().includes('departed') ||
+        event.event_type?.toLowerCase() === 'departure' ||
+        event.activity?.toLowerCase().includes('departed')
+    );
+    
+    // Se non trova "departed", usa "loaded on vessel"
+    if (!departureEvent) {
+        departureEvent = apiResponse.events.find(event => 
+            event.description?.toLowerCase().includes('loaded on vessel') ||
+            event.type === 'LOADED_ON_VESSEL'
+        );
+        if (departureEvent) {
+            console.log('📦 Usando "loaded on vessel" come departure date');
+        }
+    }
+    
+    if (departureEvent) {
+        departureDate = departureEvent.date || departureEvent.event_date || '-';
+        console.log('📅 Departure date trovata:', departureDate);
+    }
+}
 
                         // Mappa i dati GET correttamente
                         const mappedData = {
