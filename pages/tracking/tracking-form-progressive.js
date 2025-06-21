@@ -2713,6 +2713,63 @@ carriers.sort((a, b) => {
         }
         return 'parcel'; // Default fallback
     }
+
+    // AGGIUNGI QUESTA FUNZIONE PRIMA di const finalData = {
+    function extractCountryCode(destination) {
+        if (!destination || destination === '-') return '-';
+        
+        // Mappa estesa dei porti
+        const portToCountry = {
+            'GENOVA': 'IT',
+            'LA SPEZIA': 'IT',
+            'LIVORNO': 'IT',
+            'NAPOLI': 'IT',
+            'TRIESTE': 'IT',
+            'VENEZIA': 'IT',
+            'SHANGHAI': 'CN',
+            'NINGBO': 'CN',
+            'SHENZHEN': 'CN',
+            'HONG KONG': 'HK',
+            'SINGAPORE': 'SG',
+            'ROTTERDAM': 'NL',
+            'HAMBURG': 'DE',
+            'ANTWERP': 'BE',
+            'LE HAVRE': 'FR',
+            'NEW YORK': 'US',
+            'LOS ANGELES': 'US',
+            'LONG BEACH': 'US',
+            'SANTOS': 'BR',
+            'BARCELONA': 'ES',
+            'VALENCIA': 'ES',
+            'LONDON': 'GB',
+            'DUBAI': 'AE',
+            'MUMBAI': 'IN'
+        };
+        
+        const upperDest = destination.toUpperCase();
+        
+        // Prima prova match esatto
+        for (const [port, code] of Object.entries(portToCountry)) {
+            if (upperDest === port) {
+                return code;
+            }
+        }
+        
+        // Poi prova match parziale
+        for (const [port, code] of Object.entries(portToCountry)) {
+            if (upperDest.includes(port)) {
+                return code;
+            }
+        }
+        
+        // Se c'è un codice paese di 2 lettere alla fine, usalo
+        const countryMatch = upperDest.match(/\b([A-Z]{2})\b$/);
+        if (countryMatch) {
+            return countryMatch[1];
+        }
+        
+        return '-';
+    }
     
     async function processEnhancedTracking(formData) {
         updateWorkflowStep(0, 'completed', 'Validato');
@@ -2736,6 +2793,17 @@ carriers.sort((a, b) => {
                     console.log('📡 API Response:', apiResponse);
                     console.log('📡 API Success?', apiResponse?.success);
                     
+                    // Dopo la chiamata API (riga ~1120)
+                    if (apiResponse && apiResponse.success) {
+                        console.log('🌐 API RESPONSE COMPLETA:', apiResponse);
+                        console.log('📍 Route info:', apiResponse.route);
+                        console.log('📅 Departure info:', {
+                            routeOriginDate: apiResponse.route?.origin?.date,
+                            departureDate: apiResponse.departureDate,
+                            metadata: apiResponse.metadata
+                        });
+                    }
+                    
                     if (apiResponse && apiResponse.success) {  // FIX: rimuovi "&& apiResponse.data"
                         console.log('✅ ENTRO nel mapping API');
                         
@@ -2753,7 +2821,9 @@ carriers.sort((a, b) => {
                             // AGGIUNGI: Salva anche i metadata
                             metadata: apiResponse.metadata || {},
                             vessel: apiResponse.vessel || null,
-                            route: apiResponse.route || null
+                            route: apiResponse.route || null,
+                            departureDate: apiResponse.departureDate || null, // Aggiungi departureDate dall'API
+                            bookingNumber: apiResponse.bookingNumber || null // Aggiungi bookingNumber dall'API
                         };
                         
                         // Sostituisci formData con i dati mappati
@@ -2825,31 +2895,52 @@ carriers.sort((a, b) => {
             destination_port: formData.destination_port || formData.destination || '-',
             status: formData.status || 'registered',
             current_status: formData.current_status || formData.status || 'registered',
+            
+            // AGGIUNGI TUTTE LE VARIANTI DEI NOMI
+            // Destination Country Code - tutte le varianti
+            destination_country_code: apiResponse?.route?.destination?.countryCode || 
+                                      extractCountryCode(formData.destination) || '-',
+            destinationCountryCode: apiResponse?.route?.destination?.countryCode || 
+                                    extractCountryCode(formData.destination) || '-',
+            destination_country: apiResponse?.route?.destination?.country || '-',
+            
+            // Date of Departure - tutte le varianti
+            date_of_departure: apiResponse?.route?.origin?.date || 
+                               apiResponse?.departureDate || '-',
+            dateOfDeparture: apiResponse?.route?.origin?.date || 
+                             apiResponse?.departureDate || '-',
+            departure_date: apiResponse?.route?.origin?.date || '-',
+            departureDate: apiResponse?.route?.origin?.date || '-',
+            
+            // Container Count - tutte le varianti
+            container_count: '1', // Default sempre 1
+            containerCount: '1',
+            containers: '1',
+            
+            // Riferimento - tutte le varianti
+            riferimento: formData.reference || '-',
             reference: formData.reference || '-',
             
-            // NUOVI CAMPI PER LE COLONNE MANCANTI
-            destination_country_code: apiResponse?.route?.destination?.countryCode || 
-                                      formData.destination_country_code || 
-                                      extractCountryCode(formData.destination) || '-',
-            
-            date_of_departure: apiResponse?.route?.origin?.date || 
-                               formData.date_of_departure || 
-                               formData.departure_date || '-',
-            
-            container_count: formData.container_count || '1', // Default 1 container
-            
-            riferimento: formData.reference || formData.riferimento || '-',
-            
+            // Booking - tutte le varianti
             booking: apiResponse?.booking || 
-                     formData.booking || 
-                     formData.booking_number || '-',
+                     apiResponse?.bookingNumber || '-',
+            bookingNumber: apiResponse?.booking || 
+                           apiResponse?.bookingNumber || '-',
+            booking_number: apiResponse?.booking || 
+                            apiResponse?.bookingNumber || '-',
             
-            ts_count: formData.ts_count || '0', // Transhipment count
+            // Created At - tutte le varianti
+            created_at: new Date().toISOString(),
+            createdAt: new Date().toISOString(),
+            created: new Date().toISOString(),
+            
+            // TS Count
+            ts_count: '0',
+            tsCount: '0',
+            transhipmentCount: '0',
             
             // Timestamps
-            createdAt: formData.createdAt || new Date().toISOString(),
             updatedAt: new Date().toISOString(),
-            created_at: formData.created_at || new Date().toISOString(),
             updated_at: new Date().toISOString(),
             
             // Mantieni i dati strutturati
@@ -2863,44 +2954,6 @@ carriers.sort((a, b) => {
             // ID univoco
             id: Date.now()
         };
-
-        // Funzione helper per estrarre country code dalla destinazione
-        function extractCountryCode(destination) {
-            if (!destination || destination === '-') return '-';
-            
-            // Mappa comune porti -> country codes
-            const portToCountry = {
-                'GENOVA': 'IT',
-                'LA SPEZIA': 'IT',
-                'MILANO': 'IT',
-                'SHANGHAI': 'CN',
-                'HONG KONG': 'HK',
-                'SINGAPORE': 'SG',
-                'ROTTERDAM': 'NL',
-                'HAMBURG': 'DE',
-                'ANTWERP': 'BE',
-                'LE HAVRE': 'FR',
-                'NEW YORK': 'US',
-                'LOS ANGELES': 'US',
-                'SANTOS': 'BR',
-                'BARCELONA': 'ES',
-                'VALENCIA': 'ES'
-            };
-            
-            const upperDest = destination.toUpperCase();
-            for (const [port, code] of Object.entries(portToCountry)) {
-                if (upperDest.includes(port)) {
-                    return code;
-                }
-            }
-            
-            return '-';
-        }
-
-        // IMPORTANTE: Se ci sono campi mappati nei metadata, assicurati che siano al livello principale
-        if (finalData.metadata?.mapped) {
-            Object.assign(finalData, finalData.metadata.mapped);
-        }
 
         console.log('🔍 finalData includes these fields:', Object.keys(finalData).sort());
         console.log('✅ destination_country_code:', finalData.destination_country_code);
@@ -3510,5 +3563,58 @@ carriers.sort((a, b) => {
             console.log('❌ Nessun tracking in localStorage');
             return null;
         }
+    };
+
+    // Aggiungi questa funzione di debug in tracking-form-progressive.js
+    window.debugTableColumns = function() {
+        // Recupera l'ultimo tracking
+        const trackings = JSON.parse(localStorage.getItem('trackings') || '[]');
+        const lastTracking = trackings[trackings.length - 1];
+        
+        console.log('🔍 DEBUG COLONNE MANCANTI:');
+        console.log('=====================================');
+        
+        // Verifica destination country code
+        console.log('📍 DESTINATION COUNTRY CODE:');
+        console.log('  - destination_country_code:', lastTracking.destination_country_code);
+        console.log('  - destinationCountryCode:', lastTracking.destinationCountryCode);
+        console.log('  - destination:', lastTracking.destination);
+        console.log('  - destination_port:', lastTracking.destination_port);
+        
+        // Verifica date of departure
+        console.log('\n📅 DATE OF DEPARTURE:');
+        console.log('  - date_of_departure:', lastTracking.date_of_departure);
+        console.log('  - dateOfDeparture:', lastTracking.dateOfDeparture);
+        console.log('  - departure_date:', lastTracking.departure_date);
+        console.log('  - departureDate:', lastTracking.departureDate);
+        
+        // Verifica container count
+        console.log('\n📦 CONTAINER COUNT:');
+        console.log('  - container_count:', lastTracking.container_count);
+        console.log('  - containerCount:', lastTracking.containerCount);
+        console.log('  - containers:', lastTracking.containers);
+        
+        // Verifica riferimento
+        console.log('\n📋 RIFERIMENTO:');
+        console.log('  - riferimento:', lastTracking.riferimento);
+        console.log('  - reference:', lastTracking.reference);
+        
+        // Verifica booking
+        console.log('\n🎫 BOOKING:');
+        console.log('  - booking:', lastTracking.booking);
+        console.log('  - bookingNumber:', lastTracking.bookingNumber);
+        console.log('  - booking_number:', lastTracking.booking_number);
+        
+        // Verifica created at
+        console.log('\n🕐 CREATED AT:');
+        console.log('  - created_at:', lastTracking.created_at);
+        console.log('  - createdAt:', lastTracking.createdAt);
+        console.log('  - created:', lastTracking.created);
+        
+        // Mostra TUTTI i campi disponibili
+        console.log('\n📊 TUTTI I CAMPI DISPONIBILI:');
+        console.log(Object.keys(lastTracking).sort());
+        
+        return lastTracking;
     };
 })();
