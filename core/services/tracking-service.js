@@ -1527,7 +1527,8 @@ class TrackingService {
             return [];
         }
 
-        const shipments = Array.isArray(proxyResponse.data) ? proxyResponse.data : [];
+        const shipments = proxyResponse.data?.shipments || 
+                         (Array.isArray(proxyResponse.data) ? proxyResponse.data : []);
         console.log('[TrackingService] 📦 Retrieved', shipments.length, 'AWB shipments');
         
         return shipments;
