@@ -16,22 +16,50 @@ const SHIPSGO_TEMPLATES = {
         fieldMapping: {
             // Mapping esatto dalle colonne del file Excel mostrato
             'Container': 'tracking_number',
-            'Carrier': 'carrier_name',
-            'Status': 'status',
+            'Carrier': 'carrier_code',  // CAMBIATO da carrier_name a carrier_code
+            'Status': 'current_status',  // CAMBIATO da status a current_status
+            
+            // Ports
             'Port Of Loading': 'origin_port',
-            'Date Of Loading': 'loading_date',
+            'Port Of Discharge': 'destination_port',
+            
+            // Countries - mapping completo
             'POL Country': 'origin_country',
             'POL Country Code': 'origin_country_code',
-            'Port Of Discharge': 'destination_port',
-            'Date Of Discharge': 'discharge_date',
             'POD Country': 'destination_country',
             'POD Country Code': 'destination_country_code',
+            
+            // Dates - AGGIUNTI tutti i campi data
+            'Date Of Loading': 'date_of_loading',  // CAMBIATO da loading_date
+            'Date Of Departure': 'date_of_departure',  // AGGIUNTO
+            'Date Of Discharge': 'date_of_arrival',  // CAMBIATO da discharge_date a date_of_arrival
+            'Date Of Arrival': 'date_of_arrival',  // AGGIUNTO
+            'ETA': 'eta',  // AGGIUNTO
+            
+            // Vessel info - AGGIUNTI
+            'Vessel': 'vessel_name',
+            'Voyage': 'voyage',
+            'Vessel IMO': 'vessel_imo',
+            
+            // Container details - AGGIUNTI
+            'Container Type': 'container_type',
+            'Container Size': 'container_size',
+            
+            // References
             'Reference': 'reference_number',
-            'Booking': 'booking_number',
-            'CO₂ Emission (Tons)': 'co2_emissions',
+            'Booking': 'booking',  // CAMBIATO da booking_number
+            
+            // Metrics
+            'CO₂ Emission (Tons)': 'co2_emission',  // CAMBIATO da co2_emissions
             'Container Count': 'container_count',
+            'Transit Time': 'transit_time',  // AGGIUNTO
+            
+            // Other
             'Tags': 'tags',
-            'Created At': 'created_at'
+            'Created At': 'created_at',
+            
+            // Special fields per TS Count
+            'TS Count': 'ts_count'  // AGGIUNTO
         },
         defaultValues: {
             tracking_type: 'container'
@@ -64,23 +92,35 @@ const SHIPSGO_TEMPLATES = {
         fieldMapping: {
             // Mapping dalle colonne del file Excel Air
             'AWB Number': 'tracking_number',
-            'Airline': 'carrier_name',
-            'Status': 'status',
+            'Airline': 'carrier_code',  // CAMBIATO da carrier_name a carrier_code
+            'Airline Name': 'carrier_name',  // AGGIUNTO se presente
+            'Status': 'current_status',  // CAMBIATO da status a current_status
+            
+            // Airports
             'Origin': 'origin_port',
             'Origin Name': 'origin_name',
-            'Date Of Departure': 'departure_date',
-            'Origin Country': 'origin_country',
-            'Origin Country Code': 'origin_country_code',
             'Destination': 'destination_port',
             'Destination Name': 'destination_name',
-            'Date Of Arrival': 'arrival_date',
+            
+            // Dates
+            'Date Of Departure': 'date_of_departure',  // CAMBIATO da departure_date
+            'Date Of Arrival': 'date_of_arrival',  // CAMBIATO da arrival_date
+            
+            // Countries
+            'Origin Country': 'origin_country',
+            'Origin Country Code': 'origin_country_code',
             'Destination Country': 'destination_country',
             'Destination Country Code': 'destination_country_code',
+            
+            // Flight info
+            'Flight Number': 'vessel_name',  // Usa vessel_name per compatibilità
+            
+            // References and metrics
             'Reference': 'reference_number',
             'Tags': 'tags',
             'Created At': 'created_at',
             'Transit Time': 'transit_time',
-            'T5 Count': 't5_count'
+            'T5 Count': 'ts_count'  // CAMBIATO da t5_count a ts_count per consistenza
         },
         defaultValues: {
             tracking_type: 'awb'
@@ -123,6 +163,94 @@ const AIR_EVENT_TYPES = {
     'RCF': { icon: '📥', color: 'warning', label: 'Received from Flight' },
     'DLV': { icon: '✅', color: 'success', label: 'Delivered' }
 };
+
+// Funzione per arricchire i dati con campi calcolati o mancanti
+export function enrichTrackingData(rowData, template) {
+    const enrichedData = { ...rowData };
+    
+    // Aggiungi country codes se mancanti
+    const countryCodeMap = {
+        'CHINA': 'CN',
+        'UNITED STATES': 'US',
+        'UNITED STATES (USA)': 'US',
+        'ITALY': 'IT',
+        'SOUTH AFRICA': 'ZA',
+        'GERMANY': 'DE',
+        'FRANCE': 'FR',
+        'SPAIN': 'ES',
+        'SINGAPORE': 'SG',
+        'HONG KONG': 'HK',
+        'UNITED KINGDOM': 'GB',
+        'NETHERLANDS': 'NL',
+        'BELGIUM': 'BE',
+        'JAPAN': 'JP',
+        'SOUTH KOREA': 'KR',
+        'AUSTRALIA': 'AU',
+        'NEW ZEALAND': 'NZ',
+        'CANADA': 'CA',
+        'MEXICO': 'MX',
+        'BRAZIL': 'BR',
+        'ARGENTINA': 'AR',
+        'CHILE': 'CL',
+        'INDIA': 'IN',
+        'UNITED ARAB EMIRATES': 'AE',
+        'SAUDI ARABIA': 'SA',
+        'TURKEY': 'TR',
+        'RUSSIA': 'RU',
+        'POLAND': 'PL',
+        'SWEDEN': 'SE',
+        'NORWAY': 'NO',
+        'DENMARK': 'DK',
+        'FINLAND': 'FI',
+        'GREECE': 'GR',
+        'PORTUGAL': 'PT',
+        'AUSTRIA': 'AT',
+        'SWITZERLAND': 'CH',
+        'CZECH REPUBLIC': 'CZ',
+        'ROMANIA': 'RO',
+        'HUNGARY': 'HU',
+        'BULGARIA': 'BG',
+        'CROATIA': 'HR',
+        'SLOVENIA': 'SI',
+        'SLOVAKIA': 'SK',
+        'LITHUANIA': 'LT',
+        'LATVIA': 'LV',
+        'ESTONIA': 'EE'
+    };
+    
+    // Genera country codes se mancanti
+    if (enrichedData.origin_country && !enrichedData.origin_country_code) {
+        const upperCountry = enrichedData.origin_country.toUpperCase().trim();
+        enrichedData.origin_country_code = countryCodeMap[upperCountry] || '-';
+    }
+    
+    if (enrichedData.destination_country && !enrichedData.destination_country_code) {
+        const upperCountry = enrichedData.destination_country.toUpperCase().trim();
+        enrichedData.destination_country_code = countryCodeMap[upperCountry] || '-';
+    }
+    
+    // Formatta CO2 emission se necessario
+    if (enrichedData.co2_emission && !enrichedData.co2_emission.toString().includes('tons')) {
+        enrichedData.co2_emission = enrichedData.co2_emission + ' tons';
+    }
+    
+    // Se date_of_loading è presente ma non date_of_departure, copia il valore
+    if (enrichedData.date_of_loading && !enrichedData.date_of_departure) {
+        enrichedData.date_of_departure = enrichedData.date_of_loading;
+    }
+    
+    // Se date_of_discharge è presente ma non date_of_arrival, copia il valore
+    if (enrichedData.date_of_discharge && !enrichedData.date_of_arrival) {
+        enrichedData.date_of_arrival = enrichedData.date_of_discharge;
+    }
+    
+    // Calcola ts_count se non presente (assumendo 0 se non specificato)
+    if (!enrichedData.ts_count) {
+        enrichedData.ts_count = 0;
+    }
+    
+    return enrichedData;
+}
 
 // Initialize ShipsGo templates
 export function initShipsGoTemplates() {
@@ -428,12 +556,13 @@ export async function handleShipsGoImport(file, template) {
             targetFields: [
                 { key: 'tracking_number', label: 'Tracking Number', required: true },
                 { key: 'tracking_type', label: 'Type', required: true },
-                { key: 'carrier_name', label: 'Carrier', required: true },
-                { key: 'status', label: 'Status' },
+                { key: 'carrier_code', label: 'Carrier Code', required: true },
+                { key: 'carrier_name', label: 'Carrier Name' },
+                { key: 'current_status', label: 'Status' },
                 { key: 'origin_port', label: 'Origin' },
                 { key: 'destination_port', label: 'Destination' },
                 { key: 'reference_number', label: 'Reference' },
-                { key: 'co2_emissions', label: 'CO₂ Emissions' },
+                { key: 'co2_emission', label: 'CO₂ Emissions' },
                 { key: 'tags', label: 'Tags' }
             ],
             templates: SHIPSGO_TEMPLATES,
@@ -448,17 +577,20 @@ export async function handleShipsGoImport(file, template) {
                 // Process each row
                 const processedData = data.map(row => {
                     // Apply status mapping
-                    if (row.status && template.statusMapping) {
-                        row.status = template.statusMapping[row.status] || row.status;
+                    if (row.current_status && template.statusMapping) {
+                        row.current_status = template.statusMapping[row.current_status] || row.current_status;
                     }
+                    
+                    // Arricchisci i dati con campi mancanti
+                    const enrichedRow = enrichTrackingData(row, template);
                     
                     // Generate timeline events
                     const events = template.eventGenerator ? 
-                        template.eventGenerator(row._original || row, row) : [];
+                        template.eventGenerator(row._original || row, enrichedRow) : [];
                     
                     // Add metadata with timeline events
                     return {
-                        ...row,
+                        ...enrichedRow,
                         metadata: {
                             source: 'shipsgo_import',
                             import_date: new Date().toISOString(),
@@ -511,6 +643,7 @@ export const shipsGoImport = {
     handleImport: handleShipsGoImport,
     detectFormat: detectShipsGoFormat,
     parseDate: parseShipsGoDate,
+    enrichTrackingData,
     generateSeaEvents,
     generateAirEvents
 };

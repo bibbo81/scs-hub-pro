@@ -355,93 +355,181 @@ class TrackingService {
      * Questo garantisce compatibilità con il column mapping esistente per import/export
      */
     mapApiResponseToColumnNames(apiData) {
-        // Mapping dei campi API → Column Names del sistema
-        const fieldMapping = {
-            // API Field → System Column Name
-            'ShippingLine': 'carrier_code',
+        // Import del mapping unificato (in un file reale dovresti importarlo)
+        // Per ora lo definiamo inline
+        const UNIFIED_MAPPING = {
+            // Container/Tracking info
+            'Container': 'tracking_number',
             'ContainerNumber': 'tracking_number',
+            
+            // Carrier info
+            'Carrier': 'carrier_code',
+            'ShippingLine': 'carrier_code',
+            'CarrierName': 'carrier_name',
+            
+            // Status
             'Status': 'current_status',
-            'StatusId': 'status_id',
+            'CurrentStatus': 'current_status',
+            
+            // Ports
+            'Port Of Loading': 'origin_port',
+            'Pol': 'origin_port',
+            'Port Of Discharge': 'destination_port',
+            'Pod': 'destination_port',
+            
+            // Countries
+            'POL Country': 'origin_country',
             'FromCountry': 'origin_country',
-            'Pol': 'origin_port',  // Port of Loading
+            'POL Country Code': 'origin_country_code',
+            'FromCountryCode': 'origin_country_code',
+            'POD Country': 'destination_country',
             'ToCountry': 'destination_country',
-            'Pod': 'destination_port',  // Port of Discharge
-            'LoadingDate': 'loading_date',
-            'DepartureDate': 'departure_date',
-            'ArrivalDate': 'arrival_date',
-            'DischargeDate': 'discharge_date',
+            'POD Country Code': 'destination_country_code',
+            'ToCountryCode': 'destination_country_code',
+            
+            // Dates
+            'Date Of Loading': 'date_of_loading',
+            'LoadingDate': 'date_of_loading',
+            'Date Of Departure': 'date_of_departure',
+            'DepartureDate': 'date_of_departure',
+            'Date Of Arrival': 'date_of_arrival',
+            'ArrivalDate': 'date_of_arrival',
+            'Date Of Discharge': 'date_of_arrival',
+            'DischargeDate': 'date_of_arrival',
             'ETA': 'eta',
-            'FirstETA': 'first_eta',
+            'FirstETA': 'eta',
+            
+            // Vessel info
             'Vessel': 'vessel_name',
-            'VesselIMO': 'vessel_imo',
+            'VesselName': 'vessel_name',
+            'Voyage': 'voyage',
             'VesselVoyage': 'voyage',
+            'VesselIMO': 'vessel_imo',
+            
+            // Container details
+            'Container Type': 'container_type',
             'ContainerType': 'container_type',
+            'Container Size': 'container_size',
             'ContainerTEU': 'container_size',
-            'EmptyToShipperDate': 'empty_to_shipper',
-            'GateInDate': 'gate_in',
-            'GateOutDate': 'gate_out',
-            'EmptyReturnDate': 'empty_return',
-            'FormatedTransitTime': 'transit_time',
-            'Co2Emission': 'co2_emission',
-            'LiveMapUrl': 'live_map_url',
-            'BLReferenceNo': 'bl_reference',
+            
+            // References
+            'Reference': 'reference_number',
             'ReferenceNo': 'reference_number',
+            'Booking': 'booking',
+            'BLReferenceNo': 'booking',
             
-            // Per AWB/Air tracking
-            'AirlineCode': 'carrier_code',
-            'AirlineName': 'carrier_name',
-            'AWBNumber': 'tracking_number',
-            'FlightNumber': 'vessel_name',  // Usa vessel_name anche per flight
-            'DepartureAirport': 'origin_port',
-            'ArrivalAirport': 'destination_port',
-            'EstimatedDeparture': 'departure_date',
-            'EstimatedArrival': 'arrival_date',
+            // Counts and metrics
+            'Container Count': 'container_count',
+            'BLContainerCount': 'container_count',
+            'CO₂ Emission (Tons)': 'co2_emission',
+            'Co2Emission': 'co2_emission',
+            'Transit Time': 'transit_time',
+            'FormatedTransitTime': 'transit_time',
+            'TransitTime': 'transit_time',
             
-            // Campi comuni alternativi (minuscole)
-            'carrier': 'carrier_code',
-            'shippingLine': 'carrier_code',
-            'containerNumber': 'tracking_number',
-            'awbNumber': 'tracking_number',
-            'status': 'current_status',
-            'pol': 'origin_port',
-            'pod': 'destination_port',
-            'etd': 'departure_date',
-            'eta': 'arrival_date',
-            'vesselName': 'vessel_name',
-            'voyage': 'voyage'
+            // Other
+            'Tags': 'tags',
+            'Created At': 'created_at',
+            'Live Map URL': 'live_map_url',
+            'LiveMapUrl': 'live_map_url',
+            
+            // Special mappings for API response structure
+            'TSPorts': 'transshipment_ports',
+            'BLContainers': 'bl_containers'
+        };
+        
+        const COUNTRY_CODE_MAP = {
+            'CHINA': 'CN',
+            'UNITED STATES': 'US',
+            'UNITED STATES (USA)': 'US',
+            'USA': 'US',
+            'ITALY': 'IT',
+            'SOUTH AFRICA': 'ZA',
+            'GERMANY': 'DE',
+            'FRANCE': 'FR',
+            'SPAIN': 'ES',
+            'UNITED KINGDOM': 'GB',
+            'UK': 'GB',
+            'NETHERLANDS': 'NL',
+            'BELGIUM': 'BE',
+            'SINGAPORE': 'SG',
+            'HONG KONG': 'HK',
+            'JAPAN': 'JP',
+            'SOUTH KOREA': 'KR',
+            'INDIA': 'IN',
+            'BRAZIL': 'BR',
+            'MEXICO': 'MX',
+            'CANADA': 'CA',
+            'AUSTRALIA': 'AU',
+            'PANAMA': 'PA',
+            'BAHAMAS': 'BS'
         };
         
         // Crea oggetto con nomi mappati
         const mappedData = {};
         
-        // Mappa tutti i campi
-        for (const [apiField, systemColumn] of Object.entries(fieldMapping)) {
-            if (apiData[apiField] !== undefined && apiData[apiField] !== null) {
-                mappedData[systemColumn] = apiData[apiField];
+        // Mappa tutti i campi usando il mapping unificato
+        for (const [apiField, value] of Object.entries(apiData)) {
+            if (value !== undefined && value !== null) {
+                // Cerca nel mapping unificato
+                const systemColumn = UNIFIED_MAPPING[apiField];
+                if (systemColumn) {
+                    mappedData[systemColumn] = value;
+                }
             }
         }
         
         // Gestisci campi speciali che richiedono elaborazione
-        if (apiData.LoadingDate || apiData.DepartureDate) {
-            const dateObj = apiData.LoadingDate || apiData.DepartureDate;
-            if (dateObj && dateObj.Date) {
-                mappedData.loading_date = dateObj.Date;
-                mappedData.departure_date = dateObj.Date;
-                mappedData.is_actual_departure = dateObj.IsActual || false;
-            }
+        
+        // Date con formato oggetto ShipsGo
+        if (apiData.LoadingDate?.Date) {
+            mappedData.date_of_loading = apiData.LoadingDate.Date;
+            mappedData.is_actual_loading = apiData.LoadingDate.IsActual || false;
         }
         
-        if (apiData.ArrivalDate || apiData.DischargeDate) {
-            const dateObj = apiData.ArrivalDate || apiData.DischargeDate;
-            if (dateObj && dateObj.Date) {
-                mappedData.arrival_date = dateObj.Date;
-                mappedData.discharge_date = dateObj.Date;
-                mappedData.is_actual_arrival = dateObj.IsActual || false;
-            }
+        if (apiData.DepartureDate?.Date) {
+            mappedData.date_of_departure = apiData.DepartureDate.Date;
+            mappedData.is_actual_departure = apiData.DepartureDate.IsActual || false;
         }
         
-        // Gestisci TS Ports (transshipment ports)
+        if (apiData.ArrivalDate?.Date) {
+            mappedData.date_of_arrival = apiData.ArrivalDate.Date;
+            mappedData.is_actual_arrival = apiData.ArrivalDate.IsActual || false;
+        }
+        
+        if (apiData.DischargeDate?.Date) {
+            // Discharge date va anche in arrival
+            mappedData.date_of_arrival = apiData.DischargeDate.Date;
+            mappedData.is_actual_arrival = apiData.DischargeDate.IsActual || false;
+        }
+        
+        // ETA handling
+        if (apiData.ETA) {
+            mappedData.eta = apiData.ETA;
+        } else if (apiData.FirstETA) {
+            mappedData.eta = apiData.FirstETA;
+        }
+        
+        // Container size formatting
+        if (mappedData.container_size && !mappedData.container_size.includes("'")) {
+            mappedData.container_size = mappedData.container_size + "'";
+        }
+        
+        // CO2 emission formatting
+        if (mappedData.co2_emission && !mappedData.co2_emission.toString().includes('tons')) {
+            mappedData.co2_emission = mappedData.co2_emission + ' tons';
+        }
+        
+        // Transit time formatting
+        if (apiData.FormatedTransitTime) {
+            mappedData.transit_time = apiData.FormatedTransitTime;
+        } else if (apiData.TransitTime) {
+            mappedData.transit_time = apiData.TransitTime + ' days';
+        }
+        
+        // TS Count (transshipment count)
         if (apiData.TSPorts && Array.isArray(apiData.TSPorts)) {
+            mappedData.ts_count = apiData.TSPorts.length;
             mappedData.transshipment_ports = apiData.TSPorts.map(port => ({
                 port_name: port.Port,
                 arrival_date: port.ArrivalDate?.Date,
@@ -450,6 +538,19 @@ class TrackingService {
                 vessel_imo: port.VesselIMO,
                 voyage: port.VesselVoyage
             }));
+        } else {
+            mappedData.ts_count = 0;
+        }
+        
+        // Aggiungi country codes se mancanti
+        if (mappedData.origin_country && !mappedData.origin_country_code) {
+            const upperCountry = mappedData.origin_country.toUpperCase().trim();
+            mappedData.origin_country_code = COUNTRY_CODE_MAP[upperCountry] || '-';
+        }
+        
+        if (mappedData.destination_country && !mappedData.destination_country_code) {
+            const upperCountry = mappedData.destination_country.toUpperCase().trim();
+            mappedData.destination_country_code = COUNTRY_CODE_MAP[upperCountry] || '-';
         }
         
         // Mantieni anche i dati originali per reference
