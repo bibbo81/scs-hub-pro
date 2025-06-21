@@ -2807,9 +2807,22 @@ carriers.sort((a, b) => {
                         });
                     }
                     
-                    if (apiResponse && apiResponse.success) {  // FIX: rimuovi "&& apiResponse.data"
+                    if (apiResponse && apiResponse.success) {
                         console.log('✅ ENTRO nel mapping API');
-                        
+                        // AGGIUNGI: Estrai departure date dagli eventi
+                        let departureDate = '-';
+                        if (apiResponse.events && Array.isArray(apiResponse.events)) {
+                            const departureEvent = apiResponse.events.find(event => 
+                                event.description?.toLowerCase().includes('departed') ||
+                                event.event_type?.toLowerCase() === 'departure' ||
+                                event.activity?.toLowerCase().includes('departed')
+                            );
+                            if (departureEvent) {
+                                departureDate = departureEvent.date || departureEvent.event_date || '-';
+                                console.log('📅 Departure date trovata negli eventi:', departureDate);
+                            }
+                        }
+
                         // Mappa i dati GET correttamente
                         const mappedData = {
                             trackingNumber: formData.trackingNumber,
@@ -2826,7 +2839,12 @@ carriers.sort((a, b) => {
                             vessel: apiResponse.vessel || null,
                             route: apiResponse.route || null,
                             departureDate: apiResponse.departureDate || null, // Aggiungi departureDate dall'API
-                            bookingNumber: apiResponse.bookingNumber || null // Aggiungi bookingNumber dall'API
+                            bookingNumber: apiResponse.bookingNumber || null, // Aggiungi bookingNumber dall'API
+                            
+                            // AGGIUNGI QUESTI:
+                            date_of_departure: departureDate,
+                            departure_date: departureDate,
+                            dateOfDeparture: departureDate,
                         };
                         
                         // Sostituisci formData con i dati mappati
@@ -2877,9 +2895,9 @@ carriers.sort((a, b) => {
         // Assicurati che tutti i campi abbiano un valore valido
         const finalData = {
             // Prima includi TUTTI i campi mappati dall'API (se esistono)
-            ...(apiResponse?.mappedFields || {}), 
+            ...formData, // Usare formData che ora contiene i mappedData
             // Poi includi tutti i campi da formData (che potrebbero contenere i dati mappati)
-            ...formData, 
+            // ...formData, // Rimosso duplicato
             // Infine, assicurati che i campi essenziali siano sempre presenti
             trackingNumber: formData.trackingNumber,
             trackingType: formData.trackingType || 'container',
