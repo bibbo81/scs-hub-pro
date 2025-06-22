@@ -3114,6 +3114,35 @@ carriers.sort((a, b) => {
        }
    }
 
+   // Funzione di utilità per formattare la data nel formato DD/MM/YYYY
+   function formatDateDDMMYYYY(isoDateString) {
+       if (!isoDateString || isoDateString === '-') return '-';
+       try {
+           const date = new Date(isoDateString);
+           const day = String(date.getDate()).padStart(2, '0');
+           const month = String(date.getMonth() + 1).padStart(2, '0'); // Mesi 0-based
+           const year = date.getFullYear();
+           return `${day}/${month}/${year}`;
+       } catch (e) {
+           console.error('Errore nella formattazione della data:', isoDateString, e);
+           return '-';
+       }
+   }
+
+   // Nuova funzione helper per formattare date AWB
+   function formatDateOnly(dateString) {
+       if (!dateString || dateString === '-') return '-';
+       try {
+           const date = new Date(dateString);
+           const day = String(date.getDate()).padStart(2, '0');
+           const month = String(date.getMonth() + 1).padStart(2, '0');
+           const year = date.getFullYear();
+           return `${day}/${month}/${year}`;
+       } catch (e) {
+           return '-';
+       }
+   }
+
    // Funzione di utilità per formattare data e ora nel formato DD/MM/YYYY HH:mm:ss
    function formatDateTime(isoDateString) {
        if (!isoDateString || isoDateString === '-') return '-';
@@ -3183,7 +3212,7 @@ carriers.sort((a, b) => {
 let departureDate = '-';
 if (apiResponse.events && Array.isArray(apiResponse.events)) {
    // Prima cerca "departed"
-   let departureEvent = apiResponse.events.find(event =>
+   let departureEvent = apiResponse.events.find(event => 
        event.description?.toLowerCase().includes('departed') ||
        event.event_type?.toLowerCase() === 'departure' ||
        event.activity?.toLowerCase().includes('departed')
@@ -3191,7 +3220,7 @@ if (apiResponse.events && Array.isArray(apiResponse.events)) {
    
    // Se non trova "departed", usa "loaded on vessel"
    if (!departureEvent) {
-       departureEvent = apiResponse.events.find(event =>
+       departureEvent = apiResponse.events.find(event => 
            event.description?.toLowerCase().includes('loaded on vessel') ||
            event.type === 'LOADED_ON_VESSEL'
        );
@@ -3293,16 +3322,16 @@ if (apiResponse.events && Array.isArray(apiResponse.events)) {
                
                // DATE OF ARRIVAL
                date_of_arrival: (() => {
-                   const arrivalDate = apiResponse?.route?.destination?.eta ||
+                   const arrivalDate = apiResponse?.route?.destination?.eta || 
                                        apiResponse?.metadata?.date_of_arrival ||
                                        apiResponse?.metadata?.raw?.route?.destination?.date_of_rcf ||
                                        formData.eta || '-';
                    return formatDateDDMMYYYY(arrivalDate);
                })(),
                
-               // TRANSIT TIME (in ore come numero)
+               // TRANSIT TIME (in giorni)
                transit_time: (() => {
-                   const transitTime = apiResponse?.metadata?.transitTime ||
+                   const transitTime = apiResponse?.metadata?.transitTime || 
                                        apiResponse?.metadata?.transit_time ||
                                        apiResponse?.route?.transit_time || '-';
                    
@@ -3381,8 +3410,8 @@ if (apiResponse.events && Array.isArray(apiResponse.events)) {
                date_of_departure: (() => {
                    // 1. Cerca negli eventi
                    if (apiResponse?.events && apiResponse.events.length > 0) {
-                       const depEvent = apiResponse.events.find(e =>
-                           e.type === 'DEP' ||
+                       const depEvent = apiResponse.events.find(e => 
+                           e.type === 'DEP' || 
                            e.description?.toLowerCase().includes('departed')
                        );
                        if (depEvent && depEvent.date) {
@@ -3397,7 +3426,7 @@ if (apiResponse.events && Array.isArray(apiResponse.events)) {
                    
                    // 3. Cerca nei raw movements
                    if (apiResponse?.metadata?.raw?.movements) {
-                       const depMovement = apiResponse.metadata.raw.movements.find(m =>
+                       const depMovement = apiResponse.metadata.raw.movements.find(m => 
                            m.event === 'DEP'
                        );
                        if (depMovement && depMovement.date) {
@@ -3420,8 +3449,8 @@ if (apiResponse.events && Array.isArray(apiResponse.events)) {
                departure: (() => {
                    // Stessa logica di date_of_departure
                    if (apiResponse?.events && apiResponse.events.length > 0) {
-                       const depEvent = apiResponse.events.find(e =>
-                           e.type === 'DEP' ||
+                       const depEvent = apiResponse.events.find(e => 
+                           e.type === 'DEP' || 
                            e.description?.toLowerCase().includes('departed')
                        );
                        if (depEvent && depEvent.date) {
@@ -3498,7 +3527,7 @@ if (apiResponse.events && Array.isArray(apiResponse.events)) {
            
            // AGGIUNGI TUTTE LE VARIANTI DEI NOMI
            // Destination Country Code - tutte le varianti
-           destination_country_code: '-', // Temporaneo, verrà gestito dal mapping AWB
+           destination_country_code: extractCountryCode(formData.destination || formData.destination_port) || '-',
            destinationCountryCode: extractCountryCode(formData.destination || formData.destination_port) || '-',
            destination_country: apiResponse?.route?.destination?.country || '-',
            
@@ -3522,11 +3551,11 @@ if (apiResponse.events && Array.isArray(apiResponse.events)) {
            reference: formData.reference || '-',
            
            // Booking - tutte le varianti
-           booking: apiResponse?.booking ||
+           booking: apiResponse?.booking || 
                     apiResponse?.bookingNumber || '-',
-           bookingNumber: apiResponse?.booking ||
+           bookingNumber: apiResponse?.booking || 
                           apiResponse?.bookingNumber || '-',
-           booking_number: apiResponse?.booking ||
+           booking_number: apiResponse?.booking || 
                            apiResponse?.bookingNumber || '-',
            
            // Created At - tutte le varianti
@@ -4018,7 +4047,7 @@ if (apiResponse.events && Array.isArray(apiResponse.events)) {
                    type: 'warning',
                    actions: [
                        { 
-                           label: 'Visualizza Container',
+                           label: 'Visualizza Container', 
                            action: () => {
                                if (error.containerId) {
                                    window.location.href = `/tracking-details.html?id=${error.containerId}`;

@@ -3499,6 +3499,7 @@ if (apiResponse.events && Array.isArray(apiResponse.events)) {
            // AGGIUNGI TUTTE LE VARIANTI DEI NOMI
            // Destination Country Code - tutte le varianti
            destination_country_code: '-', // Temporaneo, verrà gestito dal mapping AWB
+
            destinationCountryCode: extractCountryCode(formData.destination || formData.destination_port) || '-',
            destination_country: apiResponse?.route?.destination?.country || '-',
            
