@@ -3555,7 +3555,9 @@ function extractCountryCode(portName) {
     
     console.log('=====================================');
 }
+
                        
+                       // AGGIUNGI: Estrai departure date dagli eventi
                        // AGGIUNGI: Estrai departure date dagli eventi
 let departureDate = '-';
 if (apiResponse.events && Array.isArray(apiResponse.events)) {
