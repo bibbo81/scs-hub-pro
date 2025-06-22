@@ -3682,9 +3682,9 @@ if (apiResponse.events && Array.isArray(apiResponse.events)) {
                carrier_code: formData.carrier || formData._raw_api_response?.airline?.iata || '-',  // CORRETTO: 'CA' -> '-'
                
             origin: formData._raw_api_response?.route?.origin?.location?.iata || formData.origin || '-',
-            destination: formData._raw_api_response?.route?.destination?.location?.iata || formData.destination || '-',
-            origin_port: formData._raw_api_response?.route?.origin?.location?.iata || formData.origin || '-',
-            destination_port: formData._raw_api_response?.route?.destination?.location?.iata || formData.destination || '-',
+    destination: formData._raw_api_response?.route?.destination?.location?.iata || formData.destination || '-',
+    origin_port: formData._raw_api_response?.route?.origin?.location?.iata || formData.origin || '-',
+    destination_port: formData._raw_api_response?.route?.destination?.location?.iata || formData.destination || '-',
 
                // IMPORTANTE: Salva i dati API grezzi
                _raw_api_response: formData._raw_api_response || {},
