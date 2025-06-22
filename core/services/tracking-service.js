@@ -1,4 +1,4 @@
-// core/services/tracking-service.js - VERSIONE CON AWB ID FIX
+// core/services/tracking-service.js - VERSIONE CON AWB ID FIX E OTTIMIZZAZIONE
 // Service layer con gestione corretta degli ID numerici ShipsGo per AWB
 
 class TrackingService {
@@ -379,7 +379,7 @@ class TrackingService {
     }
 
     // ========================================
-    // TRACKING AWB (ShipsGo v2.0) - FIX CON GESTIONE ID
+    // TRACKING AWB (ShipsGo v2.0) - FIX CON GESTIONE ID E OTTIMIZZAZIONE
     // ========================================
 
     async trackAirShipment(awbNumber, options = {}) {
@@ -395,11 +395,15 @@ class TrackingService {
         }
 
         try {
-            // Step 0: Check se abbiamo già l'ID in cache
-            let shipsgoId = this.awbIdCache.get(awbNumber.toUpperCase());
+            // Step 0: Check se abbiamo già l'ID passato come opzione o in cache
+            let shipsgoId = options.shipsgoId || this.awbIdCache.get(awbNumber.toUpperCase());
             
-            if (!shipsgoId) {
-                console.log('[TrackingService] 🔍 ID not in cache, fetching AWB list...');
+            if (shipsgoId) {
+                console.log('[TrackingService] 📋 Using provided/cached ID:', shipsgoId);
+                console.log('[TrackingService] 🚀 Skipping AWB list search, going directly to GET by ID');
+                // Salta direttamente al GET con l'ID - non serve fare altro
+            } else {
+                console.log('[TrackingService] 🔍 ID not provided, fetching AWB list...');
                 
                 // Step 1: Recupera lista AWB per trovare l'ID
                 const awbList = await this.getAirShipmentsList();
@@ -443,8 +447,6 @@ class TrackingService {
                         }
                     }
                 }
-            } else {
-                console.log('[TrackingService] 📋 Using cached ID:', shipsgoId);
             }
             
             if (!shipsgoId) {

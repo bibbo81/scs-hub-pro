@@ -13,6 +13,58 @@
     // Flag per abilitare/disabilitare enhanced version
     const ENABLE_ENHANCED = localStorage.getItem('enableEnhancedTracking') !== 'false';
     
+    // Sistema completo per gestione airlines con auto-detection
+    // 1. CACHE AIRLINES (all'inizio del file, dopo 'use strict')
+    let airlinesCache = null;
+    let airlinesCacheTime = 0;
+    const AIRLINES_CACHE_TTL = 24 * 60 * 60 * 1000; // 24 ore
+    
+    // 2. CARICA AIRLINES DA LOCALSTORAGE ALL'AVVIO
+    function loadAirlinesFromStorage() {
+        try {
+            const cached = localStorage.getItem('airlinesCache');
+            if (cached) {
+                const data = JSON.parse(cached);
+                if (data.timestamp && (Date.now() - data.timestamp) < AIRLINES_CACHE_TTL) {
+                    airlinesCache = data.data;
+                    airlinesCacheTime = data.timestamp;
+                    console.log('✅ Airlines caricate da localStorage:', airlinesCache.length);
+                }
+            }
+        } catch (e) {
+            console.error('Errore caricamento cache airlines:', e);
+        }
+    }
+    
+    // 3. RILEVA AIRLINE DAL PREFISSO AWB
+    function detectAirlineFromAWB(awbNumber) {
+        // Estrai il prefisso (primi 3 numeri)
+        const match = awbNumber.match(/^(\d{3})-?(\d{8})$/);
+        if (!match) return null;
+        
+        const prefix = match[1];
+        console.log('🔍 Ricerca airline per prefisso:', prefix);
+        
+        // Cerca nella cache delle airlines
+        if (airlinesCache && airlinesCache.length > 0) {
+            const airline = airlinesCache.find(a => 
+                a.prefixes && a.prefixes.includes(prefix)
+            );
+            
+            if (airline) {
+                console.log('✅ Airline auto-rilevata:', airline.name, '(' + airline.code + ')');
+                return {
+                    code: airline.code,
+                    name: airline.name,
+                    confidence: 'high'
+                };
+            }
+        }
+        
+        console.log('⚠️ Nessuna airline trovata per prefisso:', prefix);
+        return null;
+    }
+    
     // SOLUZIONE: Usa MutationObserver per detectare quando showAddTrackingForm viene definita
     function waitForShowAddTrackingForm() {
         return new Promise((resolve) => {
@@ -2117,6 +2169,29 @@
                 margin-top: 8px;
                 display: inline-block;
             }
+            
+            /* Aggiungi questo CSS per l'animazione fadeIn */
+            @keyframes fadeIn {
+                from {
+                    opacity: 0;
+                    transform: translateY(-5px);
+                }
+                to {
+                    opacity: 1;
+                    transform: translateY(0);
+                }
+            }
+            
+            .id-usage-info {
+                animation: fadeIn 0.3s ease;
+            }
+            
+            /* Stile per il testo strong nell'info */
+            .id-usage-info strong {
+                color: #28a745;
+                font-weight: 600;
+                font-size: 13px;
+            }
             </style>
         `;
     }
@@ -2261,6 +2336,63 @@
                 trackingInput.dispatchEvent(new Event('input'));
             });
         });
+        
+        // ============================================
+        // AGGIUNGI QUI IL VISUAL FEEDBACK PER API OPERATION
+        // ============================================
+        
+        // Listener per i radio button delle operazioni API
+        document.querySelectorAll('input[name="api_operation"]').forEach(radio => {
+            radio.addEventListener('change', (e) => {
+                const operation = e.target.value;
+                const trackingType = document.getElementById('enh_trackingType').value;
+                
+                // Rimuovi info precedente
+                const existingInfo = document.querySelector('.id-usage-info');
+                if (existingInfo) existingInfo.remove();
+                
+                // Se è AWB e abbiamo un ID rilevato, mostra info
+                if (trackingType === 'awb' && window.detectedAwbId && (operation === 'get' || operation === 'auto')) {
+                    const operationSelector = document.querySelector('.api-operation-selector');
+                    if (operationSelector) {
+                        // Crea elemento info
+                        const infoDiv = document.createElement('div');
+                        infoDiv.className = 'id-usage-info';
+                        infoDiv.style.cssText = `
+                            background: rgba(40, 167, 69, 0.2);
+                            border: 1px solid rgba(40, 167, 69, 0.5);
+                            border-radius: 4px;
+                            padding: 8px 12px;
+                            margin-top: 8px;
+                            font-size: 12px;
+                            color: white;
+                            display: flex;
+                            align-items: center;
+                            gap: 8px;
+                            animation: fadeIn 0.3s ease;
+                        `;
+                        infoDiv.innerHTML = `
+                            <i class="fas fa-check-circle" style="color: #28a745;"></i>
+                            <span>Userò l'ID ShipsGo <strong>${window.detectedAwbId}</strong> per recuperare i dati</span>
+                        `;
+                        operationSelector.appendChild(infoDiv);
+                    }
+                }
+            });
+        });
+        
+        // Aggiungi anche un listener per quando cambia il tipo di tracking
+        typeSelect.addEventListener('change', () => {
+            // Rimuovi info se non è più AWB
+            if (typeSelect.value !== 'awb') {
+                const existingInfo = document.querySelector('.id-usage-info');
+                if (existingInfo) existingInfo.remove();
+            }
+        });
+        
+        // ============================================
+        // FINE VISUAL FEEDBACK
+        // ============================================
         
         // Form submit
         form.addEventListener('submit', handleEnhancedSubmit);
@@ -2423,29 +2555,48 @@
         let type = 'unknown';
         let carrier = '';
         
-        if (/^[A-Z]{4}\d{7}/.test(trackingNumber)) {
+        if (/^[A-Z]{4}\d{7}$/.test(trackingNumber)) {
             type = 'container';
             if (trackingNumber.startsWith('MSKU')) carrier = 'MSK';
             else if (trackingNumber.startsWith('GESU')) carrier = 'MSC';
             else if (trackingNumber.startsWith('HLCU')) carrier = 'HAPAG-LLOYD';
-        } else if (/^\d{3}-\d{8}/.test(trackingNumber)) {
+        } else if (/^\d{3}-?\d{8}$/.test(trackingNumber)) {
             type = 'awb';
-            carrier = 'LUFTHANSA';
+            
+            // AUTO-DETECT AIRLINE DAL PREFISSO!
+            const detectedAirline = detectAirlineFromAWB(trackingNumber);
+            if (detectedAirline) {
+                carrier = detectedAirline.code;
+                
+                // Mostra info visuale dell'airline rilevata
+                showDetectionResult(type, `${detectedAirline.code} - ${detectedAirline.name}`);
+            } else {
+                showDetectionResult(type, null);
+            }
         } else if (/^[A-Z]{2}\d{6,}$/.test(trackingNumber)) {
             type = 'bl';
         }
         
         if (type !== 'unknown') {
-            showDetectionResult(type, carrier);
-            
             // Auto-update form fields
             document.getElementById('enh_trackingType').value = type;
-            updateCarrierWithShipsGoData(type);
+            await updateCarrierWithShipsGoData(type);
             
+            // Auto-select carrier se rilevato
             if (carrier) {
                 setTimeout(() => {
-                    document.getElementById('enh_carrier').value = carrier;
-                }, 100);
+                    const select = document.getElementById('enh_carrier');
+                    if (select && select.querySelector(`option[value="${carrier}"]`)) {
+                        select.value = carrier;
+                        console.log('✈️ Airline auto-selezionata:', carrier);
+                        
+                        // Aggiungi visual feedback
+                        select.style.borderColor = '#28a745';
+                        setTimeout(() => {
+                            select.style.borderColor = '';
+                        }, 2000);
+                    }
+                }, 300);
             }
         } else {
             showDetectionError();
@@ -2574,23 +2725,55 @@ if (result.success && Array.isArray(result.data)) {
     });
 }
                 } else if (type === 'awb') {
-                    // Ottieni airlines da ShipsGo v2
-                    const response = await fetch('/netlify/functions/shipsgo-proxy', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            version: 'v2',
-                            endpoint: '/air/airlines',
-                            method: 'GET'
-                        })
-                    });
-                    
-                    const result = await response.json();
-                    if (result.success && Array.isArray(result.data)) {
-                        carriers = result.data.map(airline => ({
-                            code: airline.AirlineCode || airline.Code,
-                            name: airline.AirlineName || airline.Name
-                        }));
+                    // Controlla cache
+                    const now = Date.now();
+                    if (airlinesCache && (now - airlinesCacheTime) < AIRLINES_CACHE_TTL) {
+                        console.log('📋 Usando airlines dalla cache');
+                        carriers = airlinesCache;
+                    } else {
+                        console.log('🔄 Caricamento airlines da API...');
+                        
+                        const response = await fetch('/netlify/functions/shipsgo-proxy', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                version: 'v2',
+                                endpoint: '/air/airlines',
+                                method: 'GET'
+                            })
+                        });
+                        
+                        const result = await response.json();
+                        
+                        if (result.success && result.data) {
+                            // La struttura è { message, airlines, meta }
+                            const airlinesArray = result.data.airlines || result.data;
+                            
+                            if (Array.isArray(airlinesArray)) {
+                                carriers = airlinesArray.map(airline => ({
+                                    code: airline.iata,         // IATA code
+                                    name: airline.name,          // Nome compagnia
+                                    prefixes: airline.prefixes || [], // Prefissi AWB
+                                    status: airline.status       // ACTIVE/PASSIVE
+                                })).filter(a => a.status === 'ACTIVE'); // Solo airlines attive
+                                
+                                // Salva in cache
+                                airlinesCache = carriers;
+                                airlinesCacheTime = now;
+                                
+                                // Salva in localStorage
+                                try {
+                                    localStorage.setItem('airlinesCache', JSON.stringify({
+                                        data: carriers,
+                                        timestamp: now
+                                    }));
+                                } catch (e) {
+                                    console.error('Errore salvataggio cache:', e);
+                                }
+                                
+                                console.log(`✅ Caricate ${carriers.length} airlines attive con prefissi`);
+                            }
+                        }
                     }
                 }
                 
@@ -2955,11 +3138,22 @@ carriers.sort((a, b) => {
             try {
                 if (formData.apiOperation === 'get' || formData.apiOperation === 'auto') {
                     // Per GET: prima ottieni i dati, poi salvali
-                    apiResponse = await window.trackingService.track( // Assign to apiResponse
+                    apiResponse = await window.trackingService.track(
                         formData.trackingNumber,
                         formData.trackingType,
-                        { forceRefresh: true }
+                        { 
+                            forceRefresh: true,
+                            // NUOVO: Se è un AWB e abbiamo rilevato un ID, passalo
+                            ...(formData.trackingType === 'awb' && window.detectedAwbId ? {
+                                shipsgoId: window.detectedAwbId
+                            } : {})
+                        }
                     );
+                    
+                    // Log per debug
+                    if (window.detectedAwbId && formData.trackingType === 'awb') {
+                        console.log('🎯 GET con ID rilevato:', window.detectedAwbId);
+                    }
 
                     // AGGIUNGI QUESTI LOG
                     console.log('📡 API Response:', apiResponse);
@@ -3842,4 +4036,9 @@ if (apiResponse.events && Array.isArray(apiResponse.events)) {
         
         return lastTracking;
     };
+    
+    // 6. INIZIALIZZA AL CARICAMENTO
+    document.addEventListener('DOMContentLoaded', () => {
+        loadAirlinesFromStorage();
+    });
 })();
