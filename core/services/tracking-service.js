@@ -568,7 +568,8 @@ class TrackingService {
     }
 
     normalizeAWBResponse(data, awbNumber) {
-        const awbData = data.data || data;
+        // FIX: La struttura è { message, shipment } non { data }
+        const awbData = data.shipment || data.data || data;
         
         // Usa il mapper per convertire i nomi dei campi
         const mappedData = this.mapApiResponseToColumnNames(awbData);
@@ -577,38 +578,38 @@ class TrackingService {
             success: true,
             trackingNumber: awbNumber,
             trackingType: 'awb',
-            status: this.normalizeStatus(mappedData.current_status || awbData.status || 'registered'),
+            status: this.normalizeStatus(awbData.status || 'registered'),
             lastUpdate: new Date().toISOString(),
             
             carrier: {
-                code: this.normalizeCarrierCode(mappedData.carrier_code || awbData.airline?.iata || 'UNKNOWN'),
-                name: mappedData.carrier_name || awbData.airline?.name || awbData.airline?.iata || 'Unknown Carrier'
+                code: awbData.airline?.iata || 'UNKNOWN',
+                name: awbData.airline?.name || 'Unknown Carrier'
             },
             
             route: {
                 origin: {
-                    port: mappedData.origin_port || awbData.route?.origin?.location?.iata || '-',
-                    name: awbData.route?.origin?.location?.name || mappedData.origin_name || '-',
-                    country: mappedData.origin_country || awbData.route?.origin?.location?.country?.name || '-',
-                    date: mappedData.departure_date || this.parseShipsGoDate(awbData.route?.origin?.date_of_dep)
+                    port: awbData.route?.origin?.location?.iata || '-',
+                    name: awbData.route?.origin?.location?.name || '-',
+                    country: awbData.route?.origin?.location?.country?.name || '-',
+                    date: this.parseShipsGoDate(awbData.route?.origin?.date_of_dep)
                 },
                 destination: {
-                    port: mappedData.destination_port || awbData.route?.destination?.location?.iata || '-',
-                    name: awbData.route?.destination?.location?.name || mappedData.destination_name || '-',
-                    country: mappedData.destination_country || awbData.route?.destination?.location?.country?.name || '-',
-                    eta: mappedData.arrival_date || this.parseShipsGoDate(awbData.route?.destination?.date_of_rcf)
+                    port: awbData.route?.destination?.location?.iata || '-',
+                    name: awbData.route?.destination?.location?.name || '-',
+                    country: awbData.route?.destination?.location?.country?.name || '-',
+                    eta: this.parseShipsGoDate(awbData.route?.destination?.date_of_rcf)
                 }
             },
             
-            flight: awbData.flightNumber ? {
-                number: awbData.flightNumber,
-                date: awbData.departureDate
+            flight: awbData.movements?.[0]?.flight ? {
+                number: awbData.movements[0].flight,
+                date: awbData.movements[0].date
             } : null,
             
             package: {
-                pieces: awbData.cargo?.pieces || awbData.pieces || mappedData.pieces,
-                weight: awbData.cargo?.weight || awbData.weight || mappedData.weight,
-                weightUnit: awbData.weightUnit || 'kg'
+                pieces: awbData.cargo?.pieces || '-',
+                weight: awbData.cargo?.weight || '-',
+                weightUnit: 'kg'
             },
             
             // Includi tutti i campi mappati per uso futuro
@@ -619,12 +620,20 @@ class TrackingService {
             metadata: {
                 source: 'shipsgo_v2',
                 enriched_at: new Date().toISOString(),
-                raw: awbData,
+                raw: data, // Salva tutto il response
                 mapped: mappedData,
-                transitTime: awbData.route?.transit_time || awbData.transitTime,
+                transitTime: awbData.route?.transit_time,
                 reference: awbData.reference,
                 awb_number: awbData.awb_number || awbNumber,
-                shipsgo_id: awbData.id // Importante: salva l'ID!
+                shipsgo_id: awbData.id,
+                
+                // Aggiungi campi extra per la tabella
+                airline: awbData.airline?.iata || 'UNKNOWN',
+                airline_name: awbData.airline?.name || 'Unknown',
+                date_of_arrival: this.parseShipsGoDate(awbData.route?.destination?.date_of_rcf),
+                transit_time: awbData.route?.transit_time ? awbData.route.transit_time + ' hours' : '-',
+                ultima_posizione: awbData.movements?.[0]?.location?.name || 
+                                awbData.movements?.[0]?.location?.iata || '-'
             }
         };
     }
@@ -953,7 +962,21 @@ class TrackingService {
     extractAWBEvents(data) {
         const events = [];
         
-        // Eventi dettagliati se disponibili
+        // Usa movements se disponibili (ShipsGo v2 structure)
+        if (data.movements && Array.isArray(data.movements)) {
+            return data.movements.map(movement => ({
+                date: this.parseShipsGoDate(movement.date),
+                type: movement.event,
+                status: movement.status,
+                location: movement.location?.name || movement.location?.iata || '-',
+                description: `${movement.event} - ${movement.cargo?.pieces || 0} pieces`,
+                flight: movement.flight,
+                pieces: movement.cargo?.pieces,
+                weight: movement.cargo?.weight
+            })).sort((a, b) => new Date(b.date) - new Date(a.date));
+        }
+        
+        // Fallback agli eventi standard se movements non disponibili
         if (data.events && Array.isArray(data.events)) {
             return data.events.map(event => ({
                 date: this.parseShipsGoDate(event.date || event.eventDate || event.event_date),
