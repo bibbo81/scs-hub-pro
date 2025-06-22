@@ -43,7 +43,6 @@ const STATUS_MAPPING = {
     'On FedEx vehicle for delivery': 'out_for_delivery',
     'Consegna prevista nel corso della giornata odierna.': 'out_for_delivery',
     'La spedizione è in consegna': 'out_for_delivery',
-    'In consegna': 'out_for_delivery',
     
     // Delivered
     'Delivered': 'delivered',
@@ -847,19 +846,32 @@ destination_name: (value, row) => {
         
         // FIX TRANSIT TIME - CALCOLO CORRETTO
         transit_time: (value, row) => {
-            // Per AIR: usa il campo diretto salvato
+            // Per AIR: converti ore in giorni
             if (row.tracking_type === 'awb') {
                 const transitValue = row.transit_time ||  // Campo diretto
                                    row.metadata?.transit_time ||
-                                   row.metadata?.['Transit Time'] || 
+                                   row.metadata?.['Transit Time'] ||
                                    value;
+                
                 if (transitValue && transitValue !== '-') {
-                    // Se è già un numero (ore per voli), mostralo come stringa
+                    // Se è un numero (ore per voli)
                     if (typeof transitValue === 'number') {
-                        return transitValue + ' hours';
+                        // Converti ore in giorni
+                        const days = Math.ceil(transitValue / 24);
+                        return days.toString();
                     }
-                    // Se è una stringa, ritornala
-                    return transitValue;
+                    // Se è già una stringa con "hours"
+                    if (typeof transitValue === 'string' && transitValue.includes('hours')) {
+                        const hours = parseInt(transitValue);
+                        if (!isNaN(hours)) {
+                            const days = Math.ceil(hours / 24);
+                            return days.toString();
+                        }
+                    }
+                    // Se è già solo un numero come stringa, ritornalo
+                    if (!isNaN(parseInt(transitValue))) {
+                        return transitValue.toString();
+                    }
                 }
             }
             // Per SEA: calcola dalle date se disponibili
@@ -2161,7 +2173,7 @@ function renderTimeline(tracking) {
                         </div>
                         ${event.location ? `<div class="timeline-location"><i class="fas fa-map-marker-alt"></i> ${event.location}</div>` : ''}
                         <div class="timeline-description">${event.description}</div>
-                        ${event.vessel ? `<div class="timeline-vessel"><i class="fas fa-ship"></i> ${event.vessel}</div>` : ''}
+                        ${event.vessel ? `<div class="fas fa-ship"></i> ${event.vessel}</div>` : ''}
                     </div>
                 </div>
             `).join('')}

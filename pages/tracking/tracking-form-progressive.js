@@ -3029,67 +3029,89 @@ carriers.sort((a, b) => {
        return 'parcel'; // Default fallback
    }
 
-   // AGGIUNGI QUESTA FUNZIONE PRIMA di const finalData = {
-   function extractCountryCode(destination) {
-       if (!destination || destination === '-') return '-';
+   // AGGIUNGI QUESTE FUNZIONI HELPER PRIMA di finalData
+   const AIRPORT_TO_COUNTRY = {
+       // Cina
+       'PEK': { name: 'CHINA', code: 'CN' },
+       'PVG': { name: 'CHINA', code: 'CN' },
+       'CAN': { name: 'CHINA', code: 'CN' },
+       'HKG': { name: 'HONG KONG', code: 'HK' },
        
-       // Mappa estesa dei porti
-       const portToCountry = {
-           'GENOVA': 'IT',
-           'LA SPEZIA': 'IT',
-           'LIVORNO': 'IT',
-           'NAPOLI': 'IT',
-           'TRIESTE': 'IT',
-           'VENEZIA': 'IT',
-           'SHANGHAI': 'CN',
-           'NINGBO': 'CN',
-           'SHENZHEN': 'CN',
-           'HONG KONG': 'HK',
-           'SINGAPORE': 'SG',
-           'ROTTERDAM': 'NL',
-           'TANJUNG PELEPAS': 'MY',
-           'HAMBURG': 'DE',
-           'ANTWERP': 'BE',
-           'LE HAVRE': 'FR',
-           'NEW YORK': 'US',
-           'LOS ANGELES': 'US',
-           'LONG BEACH': 'US',
-           'SANTOS': 'BR',
-           'BARCELONA': 'ES',
-           'VALENCIA': 'ES',
-           'LONDON': 'GB',
-           'DUBAI': 'AE',
-           'MUMBAI': 'IN',
-           'SOUTH AFRICA': 'ZA',
-           'CAPE TOWN': 'ZA',
-           'DURBAN': 'ZA',
-           'PORT ELIZABETH': 'ZA',
-           'JOHANNESBURG': 'ZA', // per aeroporto
-       };
+       // Italia
+       'FCO': { name: 'ITALY', code: 'IT' },
+       'MXP': { name: 'ITALY', code: 'IT' },
+       'VCE': { name: 'ITALY', code: 'IT' },
+       'NAP': { name: 'ITALY', code: 'IT' },
+       'BGY': { name: 'ITALY', code: 'IT' },
+       'LIN': { name: 'ITALY', code: 'IT' },
        
-       const upperDest = destination.toUpperCase();
+       // USA
+       'JFK': { name: 'UNITED STATES', code: 'US' },
+       'LAX': { name: 'UNITED STATES', code: 'US' },
+       'ORD': { name: 'UNITED STATES', code: 'US' },
+       'MIA': { name: 'UNITED STATES', code: 'US' },
+       'ATL': { name: 'UNITED STATES', code: 'US' },
        
-       // Prima prova match esatto
-       for (const [port, code] of Object.entries(portToCountry)) {
-           if (upperDest === port) {
-               return code;
-           }
+       // Europa
+       'CDG': { name: 'FRANCE', code: 'FR' },
+       'ORY': { name: 'FRANCE', code: 'FR' },
+       'FRA': { name: 'GERMANY', code: 'DE' },
+       'MUC': { name: 'GERMANY', code: 'DE' },
+       'LHR': { name: 'UNITED KINGDOM', code: 'GB' },
+       'LGW': { name: 'UNITED KINGDOM', code: 'GB' },
+       'AMS': { name: 'NETHERLANDS', code: 'NL' },
+       'MAD': { name: 'SPAIN', code: 'ES' },
+       'BCN': { name: 'SPAIN', code: 'ES' },
+       'LUX': { name: 'LUXEMBOURG', code: 'LU' },
+       'BRU': { name: 'BELGIUM', code: 'BE' },
+       'ZRH': { name: 'SWITZERLAND', code: 'CH' },
+       'VIE': { name: 'AUSTRIA', code: 'AT' },
+       
+       // Asia
+       'NRT': { name: 'JAPAN', code: 'JP' },
+       'KIX': { name: 'JAPAN', code: 'JP' },
+       'ICN': { name: 'SOUTH KOREA', code: 'KR' },
+       'SIN': { name: 'SINGAPORE', code: 'SG' },
+       'BKK': { name: 'THAILAND', code: 'TH' },
+       'KUL': { name: 'MALAYSIA', code: 'MY' },
+       'CGK': { name: 'INDONESIA', code: 'ID' },
+       'DEL': { name: 'INDIA', code: 'IN' },
+       'BOM': { name: 'INDIA', code: 'IN' },
+       'DXB': { name: 'UNITED ARAB EMIRATES', code: 'AE' },
+       'DOH': { name: 'QATAR', code: 'QA' },
+       'IST': { name: 'TURKEY', code: 'TR' },
+       
+       // Altri
+       'SYD': { name: 'AUSTRALIA', code: 'AU' },
+       'MEL': { name: 'AUSTRALIA', code: 'AU' },
+       'AKL': { name: 'NEW ZEALAND', code: 'NZ' },
+       'JNB': { name: 'SOUTH AFRICA', code: 'ZA' },
+       'CPT': { name: 'SOUTH AFRICA', code: 'ZA' },
+       'CAI': { name: 'EGYPT', code: 'EG' },
+       'GRU': { name: 'BRAZIL', code: 'BR' },
+       'MEX': { name: 'MEXICO', code: 'MX' },
+       'YYZ': { name: 'CANADA', code: 'CA' },
+       'YVR': { name: 'CANADA', code: 'CA' }
+   };
+
+   function getCountryFromAirport(airportCode) {
+       if (!airportCode) return { name: '-', code: '-' };
+       return AIRPORT_TO_COUNTRY[airportCode.toUpperCase()] || { name: '-', code: '-' };
+   }
+
+   function formatDateDDMMYYYY(dateString) {
+       if (!dateString || dateString === '-') return '-';
+       try {
+           const date = new Date(dateString);
+           if (isNaN(date.getTime())) return '-';
+           
+           const day = date.getDate().toString().padStart(2, '0');
+           const month = (date.getMonth() + 1).toString().padStart(2, '0');
+           const year = date.getFullYear();
+           return `${day}/${month}/${year}`;
+       } catch (e) {
+           return '-';
        }
-       
-       // Poi prova match parziale
-       for (const [port, code] of Object.entries(portToCountry)) {
-           if (upperDest.includes(port)) {
-               return code;
-           }
-       }
-       
-       // Se c'è un codice paese di 2 lettere alla fine, usalo
-       const countryMatch = upperDest.match(/\b([A-Z]{2})\b$/);
-       if (countryMatch) {
-           return countryMatch[1];
-       }
-       
-       return '-';
    }
 
    // Funzione di utilità per formattare la data nel formato DD/MM/YYYY
@@ -3293,39 +3315,161 @@ if (apiResponse.events && Array.isArray(apiResponse.events)) {
        // Assicurati che tutti i campi abbiano un valore valido
        const finalData = {
            // PASSO 4: Se è un AWB e abbiamo rilevato un ID, includiamolo nei metadata
-           ...(formData.trackingType === 'awb' && window.detectedAwbId ? {
-               metadata: {
-                   ...formData.metadata,
-                   shipsgo_id: window.detectedAwbId,
-                   shipsgo_id_auto_detected: true
-               }
-           } : {}),
-           
-           // AGGIUNGI QUESTO BLOCCO SPECIFICO PER AWB
            ...(formData.trackingType === 'awb' ? {
-               // Campo AIRLINE per la vista AWB
+               // CAMPI BASE AWB
                airline: formData.carrier || apiResponse?.carrier?.code || 'UNKNOWN',
-               
-               // Campo DATE OF ARRIVAL per AWB
-               date_of_arrival: apiResponse?.route?.destination?.eta || 
-                               apiResponse?.metadata?.date_of_arrival ||
-                               formData.eta || '-',
-               
-               // Campo TRANSIT TIME per AWB
-               transit_time: apiResponse?.metadata?.transitTime || 
-                            apiResponse?.route?.transit_time || '-',
-               
-               // Campo ULTIMA POSIZIONE per AWB  
-               ultima_posizione: apiResponse?.events?.[0]?.location || 
-                                apiResponse?.metadata?.last_location || '-',
-               
-               // Altri campi AWB se necessari
                awb_number: formData.trackingNumber,
-               tags: formData.tags || '-',
                
-               // MODIFICHE RICHIESTE: Campo container_count per AWB rappresenta il numero di colli
+               // DATE OF ARRIVAL
+               date_of_arrival: (() => {
+                   const arrivalDate = apiResponse?.route?.destination?.eta || 
+                                       apiResponse?.metadata?.date_of_arrival ||
+                                       apiResponse?.metadata?.raw?.route?.destination?.date_of_rcf ||
+                                       formData.eta || '-';
+                   return formatDateDDMMYYYY(arrivalDate);
+               })(),
+               
+               // TRANSIT TIME (in giorni)
+               transit_time: (() => {
+                   const transitTime = apiResponse?.metadata?.transitTime || 
+                                       apiResponse?.metadata?.transit_time ||
+                                       apiResponse?.route?.transit_time || '-';
+                   
+                   // Se è un numero (probabilmente ore), mantienilo come numero
+                   if (typeof transitTime === 'number') {
+                       return transitTime;
+                   }
+                   // Se è una stringa con ore, estrai il numero
+                   if (typeof transitTime === 'string' && transitTime.includes('hour')) {
+                       const hours = parseInt(transitTime);
+                       return isNaN(hours) ? '-' : hours;
+                   }
+                   return transitTime;
+               })(),
+               
+               // ULTIMA POSIZIONE
+               ultima_posizione: (() => {
+                   // Prima cerca negli eventi
+                   if (apiResponse?.events && apiResponse.events.length > 0) {
+                       const lastEvent = apiResponse.events[0]; // Gli eventi sono ordinati dal più recente
+                       if (lastEvent.location) return lastEvent.location;
+                   }
+                   
+                   // Poi nei metadata
+                   if (apiResponse?.metadata?.ultima_posizione) {
+                       return apiResponse.metadata.ultima_posizione;
+                   }
+                   
+                   // Poi nei movements raw
+                   if (apiResponse?.metadata?.raw?.movements && apiResponse.metadata.raw.movements.length > 0) {
+                       const lastMovement = apiResponse.metadata.raw.movements[0];
+                       return lastMovement.location?.name || lastMovement.location?.iata || '-';
+                   }
+                   
+                   return '-';
+               })(),
+               
+               // ORIGIN E DESTINATION COUNTRY
+               origin_country: (() => {
+                   // Prima prova dall'API
+                   if (apiResponse?.route?.origin?.country) {
+                       return apiResponse.route.origin.country.toUpperCase();
+                   }
+                   
+                   // Poi deriva dall'aeroporto
+                   const originPort = formData.origin || apiResponse?.route?.origin?.port || 'PEK';
+                   const countryInfo = getCountryFromAirport(originPort);
+                   return countryInfo.name;
+               })(),
+               
+               destination_country: (() => {
+                   // Prima prova dall'API
+                   if (apiResponse?.route?.destination?.country) {
+                       return apiResponse.route.destination.country.toUpperCase();
+                   }
+                   
+                   // Poi deriva dall'aeroporto
+                   const destPort = formData.destination || apiResponse?.route?.destination?.port || 'FCO';
+                   const countryInfo = getCountryFromAirport(destPort);
+                   return countryInfo.name;
+               })(),
+               
+               origin_country_code: (() => {
+                   const originPort = formData.origin || apiResponse?.route?.origin?.port || 'PEK';
+                   const countryInfo = getCountryFromAirport(originPort);
+                   return countryInfo.code;
+               })(),
+               
+               destination_country_code: (() => {
+                   const destPort = formData.destination || apiResponse?.route?.destination?.port || 'FCO';
+                   const countryInfo = getCountryFromAirport(destPort);
+                   return countryInfo.code;
+               })(),
+               
+               // DATE OF DEPARTURE
+               date_of_departure: (() => {
+                   // 1. Cerca negli eventi
+                   if (apiResponse?.events && apiResponse.events.length > 0) {
+                       const depEvent = apiResponse.events.find(e => 
+                           e.type === 'DEP' || 
+                           e.description?.toLowerCase().includes('departed')
+                       );
+                       if (depEvent && depEvent.date) {
+                           return formatDateDDMMYYYY(depEvent.date);
+                       }
+                   }
+                   
+                   // 2. Cerca nella route
+                   if (apiResponse?.route?.origin?.date) {
+                       return formatDateDDMMYYYY(apiResponse.route.origin.date);
+                   }
+                   
+                   // 3. Cerca nei raw movements
+                   if (apiResponse?.metadata?.raw?.movements) {
+                       const depMovement = apiResponse.metadata.raw.movements.find(m => 
+                           m.event === 'DEP'
+                       );
+                       if (depMovement && depMovement.date) {
+                           return formatDateDDMMYYYY(depMovement.date);
+                       }
+                   }
+                   
+                   // 4. Cerca nei metadata
+                   if (apiResponse?.metadata?.departure_date) {
+                       return formatDateDDMMYYYY(apiResponse.metadata.departure_date);
+                   }
+                   
+                   // 5. Default: usa created date + 1 giorno
+                   const createdDate = new Date();
+                   createdDate.setDate(createdDate.getDate() - 1);
+                   return formatDateDDMMYYYY(createdDate.toISOString());
+               })(),
+               
+               // Campo departure per la tabella (alias di date_of_departure)
+               departure: (() => {
+                   // Stessa logica di date_of_departure
+                   if (apiResponse?.events && apiResponse.events.length > 0) {
+                       const depEvent = apiResponse.events.find(e => 
+                           e.type === 'DEP' || 
+                           e.description?.toLowerCase().includes('departed')
+                       );
+                       if (depEvent && depEvent.date) {
+                           return formatDateDDMMYYYY(depEvent.date);
+                       }
+                   }
+                   
+                   if (apiResponse?.route?.origin?.date) {
+                       return formatDateDDMMYYYY(apiResponse.route.origin.date);
+                   }
+                   
+                   const createdDate = new Date();
+                   createdDate.setDate(createdDate.getDate() - 1);
+                   return formatDateDDMMYYYY(createdDate.toISOString());
+               })(),
+               
+               // CONTAINER COUNT (per AWB è il numero di colli/pieces)
                container_count: (() => {
-                   // Prova a prendere pieces dall'API response
+                   // Cerca pieces in vari posti
                    if (apiResponse?.package?.pieces) {
                        return apiResponse.package.pieces.toString();
                    }
@@ -3335,58 +3479,32 @@ if (apiResponse.events && Array.isArray(apiResponse.events)) {
                    if (apiResponse?.metadata?.raw?.cargo?.pieces) {
                        return apiResponse.metadata.raw.cargo.pieces.toString();
                    }
+                   
+                   // Cerca negli eventi
+                   if (apiResponse?.events && apiResponse.events.length > 0) {
+                       const eventWithPieces = apiResponse.events.find(e => e.pieces);
+                       if (eventWithPieces) {
+                           return eventWithPieces.pieces.toString();
+                       }
+                   }
+                   
                    // Default per AWB
                    return '1';
                })(),
                
-               // MODIFICHE RICHIESTE: DATE OF DEPARTURE per AWB - FIX COMPLETO
-               date_of_departure: (() => {
-                   // 1. Cerca negli eventi
-                   if (apiResponse?.events && apiResponse.events.length > 0) {
-                       const depEvent = apiResponse.events.find(e => 
-                           e.type === 'DEP' || 
-                           e.description?.toLowerCase().includes('departed')
-                       );
-                       if (depEvent && depEvent.date) {
-                           // Formatta la data in DD/MM/YYYY
-                           const d = new Date(depEvent.date);
-                           return `${d.getDate().toString().padStart(2,'0')}/${(d.getMonth()+1).toString().padStart(2,'0')}/${d.getFullYear()}`;
-                       }
+               // Altri campi
+               tags: formData.tags || '-',
+               ts_count: '0', // AWB non hanno transhipment count come i container
+               co2_emission: '-', // AWB non hanno CO2 emission
+               booking: '-', // AWB non hanno booking come i container
+               created_at_shipsgo: formatDateDDMMYYYY(new Date().toISOString()),
+               ...(window.detectedAwbId ? {
+                   metadata: {
+                       ...formData.metadata,
+                       shipsgo_id: window.detectedAwbId,
+                       shipsgo_id_auto_detected: true
                    }
-                   
-                   // 2. Cerca nella route
-                   if (apiResponse?.route?.origin?.date) {
-                       const d = new Date(apiResponse.route.origin.date);
-                       return `${d.getDate().toString().padStart(2,'0')}/${(d.getMonth()+1).toString().padStart(2,'0')}/${d.getFullYear()}`;
-                   }
-                   
-                   // 3. Cerca nei metadata
-                   if (apiResponse?.metadata?.departure_date) {
-                       return formatDateOnly(apiResponse.metadata.departure_date);
-                   }
-                   
-                   return '-';
-               })(),
-               
-               // MODIFICHE RICHIESTE: Assicurati che departure sia popolato per la tabella
-               departure: (() => {
-                   // Stessa logica di date_of_departure
-                   if (apiResponse?.events && apiResponse.events.length > 0) {
-                       const depEvent = apiResponse.events.find(e => 
-                           e.type === 'DEP' || 
-                           e.description?.toLowerCase().includes('departed')
-                       );
-                       if (depEvent && depEvent.date) {
-                           const d = new Date(depEvent.date);
-                           return `${d.getDate().toString().padStart(2,'0')}/${(d.getMonth()+1).toString().padStart(2,'0')}/${d.getFullYear()}`;
-                       }
-                   }
-                   if (apiResponse?.route?.origin?.date) {
-                       const d = new Date(apiResponse.route.origin.date);
-                       return `${d.getDate().toString().padStart(2,'0')}/${(d.getMonth()+1).toString().padStart(2,'0')}/${d.getFullYear()}`;
-                   }
-                   return '-';
-               })(),
+               } : {}),
            } : {}),
            
            // Prima includi TUTTI i campi mappati dall'API (se esistono)
