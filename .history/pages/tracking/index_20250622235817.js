@@ -848,21 +848,8 @@ function getColumnFormatter(key) {
         // FIX TRANSIT TIME - CALCOLO CORRETTO
         transit_time: (value, row) => {
             // Per AIR: usa il campo diretto salvato
-             if (value && value !== '-') {
-        // Se è una stringa con "days", estrai solo il numero
-        if (typeof value === 'string' && value.includes('days')) {
-            const match = value.match(/\d+/);
-            return match ? match[0] : '-';
-        }
-        // Se è un numero, mostralo
-        if (typeof value === 'number') {
-            return value.toString();
-        }
-        // Se è già una stringa numerica, mostrala
-        if (typeof value === 'string' && /^\d+$/.test(value)) {
-            return value;
-        }
-    }            
+            
+            
             if (row.tracking_type === 'awb') {
                 const transitValue = row.transit_time ||  // Campo diretto
                                    row.metadata?.transit_time ||
@@ -1254,34 +1241,23 @@ function getColumnFormatter(key) {
             }
         },
         
-        created_at: (value, row) => {
-    if (!value) {
-        // Controlla anche nel row object
-        value = row.created_at || row.createdAt;
-    }
-    
-    if (!value || value === '-') return '-';
-    
-    // Se è già formattata nel formato italiano, ritornala
-    if (typeof value === 'string' && value.match(/^\d{2}\/\d{2}\/\d{4}/)) {
-        return value;
-    }
-    
-    try {
-        const date = new Date(value);
-        if (isNaN(date.getTime())) return value;
-        
-        const day = date.getDate().toString().padStart(2, '0');
-        const month = (date.getMonth() + 1).toString().padStart(2, '0');
-        const year = date.getFullYear();
-        const hours = date.getHours().toString().padStart(2, '0');
-        const minutes = date.getMinutes().toString().padStart(2, '0');
-        
-        return `${day}/${month}/${year} ${hours}:${minutes}`;
-    } catch (error) {
-        return value || '-';
-    }
-},
+        created_at: (value) => {
+            if (!value) return '-';
+            try {
+                const date = new Date(value);
+                if (isNaN(date.getTime())) return value;
+                
+                const day = date.getDate().toString().padStart(2, '0');
+                const month = (date.getMonth() + 1).toString().padStart(2, '0');
+                const year = date.getFullYear();
+                const hours = date.getHours().toString().padStart(2, '0');
+                const minutes = date.getMinutes().toString().padStart(2, '0');
+                
+                return `${day}/${month}/${year} ${hours}:${minutes}`;
+            } catch (error) {
+                return value;
+            }
+        },
         
         // FIX ULTIMA POSIZIONE (per la colonna last_event_location)
         last_event_location: (value, row) => {

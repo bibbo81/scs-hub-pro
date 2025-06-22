@@ -1254,34 +1254,23 @@ function getColumnFormatter(key) {
             }
         },
         
-        created_at: (value, row) => {
-    if (!value) {
-        // Controlla anche nel row object
-        value = row.created_at || row.createdAt;
-    }
-    
-    if (!value || value === '-') return '-';
-    
-    // Se è già formattata nel formato italiano, ritornala
-    if (typeof value === 'string' && value.match(/^\d{2}\/\d{2}\/\d{4}/)) {
-        return value;
-    }
-    
-    try {
-        const date = new Date(value);
-        if (isNaN(date.getTime())) return value;
-        
-        const day = date.getDate().toString().padStart(2, '0');
-        const month = (date.getMonth() + 1).toString().padStart(2, '0');
-        const year = date.getFullYear();
-        const hours = date.getHours().toString().padStart(2, '0');
-        const minutes = date.getMinutes().toString().padStart(2, '0');
-        
-        return `${day}/${month}/${year} ${hours}:${minutes}`;
-    } catch (error) {
-        return value || '-';
-    }
-},
+        created_at: (value) => {
+            if (!value) return '-';
+            try {
+                const date = new Date(value);
+                if (isNaN(date.getTime())) return value;
+                
+                const day = date.getDate().toString().padStart(2, '0');
+                const month = (date.getMonth() + 1).toString().padStart(2, '0');
+                const year = date.getFullYear();
+                const hours = date.getHours().toString().padStart(2, '0');
+                const minutes = date.getMinutes().toString().padStart(2, '0');
+                
+                return `${day}/${month}/${year} ${hours}:${minutes}`;
+            } catch (error) {
+                return value;
+            }
+        },
         
         // FIX ULTIMA POSIZIONE (per la colonna last_event_location)
         last_event_location: (value, row) => {
