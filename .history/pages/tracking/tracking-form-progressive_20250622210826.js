@@ -3683,7 +3683,8 @@ if (apiResponse.events && Array.isArray(apiResponse.events)) {
     carrier_code: formData.carrier || formData._raw_api_response?.airline?.iata || 'CA',
                
                // IMPORTANTE: Salva i dati API grezzi
-               _raw_api_response: formData._raw_api_response || {},
+                   _raw_api_response: formData._raw_api_response || {},
+
                
                // DATE OF ARRIVAL
                date_of_arrival: formatDateDDMMYYYY(

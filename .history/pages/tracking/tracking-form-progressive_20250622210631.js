@@ -3678,9 +3678,9 @@ if (apiResponse.events && Array.isArray(apiResponse.events)) {
                
                // POI i campi specifici AWB con i valori corretti
                airline: formData.carrier || formData._raw_api_response?.airline?.iata || 'CA',
-    awb_number: formData.trackingNumber,
-    carrier: formData.carrier || formData._raw_api_response?.airline?.iata || 'CA',
-    carrier_code: formData.carrier || formData._raw_api_response?.airline?.iata || 'CA',
+               awb_number: formData.trackingNumber,
+               carrier: formData.carrier || formData._raw_api_response?.airline?.iata || 'CA',
+               carrier_code: formData.carrier || formData._raw_api_response?.airline?.iata || 'CA',
                
                // IMPORTANTE: Salva i dati API grezzi
                _raw_api_response: formData._raw_api_response || {},
