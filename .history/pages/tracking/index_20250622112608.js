@@ -828,40 +828,33 @@ destination_name: (value, row) => {
     return '-'; // Nascosta, usiamo destination_port unificato
 },
         
-        // FIX AIRLINE FORMATTER
-        airline: (value, row) => {
-            // Per AWB, prendi dal campo diretto (salvato da tracking-form-progressive)
-            if (row.tracking_type === 'awb') {
-                return row.airline || 
-                       row.metadata?.airline ||
-                       row.carrier_code ||
-                       'UNKNOWN';
-            }
-            // Per altri tipi
+        destination_name: (value, row) => {
             return value || 
-                   row.metadata?.['Airline'] || 
-                   row.metadata?.airline ||
-                   row.carrier_code ||
+                   row.metadata?.['Destination Name'] || 
+                   row.metadata?.destination_name ||
+                   row.destination_name ||
                    '-';
         },
         
         // FIX TRANSIT TIME - CALCOLO CORRETTO
         transit_time: (value, row) => {
-            // Per AIR: usa il campo diretto salvato
+            // Per AIR: il transit time è già calcolato in ore, convertiamo in giorni
             if (row.tracking_type === 'awb') {
-                const transitValue = row.transit_time ||  // Campo diretto
+                const transitValue = row.metadata?.['Transit Time'] || 
                                    row.metadata?.transit_time ||
-                                   row.metadata?.['Transit Time'] || 
                                    value;
+                
                 if (transitValue && transitValue !== '-') {
-                    // Se è già un numero (ore per voli), mostralo come stringa
-                    if (typeof transitValue === 'number') {
-                        return transitValue + ' hours';
+                    // Se è un numero (ore per voli aerei)
+                    const hours = parseInt(transitValue);
+                    if (!isNaN(hours)) {
+                        // Converti ore in giorni, arrotondando per eccesso
+                        const days = Math.ceil(hours / 24);
+                        return days.toString();
                     }
-                    // Se è una stringa, ritornala
-                    return transitValue;
                 }
             }
+            
             // Per SEA: calcola dalle date se disponibili
             if (row.tracking_type === 'container' || row.tracking_type === 'bl') {
                 const loadDate = row.metadata?.['Date Of Loading'] || row.metadata?.date_of_loading;
@@ -889,6 +882,18 @@ destination_name: (value, row) => {
                     } catch (e) {
                         console.warn('Error calculating sea transit time:', e);
                     }
+                }
+            }
+            
+            // Fallback: estrai numero da stringa
+            const metadataValue = row.metadata?.['Transit Time'] || 
+                                 row.metadata?.transit_time ||
+                                 value;
+            
+            if (metadataValue && metadataValue !== '-') {
+                const match = String(metadataValue).match(/(\d+)/);
+                if (match) {
+                    return match[1];
                 }
             }
             
@@ -932,23 +937,23 @@ destination_name: (value, row) => {
             return formatDateOnly(date);
         },
         
-       // FIX DATE OF ARRIVAL FORMATTER
        date_of_arrival: (value, row) => {
-            // UNIFICATO: Per SEA usa Date Of Discharge, per AIR usa Date Of Arrival
-            // Per SEA: usa Date Of Discharge
-            if (row.tracking_type === 'container' || row.tracking_type === 'bl') {
-                const date = row.metadata?.['Date Of Discharge'] || 
-                            row.metadata?.date_of_discharge ||
-                            value;
-                return formatDateOnly(date);
-            }
-            // Per AIR: usa il campo diretto salvato dal form
-            const date = row.date_of_arrival ||  // Campo diretto salvato
-                        value || 
-                        row.metadata?.['Date Of Arrival'] || 
-                        row.metadata?.date_of_arrival;
-            return formatDateOnly(date);
-        },
+    // UNIFICATO: Per SEA usa Date Of Discharge, per AIR usa Date Of Arrival
+    
+    // Per SEA: usa Date Of Discharge
+    if (row.tracking_type === 'container' || row.tracking_type === 'bl') {
+        const date = row.metadata?.['Date Of Discharge'] || 
+                    row.metadata?.date_of_discharge ||
+                    value;
+        return formatDateOnly(date);
+    }
+    
+    // Per AIR: usa Date Of Arrival
+    const date = value || 
+                row.metadata?.['Date Of Arrival'] || 
+                row.metadata?.date_of_arrival;
+    return formatDateOnly(date);
+},
         
         date_of_loading: (value, row) => {
             const date = value || 
@@ -986,15 +991,11 @@ destination_name: (value, row) => {
                    '-';
         },
         
-        // FIX CO2 EMISSION per AWB (dovrebbe essere vuoto)
         co2_emission: (value, row) => {
-            // CO2 emission è solo per container marittimi
-            if (row.tracking_type === 'awb') {
-                return '-';
-            }
             const emission = value || 
                             row.metadata?.['CO₂ Emission (Tons)'] || 
                             row.metadata?.co2_emission;
+            
             if (emission && emission !== '-') {
                 return `${emission} tons`;
             }
@@ -1034,6 +1035,14 @@ destination_name: (value, row) => {
                    '-';
         },
         
+        airline: (value, row) => {
+            return value || 
+                   row.metadata?.['Airline'] || 
+                   row.metadata?.airline ||
+                   row.carrier_code ||
+                   '-';
+        },
+        
         origin: (value, row) => {
             return value || 
                    row.metadata?.['Origin'] || 
@@ -1051,24 +1060,19 @@ destination_name: (value, row) => {
         },
         
         // COUNTRY FIELDS - UNIFICATI PER AIR E SEA
-        // FIX ORIGIN COUNTRY - Deve essere tutto maiuscolo
         origin_country: (value, row) => {
-            let country = '';
             // Per SEA: usa POL Country
             if (row.tracking_type === 'container' || row.tracking_type === 'bl') {
-                country = row.metadata?.['POL Country'] || 
-                         row.metadata?.pol_country ||
-                         value || '-';
-            } else {
-                // Per AIR: usa Origin Country
-                country = row.origin_country ||  // Campo diretto
-                         value || 
-                         row.metadata?.['Origin Country'] || 
-                         row.metadata?.origin_country ||
-                         '-';
+                return row.metadata?.['POL Country'] || 
+                       row.metadata?.pol_country ||
+                       value || '-';
             }
-            // IMPORTANTE: Converti in maiuscolo per consistenza
-            return country !== '-' ? country.toUpperCase() : '-';
+            
+            // Per AIR: usa Origin Country
+            return value || 
+                   row.metadata?.['Origin Country'] || 
+                   row.metadata?.origin_country ||
+                   '-';
         },
         
         origin_country_code: (value, row) => {
@@ -1086,24 +1090,19 @@ destination_name: (value, row) => {
                    '-';
         },
         
-        // FIX DESTINATION COUNTRY - Deve essere tutto maiuscolo
         destination_country: (value, row) => {
-            let country = '';
             // Per SEA: usa POD Country
             if (row.tracking_type === 'container' || row.tracking_type === 'bl') {
-                country = row.metadata?.['POD Country'] || 
-                         row.metadata?.pod_country ||
-                         value || '-';
-            } else {
-                // Per AIR: usa Destination Country
-                country = row.destination_country ||  // Campo diretto
-                         value || 
-                         row.metadata?.['Destination Country'] || 
-                         row.metadata?.destination_country ||
-                         '-';
+                return row.metadata?.['POD Country'] || 
+                       row.metadata?.pod_country ||
+                       value || '-';
             }
-            // IMPORTANTE: Converti in maiuscolo per consistenza
-            return country !== '-' ? country.toUpperCase() : '-';
+            
+            // Per AIR: usa Destination Country
+            return value || 
+                   row.metadata?.['Destination Country'] || 
+                   row.metadata?.destination_country ||
+                   '-';
         },
         
         destination_country_code: (value, row) => {
@@ -1121,16 +1120,17 @@ destination_name: (value, row) => {
                    '-';
         },
         
-        // AGGIUNGI ANCHE IL FIX PER TAGS
+        // FIX TAGS
         tags: (value, row) => {
-            const tags = row.tags ||  // Campo diretto
-                        value || 
+            const tags = value || 
                         row.metadata?.['Tags'] || 
                         row.metadata?.tags;
+            
             // Se tags è "-" o vuoto, non mostrare nulla
             if (!tags || tags === '-' || tags === '') {
                 return '-';
             }
+            
             return `<span class="sol-badge sol-badge-secondary">${tags}</span>`;
         },
         
@@ -1257,17 +1257,8 @@ destination_name: (value, row) => {
             }
         },
         
-        // FIX ULTIMA POSIZIONE (per la colonna last_event_location)
         last_event_location: (value, row) => {
-            // Per AWB usa il campo diretto
-            if (row.tracking_type === 'awb') {
-                return row.ultima_posizione || 
-                       row.metadata?.ultima_posizione ||
-                       row.metadata?.last_location ||
-                       value ||
-                       '-';
-            }
-            // Per altri tipi
+            // Cerca in più posti per location
             const location = value || 
                             row.last_event_location || 
                             row.metadata?.last_event_location ||

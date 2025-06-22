@@ -828,23 +828,6 @@ destination_name: (value, row) => {
     return '-'; // Nascosta, usiamo destination_port unificato
 },
         
-        // FIX AIRLINE FORMATTER
-        airline: (value, row) => {
-            // Per AWB, prendi dal campo diretto (salvato da tracking-form-progressive)
-            if (row.tracking_type === 'awb') {
-                return row.airline || 
-                       row.metadata?.airline ||
-                       row.carrier_code ||
-                       'UNKNOWN';
-            }
-            // Per altri tipi
-            return value || 
-                   row.metadata?.['Airline'] || 
-                   row.metadata?.airline ||
-                   row.carrier_code ||
-                   '-';
-        },
-        
         // FIX TRANSIT TIME - CALCOLO CORRETTO
         transit_time: (value, row) => {
             // Per AIR: usa il campo diretto salvato
@@ -853,6 +836,7 @@ destination_name: (value, row) => {
                                    row.metadata?.transit_time ||
                                    row.metadata?.['Transit Time'] || 
                                    value;
+                
                 if (transitValue && transitValue !== '-') {
                     // Se è già un numero (ore per voli), mostralo come stringa
                     if (typeof transitValue === 'number') {
@@ -862,6 +846,7 @@ destination_name: (value, row) => {
                     return transitValue;
                 }
             }
+            
             // Per SEA: calcola dalle date se disponibili
             if (row.tracking_type === 'container' || row.tracking_type === 'bl') {
                 const loadDate = row.metadata?.['Date Of Loading'] || row.metadata?.date_of_loading;
@@ -932,9 +917,10 @@ destination_name: (value, row) => {
             return formatDateOnly(date);
         },
         
-       // FIX DATE OF ARRIVAL FORMATTER
-       date_of_arrival: (value, row) => {
+        // FIX DATE OF ARRIVAL FORMATTER
+        date_of_arrival: (value, row) => {
             // UNIFICATO: Per SEA usa Date Of Discharge, per AIR usa Date Of Arrival
+            
             // Per SEA: usa Date Of Discharge
             if (row.tracking_type === 'container' || row.tracking_type === 'bl') {
                 const date = row.metadata?.['Date Of Discharge'] || 
@@ -942,6 +928,7 @@ destination_name: (value, row) => {
                             value;
                 return formatDateOnly(date);
             }
+            
             // Per AIR: usa il campo diretto salvato dal form
             const date = row.date_of_arrival ||  // Campo diretto salvato
                         value || 
@@ -992,9 +979,11 @@ destination_name: (value, row) => {
             if (row.tracking_type === 'awb') {
                 return '-';
             }
+            
             const emission = value || 
                             row.metadata?.['CO₂ Emission (Tons)'] || 
                             row.metadata?.co2_emission;
+            
             if (emission && emission !== '-') {
                 return `${emission} tons`;
             }
@@ -1034,6 +1023,23 @@ destination_name: (value, row) => {
                    '-';
         },
         
+        // FIX AIRLINE FORMATTER
+        airline: (value, row) => {
+            // Per AWB, prendi dal campo diretto (salvato da tracking-form-progressive)
+            if (row.tracking_type === 'awb') {
+                return row.airline || 
+                       row.metadata?.airline ||
+                       row.carrier_code ||
+                       'UNKNOWN';
+            }
+            // Per altri tipi
+            return value || 
+                   row.metadata?.['Airline'] || 
+                   row.metadata?.airline ||
+                   row.carrier_code ||
+                   '-';
+        },
+        
         origin: (value, row) => {
             return value || 
                    row.metadata?.['Origin'] || 
@@ -1050,10 +1056,10 @@ destination_name: (value, row) => {
                    '-';
         },
         
-        // COUNTRY FIELDS - UNIFICATI PER AIR E SEA
         // FIX ORIGIN COUNTRY - Deve essere tutto maiuscolo
         origin_country: (value, row) => {
             let country = '';
+            
             // Per SEA: usa POL Country
             if (row.tracking_type === 'container' || row.tracking_type === 'bl') {
                 country = row.metadata?.['POL Country'] || 
@@ -1067,6 +1073,7 @@ destination_name: (value, row) => {
                          row.metadata?.origin_country ||
                          '-';
             }
+            
             // IMPORTANTE: Converti in maiuscolo per consistenza
             return country !== '-' ? country.toUpperCase() : '-';
         },
@@ -1089,6 +1096,7 @@ destination_name: (value, row) => {
         // FIX DESTINATION COUNTRY - Deve essere tutto maiuscolo
         destination_country: (value, row) => {
             let country = '';
+            
             // Per SEA: usa POD Country
             if (row.tracking_type === 'container' || row.tracking_type === 'bl') {
                 country = row.metadata?.['POD Country'] || 
@@ -1102,6 +1110,7 @@ destination_name: (value, row) => {
                          row.metadata?.destination_country ||
                          '-';
             }
+            
             // IMPORTANTE: Converti in maiuscolo per consistenza
             return country !== '-' ? country.toUpperCase() : '-';
         },
@@ -1127,10 +1136,12 @@ destination_name: (value, row) => {
                         value || 
                         row.metadata?.['Tags'] || 
                         row.metadata?.tags;
+            
             // Se tags è "-" o vuoto, non mostrare nulla
             if (!tags || tags === '-' || tags === '') {
                 return '-';
             }
+            
             return `<span class="sol-badge sol-badge-secondary">${tags}</span>`;
         },
         
@@ -1267,6 +1278,7 @@ destination_name: (value, row) => {
                        value ||
                        '-';
             }
+            
             // Per altri tipi
             const location = value || 
                             row.last_event_location || 
@@ -2037,670 +2049,3 @@ async function handleAddTracking(event) {
     window.ModalSystem.closeAll();
     await loadTrackings();
 }
-
-// SOSTITUISCI anche handleRefreshTracking:
-async function handleRefreshTracking(id) {
-    const tracking = trackings.find(t => t.id == id);
-    if (!tracking) return;
-    
-    try {
-        notificationSystem.info('Aggiornamento tracking...', { duration: 0, id: 'refresh-loading' });
-        
-        // Usa il tracking service per refresh con force refresh
-        const refreshResult = await window.trackingService.track(
-            tracking.tracking_number,
-            tracking.tracking_type || 'auto',
-            { forceRefresh: true }
-        );
-        
-        if (refreshResult.success) {
-            // Aggiorna i dati del tracking
-            Object.assign(tracking, {
-                status: refreshResult.status || tracking.status,
-                last_update: refreshResult.lastUpdate || new Date().toISOString(),
-                
-                // Aggiorna eventi
-                events: refreshResult.events || tracking.events || [],
-                last_event_date: refreshResult.events?.[0]?.date,
-                last_event_location: refreshResult.events?.[0]?.location,
-                
-                // Aggiorna route info se disponibile
-                eta: refreshResult.route?.destination?.eta || tracking.eta,
-                
-                // Aggiorna metadata
-                metadata: {
-                    ...tracking.metadata,
-                    ...refreshResult.metadata,
-                    last_refresh: new Date().toISOString()
-                }
-            });
-            
-            // Salva aggiornamenti
-            localStorage.setItem('trackings', JSON.stringify(trackings));
-            
-            notificationSystem.dismiss('refresh-loading');
-            
-            if (refreshResult.mockData) {
-                notificationSystem.success('Tracking aggiornato (demo)');
-            } else if (refreshResult.fromCache) {
-                notificationSystem.success('Tracking aggiornato (cache)');
-            } else {
-                notificationSystem.success('Tracking aggiornato con dati live!');
-            }
-        }
-        
-    } catch (error) {
-        console.error('[Tracking] Refresh error:', error);
-        notificationSystem.dismiss('refresh-loading');
-        notificationSystem.error('Errore aggiornamento: ' + error.message);
-    }
-    
-    // Reload tabella
-    await loadTrackings();
-}
-
-// Handle view timeline
-async function handleViewTimeline(id) {
-    const tracking = trackings.find(t => t.id == id);
-    if (!tracking) return;
-    
-    window.ModalSystem.show({
-        title: `Timeline - ${tracking.tracking_number}`,
-        size: 'large',
-        content: renderTimeline(tracking)
-    });
-}
-
-// Render timeline
-function renderTimeline(tracking) {
-    const events = generateTimelineEvents(tracking);
-    
-    // Different rendering for AWB tracking
-    if (tracking.tracking_type === 'awb') {
-        return `
-            <div class="timeline shipsgo-style">
-                <table class="timeline-table">
-                    <thead>
-                        <tr>
-                            <th>Pieces</th>
-                            <th>Location</th>
-                            <th>Event</th>
-                            <th>Date</th>
-                            <th>Flight</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${events.map(event => `
-                            <tr class="timeline-row ${event.class}">
-                                <td>${event.description}</td>
-                                <td><strong>${event.location || '-'}</strong></td>
-                                <td>
-                                    <strong>${event.eventCode || ''}</strong><br>
-                                    ${event.title.replace(/^[A-Z]{3} - /, '')}
-                                </td>
-                                <td>${formatDate(event.date)}</td>
-                                <td>${event.flight || '-'}</td>
-                            </tr>
-                        `).join('')}
-                    </tbody>
-                </table>
-            </div>
-        `;
-    }
-    
-    // Standard timeline for other types
-    return `
-        <div class="timeline">
-            ${events.map(event => `
-                <div class="timeline-item ${event.class}">
-                    <div class="timeline-marker"></div>
-                    <div class="timeline-content">
-                        <div class="timeline-header">
-                            <span class="timeline-title">${event.title}</span>
-                            <span class="timeline-date">${formatDate(event.date)}</span>
-                        </div>
-                        ${event.location ? `<div class="timeline-location"><i class="fas fa-map-marker-alt"></i> ${event.location}</div>` : ''}
-                        <div class="timeline-description">${event.description}</div>
-                        ${event.vessel ? `<div class="timeline-vessel"><i class="fas fa-ship"></i> ${event.vessel}</div>` : ''}
-                    </div>
-                </div>
-            `).join('')}
-        </div>
-    `;
-}
-
-// Generate timeline events
-function generateTimelineEvents(tracking) {
-    const events = [];
-    const createdDate = new Date(tracking.created_at);
-    
-    // For AWB tracking, generate ShipsGo-style events
-    if (tracking.tracking_type === 'awb') {
-        // RCS - Received from Shipper
-        events.push({
-            date: createdDate,
-            title: 'RCS - Received From Shipper',
-            description: `${tracking.metadata?.ts_count || '-'} Pieces`,
-            location: tracking.metadata?.origin || tracking.origin_port,
-            class: 'registered',
-            eventCode: 'RCS'
-        });
-        
-        // If we have departure date, add MAN and DEP events
-        if (tracking.metadata?.departure_date || ['in_transit', 'arrived', 'delivered'].includes(tracking.status)) {
-            const depDate = tracking.metadata?.departure_date ? 
-                new Date(tracking.metadata.departure_date) : 
-                new Date(createdDate.getTime() + 1 * 24 * 60 * 60 * 1000);
-            
-            // MAN - Manifested (1 hour before departure)
-            const manDate = new Date(depDate.getTime() - 1 * 60 * 60 * 1000);
-            events.push({
-                date: manDate,
-                title: 'MAN - Manifested',
-                description: `${tracking.metadata?.ts_count || '-'} Pieces`,
-                location: tracking.metadata?.origin || tracking.origin_port,
-                class: 'in_transit',
-                eventCode: 'MAN',
-                flight: tracking.carrier_code ? `${tracking.carrier_code}${Math.floor(Math.random() * 900) + 100}` : '-'
-            });
-            
-            // DEP - Departed
-            events.push({
-                date: depDate,
-                title: 'DEP - Departed',
-                description: `${tracking.metadata?.ts_count || '-'} Pieces`,
-                location: tracking.metadata?.origin || tracking.origin_port,
-                class: 'departed',
-                eventCode: 'DEP',
-                flight: tracking.carrier_code ? `${tracking.carrier_code}${Math.floor(Math.random() * 900) + 100}` : '-'
-            });
-        }
-        
-        // If arrived or delivered, add RCF event
-        if (['arrived', 'delivered'].includes(tracking.status)) {
-            const arrDate = tracking.metadata?.arrival_date ? 
-                new Date(tracking.metadata.arrival_date) : 
-                new Date(createdDate.getTime() + 2 * 24 * 60 * 60 * 1000);
-            
-            events.push({
-                date: arrDate,
-                title: 'RCF - Received From Flight',
-                description: `${tracking.metadata?.ts_count || '-'} Pieces`,
-                location: tracking.metadata?.destination || tracking.destination_port,
-                class: 'arrived',
-                eventCode: 'RCF',
-                flight: tracking.carrier_code ? `${tracking.carrier_code}${Math.floor(Math.random() * 900) + 100}` : '-'
-            });
-        }
-        
-        // If delivered, add DLV event
-        if (tracking.status === 'delivered') {
-            const dlvDate = new Date();
-            events.push({
-                date: dlvDate,
-                title: 'DLV - Delivered',
-                description: `${tracking.metadata?.ts_count || '-'} Pieces`,
-                location: tracking.metadata?.destination || tracking.destination_port,
-                class: 'delivered',
-                eventCode: 'DLV'
-            });
-        }
-        
-    } else if (tracking.tracking_type === 'container' || tracking.tracking_type === 'bl') {
-        // Container/BL events
-        events.push({
-            date: createdDate,
-            title: 'Booking Confirmed',
-            description: 'Container registrato nel sistema',
-            location: tracking.origin_port,
-            class: 'registered'
-        });
-        
-        if (['in_transit', 'arrived', 'delivered'].includes(tracking.status)) {
-            const loadDate = tracking.metadata?.loading_date ? 
-                new Date(tracking.metadata.loading_date) : 
-                new Date(createdDate.getTime() + 2 * 24 * 60 * 60 * 1000);
-                
-            events.push({
-                date: loadDate,
-                title: 'Gate In',
-                description: 'Container entrato nel terminal',
-                location: tracking.origin_port,
-                class: 'in_transit'
-            });
-            
-            events.push({
-                date: new Date(loadDate.getTime() + 2 * 60 * 60 * 1000),
-                title: 'Loaded',
-                description: 'Container caricato sulla nave',
-                location: tracking.origin_port,
-                class: 'departed',
-                vessel: tracking.metadata?.vessel_name
-            });
-        }
-        
-        if (['arrived', 'delivered'].includes(tracking.status)) {
-            const dischDate = tracking.metadata?.discharge_date ? 
-                new Date(tracking.metadata.discharge_date) : 
-                new Date(createdDate.getTime() + 7 * 24 * 60 * 60 * 1000);
-                
-            events.push({
-                date: dischDate,
-                title: 'Discharged',
-                description: 'Container scaricato dalla nave',
-                location: tracking.destination_port,
-                class: 'arrived',
-                vessel: tracking.metadata?.vessel_name
-            });
-        }
-        
-        if (tracking.status === 'delivered') {
-            events.push({
-                date: new Date(),
-                title: 'Gate Out',
-                description: 'Container ritirato dal terminal',
-                location: tracking.destination_port,
-                class: 'delivered'
-            });
-        }
-    } else {
-        // Generic events for other types
-        events.push({
-            date: createdDate,
-            title: 'Tracking Registrato',
-            description: 'Tracking inserito nel sistema',
-            location: tracking.origin_port,
-            class: 'registered'
-        });
-        
-        if (['in_transit', 'arrived', 'delivered'].includes(tracking.status)) {
-            events.push({
-                date: new Date(createdDate.getTime() + 2 * 24 * 60 * 60 * 1000),
-                title: 'Partenza',
-                description: 'Spedizione partita dall\'origine',
-                location: tracking.origin_port,
-                class: 'departed'
-            });
-        }
-        
-        if (['arrived', 'delivered'].includes(tracking.status)) {
-            events.push({
-                date: new Date(createdDate.getTime() + 7 * 24 * 60 * 60 * 1000),
-                title: 'Arrivato a Destinazione',
-                description: 'Spedizione arrivata alla destinazione',
-                location: tracking.destination_port,
-                class: 'arrived'
-            });
-        }
-        
-        if (tracking.status === 'delivered') {
-            events.push({
-                date: new Date(),
-                title: 'Consegnato',
-                description: 'Spedizione consegnata al destinatario',
-                location: tracking.destination_port,
-                class: 'delivered'
-            });
-        }
-    }
-    
-    return events.sort((a, b) => b.date - a.date);
-}
-
-// Handle delete tracking
-async function handleDeleteTracking(id) {
-    console.log('[Delete] Starting delete for ID:', id);
-    
-    try {
-        const confirmed = await window.ModalSystem.confirm({
-            title: 'Conferma Eliminazione',
-            message: 'Sei sicuro di voler eliminare questo tracking?',
-            confirmText: 'Elimina',
-            confirmClass: 'sol-btn-danger',
-            cancelText: 'Annulla'
-        });
-        
-        console.log('[Delete] Confirmed:', confirmed);
-        
-        if (!confirmed) {
-            console.log('[Delete] Cancelled by user');
-            return;
-        }
-        
-        console.log('[Delete] Proceeding with deletion...');
-        console.log('[Delete] Current trackings:', trackings.length);
-        
-        // Remove from array - prova diversi modi
-        const idStr = id.toString();
-        const idNum = Number(id);
-        
-        trackings = trackings.filter(t => {
-            const keep = t.id !== id && 
-                        t.id !== idStr && 
-                        t.id !== idNum &&
-                        Number(t.id) !== idNum &&
-                        String(t.id) !== idStr;
-            if (!keep) {
-                console.log('[Delete] Removing tracking:', t);
-            }
-            return keep;
-        });
-        
-        console.log('[Delete] After filter:', trackings.length);
-        
-        // Save to localStorage  
-        localStorage.setItem('trackings', JSON.stringify(trackings));
-        
-        // Update global reference
-        window.currentTrackings = trackings;
-        
-        // Force immediate UI update
-        updateStats();
-        trackingTable.setData(trackings);
-        
-        // Show success notification
-        notificationSystem.success('Tracking eliminato');
-        
-        // Chiudi esplicitamente tutti i modal dopo un breve ritardo
-        setTimeout(() => {
-            window.ModalSystem.closeAll();
-        }, 100);
-        
-        // Update timeline if active
-        if (window.timelineView && window.timelineView.isActive()) {
-            window.timelineView.refresh();
-        }
-        
-        console.log('[Delete] Delete completed');
-        
-    } catch (error) {
-        console.error('[Delete] Error:', error);
-        notificationSystem.error('Errore durante l\'eliminazione');
-    }
-}
-
-// Refresh all trackings - MODIFICATA PER USARE bulkTrack
-async function refreshAllTrackings() {
-    const activeTrackings = trackings.filter(t => !['delivered', 'exception'].includes(t.status));
-    
-    if (activeTrackings.length === 0) {
-        notificationSystem.info('Nessun tracking attivo da aggiornare');
-        return;
-    }
-    
-    if (!window.trackingService || !window.trackingService.hasApiKeys()) {
-        notificationSystem.warning('API non configurate. Vai in Settings per configurarle.');
-        return;
-    }
-    
-    // Show progress
-    const progressModal = window.ModalSystem.progress({
-        title: 'Aggiornamento Tracking',
-        message: 'Aggiornamento in corso...',
-        showPercentage: true
-    });
-    
-    try {
-        // Prepara tracking per bulk update
-        const trackingRequests = activeTrackings.map(t => ({
-            id: t.id,
-            tracking_number: t.tracking_number,
-            type: t.tracking_type || 'container'
-        }));
-        
-        // Esegui bulk tracking con callback per progresso
-        const results = await window.trackingService.bulkTrack(trackingRequests, (progress) => {
-            const percentage = Math.round((progress.completed / progress.total) * 100);
-            progressModal.update(percentage, `Aggiornati ${progress.completed} di ${progress.total} tracking`);
-        });
-        
-        // Aggiorna trackings con nuovi dati
-        let updatedCount = 0;
-        results.forEach((result, index) => {
-            if (result.success && result.data) {
-                const tracking = activeTrackings[index];
-                const trackingIndex = trackings.findIndex(t => t.id === tracking.id);
-                if (trackingIndex !== -1) {
-                    trackings[trackingIndex] = {
-                        ...tracking,
-                        ...result.data,
-                        id: tracking.id,
-                        created_at: tracking.created_at,
-                        updated_at: new Date().toISOString(),
-                        metadata: {
-                            ...tracking.metadata,
-                            ...result.data.metadata,
-                            last_bulk_update: new Date().toISOString()
-                        }
-                    };
-                    updatedCount++;
-                }
-            }
-        });
-        
-        // Salva e aggiorna UI
-        localStorage.setItem('trackings', JSON.stringify(trackings));
-        await loadTrackings();
-        
-        progressModal.close();
-        notificationSystem.success(`Aggiornati ${updatedCount} tracking su ${activeTrackings.length}`);
-        
-    } catch (error) {
-        console.error('Error in bulk refresh:', error);
-        progressModal.close();
-        notificationSystem.error('Errore durante l\'aggiornamento multiplo: ' + error.message);
-    }
-}
-
-// Apply filters
-function applyFilters() {
-    const statusFilter = document.getElementById('statusFilter').value;
-    const typeFilter = document.getElementById('typeFilter').value;
-    
-    let filtered = [...trackings];
-    
-    if (statusFilter) {
-        filtered = filtered.filter(t => t.status === statusFilter);
-    }
-    
-    if (typeFilter) {
-        filtered = filtered.filter(t => t.tracking_type === typeFilter);
-    }
-    
-    trackingTable.setData(filtered);
-    
-    // Update timeline if active
-    window.currentTrackings = filtered;
-    if (window.timelineView && window.timelineView.isActive()) {
-        window.timelineView.refresh();
-    }
-}
-
-// Export functions - AGGIORNATE PER USARE EXPORT MANAGER
-async function exportToPDF() {
-    try {
-        // Verifica se ci sono tracking
-        if (!trackings || trackings.length === 0) {
-            window.NotificationSystem?.warning('Nessun tracking da esportare');
-            return;
-        }
-        
-        // Usa ExportManager
-        if (window.ExportManager) {
-            await window.ExportManager.exportToPDF(trackings, 'tracking-export', {
-                includeSummary: true
-            });
-        } else {
-            throw new Error('ExportManager non disponibile');
-        }
-    } catch (error) {
-        console.error('[Tracking] Export PDF error:', error);
-        window.NotificationSystem?.error('Errore export PDF: ' + error.message);
-    }
-}
-
-async function exportToExcel() {
-    try {
-        // Verifica se ci sono tracking
-        if (!trackings || trackings.length === 0) {
-            window.NotificationSystem?.warning('Nessun tracking da esportare');
-            return;
-        }
-        
-        // Usa ExportManager
-        if (window.ExportManager) {
-            await window.ExportManager.exportToExcel(trackings, 'tracking-export', {
-                includeSummary: true,
-                includeTimeline: true
-            });
-        } else {
-            throw new Error('ExportManager non disponibile');
-        }
-    } catch (error) {
-        console.error('[Tracking] Export Excel error:', error);
-        window.NotificationSystem?.error('Errore export Excel: ' + error.message);
-    }
-}
-
-// Export con filtri applicati - NUOVA FUNZIONE
-async function exportFilteredTrackings() {
-    try {
-        const statusFilter = document.getElementById('statusFilter')?.value;
-        const typeFilter = document.getElementById('typeFilter')?.value;
-        
-        // Usa i dati filtrati dalla tabella
-        const filteredData = trackingTable.filteredData || trackings;
-        
-        if (filteredData.length === 0) {
-            window.NotificationSystem?.warning('Nessun tracking da esportare con i filtri attuali');
-            return;
-        }
-        
-        const filters = {
-            status: statusFilter || null,
-            type: typeFilter || null
-        };
-        
-        if (window.ExportManager) {
-            // Chiedi formato
-            const format = await window.ModalSystem?.confirm({
-                title: 'Export Filtrati',
-                message: `Esportare ${filteredData.length} tracking filtrati?`,
-                confirmText: 'Excel',
-                cancelText: 'PDF',
-                type: 'info'
-            });
-            
-            if (format === true) {
-                await window.ExportManager.exportFiltered(
-                    trackings,
-                    filters,
-                    'excel'
-                );
-            } else if (format === false) {
-                await window.ExportManager.exportFiltered(
-                    trackings,
-                    filters,
-                    'pdf'
-                );
-            }
-        }
-        
-    } catch (error) {
-        console.error('[Tracking] Export filtered error:', error);
-        window.NotificationSystem?.error('Errore export: ' + error.message);
-    }
-}
-
-// Format helpers
-function formatDate(date) {
-    if (!date) return '-';
-    return new Date(date).toLocaleString('it-IT', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-    });
-}
-
-// Stats order management
-function saveStatsOrder() {
-    const cards = document.querySelectorAll('.sol-stat-card');
-    const order = Array.from(cards).map(card => card.dataset.id);
-    localStorage.setItem('trackingStatsOrder', JSON.stringify(order));
-}
-
-function restoreStatsOrder() {
-    const savedOrder = localStorage.getItem('trackingStatsOrder');
-    if (!savedOrder) return;
-    
-    try {
-        const order = JSON.parse(savedOrder);
-        const statsGrid = document.getElementById('statsGrid');
-        const cards = Array.from(statsGrid.querySelectorAll('.sol-stat-card'));
-        
-        cards.sort((a, b) => {
-            const aIndex = order.indexOf(a.dataset.id);
-            const bIndex = order.indexOf(b.dataset.id);
-            return aIndex - bIndex;
-        });
-        
-        cards.forEach(card => statsGrid.appendChild(card));
-    } catch (e) {
-        console.error('Error restoring stats order:', e);
-    }
-}
-
-// Auto refresh
-function startAutoRefresh() {
-    // Refresh every 5 minutes
-    setInterval(() => {
-        loadTrackings();
-    }, 5 * 60 * 1000);
-}
-
-// ====================
-// HELPER FUNCTIONS MANCANTI
-// ====================
-
-// Create progress modal helper
-function createProgressModal() {
-    const modal = document.createElement('div');
-    modal.id = 'progressModal';
-    modal.innerHTML = `
-        <div class="sol-modal-overlay">
-            <div class="sol-modal sol-modal-medium">
-                <div class="sol-modal-header">
-                    <h3 class="sol-modal-title">Aggiornamento Tracking</h3>
-                </div>
-                <div class="sol-modal-body">
-                    <div class="sol-progress">
-                        <div id="progressBar" class="sol-progress-bar" style="width: 0%"></div>
-                    </div>
-                    <p id="progressText" class="sol-progress-text">Inizializzazione...</p>
-                </div>
-            </div>
-        </div>
-    `;
-    document.body.appendChild(modal);
-    return modal;
-}
-
-// Update progress modal helper
-function updateProgressModal(progress) {
-    const progressBar = document.getElementById('progressBar');
-    const progressText = document.getElementById('progressText');
-    
-    if (progressBar && progressText) {
-        const percentage = Math.round((progress.completed / progress.total) * 100);
-        progressBar.style.width = percentage + '%';
-        progressText.textContent = `Aggiornati ${progress.completed} di ${progress.total} tracking`;
-    }
-}
-
-// Make loadTrackings globally available for import
-window.loadTrackings = loadTrackings;
-window.trackings = trackings; // Make trackings array available for debugging
-// Esponi anche la funzione per i filtri
-window.exportFilteredTrackings = exportFilteredTrackings;
