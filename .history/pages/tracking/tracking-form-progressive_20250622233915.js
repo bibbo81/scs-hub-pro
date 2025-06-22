@@ -3816,86 +3816,12 @@ if (apiResponse.events && Array.isArray(apiResponse.events)) {
                destination_country_code: extractCountryCode(formData.destination || formData.destination_port) || '-',
                date_of_departure: formData.date_of_loading || formData.date_of_departure || '-',
                departure: formatDateDDMMYYYY(formData.date_of_loading || formData.date_of_departure || formData.departure_date),
-               container_count:  apiResponse?.container_count || 
-                apiResponse?.mappedFields?.container_count || 
-                formData.container_count || 
-                1,  // Default numerico (non stringa)
+               container_count: '1',
                reference: formData.reference || '-',
                booking: apiResponse?.booking || apiResponse?.bookingNumber || '-',
-               ts_count: apiResponse?.ts_count || 
-         apiResponse?.mappedFields?.ts_count || 
-         apiResponse?.route?.ts_count || 
-         formData.ts_count || 
-         0,
+               ts_count: '0',
                
-               // ====== TRANSIT TIME CONTAINER - FIX BASATO SU DATI SHIPSGO ======
-transit_time: (() => {
-    // 1. Prima controlla se l'API ha già calcolato il transit_time
-    if (apiResponse?.transit_time && typeof apiResponse.transit_time === 'number') {
-        console.log('✅ Transit time diretto da API:', apiResponse.transit_time);
-        return apiResponse.transit_time;
-    }
-    
-    // 2. Controlla nel container info (ShipsGo v1.2 restituisce questi campi)
-    if (apiResponse?.mappedFields?.transit_time) {
-        console.log('✅ Transit time da mappedFields:', apiResponse.mappedFields.transit_time);
-        return apiResponse.mappedFields.transit_time;
-    }
-    
-    // 3. Calcola dalle date disponibili nell'API response
-    // ShipsGo fornisce: date_of_loading, eta, ata
-    const loadingDate = apiResponse?.date_of_loading || 
-                       apiResponse?.mappedFields?.date_of_loading ||
-                       formData.date_of_loading;
-                       
-    const arrivalDate = apiResponse?.eta || 
-                       apiResponse?.ata ||
-                       apiResponse?.mappedFields?.eta ||
-                       apiResponse?.mappedFields?.ata ||
-                       formData.eta ||
-                       formData.ata;
-    
-    if (loadingDate && arrivalDate) {
-        const depDate = new Date(loadingDate);
-        const arrDate = new Date(arrivalDate);
-        
-        if (!isNaN(depDate.getTime()) && !isNaN(arrDate.getTime())) {
-            const diffTime = Math.abs(arrDate - depDate);
-            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-            console.log('✅ Transit time calcolato:', diffDays, 'giorni');
-            return diffDays;
-        }
-    }
-    
-    // 4. Ultima risorsa: calcola dagli eventi
-    if (apiResponse?.events && apiResponse.events.length > 0) {
-        // Trova "loaded on vessel" (partenza)
-        const loadedEvent = apiResponse.events.find(e => 
-            e.description?.toLowerCase().includes('loaded on vessel')
-        );
-        
-        // Trova "discharged from vessel" o ultimo evento (arrivo)
-        const dischargedEvent = apiResponse.events.find(e => 
-            e.description?.toLowerCase().includes('discharged')
-        ) || apiResponse.events[apiResponse.events.length - 1];
-        
-        if (loadedEvent?.date && dischargedEvent?.date) {
-            const depDate = new Date(loadedEvent.date);
-            const arrDate = new Date(dischargedEvent.date);
-            
-            if (!isNaN(depDate.getTime()) && !isNaN(arrDate.getTime())) {
-                const diffTime = Math.abs(arrDate - depDate);
-                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                console.log('✅ Transit time calcolato da eventi:', diffDays, 'giorni');
-                return diffDays;
-            }
-        }
-    }
-    
-    // Se non riusciamo a calcolarlo, ritorna null (mostrerà "-" nella tabella)
-    console.log('⚠️ Impossibile calcolare transit time');
-    return null;
-})(), 
+                
 
                // Metadata e altri campi
                metadata: formData.metadata || {},

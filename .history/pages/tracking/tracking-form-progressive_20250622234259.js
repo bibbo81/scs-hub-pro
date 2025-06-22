@@ -3822,11 +3822,7 @@ if (apiResponse.events && Array.isArray(apiResponse.events)) {
                 1,  // Default numerico (non stringa)
                reference: formData.reference || '-',
                booking: apiResponse?.booking || apiResponse?.bookingNumber || '-',
-               ts_count: apiResponse?.ts_count || 
-         apiResponse?.mappedFields?.ts_count || 
-         apiResponse?.route?.ts_count || 
-         formData.ts_count || 
-         0,
+               ts_count: '0',
                
                // ====== TRANSIT TIME CONTAINER - FIX BASATO SU DATI SHIPSGO ======
 transit_time: (() => {

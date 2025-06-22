@@ -3816,17 +3816,10 @@ if (apiResponse.events && Array.isArray(apiResponse.events)) {
                destination_country_code: extractCountryCode(formData.destination || formData.destination_port) || '-',
                date_of_departure: formData.date_of_loading || formData.date_of_departure || '-',
                departure: formatDateDDMMYYYY(formData.date_of_loading || formData.date_of_departure || formData.departure_date),
-               container_count:  apiResponse?.container_count || 
-                apiResponse?.mappedFields?.container_count || 
-                formData.container_count || 
-                1,  // Default numerico (non stringa)
+               container_count: '1',
                reference: formData.reference || '-',
                booking: apiResponse?.booking || apiResponse?.bookingNumber || '-',
-               ts_count: apiResponse?.ts_count || 
-         apiResponse?.mappedFields?.ts_count || 
-         apiResponse?.route?.ts_count || 
-         formData.ts_count || 
-         0,
+               ts_count: '0',
                
                // ====== TRANSIT TIME CONTAINER - FIX BASATO SU DATI SHIPSGO ======
 transit_time: (() => {
@@ -3897,14 +3890,27 @@ transit_time: (() => {
     return null;
 })(), 
 
-               // Metadata e altri campi
-               metadata: formData.metadata || {},
-               events: formData.events || [],
-               vessel: formData.vessel || null,
-               route: formData.route || null,
-               lastUpdate: formData.lastUpdate || new Date().toISOString(),
-               dataSource: formData.metadata?.source || 'manual'
-           } : {}),
+// ====== FIX CREATED AT ======
+created_at: (() => {
+    // Prima verifica se abbiamo una data da ShipsGo
+    if (formData.created_at_shipsgo) {
+        return formatDateTime(formData.created_at_shipsgo);
+    }
+    
+    // Altrimenti usa la data corrente
+    return formatDateTime(new Date().toISOString());
+})(),
+
+// Aggiungi anche created_at_shipsgo se disponibile
+created_at_shipsgo: formData.created_at_shipsgo || new Date().toISOString(),
+
+// Metadata e altri campi
+metadata: formData.metadata || {},
+events: formData.events || [],
+vessel: formData.vessel || null,
+route: formData.route || null,
+lastUpdate: formData.lastUpdate || new Date().toISOString(),
+dataSource: formData.metadata?.source || 'manual'
            
            // Campi comuni sempre presenti
            created_at: formatDateTime(new Date().toISOString()),
