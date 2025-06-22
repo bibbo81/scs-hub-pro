@@ -3691,16 +3691,8 @@ if (apiResponse.events && Array.isArray(apiResponse.events)) {
                    '-'
                ),
                
-               // ====== FIX 1 APPLICATO: TRANSIT TIME ======
-               // TRANSIT TIME - converti da ore a giorni
-               transit_time: (() => {
-                   const hoursTransit = formData._raw_api_response?.route?.transit_time;
-                   if (hoursTransit && typeof hoursTransit === 'number') {
-                       // Converti ore in giorni (arrotonda per eccesso)
-                       return Math.ceil(hoursTransit / 24);  // 16 ore = 1 giorno
-                   }
-                   return 0;
-               })(),
+               // TRANSIT TIME - direttamente dal raw
+               transit_time: formData._raw_api_response?.route?.transit_time || 0,
                
                // ULTIMA POSIZIONE - dall'ultimo movimento
                ultima_posizione: (() => {
@@ -3715,11 +3707,10 @@ if (apiResponse.events && Array.isArray(apiResponse.events)) {
                // ORIGIN COUNTRY - LEGGI DAL RAW
                origin_country: formData._raw_api_response?.route?.origin?.location?.country?.name?.toUpperCase() || '-',
                
-               // ====== FIX 2 APPLICATO: DESTINATION COUNTRY ======
-               // DESTINATION COUNTRY - LEGGI DAL RAW (tutto maiuscolo)
+               // DESTINATION COUNTRY - LEGGI DAL RAW (con capitalizzazione corretta)
                destination_country: (() => {
                    const country = formData._raw_api_response?.route?.destination?.location?.country?.name;
-                   return country ? country.toUpperCase() : '-';
+                   return country ? country.charAt(0).toUpperCase() + country.slice(1).toLowerCase() : '-';
                })(),
                
                // ORIGIN COUNTRY CODE - LEGGI DAL RAW

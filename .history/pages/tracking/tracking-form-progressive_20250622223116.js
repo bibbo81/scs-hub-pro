@@ -2671,9 +2671,7 @@ async function handleEnhancedSubmit(e) {
                <span class="status-text">Errore ricerca ID</span>
            `;
        }
-   }
-   
-   async function detectAndUpdateType(trackingNumber) {
+   }async function detectAndUpdateType(trackingNumber) {
        // Simple detection logic
        let type = 'unknown';
        let carrier = '';
@@ -3691,8 +3689,8 @@ if (apiResponse.events && Array.isArray(apiResponse.events)) {
                    '-'
                ),
                
-               // ====== FIX 1 APPLICATO: TRANSIT TIME ======
-               // TRANSIT TIME - converti da ore a giorni
+               // TRANSIT TIME - direttamente dal raw
+               // 🔧 FIX 1: TRANSIT TIME (converti da ore a giorni)
                transit_time: (() => {
                    const hoursTransit = formData._raw_api_response?.route?.transit_time;
                    if (hoursTransit && typeof hoursTransit === 'number') {
@@ -3715,8 +3713,7 @@ if (apiResponse.events && Array.isArray(apiResponse.events)) {
                // ORIGIN COUNTRY - LEGGI DAL RAW
                origin_country: formData._raw_api_response?.route?.origin?.location?.country?.name?.toUpperCase() || '-',
                
-               // ====== FIX 2 APPLICATO: DESTINATION COUNTRY ======
-               // DESTINATION COUNTRY - LEGGI DAL RAW (tutto maiuscolo)
+               // 🔧 FIX 2: DESTINATION COUNTRY (tutto maiuscolo)
                destination_country: (() => {
                    const country = formData._raw_api_response?.route?.destination?.location?.country?.name;
                    return country ? country.toUpperCase() : '-';
@@ -3967,6 +3964,7 @@ if (apiResponse.events && Array.isArray(apiResponse.events)) {
                </div>
            </div>
        ` : `
+           <div` : `
            <div class="result-error">
                <i class="fas fa-exclamation-circle"></i>
                <div>
@@ -4413,9 +4411,7 @@ if (apiResponse.events && Array.isArray(apiResponse.events)) {
           document.querySelectorAll('.error').forEach(el => el.classList.remove('error'));
           document.querySelectorAll('.field-error').forEach(el => el.remove());
       }
-  };
-
-  // 3. LOG di conferma
+  };// 3. LOG di conferma
   console.log('✅ PROGRESSIVE FORM: Funzioni esposte globalmente');
   console.log('   - window.showWorkflowProgress:', typeof window.showWorkflowProgress);
   console.log('   - window.TrackingErrorHandler:', typeof window.TrackingErrorHandler);
@@ -4425,26 +4421,27 @@ if (apiResponse.events && Array.isArray(apiResponse.events)) {
   // ESPONI FUNZIONI PER DEBUG
   window.updateCarrierWithShipsGoData = updateCarrierWithShipsGoData;
   window.processEnhancedTracking = processEnhancedTracking;
+  window.detectTrackingType = detectTrackingType;
   console.log('✅ PROGRESSIVE FORM: Funzioni di debug esposte');
   console.log('   - window.updateCarrierWithShipsGoData:', typeof window.updateCarrierWithShipsGoData);
   console.log('   - window.detectTrackingType:', typeof window.detectTrackingType);
 
-// Fix 4: Assicurati che la funzione loadTrackings sia disponibile globalmente
-if (!window.loadTrackings && window.trackingInit) {
-   window.loadTrackings = async function() {
-       console.log('🔄 Triggering tracking refresh...');
-       
-       // Prova a trovare la funzione loadTrackings nel contesto di tracking
-       const trackingContext = window.trackingInit || window;
-       if (typeof trackingContext.loadTrackings === 'function') {
-           await trackingContext.loadTrackings();
-       } else {
-           // Fallback: ricarica la pagina
-           console.log('⚠️ loadTrackings non trovato, ricarico la pagina');
-           location.reload();
-       }
-   };
-}
+  // Fix 4: Assicurati che la funzione loadTrackings sia disponibile globalmente
+  if (!window.loadTrackings && window.trackingInit) {
+     window.loadTrackings = async function() {
+         console.log('🔄 Triggering tracking refresh...');
+         
+         // Prova a trovare la funzione loadTrackings nel contesto di tracking
+         const trackingContext = window.trackingInit || window;
+         if (typeof trackingContext.loadTrackings === 'function') {
+             await trackingContext.loadTrackings();
+         } else {
+             // Fallback: ricarica la pagina
+             console.log('⚠️ loadTrackings non trovato, ricarico la pagina');
+             location.reload();
+         }
+     };
+  }
   
   // FIX 4: Debug helper per verificare l'ultimo tracking salvato
   window.debugLastTracking = function() {
@@ -4458,6 +4455,8 @@ if (!window.loadTrackings && window.trackingInit) {
           console.log('  - metadata:', lastTracking.metadata);
           console.log('  - events:', lastTracking.events?.length || 0, 'eventi');
           console.log('  - dataSource:', lastTracking.dataSource);
+          console.log('  - transit_time:', lastTracking.transit_time);
+          console.log('  - destination_country:', lastTracking.destination_country);
           return lastTracking;
       } else {
           console.log('❌ Nessun tracking in localStorage');
@@ -4469,6 +4468,11 @@ if (!window.loadTrackings && window.trackingInit) {
   window.debugTableColumns = function() {
       // Recupera l'ultimo tracking
       const trackings = JSON.parse(localStorage.getItem('trackings') || '[]');
+      if (trackings.length === 0) {
+          console.log('❌ Nessun tracking da debuggare');
+          return null;
+      }
+      
       const lastTracking = trackings[trackings.length - 1];
       
       console.log('🔍 DEBUG COLONNE MANCANTI:');
@@ -4512,6 +4516,14 @@ if (!window.loadTrackings && window.trackingInit) {
       console.log('  - createdAt:', lastTracking.createdAt);
       console.log('  - created:', lastTracking.created);
       
+      // Verifica transit time
+      console.log('\n⏱️ TRANSIT TIME:');
+      console.log('  - transit_time:', lastTracking.transit_time, 'giorni');
+      
+      // Verifica destination country
+      console.log('\n🌍 DESTINATION COUNTRY:');
+      console.log('  - destination_country:', lastTracking.destination_country);
+      
       // Mostra TUTTI i campi disponibili
       console.log('\n📊 TUTTI I CAMPI DISPONIBILI:');
       console.log(Object.keys(lastTracking).sort());
@@ -4519,44 +4531,70 @@ if (!window.loadTrackings && window.trackingInit) {
       return lastTracking;
   };
 
-// Fix 5: Debug helper per verificare lo stato
-window.debugAWBIssue = function() {
-   console.log('🔍 DEBUG AWB ISSUE:');
-   console.log('1. Airlines Cache:', airlinesCache);
-   console.log('2. Airlines Cache Time:', new Date(airlinesCacheTime));
-   console.log('3. Detected AWB ID:', window.detectedAwbId);
-   
-   // Controlla localStorage
-   const trackings = JSON.parse(localStorage.getItem('trackings') || '[]');
-   console.log('4. Total trackings in localStorage:', trackings.length);
-   
-   if (trackings.length > 0) {
-       const lastTracking = trackings[trackings.length - 1];
-       console.log('5. Last tracking:', lastTracking);
-       console.log('6. Last tracking type:', lastTracking.tracking_type);
-       console.log('7. Last tracking carrier:', lastTracking.carrier);
-   }
-   
-   // Controlla se le funzioni esistono
-   console.log('8. formatDateTime exists:', typeof formatDateTime);
-   console.log('9. extractCountryCode exists:', typeof extractCountryCode);
-   console.log('10. loadTrackings exists:', typeof window.loadTrackings);
-};
+  // Fix 5: Debug helper per verificare lo stato AWB
+  window.debugAWBIssue = function() {
+     console.log('🔍 DEBUG AWB ISSUE:');
+     console.log('1. Airlines Cache:', airlinesCache);
+     console.log('2. Airlines Cache Time:', new Date(airlinesCacheTime));
+     console.log('3. Detected AWB ID:', window.detectedAwbId);
+     
+     // Controlla localStorage
+     const trackings = JSON.parse(localStorage.getItem('trackings') || '[]');
+     console.log('4. Total trackings in localStorage:', trackings.length);
+     
+     if (trackings.length > 0) {
+         const lastTracking = trackings[trackings.length - 1];
+         console.log('5. Last tracking:', lastTracking);
+         console.log('6. Last tracking type:', lastTracking.tracking_type);
+         console.log('7. Last tracking carrier:', lastTracking.carrier);
+         console.log('8. Transit time:', lastTracking.transit_time);
+         console.log('9. Destination country:', lastTracking.destination_country);
+     }
+     
+     // Controlla se le funzioni esistono
+     console.log('10. formatDateTime exists:', typeof formatDateTime);
+     console.log('11. extractCountryCode exists:', typeof extractCountryCode);
+     console.log('12. loadTrackings exists:', typeof window.loadTrackings);
+  };
   
   // 6. INIZIALIZZA AL CARICAMENTO
   document.addEventListener('DOMContentLoaded', () => {
       loadAirlinesFromStorage();
+      console.log('📋 DOMContentLoaded: Airlines cache loaded');
   });
-// Fix 6: Aggiungi un listener per ricaricare la cache airlines se vuota
-document.addEventListener('DOMContentLoaded', function() {
-   // Se la cache airlines è vuota e abbiamo le API, ricarica
-   if (!airlinesCache && window.trackingService && window.trackingService.hasApiKeys()) {
-       console.log('🔄 Ricarico cache airlines...');
-       updateCarrierWithShipsGoData('awb').then(() => {
-           console.log('✅ Cache airlines ricaricata');
-       }).catch(err => {
-           console.error('❌ Errore ricaricamento cache airlines:', err);
-       });
-   }
-});
-})();
+  
+  // Fix 6: Aggiungi un listener per ricaricare la cache airlines se vuota
+  document.addEventListener('DOMContentLoaded', function() {
+     // Se la cache airlines è vuota e abbiamo le API, ricarica
+     if (!airlinesCache && window.trackingService && window.trackingService.hasApiKeys()) {
+         console.log('🔄 Ricarico cache airlines...');
+         updateCarrierWithShipsGoData('awb').then(() => {
+             console.log('✅ Cache airlines ricaricata');
+         }).catch(err => {
+             console.error('❌ Errore ricaricamento cache airlines:', err);
+         });
+     }
+  });
+
+  // ESPONI FUNZIONI UTILI GLOBALMENTE
+  window.formatDateDDMMYYYY = formatDateDDMMYYYY;
+  window.formatDateTime = formatDateTime;
+  window.extractCountryCode = extractCountryCode;
+  window.getCountryFromAirport = getCountryFromAirport;
+  
+  // Debug finale per verificare che tutto sia caricato
+  console.log('🚀 PROGRESSIVE FORM: Caricamento completato!');
+  console.log('📊 Funzioni disponibili:', {
+      showEnhancedTrackingForm: !!window.showEnhancedTrackingForm,
+      TrackingErrorHandler: !!window.TrackingErrorHandler,
+      QuickContainerActions: !!window.QuickContainerActions,
+      showWorkflowProgress: !!window.showWorkflowProgress,
+      updateCarrierWithShipsGoData: !!window.updateCarrierWithShipsGoData,
+      processEnhancedTracking: !!window.processEnhancedTracking,
+      detectTrackingType: !!window.detectTrackingType,
+      formatDateDDMMYYYY: !!window.formatDateDDMMYYYY,
+      formatDateTime: !!window.formatDateTime,
+      extractCountryCode: !!window.extractCountryCode
+  });
+
+})(); // CHIUSURA DELL'IIFE

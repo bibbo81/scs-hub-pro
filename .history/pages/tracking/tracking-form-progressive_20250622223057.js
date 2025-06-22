@@ -2671,9 +2671,7 @@ async function handleEnhancedSubmit(e) {
                <span class="status-text">Errore ricerca ID</span>
            `;
        }
-   }
-   
-   async function detectAndUpdateType(trackingNumber) {
+   }async function detectAndUpdateType(trackingNumber) {
        // Simple detection logic
        let type = 'unknown';
        let carrier = '';
@@ -3691,8 +3689,8 @@ if (apiResponse.events && Array.isArray(apiResponse.events)) {
                    '-'
                ),
                
-               // ====== FIX 1 APPLICATO: TRANSIT TIME ======
-               // TRANSIT TIME - converti da ore a giorni
+               // TRANSIT TIME - direttamente dal raw
+               // 🔧 FIX 1: TRANSIT TIME (converti da ore a giorni)
                transit_time: (() => {
                    const hoursTransit = formData._raw_api_response?.route?.transit_time;
                    if (hoursTransit && typeof hoursTransit === 'number') {
@@ -3715,8 +3713,7 @@ if (apiResponse.events && Array.isArray(apiResponse.events)) {
                // ORIGIN COUNTRY - LEGGI DAL RAW
                origin_country: formData._raw_api_response?.route?.origin?.location?.country?.name?.toUpperCase() || '-',
                
-               // ====== FIX 2 APPLICATO: DESTINATION COUNTRY ======
-               // DESTINATION COUNTRY - LEGGI DAL RAW (tutto maiuscolo)
+               // 🔧 FIX 2: DESTINATION COUNTRY (tutto maiuscolo)
                destination_country: (() => {
                    const country = formData._raw_api_response?.route?.destination?.location?.country?.name;
                    return country ? country.toUpperCase() : '-';
@@ -3967,6 +3964,7 @@ if (apiResponse.events && Array.isArray(apiResponse.events)) {
                </div>
            </div>
        ` : `
+           <div` : `
            <div class="result-error">
                <i class="fas fa-exclamation-circle"></i>
                <div>
@@ -4414,149 +4412,3 @@ if (apiResponse.events && Array.isArray(apiResponse.events)) {
           document.querySelectorAll('.field-error').forEach(el => el.remove());
       }
   };
-
-  // 3. LOG di conferma
-  console.log('✅ PROGRESSIVE FORM: Funzioni esposte globalmente');
-  console.log('   - window.showWorkflowProgress:', typeof window.showWorkflowProgress);
-  console.log('   - window.TrackingErrorHandler:', typeof window.TrackingErrorHandler);
-  console.log('   - window.QuickContainerActions:', typeof window.QuickContainerActions);
-  console.log('   - window.showEnhancedTrackingForm:', typeof window.showEnhancedTrackingForm);
-  
-  // ESPONI FUNZIONI PER DEBUG
-  window.updateCarrierWithShipsGoData = updateCarrierWithShipsGoData;
-  window.processEnhancedTracking = processEnhancedTracking;
-  console.log('✅ PROGRESSIVE FORM: Funzioni di debug esposte');
-  console.log('   - window.updateCarrierWithShipsGoData:', typeof window.updateCarrierWithShipsGoData);
-  console.log('   - window.detectTrackingType:', typeof window.detectTrackingType);
-
-// Fix 4: Assicurati che la funzione loadTrackings sia disponibile globalmente
-if (!window.loadTrackings && window.trackingInit) {
-   window.loadTrackings = async function() {
-       console.log('🔄 Triggering tracking refresh...');
-       
-       // Prova a trovare la funzione loadTrackings nel contesto di tracking
-       const trackingContext = window.trackingInit || window;
-       if (typeof trackingContext.loadTrackings === 'function') {
-           await trackingContext.loadTrackings();
-       } else {
-           // Fallback: ricarica la pagina
-           console.log('⚠️ loadTrackings non trovato, ricarico la pagina');
-           location.reload();
-       }
-   };
-}
-  
-  // FIX 4: Debug helper per verificare l'ultimo tracking salvato
-  window.debugLastTracking = function() {
-      const trackings = JSON.parse(localStorage.getItem('trackings') || '[]');
-      if (trackings.length > 0) {
-          const lastTracking = trackings[trackings.length - 1];
-          console.log('📦 Ultimo tracking salvato:', JSON.stringify(lastTracking, null, 2));
-          console.log('🔍 Campi chiave:');
-          console.log('  - carrier:', lastTracking.carrier);
-          console.log('  - carrier_code:', lastTracking.carrier_code);
-          console.log('  - metadata:', lastTracking.metadata);
-          console.log('  - events:', lastTracking.events?.length || 0, 'eventi');
-          console.log('  - dataSource:', lastTracking.dataSource);
-          return lastTracking;
-      } else {
-          console.log('❌ Nessun tracking in localStorage');
-          return null;
-      }
-  };
-
-  // Aggiungi questa funzione di debug in tracking-form-progressive.js
-  window.debugTableColumns = function() {
-      // Recupera l'ultimo tracking
-      const trackings = JSON.parse(localStorage.getItem('trackings') || '[]');
-      const lastTracking = trackings[trackings.length - 1];
-      
-      console.log('🔍 DEBUG COLONNE MANCANTI:');
-      console.log('=====================================');
-      
-      // Verifica destination country code
-      console.log('📍 DESTINATION COUNTRY CODE:');
-      console.log('  - destination_country_code:', lastTracking.destination_country_code);
-      console.log('  - destinationCountryCode:', lastTracking.destinationCountryCode);
-      console.log('  - destination:', lastTracking.destination);
-      console.log('  - destination_port:', lastTracking.destination_port);
-      
-      // Verifica date of departure
-      console.log('\n📅 DATE OF DEPARTURE:');
-      console.log('  - date_of_departure:', lastTracking.date_of_departure);
-      console.log('  - dateOfDeparture:', lastTracking.dateOfDeparture);
-      console.log('  - departure_date:', lastTracking.departure_date);
-      console.log('  - departureDate:', lastTracking.departureDate);
-      console.log('  - departure (for table):', lastTracking.departure); // Check the new field
-      
-      // Verifica container count
-      console.log('\n📦 CONTAINER COUNT:');
-      console.log('  - container_count:', lastTracking.container_count);
-      console.log('  - containerCount:', lastTracking.containerCount);
-      console.log('  - containers:', lastTracking.containers);
-      
-      // Verifica riferimento
-      console.log('\n📋 RIFERIMENTO:');
-      console.log('  - riferimento:', lastTracking.riferimento);
-      console.log('  - reference:', lastTracking.reference);
-      
-      // Verifica booking
-      console.log('\n🎫 BOOKING:');
-      console.log('  - booking:', lastTracking.booking);
-      console.log('  - bookingNumber:', lastTracking.bookingNumber);
-      console.log('  - booking_number:', lastTracking.booking_number);
-      
-      // Verifica created at
-      console.log('\n🕐 CREATED AT:');
-      console.log('  - created_at:', lastTracking.created_at);
-      console.log('  - createdAt:', lastTracking.createdAt);
-      console.log('  - created:', lastTracking.created);
-      
-      // Mostra TUTTI i campi disponibili
-      console.log('\n📊 TUTTI I CAMPI DISPONIBILI:');
-      console.log(Object.keys(lastTracking).sort());
-      
-      return lastTracking;
-  };
-
-// Fix 5: Debug helper per verificare lo stato
-window.debugAWBIssue = function() {
-   console.log('🔍 DEBUG AWB ISSUE:');
-   console.log('1. Airlines Cache:', airlinesCache);
-   console.log('2. Airlines Cache Time:', new Date(airlinesCacheTime));
-   console.log('3. Detected AWB ID:', window.detectedAwbId);
-   
-   // Controlla localStorage
-   const trackings = JSON.parse(localStorage.getItem('trackings') || '[]');
-   console.log('4. Total trackings in localStorage:', trackings.length);
-   
-   if (trackings.length > 0) {
-       const lastTracking = trackings[trackings.length - 1];
-       console.log('5. Last tracking:', lastTracking);
-       console.log('6. Last tracking type:', lastTracking.tracking_type);
-       console.log('7. Last tracking carrier:', lastTracking.carrier);
-   }
-   
-   // Controlla se le funzioni esistono
-   console.log('8. formatDateTime exists:', typeof formatDateTime);
-   console.log('9. extractCountryCode exists:', typeof extractCountryCode);
-   console.log('10. loadTrackings exists:', typeof window.loadTrackings);
-};
-  
-  // 6. INIZIALIZZA AL CARICAMENTO
-  document.addEventListener('DOMContentLoaded', () => {
-      loadAirlinesFromStorage();
-  });
-// Fix 6: Aggiungi un listener per ricaricare la cache airlines se vuota
-document.addEventListener('DOMContentLoaded', function() {
-   // Se la cache airlines è vuota e abbiamo le API, ricarica
-   if (!airlinesCache && window.trackingService && window.trackingService.hasApiKeys()) {
-       console.log('🔄 Ricarico cache airlines...');
-       updateCarrierWithShipsGoData('awb').then(() => {
-           console.log('✅ Cache airlines ricaricata');
-       }).catch(err => {
-           console.error('❌ Errore ricaricamento cache airlines:', err);
-       });
-   }
-});
-})();
