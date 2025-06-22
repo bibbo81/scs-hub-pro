@@ -1235,7 +1235,9 @@
                 background: #0056b3 !important;
                 box-shadow: 0 4px 12px rgba(0, 123, 255, 0.3) !important;
                 transform: translateY(-1px);
-            }/* Import section - NUOVO LAYOUT COMPATTO */
+            }
+            
+            /* Import section - NUOVO LAYOUT COMPATTO */
             .import-fullwidth {
                 flex: 1;
                 padding: 30px 30px 0 30px;
@@ -3406,9 +3408,7 @@ function extractCountryCode(portName) {
     
     // Default
     return '-';
-}
-
-async function processEnhancedTracking(formData) {
+}async function processEnhancedTracking(formData) {
        updateWorkflowStep(0, 'completed', 'Validato');
        
        let apiResponse = null; // Initialize apiResponse
@@ -3676,10 +3676,11 @@ if (apiResponse.events && Array.isArray(apiResponse.events)) {
     apiOperation: formData.apiOperation,
     reference: formData.reference || '-',
                
-               // POI i campi specifici AWB con i valori corretti - CORREZIONI APPLICATE
-               airline: formData.carrier || formData._raw_api_response?.airline?.iata || '-',  // CORRETTO: 'CA' -> '-'
-               carrier: formData.carrier || formData._raw_api_response?.airline?.iata || '-',  // CORRETTO: 'CA' -> '-'
-               carrier_code: formData.carrier || formData._raw_api_response?.airline?.iata || '-',  // CORRETTO: 'CA' -> '-'
+               // POI i campi specifici AWB con i valori corretti
+               airline: formData.carrier || formData._raw_api_response?.airline?.iata || 'CA',
+    airline: formData.carrier || formData._raw_api_response?.airline?.iata || '-',
+carrier: formData.carrier || formData._raw_api_response?.airline?.iata || '-', 
+carrier_code: formData.carrier || formData._raw_api_response?.airline?.iata || '-',
                
                // IMPORTANTE: Salva i dati API grezzi
                _raw_api_response: formData._raw_api_response || {},
@@ -3851,7 +3852,9 @@ if (apiResponse.events && Array.isArray(apiResponse.events)) {
            localStorage.setItem('trackings', JSON.stringify(trackings));
            return { success: true, message: 'Tracking aggiunto con successo!' };
        }
-   }// ========================================
+   }
+   
+   // ========================================
    // FILE IMPORT
    // ========================================
    
