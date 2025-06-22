@@ -812,22 +812,13 @@ class TrackingService {
             mappedData.co2_emission = mappedData.co2_emission + ' tons';
         }
         
-        // Transit time formatting
-      if (apiData.FormatedTransitTime || apiData.TransitTime) {
-    const timeValue = apiData.FormatedTransitTime || apiData.TransitTime;
-    
-    // Se è un numero, usalo direttamente
-    if (typeof timeValue === 'number') {
-        mappedData.transit_time = timeValue;
-    } 
-    // Se è una stringa, estrai il numero
-    else if (typeof timeValue === 'string') {
-        const match = timeValue.match(/\d+/);
-        mappedData.transit_time = match ? parseInt(match[0]) : 0;
-    } 
-    else {
-        mappedData.transit_time = 0;
-    }
+        if (apiData.FormatedTransitTime) {
+    // Se è già formattato, estraiamo solo il numero
+    const match = apiData.FormatedTransitTime.match(/\d+/);
+    mappedData.transit_time = match ? parseInt(match[0]) : 0;
+} else if (apiData.TransitTime) {
+    // Salva SOLO il numero, non aggiungere ' days'
+    mappedData.transit_time = parseInt(apiData.TransitTime) || 0;
 }
         
         // TS Count (transshipment count)

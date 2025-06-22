@@ -813,22 +813,11 @@ class TrackingService {
         }
         
         // Transit time formatting
-      if (apiData.FormatedTransitTime || apiData.TransitTime) {
-    const timeValue = apiData.FormatedTransitTime || apiData.TransitTime;
-    
-    // Se è un numero, usalo direttamente
-    if (typeof timeValue === 'number') {
-        mappedData.transit_time = timeValue;
-    } 
-    // Se è una stringa, estrai il numero
-    else if (typeof timeValue === 'string') {
-        const match = timeValue.match(/\d+/);
-        mappedData.transit_time = match ? parseInt(match[0]) : 0;
-    } 
-    else {
-        mappedData.transit_time = 0;
-    }
-}
+        if (apiData.FormatedTransitTime) {
+            mappedData.transit_time = apiData.FormatedTransitTime;
+        } else if (apiData.TransitTime) {
+            mappedData.transit_time = apiData.TransitTime + ' days';
+        }
         
         // TS Count (transshipment count)
         if (apiData.TSPorts && Array.isArray(apiData.TSPorts)) {
