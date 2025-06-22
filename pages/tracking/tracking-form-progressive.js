@@ -3288,6 +3288,29 @@ if (apiResponse.events && Array.isArray(apiResponse.events)) {
                 }
             } : {}),
             
+            // AGGIUNGI QUESTO BLOCCO SPECIFICO PER AWB
+            ...(formData.trackingType === 'awb' ? {
+                // Campo AIRLINE per la vista AWB
+                airline: formData.carrier || apiResponse?.carrier?.code || 'UNKNOWN',
+                
+                // Campo DATE OF ARRIVAL per AWB
+                date_of_arrival: apiResponse?.route?.destination?.eta || 
+                                apiResponse?.metadata?.date_of_arrival ||
+                                formData.eta || '-',
+                
+                // Campo TRANSIT TIME per AWB
+                transit_time: apiResponse?.metadata?.transitTime || 
+                             apiResponse?.route?.transit_time || '-',
+                
+                // Campo ULTIMA POSIZIONE per AWB  
+                ultima_posizione: apiResponse?.events?.[0]?.location || 
+                                 apiResponse?.metadata?.last_location || '-',
+                
+                // Altri campi AWB se necessari
+                awb_number: formData.trackingNumber,
+                tags: formData.tags || '-'
+            } : {}),
+            
             // Prima includi TUTTI i campi mappati dall'API (se esistono)
             ...formData, // Usare formData che ora contiene i mappedData
             
