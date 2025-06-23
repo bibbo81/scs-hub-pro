@@ -3,1310 +3,616 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Supply Chain Hub - Impostazioni</title>
+    <title>Login - Supply Chain Hub</title>
     
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23007AFF'%3E%3Cpath d='M20 8h-3V4H3c-1.1 0-2 .9-2 2v11h2c0 1.66 1.34 3 3 3s3-1.34 3-3h6c0 1.66 1.34 3 3 3s3-1.34 3-3h2v-5l-4zM6 18.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm13.5-9l1.96 2.5H17V9.5h2.5zm-1.5 9c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z'/%3E%3C/svg%3E">
     
+    <link rel="stylesheet" href="/assets/css/solarium.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
-    <link rel="stylesheet" href="/assets/css/solarium.css">
-
+    <!-- Supabase -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     
-    <script type="module">
-        // Import core modules IDENTICI a tracking.html
-        import api from '/core/api-client.js';
-        import headerComponent from '/core/header-component.js';
-        import notificationSystem from '/core/notification-system.js';
-        import modalSystem from '/core/modal-system.js';
-        
-        // Make modules available globally for backward compatibility
-        window.api = api;
-        window.headerComponent = headerComponent;
-        window.NotificationSystem = notificationSystem;
-        window.ModalSystem = modalSystem;
-    </script>
-    
-    <script type="module">
-        // Import e ESPOSIZIONE CORRETTA dei servizi Supabase
-        (async () => {
-            try {
-                console.log('[Settings] Loading Supabase services...');
-                
-                // Import Supabase client
-                const { supabase } = await import('/core/services/supabase-client.js');
-                window.supabase = supabase;
-                console.log('[Settings] ✅ Supabase loaded');
-                
-                // Import UserSettings service
-                const module = await import('/core/services/user-settings-service.js');
-                window.userSettingsService = module.default;
-                console.log('[Settings] ✅ UserSettingsService loaded');
-                
-                // Trigger evento quando i servizi sono pronti
-                window.dispatchEvent(new Event('supabaseReady'));
-                
-            } catch (error) {
-                console.error('[Settings] ❌ Error loading services:', error);
-            }
-        })();
-    </script>
-
-    <script src="/core/auth.js"></script>
-    <script src="/core/auth-init.js"></script>
-    
-    <script type="module">
-        import authGuard from '/core/auth-guard.js';
-        // Il guard si auto-inizializza
-    </script>
-    
-    <script src="/pages/settings/index.js"></script>
-</head>
-<body>
-    <div id="header-root"></div>
-
-    <main class="sol-main-content" id="mainContent">
-        <div class="sol-page-header">
-            <div>
-                <h1 class="sol-page-title">Impostazioni</h1>
-                <p class="sol-page-subtitle">Configura Supply Chain Hub per le tue esigenze</p>
-            </div>
-            <div class="sol-page-actions">
-                <button class="sol-btn sol-btn-glass" id="resetSettingsBtn">
-                    <i class="fas fa-undo"></i>
-                    <span>Ripristina</span>
-                </button>
-                <button class="sol-btn sol-btn-glass" id="exportSettingsBtn">
-                    <i class="fas fa-download"></i>
-                    <span>Esporta Config</span>
-                </button>
-                <button class="sol-btn sol-btn-primary" id="saveAllSettingsBtn">
-                    <i class="fas fa-save"></i>
-                    <span>Salva Tutto</span>
-                </button>
-            </div>
-        </div>
-
-        <div class="sol-card" style="margin-bottom: 2rem;">
-            <div class="sol-tabs" id="settingsTabs">
-                <button class="sol-tab active" data-section="general">
-                    <i class="fas fa-building"></i>
-                    <span>Generale</span>
-                </button>
-                <button class="sol-tab" data-section="import-export">
-                    <i class="fas fa-sync-alt"></i>
-                    <span>Import/Export</span>
-                </button>
-                <button class="sol-tab" data-section="integrations">
-                    <i class="fas fa-plug"></i>
-                    <span>Integrazioni</span>
-                </button>
-                <button class="sol-tab" data-section="notifications">
-                    <i class="fas fa-bell"></i>
-                    <span>Notifiche</span>
-                </button>
-                <button class="sol-tab" data-section="security">
-                    <i class="fas fa-shield-alt"></i>
-                    <span>Sicurezza</span>
-                </button>
-                <button class="sol-tab" data-section="advanced">
-                    <i class="fas fa-sliders-h"></i>
-                    <span>Avanzate</span>
-                </button>
-            </div>
-        </div>
-
-        <div id="api-status" class="sol-alert sol-alert-success" style="display: none; margin-bottom: 2rem;">
-            <i class="fas fa-check-circle"></i>
-            <span>Impostazioni salvate con successo</span>
-        </div>
-
-        <div id="general" class="sol-tab-content active">
-            <div class="sol-card" style="margin-bottom: 2rem;">
-                <div class="sol-card-header">
-                    <h3 class="sol-card-title">
-                        <i class="fas fa-building" style="margin-right: 0.5rem; color: var(--sol-primary);"></i>
-                        Informazioni Azienda
-                    </h3>
-                </div>
-                <div class="sol-card-body">
-                    <p style="color: var(--sol-gray-600); margin-bottom: 1.5rem;">
-                        Gestisci le informazioni base della tua organizzazione
-                    </p>
-                    
-                    <form id="company-form" class="sol-form">
-                        <div class="sol-form-grid">
-                            <div class="sol-form-group">
-                                <label class="sol-form-label">
-                                    <i class="fas fa-building"></i>
-                                    Nome Azienda
-                                </label>
-                                <input type="text" class="sol-form-input" id="companyName" placeholder="Nome Azienda SpA">
-                                <span class="sol-form-hint">Questo nome apparirà nei report e documenti</span>
-                            </div>
-
-                            <div class="sol-form-group">
-                                <label class="sol-form-label">
-                                    <i class="fas fa-id-card"></i>
-                                    Partita IVA
-                                </label>
-                                <input type="text" class="sol-form-input" id="vatNumber" placeholder="IT12345678901">
-                            </div>
-
-                            <div class="sol-form-group">
-                                <label class="sol-form-label">
-                                    <i class="fas fa-map-marker-alt"></i>
-                                    Indirizzo
-                                </label>
-                                <input type="text" class="sol-form-input" id="address" placeholder="Via Roma 1">
-                            </div>
-
-                            <div class="sol-form-group">
-                                <label class="sol-form-label">
-                                    <i class="fas fa-city"></i>
-                                    Città
-                                </label>
-                                <input type="text" class="sol-form-input" id="city" placeholder="Milano">
-                            </div>
-
-                            <div class="sol-form-group">
-                                <label class="sol-form-label">
-                                    <i class="fas fa-flag"></i>
-                                    Paese
-                                </label>
-                                <select class="sol-form-select" id="country">
-                                    <option value="IT">Italia</option>
-                                    <option value="FR">Francia</option>
-                                    <option value="DE">Germania</option>
-                                    <option value="ES">Spagna</option>
-                                    <option value="UK">Regno Unito</option>
-                                </select>
-                            </div>
-
-                            <div class="sol-form-group">
-                                <label class="sol-form-label">
-                                    <i class="fas fa-mail-bulk"></i>
-                                    CAP
-                                </label>
-                                <input type="text" class="sol-form-input" id="postalCode" placeholder="20121">
-                            </div>
-                        </div>
-
-                        <div class="sol-modal-footer" style="border-top: 1px solid var(--sol-gray-200); margin-top: 2rem; padding-top: 1.5rem;">
-                            <button type="submit" class="sol-btn sol-btn-primary">
-                                <i class="fas fa-save"></i>
-                                Salva Modifiche
-                            </button>
-                            <button type="button" class="sol-btn sol-btn-secondary">
-                                <i class="fas fa-times"></i>
-                                Annulla
-                            </button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-
-            <div class="sol-card">
-                <div class="sol-card-header">
-                    <h3 class="sol-card-title">
-                        <i class="fas fa-globe" style="margin-right: 0.5rem; color: var(--sol-info);"></i>
-                        Preferenze Regionali
-                    </h3>
-                </div>
-                <div class="sol-card-body">
-                    <p style="color: var(--sol-gray-600); margin-bottom: 1.5rem;">
-                        Imposta lingua, fuso orario e formato dati
-                    </p>
-                    
-                    <form id="regional-form" class="sol-form">
-                        <div class="sol-form-grid">
-                            <div class="sol-form-group">
-                                <label class="sol-form-label">
-                                    <i class="fas fa-language"></i>
-                                    Lingua
-                                </label>
-                                <select class="sol-form-select" id="language">
-                                    <option value="it">Italiano</option>
-                                    <option value="en">English</option>
-                                    <option value="fr">Français</option>
-                                    <option value="de">Deutsch</option>
-                                    <option value="es">Español</option>
-                                </select>
-                            </div>
-
-                            <div class="sol-form-group">
-                                <label class="sol-form-label">
-                                    <i class="fas fa-clock"></i>
-                                    Fuso Orario
-                                </label>
-                                <select class="sol-form-select" id="timezone">
-                                    <option value="Europe/Rome">Europe/Rome (GMT+1)</option>
-                                    <option value="Europe/London">Europe/London (GMT)</option>
-                                    <option value="Europe/Paris">Europe/Paris (GMT+1)</option>
-                                    <option value="Europe/Berlin">Europe/Berlin (GMT+1)</option>
-                                </select>
-                            </div>
-
-                            <div class="sol-form-group">
-                                <label class="sol-form-label">
-                                    <i class="fas fa-calendar-alt"></i>
-                                    Formato Data
-                                </label>
-                                <select class="sol-form-select" id="dateFormat">
-                                    <option value="dd/mm/yyyy">DD/MM/YYYY</option>
-                                    <option value="mm/dd/yyyy">MM/DD/YYYY</option>
-                                    <option value="yyyy-mm-dd">YYYY-MM-DD</option>
-                                </select>
-                            </div>
-
-                            <div class="sol-form-group">
-                                <label class="sol-form-label">
-                                    <i class="fas fa-euro-sign"></i>
-                                    Valuta Predefinita
-                                </label>
-                                <select class="sol-form-select" id="currency">
-                                    <option value="EUR">EUR (€)</option>
-                                    <option value="USD">USD ($)</option>
-                                    <option value="GBP">GBP (£)</option>
-                                    <option value="CHF">CHF (Fr.)</option>
-                                </select>
-                            </div>
-                        </div>
-
-                        <div class="sol-modal-footer" style="border-top: 1px solid var(--sol-gray-200); margin-top: 2rem; padding-top: 1.5rem;">
-                            <button type="submit" class="sol-btn sol-btn-primary">
-                                <i class="fas fa-save"></i>
-                                Salva Preferenze
-                            </button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        </div>
-
-        <div id="import-export" class="sol-tab-content">
-            <div class="sol-card" style="margin-bottom: 2rem;">
-                <div class="sol-card-header">
-                    <h3 class="sol-card-title">
-                        <i class="fas fa-upload" style="margin-right: 0.5rem; color: var(--sol-success);"></i>
-                        Configurazione Import
-                    </h3>
-                </div>
-                <div class="sol-card-body">
-                    <p style="color: var(--sol-gray-600); margin-bottom: 1.5rem;">
-                        Imposta le regole per l'importazione dei dati
-                    </p>
-
-                    <div class="settings-toggle-group">
-                        <div class="toggle-info">
-                            <label class="toggle-label">Salta record duplicati</label>
-                            <p class="toggle-description">Non importare righe che hanno lo stesso ID di tracking</p>
-                        </div>
-                        <label class="toggle-switch">
-                            <input type="checkbox" id="skipDuplicates" checked>
-                            <span class="toggle-slider"></span>
-                        </label>
-                    </div>
-
-                    <div class="settings-toggle-group">
-                        <div class="toggle-info">
-                            <label class="toggle-label">Validazione automatica</label>
-                            <p class="toggle-description">Controlla la correttezza dei dati prima dell'import</p>
-                        </div>
-                        <label class="toggle-switch">
-                            <input type="checkbox" id="autoValidate" checked>
-                            <span class="toggle-slider"></span>
-                        </label>
-                    </div>
-
-                    <div class="settings-toggle-group">
-                        <div class="toggle-info">
-                            <label class="toggle-label">Aggiorna record esistenti</label>
-                            <p class="toggle-description">Sovrascrive i dati esistenti se trova corrispondenze</p>
-                        </div>
-                        <label class="toggle-switch">
-                            <input type="checkbox" id="updateExisting">
-                            <span class="toggle-slider"></span>
-                        </label>
-                    </div>
-                </div>
-            </div>
-
-            <div class="sol-card">
-                <div class="sol-card-header">
-                    <h3 class="sol-card-title">
-                        <i class="fas fa-download" style="margin-right: 0.5rem; color: var(--sol-warning);"></i>
-                        Configurazione Export
-                    </h3>
-                </div>
-                <div class="sol-card-body">
-                    <p style="color: var(--sol-gray-600); margin-bottom: 1.5rem;">
-                        Personalizza il formato dei file esportati
-                    </p>
-
-                    <form id="export-form" class="sol-form">
-                        <div class="sol-form-grid">
-                            <div class="sol-form-group">
-                                <label class="sol-form-label">
-                                    <i class="fas fa-file-export"></i>
-                                    Formato Predefinito
-                                </label>
-                                <select class="sol-form-select" id="exportFormat">
-                                    <option value="xlsx">Excel (.xlsx)</option>
-                                    <option value="csv">CSV (.csv)</option>
-                                    <option value="pdf">PDF (.pdf)</option>
-                                    <option value="json">JSON (.json)</option>
-                                </select>
-                            </div>
-
-                            <div class="sol-form-group">
-                                <label class="sol-form-label">
-                                    <i class="fas fa-font"></i>
-                                    Encoding CSV
-                                </label>
-                                <select class="sol-form-select" id="csvEncoding">
-                                    <option value="utf-8">UTF-8</option>
-                                    <option value="iso-8859-1">ISO-8859-1</option>
-                                    <option value="windows-1252">Windows-1252</option>
-                                </select>
-                            </div>
-                        </div>
-
-                        <div class="settings-toggle-group">
-                            <div class="toggle-info">
-                                <label class="toggle-label">Includi intestazioni</label>
-                                <p class="toggle-description">Aggiungi nomi delle colonne nella prima riga</p>
-                            </div>
-                            <label class="toggle-switch">
-                                <input type="checkbox" id="includeHeaders" checked>
-                                <span class="toggle-slider"></span>
-                            </label>
-                        </div>
-
-                        <div class="settings-toggle-group">
-                            <div class="toggle-info">
-                                <label class="toggle-label">Comprimi file</label>
-                                <p class="toggle-description">Crea un archivio ZIP per file multipli</p>
-                            </div>
-                            <label class="toggle-switch">
-                                <input type="checkbox" id="compressFiles">
-                                <span class="toggle-slider"></span>
-                            </label>
-                        </div>
-
-                        <div class="sol-modal-footer" style="border-top: 1px solid var(--sol-gray-200); margin-top: 2rem; padding-top: 1.5rem;">
-                            <button type="submit" class="sol-btn sol-btn-primary">
-                                <i class="fas fa-save"></i>
-                                Salva Configurazione
-                            </button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        </div>
-
-        <div id="integrations" class="sol-tab-content">
-            <div class="sol-card">
-                <div class="sol-card-header">
-                    <h3 class="sol-card-title">
-                        <i class="fas fa-ship" style="margin-right: 0.5rem; color: var(--sol-info);"></i>
-                        Configurazione API ShipsGo
-                    </h3>
-                </div>
-                <div class="sol-card-body">
-                    <p style="color: var(--sol-gray-600); margin-bottom: 1.5rem;">
-                        Configura le API per il tracking di container marittimi e spedizioni aeree
-                    </p>
-
-                    <form id="shipsgo-form" class="sol-form">
-                        <div class="sol-form-group">
-                            <label class="sol-form-label">
-                                <i class="fas fa-anchor"></i>
-                                ShipsGo v1.2 API Key (Container Marittimi)
-                            </label>
-                            <div style="position: relative;">
-                                <input 
-                                    type="password" 
-                                    id="shipsgoV1ApiKey" 
-                                    class="sol-form-input"
-                                    placeholder="Inserisci API Key v1.2 (32 caratteri hex)"
-                                    autocomplete="new-password"
-                                    style="padding-right: 3rem;"
-                                >
-                                <button type="button" class="api-key-toggle" onclick="toggleApiKeyVisibility('shipsgoV1ApiKey')" style="
-                                    position: absolute;
-                                    right: 0.5rem;
-                                    top: 50%;
-                                    transform: translateY(-50%);
-                                    background: transparent;
-                                    border: none;
-                                    color: var(--sol-gray-500);
-                                    cursor: pointer;
-                                    padding: 0.5rem;
-                                    border-radius: var(--sol-radius-md);
-                                ">
-                                    <i class="fas fa-eye"></i>
-                                </button>
-                            </div>
-                            <span class="sol-form-hint">
-                                API Key per tracking container marittimi. Ottienila da 
-                                <a href="https://shipsgo.com/api-integration" target="_blank" style="color: var(--sol-primary);">shipsgo.com/api-integration</a>
-                            </span>
-                        </div>
-
-                        <div class="sol-form-group">
-                            <label class="sol-form-label">
-                                <i class="fas fa-plane"></i>
-                                ShipsGo v2.0 Bearer Token (Spedizioni Aeree)
-                            </label>
-                            <div style="position: relative;">
-                                <input 
-                                    type="password" 
-                                    id="shipsgoV2Token" 
-                                    class="sol-form-input"
-                                    placeholder="Inserisci Bearer Token v2.0 (formato UUID)"
-                                    autocomplete="new-password"
-                                    style="padding-right: 3rem;"
-                                >
-                                <button type="button" class="api-key-toggle" onclick="toggleApiKeyVisibility('shipsgoV2Token')" style="
-                                    position: absolute;
-                                    right: 0.5rem;
-                                    top: 50%;
-                                    transform: translateY(-50%);
-                                    background: transparent;
-                                    border: none;
-                                    color: var(--sol-gray-500);
-                                    cursor: pointer;
-                                    padding: 0.5rem;
-                                    border-radius: var(--sol-radius-md);
-                                ">
-                                    <i class="fas fa-eye"></i>
-                                </button>
-                            </div>
-                            <span class="sol-form-hint">
-                                Bearer Token per tracking AWB aerei. Richiedi accesso a 
-                                <a href="https://api.shipsgo.com/v2/docs" target="_blank" style="color: var(--sol-primary);">api.shipsgo.com/v2</a>
-                            </span>
-                        </div>
-
-                        <div class="sol-modal-footer" style="border-top: 1px solid var(--sol-gray-200); margin-top: 2rem; padding-top: 1.5rem;">
-                            <button type="submit" class="sol-btn sol-btn-primary">
-                                <i class="fas fa-save"></i>
-                                Salva Configurazione API
-                            </button>
-                            <button type="button" class="sol-btn sol-btn-secondary" onclick="testShipsGoConnection(event)">
-                                <i class="fas fa-plug"></i>
-                                Test Connessione
-                            </button>
-                        </div>
-
-                        <div id="shipsgoTestResult" style="margin-top: 1.5rem; display: none;"></div>
-                    </form>
-
-                    <div style="margin-top: 2rem; padding: 1.5rem; background: var(--sol-gray-50); border-radius: var(--sol-radius-lg);">
-                        <h4 style="margin-bottom: 1rem; color: var(--sol-gray-800);">
-                            <i class="fas fa-link" style="margin-right: 0.5rem; color: var(--sol-info);"></i>
-                            URL Webhook per ShipsGo
-                        </h4>
-                        <div style="display: flex; gap: 0.5rem; align-items: center;">
-                            <input 
-                                type="text" 
-                                class="sol-form-input" 
-                                value="https://supply-chain-hub-test.netlify.app/netlify/functions/webhook-tracking" 
-                                readonly
-                                style="flex: 1; font-family: var(--sol-font-mono); font-size: 0.875rem;"
-                            >
-                            <button class="sol-btn sol-btn-secondary" onclick="copyToClipboard('https://supply-chain-hub-test.netlify.app/netlify/functions/webhook-tracking')">
-                                <i class="fas fa-copy"></i>
-                            </button>
-                        </div>
-                        <button class="sol-btn sol-btn-glass" onclick="showWebhookInstructions()" style="margin-top: 1rem;">
-                            <i class="fas fa-info-circle"></i>
-                            Istruzioni Configurazione
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div id="notifications" class="sol-tab-content">
-            <div class="sol-card" style="margin-bottom: 2rem;">
-                <div class="sol-card-header">
-                    <h3 class="sol-card-title">
-                        <i class="fas fa-envelope" style="margin-right: 0.5rem; color: var(--sol-primary);"></i>
-                        Notifiche Email
-                    </h3>
-                </div>
-                <div class="sol-card-body">
-                    <p style="color: var(--sol-gray-600); margin-bottom: 1.5rem;">
-                        Scegli quali notifiche ricevere via email
-                    </p>
-
-                    <div class="settings-toggle-group">
-                        <div class="toggle-info">
-                            <label class="toggle-label">Nuove spedizioni</label>
-                            <p class="toggle-description">Ricevi una notifica quando viene creata una nuova spedizione</p>
-                        </div>
-                        <label class="toggle-switch">
-                            <input type="checkbox" id="emailNewShipments" checked>
-                            <span class="toggle-slider"></span>
-                        </label>
-                    </div>
-
-                    <div class="settings-toggle-group">
-                        <div class="toggle-info">
-                            <label class="toggle-label">Spedizioni in ritardo</label>
-                            <p class="toggle-description">Alert quando una spedizione supera la data di consegna prevista</p>
-                        </div>
-                        <label class="toggle-switch">
-                            <input type="checkbox" id="emailDelayedShipments" checked>
-                            <span class="toggle-slider"></span>
-                        </label>
-                    </div>
-
-                    <div class="settings-toggle-group">
-                        <div class="toggle-info">
-                            <label class="toggle-label">Consegne completate</label>
-                            <p class="toggle-description">Conferma quando una spedizione viene consegnata</p>
-                        </div>
-                        <label class="toggle-switch">
-                            <input type="checkbox" id="emailDelivered">
-                            <span class="toggle-slider"></span>
-                        </label>
-                    </div>
-
-                    <div class="sol-form-group" style="margin-top: 2rem;">
-                        <label class="sol-form-label">
-                            <i class="fas fa-at"></i>
-                            Email per notifiche
-                        </label>
-                        <input 
-                            type="email" 
-                            id="notificationEmail" 
-                            class="sol-form-input"
-                            placeholder="email@esempio.com"
-                        >
-                    </div>
-                </div>
-            </div>
-
-            <div class="sol-card">
-                <div class="sol-card-header">
-                    <h3 class="sol-card-title">
-                        <i class="fas fa-mobile-alt" style="margin-right: 0.5rem; color: var(--sol-warning);"></i>
-                        Notifiche Push
-                    </h3>
-                </div>
-                <div class="sol-card-body">
-                    <p style="color: var(--sol-gray-600); margin-bottom: 1.5rem;">
-                        Notifiche in tempo reale sul browser e dispositivi mobili
-                    </p>
-
-                    <div class="settings-toggle-group">
-                        <div class="toggle-info">
-                            <label class="toggle-label">Abilita notifiche push</label>
-                            <p class="toggle-description">Ricevi notifiche in tempo reale</p>
-                        </div>
-                        <label class="toggle-switch">
-                            <input type="checkbox" id="pushEnabled">
-                            <span class="toggle-slider"></span>
-                        </label>
-                    </div>
-
-                    <div class="settings-toggle-group">
-                        <div class="toggle-info">
-                            <label class="toggle-label">Alert critici</label>
-                            <p class="toggle-description">Solo notifiche urgenti e importanti</p>
-                        </div>
-                        <label class="toggle-switch">
-                            <input type="checkbox" id="pushCritical" checked>
-                            <span class="toggle-slider"></span>
-                        </label>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div id="security" class="sol-tab-content">
-            <div class="sol-card">
-                <div class="sol-card-header">
-                    <h3 class="sol-card-title">
-                        <i class="fas fa-shield-alt" style="margin-right: 0.5rem; color: var(--sol-success);"></i>
-                        Sicurezza Account
-                    </h3>
-                </div>
-                <div class="sol-card-body">
-                    <p style="color: var(--sol-gray-600); margin-bottom: 1.5rem;">
-                        Proteggi il tuo account con opzioni di sicurezza avanzate
-                    </p>
-
-                    <div class="settings-toggle-group">
-                        <div class="toggle-info">
-                            <label class="toggle-label">Autenticazione a due fattori (2FA)</label>
-                            <p class="toggle-description">Aggiungi un livello extra di sicurezza al tuo account</p>
-                        </div>
-                        <label class="toggle-switch">
-                            <input type="checkbox" id="twoFactorAuth">
-                            <span class="toggle-slider"></span>
-                        </label>
-                    </div>
-
-                    <div class="settings-toggle-group">
-                        <div class="toggle-info">
-                            <label class="toggle-label">Notifiche accesso</label>
-                            <p class="toggle-description">Ricevi un alert quando qualcuno accede al tuo account</p>
-                        </div>
-                        <label class="toggle-switch">
-                            <input type="checkbox" id="loginAlerts" checked>
-                            <span class="toggle-slider"></span>
-                        </label>
-                    </div>
-
-                    <div class="sol-modal-footer" style="border-top: 1px solid var(--sol-gray-200); margin-top: 2rem; padding-top: 1.5rem;">
-                        <button class="sol-btn sol-btn-secondary">
-                            <i class="fas fa-key"></i>
-                            Cambia Password
-                        </button>
-                        <button class="sol-btn sol-btn-secondary">
-                            <i class="fas fa-list"></i>
-                            Visualizza Sessioni Attive
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div id="advanced" class="sol-tab-content">
-            <div class="sol-card" style="margin-bottom: 2rem;">
-                <div class="sol-card-header">
-                    <h3 class="sol-card-title">
-                        <i class="fas fa-database" style="margin-right: 0.5rem; color: var(--sol-info);"></i>
-                        Gestione Dati
-                    </h3>
-                </div>
-                <div class="sol-card-body">
-                    <div class="sol-form-group">
-                        <label class="sol-form-label">
-                            <i class="fas fa-history"></i>
-                            Retention Dati (giorni)
-                        </label>
-                        <input type="number" class="sol-form-input" id="dataRetention" value="365" min="30" max="3650">
-                        <span class="sol-form-hint">I dati più vecchi verranno archiviati automaticamente</span>
-                    </div>
-
-                    <div class="settings-toggle-group">
-                        <div class="toggle-info">
-                            <label class="toggle-label">Backup automatico</label>
-                            <p class="toggle-description">Esegui backup giornaliero dei dati</p>
-                        </div>
-                        <label class="toggle-switch">
-                            <input type="checkbox" id="autoBackup" checked>
-                            <span class="toggle-slider"></span>
-                        </label>
-                    </div>
-
-                    <div class="sol-modal-footer" style="border-top: 1px solid var(--sol-gray-200); margin-top: 2rem; padding-top: 1.5rem;">
-                        <button class="sol-btn sol-btn-secondary">
-                            <i class="fas fa-download"></i>
-                            Esporta Tutti i Dati
-                        </button>
-                        <button class="sol-btn sol-btn-secondary">
-                            <i class="fas fa-trash-alt"></i>
-                            Pulisci Cache
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            <div class="sol-card">
-                <div class="sol-card-header">
-                    <h3 class="sol-card-title" style="color: var(--sol-danger);">
-                        <i class="fas fa-exclamation-triangle" style="margin-right: 0.5rem;"></i>
-                        Zona Pericolosa
-                    </h3>
-                </div>
-                <div class="sol-card-body" style="border: 1px solid var(--sol-danger-light); background: var(--sol-danger-light); border-radius: var(--sol-radius-md);">
-                    <p style="color: var(--sol-danger-dark); margin-bottom: 1rem;">
-                        Queste azioni sono irreversibili. Procedi con cautela.
-                    </p>
-                    <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
-                        <button class="sol-btn sol-btn-danger">
-                            <i class="fas fa-broom"></i>
-                            Resetta Impostazioni
-                        </button>
-                        <button class="sol-btn sol-btn-danger">
-                            <i class="fas fa-trash"></i>
-                            Elimina Tutti i Dati
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </main>
-
     <style>
-        /* Settings Toggle Groups - SOLARIUM COMPLIANT */
-        .settings-toggle-group {
+        .login-container {
             display: flex;
             align-items: center;
-            justify-content: space-between;
-            padding: 1.25rem 0;
-            border-bottom: 1px solid var(--sol-gray-100);
+            justify-content: center;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
         }
-
-        .settings-toggle-group:last-child {
-            border-bottom: none;
+        
+        .login-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            max-width: 400px;
+            width: 100%;
+            overflow: hidden;
         }
-
-        .toggle-info {
-            flex: 1;
-            margin-right: 1rem;
+        
+        .login-header {
+            text-align: center;
+            padding: 2.5rem 2rem 1.5rem;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
         }
-
-        .toggle-label {
-            font-weight: 500;
-            color: var(--sol-gray-900);
-            margin-bottom: 0.25rem;
-            display: block;
-        }
-
-        .toggle-description {
-            font-size: 0.875rem;
-            color: var(--sol-gray-600);
+        
+        .login-header h1 {
             margin: 0;
+            font-size: 2rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.75rem;
         }
-
-        /* Toggle Switch - SOLARIUM STYLE */
-        .toggle-switch {
-            position: relative;
-            width: 52px;
-            height: 28px;
+        
+        .login-header p {
+            margin: 0.5rem 0 0;
+            opacity: 0.9;
+            font-size: 1rem;
         }
-
-        .toggle-switch input {
-            opacity: 0;
-            width: 0;
-            height: 0;
+        
+        .login-body {
+            padding: 2rem;
         }
-
-        .toggle-slider {
-            position: absolute;
+        
+        .auth-tabs {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 2rem;
+            background: #f3f4f6;
+            padding: 0.25rem;
+            border-radius: 0.75rem;
+        }
+        
+        .auth-tab {
+            flex: 1;
+            padding: 0.75rem;
+            border: none;
+            background: transparent;
+            border-radius: 0.5rem;
+            font-weight: 500;
             cursor: pointer;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: var(--sol-gray-300);
-            transition: .3s;
-            border-radius: 28px;
+            transition: all 0.3s ease;
+            color: #6b7280;
         }
-
-        .toggle-slider:before {
-            position: absolute;
-            content: "";
-            height: 20px;
-            width: 20px;
-            left: 4px;
-            bottom: 4px;
+        
+        .auth-tab.active {
             background: white;
-            transition: .3s;
-            border-radius: 50%;
+            color: #667eea;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         }
-
-        input:checked + .toggle-slider {
-            background: var(--sol-primary);
+        
+        .form-group {
+            margin-bottom: 1.5rem;
         }
-
-        input:checked + .toggle-slider:before {
-            transform: translateX(24px);
-        }
-
-        /* API Key Toggle Button */
-        .api-key-toggle:hover {
-            background: var(--sol-gray-100);
-            color: var(--sol-gray-700);
-        }
-
-        /* Tab Content */
-        .sol-tab-content {
-            display: none;
-        }
-
-        .sol-tab-content.active {
+        
+        .form-label {
             display: block;
+            margin-bottom: 0.5rem;
+            color: #374151;
+            font-weight: 500;
+            font-size: 0.875rem;
         }
-
-        /* Form Grid Override for Settings */
-        .sol-form-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 1.5rem;
+        
+        .form-input {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border: 2px solid #e5e7eb;
+            border-radius: 0.5rem;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            background: white;
         }
-
-        /* Mobile Responsive */
-        @media (max-width: 768px) {
-            .sol-form-grid {
-                grid-template-columns: 1fr;
+        
+        .form-input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        
+        .password-wrapper {
+            position: relative;
+        }
+        
+        .toggle-password {
+            position: absolute;
+            right: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: #6b7280;
+            cursor: pointer;
+            padding: 0.25rem;
+        }
+        
+        .toggle-password:hover {
+            color: #667eea;
+        }
+        
+        .btn-login {
+            width: 100%;
+            padding: 0.875rem;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 0.5rem;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+        
+        .btn-login:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+        
+        .btn-login:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .divider {
+            display: flex;
+            align-items: center;
+            margin: 1.5rem 0;
+            gap: 1rem;
+        }
+        
+        .divider::before,
+        .divider::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: #e5e7eb;
+        }
+        
+        .divider span {
+            color: #9ca3af;
+            font-size: 0.875rem;
+        }
+        
+        .btn-demo {
+            width: 100%;
+            padding: 0.875rem;
+            background: #f3f4f6;
+            color: #374151;
+            border: 2px solid #e5e7eb;
+            border-radius: 0.5rem;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+        
+        .btn-demo:hover {
+            background: #e5e7eb;
+            border-color: #d1d5db;
+        }
+        
+        .alert {
+            padding: 1rem;
+            border-radius: 0.5rem;
+            margin-bottom: 1rem;
+            display: none;
+            animation: slideDown 0.3s ease-out;
+        }
+        
+        .alert-success {
+            background: #d1fae5;
+            color: #065f46;
+            border: 1px solid #a7f3d0;
+        }
+        
+        .alert-error {
+            background: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #fecaca;
+        }
+        
+        .alert-info {
+            background: #dbeafe;
+            color: #1e40af;
+            border: 1px solid #bfdbfe;
+        }
+        
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
             }
-            
-            .sol-page-header {
-                flex-direction: column;
-                align-items: stretch;
+            to {
+                opacity: 1;
+                transform: translateY(0);
             }
-            
-            .sol-page-actions {
-                width: 100%;
-            }
-            
-            .sol-page-actions .sol-btn {
-                flex: 1;
-            }
-
-            .sol-tabs {
-                flex-wrap: wrap;
-                gap: 0.25rem;
-            }
-
-            .sol-tab {
-                min-width: calc(50% - 0.125rem);
-                justify-content: center;
-            }
-
-            .settings-toggle-group {
-                flex-direction: column;
-                align-items: stretch;
-                gap: 1rem;
-            }
-
-            .toggle-info {
-                margin-right: 0;
-                text-align: center;
-            }
+        }
+        
+        .loading-spinner {
+            display: inline-block;
+            width: 1rem;
+            height: 1rem;
+            border: 2px solid #ffffff;
+            border-radius: 50%;
+            border-top-color: transparent;
+            animation: spin 0.8s linear infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .forgot-password {
+            text-align: center;
+            margin-top: 1rem;
+        }
+        
+        .forgot-password a {
+            color: #667eea;
+            text-decoration: none;
+            font-size: 0.875rem;
+        }
+        
+        .forgot-password a:hover {
+            text-decoration: underline;
         }
     </style>
-
-    <script>
-        // Initialize Settings Page
-        document.addEventListener('DOMContentLoaded', () => {
-            console.log('[Settings] Initializing with Solarium Design System...');
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-card">
+            <div class="login-header">
+                <h1>
+                    <i class="fas fa-truck"></i>
+                    Supply Chain Hub
+                </h1>
+                <p>Sistema di Tracking Spedizioni</p>
+            </div>
             
-            // Initialize header component
-            initializeHeader();
-            
-            // Initialize tabs
-            initializeTabs();
-            
-            // Initialize status messages
-            initializeStatusMessages();
-            
-            // Load settings after auth is ready
-            waitForAuthAndLoad();
-        });
-
-        // Initialize header component
-        async function initializeHeader() {
-            try {
-                if (window.headerComponent) {
-                    await window.headerComponent.init();
-                    console.log('[Settings] Header component initialized');
-                }
-            } catch (error) {
-                console.error('[Settings] Header initialization error:', error);
+            <div class="login-body">
+                <!-- Alert messages -->
+                <div id="alertMessage" class="alert"></div>
+                
+                <!-- Auth tabs -->
+                <div class="auth-tabs">
+                    <button class="auth-tab active" data-tab="login" onclick="switchTab('login')">
+                        Accedi
+                    </button>
+                    <button class="auth-tab" data-tab="register" onclick="switchTab('register')">
+                        Registrati
+                    </button>
+                </div>
+                
+                <!-- Login form -->
+                <form id="loginForm" class="auth-form" onsubmit="handleLogin(event)">
+                    <div class="form-group">
+                        <label class="form-label" for="loginEmail">Email</label>
+                        <input 
+                            type="email" 
+                            id="loginEmail" 
+                            class="form-input" 
+                            placeholder="nome@azienda.com"
+                            required
+                            autocomplete="email"
+                        >
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label" for="loginPassword">Password</label>
+                        <div class="password-wrapper">
+                            <input 
+                                type="password" 
+                                id="loginPassword" 
+                                class="form-input" 
+                                placeholder="••••••••"
+                                required
+                                autocomplete="current-password"
+                                minlength="6"
+                            >
+                            <button type="button" class="toggle-password" onclick="togglePassword('loginPassword')">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <button type="submit" class="btn-login" id="loginBtn">
+                        <i class="fas fa-sign-in-alt"></i>
+                        <span>Accedi</span>
+                    </button>
+                    
+                    <div class="forgot-password">
+                        <a href="#" onclick="handleForgotPassword(event)">Password dimenticata?</a>
+                    </div>
+                </form>
+                
+                <!-- Register form -->
+                <form id="registerForm" class="auth-form" style="display: none;" onsubmit="handleRegister(event)">
+                    <div class="form-group">
+                        <label class="form-label" for="registerEmail">Email</label>
+                        <input 
+                            type="email" 
+                            id="registerEmail" 
+                            class="form-input" 
+                            placeholder="nome@azienda.com"
+                            required
+                            autocomplete="email"
+                        >
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label" for="registerPassword">Password</label>
+                        <div class="password-wrapper">
+                            <input 
+                                type="password" 
+                                id="registerPassword" 
+                                class="form-input" 
+                                placeholder="Minimo 6 caratteri"
+                                required
+                                autocomplete="new-password"
+                                minlength="6"
+                            >
+                            <button type="button" class="toggle-password" onclick="togglePassword('registerPassword')">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label" for="confirmPassword">Conferma Password</label>
+                        <div class="password-wrapper">
+                            <input 
+                                type="password" 
+                                id="confirmPassword" 
+                                class="form-input" 
+                                placeholder="Ripeti la password"
+                                required
+                                autocomplete="new-password"
+                                minlength="6"
+                            >
+                            <button type="button" class="toggle-password" onclick="togglePassword('confirmPassword')">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <button type="submit" class="btn-login" id="registerBtn">
+                        <i class="fas fa-user-plus"></i>
+                        <span>Registrati</span>
+                    </button>
+                </form>
+                
+                <div class="divider">
+                    <span>oppure</span>
+                </div>
+                
+                <button class="btn-demo" onclick="handleDemoAccess()">
+                    <i class="fas fa-play-circle"></i>
+                    <span>Accedi in Modalità Demo</span>
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <script type="module">
+        import { supabase } from '/core/services/supabase-client.js';
+        window.supabase = supabase;
+        
+        // Check if already authenticated
+        async function checkAuth() {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session) {
+                // Already logged in, redirect to tracking
+                window.location.href = '/tracking.html';
             }
         }
-
-        // Tab Navigation (SOLARIUM STYLE)
-        function initializeTabs() {
-            const tabs = document.querySelectorAll('.sol-tab');
-            const contents = document.querySelectorAll('.sol-tab-content');
-            
-            tabs.forEach(tab => {
-                tab.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    const targetSection = tab.dataset.section;
-                    
-                    // Update tabs
-                    tabs.forEach(t => t.classList.remove('active'));
-                    tab.classList.add('active');
-                    
-                    // Update content
-                    contents.forEach(content => {
-                        content.classList.remove('active');
-                        if (content.id === targetSection) {
-                            content.classList.add('active');
-                        }
-                    });
-                    
-                    // Update URL
-                    history.pushState(null, '', `#${targetSection}`);
-                });
+        
+        checkAuth();
+    </script>
+    
+    <script>
+        // Switch between login and register tabs
+        function switchTab(tab) {
+            document.querySelectorAll('.auth-tab').forEach(t => {
+                t.classList.toggle('active', t.dataset.tab === tab);
             });
             
-            // Handle direct URL access
-            const hash = window.location.hash.slice(1);
-            if (hash) {
-                const tab = document.querySelector(`[data-section="${hash}"]`);
-                if (tab) tab.click();
-            }
-        }
-
-        // Status Messages (SOLARIUM STYLE)
-        function initializeStatusMessages() {
-            // Auto-hide status messages after 5 seconds
-            const statusEl = document.getElementById('api-status');
-            if (statusEl && statusEl.style.display !== 'none') {
-                setTimeout(() => {
-                    statusEl.style.display = 'none';
-                }, 5000);
-            }
-        }
-
-        // Wait for auth and load settings
-        function waitForAuthAndLoad() {
-            let retries = 0;
-            const checkAuth = setInterval(() => {
-                retries++;
-                
-                if (window.auth && window.auth.isAuthenticated()) {
-                    clearInterval(checkAuth);
-                    console.log('[Settings] Auth ready, loading settings...');
-                    loadAllSettings();
-                } else if (retries >= 20) {
-                    clearInterval(checkAuth);
-                    console.log('[Settings] Auth timeout, loading anyway...');
-                    loadAllSettings();
-                }
-            }, 500);
-        }
-
-        // Load all settings (placeholder)
-        function loadAllSettings() {
-            console.log('[Settings] Loading settings with Solarium Design System...');
+            document.getElementById('loginForm').style.display = tab === 'login' ? 'block' : 'none';
+            document.getElementById('registerForm').style.display = tab === 'register' ? 'block' : 'none';
             
-            // Load from localStorage for demo
-            const settings = JSON.parse(localStorage.getItem('appSettings') || '{}');
-            
-            // Populate form fields
-            if (settings.company) {
-                Object.keys(settings.company).forEach(key => {
-                    const input = document.getElementById(key);
-                    if (input) input.value = settings.company[key];
-                });
-            }
-            
-            console.log('[Settings] Settings loaded successfully');
+            hideAlert();
         }
-
-        // Show status message (SOLARIUM STYLE)
-        function showStatus(message, type = 'info', duration = 3000) {
-            // Use NotificationSystem for better UX
-            if (window.NotificationSystem) {
-                window.NotificationSystem.show(message, type, duration);
-            } else {
-                // Fallback to status element
-                const statusEl = document.getElementById('api-status');
-                if (statusEl) {
-                    statusEl.innerHTML = `<i class="fas fa-check-circle"></i><span>${message}</span>`;
-                    statusEl.className = `sol-alert sol-alert-${type}`;
-                    statusEl.style.display = 'flex';
-                    
-                    setTimeout(() => {
-                        statusEl.style.display = 'none';
-                    }, duration);
-                }
-            }
-        }
-
-        // Global functions for inline events
-        window.toggleApiKeyVisibility = function(inputId) {
+        
+        // Toggle password visibility
+        function togglePassword(inputId) {
             const input = document.getElementById(inputId);
-            const button = event.currentTarget;
-            const icon = button.querySelector('i');
+            const icon = event.target.closest('button').querySelector('i');
             
             if (input.type === 'password') {
                 input.type = 'text';
-                icon.className = 'fas fa-eye-slash';
+                icon.classList.remove('fa-eye');
+                icon.classList.add('fa-eye-slash');
             } else {
                 input.type = 'password';
-                icon.className = 'fas fa-eye';
+                icon.classList.remove('fa-eye-slash');
+                icon.classList.add('fa-eye');
             }
-        };
-
-        window.testShipsGoConnection = async function(event) {
-            const button = event.target.closest('button');
-            const originalText = button.innerHTML;
-            button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Testing...';
+        }
+        
+        // Show alert message
+        function showAlert(message, type = 'info') {
+            const alertDiv = document.getElementById('alertMessage');
+            alertDiv.className = `alert alert-${type}`;
+            alertDiv.innerHTML = `
+                <i class="fas fa-${type === 'error' ? 'exclamation-circle' : type === 'success' ? 'check-circle' : 'info-circle'}"></i>
+                ${message}
+            `;
+            alertDiv.style.display = 'block';
+        }
+        
+        // Hide alert message
+        function hideAlert() {
+            const alertDiv = document.getElementById('alertMessage');
+            alertDiv.style.display = 'none';
+        }
+        
+        // Handle login
+        async function handleLogin(event) {
+            event.preventDefault();
+            
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+            const button = document.getElementById('loginBtn');
+            
+            // Show loading
             button.disabled = true;
+            button.innerHTML = '<span class="loading-spinner"></span> Accesso in corso...';
             
             try {
-                // Simulate test
-                await new Promise(resolve => setTimeout(resolve, 2000));
-                showStatus('Test connessione simulato - API keys OK', 'success');
-            } catch (error) {
-                showStatus('Errore durante il test di connessione', 'error');
-            } finally {
-                button.innerHTML = originalText;
-                button.disabled = false;
-            }
-        };
-
-        window.copyToClipboard = function(text) {
-            navigator.clipboard.writeText(text).then(() => {
-                showStatus('URL copiato negli appunti!', 'success');
-            }).catch(err => {
-                showStatus('Errore nella copia', 'error');
-            });
-        };
-
-        window.showWebhookInstructions = function() {
-            if (window.ModalSystem) {
-                window.ModalSystem.alert({
-                    type: 'info',
-                    title: 'Istruzioni Webhook',
-                    message: `
-                        <strong>Configurazione webhook ShipsGo:</strong><br><br>
-                        1. Copia l'URL del webhook<br>
-                        2. Accedi a ShipsGo Dashboard<br>
-                        3. Vai su Settings → Webhooks<br>
-                        4. Incolla l'URL e attiva il webhook<br>
-                        5. Seleziona gli eventi da ricevere
-                    `
+                const { data, error } = await window.supabase.auth.signInWithPassword({
+                    email,
+                    password
                 });
-            }
-        };
-
-        console.log('[Settings] Script loaded with Solarium Design System compliance');
-    </script>
-    
-    <script type="module">
-    // Import tracking service
-    import trackingService from '/core/services/tracking-service.js';
-    window.trackingService = trackingService;
-
-    // Funzione per salvare configurazione ShipsGo
-    window.saveShipsGoConfig = async function(event) {
-        event.preventDefault();
-        
-        const button = event.target.querySelector('button[type="submit"]');
-        const originalText = button.innerHTML;
-        button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Salvataggio...';
-        button.disabled = true;
-        
-        try {
-            const v1Key = document.getElementById('shipsgoV1ApiKey').value.trim();
-            const v2Token = document.getElementById('shipsgoV2Token').value.trim();
-            
-            // Salva su Supabase usando userSettingsService
-            if (window.userSettingsService) {
-                console.log('[Settings] Saving to Supabase...');
                 
-                // Salva API keys
-                if (v1Key) {
-                    await window.userSettingsService.saveApiKey('shipsgo_v1', v1Key);
+                if (error) throw error;
+                
+                showAlert('Accesso effettuato con successo! Reindirizzamento...', 'success');
+                
+                // Redirect after short delay
+                setTimeout(() => {
+                    window.location.href = '/tracking.html';
+                }, 1000);
+                
+            } catch (error) {
+                console.error('Login error:', error);
+                showAlert(error.message || 'Errore durante l\'accesso', 'error');
+                
+                // Reset button
+                button.disabled = false;
+                button.innerHTML = '<i class="fas fa-sign-in-alt"></i> <span>Accedi</span>';
+            }
+        }
+        
+        // Handle register
+        async function handleRegister(event) {
+            event.preventDefault();
+            
+            const email = document.getElementById('registerEmail').value;
+            const password = document.getElementById('registerPassword').value;
+            const confirmPassword = document.getElementById('confirmPassword').value;
+            const button = document.getElementById('registerBtn');
+            
+            // Validate passwords match
+            if (password !== confirmPassword) {
+                showAlert('Le password non corrispondono', 'error');
+                return;
+            }
+            
+            // Show loading
+            button.disabled = true;
+            button.innerHTML = '<span class="loading-spinner"></span> Registrazione in corso...';
+            
+            try {
+                const { data, error } = await window.supabase.auth.signUp({
+                    email,
+                    password,
+                    options: {
+                        emailRedirectTo: window.location.origin + '/tracking.html'
+                    }
+                });
+                
+                if (error) throw error;
+                
+                if (data.user && data.user.identities && data.user.identities.length === 0) {
+                    showAlert('Un account con questa email esiste già', 'error');
                 } else {
-                    await window.userSettingsService.removeApiKey('shipsgo_v1');
-                }
-                
-                if (v2Token) {
-                    await window.userSettingsService.saveApiKey('shipsgo_v2', v2Token);
-                } else {
-                    await window.userSettingsService.removeApiKey('shipsgo_v2');
-                }
-                
-                console.log('[Settings] ✅ Saved to Supabase');
-                
-                // Aggiorna anche tracking service
-                if (window.trackingService) {
-                    const config = {
-                        shipsgo_v1_key: v1Key,
-                        shipsgo_v1_enabled: !!v1Key,
-                        shipsgo_v2_token: v2Token,
-                        shipsgo_v2_enabled: !!v2Token,
-                        force_mock_mode: false
-                    };
+                    showAlert('Registrazione completata! Controlla la tua email per confermare l\'account.', 'success');
                     
-                    window.trackingService.updateConfiguration(config);
-                    await window.trackingService.initialize();
-                }
-                
-                // Dispatch evento per aggiornare altre pagine
-                window.dispatchEvent(new CustomEvent('apiKeysUpdated', {
-                    detail: { 
-                        hasV1: !!v1Key,
-                        hasV2: !!v2Token,
-                        source: 'settings'
-                    }
-                }));
-                
-                showStatus('Configurazione API salvata su cloud!', 'success');
-                
-            } else {
-                // Fallback a localStorage
-                console.warn('[Settings] UserSettingsService not available, using localStorage');
-                
-                // Usa il vecchio metodo con tracking service
-                const config = {
-                    shipsgo_v1_key: v1Key,
-                    shipsgo_v1_enabled: !!v1Key,
-                    shipsgo_v2_token: v2Token,
-                    shipsgo_v2_enabled: !!v2Token,
-                    force_mock_mode: false
-                };
-                
-                const success = trackingService.updateConfiguration(config);
-                if (success) {
-                    await trackingService.initialize();
-                    showStatus('Configurazione API salvata localmente', 'warning');
-                }
-            }
-            
-            // Mostra/nascondi test button
-            const testButton = document.querySelector('button[onclick*="testShipsGoConnection"]');
-            if (testButton) {
-                testButton.style.display = (v1Key || v2Token) ? 'inline-flex' : 'none';
-            }
-            
-        } catch (error) {
-            console.error('Error saving ShipsGo config:', error);
-            showStatus('Errore: ' + error.message, 'error');
-        } finally {
-            button.innerHTML = originalText;
-            button.disabled = false;
-        }
-    };
-
-    // Modifica la funzione test esistente
-    window.testShipsGoConnection = async function(event) {
-        event.preventDefault();
-        
-        const button = event.target.closest('button');
-        const originalText = button.innerHTML;
-        const resultDiv = document.getElementById('shipsgoTestResult');
-        
-        button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Testing...';
-        button.disabled = true;
-        
-        try {
-            const results = await trackingService.testConnection();
-            
-            // Mostra risultati dettagliati
-            let html = '<div class="sol-alert ';
-            
-            if (results.overall) {
-                html += 'sol-alert-success">';
-                html += '<i class="fas fa-check-circle"></i> ';
-                html += '<div><strong>Connessione riuscita!</strong><br>';
-                
-                if (results.v1?.success) {
-                    html += '✅ ShipsGo v1.2 (Container): OK<br>';
-                }
-                if (results.v2?.success) {
-                    html += '✅ ShipsGo v2.0 (AWB): OK<br>';
-                }
-                html += '</div>';
-            } else {
-                html += 'sol-alert-error">';
-                html += '<i class="fas fa-exclamation-circle"></i> ';
-                html += '<div><strong>Errore connessione</strong><br>';
-                
-                if (results.v1 && !results.v1.success) {
-                    html += `❌ v1.2: ${results.v1.message || 'Connessione fallita'}<br>`;
-                }
-                if (results.v2 && !results.v2.success) {
-                    html += `❌ v2.0: ${results.v2.message || 'Connessione fallita'}<br>`;
-                }
-                
-                html += '<small>Verifica le API keys e riprova</small></div>';
-            }
-            
-            html += '</div>';
-            
-            resultDiv.innerHTML = html;
-            resultDiv.style.display = 'block';
-            
-            // Nascondi dopo 10 secondi
-            setTimeout(() => {
-                resultDiv.style.display = 'none';
-            }, 10000);
-            
-        } catch (error) {
-            console.error('Connection test error:', error);
-            showStatus('Errore durante il test: ' + error.message, 'error');
-        } finally {
-            button.innerHTML = originalText;
-            button.disabled = false;
-        }
-    };
-
-    // Carica configurazione esistente al caricamento pagina
-    document.addEventListener('DOMContentLoaded', async () => {
-        // Attendi che userSettingsService e trackingService siano pronti
-        const checkServices = setInterval(async () => {
-            if (window.userSettingsService && window.trackingService) {
-                clearInterval(checkServices);
-                
-                console.log('[Settings] UserSettingsService and TrackingService ready, loading ShipsGo config.');
-                
-                try {
-                    // Carica le API keys da Supabase
-                    const v1Key = await window.userSettingsService.getApiKey('shipsgo_v1');
-                    const v2Token = await window.userSettingsService.getApiKey('shipsgo_v2');
-
-                    // Popola i campi se esistono configurazioni salvate
-                    if (v1Key) {
-                        document.getElementById('shipsgoV1ApiKey').value = v1Key;
-                    }
-                    if (v2Token) {
-                        document.getElementById('shipsgoV2Token').value = v2Token;
-                    }
-
-                    // Aggiorna la configurazione del tracking service con le chiavi caricate
-                    const config = {
-                        shipsgo_v1_key: v1Key,
-                        shipsgo_v1_enabled: !!v1Key,
-                        shipsgo_v2_token: v2Token,
-                        shipsgo_v2_enabled: !!v2Token,
-                        force_mock_mode: !(v1Key || v2Token) // Disabilita mock se ci sono API keys
-                    };
-                    window.trackingService.updateConfiguration(config);
-                    await window.trackingService.initialize();
+                    // Clear form
+                    document.getElementById('registerForm').reset();
                     
-                    // Mostra/nascondi test button
-                    const testButton = document.querySelector('button[onclick*="testShipsGoConnection"]');
-                    if (testButton) {
-                        testButton.style.display = (v1Key || v2Token) ? 'inline-flex' : 'none';
-                    }
-                    
-                    console.log('[Settings] ShipsGo config loaded from Supabase.');
-
-                } catch (error) {
-                    console.error('[Settings] Error loading ShipsGo config from Supabase:', error);
-                    // Fallback to local storage if Supabase fails or not available
-                    const config = trackingService.getConfiguration();
-                    if (config.shipsgo_v1_key) {
-                        document.getElementById('shipsgoV1ApiKey').value = config.shipsgo_v1_key;
-                    }
-                    if (config.shipsgo_v2_token) {
-                        document.getElementById('shipsgoV2Token').value = config.shipsgo_v2_token;
-                    }
-                    const testButton = document.querySelector('button[onclick*="testShipsGoConnection"]');
-                    if (testButton && trackingService.hasApiKeys()) {
-                        testButton.style.display = 'inline-flex';
-                    }
-                    console.warn('[Settings] Loaded ShipsGo config from local storage as fallback.');
+                    // Switch to login tab after delay
+                    setTimeout(() => {
+                        switchTab('login');
+                    }, 3000);
                 }
+                
+            } catch (error) {
+                console.error('Register error:', error);
+                showAlert(error.message || 'Errore durante la registrazione', 'error');
+            } finally {
+                // Reset button
+                button.disabled = false;
+                button.innerHTML = '<i class="fas fa-user-plus"></i> <span>Registrati</span>';
             }
-        }, 200); // Check every 200ms
-    });
-
-    // Aggiungi event listener al form
-    document.addEventListener('DOMContentLoaded', () => {
-        const shipsgoForm = document.getElementById('shipsgo-form');
-        if (shipsgoForm) {
-            shipsgoForm.addEventListener('submit', window.saveShipsGoConfig);
         }
-    });
+        
+        // Handle demo access
+        async function handleDemoAccess() {
+            showAlert('Accesso in modalità demo...', 'info');
+            
+            try {
+                // Sign in anonymously
+                const { data, error } = await window.supabase.auth.signInAnonymously();
+                
+                if (error) throw error;
+                
+                // Redirect to tracking
+                window.location.href = '/tracking.html';
+                
+            } catch (error) {
+                console.error('Demo access error:', error);
+                showAlert('Errore durante l\'accesso demo', 'error');
+                
+                // Fallback: redirect anyway
+                setTimeout(() => {
+                    window.location.href = '/tracking.html';
+                }, 1000);
+            }
+        }
+        
+        // Handle forgot password
+        async function handleForgotPassword(event) {
+            event.preventDefault();
+            
+            const email = document.getElementById('loginEmail').value;
+            
+            if (!email) {
+                showAlert('Inserisci la tua email nel campo sopra', 'info');
+                document.getElementById('loginEmail').focus();
+                return;
+            }
+            
+            try {
+                const { error } = await window.supabase.auth.resetPasswordForEmail(email, {
+                    redirectTo: window.location.origin + '/reset-password.html'
+                });
+                
+                if (error) throw error;
+                
+                showAlert('Email di recupero password inviata! Controlla la tua casella di posta.', 'success');
+                
+            } catch (error) {
+                console.error('Password reset error:', error);
+                showAlert(error.message || 'Errore durante il recupero password', 'error');
+            }
+        }
+        
+        // Auto-focus first input
+        document.getElementById('loginEmail').focus();
     </script>
-
 </body>
 </html>
