@@ -41,22 +41,18 @@ class TrackingService {
             } else {
                 this.useSupabase = true;
                 console.log('[TrackingService] ✅ Supabase connected');
-                
                 // Con Supabase, carica le API keys dal user settings service
                 await this.loadApiConfigurationFromSupabase();
+            }
+            
+            // Auto-inizializza se trova keys in Supabase
+            if (this.useSupabase && !this.hasApiKeys()) {
+                await this.loadApiConfigurationFromSupabase();
                 
-                // NUOVO: Se ora ha le keys, disabilita mock mode e notifica UI
-                if (this.hasApiKeys() && this.mockMode) {
+                // Se ora ha le keys, disabilita mock mode
+                if (this.hasApiKeys()) {
                     this.mockMode = false;
-                    console.log('[TrackingService] ✅ Auto-initialized with Supabase keys');
-                    
-                    // Dispatch event per aggiornare UI
-                    window.dispatchEvent(new CustomEvent('apiKeysAutoLoaded', {
-                        detail: { 
-                            hasV1: !!this.apiConfig.v1?.authCode,
-                            hasV2: !!this.apiConfig.v2?.userToken
-                        }
-                    }));
+                    console.log('[TrackingService] Auto-initialized with Supabase keys');
                 }
             }
             
@@ -74,8 +70,8 @@ class TrackingService {
                 mockMode: this.mockMode,
                 useSupabase: this.useSupabase,
                 apis: {
-                    v1: !!this.apiConfig.v1?.authCode,
-                    v2: !!this.apiConfig.v2?.userToken
+                    v1: !!this.apiConfig.v1,
+                    v2: !!this.apiConfig.v2
                 },
                 awbCacheSize: this.awbIdCache.size
             });
@@ -1620,7 +1616,10 @@ class TrackingService {
     }
 
     hasApiKeys() {
-        // Verifica che ci siano effettivamente le keys, non solo i config
+        // Con Supabase non serve verificare le keys localmente
+        if (this.useSupabase) {
+            return !!(this.apiConfig.v1?.authCode || this.apiConfig.v2?.userToken);
+        }
         return !!(this.apiConfig.v1?.authCode || this.apiConfig.v2?.userToken);
     }
 
