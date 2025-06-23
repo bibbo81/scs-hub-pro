@@ -84,10 +84,10 @@ export class HeaderComponent {
         console.log('✅ [HeaderComponent] Header HTML inserted into DOM');
     }
     
-    render() {
+    async render() {
         return `
-            ${this.renderHeader()}
-            ${this.renderDropdowns()}
+            ${await this.renderHeader()}
+            ${await this.renderDropdowns()}
             ${this.renderSidebar()}
             ${this.renderBackdrop()}
         `;
@@ -202,22 +202,25 @@ export class HeaderComponent {
         return '<div class="sol-backdrop" id="backdrop"></div>';
     }
     
-    getUserInfo() {
-        if (!this.user) {
-            return {
-                name: 'Demo User',
-                email: 'demo@example.com',
-                initials: 'DU'
-            };
+    async getUserInfo() {
+        // Se hai supabase disponibile
+        if (window.supabase) {
+            const { data: { user } } = await window.supabase.auth.getUser();
+            if (user && user.email) {
+                const name = user.email.split('@')[0]; // Usa parte prima di @
+                return {
+                    name: name.charAt(0).toUpperCase() + name.slice(1),
+                    email: user.email,
+                    initials: name.substring(0, 2).toUpperCase()
+                };
+            }
         }
         
-        const name = window.authInit?.formatUserName(this.user) || 'Demo User';
-        const initials = window.authInit?.getUserInitials(name) || 'DU';
-        
+        // Fallback
         return {
-            name,
-            email: this.user.email || 'demo@example.com',
-            initials
+            name: 'Demo User',
+            email: 'demo@example.com',
+            initials: 'DU'
         };
     }
     
@@ -267,17 +270,7 @@ export class HeaderComponent {
             });
         }
         
-        // Logout
-        const logoutBtn = document.getElementById('logoutBtn');
-        if (logoutBtn) {
-            logoutBtn.addEventListener('click', () => {
-                if (window.auth?.logout) {
-                    window.auth.logout();
-                } else {
-                    window.location.replace('/login.html');
-                }
-            });
-        }
+        // Logout - REMOVED: Now handled by handleLogout function
         
         // Global search
         const globalSearch = document.getElementById('globalSearch');
@@ -472,13 +465,13 @@ export class HeaderComponent {
         }, 300);
     }
     
-    renderHeader() {
+    async renderHeader() {
         return `
             <header class="sol-header">
                 <div class="sol-header-content">
                     ${this.renderLeft()}
                     ${this.renderCenter()}
-                    ${this.renderRight()}
+                    ${await this.renderRight()}
                 </div>
             </header>
         `;
@@ -516,8 +509,8 @@ export class HeaderComponent {
         `;
     }
     
-    renderRight() {
-        const userInfo = this.getUserInfo();
+    async renderRight() {
+        const userInfo = await this.getUserInfo();
         
         return `
             <div class="sol-header-right">
@@ -570,15 +563,15 @@ export class HeaderComponent {
         `;
     }
     
-    renderDropdowns() {
+    async renderDropdowns() {
         return `
-            ${this.renderUserDropdown()}
+            ${await this.renderUserDropdown()}
             ${this.renderNotificationDropdown()}
         `;
     }
     
-    renderUserDropdown() {
-        const userInfo = this.getUserInfo();
+    async renderUserDropdown() {
+        const userInfo = await this.getUserInfo();
         
         return `
             <div class="sol-dropdown" id="userDropdown" style="display: none;">
@@ -610,9 +603,10 @@ export class HeaderComponent {
                     ` : ''}
                 </div>
                 <div class="sol-dropdown-footer">
-                    <button class="sol-dropdown-item" id="logoutBtn">
-                        <i class="fas fa-sign-out-alt"></i> Esci
-                    </button>
+                    <a href="#" class="sol-dropdown-item" onclick="handleLogout(event)">
+                        <i class="fas fa-sign-out-alt"></i>
+                        <span>Logout</span>
+                    </a>
                 </div>
             </div>
         `;
@@ -665,5 +659,31 @@ if (document.readyState === 'loading') {
         }
     }, 100);
 }
+
+// Aggiungi la funzione handleLogout globale
+window.handleLogout = async function(event) {
+    event.preventDefault();
+    
+    if (confirm('Vuoi uscire dal tuo account?')) {
+        // Check if supabase is available
+        if (window.supabase) {
+            const { error } = await window.supabase.auth.signOut();
+            if (!error) {
+                window.location.href = '/login.html';
+            } else {
+                console.error('Logout error:', error);
+                // Fallback logout
+                window.location.href = '/login.html';
+            }
+        } else {
+            // Fallback if supabase is not available
+            console.log('Supabase not available, using fallback logout');
+            // Clear any local storage items
+            localStorage.removeItem('sb-access-token');
+            localStorage.removeItem('sb-refresh-token');
+            window.location.href = '/login.html';
+        }
+    }
+};
 
 export default headerComponent;

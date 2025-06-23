@@ -338,6 +338,13 @@
         };
     </script>
     
+    <!-- Auth Guard Module -->
+    <script type="module">
+        import authGuard from '/core/auth-guard.js';
+        // Il guard si auto-inizializza
+        console.log('✅ Auth Guard loaded and initialized');
+    </script>
+    
     <script>
     console.log('🔍 [DEBUG] Verifying file paths...');
     
