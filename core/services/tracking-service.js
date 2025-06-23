@@ -167,36 +167,43 @@ class TrackingService {
     }
 
     async loadApiConfiguration() {
-        try {
-            // Carica da localStorage (settings.html) - solo quando Supabase non disponibile
-            const settings = JSON.parse(localStorage.getItem('trackingServiceConfig') || '{}');
-            
-            if (settings.shipsgo_v1_key) {
-                this.apiConfig.v1 = {
-                    baseUrl: 'https://shipsgo.com/api/v1.2',
-                    authCode: settings.shipsgo_v1_key,
-                    enabled: settings.shipsgo_v1_enabled !== false
-                };
-                console.log('[TrackingService] ShipsGo v1.2 configured from localStorage');
-            }
-            
-            if (settings.shipsgo_v2_token) {
-                this.apiConfig.v2 = {
-                    baseUrl: 'https://api.shipsgo.com/api/v2',
-                    userToken: settings.shipsgo_v2_token,
-                    enabled: settings.shipsgo_v2_enabled !== false
-                };
-                console.log('[TrackingService] ShipsGo v2.0 configured from localStorage');
-            }
-            
-            // Modalità mock se nessuna API configurata
-            this.mockMode = !this.hasApiKeys() || settings.force_mock_mode === true;
-            
-        } catch (error) {
-            console.error('[TrackingService] Error loading API config:', error);
-            this.mockMode = true;
+    try {
+        // NUOVO: Cerca le API keys con i nomi CORRETTI in localStorage
+        const v1Key = localStorage.getItem('shipsgo_v1_api_key') || 
+                      localStorage.getItem('shipsgo_api_key');
+        const v2Key = localStorage.getItem('shipsgo_v2_api_key') || 
+                      localStorage.getItem('shipsgo_v2_token');
+        
+        if (v1Key) {
+            this.apiConfig.v1 = {
+                baseUrl: 'https://shipsgo.com/api/v1.2',
+                authCode: v1Key,
+                enabled: true
+            };
+            console.log('[TrackingService] ShipsGo v1.2 configured from localStorage');
         }
+        
+        if (v2Key) {
+            this.apiConfig.v2 = {
+                baseUrl: 'https://api.shipsgo.com/api/v2',
+                userToken: v2Key,
+                enabled: true
+            };
+            console.log('[TrackingService] ShipsGo v2.0 configured from localStorage');
+        }
+        
+        // Modalità mock se nessuna API configurata
+        this.mockMode = !this.hasApiKeys();
+        
+        if (!this.mockMode) {
+            console.log('[TrackingService] API keys found in localStorage, mock mode disabled');
+        }
+        
+    } catch (error) {
+        console.error('[TrackingService] Error loading API config:', error);
+        this.mockMode = true;
     }
+}
 
     async callShipsGoAPI(version, endpoint, method, params, data, contentType) {
         if (this.useSupabase) {
