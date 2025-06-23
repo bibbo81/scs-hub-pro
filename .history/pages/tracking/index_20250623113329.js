@@ -1309,9 +1309,7 @@ function getColumnFormatter(key) {
     
     // Return formatter or default
     return formatters[key] || ((value) => value || '-');
-}
-
-// Helper function per formattare solo la data (senza orario)
+}// Helper function per formattare solo la data (senza orario)
 function formatDateOnly(dateStr) {
     if (!dateStr || dateStr === '-') return '-';
     
@@ -1334,7 +1332,9 @@ function formatDateOnly(dateStr) {
     } catch (e) {}
     
     return dateStr;
-}// Helper function per parsare date in vari formati
+}
+
+// Helper function per parsare date in vari formati
 function parseDate(dateStr) {
     if (!dateStr) return null;
     
@@ -1940,7 +1940,26 @@ window.detectTrackingType = function(value) {
     } else if (hint) {
         hint.textContent = '';
     }
-};// SOSTITUISCI la funzione handleAddTracking con questa versione MODIFICATA PER SUPABASE:
+}; altrimenti da localStorage
+        if (window.supabaseTrackingService) {
+            console.log('📦 [Tracking] Loading from Supabase...');
+            try {
+                trackings = await window.supabaseTrackingService.getTrackings();
+                console.log(`📊 [Tracking] Loaded ${trackings.length} trackings from Supabase`);
+            } catch (error) {
+                console.error('❌ [Tracking] Error loading from Supabase:', error);
+                // Fallback to localStorage
+                const stored = localStorage.getItem('trackings');
+                trackings = stored ? JSON.parse(stored) : generateMockTrackings();
+                console.log(`📊 [Tracking] Fallback: Loaded ${trackings.length} trackings from localStorage`);
+            }
+        } else {
+            // Load from localStorage
+            const stored = localStorage.getItem('trackings');
+            console.log('📦 [Tracking] LocalStorage data:', stored ? 'Found' : 'Empty');
+            trackings = stored ? JSON.parse(stored) : generateMockTrackings();
+            console.log(`📊 [Tracking] Loaded ${trackings.length} trackings`);
+        }// SOSTITUISCI la funzione handleAddTracking con questa versione MODIFICATA PER SUPABASE:
 async function handleAddTracking(event) {
     event.preventDefault();
     
