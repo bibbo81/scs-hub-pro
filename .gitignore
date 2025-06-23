@@ -45,3 +45,4 @@ public/core/mock-data.js
 # Backup files
 *.backup
 *.bak.history/
+.history/
