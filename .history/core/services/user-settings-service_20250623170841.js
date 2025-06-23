@@ -178,7 +178,7 @@ class UserSettingsService {
     // Helper to get all API keys
     async getAllApiKeys() {
         const keys = {};
-        const providers = ['shipsgo_v1', 'shipsgo_v2'];
+        const providers = ['shipsgo', 'project44'];
 
         for (const provider of providers) {
             const key = await this.getApiKey(provider);
@@ -190,11 +190,11 @@ class UserSettingsService {
 
     // Get local API keys (fallback)
     getLocalApiKeys() {
-    return {
-        shipsgo_v1: localStorage.getItem('shipsgo_api_key') || localStorage.getItem('shipsgo_v1_api_key'),
-        shipsgo_v2: localStorage.getItem('shipsgo_v2_token') || localStorage.getItem('shipsgo_v2_api_key')
-    };
-}
+        return {
+            shipsgo: localStorage.getItem('shipsgo_api_key'),
+            project44: localStorage.getItem('project44_api_key')
+        };
+    }
 
     // Check if user has any API keys configured
     async hasApiKeys() {
