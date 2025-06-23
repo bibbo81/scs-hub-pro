@@ -7,32 +7,36 @@
     
     <!-- SUPABASE CDN con fix timing -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script>
-      // FORCE FIX: Assegna immediatamente supabaseCreateClient
-      // Aspetta che il documento sia pronto per essere sicuri
-      (function() {
-        function setupSupabase() {
-          if (window.supabase && window.supabase.createClient) {
-            window.supabaseCreateClient = window.supabase.createClient;
-            // IMPORTANTE: Assegna anche alla window per retrocompatibilità
-            window.supabase.createClient = window.supabase.createClient;
-            console.log('✅ Supabase setup complete');
-            return true;
-          }
-          return false;
+<script>
+  // Esponi globalmente per i moduli ES6 - CON CONTROLLO ROBUSTO
+  (function() {
+    function setupSupabaseGlobal() {
+      if (window.supabase && window.supabase.createClient) {
+        window.supabaseCreateClient = window.supabase.createClient;
+        console.log('✅ Supabase CDN caricato:', typeof window.supabase);
+        return true;
+      }
+      return false;
+    }
+    
+    // Prova immediatamente
+    if (!setupSupabaseGlobal()) {
+      // Se non è pronto, usa un observer per aspettare
+      const checkInterval = setInterval(() => {
+        if (setupSupabaseGlobal()) {
+          clearInterval(checkInterval);
         }
-        
-        // Prova subito
-        if (!setupSupabase()) {
-          // Se fallisce, riprova quando il DOM è pronto
-          if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', setupSupabase);
-          } else {
-            // Riprova dopo un breve delay
-            setTimeout(setupSupabase, 0);
-          }
+      }, 10);
+      
+      // Timeout di sicurezza dopo 5 secondi
+      setTimeout(() => {
+        clearInterval(checkInterval);
+        if (!window.supabaseCreateClient) {
+          console.error('❌ Timeout: Supabase non si è caricato in tempo');
         }
-      })();
+      }, 5000);
+    }
+  })();
     </script>
     <!-- FORCE CLEANUP MODAL SYSTEMS - PRIMA DI TUTTO -->
     <script>
