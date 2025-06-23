@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Moduli</title>
+</head>
+<body>
+    <h1>Test Caricamento Moduli</h1>
+    <div id="results"></div>
+
+    <script type="module">
+        const results = document.getElementById('results');
+        const modules = [
+            './core/table-manager.js',
+            './core/modal-system.js',
+            './core/notification-system.js',
+            './core/services/tracking-service.js',
+            './pages/tracking/index.js'
+        ];
+        
+        for (const modulePath of modules) {
+            try {
+                const module = await import(modulePath);
+                results.innerHTML += `<p>✅ ${modulePath} - OK</p>`;
+                console.log(`${modulePath}:`, module);
+            } catch (error) {
+                results.innerHTML += `<p>❌ ${modulePath} - ${error.message}</p>`;
+                console.error(`Error loading ${modulePath}:`, error);
+            }
+        }
+    </script>
+</body>
+</html>

@@ -6,7 +6,6 @@ const modalSystem = window.ModalSystem;
 import notificationSystem from '../../core/notification-system.js';
 // Aggiungi all'inizio del file pages/tracking/index.js
 import trackingService from '/core/services/tracking-service.js';
-
 // ===== AGGIUNGI QUESTE RIGHE SUBITO DOPO GLI IMPORT =====
 // Esponi subito trackingInit per evitare race conditions
 window.trackingInit = null; // Placeholder
