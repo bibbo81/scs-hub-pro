@@ -1,10 +1,19 @@
 // header-component.js - Header unificato SENZA sistema modal duplicato - FIXED
 import api from '/core/api-client.js';
 import notificationSystem from '/core/notification-system.js';
-import { supabase } from '/core/services/supabase-client.js'; // AGGIUNGI QUESTA RIGA
+import { supabase } from '/core/services/supabase-client.js'; // AGGIUNGI QUESTO
+
+// AGGIUNGI SINGLETON PATTERN
+let headerInstance = null;
 
 export class HeaderComponent {
     constructor(options = {}) {
+        // SINGLETON CHECK
+        if (headerInstance) {
+            console.warn('[HeaderComponent] Instance already exists, returning existing instance');
+            return headerInstance;
+        }
+        
         this.options = {
             showSearch: true,
             showNotifications: true,
@@ -18,6 +27,9 @@ export class HeaderComponent {
         this.searchTimeout = null;
         this.isDevMode = this.checkDevMode();
         this.initialized = false;
+        
+        // Set singleton instance
+        headerInstance = this;
     }
     
     checkDevMode() {
@@ -28,8 +40,17 @@ export class HeaderComponent {
     
     async init() {
         if (this.initialized) {
-            console.log('⚠️ Header already initialized, skipping...');
-            return;
+            console.warn('⚠️ Header already initialized, skipping...');
+            return this; // Return this invece di return void
+        }
+        
+        // RIMUOVI HEADER DUPLICATI SE ESISTONO
+        const existingHeaders = document.querySelectorAll('.sol-header');
+        if (existingHeaders.length > 1) {
+            console.warn(`[HeaderComponent] Found ${existingHeaders.length} headers, removing duplicates...`);
+            for (let i = 1; i < existingHeaders.length; i++) {
+                existingHeaders[i].remove();
+            }
         }
         
         console.log('🔧 [HeaderComponent] Starting initialization...');
@@ -79,7 +100,7 @@ export class HeaderComponent {
             existingHeader.remove();
         }
         
-        const headerHtml = await this.render();
+        const headerHtml = await this.render(); // AGGIUNGI await
         container.insertAdjacentHTML('afterbegin', headerHtml);
         
         console.log('✅ [HeaderComponent] Header HTML inserted into DOM');
@@ -205,7 +226,6 @@ export class HeaderComponent {
     
     async getUserInfo() {
         try {
-            // Se hai supabase disponibile
             if (supabase) {
                 const { data: { user } } = await supabase.auth.getUser();
                 if (user && user.email) {
@@ -515,7 +535,7 @@ export class HeaderComponent {
     }
     
     async renderRight() {
-        const userInfo = await this.getUserInfo(); // AGGIUNGI await
+        const userInfo = await this.getUserInfo();
         
         return `
             <div class="sol-header-right">
@@ -576,7 +596,7 @@ export class HeaderComponent {
     }
     
     async renderUserDropdown() {
-        const userInfo = await this.getUserInfo(); // AGGIUNGI await
+        const userInfo = await this.getUserInfo();
         
         return `
             <div class="sol-dropdown" id="userDropdown" style="display: none;">
@@ -638,31 +658,32 @@ export class HeaderComponent {
 // Export singleton instance
 const headerComponent = new HeaderComponent();
 
-// ===== AUTO-INITIALIZATION =====
-document.addEventListener('DOMContentLoaded', async () => {
-    console.log('🚀 [HeaderComponent] DOMContentLoaded - Starting auto-init');
+// Flag globale per prevenire multiple inizializzazioni
+window._headerComponentAutoInitialized = false;
+
+// AUTO-INITIALIZATION - Con protezione contro duplicati
+async function autoInitHeader() {
+    if (window._headerComponentAutoInitialized) {
+        console.log('[HeaderComponent] Auto-init already done, skipping...');
+        return;
+    }
+    
+    window._headerComponentAutoInitialized = true;
+    
     try {
         await headerComponent.init();
         console.log('✅ [HeaderComponent] Auto-initialization complete');
     } catch (error) {
         console.error('❌ [HeaderComponent] Auto-initialization failed:', error);
     }
-});
+}
 
-// Also try immediate init if DOM already loaded
+// Single event listener
 if (document.readyState === 'loading') {
-    // Will wait for DOMContentLoaded
+    document.addEventListener('DOMContentLoaded', autoInitHeader, { once: true });
 } else {
-    // DOM already loaded, init immediately
-    console.log('🚀 [HeaderComponent] DOM already loaded - Immediate init');
-    setTimeout(async () => {
-        try {
-            await headerComponent.init();
-            console.log('✅ [HeaderComponent] Immediate initialization complete');
-        } catch (error) {
-            console.error('❌ [HeaderComponent] Immediate initialization failed:', error);
-        }
-    }, 100);
+    // DOM già caricato
+    setTimeout(autoInitHeader, 100);
 }
 
 // Aggiungi la funzione handleLogout globale
