@@ -314,6 +314,37 @@
         }
     </script>
     
+    <!-- Auth UI Component -->
+    <script type="module">
+        import authUI from '/core/auth-ui-component.js';
+        
+        // L'auth UI si inizializza automaticamente
+        console.log('✅ Auth UI component loaded');
+        
+        // Ascolta i cambiamenti di stato auth
+        authUI.onAuthStateChange((event, session) => {
+            console.log('Auth state changed:', event);
+            
+            // Ricarica i tracking quando l'utente si autentica
+            if (event === 'SIGNED_IN' && window.loadTrackings) {
+                // Aspetta un attimo per dare tempo al database di aggiornarsi
+                setTimeout(() => {
+                    window.loadTrackings();
+                    window.NotificationSystem?.success('Dati sincronizzati con il tuo account');
+                }, 1000);
+            }
+        });
+        
+        // Debug commands per sviluppo
+        window.debugAuth = () => {
+            console.log('🔐 Auth Debug Info:');
+            console.log('- Use Supabase:', authUI.useSupabase);
+            console.log('- Current User:', authUI.getCurrentUser());
+            console.log('- Is Anonymous:', authUI.isAnonymous);
+            console.log('- Is Authenticated:', authUI.isAuthenticated());
+        };
+    </script>
+    
     <!-- DEBUG: Verifica percorsi file -->
     <script>
     console.log('🔍 [DEBUG] Verifying file paths...');
