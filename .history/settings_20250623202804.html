@@ -1086,79 +1086,32 @@
         button.disabled = true;
         
         try {
-            const v1Key = document.getElementById('shipsgoV1ApiKey').value.trim();
-            const v2Token = document.getElementById('shipsgoV2Token').value.trim();
+            // Raccogli i valori dal form
+            const config = {
+                shipsgo_v1_key: document.getElementById('shipsgoV1ApiKey').value.trim(),
+                shipsgo_v1_enabled: !!document.getElementById('shipsgoV1ApiKey').value,
+                shipsgo_v2_token: document.getElementById('shipsgoV2Token').value.trim(),
+                shipsgo_v2_enabled: !!document.getElementById('shipsgoV2Token').value,
+                force_mock_mode: false // Disabilita mock se ci sono API keys
+            };
             
-            // Salva su Supabase usando userSettingsService
-            if (window.userSettingsService) {
-                console.log('[Settings] Saving to Supabase...');
+            // Salva configurazione tramite tracking service
+            const success = trackingService.updateConfiguration(config);
+            
+            if (success) {
+                // Re-inizializza il service con le nuove config
+                await trackingService.initialize();
                 
-                // Salva API keys
-                if (v1Key) {
-                    await window.userSettingsService.saveApiKey('shipsgo_v1', v1Key);
-                } else {
-                    await window.userSettingsService.removeApiKey('shipsgo_v1');
+                showStatus('Configurazione API salvata con successo!', 'success');
+                
+                // Mostra/nascondi test button basato su presenza keys
+                const testButton = document.querySelector('button[onclick*="testShipsGoConnection"]');
+                if (testButton) {
+                    testButton.style.display = trackingService.hasApiKeys() ? 'inline-flex' : 'none';
                 }
-                
-                if (v2Token) {
-                    await window.userSettingsService.saveApiKey('shipsgo_v2', v2Token);
-                } else {
-                    await window.userSettingsService.removeApiKey('shipsgo_v2');
-                }
-                
-                console.log('[Settings] ✅ Saved to Supabase');
-                
-                // Aggiorna anche tracking service
-                if (window.trackingService) {
-                    const config = {
-                        shipsgo_v1_key: v1Key,
-                        shipsgo_v1_enabled: !!v1Key,
-                        shipsgo_v2_token: v2Token,
-                        shipsgo_v2_enabled: !!v2Token,
-                        force_mock_mode: false
-                    };
-                    
-                    window.trackingService.updateConfiguration(config);
-                    await window.trackingService.initialize();
-                }
-                
-                // Dispatch evento per aggiornare altre pagine
-                window.dispatchEvent(new CustomEvent('apiKeysUpdated', {
-                    detail: { 
-                        hasV1: !!v1Key,
-                        hasV2: !!v2Token,
-                        source: 'settings'
-                    }
-                }));
-                
-                showStatus('Configurazione API salvata su cloud!', 'success');
-                
             } else {
-                // Fallback a localStorage
-                console.warn('[Settings] UserSettingsService not available, using localStorage');
-                
-                // Usa il vecchio metodo con tracking service
-                const config = {
-                    shipsgo_v1_key: v1Key,
-                    shipsgo_v1_enabled: !!v1Key,
-                    shipsgo_v2_token: v2Token,
-                    shipsgo_v2_enabled: !!v2Token,
-                    force_mock_mode: false
-                };
-                
-                const success = trackingService.updateConfiguration(config);
-                if (success) {
-                    await trackingService.initialize();
-                    showStatus('Configurazione API salvata localmente', 'warning');
-                }
+                showStatus('Errore nel salvataggio della configurazione', 'error');
             }
-            
-            // Mostra/nascondi test button
-            const testButton = document.querySelector('button[onclick*="testShipsGoConnection"]');
-            if (testButton) {
-                testButton.style.display = (v1Key || v2Token) ? 'inline-flex' : 'none';
-            }
-            
         } catch (error) {
             console.error('Error saving ShipsGo config:', error);
             showStatus('Errore: ' + error.message, 'error');
@@ -1233,63 +1186,28 @@
 
     // Carica configurazione esistente al caricamento pagina
     document.addEventListener('DOMContentLoaded', async () => {
-        // Attendi che userSettingsService e trackingService siano pronti
-        const checkServices = setInterval(async () => {
-            if (window.userSettingsService && window.trackingService) {
-                clearInterval(checkServices);
+        // Attendi inizializzazione tracking service
+        setTimeout(async () => {
+            if (window.trackingService) {
+                const config = trackingService.getConfiguration();
                 
-                console.log('[Settings] UserSettingsService and TrackingService ready, loading ShipsGo config.');
-                
-                try {
-                    // Carica le API keys da Supabase
-                    const v1Key = await window.userSettingsService.getApiKey('shipsgo_v1');
-                    const v2Token = await window.userSettingsService.getApiKey('shipsgo_v2');
-
-                    // Popola i campi se esistono configurazioni salvate
-                    if (v1Key) {
-                        document.getElementById('shipsgoV1ApiKey').value = v1Key;
-                    }
-                    if (v2Token) {
-                        document.getElementById('shipsgoV2Token').value = v2Token;
-                    }
-
-                    // Aggiorna la configurazione del tracking service con le chiavi caricate
-                    const config = {
-                        shipsgo_v1_key: v1Key,
-                        shipsgo_v1_enabled: !!v1Key,
-                        shipsgo_v2_token: v2Token,
-                        shipsgo_v2_enabled: !!v2Token,
-                        force_mock_mode: !(v1Key || v2Token) // Disabilita mock se ci sono API keys
-                    };
-                    window.trackingService.updateConfiguration(config);
-                    await window.trackingService.initialize();
-                    
-                    // Mostra/nascondi test button
-                    const testButton = document.querySelector('button[onclick*="testShipsGoConnection"]');
-                    if (testButton) {
-                        testButton.style.display = (v1Key || v2Token) ? 'inline-flex' : 'none';
-                    }
-                    
-                    console.log('[Settings] ShipsGo config loaded from Supabase.');
-
-                } catch (error) {
-                    console.error('[Settings] Error loading ShipsGo config from Supabase:', error);
-                    // Fallback to local storage if Supabase fails or not available
-                    const config = trackingService.getConfiguration();
-                    if (config.shipsgo_v1_key) {
-                        document.getElementById('shipsgoV1ApiKey').value = config.shipsgo_v1_key;
-                    }
-                    if (config.shipsgo_v2_token) {
-                        document.getElementById('shipsgoV2Token').value = config.shipsgo_v2_token;
-                    }
-                    const testButton = document.querySelector('button[onclick*="testShipsGoConnection"]');
-                    if (testButton && trackingService.hasApiKeys()) {
-                        testButton.style.display = 'inline-flex';
-                    }
-                    console.warn('[Settings] Loaded ShipsGo config from local storage as fallback.');
+                // Popola i campi se esistono configurazioni salvate
+                if (config.shipsgo_v1_key) {
+                    document.getElementById('shipsgoV1ApiKey').value = config.shipsgo_v1_key;
                 }
+                if (config.shipsgo_v2_token) {
+                    document.getElementById('shipsgoV2Token').value = config.shipsgo_v2_token;
+                }
+                
+                // Mostra/nascondi test button
+                const testButton = document.querySelector('button[onclick*="testShipsGoConnection"]');
+                if (testButton && trackingService.hasApiKeys()) {
+                    testButton.style.display = 'inline-flex';
+                }
+                
+                console.log('[Settings] ShipsGo config loaded');
             }
-        }, 200); // Check every 200ms
+        }, 1000);
     });
 
     // Aggiungi event listener al form
