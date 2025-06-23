@@ -1,6 +1,7 @@
 // header-component.js - Header unificato SENZA sistema modal duplicato - FIXED
 import api from '/core/api-client.js';
 import notificationSystem from '/core/notification-system.js';
+import { supabase } from '/core/services/supabase-client.js'; // AGGIUNGI QUESTA RIGA
 
 export class HeaderComponent {
     constructor(options = {}) {
@@ -36,7 +37,7 @@ export class HeaderComponent {
         this.user = window.auth?.getCurrentUser();
         
         try {
-            this.mount();
+            await this.mount();
             console.log('✅ [HeaderComponent] Header mounted to DOM');
             
             this.attachEventListeners();
@@ -64,7 +65,7 @@ export class HeaderComponent {
         }
     }
     
-    mount(selector = 'body') {
+    async mount(selector = 'body') {
         const container = document.querySelector(selector);
         if (!container) {
             console.error(`❌ [HeaderComponent] Container '${selector}' not found`);
@@ -78,7 +79,7 @@ export class HeaderComponent {
             existingHeader.remove();
         }
         
-        const headerHtml = this.render();
+        const headerHtml = await this.render();
         container.insertAdjacentHTML('afterbegin', headerHtml);
         
         console.log('✅ [HeaderComponent] Header HTML inserted into DOM');
@@ -203,17 +204,21 @@ export class HeaderComponent {
     }
     
     async getUserInfo() {
-        // Se hai supabase disponibile
-        if (window.supabase) {
-            const { data: { user } } = await window.supabase.auth.getUser();
-            if (user && user.email) {
-                const name = user.email.split('@')[0]; // Usa parte prima di @
-                return {
-                    name: name.charAt(0).toUpperCase() + name.slice(1),
-                    email: user.email,
-                    initials: name.substring(0, 2).toUpperCase()
-                };
+        try {
+            // Se hai supabase disponibile
+            if (supabase) {
+                const { data: { user } } = await supabase.auth.getUser();
+                if (user && user.email) {
+                    const name = user.email.split('@')[0];
+                    return {
+                        name: name.charAt(0).toUpperCase() + name.slice(1),
+                        email: user.email,
+                        initials: name.substring(0, 2).toUpperCase()
+                    };
+                }
             }
+        } catch (error) {
+            console.log('[HeaderComponent] Error getting user:', error);
         }
         
         // Fallback
@@ -510,7 +515,7 @@ export class HeaderComponent {
     }
     
     async renderRight() {
-        const userInfo = await this.getUserInfo();
+        const userInfo = await this.getUserInfo(); // AGGIUNGI await
         
         return `
             <div class="sol-header-right">
@@ -571,7 +576,7 @@ export class HeaderComponent {
     }
     
     async renderUserDropdown() {
-        const userInfo = await this.getUserInfo();
+        const userInfo = await this.getUserInfo(); // AGGIUNGI await
         
         return `
             <div class="sol-dropdown" id="userDropdown" style="display: none;">
