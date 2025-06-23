@@ -1,18 +1,15 @@
 // core/services/supabase-client.js
-
-// Verifica che Supabase sia disponibile
-if (!window.supabaseCreateClient) {
-    console.error('❌ Supabase non caricato! Assicurati che il CDN sia incluso in tracking.html');
-    throw new Error('Supabase not loaded');
-}
-
 const createClient = window.supabaseCreateClient;
 
+export const supabase = createClient(
+  'https://gnlrmnsdmpjzitsysowq.supabase.co',
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdubHJtbnNkbXBqeml0c3lzb3dxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk0NjMxMzQsImV4cCI6MjA2NTAzOTEzNH0.UoJJoDUoDXGbiWnKNN48qb9PVQWOW_X_MXqAfzTHSaA'
+);
 // Configurazione Supabase
 const SUPABASE_URL = 'https://gnlrmnsdmpjzitsysowq.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdubHJtbnNkbXBqeml0c3lzb3dxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk0NjMxMzQsImV4cCI6MjA2NTAzOTEzNH0.UoJJoDUoDXGbiWnKNN48qb9PVQWOW_X_MXqAfzTHSaA';
 
-// Crea client Supabase (una sola volta)
+// Crea client Supabase
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     auth: {
         autoRefreshToken: true,
@@ -78,9 +75,3 @@ export const debug = {
         }
     }
 };
-
-// Esponi globalmente per debug
-window.supabaseClient = supabase;
-window.supabaseDebug = debug;
-
-console.log('✅ Supabase client inizializzato');

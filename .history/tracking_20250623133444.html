@@ -5,16 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Supply Chain Hub - Tracking Spedizioni</title>
     
-    <!-- ===== SUPABASE CDN - CARICAMENTO PRIORITARIO ===== -->
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script>
-  // Esponi globalmente per i moduli ES6
-  window.supabaseCreateClient = window.supabase.createClient;
-  console.log('✅ Supabase CDN caricato:', typeof window.supabase);
-</script>
-<!-- ===== FIX 1: MODAL SYSTEM DEFINITIVO - CARICAMENTO PRIORITARIO ===== -->
-   <script>
-// 🔧 FORCE CLEANUP MODAL SYSTEMS - PRIMA DI TUTTO
+    <!-- ===== FIX 1: MODAL SYSTEM DEFINITIVO - CARICAMENTO PRIORITARIO ===== -->
+    <script>
+    // 🔧 FORCE CLEANUP MODAL SYSTEMS - PRIMA DI TUTTO
     (function() {
         console.log('🧹 [PreInit] Cleaning up existing modal systems...');
         
