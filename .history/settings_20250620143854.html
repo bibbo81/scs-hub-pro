@@ -5,12 +5,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Supply Chain Hub - Impostazioni</title>
     
+    <!-- Favicon IDENTICO a tracking.html -->
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23007AFF'%3E%3Cpath d='M20 8h-3V4H3c-1.1 0-2 .9-2 2v11h2c0 1.66 1.34 3 3 3s3-1.34 3-3h6c0 1.66 1.34 3 3 3s3-1.34 3-3h2v-5l-4zM6 18.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm13.5-9l1.96 2.5H17V9.5h2.5zm-1.5 9c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z'/%3E%3C/svg%3E">
     
+    <!-- Font Awesome IDENTICO -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
+    <!-- STESSO Core CSS di tracking.html -->
     <link rel="stylesheet" href="/assets/css/solarium.css">
     
+    <!-- STESSO setup JavaScript ES6 modules -->
     <script type="module">
         // Import core modules IDENTICI a tracking.html
         import api from '/core/api-client.js';
@@ -25,25 +29,20 @@
         window.ModalSystem = modalSystem;
     </script>
     
-    <script type="module">
-        import { supabase } from '/core/services/supabase-client.js';
-        import userSettingsService from '/core/services/user-settings-service.js';
-        
-        window.supabase = supabase;
-        window.userSettingsService = userSettingsService;
-        
-        console.log('[Settings] User settings service loaded');
-    </script>
-
+    <!-- STESSI Legacy Scripts -->
     <script src="/core/auth.js"></script>
     <script src="/core/auth-init.js"></script>
     
+    <!-- Settings page specific script -->
     <script src="/pages/settings/index.js"></script>
 </head>
 <body>
+    <!-- Header Component IDENTICO - verrà montato automaticamente -->
     <div id="header-root"></div>
 
+    <!-- STESSO Main Content Layout di tracking.html -->
     <main class="sol-main-content" id="mainContent">
+        <!-- STESSO Page Header styling di tracking.html -->
         <div class="sol-page-header">
             <div>
                 <h1 class="sol-page-title">Impostazioni</h1>
@@ -65,6 +64,7 @@
             </div>
         </div>
 
+        <!-- Settings Navigation Tabs (SOLARIUM STYLE) -->
         <div class="sol-card" style="margin-bottom: 2rem;">
             <div class="sol-tabs" id="settingsTabs">
                 <button class="sol-tab active" data-section="general">
@@ -94,12 +94,15 @@
             </div>
         </div>
 
+        <!-- Status Message (SOLARIUM STYLE) -->
         <div id="api-status" class="sol-alert sol-alert-success" style="display: none; margin-bottom: 2rem;">
             <i class="fas fa-check-circle"></i>
             <span>Impostazioni salvate con successo</span>
         </div>
 
+        <!-- GENERAL SECTION -->
         <div id="general" class="sol-tab-content active">
+            <!-- Company Information Card -->
             <div class="sol-card" style="margin-bottom: 2rem;">
                 <div class="sol-card-header">
                     <h3 class="sol-card-title">
@@ -184,6 +187,7 @@
                 </div>
             </div>
 
+            <!-- Regional Preferences Card -->
             <div class="sol-card">
                 <div class="sol-card-header">
                     <h3 class="sol-card-title">
@@ -262,7 +266,9 @@
             </div>
         </div>
 
+        <!-- IMPORT/EXPORT SECTION -->
         <div id="import-export" class="sol-tab-content">
+            <!-- Import Configuration Card -->
             <div class="sol-card" style="margin-bottom: 2rem;">
                 <div class="sol-card-header">
                     <h3 class="sol-card-title">
@@ -310,6 +316,7 @@
                 </div>
             </div>
 
+            <!-- Export Configuration Card -->
             <div class="sol-card">
                 <div class="sol-card-header">
                     <h3 class="sol-card-title">
@@ -383,7 +390,9 @@
             </div>
         </div>
 
+        <!-- INTEGRATIONS SECTION -->
         <div id="integrations" class="sol-tab-content">
+            <!-- ShipsGo API Configuration -->
             <div class="sol-card">
                 <div class="sol-card-header">
                     <h3 class="sol-card-title">
@@ -481,6 +490,7 @@
                         <div id="shipsgoTestResult" style="margin-top: 1.5rem; display: none;"></div>
                     </form>
 
+                    <!-- Webhook Information -->
                     <div style="margin-top: 2rem; padding: 1.5rem; background: var(--sol-gray-50); border-radius: var(--sol-radius-lg);">
                         <h4 style="margin-bottom: 1rem; color: var(--sol-gray-800);">
                             <i class="fas fa-link" style="margin-right: 0.5rem; color: var(--sol-info);"></i>
@@ -507,7 +517,9 @@
             </div>
         </div>
 
+        <!-- NOTIFICATIONS SECTION -->
         <div id="notifications" class="sol-tab-content">
+            <!-- Email Notifications -->
             <div class="sol-card" style="margin-bottom: 2rem;">
                 <div class="sol-card-header">
                     <h3 class="sol-card-title">
@@ -568,6 +580,7 @@
                 </div>
             </div>
 
+            <!-- Push Notifications -->
             <div class="sol-card">
                 <div class="sol-card-header">
                     <h3 class="sol-card-title">
@@ -605,6 +618,7 @@
             </div>
         </div>
 
+        <!-- SECURITY SECTION -->
         <div id="security" class="sol-tab-content">
             <div class="sol-card">
                 <div class="sol-card-header">
@@ -654,6 +668,7 @@
             </div>
         </div>
 
+        <!-- ADVANCED SECTION -->
         <div id="advanced" class="sol-tab-content">
             <div class="sol-card" style="margin-bottom: 2rem;">
                 <div class="sol-card-header">
@@ -696,6 +711,7 @@
                 </div>
             </div>
 
+            <!-- Danger Zone -->
             <div class="sol-card">
                 <div class="sol-card-header">
                     <h3 class="sol-card-title" style="color: var(--sol-danger);">
@@ -722,6 +738,7 @@
         </div>
     </main>
 
+    <!-- Custom CSS for Settings specific styling -->
     <style>
         /* Settings Toggle Groups - SOLARIUM COMPLIANT */
         .settings-toggle-group {
@@ -863,6 +880,7 @@
         }
     </style>
 
+    <!-- Settings JavaScript -->
     <script>
         // Initialize Settings Page
         document.addEventListener('DOMContentLoaded', () => {
@@ -1056,6 +1074,7 @@
         console.log('[Settings] Script loaded with Solarium Design System compliance');
     </script>
     
+    <!-- ShipsGo API Integration Script -->
     <script type="module">
     // Import tracking service
     import trackingService from '/core/services/tracking-service.js';
