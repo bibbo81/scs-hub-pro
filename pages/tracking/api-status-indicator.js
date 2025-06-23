@@ -5,6 +5,8 @@ class ApiStatusIndicator {
         this.container = null;
         this.hasApiKeys = false;
         this.isConfigured = false;
+        this.bannerElement = null;
+        this.wasConfigured = false; // Track se era già configurato
     }
 
     // Inizializza l'indicatore
@@ -19,6 +21,26 @@ class ApiStatusIndicator {
         
         // Ascolta eventi di aggiornamento API keys
         window.addEventListener('apiKeysUpdated', () => this.checkApiStatus());
+        
+        // NUOVO: Ascolta evento quando le API keys vengono caricate automaticamente da Supabase
+        window.addEventListener('apiKeysAutoLoaded', async (event) => {
+            console.log('[ApiStatusIndicator] 🔑 API Keys auto-loaded from Supabase:', event.detail);
+            await this.checkApiStatus();
+            
+            // Rimuovi banner se API configurate
+            if (event.detail.hasV1 || event.detail.hasV2) {
+                this.removeBanner();
+                
+                // Notifica successo solo se non era già configurato
+                if (!this.wasConfigured && window.NotificationSystem) {
+                    window.NotificationSystem.success('API ShipsGo caricate automaticamente', {
+                        subtitle: 'Sistema pronto per tracking in tempo reale',
+                        duration: 4000
+                    });
+                }
+                this.wasConfigured = true;
+            }
+        });
         
         // Controlla periodicamente (ogni 30 secondi)
         setInterval(() => this.checkApiStatus(), 30000);
@@ -68,6 +90,8 @@ class ApiStatusIndicator {
     // Controlla lo stato delle API
     async checkApiStatus() {
         try {
+            console.log('[ApiStatusIndicator] Checking API status...');
+            
             // Controlla tramite tracking service
             if (window.trackingService) {
                 this.hasApiKeys = window.trackingService.hasApiKeys();
@@ -77,6 +101,14 @@ class ApiStatusIndicator {
                 const stats = window.trackingService.getStats();
                 this.apiV1 = stats.apiConfig.v1;
                 this.apiV2 = stats.apiConfig.v2;
+                
+                console.log('[ApiStatusIndicator] Status from TrackingService:', {
+                    hasApiKeys: this.hasApiKeys,
+                    isConfigured: this.isConfigured,
+                    mockMode: window.trackingService.mockMode,
+                    v1: this.apiV1,
+                    v2: this.apiV2
+                });
             } else {
                 // Fallback: controlla userSettingsService
                 if (window.userSettingsService) {
@@ -85,6 +117,11 @@ class ApiStatusIndicator {
                     this.apiV1 = !!keys.shipsgo_v1;
                     this.apiV2 = !!keys.shipsgo_v2;
                 }
+            }
+            
+            // NUOVO: Se API configurate, rimuovi il banner
+            if (this.hasApiKeys && this.isConfigured) {
+                this.removeBanner();
             }
             
             // Aggiorna UI
@@ -99,6 +136,11 @@ class ApiStatusIndicator {
 
     // Aggiorna l'UI dell'indicatore
     updateUI() {
+        console.log('[ApiStatusIndicator] Updating UI:', {
+            hasApiKeys: this.hasApiKeys,
+            isConfigured: this.isConfigured
+        });
+        
         if (!this.container) return;
         
         if (this.hasApiKeys && this.isConfigured) {
@@ -111,6 +153,9 @@ class ApiStatusIndicator {
             this.container.style.backgroundColor = '#10b98115';
             this.container.style.border = '1px solid #10b98140';
             this.container.title = this.getTooltipText();
+            
+            // Rimuovi banner se presente
+            this.removeBanner();
             
         } else if (this.hasApiKeys && !this.isConfigured) {
             // API salvate ma in modalità mock
@@ -168,6 +213,16 @@ class ApiStatusIndicator {
         return text;
     }
 
+    // NUOVO: Rimuovi banner
+    removeBanner() {
+        const banner = document.querySelector('.api-config-banner');
+        if (banner) {
+            console.log('[ApiStatusIndicator] 🗑️ Removing config banner');
+            banner.style.animation = 'slideUp 0.3s ease-out';
+            setTimeout(() => banner.remove(), 300);
+        }
+    }
+
     // Mostra banner informativo se API non configurate
     showConfigBanner() {
         // Controlla se banner già presente
@@ -175,6 +230,9 @@ class ApiStatusIndicator {
         
         // Controlla se utente ha dismesso il banner
         if (sessionStorage.getItem('apiConfigBannerDismissed')) return;
+        
+        // Non mostrare se API già configurate
+        if (this.hasApiKeys && this.isConfigured) return;
         
         const banner = document.createElement('div');
         banner.className = 'api-config-banner sol-alert sol-alert-warning';
@@ -211,6 +269,9 @@ class ApiStatusIndicator {
         if (pageHeader && pageHeader.nextSibling) {
             pageHeader.parentNode.insertBefore(banner, pageHeader.nextSibling);
         }
+        
+        // Salva riferimento al banner
+        this.bannerElement = banner;
     }
 
     // Gestisci click sull'indicatore
@@ -238,6 +299,17 @@ style.textContent = `
         to {
             opacity: 1;
             transform: translateY(0);
+        }
+    }
+    
+    @keyframes slideUp {
+        from {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        to {
+            opacity: 0;
+            transform: translateY(-10px);
         }
     }
     
