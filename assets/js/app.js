@@ -1,4 +1,4 @@
-// app.js - Global application entry point ES6
+// app.js - Global application entry point ES6 - FIXED
 import api from '/core/api-client.js';
 import headerComponent from '/core/header-component.js';
 import notificationSystem from '/core/notification-system.js';
@@ -42,10 +42,19 @@ class Application {
                 this.data = {};
             }
         };
+        
+        // Flag per prevenire multiple init
+        this.initialized = false;
     }
     
     // Initialize application
     async init() {
+        // PREVIENI MULTIPLE INIT
+        if (this.initialized) {
+            console.log('[App] Already initialized, skipping...');
+            return;
+        }
+        
         try {
             console.log(`[${this.config.appName}] Initializing v${this.config.version}...`);
             
@@ -68,6 +77,7 @@ class Application {
             // 5. Page-specific initialization
             await this.initPage();
             
+            this.initialized = true;
             console.log('[App] Initialization complete');
             
         } catch (error) {
@@ -116,14 +126,16 @@ class Application {
         this.modules.api = api;
     }
     
-    // Initialize UI components
+    // Initialize UI components - FIX: NON RE-INIT HEADER
     async initUI() {
-        // Header is auto-initialized by header-component.js
+        // Store references to UI modules
         this.modules.header = headerComponent;
-        
-        // Store references to other UI modules
         this.modules.notifications = notificationSystem;
         this.modules.modals = modalSystem;
+        
+        // NON chiamare headerComponent.init() qui!
+        // È già gestito dal suo auto-init
+        console.log('[App] Header component will auto-initialize');
         
         // Add main content padding for fixed header
         this.adjustMainContent();
@@ -171,19 +183,13 @@ class Application {
         });
     }
     
-    // Page-specific initialization - FIXED VERSION
+    // Page-specific initialization - FIXED
     async initPage() {
         // Get current page
         const path = window.location.pathname;
         const pageName = path.split('/').pop().replace('.html', '') || 'index';
         
         console.log(`[App] Initializing page: ${pageName}`);
-        
-        // AGGIUNGI QUESTO: Inizializza sempre l'header
-        if (window.headerComponent && !document.querySelector('.sol-header')) {
-            console.log('[App] Initializing header component...');
-            await window.headerComponent.init();
-        }
         
         // Per tracking page, aspetta che il modulo sia caricato
         if (pageName === 'tracking') {
@@ -279,12 +285,20 @@ const app = new Application();
 // Export singleton
 export default app;
 
-// Auto-initialize when DOM is ready
+// Auto-initialize when DOM is ready - CON PROTEZIONE
+let autoInitDone = false;
+
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
-        app.init();
-    });
+        if (!autoInitDone) {
+            autoInitDone = true;
+            app.init();
+        }
+    }, { once: true });
 } else {
     // DOM already loaded
-    app.init();
+    if (!autoInitDone) {
+        autoInitDone = true;
+        setTimeout(() => app.init(), 100);
+    }
 }

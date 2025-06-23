@@ -1,16 +1,17 @@
-// header-component.js - Header unificato SENZA sistema modal duplicato - FIXED
+// header-component.js - Header unificato con SINGLETON PATTERN ROBUSTO
 import api from '/core/api-client.js';
 import notificationSystem from '/core/notification-system.js';
-import { supabase } from '/core/services/supabase-client.js'; // AGGIUNGI QUESTO
+import { supabase } from '/core/services/supabase-client.js';
 
-// AGGIUNGI SINGLETON PATTERN
+// SINGLETON PATTERN ROBUSTO
 let headerInstance = null;
+let initializationPromise = null;
 
 export class HeaderComponent {
     constructor(options = {}) {
-        // SINGLETON CHECK
+        // SINGLETON CHECK RIGOROSO
         if (headerInstance) {
-            console.warn('[HeaderComponent] Instance already exists, returning existing instance');
+            console.warn('[HeaderComponent] Returning existing singleton instance');
             return headerInstance;
         }
         
@@ -27,6 +28,8 @@ export class HeaderComponent {
         this.searchTimeout = null;
         this.isDevMode = this.checkDevMode();
         this.initialized = false;
+        this.userInfoCache = null;
+        this.userInfoCacheTime = 0;
         
         // Set singleton instance
         headerInstance = this;
@@ -39,23 +42,33 @@ export class HeaderComponent {
     }
     
     async init() {
+        // PREVIENI MULTIPLE INIZIALIZZAZIONI
+        if (initializationPromise) {
+            console.warn('[HeaderComponent] Init already in progress, waiting...');
+            return initializationPromise;
+        }
+        
         if (this.initialized) {
-            console.warn('⚠️ Header already initialized, skipping...');
-            return this; // Return this invece di return void
+            console.warn('[HeaderComponent] Already initialized');
+            return this;
         }
         
-        // RIMUOVI HEADER DUPLICATI SE ESISTONO
-        const existingHeaders = document.querySelectorAll('.sol-header');
-        if (existingHeaders.length > 1) {
-            console.warn(`[HeaderComponent] Found ${existingHeaders.length} headers, removing duplicates...`);
-            for (let i = 1; i < existingHeaders.length; i++) {
-                existingHeaders[i].remove();
-            }
-        }
+        // Crea promise per prevenire race conditions
+        initializationPromise = this._performInit();
         
+        try {
+            await initializationPromise;
+            return this;
+        } finally {
+            initializationPromise = null;
+        }
+    }
+    
+    async _performInit() {
         console.log('🔧 [HeaderComponent] Starting initialization...');
         
-        this.user = window.auth?.getCurrentUser();
+        // PULIZIA HEADER DUPLICATI
+        this._cleanupDuplicateHeaders();
         
         try {
             await this.mount();
@@ -74,15 +87,22 @@ export class HeaderComponent {
                 this.updateNotificationBadge();
             }
             
-            if (this.isDevMode) {
-                console.log('🛠️ Developer Mode enabled - Test System available');
-            }
-            
             console.log('✅ [HeaderComponent] Initialization complete');
             
         } catch (error) {
             console.error('❌ [HeaderComponent] Initialization failed:', error);
             throw error;
+        }
+    }
+    
+    _cleanupDuplicateHeaders() {
+        const headers = document.querySelectorAll('.sol-header');
+        if (headers.length > 1) {
+            console.warn(`[HeaderComponent] Found ${headers.length} headers, removing duplicates...`);
+            // Rimuovi tutti tranne il primo
+            for (let i = 1; i < headers.length; i++) {
+                headers[i].remove();
+            }
         }
     }
     
@@ -93,14 +113,14 @@ export class HeaderComponent {
             return;
         }
         
-        // Rimuovi header esistente per evitare duplicati
+        // Controlla se header esiste già
         const existingHeader = document.querySelector('.sol-header');
         if (existingHeader) {
-            console.log('🔄 [HeaderComponent] Removing existing header');
-            existingHeader.remove();
+            console.log('⚠️ [HeaderComponent] Header already exists, skipping mount');
+            return;
         }
         
-        const headerHtml = await this.render(); // AGGIUNGI await
+        const headerHtml = await this.render();
         container.insertAdjacentHTML('afterbegin', headerHtml);
         
         console.log('✅ [HeaderComponent] Header HTML inserted into DOM');
@@ -112,6 +132,151 @@ export class HeaderComponent {
             ${await this.renderDropdowns()}
             ${this.renderSidebar()}
             ${this.renderBackdrop()}
+        `;
+    }
+    
+    // FIX 4: getUserInfo ASYNC con CACHE
+    async getUserInfo() {
+        // Cache per 5 minuti
+        const cacheExpiry = 5 * 60 * 1000;
+        const now = Date.now();
+        
+        if (this.userInfoCache && (now - this.userInfoCacheTime) < cacheExpiry) {
+            return this.userInfoCache;
+        }
+        
+        try {
+            if (supabase) {
+                const { data: { user } } = await supabase.auth.getUser();
+                
+                if (user) {
+                    let userInfo;
+                    
+                    if (user.email) {
+                        // Utente con email
+                        const name = user.email.split('@')[0];
+                        userInfo = {
+                            name: name.charAt(0).toUpperCase() + name.slice(1),
+                            email: user.email,
+                            initials: name.substring(0, 2).toUpperCase(),
+                            isAnonymous: false
+                        };
+                    } else {
+                        // Utente anonimo
+                        userInfo = {
+                            name: 'Demo User',
+                            email: 'demo@example.com',
+                            initials: 'DU',
+                            isAnonymous: true
+                        };
+                    }
+                    
+                    // Aggiorna cache
+                    this.userInfoCache = userInfo;
+                    this.userInfoCacheTime = now;
+                    
+                    return userInfo;
+                }
+            }
+        } catch (error) {
+            console.log('[HeaderComponent] Error getting user:', error);
+        }
+        
+        // Fallback
+        const fallback = {
+            name: 'Demo User',
+            email: 'demo@example.com',
+            initials: 'DU',
+            isAnonymous: true
+        };
+        
+        this.userInfoCache = fallback;
+        this.userInfoCacheTime = now;
+        
+        return fallback;
+    }
+    
+    // Invalida cache quando cambia l'utente
+    invalidateUserCache() {
+        this.userInfoCache = null;
+        this.userInfoCacheTime = 0;
+    }
+    
+    // FIX 4: renderHeader ASYNC
+    async renderHeader() {
+        return `
+            <header class="sol-header">
+                <div class="sol-header-content">
+                    ${this.renderLeft()}
+                    ${this.renderCenter()}
+                    ${await this.renderRight()}
+                </div>
+            </header>
+        `;
+    }
+    
+    // FIX 4: renderRight ASYNC
+    async renderRight() {
+        const userInfo = await this.getUserInfo();
+        
+        return `
+            <div class="sol-header-right">
+                ${this.renderCustomActions()}
+                ${this.isDevMode ? this.renderDevActions() : ''}
+                ${this.options.showNotifications ? this.renderNotificationButton() : ''}
+                ${this.options.showUser ? this.renderUserButton(userInfo) : ''}
+            </div>
+        `;
+    }
+    
+    // FIX 4: renderDropdowns ASYNC
+    async renderDropdowns() {
+        return `
+            ${await this.renderUserDropdown()}
+            ${this.renderNotificationDropdown()}
+        `;
+    }
+    
+    // FIX 4: renderUserDropdown ASYNC
+    async renderUserDropdown() {
+        const userInfo = await this.getUserInfo();
+        
+        return `
+            <div class="sol-dropdown" id="userDropdown" style="display: none;">
+                <div class="sol-dropdown-header">
+                    <p class="user-name">${userInfo.name}</p>
+                    <p class="user-email">${userInfo.email}</p>
+                </div>
+                <div class="sol-dropdown-body">
+                    <a href="/profile.html" class="sol-dropdown-item">
+                        <i class="fas fa-user"></i> Profilo
+                    </a>
+                    <a href="/settings.html" class="sol-dropdown-item">
+                        <i class="fas fa-cog"></i> Impostazioni
+                    </a>
+                    <a href="/billing.html" class="sol-dropdown-item">
+                        <i class="fas fa-credit-card"></i> Fatturazione
+                    </a>
+                    ${this.isDevMode ? `
+                        <div class="sol-dropdown-divider"></div>
+                        <a href="/test-integration.html" class="sol-dropdown-item">
+                            <i class="fas fa-flask"></i> Integration Tests
+                        </a>
+                        <button class="sol-dropdown-item" onclick="toggleDebugMode()">
+                            <i class="fas fa-bug"></i> Toggle Debug Mode
+                        </button>
+                        <button class="sol-dropdown-item" onclick="clearSystemData()">
+                            <i class="fas fa-trash"></i> Clear System Data
+                        </button>
+                    ` : ''}
+                </div>
+                <div class="sol-dropdown-footer">
+                    <a href="#" class="sol-dropdown-item" onclick="handleLogout(event)">
+                        <i class="fas fa-sign-out-alt"></i>
+                        <span>Logout</span>
+                    </a>
+                </div>
+            </div>
         `;
     }
     
@@ -224,31 +389,6 @@ export class HeaderComponent {
         return '<div class="sol-backdrop" id="backdrop"></div>';
     }
     
-    async getUserInfo() {
-        try {
-            if (supabase) {
-                const { data: { user } } = await supabase.auth.getUser();
-                if (user && user.email) {
-                    const name = user.email.split('@')[0];
-                    return {
-                        name: name.charAt(0).toUpperCase() + name.slice(1),
-                        email: user.email,
-                        initials: name.substring(0, 2).toUpperCase()
-                    };
-                }
-            }
-        } catch (error) {
-            console.log('[HeaderComponent] Error getting user:', error);
-        }
-        
-        // Fallback
-        return {
-            name: 'Demo User',
-            email: 'demo@example.com',
-            initials: 'DU'
-        };
-    }
-    
     isActive(href) {
         return window.location.pathname === href;
     }
@@ -275,7 +415,7 @@ export class HeaderComponent {
             });
         }
         
-        // User menu - FIXED: usa ModalSystem globale
+        // User menu
         const userMenuBtn = document.getElementById('userMenuBtn');
         if (userMenuBtn) {
             userMenuBtn.addEventListener('click', (e) => {
@@ -285,7 +425,7 @@ export class HeaderComponent {
             });
         }
         
-        // Notifications - FIXED: usa ModalSystem globale
+        // Notifications
         const notificationBtn = document.getElementById('notificationBtn');
         if (notificationBtn) {
             notificationBtn.addEventListener('click', (e) => {
@@ -294,8 +434,6 @@ export class HeaderComponent {
                 this.toggleDropdown('notificationDropdown', 'notificationBtn');
             });
         }
-        
-        // Logout - REMOVED: Now handled by handleLogout function
         
         // Global search
         const globalSearch = document.getElementById('globalSearch');
@@ -352,6 +490,35 @@ export class HeaderComponent {
                 this.markAllNotificationsRead();
             });
         }
+        
+        // Listen for auth state changes
+        if (supabase) {
+            supabase.auth.onAuthStateChange((event, session) => {
+                console.log('[HeaderComponent] Auth state changed:', event);
+                this.invalidateUserCache();
+                
+                // Update user info in header after auth change
+                if (event === 'SIGNED_IN') {
+                    setTimeout(async () => {
+                        const userInfo = await this.getUserInfo();
+                        this.updateUserDisplay(userInfo);
+                    }, 500);
+                }
+            });
+        }
+    }
+    
+    // Aggiorna display utente senza re-render completo
+    updateUserDisplay(userInfo) {
+        const userInitial = document.getElementById('userInitial');
+        const userName = document.getElementById('userName');
+        const dropdownName = document.querySelector('.user-name');
+        const dropdownEmail = document.querySelector('.user-email');
+        
+        if (userInitial) userInitial.textContent = userInfo.initials;
+        if (userName) userName.textContent = userInfo.name;
+        if (dropdownName) dropdownName.textContent = userInfo.name;
+        if (dropdownEmail) dropdownEmail.textContent = userInfo.email;
     }
     
     toggleDropdown(dropdownId, buttonId) {
@@ -384,7 +551,6 @@ export class HeaderComponent {
         });
     }
     
-    // FIXED: Load notifications with proper error handling
     async loadNotifications() {
         try {
             const data = await api.get('notifications', { silent: true });
@@ -490,18 +656,6 @@ export class HeaderComponent {
         }, 300);
     }
     
-    async renderHeader() {
-        return `
-            <header class="sol-header">
-                <div class="sol-header-content">
-                    ${this.renderLeft()}
-                    ${this.renderCenter()}
-                    ${await this.renderRight()}
-                </div>
-            </header>
-        `;
-    }
-    
     renderLeft() {
         return `
             <div class="sol-header-left">
@@ -530,19 +684,6 @@ export class HeaderComponent {
                     >
                     <i class="fas fa-search sol-search-icon"></i>
                 </div>
-            </div>
-        `;
-    }
-    
-    async renderRight() {
-        const userInfo = await this.getUserInfo();
-        
-        return `
-            <div class="sol-header-right">
-                ${this.renderCustomActions()}
-                ${this.isDevMode ? this.renderDevActions() : ''}
-                ${this.options.showNotifications ? this.renderNotificationButton() : ''}
-                ${this.options.showUser ? this.renderUserButton(userInfo) : ''}
             </div>
         `;
     }
@@ -588,55 +729,6 @@ export class HeaderComponent {
         `;
     }
     
-    async renderDropdowns() {
-        return `
-            ${await this.renderUserDropdown()}
-            ${this.renderNotificationDropdown()}
-        `;
-    }
-    
-    async renderUserDropdown() {
-        const userInfo = await this.getUserInfo();
-        
-        return `
-            <div class="sol-dropdown" id="userDropdown" style="display: none;">
-                <div class="sol-dropdown-header">
-                    <p class="user-name">${userInfo.name}</p>
-                    <p class="user-email">${userInfo.email}</p>
-                </div>
-                <div class="sol-dropdown-body">
-                    <a href="/profile.html" class="sol-dropdown-item">
-                        <i class="fas fa-user"></i> Profilo
-                    </a>
-                    <a href="/settings.html" class="sol-dropdown-item">
-                        <i class="fas fa-cog"></i> Impostazioni
-                    </a>
-                    <a href="/billing.html" class="sol-dropdown-item">
-                        <i class="fas fa-credit-card"></i> Fatturazione
-                    </a>
-                    ${this.isDevMode ? `
-                        <div class="sol-dropdown-divider"></div>
-                        <a href="/test-integration.html" class="sol-dropdown-item">
-                            <i class="fas fa-flask"></i> Integration Tests
-                        </a>
-                        <button class="sol-dropdown-item" onclick="toggleDebugMode()">
-                            <i class="fas fa-bug"></i> Toggle Debug Mode
-                        </button>
-                        <button class="sol-dropdown-item" onclick="clearSystemData()">
-                            <i class="fas fa-trash"></i> Clear System Data
-                        </button>
-                    ` : ''}
-                </div>
-                <div class="sol-dropdown-footer">
-                    <a href="#" class="sol-dropdown-item" onclick="handleLogout(event)">
-                        <i class="fas fa-sign-out-alt"></i>
-                        <span>Logout</span>
-                    </a>
-                </div>
-            </div>
-        `;
-    }
-    
     renderNotificationDropdown() {
         return `
             <div class="sol-dropdown sol-dropdown-notifications" id="notificationDropdown" style="display: none;">
@@ -658,17 +750,16 @@ export class HeaderComponent {
 // Export singleton instance
 const headerComponent = new HeaderComponent();
 
-// Flag globale per prevenire multiple inizializzazioni
-window._headerComponentAutoInitialized = false;
+// FIX 1: PREVIENI AUTO-INIT MULTIPLE
+let autoInitDone = false;
 
-// AUTO-INITIALIZATION - Con protezione contro duplicati
 async function autoInitHeader() {
-    if (window._headerComponentAutoInitialized) {
-        console.log('[HeaderComponent] Auto-init already done, skipping...');
+    if (autoInitDone) {
+        console.log('[HeaderComponent] Auto-init already done');
         return;
     }
     
-    window._headerComponentAutoInitialized = true;
+    autoInitDone = true;
     
     try {
         await headerComponent.init();
@@ -678,38 +769,97 @@ async function autoInitHeader() {
     }
 }
 
-// Single event listener
+// Single event listener con once: true
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', autoInitHeader, { once: true });
 } else {
-    // DOM già caricato
+    // DOM già caricato - usa setTimeout per evitare race conditions
     setTimeout(autoInitHeader, 100);
 }
 
-// Aggiungi la funzione handleLogout globale
+// FIX 2: handleLogout MIGLIORATO per Demo User
 window.handleLogout = async function(event) {
     event.preventDefault();
     
-    if (confirm('Vuoi uscire dal tuo account?')) {
-        // Check if supabase is available
-        if (window.supabase) {
-            const { error } = await window.supabase.auth.signOut();
-            if (!error) {
-                window.location.href = '/login.html';
-            } else {
-                console.error('Logout error:', error);
-                // Fallback logout
-                window.location.href = '/login.html';
-            }
-        } else {
-            // Fallback if supabase is not available
-            console.log('Supabase not available, using fallback logout');
-            // Clear any local storage items
-            localStorage.removeItem('sb-access-token');
-            localStorage.removeItem('sb-refresh-token');
-            window.location.href = '/login.html';
-        }
+    if (!confirm('Vuoi uscire dal tuo account?')) {
+        return;
     }
+    
+    try {
+        // Check if we have Supabase
+        if (window.supabase || supabase) {
+            const sb = window.supabase || supabase;
+            const { data: { user } } = await sb.auth.getUser();
+            
+            // Check if it's an anonymous user
+            if (user && !user.email) {
+                console.log('[Logout] Anonymous user detected, clearing local data');
+                // Clear all local data for anonymous users
+                localStorage.clear();
+                sessionStorage.clear();
+                
+                // Clear cookies (Supabase auth cookies)
+                document.cookie.split(";").forEach(function(c) { 
+                    document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/"); 
+                });
+            }
+            
+            // Try to sign out regardless
+            try {
+                await sb.auth.signOut();
+            } catch (signOutError) {
+                console.warn('[Logout] SignOut error (expected for anonymous):', signOutError);
+            }
+        }
+        
+        // Always redirect to login
+        window.location.href = '/login.html';
+        
+    } catch (error) {
+        console.error('[Logout] Error:', error);
+        // Fallback: clear everything and redirect
+        localStorage.clear();
+        sessionStorage.clear();
+        window.location.href = '/login.html';
+    }
+};
+
+// Helper functions globali
+window.runQuickTest = function() {
+    console.log('[Dev] Running quick test...');
+    if (window.NotificationSystem) {
+        window.NotificationSystem.success('Quick test completed!');
+    }
+};
+
+window.toggleDebugMode = function() {
+    const current = localStorage.getItem('debugMode') === 'true';
+    localStorage.setItem('debugMode', !current);
+    window.location.reload();
+};
+
+window.clearSystemData = function() {
+    if (confirm('Clear all system data? This cannot be undone.')) {
+        localStorage.clear();
+        sessionStorage.clear();
+        window.location.reload();
+    }
+};
+
+window.exportSystemState = function() {
+    const state = {
+        localStorage: { ...localStorage },
+        sessionStorage: { ...sessionStorage },
+        timestamp: new Date().toISOString()
+    };
+    
+    const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `system-state-${Date.now()}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
 };
 
 export default headerComponent;

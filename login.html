@@ -270,6 +270,48 @@
         .forgot-password a:hover {
             text-decoration: underline;
         }
+        
+        /* Debug panel */
+        .debug-panel {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            font-size: 0.75rem;
+            max-width: 300px;
+            display: none;
+        }
+        
+        .debug-panel.active {
+            display: block;
+        }
+        
+        .debug-panel h4 {
+            margin: 0 0 0.5rem;
+            font-size: 0.875rem;
+        }
+        
+        .debug-panel pre {
+            margin: 0;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        
+        .debug-toggle {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            font-size: 0.75rem;
+        }
     </style>
 </head>
 <body>
@@ -407,8 +449,27 @@
         </div>
     </div>
     
+    <!-- Debug panel -->
+    <button class="debug-toggle" onclick="toggleDebug()">Debug</button>
+    <div id="debugPanel" class="debug-panel">
+        <h4>Debug Info</h4>
+        <pre id="debugContent"></pre>
+    </div>
+    
     <script type="module">
         import { supabase } from '/core/services/supabase-client.js';
+        
+        // Debug functions
+        window.toggleDebug = function() {
+            const panel = document.getElementById('debugPanel');
+            panel.classList.toggle('active');
+        };
+        
+        window.updateDebug = function(info) {
+            const content = document.getElementById('debugContent');
+            const timestamp = new Date().toLocaleTimeString();
+            content.textContent = `[${timestamp}]\n${JSON.stringify(info, null, 2)}`;
+        };
         
         // Check if already authenticated
         async function checkAuth() {
@@ -501,11 +562,11 @@
             }
         }
         
-        // Handle register
+        // Handle register - FIXED con better error handling
         async function handleRegister(event) {
             event.preventDefault();
             
-            const email = document.getElementById('registerEmail').value;
+            const email = document.getElementById('registerEmail').value.trim();
             const password = document.getElementById('registerPassword').value;
             const confirmPassword = document.getElementById('confirmPassword').value;
             const button = document.getElementById('registerBtn');
@@ -516,42 +577,96 @@
                 return;
             }
             
+            // Validate email format
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(email)) {
+                showAlert('Formato email non valido', 'error');
+                return;
+            }
+            
             // Show loading
             button.disabled = true;
             button.innerHTML = '<span class="loading-spinner"></span> Registrazione in corso...';
             
             try {
                 console.log('Attempting registration for:', email);
+                updateDebug({ action: 'register_start', email });
                 
+                // Try registration with better error handling
                 const { data, error } = await supabase.auth.signUp({
                     email,
                     password,
                     options: {
-                        emailRedirectTo: window.location.origin + '/tracking.html'
+                        emailRedirectTo: window.location.origin + '/tracking.html',
+                        data: {
+                            registered_at: new Date().toISOString()
+                        }
                     }
                 });
                 
                 console.log('Registration response:', { data, error });
+                updateDebug({ action: 'register_response', data, error });
                 
-                if (error) throw error;
+                if (error) {
+                    // Handle specific errors
+                    if (error.message.includes('not enabled')) {
+                        showAlert('La registrazione email non è abilitata. Usa la modalità Demo o contatta l\'amministratore.', 'error');
+                        updateDebug({ action: 'register_error', type: 'email_not_enabled' });
+                    } else if (error.message.includes('already registered')) {
+                        showAlert('Questa email è già registrata. Prova ad accedere.', 'error');
+                        updateDebug({ action: 'register_error', type: 'already_registered' });
+                    } else {
+                        throw error;
+                    }
+                    return;
+                }
                 
-                if (data.user && data.user.identities && data.user.identities.length === 0) {
-                    showAlert('Un account con questa email esiste già', 'error');
+                // Check if user was created
+                if (data.user) {
+                    if (data.user.identities && data.user.identities.length === 0) {
+                        showAlert('Un account con questa email esiste già. Prova ad accedere.', 'error');
+                        updateDebug({ action: 'register_error', type: 'user_exists' });
+                    } else if (data.session) {
+                        // Registration successful with auto-confirm
+                        showAlert('Registrazione completata! Accesso automatico...', 'success');
+                        updateDebug({ action: 'register_success', type: 'auto_confirmed' });
+                        
+                        setTimeout(() => {
+                            window.location.href = '/tracking.html';
+                        }, 1500);
+                    } else {
+                        // Registration successful, needs email confirmation
+                        showAlert('Registrazione completata! Controlla la tua email per confermare l\'account.', 'success');
+                        updateDebug({ action: 'register_success', type: 'needs_confirmation' });
+                        
+                        // Clear form
+                        document.getElementById('registerForm').reset();
+                        
+                        // Switch to login tab after delay
+                        setTimeout(() => {
+                            switchTab('login');
+                        }, 3000);
+                    }
                 } else {
-                    showAlert('Registrazione completata! Controlla la tua email per confermare l\'account.', 'success');
-                    
-                    // Clear form
-                    document.getElementById('registerForm').reset();
-                    
-                    // Switch to login tab after delay
-                    setTimeout(() => {
-                        switchTab('login');
-                    }, 3000);
+                    // No user returned, something went wrong
+                    showAlert('Errore durante la registrazione. Riprova più tardi.', 'error');
+                    updateDebug({ action: 'register_error', type: 'no_user_returned' });
                 }
                 
             } catch (error) {
                 console.error('Register error:', error);
-                showAlert(error.message || 'Errore durante la registrazione', 'error');
+                updateDebug({ action: 'register_exception', error: error.message });
+                
+                // Provide helpful error messages
+                if (error.message.includes('Email signups are disabled')) {
+                    showAlert('La registrazione con email è disabilitata. Usa la modalità Demo.', 'error');
+                } else if (error.message.includes('Invalid email')) {
+                    showAlert('Email non valida. Controlla e riprova.', 'error');
+                } else if (error.message.includes('Weak password')) {
+                    showAlert('Password troppo debole. Usa almeno 6 caratteri.', 'error');
+                } else {
+                    showAlert(error.message || 'Errore durante la registrazione', 'error');
+                }
             } finally {
                 // Reset button
                 button.disabled = false;
@@ -559,24 +674,55 @@
             }
         }
         
-        // Handle demo access
+        // Handle demo access - IMPROVED
         async function handleDemoAccess() {
             showAlert('Accesso in modalità demo...', 'info');
+            updateDebug({ action: 'demo_access_start' });
             
             try {
-                // Sign in anonymously
+                // Try anonymous sign in
                 const { data, error } = await supabase.auth.signInAnonymously();
                 
-                if (error) throw error;
+                if (error) {
+                    console.warn('Anonymous sign-in failed:', error);
+                    updateDebug({ action: 'demo_access_error', error: error.message });
+                    
+                    // Fallback: use a demo account
+                    if (error.message.includes('Anonymous sign-ins are disabled')) {
+                        showAlert('Accesso anonimo disabilitato. Utilizzo account demo...', 'info');
+                        
+                        // Try to sign in with a pre-created demo account
+                        const demoResult = await supabase.auth.signInWithPassword({
+                            email: 'demo@supplychainhub.com',
+                            password: 'demo123456'
+                        });
+                        
+                        if (demoResult.error) {
+                            throw new Error('Demo account not available');
+                        }
+                        
+                        updateDebug({ action: 'demo_access_success', type: 'demo_account' });
+                    } else {
+                        throw error;
+                    }
+                } else {
+                    updateDebug({ action: 'demo_access_success', type: 'anonymous' });
+                }
                 
                 // Redirect to tracking
                 window.location.href = '/tracking.html';
                 
             } catch (error) {
                 console.error('Demo access error:', error);
-                showAlert('Errore durante l\'accesso demo', 'error');
+                updateDebug({ action: 'demo_access_fallback' });
                 
-                // Fallback: redirect anyway
+                // Ultimate fallback: redirect anyway and let the app handle it
+                showAlert('Reindirizzamento alla modalità demo offline...', 'info');
+                
+                // Set a flag for offline demo mode
+                localStorage.setItem('demo_mode', 'true');
+                localStorage.setItem('demo_mode_timestamp', Date.now().toString());
+                
                 setTimeout(() => {
                     window.location.href = '/tracking.html';
                 }, 1000);
@@ -595,6 +741,8 @@
                 return;
             }
             
+            updateDebug({ action: 'forgot_password', email });
+            
             try {
                 const { error } = await supabase.auth.resetPasswordForEmail(email, {
                     redirectTo: window.location.origin + '/reset-password.html'
@@ -603,14 +751,66 @@
                 if (error) throw error;
                 
                 showAlert('Email di recupero password inviata! Controlla la tua casella di posta.', 'success');
+                updateDebug({ action: 'forgot_password_success' });
                 
             } catch (error) {
                 console.error('Password reset error:', error);
+                updateDebug({ action: 'forgot_password_error', error: error.message });
                 showAlert(error.message || 'Errore durante il recupero password', 'error');
             }
         }
         
-        // Esponi le funzioni globalmente per onclick
+        // Test Supabase configuration
+        window.testSupabaseConfig = async function() {
+            console.log('Testing Supabase configuration...');
+            
+            try {
+                // Test basic connection
+                const { data: session, error: sessionError } = await supabase.auth.getSession();
+                console.log('Session test:', { session, sessionError });
+                
+                // Get auth settings
+                const authSettings = {
+                    url: supabase.supabaseUrl,
+                    hasAnonKey: !!supabase.supabaseKey,
+                    authAutoRefresh: supabase.auth.autoRefreshToken,
+                    authPersistSession: supabase.auth.persistSession
+                };
+                
+                console.log('Auth settings:', authSettings);
+                updateDebug({ action: 'test_config', authSettings, session });
+                
+                // Test if email auth is enabled
+                try {
+                    // This will fail if email auth is not enabled
+                    const { error } = await supabase.auth.signInWithPassword({
+                        email: 'test@test.com',
+                        password: 'testtest'
+                    });
+                    
+                    if (error && error.message.includes('Email not confirmed')) {
+                        console.log('✅ Email auth is enabled');
+                        updateDebug({ email_auth_enabled: true });
+                    } else if (error && error.message.includes('Invalid login credentials')) {
+                        console.log('✅ Email auth is enabled');
+                        updateDebug({ email_auth_enabled: true });
+                    } else if (error && error.message.includes('Email logins are disabled')) {
+                        console.log('❌ Email auth is disabled');
+                        updateDebug({ email_auth_enabled: false });
+                    }
+                } catch (e) {
+                    console.log('Test error:', e);
+                }
+                
+                return authSettings;
+                
+            } catch (error) {
+                console.error('Config test error:', error);
+                updateDebug({ action: 'test_config_error', error: error.message });
+            }
+        };
+        
+        // Expose functions globally
         window.switchTab = switchTab;
         window.togglePassword = togglePassword;
         window.handleLogin = handleLogin;
@@ -618,25 +818,16 @@
         window.handleDemoAccess = handleDemoAccess;
         window.handleForgotPassword = handleForgotPassword;
         
-        // Test function
-        window.testSupabase = async function() {
-            console.log('Testing Supabase...');
-            console.log('Supabase client:', supabase);
-            console.log('Auth methods:', Object.keys(supabase.auth));
-            
-            try {
-                const { data, error } = await supabase.auth.getSession();
-                console.log('Session test:', { data, error });
-            } catch (e) {
-                console.error('Session test error:', e);
-            }
-        };
-        
         // Initialize
         checkAuth();
         
         // Auto-focus first input
         document.getElementById('loginEmail').focus();
+        
+        // Run config test in development
+        if (window.location.hostname === 'localhost' || window.location.search.includes('debug=true')) {
+            window.testSupabaseConfig();
+        }
     </script>
 </body>
 </html>
