@@ -2,7 +2,6 @@
 // Service layer con gestione corretta degli ID numerici ShipsGo per AWB
 
 import supabaseTrackingService from './supabase-tracking-service.js';
-import userSettingsService from './user-settings-service.js';
 import { supabase } from './supabase-client.js';
 
 class TrackingService {
@@ -41,8 +40,10 @@ class TrackingService {
             } else {
                 this.useSupabase = true;
                 console.log('[TrackingService] ✅ Supabase connected');
-                // Con Supabase, carica le API keys dal user settings service
-                await this.loadApiConfigurationFromSupabase();
+                // Con Supabase, le API keys sono gestite dalle Edge Functions
+                this.mockMode = false; // Disabilita mock mode quando Supabase è disponibile
+                this.apiConfig.v1 = { enabled: true }; // Enable v1 API
+                this.apiConfig.v2 = { enabled: true }; // Enable v2 API
             }
             
             // Setup rate limiter
@@ -78,39 +79,6 @@ class TrackingService {
             return !!user;
         } catch (e) {
             return false;
-        }
-    }
-
-    async loadApiConfigurationFromSupabase() {
-        try {
-            // Carica le API keys dal user settings service
-            const settings = await userSettingsService.getSettings();
-            
-            if (settings.api_keys?.shipsgo_v1_key) {
-                this.apiConfig.v1 = {
-                    baseUrl: 'https://shipsgo.com/api/v1.2',
-                    authCode: settings.api_keys.shipsgo_v1_key,
-                    enabled: settings.api_keys?.shipsgo_v1_enabled !== false
-                };
-                console.log('[TrackingService] ShipsGo v1.2 configured from Supabase');
-            }
-            
-            if (settings.api_keys?.shipsgo_v2_token) {
-                this.apiConfig.v2 = {
-                    baseUrl: 'https://api.shipsgo.com/api/v2',
-                    userToken: settings.api_keys.shipsgo_v2_token,
-                    enabled: settings.api_keys?.shipsgo_v2_enabled !== false
-                };
-                console.log('[TrackingService] ShipsGo v2.0 configured from Supabase');
-            }
-            
-            // Modalità mock se nessuna API configurata
-            this.mockMode = !this.hasApiKeys() || settings.preferences?.force_mock_mode === true;
-            
-        } catch (error) {
-            console.error('[TrackingService] Error loading API config from Supabase:', error);
-            // Fallback to localStorage if Supabase fails
-            await this.loadApiConfiguration();
         }
     }
 
@@ -1480,38 +1448,13 @@ class TrackingService {
     // CONFIGURAZIONE E MANAGEMENT
     // ========================================
 
-    async updateConfiguration(config) {
+    updateConfiguration(config) {
         try {
-            if (this.useSupabase) {
-                // Salva su Supabase tramite user settings service
-                const settings = await userSettingsService.getSettings();
-                
-                settings.api_keys = {
-                    ...settings.api_keys,
-                    shipsgo_v1_key: config.shipsgo_v1_key,
-                    shipsgo_v1_enabled: config.shipsgo_v1_enabled,
-                    shipsgo_v2_token: config.shipsgo_v2_token,
-                    shipsgo_v2_enabled: config.shipsgo_v2_enabled
-                };
-                
-                settings.preferences = {
-                    ...settings.preferences,
-                    force_mock_mode: config.force_mock_mode
-                };
-                
-                await userSettingsService.updateSettings(settings);
-                console.log('[TrackingService] ⚙️ Configuration updated on Supabase');
-                
-                // Ricarica configurazione
-                await this.loadApiConfigurationFromSupabase();
-            } else {
-                // Salva su localStorage
-                localStorage.setItem('trackingServiceConfig', JSON.stringify(config));
-                console.log('[TrackingService] ⚙️ Configuration updated on localStorage');
-                
-                // Ricarica configurazione
-                await this.loadApiConfiguration();
-            }
+            localStorage.setItem('trackingServiceConfig', JSON.stringify(config));
+            console.log('[TrackingService] ⚙️ Configuration updated');
+            
+            // Ricarica configurazione
+            this.loadApiConfiguration();
             
             return true;
         } catch (error) {
@@ -1520,22 +1463,10 @@ class TrackingService {
         }
     }
 
-    async getConfiguration() {
+    getConfiguration() {
         try {
-            if (this.useSupabase) {
-                const settings = await userSettingsService.getSettings();
-                return {
-                    shipsgo_v1_key: settings.api_keys?.shipsgo_v1_key || '',
-                    shipsgo_v1_enabled: settings.api_keys?.shipsgo_v1_enabled !== false,
-                    shipsgo_v2_token: settings.api_keys?.shipsgo_v2_token || '',
-                    shipsgo_v2_enabled: settings.api_keys?.shipsgo_v2_enabled !== false,
-                    force_mock_mode: settings.preferences?.force_mock_mode || false
-                };
-            } else {
-                return JSON.parse(localStorage.getItem('trackingServiceConfig') || '{}');
-            }
+            return JSON.parse(localStorage.getItem('trackingServiceConfig') || '{}');
         } catch (error) {
-            console.error('[TrackingService] Error getting configuration:', error);
             return {};
         }
     }

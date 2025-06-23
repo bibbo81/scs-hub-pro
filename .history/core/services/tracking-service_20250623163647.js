@@ -1556,12 +1556,6 @@ class TrackingService {
                 );
                 
                 results.v1 = {
-                    success: response.success,
-                    status: response.status,
-                    message: response.success ? 'Connected successfully' : 'Connection failed'
-                };
-            } catch (error) {
-                results.v1 = {
                     success: false,
                     message: error.message
                 };
@@ -1663,3 +1657,9 @@ class TrackingService {
 
 // Export singleton
 export default new TrackingService();
+                    success: response.success,
+                    status: response.status,
+                    message: response.success ? 'Connected successfully' : 'Connection failed'
+                };
+            } catch (error) {
+                results.v1 = {
