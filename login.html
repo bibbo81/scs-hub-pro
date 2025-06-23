@@ -409,7 +409,6 @@
     
     <script type="module">
         import { supabase } from '/core/services/supabase-client.js';
-        window.supabase = supabase;
         
         // Check if already authenticated
         async function checkAuth() {
@@ -420,10 +419,6 @@
             }
         }
         
-        checkAuth();
-    </script>
-    
-    <script>
         // Switch between login and register tabs
         function switchTab(tab) {
             document.querySelectorAll('.auth-tab').forEach(t => {
@@ -482,7 +477,7 @@
             button.innerHTML = '<span class="loading-spinner"></span> Accesso in corso...';
             
             try {
-                const { data, error } = await window.supabase.auth.signInWithPassword({
+                const { data, error } = await supabase.auth.signInWithPassword({
                     email,
                     password
                 });
@@ -526,13 +521,17 @@
             button.innerHTML = '<span class="loading-spinner"></span> Registrazione in corso...';
             
             try {
-                const { data, error } = await window.supabase.auth.signUp({
+                console.log('Attempting registration for:', email);
+                
+                const { data, error } = await supabase.auth.signUp({
                     email,
                     password,
                     options: {
                         emailRedirectTo: window.location.origin + '/tracking.html'
                     }
                 });
+                
+                console.log('Registration response:', { data, error });
                 
                 if (error) throw error;
                 
@@ -566,7 +565,7 @@
             
             try {
                 // Sign in anonymously
-                const { data, error } = await window.supabase.auth.signInAnonymously();
+                const { data, error } = await supabase.auth.signInAnonymously();
                 
                 if (error) throw error;
                 
@@ -597,7 +596,7 @@
             }
             
             try {
-                const { error } = await window.supabase.auth.resetPasswordForEmail(email, {
+                const { error } = await supabase.auth.resetPasswordForEmail(email, {
                     redirectTo: window.location.origin + '/reset-password.html'
                 });
                 
@@ -610,6 +609,31 @@
                 showAlert(error.message || 'Errore durante il recupero password', 'error');
             }
         }
+        
+        // Esponi le funzioni globalmente per onclick
+        window.switchTab = switchTab;
+        window.togglePassword = togglePassword;
+        window.handleLogin = handleLogin;
+        window.handleRegister = handleRegister;
+        window.handleDemoAccess = handleDemoAccess;
+        window.handleForgotPassword = handleForgotPassword;
+        
+        // Test function
+        window.testSupabase = async function() {
+            console.log('Testing Supabase...');
+            console.log('Supabase client:', supabase);
+            console.log('Auth methods:', Object.keys(supabase.auth));
+            
+            try {
+                const { data, error } = await supabase.auth.getSession();
+                console.log('Session test:', { data, error });
+            } catch (e) {
+                console.error('Session test error:', e);
+            }
+        };
+        
+        // Initialize
+        checkAuth();
         
         // Auto-focus first input
         document.getElementById('loginEmail').focus();
