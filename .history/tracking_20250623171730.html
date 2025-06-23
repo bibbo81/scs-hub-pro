@@ -5,13 +5,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Supply Chain Hub - Tracking Spedizioni</title>
     
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- ===== SUPABASE CDN - CARICAMENTO PRIORITARIO ===== -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
   // Esponi globalmente per i moduli ES6
   window.supabaseCreateClient = window.supabase.createClient;
   console.log('✅ Supabase CDN caricato:', typeof window.supabase);
 </script>
-<script>
+<!-- ===== FIX 1: MODAL SYSTEM DEFINITIVO - CARICAMENTO PRIORITARIO ===== -->
+   <script>
 // 🔧 FORCE CLEANUP MODAL SYSTEMS - PRIMA DI TUTTO
     (function() {
         console.log('🧹 [PreInit] Cleaning up existing modal systems...');
@@ -29,20 +31,26 @@
     })();
     </script>
     
+    <!-- Favicon -->
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23007AFF'%3E%3Cpath d='M20 8h-3V4H3c-1.1 0-2 .9-2 2v11h2c0 1.66 1.34 3 3 3s3-1.34 3-3h6c0 1.66 1.34 3 3 3s3-1.34 3-3h2v-5l-4zM6 18.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm13.5-9l1.96 2.5H17V9.5h2.5zm-1.5 9c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z'/%3E%3C/svg%3E">
     
+    <!-- Core CSS -->
     <link rel="stylesheet" href="/assets/css/solarium.css">
     <link rel="stylesheet" href="/assets/css/timeline.css">
     <link rel="stylesheet" href="/pages/tracking/tracking-table.css">
 
+    <!-- External Dependencies -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
+    <!-- IMPORTANTE: Librerie per Import/Export -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
     
+    <!-- ===== FIX 2: CORE MODAL SYSTEM - LOAD FIRST ===== -->
     <script type="module" src="/core/modal-system.js"></script>
     
+    <!-- ===== FIX 3: FORCE MOCK API EARLY ===== -->
     <script>
     // Disabilita il mock interceptor
     window.FORCE_MOCK_API = false;
@@ -101,7 +109,7 @@
                             const mockTrackings = window.MockData?.generateTrackings()?.trackings || [];
                             
                             // Merge: saved + mock (evita duplicati per ID)
-                            const seenIds = new Set(savedTrackTrackings.map(t => t.id));
+                            const seenIds = new Set(savedTrackings.map(t => t.id));
                             const allTrackings = [
                                 ...savedTrackings,
                                 ...mockTrackings.filter(t => !seenIds.has(t.id))
@@ -263,6 +271,7 @@
     }
     </script>
     
+    <!-- Core JS Modules - ES6 -->
     <script type="module">
         // Import core modules
         import api from '/core/api-client.js';
@@ -280,7 +289,6 @@
         window.TableManager = TableManager;
         window.App = app;
         window.AdvancedSearch = AdvancedSearch;
-        window.apiKeyManager = apiKeyManager;
 
         // FORCE LOG ASSIGNMENTS
         console.log('🚀 [ES6] Module assignments:');
@@ -291,7 +299,6 @@
         console.log('  - App:', !!window.App);
         console.log('✅ [ES6] Core modules loaded successfully');
         console.log('✅ AdvancedSearch importato e esposto globalmente');
-        console.log('✅ API Key Manager importato:', !!window.apiKeyManager);
         
         // Force header initialization if not already done
         if (window.headerComponent && typeof window.headerComponent.init === 'function') {
@@ -308,6 +315,7 @@
         }
     </script>
     
+    <!-- Auth UI Component -->
     <script type="module">
         import authUI from '/core/auth-ui-component.js';
         
@@ -338,6 +346,7 @@
         };
     </script>
     
+    <!-- DEBUG: Verifica percorsi file -->
     <script>
     console.log('🔍 [DEBUG] Verifying file paths...');
     
@@ -362,22 +371,27 @@
     });
     </script>
     
+    <!-- Legacy Scripts (to be converted) -->
     <script src="/core/auth.js"></script>
     <script src="/core/auth-init.js"></script>
     <script src="/core/import-manager.js"></script>
     
     <script src="/pages/tracking/tracking-form-progressive.js"></script>
 
+    <!-- Tracking Service - NUOVO APPROCCIO -->
     <script src="/core/export-manager.js"></script>
     
+    <!-- ShipsGo API Integration - NUOVO -->
     <script type="module">
     import trackingService from './core/services/tracking-service.js';
     window.trackingService = trackingService;
     console.log('✅ Tracking Service caricato via ES6 import');
     </script>
     
+    <!-- Mock Data - SOLO SVILUPPO - RIMUOVERE IN PRODUZIONE -->
     <script src="/core/mock-data.js"></script>
 
+    <!-- Page Specific con FIX per column mapping -->
     <script type="module">
     // Import del modulo tracking/index.js con fix per column formatters
     import('/pages/tracking/index.js').then(module => {
@@ -451,13 +465,7 @@
     });
     </script>
     
-    <script type="module">
-        import userSettingsService from '/core/services/user-settings-service.js';
-        window.userSettingsService = userSettingsService;
-    </script>
-
-    <script src="/pages/tracking/api-status-indicator.js" type="module"></script>
-
+    <!-- ===== AUTO-INITIALIZATION IMPROVED ===== -->
     <script>
     // Improved initialization with better timing and error handling
     document.addEventListener('DOMContentLoaded', async () => {
@@ -523,73 +531,13 @@
         }, 100); // Check every 100ms
     });
     </script>
-    <style>
-        /* API Status Indicator Styles */
-        .api-status-container {
-            user-select: none;
-            transition: all 0.3s ease;
-        }
-        
-        .api-status-container:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-        
-        /* Config Banner Styles */
-        .api-config-banner {
-            position: relative;
-            animation: slideDown 0.3s ease-out;
-        }
-        
-        @keyframes slideDown {
-            from {
-                opacity: 0;
-                transform: translateY(-10px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-        
-        /* Adjust card header layout for API indicator */
-        .sol-card-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            flex-wrap: wrap;
-            gap: 1rem;
-        }
-        
-        .sol-card-header h3 {
-            margin: 0;
-            flex: 1;
-        }
-        
-        .api-status-container {
-            order: 2;
-        }
-        
-        .sol-card-actions {
-            order: 3;
-        }
-        
-        @media (max-width: 768px) {
-            .sol-card-header {
-                flex-direction: column;
-                align-items: stretch;
-            }
-            
-            .api-status-container {
-                width: 100%;
-                justify-content: center;
-                margin: 0.5rem 0;
-            }
-        }
-    </style>
 </head>
 <body>
+    <!-- Header verrà montato automaticamente da header-component.js -->
+    
+    <!-- Main Content -->
     <main class="sol-main-content" id="mainContent">
+        <!-- Page Header -->
         <div class="sol-page-header">
             <div>
                 <h1 class="sol-page-title">Tracking Spedizioni</h1>
@@ -608,21 +556,20 @@
                     <i class="fas fa-file-excel"></i>
                     <span>Export Excel</span>
                 </button>
-                <a href="/settings.html#integrations" class="sol-btn sol-btn-glass api-status-link" id="apiStatusLink">
+                <button class="sol-btn sol-btn-glass" onclick="window.apiKeyManager.showApiKeyModal()">
                     <i class="fas fa-key"></i>
-                    <span>API Status</span>
-                    <span class="api-status-indicator" id="apiStatusIndicator">
-                        <i class="fas fa-spinner fa-spin"></i>
-                    </span>
-                </a>
+                    <span>API Keys</span>
+                </button>
                 <button class="sol-btn sol-btn-glass" onclick="clearMockData()">
                     <i class="fas fa-trash"></i>
                     <span>Clear Data</span>
                 </button>
+                <!-- ===== FIX 4: TEST MODAL BUTTON ===== -->
                 <button class="sol-btn sol-btn-glass" onclick="testModalSystem()">
                     <i class="fas fa-flask"></i>
                     <span>Test Modals</span>
                 </button>
+                <!-- ===== DEBUG BUTTONS ===== -->
                 <button class="sol-btn sol-btn-glass" onclick="debugTrackingSystem()" title="Debug System">
                     <i class="fas fa-bug"></i>
                     <span>Debug</span>
@@ -634,9 +581,12 @@
             </div>
         </div>
 
+        <!-- Stats Cards -->
         <div class="sol-stats-grid" id="statsGrid">
-            </div>
+            <!-- Populated by JS -->
+        </div>
 
+        <!-- Tracking List -->
         <div class="sol-card">
             <div class="sol-card-header">
                 <h3 class="sol-card-title">Lista Tracking Attivi</h3>
@@ -664,10 +614,12 @@
                         <i class="fas fa-columns"></i> Gestione Colonne
                     </button>
                     
+                    <!-- ===== AGGIUNTO BOTTONE AGGIORNA TUTTI ===== -->
                     <button class="sol-btn sol-btn-glass" onclick="refreshAllTrackings()">
                         <i class="fas fa-sync-alt"></i> Aggiorna Tutti
                     </button>
                     
+                    <!-- View Toggle Button -->
                     <button type="button" class="sol-btn-toggle-view" id="toggleView" data-view="table">
                         <i class="fas fa-table"></i>
                         <span class="toggle-text">Vista Tabella</span>
@@ -676,8 +628,10 @@
             </div>
             
             <div id="trackingTableContainer">
-                </div>
+                <!-- Table Manager will render here -->
+            </div>
             
+            <!-- Timeline Container (nascosto di default) -->
             <div id="timelineContainer" class="sol-timeline-container" style="display: none;">
                 <div class="sol-timeline-header">
                     <div class="sol-timeline-legend">
@@ -697,13 +651,16 @@
                 </div>
                 
                 <div id="timelineContent" class="sol-timeline-content">
-                    </div>
+                    <!-- Timeline items verranno inseriti qui dinamicamente -->
+                </div>
             </div>
         </div>
     </main>
 
+    <!-- SheetJS for Excel import -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
+    <!-- Timeline Enhancement Script -->
     <script>
     // Timeline View Functions
     (function() {
@@ -1019,6 +976,7 @@
     })();
     </script>
 
+    <!-- ===== FIX 5: TEST MODAL SYSTEM FUNCTION ===== -->
     <script>
     // Test Modal System function
     window.testModalSystem = async function() {
@@ -1177,6 +1135,7 @@
     };
     </script>
 
+    <!-- ===== FIX 6: MODAL SYSTEM DIAGNOSTICS ===== -->
     <script>
     // Modal system diagnostics
     window.debugModalSystem = function() {

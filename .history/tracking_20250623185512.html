@@ -101,7 +101,7 @@
                             const mockTrackings = window.MockData?.generateTrackings()?.trackings || [];
                             
                             // Merge: saved + mock (evita duplicati per ID)
-                            const seenIds = new Set(savedTrackTrackings.map(t => t.id));
+                            const seenIds = new Set(savedTrackings.map(t => t.id));
                             const allTrackings = [
                                 ...savedTrackings,
                                 ...mockTrackings.filter(t => !seenIds.has(t.id))
@@ -451,13 +451,6 @@
     });
     </script>
     
-    <script type="module">
-        import userSettingsService from '/core/services/user-settings-service.js';
-        window.userSettingsService = userSettingsService;
-    </script>
-
-    <script src="/pages/tracking/api-status-indicator.js" type="module"></script>
-
     <script>
     // Improved initialization with better timing and error handling
     document.addEventListener('DOMContentLoaded', async () => {
@@ -523,70 +516,6 @@
         }, 100); // Check every 100ms
     });
     </script>
-    <style>
-        /* API Status Indicator Styles */
-        .api-status-container {
-            user-select: none;
-            transition: all 0.3s ease;
-        }
-        
-        .api-status-container:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-        
-        /* Config Banner Styles */
-        .api-config-banner {
-            position: relative;
-            animation: slideDown 0.3s ease-out;
-        }
-        
-        @keyframes slideDown {
-            from {
-                opacity: 0;
-                transform: translateY(-10px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-        
-        /* Adjust card header layout for API indicator */
-        .sol-card-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            flex-wrap: wrap;
-            gap: 1rem;
-        }
-        
-        .sol-card-header h3 {
-            margin: 0;
-            flex: 1;
-        }
-        
-        .api-status-container {
-            order: 2;
-        }
-        
-        .sol-card-actions {
-            order: 3;
-        }
-        
-        @media (max-width: 768px) {
-            .sol-card-header {
-                flex-direction: column;
-                align-items: stretch;
-            }
-            
-            .api-status-container {
-                width: 100%;
-                justify-content: center;
-                margin: 0.5rem 0;
-            }
-        }
-    </style>
 </head>
 <body>
     <main class="sol-main-content" id="mainContent">
