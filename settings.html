@@ -204,9 +204,7 @@
                         </div>
                     </form>
                 </div>
-            </div>
-
-            <div class="sol-card">
+            </div><div class="sol-card">
                 <div class="sol-card-header">
                     <h3 class="sol-card-title">
                         <i class="fas fa-globe" style="margin-right: 0.5rem; color: var(--sol-info);"></i>
@@ -403,9 +401,7 @@
                     </form>
                 </div>
             </div>
-        </div>
-
-        <div id="integrations" class="sol-tab-content">
+        </div><div id="integrations" class="sol-tab-content">
             <div class="sol-card">
                 <div class="sol-card-header">
                     <h3 class="sol-card-title">
@@ -466,27 +462,15 @@
                                 <i class="fas fa-anchor"></i>
                                 ShipsGo v1.2 API Key (Container Marittimi)
                             </label>
-                            <div style="position: relative;">
+                            <div class="api-key-input-wrapper">
                                 <input 
                                     type="password" 
                                     id="shipsgoV1ApiKey" 
                                     class="sol-form-input"
                                     placeholder="Inserisci API Key v1.2 (32 caratteri hex)"
                                     autocomplete="new-password"
-                                    style="padding-right: 3rem;"
                                 >
-                                <button type="button" class="api-key-toggle" onclick="toggleApiKeyVisibility('shipsgoV1ApiKey')" style="
-                                    position: absolute;
-                                    right: 0.5rem;
-                                    top: 50%;
-                                    transform: translateY(-50%);
-                                    background: transparent;
-                                    border: none;
-                                    color: var(--sol-gray-500);
-                                    cursor: pointer;
-                                    padding: 0.5rem;
-                                    border-radius: var(--sol-radius-md);
-                                ">
+                                <button type="button" class="api-key-toggle" onclick="toggleApiKeyVisibility('shipsgoV1ApiKey', this)" aria-label="Mostra/Nascondi API Key">
                                     <i class="fas fa-eye"></i>
                                 </button>
                             </div>
@@ -501,27 +485,15 @@
                                 <i class="fas fa-plane"></i>
                                 ShipsGo v2.0 Bearer Token (Spedizioni Aeree)
                             </label>
-                            <div style="position: relative;">
+                            <div class="api-key-input-wrapper">
                                 <input 
                                     type="password" 
                                     id="shipsgoV2Token" 
                                     class="sol-form-input"
                                     placeholder="Inserisci Bearer Token v2.0 (formato UUID)"
                                     autocomplete="new-password"
-                                    style="padding-right: 3rem;"
                                 >
-                                <button type="button" class="api-key-toggle" onclick="toggleApiKeyVisibility('shipsgoV2Token')" style="
-                                    position: absolute;
-                                    right: 0.5rem;
-                                    top: 50%;
-                                    transform: translateY(-50%);
-                                    background: transparent;
-                                    border: none;
-                                    color: var(--sol-gray-500);
-                                    cursor: pointer;
-                                    padding: 0.5rem;
-                                    border-radius: var(--sol-radius-md);
-                                ">
+                                <button type="button" class="api-key-toggle" onclick="toggleApiKeyVisibility('shipsgoV2Token', this)" aria-label="Mostra/Nascondi Bearer Token">
                                     <i class="fas fa-eye"></i>
                                 </button>
                             </div>
@@ -630,9 +602,7 @@
                         >
                     </div>
                 </div>
-            </div>
-
-            <div class="sol-card">
+            </div><div class="sol-card">
                 <div class="sol-card-header">
                     <h3 class="sol-card-title">
                         <i class="fas fa-mobile-alt" style="margin-right: 0.5rem; color: var(--sol-warning);"></i>
@@ -863,13 +833,43 @@
             transform: translateX(24px);
         }
 
-        /* API Key Toggle Button */
+        /* Fix larghezza campi API keys */
+        #shipsgo-form .sol-form-input {
+            min-width: 400px;
+            width: 100%;
+            padding-right: 3.5rem; /* Spazio per icona occhio */
+        }
+        
+        /* Fix posizione icona occhio */
+        .api-key-input-wrapper {
+            position: relative;
+            width: 100%;
+        }
+        
+        .api-key-toggle {
+            position: absolute;
+            right: 0.75rem;
+            top: 50%;
+            transform: translateY(-50%);
+            background: transparent;
+            border: none;
+            color: var(--sol-gray-500);
+            cursor: pointer;
+            padding: 0.5rem;
+            border-radius: var(--sol-radius-md);
+            transition: all 0.2s;
+            z-index: 10;
+        }
+        
         .api-key-toggle:hover {
             background: var(--sol-gray-100);
             color: var(--sol-gray-700);
         }
-
-        /* Tab Content */
+        
+        .api-key-toggle:focus {
+            outline: none;
+            box-shadow: 0 0 0 2px var(--sol-primary-light);
+        }/* Tab Content */
         .sol-tab-content {
             display: none;
         }
@@ -894,6 +894,8 @@
             border-radius: var(--sol-radius-md);
             cursor: pointer;
             transition: all 0.2s;
+            position: relative;
+            overflow: hidden;
         }
         
         .sol-radio-option:hover {
@@ -908,6 +910,28 @@
         .sol-radio-option input[type="radio"]:checked + span {
             color: var(--sol-primary);
             font-weight: 500;
+        }
+        
+        .sol-radio-option::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: var(--sol-primary);
+            opacity: 0;
+            transition: opacity 0.2s;
+            pointer-events: none;
+        }
+        
+        .sol-radio-option:has(input:checked)::before {
+            opacity: 0.05;
+        }
+        
+        .sol-radio-option:has(input:checked) {
+            border-color: var(--sol-primary);
+            box-shadow: 0 0 0 1px var(--sol-primary);
         }
         
         /* Badge Styles */
@@ -929,6 +953,22 @@
         .sol-badge-secondary {
             background: var(--sol-gray-200);
             color: var(--sol-gray-700);
+        }
+        
+        /* Test connection result styling */
+        #shipsgoTestResult {
+            animation: fadeIn 0.3s ease-out;
+        }
+        
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
 
         /* Mobile Responsive */
@@ -969,6 +1009,11 @@
             .toggle-info {
                 margin-right: 0;
                 text-align: center;
+            }
+            
+            #shipsgo-form .sol-form-input {
+                min-width: unset;
+                width: 100%;
             }
         }
     </style>
@@ -1106,34 +1151,103 @@
         }
 
         // Global functions for inline events
-        window.toggleApiKeyVisibility = function(inputId) {
+        window.toggleApiKeyVisibility = function(inputId, button) {
             const input = document.getElementById(inputId);
-            const button = event.currentTarget;
             const icon = button.querySelector('i');
             
             if (input.type === 'password') {
                 input.type = 'text';
                 icon.className = 'fas fa-eye-slash';
+                button.setAttribute('aria-label', 'Nascondi');
             } else {
                 input.type = 'password';
                 icon.className = 'fas fa-eye';
+                button.setAttribute('aria-label', 'Mostra');
             }
         };
 
         window.testShipsGoConnection = async function(event) {
+            event.preventDefault();
+            
             const button = event.target.closest('button');
-            const originalText = button.innerHTML;
+            const originalHTML = button.innerHTML;
+            const resultDiv = document.getElementById('shipsgoTestResult');
+            
+            // Stato loading
             button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Testing...';
             button.disabled = true;
             
             try {
-                // Simulate test
-                await new Promise(resolve => setTimeout(resolve, 2000));
-                showStatus('Test connessione simulato - API keys OK', 'success');
+                // Assicurati che tracking service sia inizializzato
+                if (!window.trackingService.initialized) {
+                    await window.trackingService.initialize();
+                }
+                
+                const results = await window.trackingService.testConnection();
+                
+                // Mostra risultati dettagliati
+                let html = '<div class="sol-alert ';
+                
+                if (results.overall) {
+                    html += 'sol-alert-success">';
+                    html += '<i class="fas fa-check-circle"></i> ';
+                    html += '<div><strong>Connessione riuscita!</strong><br>';
+                    
+                    if (results.v1?.success) {
+                        html += '✅ ShipsGo v1.2 (Container): Connesso<br>';
+                    }
+                    if (results.v2?.success) {
+                        html += '✅ ShipsGo v2.0 (AWB): Connesso<br>';
+                    }
+                    html += '</div>';
+                } else {
+                    html += 'sol-alert-error">';
+                    html += '<i class="fas fa-exclamation-circle"></i> ';
+                    html += '<div><strong>Errore connessione</strong><br>';
+                    
+                    if (results.v1 && !results.v1.success) {
+                        html += `❌ v1.2: ${results.v1.message || 'Connessione fallita'}<br>`;
+                    }
+                    if (results.v2 && !results.v2.success) {
+                        html += `❌ v2.0: ${results.v2.message || 'Connessione fallita'}<br>`;
+                    }
+                    
+                    if (!results.v1 && !results.v2) {
+                        html += 'Nessuna API key configurata<br>';
+                    }
+                    
+                    html += '<small>Verifica le API keys e riprova</small></div>';
+                }
+                
+                html += '</div>';
+                
+                resultDiv.innerHTML = html;
+                resultDiv.style.display = 'block';
+                
+                // Nascondi dopo 10 secondi
+                setTimeout(() => {
+                    resultDiv.style.opacity = '0';
+                    setTimeout(() => {
+                        resultDiv.style.display = 'none';
+                        resultDiv.style.opacity = '1';
+                    }, 300);
+                }, 10000);
+                
             } catch (error) {
-                showStatus('Errore durante il test di connessione', 'error');
+                console.error('Connection test error:', error);
+                
+                resultDiv.innerHTML = `
+                    <div class="sol-alert sol-alert-error">
+                        <i class="fas fa-exclamation-circle"></i>
+                        <div>
+                            <strong>Errore durante il test</strong><br>
+                            ${error.message}
+                        </div>
+                    </div>
+                `;
+                resultDiv.style.display = 'block';
             } finally {
-                button.innerHTML = originalText;
+                button.innerHTML = originalHTML;
                 button.disabled = false;
             }
         };
@@ -1257,69 +1371,6 @@
         } catch (error) {
             console.error('Error saving ShipsGo config:', error);
             showStatus('Errore: ' + error.message, 'error');
-        } finally {
-            button.innerHTML = originalText;
-            button.disabled = false;
-        }
-    };
-
-    // Modifica la funzione test esistente
-    window.testShipsGoConnection = async function(event) {
-        event.preventDefault();
-        
-        const button = event.target.closest('button');
-        const originalText = button.innerHTML;
-        const resultDiv = document.getElementById('shipsgoTestResult');
-        
-        button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Testing...';
-        button.disabled = true;
-        
-        try {
-            const results = await trackingService.testConnection();
-            
-            // Mostra risultati dettagliati
-            let html = '<div class="sol-alert ';
-            
-            if (results.overall) {
-                html += 'sol-alert-success">';
-                html += '<i class="fas fa-check-circle"></i> ';
-                html += '<div><strong>Connessione riuscita!</strong><br>';
-                
-                if (results.v1?.success) {
-                    html += '✅ ShipsGo v1.2 (Container): OK<br>';
-                }
-                if (results.v2?.success) {
-                    html += '✅ ShipsGo v2.0 (AWB): OK<br>';
-                }
-                html += '</div>';
-            } else {
-                html += 'sol-alert-error">';
-                html += '<i class="fas fa-exclamation-circle"></i> ';
-                html += '<div><strong>Errore connessione</strong><br>';
-                
-                if (results.v1 && !results.v1.success) {
-                    html += `❌ v1.2: ${results.v1.message || 'Connessione fallita'}<br>`;
-                }
-                if (results.v2 && !results.v2.success) {
-                    html += `❌ v2.0: ${results.v2.message || 'Connessione fallita'}<br>`;
-                }
-                
-                html += '<small>Verifica le API keys e riprova</small></div>';
-            }
-            
-            html += '</div>';
-            
-            resultDiv.innerHTML = html;
-            resultDiv.style.display = 'block';
-            
-            // Nascondi dopo 10 secondi
-            setTimeout(() => {
-                resultDiv.style.display = 'none';
-            }, 10000);
-            
-        } catch (error) {
-            console.error('Connection test error:', error);
-            showStatus('Errore durante il test: ' + error.message, 'error');
         } finally {
             button.innerHTML = originalText;
             button.disabled = false;

@@ -1,24 +1,26 @@
-// core/services/tracking-service.js - VERSIONE CON AWB ID FIX E OTTIMIZZAZIONE
-// Service layer con gestione corretta degli ID numerici ShipsGo per AWB
+// core/services/tracking-service.js - VERSIONE CON CROSS-BROWSER SYNC FIX
+// Service layer con sincronizzazione corretta da Supabase
 
 import supabaseTrackingService from './supabase-tracking-service.js';
 import userSettingsService from './user-settings-service.js';
+import organizationApiKeysService from './organization-api-keys-service.js';
 import { supabase } from './supabase-client.js';
 
 class TrackingService {
     constructor() {
-        this.mockMode = true; // Per sviluppo
+        this.mockMode = true; // Default a mock finché non carica keys
         this.apiConfig = {
-            v1: null,  // ShipsGo v1.2 config
-            v2: null   // ShipsGo v2.0 config
+            v1: null,
+            v2: null
         };
         this.initialized = false;
-        this.cache = new Map(); // Cache per evitare chiamate duplicate
-        this.rateLimiter = new Map(); // Rate limiting per API
-        this.requestQueue = []; // Coda richieste
+        this.cache = new Map();
+        this.rateLimiter = new Map();
+        this.requestQueue = [];
         this.processing = false;
-        this.awbIdCache = new Map(); // Cache AWB -> ID mapping
-        this.useSupabase = false; // Flag per uso Supabase
+        this.awbIdCache = new Map();
+        this.useSupabase = false;
+        this.initializationPromise = null; // Per evitare inizializzazioni multiple
     }
 
     // ========================================
@@ -26,63 +28,81 @@ class TrackingService {
     // ========================================
 
     async initialize() {
-        if (this.initialized) return true;
-        
+        // Se già inizializzato con successo e ha API keys, ritorna
+        if (this.initialized && this.hasApiKeys() && !this.mockMode) {
+            console.log('[TrackingService] Already initialized with API keys');
+            return true;
+        }
+
+        // Se c'è un'inizializzazione in corso, aspettala
+        if (this.initializationPromise) {
+            console.log('[TrackingService] Waiting for ongoing initialization...');
+            return await this.initializationPromise;
+        }
+
+        // Avvia nuova inizializzazione
+        this.initializationPromise = this._doInitialize();
+        const result = await this.initializationPromise;
+        this.initializationPromise = null;
+        return result;
+    }
+
+    async _doInitialize() {
         try {
-            console.log('[TrackingService] Initializing with Supabase...');
+            console.log('[TrackingService] Starting initialization...');
             
-            // Verifica connessione Supabase
+            // SEMPRE verifica connessione Supabase prima
             const connected = await this.testSupabaseConnection();
+            
             if (!connected) {
-                console.warn('[TrackingService] Supabase not available, using localStorage');
+                console.warn('[TrackingService] Supabase not available, using localStorage fallback');
                 this.useSupabase = false;
-                // Fallback a localStorage solo se Supabase non disponibile
                 await this.loadApiConfiguration();
             } else {
                 this.useSupabase = true;
-                console.log('[TrackingService] ✅ Supabase connected');
+                console.log('[TrackingService] ✅ Supabase connected, loading from cloud');
                 
-                // Con Supabase, carica le API keys dal user settings service
-                await this.loadApiConfigurationFromSupabase();
+                // CRITICO: Carica SEMPRE da Supabase quando disponibile
+                // Non usare cache locale se Supabase è connesso
+                const loaded = await this.loadApiConfigurationWithOrgSupport();
                 
-                // NUOVO: Se ora ha le keys, disabilita mock mode e notifica UI
-                if (this.hasApiKeys() && this.mockMode) {
+                if (loaded && this.hasApiKeys()) {
                     this.mockMode = false;
-                    console.log('[TrackingService] ✅ Auto-initialized with Supabase keys');
+                    console.log('[TrackingService] ✅ API keys loaded from cloud');
                     
-                    // Dispatch event per aggiornare UI
+                    // Notifica UI che le keys sono state caricate
                     window.dispatchEvent(new CustomEvent('apiKeysAutoLoaded', {
                         detail: { 
                             hasV1: !!this.apiConfig.v1?.authCode,
-                            hasV2: !!this.apiConfig.v2?.userToken
+                            hasV2: !!this.apiConfig.v2?.userToken,
+                            source: 'supabase'
                         }
                     }));
+                } else {
+                    console.log('[TrackingService] No API keys found in cloud');
+                    this.mockMode = true;
                 }
             }
             
-            // Setup rate limiter
+            // Setup base services
             this.setupRateLimiter();
-            
-            // Avvia processore coda
             this.startQueueProcessor();
-            
-            // Carica cache AWB IDs da localStorage
             this.loadAWBIdCache();
             
             this.initialized = true;
-            console.log('[TrackingService] ✅ Service initialized', {
+            
+            console.log('[TrackingService] ✅ Initialization complete', {
                 mockMode: this.mockMode,
                 useSupabase: this.useSupabase,
-                apis: {
-                    v1: !!this.apiConfig.v1?.authCode,
-                    v2: !!this.apiConfig.v2?.userToken
-                },
-                awbCacheSize: this.awbIdCache.size
+                hasV1: !!this.apiConfig.v1?.authCode,
+                hasV2: !!this.apiConfig.v2?.userToken
             });
             
             return true;
+            
         } catch (error) {
             console.error('[TrackingService] ❌ Init error:', error);
+            this.initialized = false;
             return false;
         }
     }
@@ -92,28 +112,51 @@ class TrackingService {
             const { data: { user } } = await supabase.auth.getUser();
             return !!user;
         } catch (e) {
+            console.error('[TrackingService] Supabase connection test failed:', e);
             return false;
         }
     }
 
-    // Aggiungi questo metodo per caricare config da Supabase
-    async loadApiConfigurationFromSupabase() {
+    // NUOVO: Supporto per Organization API Keys
+    async loadApiConfigurationWithOrgSupport() {
         try {
-            if (!window.userSettingsService) {
-                console.warn('[TrackingService] UserSettingsService not available');
-                return false;
+            console.log('[TrackingService] Loading API configuration with org support...');
+            
+            // Prima prova a caricare le keys personali
+            let keys = {};
+            
+            if (window.userSettingsService) {
+                keys = await window.userSettingsService.getAllApiKeys();
+                console.log('[TrackingService] Personal keys found:', Object.keys(keys));
             }
             
-            const keys = await window.userSettingsService.getAllApiKeys();
-            console.log('[TrackingService] Loading API keys from Supabase...');
+            // Se non ci sono keys personali, prova con quelle dell'organizzazione
+            if ((!keys.shipsgo_v1 && !keys.shipsgo_v2) && window.organizationApiKeysService) {
+                console.log('[TrackingService] No personal keys, checking organization...');
+                
+                const orgKeys = await window.organizationApiKeysService.getOrganizationApiKeys();
+                if (orgKeys && orgKeys.length > 0) {
+                    console.log('[TrackingService] Found organization keys:', orgKeys.length);
+                    
+                    // Converti array di org keys in oggetto
+                    orgKeys.forEach(key => {
+                        if (key.provider === 'shipsgo_v1' && key.api_key) {
+                            keys.shipsgo_v1 = key.api_key;
+                        } else if (key.provider === 'shipsgo_v2' && key.api_key) {
+                            keys.shipsgo_v2 = key.api_key;
+                        }
+                    });
+                }
+            }
             
+            // Configura le API keys trovate
             if (keys.shipsgo_v1) {
                 this.apiConfig.v1 = {
                     baseUrl: 'https://shipsgo.com/api/v1.2',
                     authCode: keys.shipsgo_v1,
                     enabled: true
                 };
-                console.log('[TrackingService] ✅ Loaded ShipsGo v1 key');
+                console.log('[TrackingService] ✅ Configured ShipsGo v1');
             }
             
             if (keys.shipsgo_v2) {
@@ -122,21 +165,79 @@ class TrackingService {
                     userToken: keys.shipsgo_v2,
                     enabled: true
                 };
-                console.log('[TrackingService] ✅ Loaded ShipsGo v2 token');
+                console.log('[TrackingService] ✅ Configured ShipsGo v2');
             }
             
-            // Se ha keys, disabilita mock mode
-            if (this.hasApiKeys()) {
-                this.mockMode = false;
-                console.log('[TrackingService] ✅ API keys loaded, mock mode disabled');
-            }
-            
-            return true;
+            return this.hasApiKeys();
             
         } catch (error) {
-            console.error('[TrackingService] Error loading from Supabase:', error);
+            console.error('[TrackingService] Error loading API config:', error);
             return false;
         }
+    }
+
+    // Metodo pubblico per forzare sincronizzazione
+    async syncWithCloud() {
+        console.log('[TrackingService] 🔄 Forcing sync with cloud...');
+        
+        if (!this.useSupabase) {
+            console.warn('[TrackingService] Sync skipped - not using Supabase');
+            return false;
+        }
+        
+        try {
+            // Clear cache locale
+            this.cache.clear();
+            
+            // Ricarica configurazione da cloud
+            const loaded = await this.loadApiConfigurationWithOrgSupport();
+            
+            if (loaded && this.hasApiKeys()) {
+                this.mockMode = false;
+                console.log('[TrackingService] ✅ Synced with cloud successfully');
+                
+                // Dispatch event
+                window.dispatchEvent(new CustomEvent('apiKeysSynced', {
+                    detail: {
+                        hasV1: !!this.apiConfig.v1?.authCode,
+                        hasV2: !!this.apiConfig.v2?.userToken
+                    }
+                }));
+                
+                return true;
+            } else {
+                console.log('[TrackingService] No API keys found during sync');
+                this.mockMode = true;
+                return false;
+            }
+            
+        } catch (error) {
+            console.error('[TrackingService] Sync error:', error);
+            return false;
+        }
+    }
+
+    // Forza re-inizializzazione completa
+    async reinitialize() {
+        console.log('[TrackingService] 🔄 Forcing complete reinitialization...');
+        
+        // Reset stato
+        this.initialized = false;
+        this.mockMode = true;
+        this.apiConfig = { v1: null, v2: null };
+        this.cache.clear();
+        
+        // Re-inizializza
+        return await this.initialize();
+    }
+
+    // ========================================
+    // METODI ESISTENTI (mantenuti per compatibilità)
+    // ========================================
+
+    async loadApiConfigurationFromSupabase() {
+        // Reindirizza al nuovo metodo con supporto org
+        return await this.loadApiConfigurationWithOrgSupport();
     }
 
     loadAWBIdCache() {
@@ -168,7 +269,7 @@ class TrackingService {
 
     async loadApiConfiguration() {
         try {
-            // NUOVO: Cerca le API keys con i nomi CORRETTI in localStorage
+            // Carica da localStorage solo se non usiamo Supabase
             const v1Key = localStorage.getItem('shipsgo_v1_api_key') || 
                           localStorage.getItem('shipsgo_api_key');
             const v2Key = localStorage.getItem('shipsgo_v2_api_key') || 
@@ -192,18 +293,15 @@ class TrackingService {
                 console.log('[TrackingService] ShipsGo v2.0 configured from localStorage');
             }
             
-            // Modalità mock se nessuna API configurata
             this.mockMode = !this.hasApiKeys();
-            
-            if (!this.mockMode) {
-                console.log('[TrackingService] API keys found in localStorage, mock mode disabled');
-            }
             
         } catch (error) {
             console.error('[TrackingService] Error loading API config:', error);
             this.mockMode = true;
         }
     }
+
+    // ... resto del codice rimane uguale ...
 
     async callShipsGoAPI(version, endpoint, method, params, data, contentType) {
         if (this.useSupabase) {
@@ -291,7 +389,9 @@ class TrackingService {
     // ========================================
 
     async track(trackingNumber, trackingType = 'auto', options = {}) {
-        if (!this.initialized) {
+        // IMPORTANTE: Assicurati che sia inizializzato prima di tracking
+        if (!this.initialized || (!this.hasApiKeys() && this.useSupabase)) {
+            console.log('[TrackingService] Not ready, initializing before track...');
             await this.initialize();
         }
 
@@ -1534,7 +1634,7 @@ class TrackingService {
                 console.log('[TrackingService] ⚙️ Configuration updated on Supabase');
                 
                 // Ricarica configurazione
-                await this.loadApiConfigurationFromSupabase();
+                await this.loadApiConfigurationWithOrgSupport();
             } else {
                 // Salva su localStorage
                 localStorage.setItem('trackingServiceConfig', JSON.stringify(config));

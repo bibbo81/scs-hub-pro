@@ -410,6 +410,100 @@
     console.log('✅ Tracking Service caricato via ES6 import');
     </script>
     
+    <!-- NUOVO: Cross-browser sync support -->
+    <script type="module">
+    // Import tracking service con sync fix
+    import trackingService from './core/services/tracking-service.js';
+    window.trackingService = trackingService;
+    console.log('✅ Tracking Service caricato via ES6 import');
+
+    // NUOVO: Force sync on page load per cross-browser support
+    document.addEventListener('DOMContentLoaded', async () => {
+        console.log('[Tracking Page] Checking for cloud sync...');
+        
+        // Attendi che il tracking service sia pronto
+        let attempts = 0;
+        const checkSync = setInterval(async () => {
+            attempts++;
+            
+            if (window.trackingService && window.trackingService.initialized) {
+                clearInterval(checkSync);
+                
+                // Se usa Supabase, forza sync
+                if (window.trackingService.useSupabase) {
+                    console.log('[Tracking Page] 🔄 Forcing cloud sync...');
+                    const synced = await window.trackingService.syncWithCloud();
+                    
+                    if (synced) {
+                        console.log('[Tracking Page] ✅ Synced with cloud');
+                        
+                        // Ricarica i tracking se necessario
+                        if (window.loadTrackings) {
+                            setTimeout(() => {
+                                window.loadTrackings();
+                            }, 500);
+                        }
+                    }
+                }
+            } else if (attempts > 20) {
+                clearInterval(checkSync);
+                console.log('[Tracking Page] Sync check timeout');
+            }
+        }, 250);
+    });
+
+    // Aggiungi listener per eventi di sync
+    window.addEventListener('apiKeysSynced', (event) => {
+        console.log('[Tracking Page] API keys synced:', event.detail);
+        
+        // Ricarica tracking table
+        if (window.loadTrackings) {
+            window.loadTrackings();
+        }
+        
+        // Aggiorna API status indicator
+        if (window.ApiStatusIndicator) {
+            window.ApiStatusIndicator.checkApiStatus();
+        }
+    });
+
+    // Debug helper per test cross-browser
+    window.debugCrossBrowserSync = async () => {
+        console.log('🔍 DEBUG CROSS-BROWSER SYNC');
+        console.log('========================');
+        
+        // Check Supabase auth
+        if (window.supabase) {
+            const { data: { user } } = await window.supabase.auth.getUser();
+            console.log('Supabase User:', user?.email || 'Not authenticated');
+        }
+        
+        // Check API keys in cloud
+        if (window.userSettingsService) {
+            const keys = await window.userSettingsService.getAllApiKeys();
+            console.log('Cloud API Keys:', keys);
+        }
+        
+        // Check tracking service state
+        if (window.trackingService) {
+            console.log('Tracking Service Stats:', window.trackingService.getStats());
+            console.log('Has API Keys:', window.trackingService.hasApiKeys());
+            console.log('Mock Mode:', window.trackingService.mockMode);
+        }
+        
+        // Check localStorage
+        console.log('LocalStorage v1:', localStorage.getItem('shipsgo_v1_api_key'));
+        console.log('LocalStorage config:', localStorage.getItem('trackingServiceConfig'));
+        
+        console.log('========================');
+        console.log('To force sync: await window.trackingService.syncWithCloud()');
+        console.log('To reinitialize: await window.trackingService.reinitialize()');
+    };
+
+    console.log('✅ Cross-browser sync support added');
+    console.log('📋 Debug with: window.debugCrossBrowserSync()');
+    </script>
+    
     <script src="/core/mock-data.js"></script>
 
     <script type="module">

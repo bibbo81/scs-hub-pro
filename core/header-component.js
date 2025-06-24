@@ -36,6 +36,13 @@ export class HeaderComponent {
         this.notificationShownAt = 0;
         this.MIN_NOTIFICATION_INTERVAL = 60000; // 1 minuto tra notifiche
         
+        // NUOVO: Tracking notifiche per evitare duplicati
+        this.lastNotificationTime = 0;
+        this.notificationCooldown = 60000; // 1 minuto di cooldown
+        this.shownNotifications = new Set(); // Track notifiche già mostrate
+        this.isFirstLoad = true; // Flag per prima visualizzazione
+        this.tabInBackground = false; // Track se tab è in background
+        
         // Set singleton instance
         headerInstance = this;
     }
@@ -75,6 +82,9 @@ export class HeaderComponent {
         // PULIZIA HEADER DUPLICATI
         this._cleanupDuplicateHeaders();
         
+        // Inietta stili per mobile checkbox fix
+        this._injectMobileStyles();
+        
         try {
             await this.mount();
             console.log('✅ [HeaderComponent] Header mounted to DOM');
@@ -108,6 +118,71 @@ export class HeaderComponent {
             for (let i = 1; i < headers.length; i++) {
                 headers[i].remove();
             }
+        }
+    }
+    
+    _injectMobileStyles() {
+        if (!document.getElementById('mobile-checkbox-styles')) {
+            const mobileCheckboxStyles = `
+            <style id="mobile-checkbox-styles">
+            /* Mobile Checkbox Fix */
+            @media (max-width: 768px) {
+                .tracking-checkbox {
+                    width: 32px;
+                    height: 32px;
+                    cursor: pointer;
+                    -webkit-tap-highlight-color: transparent;
+                    -webkit-touch-callout: none;
+                    -webkit-user-select: none;
+                    user-select: none;
+                    position: relative;
+                    z-index: 100;
+                }
+                
+                /* Aumenta l'area cliccabile */
+                .tracking-checkbox::before {
+                    content: '';
+                    position: absolute;
+                    top: -8px;
+                    left: -8px;
+                    right: -8px;
+                    bottom: -8px;
+                    z-index: -1;
+                }
+                
+                /* Fix per table cell */
+                .sol-table td:first-child {
+                    position: relative;
+                    z-index: 10;
+                    padding: 0.5rem;
+                    min-width: 48px;
+                }
+                
+                /* Previeni interferenze con drag */
+                .sol-table.sortable-active .tracking-checkbox {
+                    pointer-events: auto !important;
+                }
+            }
+            /* Desktop checkbox styling */
+            @media (min-width: 769px) {
+                .tracking-checkbox {
+                    width: 20px;
+                    height: 20px;
+                    cursor: pointer;
+                }
+            }
+            /* Checkbox hover effect */
+            .tracking-checkbox:hover {
+                transform: scale(1.1);
+                box-shadow: 0 0 0 2px var(--sol-primary-light);
+            }
+            /* Selected row highlight */
+            .sol-table tr:has(.tracking-checkbox:checked) {
+                background-color: var(--sol-primary-light);
+            }
+            </style>
+            `;
+            document.head.insertAdjacentHTML('beforeend', mobileCheckboxStyles);
         }
     }
     
@@ -530,38 +605,105 @@ export class HeaderComponent {
         // FIX: Listen for auth state changes con gestione notifiche migliorata
         if (supabase) {
             supabase.auth.onAuthStateChange((event, session) => {
-                console.log('[HeaderComponent] Auth state changed:', event);
-                
-                // Previeni notifiche ripetute
-                const now = Date.now();
-                const shouldShowNotification = (
-                    event === 'SIGNED_IN' && 
-                    this.lastAuthState !== 'SIGNED_IN' &&
-                    (now - this.notificationShownAt) > this.MIN_NOTIFICATION_INTERVAL
-                );
-                
-                this.lastAuthState = event;
-                this.invalidateUserCache();
-                
-                if (shouldShowNotification) {
-                    this.notificationShownAt = now;
-                    
-                    // Mostra notifica solo se è un vero login, non un refresh
-                    if (window.NotificationSystem && !document.hidden) {
-                        window.NotificationSystem.success('Accesso effettuato con successo!', {
-                            duration: 3000
-                        });
-                    }
-                }
-                
-                // Update user info
-                if (event === 'SIGNED_IN') {
-                    setTimeout(async () => {
-                        const userInfo = await this.getUserInfo();
-                        this.updateUserDisplay(userInfo);
-                    }, 500);
-                }
+                this.handleAuthStateChange(event, session);
             });
+        }
+        
+        // Aggiungi listener per visibility change
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden) {
+                // Tab in background - sospendi notifiche
+                this.tabInBackground = true;
+            } else {
+                // Tab tornata attiva
+                this.tabInBackground = false;
+            }
+        });
+        
+        // Fix touch events per mobile
+        document.addEventListener('touchstart', (e) => {
+            const checkbox = e.target.closest('.tracking-checkbox');
+            if (checkbox) {
+                e.preventDefault(); // Previeni default touch behavior
+                e.stopPropagation(); // Stop event bubbling
+                
+                // Toggle checkbox
+                checkbox.checked = !checkbox.checked;
+                
+                // Trigger change event
+                const changeEvent = new Event('change', { bubbles: true });
+                checkbox.dispatchEvent(changeEvent);
+                
+                // Visual feedback
+                checkbox.style.transform = 'scale(0.95)';
+                setTimeout(() => {
+                    checkbox.style.transform = '';
+                }, 100);
+            }
+        }, { passive: false });
+        
+        // Previeni zoom su double tap
+        let lastTouchEnd = 0;
+        document.addEventListener('touchend', (e) => {
+            const now = Date.now();
+            if (now - lastTouchEnd <= 300) {
+                e.preventDefault();
+            }
+            lastTouchEnd = now;
+        }, false);
+    }
+    
+    // Modifica il metodo handleAuthStateChange
+    async handleAuthStateChange(event, session) {
+        console.log('[HeaderComponent] Auth state changed:', event);
+        
+        this.lastAuthState = event;
+        this.invalidateUserCache();
+        
+        // Update user info
+        if (event === 'SIGNED_IN') {
+            setTimeout(async () => {
+                const userInfo = await this.getUserInfo();
+                this.updateUserDisplay(userInfo);
+            }, 500);
+        }
+        
+        // NUOVO: Gestione intelligente notifiche
+        if (event === 'SIGNED_IN' && session) {
+            const now = Date.now();
+            const notificationKey = `signin_${session.user.id}_${Math.floor(now / this.notificationCooldown)}`;
+            
+            // Mostra notifica solo se:
+            // 1. Non è stata già mostrata in questa sessione
+            // 2. È passato abbastanza tempo dall'ultima
+            // 3. La pagina è visibile (non in background)
+            // 4. Non è il primo caricamento (INITIAL_SESSION)
+            if (!this.shownNotifications.has(notificationKey) && 
+                (now - this.lastNotificationTime > this.notificationCooldown) &&
+                !document.hidden &&
+                !this.tabInBackground &&
+                event !== 'INITIAL_SESSION') {
+                
+                this.shownNotifications.add(notificationKey);
+                this.lastNotificationTime = now;
+                
+                // Usa il notification system con deduplicazione
+                if (window.NotificationSystem) {
+                    const userEmail = session.user.email || 'Demo User';
+                    window.NotificationSystem.success('Accesso effettuato con successo!', {
+                        subtitle: `Bentornato, ${userEmail}`,
+                        duration: 3000,
+                        dedupe: true, // Abilita deduplicazione
+                        dedupeKey: notificationKey
+                    });
+                }
+            }
+        }
+        
+        // Reset delle notifiche mostrate dopo logout
+        if (event === 'SIGNED_OUT') {
+            this.shownNotifications.clear();
+            this.lastNotificationTime = 0;
         }
     }
     
