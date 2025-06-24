@@ -807,16 +807,25 @@
                     console.log('📦 Loading trackings...');
                     
                     try {
+    let trackings = [];
+    
+    // Prova a caricare da localStorage
+    try {
+        trackings = JSON.parse(localStorage.getItem('trackings') || '[]');
+    } catch (e) {
+        console.warn('Error parsing trackings from localStorage:', e);
+        trackings = [];
+    }
                         // Carica stats
                         const statsGrid = document.getElementById('statsGrid');
-                        if (statsGrid) {
-                            const trackings = JSON.parse(localStorage.getItem('trackings') || '[]');
-                            const stats = {
-                                total: trackings.length,
-                                in_transit: trackings.filter(t => t.status === 'in_transit').length,
-                                delivered: trackings.filter(t => t.status === 'delivered').length,
-                                delayed: trackings.filter(t => t.status === 'delayed').length
-                            };
+    if (statsGrid) {
+        // ✅ NON ridichiarare trackings, usa quella già esistente
+        const stats = {
+            total: trackings.length,
+            in_transit: trackings.filter(t => t.status === 'in_transit').length,
+            delivered: trackings.filter(t => t.status === 'delivered').length,
+            delayed: trackings.filter(t => t.status === 'delayed').length
+        };
                             
                             statsGrid.innerHTML = `
                                 <div class="sol-stat-card">

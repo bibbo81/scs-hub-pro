@@ -205,9 +205,6 @@ initializeSupabase().catch(error => {
     console.log('⚠️ Auto-init auth skipped:', error.message);
 });
 
-// Export named
-export { supabase };
-
 // Export default
 export default supabase;
 
