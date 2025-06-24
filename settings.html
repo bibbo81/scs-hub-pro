@@ -413,6 +413,48 @@
                         Configurazione API ShipsGo
                     </h3>
                 </div>
+                
+                <!-- Organization API Keys Info -->
+                <div id="org-api-keys-info" style="display: none;">
+                    <div class="sol-alert sol-alert-info" style="margin: 1rem 1rem 0 1rem;">
+                        <i class="fas fa-building"></i>
+                        <div>
+                            <strong id="org-name">La tua organizzazione</strong>
+                            <p style="margin: 0.25rem 0 0 0; font-size: 0.875rem;">
+                                <span id="org-role-badge" class="sol-badge sol-badge-primary">Admin</span>
+                                <span id="org-api-status" style="margin-left: 0.5rem;"></span>
+                            </p>
+                        </div>
+                    </div>
+                    
+                    <div id="admin-api-controls" style="display: none; margin: 1rem; padding: 1rem; background: var(--sol-gray-50); border-radius: var(--sol-radius-md);">
+                        <label class="sol-form-label" style="display: flex; align-items: center; gap: 0.5rem;">
+                            <i class="fas fa-shield-alt" style="color: var(--sol-warning);"></i>
+                            Modalità Salvataggio API Keys
+                        </label>
+                        <div style="display: flex; gap: 1rem; margin-top: 0.5rem;">
+                            <label class="sol-radio-option">
+                                <input type="radio" name="saveMode" value="personal" checked>
+                                <span>
+                                    <i class="fas fa-user"></i>
+                                    Solo per me
+                                </span>
+                            </label>
+                            <label class="sol-radio-option">
+                                <input type="radio" name="saveMode" value="organization">
+                                <span>
+                                    <i class="fas fa-building"></i>
+                                    Per tutta l'organizzazione
+                                </span>
+                            </label>
+                        </div>
+                        <p class="sol-form-hint" style="margin-top: 0.5rem;">
+                            <i class="fas fa-info-circle"></i>
+                            Le API keys aziendali saranno disponibili per tutti i membri dell'organizzazione.
+                        </p>
+                    </div>
+                </div>
+                
                 <div class="sol-card-body">
                     <p style="color: var(--sol-gray-600); margin-bottom: 1.5rem;">
                         Configura le API per il tracking di container marittimi e spedizioni aeree
@@ -841,6 +883,52 @@
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
             gap: 1.5rem;
+        }
+
+        /* Radio Options Styles */
+        .sol-radio-option {
+            display: flex;
+            align-items: center;
+            padding: 0.75rem 1rem;
+            border: 1px solid var(--sol-gray-300);
+            border-radius: var(--sol-radius-md);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .sol-radio-option:hover {
+            border-color: var(--sol-primary);
+            background: var(--sol-gray-50);
+        }
+        
+        .sol-radio-option input[type="radio"] {
+            margin-right: 0.5rem;
+        }
+        
+        .sol-radio-option input[type="radio"]:checked + span {
+            color: var(--sol-primary);
+            font-weight: 500;
+        }
+        
+        /* Badge Styles */
+        .sol-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.25rem 0.75rem;
+            border-radius: 1rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        
+        .sol-badge-primary {
+            background: var(--sol-primary-light);
+            color: var(--sol-primary);
+        }
+        
+        .sol-badge-secondary {
+            background: var(--sol-gray-200);
+            color: var(--sol-gray-700);
         }
 
         /* Mobile Responsive */
@@ -1278,6 +1366,9 @@
                     }
                     
                     console.log('[Settings] ShipsGo config loaded from Supabase.');
+                    
+                    // Setup organization API keys
+                    await setupOrganizationApiKeys();
 
                 } catch (error) {
                     console.error('[Settings] Error loading ShipsGo config from Supabase:', error);
@@ -1306,6 +1397,31 @@
             shipsgoForm.addEventListener('submit', window.saveShipsGoConfig);
         }
     });
+    
+    // Funzione per setup Organization API Keys
+    async function setupOrganizationApiKeys() {
+        try {
+            const { default: orgApiKeysService } = await import('/core/services/organization-api-keys-service.js');
+            
+            const info = await orgApiKeysService.getOrganizationApiKeysInfo();
+            console.log('[Settings] Organization info:', info);
+            
+            if (info.hasOrganization) {
+                document.getElementById('org-api-keys-info').style.display = 'block';
+                document.getElementById('org-name').textContent = info.organizationName;
+                
+                const roleBadge = document.getElementById('org-role-badge');
+                roleBadge.textContent = info.isAdmin ? 'Admin' : 'Member';
+                roleBadge.className = info.isAdmin ? 'sol-badge sol-badge-primary' : 'sol-badge sol-badge-secondary';
+                
+                if (info.isAdmin) {
+                    document.getElementById('admin-api-controls').style.display = 'block';
+                }
+            }
+        } catch (error) {
+            console.error('[Settings] Error setting up org API keys:', error);
+        }
+    }
     </script>
 
 </body>
