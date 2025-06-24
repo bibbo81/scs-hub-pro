@@ -1507,7 +1507,7 @@ async function loadTrackings() {
         }
         
         // Update stats
-        updateStats();
+        updateStats(calculateStats(trackings));
         
         // Update table
         trackingTable.setData(trackings);
@@ -1529,7 +1529,7 @@ async function loadTrackings() {
         
         // Fallback: generate mock data
         trackings = generateMockTrackings();
-        updateStats();
+        updateStats(calculateStats(trackings));
         if (trackingTable) {
             trackingTable.setData(trackings);
         }
@@ -1681,6 +1681,18 @@ function generateMockTrackings() {
 function updateStats(stats) {
     console.log('[updateStats] Updating with:', stats);
     
+    // AGGIUNGI SOLO QUESTE RIGHE ALL'INIZIO
+    if (!stats || typeof stats !== 'object') {
+        console.warn('[updateStats] Invalid stats object, using defaults');
+        stats = {
+            total: 0,
+            in_transit: 0,
+            arrived: 0,
+            delivered: 0,
+            delayed: 0
+        };
+    }
+
     // Metodo 1: Aggiorna elementi individuali se esistono
     const elements = {
         'totalTrackings': stats.total || 0,
@@ -1737,6 +1749,18 @@ function updateStats(stats) {
             console.warn('[updateStats] No stats container found');
         }
     }
+}
+
+// Helper per calcolare statistiche
+function calculateStats(trackingList) {
+    const list = trackingList || [];
+    return {
+        total: list.length,
+        in_transit: list.filter(t => t.status === 'in_transit').length,
+        arrived: list.filter(t => t.status === 'arrived').length,
+        delivered: list.filter(t => t.status === 'delivered').length,
+        delayed: list.filter(t => t.status === 'delayed').length
+    };
 }
 
 // Show add tracking form
@@ -2561,7 +2585,7 @@ async function handleDeleteTracking(id) {
                 console.error('❌ [Delete] Errore Supabase:', error);
                 // Fallback: rimuovi solo dalla memoria locale
                 trackings = trackings.filter(t => t.id != id);
-                updateStats();
+                updateStats(calculateStats(trackings));
                 trackingTable.setData(trackings);
                 notificationSystem.warning('Eliminato localmente (errore Supabase)');
             }
@@ -2588,7 +2612,7 @@ async function handleDeleteTracking(id) {
             localStorage.setItem('trackings', JSON.stringify(trackings));
             
             // Force immediate UI update
-            updateStats();
+            updateStats(calculateStats(trackings));
             trackingTable.setData(trackings);
             
             // Show success notification
