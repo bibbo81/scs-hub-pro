@@ -11,7 +11,7 @@ const createClient = window.supabase.createClient;
 
 // Configurazione Supabase
 const SUPABASE_URL = 'https://gnlrmnsdmpjzitsysowq.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdubHJtbnNkbXBqeml0c3lzb3dxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk0NjMxMzQsImV4cCI6MjA2NTAzOTEzNH0.UoJJoDUoDXGbiWnKNN48qb9PVQWOW_X_MXqAfzTHSaA';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdubHJtbnNkbXBqeml0c3lzb3dxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk0NjMxMzQsImV4cCI6MjA2NTAzOTEzNH0.UoJJoDUoDXGbiWnKNN48qb9PVQWOW_X_MXqAfTTHSaA';
 
 // Flag per tracciare lo stato dell'inizializzazione
 let isInitializing = false;
@@ -205,19 +205,14 @@ initializeSupabase().catch(error => {
     console.log('⚠️ Auto-init auth skipped:', error.message);
 });
 
-// Export per ES6 modules
+// Export named
 export { supabase };
 
-// NUOVO: Esponi globalmente per compatibilità e debug
-if (typeof window !== 'undefined') {
+// Export default
+export default supabase;
+
+// Esponi globalmente SOLO UNA VOLTA
+if (typeof window !== 'undefined' && !window.supabase) {
     window.supabase = supabase;
     console.log('[Supabase Client] ✅ Exposed globally as window.supabase');
-    
-    // Verifica disponibilità
-    if (window.supabase && window.supabase.auth) {
-        console.log('[Supabase Client] ✅ Auth module available');
-    }
 }
-
-// Export default per retrocompatibilità
-export default supabase;
