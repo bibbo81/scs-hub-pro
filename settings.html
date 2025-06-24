@@ -1422,6 +1422,125 @@
             console.error('[Settings] Error setting up org API keys:', error);
         }
     }
+    
+    // Modifica la funzione saveShipsGoConfig per supportare modalità organizzazione
+    window.saveShipsGoConfigWithOrg = async function(event) {
+        event.preventDefault();
+        
+        const button = event.target.querySelector('button[type="submit"]');
+        const originalText = button.innerHTML;
+        button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Salvataggio...';
+        button.disabled = true;
+        
+        try {
+            const v1Key = document.getElementById('shipsgoV1ApiKey').value.trim();
+            const v2Token = document.getElementById('shipsgoV2Token').value.trim();
+            
+            // Controlla modalità salvataggio
+            const saveMode = document.querySelector('input[name="saveMode"]:checked')?.value || 'personal';
+            console.log('[Settings] Save mode:', saveMode);
+            
+            if (saveMode === 'organization') {
+                // Salva come API keys aziendali
+                const { default: orgApiKeysService } = await import('/core/services/organization-api-keys-service.js');
+                
+                if (v1Key) {
+                    await orgApiKeysService.saveOrganizationApiKey('shipsgo_v1', v1Key);
+                } else {
+                    await orgApiKeysService.removeOrganizationApiKey('shipsgo_v1');
+                }
+                
+                if (v2Token) {
+                    await orgApiKeysService.saveOrganizationApiKey('shipsgo_v2', v2Token);
+                } else {
+                    await orgApiKeysService.removeOrganizationApiKey('shipsgo_v2');
+                }
+                
+                console.log('[Settings] ✅ Saved as organization API keys');
+                showStatus('API keys salvate per tutta l\'organizzazione!', 'success');
+                
+            } else {
+                // Salva come API keys personali (codice esistente)
+                if (window.userSettingsService) {
+                    console.log('[Settings] Saving personal keys to Supabase...');
+                    
+                    if (v1Key) {
+                        await window.userSettingsService.saveApiKey('shipsgo_v1', v1Key);
+                    } else {
+                        await window.userSettingsService.removeApiKey('shipsgo_v1');
+                    }
+                    
+                    if (v2Token) {
+                        await window.userSettingsService.saveApiKey('shipsgo_v2', v2Token);
+                    } else {
+                        await window.userSettingsService.removeApiKey('shipsgo_v2');
+                    }
+                    
+                    console.log('[Settings] ✅ Saved as personal API keys');
+                    showStatus('API keys personali salvate!', 'success');
+                }
+            }
+            
+            // Aggiorna tracking service
+            if (window.trackingService) {
+                await window.trackingService.initialize();
+            }
+            
+            // Dispatch evento per aggiornare altre pagine
+            window.dispatchEvent(new CustomEvent('apiKeysUpdated', {
+                detail: { 
+                    hasV1: !!v1Key,
+                    hasV2: !!v2Token,
+                    source: 'settings',
+                    mode: saveMode
+                }
+            }));
+            
+            // Mostra/nascondi test button
+            const testButton = document.querySelector('button[onclick*="testShipsGoConnection"]');
+            if (testButton) {
+                testButton.style.display = (v1Key || v2Token) ? 'inline-flex' : 'none';
+            }
+            
+        } catch (error) {
+            console.error('Error saving config:', error);
+            showStatus('Errore: ' + error.message, 'error');
+        } finally {
+            button.innerHTML = originalText;
+            button.disabled = false;
+        }
+    };
+    
+    // Aggiungi listener per aggiornamenti org API keys
+    window.addEventListener('orgApiKeyUpdated', async (event) => {
+        console.log('[Settings] Org API key updated:', event.detail);
+        
+        // Ricarica info organizzazione
+        await setupOrganizationApiKeys();
+        
+        // Notifica utente
+        if (window.NotificationSystem) {
+            window.NotificationSystem.info('API keys aziendali aggiornate', {
+                subtitle: `Provider: ${event.detail.provider}`,
+                duration: 3000
+            });
+        }
+    });
+    
+    // Modifica il DOMContentLoaded per usare la nuova funzione
+    document.addEventListener('DOMContentLoaded', () => {
+        // Attendi un po' per essere sicuri che tutto sia caricato
+        setTimeout(() => {
+            const shipsgoForm = document.getElementById('shipsgo-form');
+            if (shipsgoForm) {
+                // Rimuovi vecchio listener
+                shipsgoForm.removeEventListener('submit', window.saveShipsGoConfig);
+                // Aggiungi nuovo listener
+                shipsgoForm.addEventListener('submit', window.saveShipsGoConfigWithOrg);
+                console.log('[Settings] Form listener updated for org support');
+            }
+        }, 1000);
+    });
     </script>
 
 </body>
