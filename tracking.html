@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Supply Chain Hub - Tracking Spedizioni</title>
     
-    <!-- SUPABASE CDN con fix timing -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
   // Esponi globalmente per i moduli ES6 - CON CONTROLLO ROBUSTO
@@ -38,7 +37,6 @@
     }
   })();
     </script>
-    <!-- FORCE CLEANUP MODAL SYSTEMS - PRIMA DI TUTTO -->
     <script>
         (function() {
             console.log('🧹 [PreInit] Cleaning up existing modal systems...');
@@ -365,7 +363,6 @@
         };
     </script>
     
-    <!-- Auth Guard Module -->
     <script type="module">
         import authGuard from '/core/auth-guard.js';
         // Il guard si auto-inizializza
@@ -405,12 +402,11 @@
     <script src="/core/export-manager.js"></script>
     
     <script type="module">
-    import trackingService from './core/services/tracking-service.js';
+    import trackingService from '/core/services/tracking-service.js';
     window.trackingService = trackingService;
     console.log('✅ Tracking Service caricato via ES6 import');
     </script>
     
-    <!-- Import Supabase client e esponilo globalmente -->
     <script type="module">
     // Import Supabase client e esponilo globalmente
     import { supabase } from '/core/services/supabase-client.js';
@@ -425,19 +421,18 @@
     }
     </script>
     
-    <!-- SCRIPT COMPLETO PER DEBUG ROBUSTO -->
     <script type="module">
     // Import e esponi tutti i servizi necessari
     import { supabase } from '/core/services/supabase-client.js';
     import userSettingsService from '/core/services/user-settings-service.js';
     import organizationApiKeysService from '/core/services/organization-api-keys-service.js';
-    import trackingService from '/core/services/tracking-service.js';
+    // import trackingService from '/core/services/tracking-service.js'; // Removed duplicate import
 
     // Esponi globalmente per debug
     window.supabase = supabase;
     window.userSettingsService = userSettingsService;
     window.organizationApiKeysService = organizationApiKeysService;
-    window.trackingService = trackingService;
+    // window.trackingService = trackingService; // Already exposed from the single import
 
     console.log('✅ All services exposed globally for debugging');
 
@@ -480,7 +475,7 @@
             const newStats = window.trackingService.getStats();
             console.log('6. After sync:', {
                 mockMode: newStats.mockMode,
-                hasKeys: window.trackingService.hasApiKeys()
+                hasKeys: newStats.hasKeys
             });
             
             // 7. Summary
@@ -553,11 +548,10 @@
     console.log('- await window.trackingService.reinitialize() - Full reset');
     </script>
     
-    <!-- NUOVO: Cross-browser sync support -->
     <script type="module">
     // Import tracking service con sync fix
-    import trackingService from './core/services/tracking-service.js';
-    window.trackingService = trackingService;
+    // import trackingService from './core/services/tracking-service.js'; // Removed duplicate import
+    // window.trackingService = trackingService; // Already exposed
     console.log('✅ Tracking Service caricato via ES6 import');
 
     // NUOVO: Force sync on page load per cross-browser support
@@ -672,7 +666,6 @@
     console.log('📋 Debug with: window.debugCrossBrowserSync()');
     </script>
     
-    <!-- Attendi che tutti i moduli siano caricati e cerca supabase -->
     <script type="module">
     // Attendi che tutti i moduli siano caricati
     document.addEventListener('DOMContentLoaded', async () => {
@@ -791,65 +784,293 @@
     <script src="/pages/tracking/api-status-indicator.js" type="module"></script>
 
     <script>
-    // Improved initialization with better timing and error handling
+    // Definisci trackingInit se non esiste dal modulo index.js
+    window.trackingInit = async function() {
+        console.log('🚀 [Tracking] Initializing page with fallback trackingInit...');
+        
+        try {
+            // 1. Inizializza header se necessario
+            if (window.headerComponent && !document.querySelector('.sol-header')) {
+                await window.headerComponent.init();
+                console.log('✅ Header initialized');
+            }
+            
+            // 2. Inizializza tracking service
+            if (window.trackingService && !window.trackingService.initialized) {
+                await window.trackingService.initialize();
+                console.log('✅ Tracking service initialized');
+            }
+            
+            // 3. Carica funzione loadTrackings
+            if (!window.loadTrackings) {
+                window.loadTrackings = async function() {
+                    console.log('📦 Loading trackings...');
+                    
+                    try {
+                        // Carica stats
+                        const statsGrid = document.getElementById('statsGrid');
+                        if (statsGrid) {
+                            const trackings = JSON.parse(localStorage.getItem('trackings') || '[]');
+                            const stats = {
+                                total: trackings.length,
+                                in_transit: trackings.filter(t => t.status === 'in_transit').length,
+                                delivered: trackings.filter(t => t.status === 'delivered').length,
+                                delayed: trackings.filter(t => t.status === 'delayed').length
+                            };
+                            
+                            statsGrid.innerHTML = `
+                                <div class="sol-stat-card">
+                                    <div class="sol-stat-icon"><i class="fas fa-box"></i></div>
+                                    <div class="sol-stat-content">
+                                        <div class="sol-stat-value">${stats.total}</div>
+                                        <div class="sol-stat-label">Totale Tracking</div>
+                                    </div>
+                                </div>
+                                <div class="sol-stat-card">
+                                    <div class="sol-stat-icon"><i class="fas fa-ship"></i></div>
+                                    <div class="sol-stat-content">
+                                        <div class="sol-stat-value">${stats.in_transit}</div>
+                                        <div class="sol-stat-label">In Transito</div>
+                                    </div>
+                                </div>
+                                <div class="sol-stat-card">
+                                    <div class="sol-stat-icon"><i class="fas fa-check-circle"></i></div>
+                                    <div class="sol-stat-content">
+                                        <div class="sol-stat-value">${stats.delivered}</div>
+                                        <div class="sol-stat-label">Consegnati</div>
+                                    </div>
+                                </div>
+                                <div class="sol-stat-card">
+                                    <div class="sol-stat-icon"><i class="fas fa-exclamation-triangle"></i></div>
+                                    <div class="sol-stat-content">
+                                        <div class="sol-stat-value">${stats.delayed}</div>
+                                        <div class="sol-stat-label">In Ritardo</div>
+                                    </div>
+                                </div>
+                            `;
+                        }
+                        
+                        // Carica tabella
+                        const tableContainer = document.getElementById('trackingTableContainer');
+                        if (tableContainer && window.TableManager) {
+                            // Crea tabella con TableManager
+                            if (!window.trackingTable) {
+                                window.trackingTable = new window.TableManager('trackingTableContainer', {
+                                    columns: [
+                                        { key: 'select', label: '', width: '40px', sortable: false },
+                                        { key: 'tracking_number', label: 'Tracking Number', sortable: true },
+                                        { key: 'tracking_type', label: 'Tipo', sortable: true },
+                                        { key: 'status', label: 'Stato', sortable: true },
+                                        { key: 'origin_name', label: 'Origine', sortable: true },
+                                        { key: 'destination_name', label: 'Destinazione', sortable: true },
+                                        { key: 'eta', label: 'ETA', sortable: true },
+                                        { key: 'actions', label: 'Azioni', sortable: false }
+                                    ],
+                                    data: trackings,
+                                    searchable: true,
+                                    selectable: true,
+                                    emptyMessage: 'Nessun tracking trovato. Aggiungi il primo tracking!',
+                                    onRowClick: (row) => {
+                                        console.log('Row clicked:', row);
+                                    }
+                                });
+                            } else {
+                                // Aggiorna dati esistenti
+                                window.trackingTable.setData(trackings);
+                            }
+                            
+                            // Salva riferimento globale
+                            window.currentTrackings = trackings;
+                        } else if (tableContainer) {
+                            // Fallback senza TableManager
+                            tableContainer.innerHTML = `
+                                <div class="sol-table-wrapper">
+                                    <table class="sol-table">
+                                        <thead>
+                                            <tr>
+                                                <th><input type="checkbox" class="select-all-checkbox"></th>
+                                                <th>Tracking Number</th>
+                                                <th>Tipo</th>
+                                                <th>Stato</th>
+                                                <th>Origine</th>
+                                                <th>Destinazione</th>
+                                                <th>ETA</th>
+                                                <th>Azioni</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            ${trackings.length > 0 ? trackings.map(t => `
+                                                <tr>
+                                                    <td><input type="checkbox" class="tracking-checkbox" data-id="${t.id}"></td>
+                                                    <td>${t.tracking_number}</td>
+                                                    <td>${t.tracking_type || 'container'}</td>
+                                                    <td><span class="status-badge status-${t.status}">${t.status}</span></td>
+                                                    <td>${t.origin_name || '-'}</td>
+                                                    <td>${t.destination_name || '-'}</td>
+                                                    <td>${t.eta ? new Date(t.eta).toLocaleDateString('it-IT') : '-'}</td>
+                                                    <td>
+                                                        <button class="sol-btn sol-btn-sm" onclick="console.log('View:', '${t.id}')">
+                                                            <i class="fas fa-eye"></i>
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                            `).join('') : `
+                                                <tr>
+                                                    <td colspan="8" style="text-align: center; padding: 3rem;">
+                                                        <i class="fas fa-box-open" style="font-size: 3rem; color: var(--sol-gray-400);"></i>
+                                                        <p style="margin-top: 1rem; color: var(--sol-gray-600);">Nessun tracking trovato</p>
+                                                        <button class="sol-btn sol-btn-primary" style="margin-top: 1rem;" onclick="if(window.showAddTrackingForm) window.showAddTrackingForm()">
+                                                            <i class="fas fa-plus"></i> Aggiungi il primo tracking
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                            `}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            `;
+                        }
+                        
+                        console.log('✅ Trackings loaded');
+                        
+                    } catch (error) {
+                        console.error('❌ Error loading trackings:', error);
+                        
+                        // Mostra errore nell'UI
+                        const tableContainer = document.getElementById('trackingTableContainer');
+                        if (tableContainer) {
+                            tableContainer.innerHTML = `
+                                <div style="text-align: center; padding: 3rem; color: var(--sol-danger);">
+                                    <i class="fas fa-exclamation-circle" style="font-size: 3rem;"></i>
+                                    <p style="margin-top: 1rem;">Errore nel caricamento dei dati</p>
+                                    <p style="font-size: 0.875rem; margin-top: 0.5rem;">${error.message}</p>
+                                    <button class="sol-btn sol-btn-primary" style="margin-top: 1rem;" onclick="window.location.reload()">
+                                        <i class="fas fa-redo"></i> Ricarica Pagina
+                                    </button>
+                                </div>
+                            `;
+                        }
+                    }
+                };
+            }
+            
+            // 4. Carica i dati
+            await window.loadTrackings();
+            
+            // 5. Setup event listeners
+            const setupEventListeners = () => {
+                // Add tracking button
+                const addBtn = document.getElementById('addTrackingBtn');
+                if (addBtn && !addBtn.hasEventListener) {
+                    addBtn.addEventListener('click', () => {
+                        if (window.showAddTrackingForm) {
+                            window.showAddTrackingForm();
+                        } else {
+                            console.error('showAddTrackingForm not available');
+                            if (window.NotificationSystem) {
+                                window.NotificationSystem.error('Funzione non disponibile. Ricarica la pagina.');
+                            }
+                        }
+                    });
+                    addBtn.hasEventListener = true;
+                }
+                
+                // Status filter
+                const statusFilter = document.getElementById('statusFilter');
+                if (statusFilter && !statusFilter.hasEventListener) {
+                    statusFilter.addEventListener('change', (e) => {
+                        console.log('Status filter:', e.target.value);
+                        // TODO: Implementa filtro
+                    });
+                    statusFilter.hasEventListener = true;
+                }
+                
+                // Type filter
+                const typeFilter = document.getElementById('typeFilter');
+                if (typeFilter && !typeFilter.hasEventListener) {
+                    typeFilter.addEventListener('change', (e) => {
+                        console.log('Type filter:', e.target.value);
+                        // TODO: Implementa filtro
+                    });
+                    typeFilter.hasEventListener = true;
+                }
+            };
+            
+            setupEventListeners();
+            
+            // 6. Inizializza API status indicator
+            if (window.ApiStatusIndicator) {
+                await window.ApiStatusIndicator.init();
+                console.log('✅ API status indicator initialized');
+            }
+            
+            // 7. Setup auto-refresh (ogni 5 minuti)
+            if (!window.autoRefreshInterval) {
+                window.autoRefreshInterval = setInterval(() => {
+                    if (window.loadTrackings) {
+                        console.log('🔄 Auto-refresh trackings...');
+                        window.loadTrackings();
+                    }
+                }, 5 * 60 * 1000); // 5 minuti
+            }
+            
+            console.log('✅ [Tracking] Page initialization complete');
+            
+        } catch (error) {
+            console.error('❌ [Tracking] Init error:', error);
+            
+            // Mostra errore all'utente
+            if (window.NotificationSystem) {
+                window.NotificationSystem.error('Errore inizializzazione pagina', {
+                    subtitle: error.message,
+                    duration: 5000
+                });
+            }
+            
+            throw error;
+        }
+    };
+
+    console.log('✅ trackingInit defined globally');
+    </script>
+    
+    <script>
     document.addEventListener('DOMContentLoaded', async () => {
         console.log('🚀 [Tracking HTML] DOMContentLoaded fired');
         
-        // Wait for all ES6 modules to load
+        // Attendi solo i moduli essenziali
         let attempts = 0;
-        const maxAttempts = 50; // 5 seconds max
+        const maxAttempts = 20; // 2 secondi
         
         const waitForModules = setInterval(async () => {
             attempts++;
             
-            // Check if all required modules are loaded
-            const hasTableManager = !!window.TableManager;
-            const hasModalSystem = !!window.ModalSystem;
-            const hasNotificationSystem = !!window.NotificationSystem;
-            const hasTrackingInit = !!window.trackingInit;
-            const hasImportManager = !!window.ImportManager;
+            // Controlla solo i moduli essenziali
+            const ready = window.TableManager && 
+                            window.ModalSystem && 
+                            window.NotificationSystem;
             
-            console.log(`📦 [Tracking] Module check ${attempts}/${maxAttempts}:`, {
-                TableManager: hasTableManager,
-                ModalSystem: hasModalSystem,
-                NotificationSystem: hasNotificationSystem,
-                trackingInit: hasTrackingInit,
-                ImportManager: hasImportManager
-            });
-            
-            if (hasTableManager && hasModalSystem && hasNotificationSystem && hasTrackingInit) {
+            if (ready) {
                 clearInterval(waitForModules);
-                
-                console.log('✅ [Tracking] All modules ready, starting trackingInit...');
+                console.log('✅ [Tracking] Core modules ready');
                 
                 try {
+                    // Usa trackingInit (ora sempre disponibile)
                     await window.trackingInit();
-                    console.log('✅ [Tracking] Page initialization complete!');
+                    console.log('✅ [Tracking] Initialization successful');
                 } catch (error) {
-                    console.error('❌ [Tracking] Initialization failed:', error);
-                    if (window.NotificationSystem) {
-                        window.NotificationSystem.error('Errore inizializzazione pagina');
-                    }
+                    console.error('❌ [Tracking] Init failed:', error);
                 }
                 
             } else if (attempts >= maxAttempts) {
                 clearInterval(waitForModules);
-                console.error('❌ [Tracking] Module loading timeout after', maxAttempts * 100, 'ms');
-                console.log('Missing modules:', {
-                    TableManager: !hasTableManager,
-                    ModalSystem: !hasModalSystem, 
-                    NotificationSystem: !hasNotificationSystem,
-                    trackingInit: !hasTrackingInit
-                });
+                console.error('❌ [Tracking] Timeout waiting for modules');
                 
-                // Try to continue anyway
-                if (window.trackingInit) {
-                    console.log('⚠️ [Tracking] Attempting partial initialization...');
-                    try {
-                        await window.trackingInit();
-                    } catch (error) {
-                        console.error('❌ [Tracking] Partial initialization failed:', error);
-                    }
+                // Inizializza comunque con quello che c'è
+                try {
+                    await window.trackingInit();
+                } catch (error) {
+                    console.error('❌ [Tracking] Emergency init failed:', error);
                 }
             }
         }, 100); // Check every 100ms
@@ -917,6 +1138,87 @@
                 justify-content: center;
                 margin: 0.5rem 0;
             }
+        }
+        /* FIX 4: Add CSS for stat cards */
+        .sol-stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .sol-stat-card {
+            background: white;
+            border-radius: var(--sol-radius-lg);
+            padding: 1.5rem;
+            box-shadow: var(--sol-shadow-sm);
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .sol-stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--sol-shadow-md);
+        }
+
+        .sol-stat-icon {
+            font-size: 2.5rem;
+            color: var(--sol-primary);
+            opacity: 0.8;
+        }
+
+        .sol-stat-content {
+            flex: 1;
+        }
+
+        .sol-stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--sol-gray-900);
+            line-height: 1;
+        }
+
+        .sol-stat-label {
+            font-size: 0.875rem;
+            color: var(--sol-gray-600);
+            margin-top: 0.25rem;
+        }
+
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.25rem 0.75rem;
+            border-radius: 1rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .status-registered {
+            background: var(--sol-gray-100);
+            color: var(--sol-gray-700);
+        }
+
+        .status-in_transit {
+            background: var(--sol-info-light);
+            color: var(--sol-info);
+        }
+
+        .status-delivered {
+            background: var(--sol-success-light);
+            color: var(--sol-success);
+        }
+
+        .status-delayed {
+            background: var(--sol-warning-light);
+            color: var(--sol-warning);
+        }
+
+        .status-exception {
+            background: var(--sol-danger-light);
+            color: var(--sol-danger);
         }
     </style>
 </head>
