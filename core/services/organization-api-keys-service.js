@@ -10,36 +10,74 @@ class OrganizationApiKeysService {
     }
 
     // Ottieni l'organizzazione corrente dell'utente
-    async getCurrentOrganization() {
-        if (this.currentOrg) return this.currentOrg;
-
-        try {
-            const user = await requireAuth();
-            
-            const { data, error } = await supabase
-                .from('organization_members')
-                .select(`
-                    organization_id,
-                    role,
-                    organizations (
-                        id,
-                        name
-                    )
-                `)
-                .eq('user_id', user.id)
-                .single();
-
-            if (error) throw error;
-
-            this.currentOrg = data.organizations;
-            this.userRole = data.role;
-            
-            return this.currentOrg;
-        } catch (error) {
-            console.log('No organization found for user:', error);
+async getCurrentOrganization() {
+    if (this.currentOrg) return this.currentOrg;
+    
+    try {
+        const user = await requireAuth();
+        if (!user) {
+            console.log('[OrgApiKeys] No user authenticated');
             return null;
         }
+        
+        const { data, error } = await supabase
+            .from('organization_members')
+            .select(`
+                organization_id,
+                role,
+                organizations (
+                    id,
+                    name
+                )
+            `)
+            .eq('user_id', user.id)
+            .single();
+            
+        if (error) {
+            // Se l'errore è 406, probabilmente è un problema di header
+            if (error.code === '406') {
+                console.warn('[OrgApiKeys] 406 error - retrying with different approach');
+                
+                // Prova con una query più semplice
+                const { data: simpleData, error: simpleError } = await supabase
+                    .from('organization_members')
+                    .select('organization_id, role')
+                    .eq('user_id', user.id)
+                    .single();
+                    
+                if (!simpleError && simpleData) {
+                    // Carica l'organizzazione separatamente
+                    const { data: orgData, error: orgError } = await supabase
+                        .from('organizations')
+                        .select('id, name')
+                        .eq('id', simpleData.organization_id)
+                        .single();
+                        
+                    if (!orgError && orgData) {
+                        this.currentOrg = orgData;
+                        this.userRole = simpleData.role;
+                        return this.currentOrg;
+                    }
+                }
+            }
+            
+            throw error;
+        }
+        
+        // Salva i dati in cache
+        if (data && data.organizations) {
+            this.currentOrg = data.organizations;
+            this.userRole = data.role;
+            return this.currentOrg;
+        }
+        
+        return null;
+        
+    } catch (error) {
+        console.log('[OrgApiKeys] No organization found for user:', error.message);
+        return null;
     }
+}
 
     // Verifica se l'utente è admin
     async isAdmin() {

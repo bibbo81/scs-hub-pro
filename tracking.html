@@ -297,6 +297,7 @@
         import app from '/assets/js/app.js';
         import AdvancedSearch from '/core/advanced-search.js';
         import apiKeyManager from '/core/components/api-key-manager.js';
+        import organizationApiKeysService from '/core/services/organization-api-keys-service.js';
 
         // Make modules available globally for backward compatibility
         window.api = api;
@@ -306,6 +307,7 @@
         window.App = app;
         window.AdvancedSearch = AdvancedSearch;
         window.apiKeyManager = apiKeyManager;
+        window.organizationApiKeysService = organizationApiKeysService;
 
         // FORCE LOG ASSIGNMENTS
         console.log('🚀 [ES6] Module assignments:');
@@ -317,6 +319,7 @@
         console.log('✅ [ES6] Core modules loaded successfully');
         console.log('✅ AdvancedSearch importato e esposto globalmente');
         console.log('✅ API Key Manager importato:', !!window.apiKeyManager);
+        console.log('✅ OrganizationApiKeysService exposed globally');
         
         // Force header initialization if not already done
         if (window.headerComponent && typeof window.headerComponent.init === 'function') {

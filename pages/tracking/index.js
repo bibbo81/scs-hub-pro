@@ -1678,20 +1678,65 @@ function generateMockTrackings() {
 }
 
 // Update stats cards
-function updateStats() {
-    const stats = {
-        total: trackings.length,
-        in_transit: trackings.filter(t => t.status === 'in_transit').length,
-        arrived: trackings.filter(t => t.status === 'arrived').length,
-        delivered: trackings.filter(t => t.status === 'delivered').length,
-        delayed: trackings.filter(t => t.status === 'delayed').length
+function updateStats(stats) {
+    console.log('[updateStats] Updating with:', stats);
+    
+    // Metodo 1: Aggiorna elementi individuali se esistono
+    const elements = {
+        'totalTrackings': stats.total || 0,
+        'inTransitCount': stats.in_transit || 0,
+        'deliveredCount': stats.delivered || 0,
+        'delayedCount': stats.delayed || 0
     };
     
-    document.getElementById('activeTrackings').textContent = stats.total;
-    document.getElementById('inTransit').textContent = stats.in_transit;
-    document.getElementById('arrived').textContent = stats.arrived;
-    document.getElementById('delivered').textContent = stats.delivered;
-    document.getElementById('delayed').textContent = stats.delayed;
+    let foundAny = false;
+    for (const [id, value] of Object.entries(elements)) {
+        const element = document.getElementById(id);
+        if (element) {
+            element.textContent = value;
+            foundAny = true;
+        }
+    }
+    
+    // Metodo 2: Se non trova elementi individuali, usa statsGrid
+    if (!foundAny) {
+        const statsGrid = document.getElementById('statsGrid');
+        if (statsGrid) {
+            console.log('[updateStats] Using statsGrid method');
+            statsGrid.innerHTML = `
+                <div class="sol-stat-card">
+                    <div class="sol-stat-icon"><i class="fas fa-box"></i></div>
+                    <div class="sol-stat-content">
+                        <div class="sol-stat-value">${stats.total || 0}</div>
+                        <div class="sol-stat-label">Totale Tracking</div>
+                    </div>
+                </div>
+                <div class="sol-stat-card">
+                    <div class="sol-stat-icon"><i class="fas fa-ship"></i></div>
+                    <div class="sol-stat-content">
+                        <div class="sol-stat-value">${stats.in_transit || 0}</div>
+                        <div class="sol-stat-label">In Transito</div>
+                    </div>
+                </div>
+                <div class="sol-stat-card">
+                    <div class="sol-stat-icon"><i class="fas fa-check-circle"></i></div>
+                    <div class="sol-stat-content">
+                        <div class="sol-stat-value">${stats.delivered || 0}</div>
+                        <div class="sol-stat-label">Consegnati</div>
+                    </div>
+                </div>
+                <div class="sol-stat-card">
+                    <div class="sol-stat-icon"><i class="fas fa-exclamation-triangle"></i></div>
+                    <div class="sol-stat-content">
+                        <div class="sol-stat-value">${stats.delayed || 0}</div>
+                        <div class="sol-stat-label">In Ritardo</div>
+                    </div>
+                </div>
+            `;
+        } else {
+            console.warn('[updateStats] No stats container found');
+        }
+    }
 }
 
 // Show add tracking form
