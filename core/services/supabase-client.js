@@ -204,3 +204,20 @@ async function initializeSupabase() {
 initializeSupabase().catch(error => {
     console.log('⚠️ Auto-init auth skipped:', error.message);
 });
+
+// Export per ES6 modules
+export { supabase };
+
+// NUOVO: Esponi globalmente per compatibilità e debug
+if (typeof window !== 'undefined') {
+    window.supabase = supabase;
+    console.log('[Supabase Client] ✅ Exposed globally as window.supabase');
+    
+    // Verifica disponibilità
+    if (window.supabase && window.supabase.auth) {
+        console.log('[Supabase Client] ✅ Auth module available');
+    }
+}
+
+// Export default per retrocompatibilità
+export default supabase;

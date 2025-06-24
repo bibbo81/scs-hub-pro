@@ -410,6 +410,149 @@
     console.log('✅ Tracking Service caricato via ES6 import');
     </script>
     
+    <!-- Import Supabase client e esponilo globalmente -->
+    <script type="module">
+    // Import Supabase client e esponilo globalmente
+    import { supabase } from '/core/services/supabase-client.js';
+    // IMPORTANTE: Esponi supabase globalmente per debug e altri moduli
+    window.supabase = supabase;
+    console.log('✅ Supabase client exposed globally');
+    // Verifica che sia disponibile
+    if (window.supabase && window.supabase.auth) {
+        console.log('✅ Supabase auth available');
+    } else {
+        console.error('❌ Supabase not properly initialized');
+    }
+    </script>
+    
+    <!-- SCRIPT COMPLETO PER DEBUG ROBUSTO -->
+    <script type="module">
+    // Import e esponi tutti i servizi necessari
+    import { supabase } from '/core/services/supabase-client.js';
+    import userSettingsService from '/core/services/user-settings-service.js';
+    import organizationApiKeysService from '/core/services/organization-api-keys-service.js';
+    import trackingService from '/core/services/tracking-service.js';
+
+    // Esponi globalmente per debug
+    window.supabase = supabase;
+    window.userSettingsService = userSettingsService;
+    window.organizationApiKeysService = organizationApiKeysService;
+    window.trackingService = trackingService;
+
+    console.log('✅ All services exposed globally for debugging');
+
+    // Helper function per test rapido
+    window.quickTest = async () => {
+        console.log('🚀 QUICK TEST - Cross-Browser Sync');
+        
+        try {
+            // 1. Check auth
+            const { data: { user } } = await window.supabase.auth.getUser();
+            console.log('1. Auth:', user ? `✅ ${user.email}` : '❌ Not authenticated');
+            
+            if (!user) {
+                console.log('⚠️ Not authenticated. Please login first.');
+                return;
+            }
+            
+            // 2. Check API keys in cloud
+            const keys = await window.userSettingsService.getAllApiKeys();
+            console.log('2. Personal API Keys:', keys);
+            
+            // 3. Check organization keys
+            const orgKeys = await window.organizationApiKeysService.getOrganizationApiKeys();
+            console.log('3. Organization API Keys:', orgKeys);
+            
+            // 4. Check tracking service
+            const stats = window.trackingService.getStats();
+            console.log('4. Tracking Service:', {
+                initialized: stats.initialized,
+                mockMode: stats.mockMode,
+                hasKeys: window.trackingService.hasApiKeys()
+            });
+            
+            // 5. Force sync
+            console.log('5. Forcing sync...');
+            const synced = await window.trackingService.syncWithCloud();
+            console.log('   Sync result:', synced ? '✅ Success' : '❌ Failed');
+            
+            // 6. Re-check after sync
+            const newStats = window.trackingService.getStats();
+            console.log('6. After sync:', {
+                mockMode: newStats.mockMode,
+                hasKeys: window.trackingService.hasApiKeys()
+            });
+            
+            // 7. Summary
+            console.log('\n📊 SUMMARY:');
+            console.log('- User:', user.email);
+            console.log('- Has Personal Keys:', Object.keys(keys).length > 0);
+            console.log('- Has Org Keys:', orgKeys.length > 0);
+            console.log('- Mock Mode:', newStats.mockMode);
+            console.log('- Ready for real tracking:', !newStats.mockMode && window.trackingService.hasApiKeys());
+            
+        } catch (error) {
+            console.error('❌ Test error:', error);
+        }
+    };
+
+    // Auto-sync on page load
+    document.addEventListener('DOMContentLoaded', async () => {
+        // Wait for services to be ready
+        let attempts = 0;
+        const waitForServices = setInterval(async () => {
+            attempts++;
+            
+            if (window.trackingService && window.supabase && window.userSettingsService) {
+                clearInterval(waitForServices);
+                
+                console.log('[Auto-Sync] Services ready, checking auth...');
+                
+                // Check if user is authenticated
+                const { data: { user } } = await window.supabase.auth.getUser();
+                
+                if (user) {
+                    console.log('[Auto-Sync] User authenticated:', user.email);
+                    
+                    // Wait for tracking service initialization
+                    if (!window.trackingService.initialized) {
+                        console.log('[Auto-Sync] Waiting for tracking service init...');
+                        await window.trackingService.initialize();
+                    }
+                    
+                    // Force sync if in mock mode but has Supabase
+                    if (window.trackingService.mockMode && window.trackingService.useSupabase) {
+                        console.log('[Auto-Sync] 🔄 Mock mode detected, forcing cloud sync...');
+                        const synced = await window.trackingService.syncWithCloud();
+                        
+                        if (synced) {
+                            console.log('[Auto-Sync] ✅ Synced successfully!');
+                            
+                            // Reload trackings
+                            if (window.loadTrackings) {
+                                setTimeout(() => {
+                                    window.loadTrackings();
+                                    console.log('[Auto-Sync] ✅ Trackings reloaded');
+                                }, 500);
+                            }
+                        }
+                    }
+                }
+            } else if (attempts > 20) {
+                clearInterval(waitForServices);
+                console.log('[Auto-Sync] Timeout waiting for services');
+            }
+        }, 250);
+    });
+
+    // Comandi utili
+    console.log('🛠️ Debug Commands:');
+    console.log('- window.quickTest() - Run complete sync test');
+    console.log('- window.debugCrossBrowserSync() - Detailed debug info');
+    console.log('- await window.trackingService.syncWithCloud() - Force sync');
+    console.log('- await window.trackingService.reinitialize() - Full reset');
+    </script>
+    
     <!-- NUOVO: Cross-browser sync support -->
     <script type="module">
     // Import tracking service con sync fix
@@ -467,41 +610,102 @@
         }
     });
 
-    // Debug helper per test cross-browser
+    // Debug helper per test cross-browser - VERSIONE AGGIORNATA
     window.debugCrossBrowserSync = async () => {
         console.log('🔍 DEBUG CROSS-BROWSER SYNC');
         console.log('========================');
         
-        // Check Supabase auth
-        if (window.supabase) {
-            const { data: { user } } = await window.supabase.auth.getUser();
-            console.log('Supabase User:', user?.email || 'Not authenticated');
+        try {
+            // Check Supabase auth
+            if (window.supabase && window.supabase.auth) {
+                const { data: { user } } = await window.supabase.auth.getUser();
+                console.log('Supabase User:', user?.email || 'Not authenticated');
+            } else {
+                console.log('Supabase: Not available (window.supabase is', typeof window.supabase, ')');
+            }
+            
+            // Check API keys in cloud
+            if (window.userSettingsService) {
+                try {
+                    const keys = await window.userSettingsService.getAllApiKeys();
+                    console.log('Cloud API Keys:', keys);
+                } catch (e) {
+                    console.log('Cloud API Keys: Error -', e.message);
+                }
+            } else {
+                console.log('UserSettingsService: Not available');
+            }
+            
+            // Check tracking service state
+            if (window.trackingService) {
+                console.log('Tracking Service Stats:', window.trackingService.getStats());
+                console.log('Has API Keys:', window.trackingService.hasApiKeys());
+                console.log('Mock Mode:', window.trackingService.mockMode);
+                console.log('Use Supabase:', window.trackingService.useSupabase);
+                
+                // Check API config
+                const hasV1 = !!(window.trackingService.apiConfig?.v1?.authCode);
+                const hasV2 = !!(window.trackingService.apiConfig?.v2?.userToken);
+                console.log('API Config:', { hasV1, hasV2 });
+            } else {
+                console.log('TrackingService: Not available');
+            }
+            
+            // Check localStorage
+            console.log('LocalStorage v1:', localStorage.getItem('shipsgo_v1_api_key') || 'null');
+            console.log('LocalStorage config:', localStorage.getItem('trackingServiceConfig') || 'null');
+            console.log('LocalStorage trackings:', localStorage.getItem('trackings') ? 'Present' : 'null');
+            
+        } catch (error) {
+            console.error('Debug error:', error);
         }
-        
-        // Check API keys in cloud
-        if (window.userSettingsService) {
-            const keys = await window.userSettingsService.getAllApiKeys();
-            console.log('Cloud API Keys:', keys);
-        }
-        
-        // Check tracking service state
-        if (window.trackingService) {
-            console.log('Tracking Service Stats:', window.trackingService.getStats());
-            console.log('Has API Keys:', window.trackingService.hasApiKeys());
-            console.log('Mock Mode:', window.trackingService.mockMode);
-        }
-        
-        // Check localStorage
-        console.log('LocalStorage v1:', localStorage.getItem('shipsgo_v1_api_key'));
-        console.log('LocalStorage config:', localStorage.getItem('trackingServiceConfig'));
         
         console.log('========================');
-        console.log('To force sync: await window.trackingService.syncWithCloud()');
-        console.log('To reinitialize: await window.trackingService.reinitialize()');
+        console.log('Commands:');
+        console.log('- Force sync: await window.trackingService.syncWithCloud()');
+        console.log('- Reinitialize: await window.trackingService.reinitialize()');
+        console.log('- Check auth: await window.supabase.auth.getUser()');
+        console.log('- Get API keys: await window.userSettingsService.getAllApiKeys()');
     };
 
     console.log('✅ Cross-browser sync support added');
     console.log('📋 Debug with: window.debugCrossBrowserSync()');
+    </script>
+    
+    <!-- Attendi che tutti i moduli siano caricati e cerca supabase -->
+    <script type="module">
+    // Attendi che tutti i moduli siano caricati
+    document.addEventListener('DOMContentLoaded', async () => {
+        // Cerca supabase in vari posti possibili
+        const checkSupabase = setInterval(() => {
+            // Prova dal modulo supabase-client
+            if (!window.supabase && window.supabaseClient) {
+                window.supabase = window.supabaseClient;
+                console.log('✅ Supabase found as supabaseClient');
+                clearInterval(checkSupabase);
+            }
+            
+            // Prova da auth module
+            if (!window.supabase && window.auth && window.auth.supabase) {
+                window.supabase = window.auth.supabase;
+                console.log('✅ Supabase found in auth module');
+                clearInterval(checkSupabase);
+            }
+            
+            // Se già presente, stop
+            if (window.supabase) {
+                clearInterval(checkSupabase);
+            }
+        }, 100);
+        
+        // Timeout dopo 5 secondi
+        setTimeout(() => {
+            clearInterval(checkSupabase);
+            if (!window.supabase) {
+                console.warn('⚠️ Supabase client not found after 5 seconds');
+            }
+        }, 5000);
+    });
     </script>
     
     <script src="/core/mock-data.js"></script>
@@ -1314,31 +1518,30 @@
         
         if (window.ModalSystem) {
             if (typeof window.ModalSystem.debugInfo === 'function') {
-                console.log('- Modal System Debug:', window.ModalSystem.debugInfo());
-            } else {
-                console.log('- Active Modals:', document.querySelectorAll('.sol-modal-overlay').length);
-            }
-        }
-        
-        if (window.NotificationSystem) {
-            if (typeof window.NotificationSystem.getActiveNotifications === 'function') {
-                console.log('- Active Notifications:', window.NotificationSystem.getActiveNotifications());
-            } else {
-                console.log('- Notification Container:', !!document.getElementById('notification-container'));
-            }
-        }
-        
-        console.log('- Import Manager:', !!window.ImportManager);
-        console.log('- Tracking Service:', !!window.trackingService);
-    };
-    
-    // Auto-run diagnostics in dev mode
-    if (window.location.hostname === 'localhost' || window.location.search.includes('debug=true')) {
-        setTimeout(() => {
-            window.debugModalSystem();
-        }, 3000);
-    }
-    </script>
+                console.log('- Modal System Debug:', window.ModalSystem.debugInfo());} else {
+               console.log('- Active Modals:', document.querySelectorAll('.sol-modal-overlay').length);
+           }
+       }
+       
+       if (window.NotificationSystem) {
+           if (typeof window.NotificationSystem.getActiveNotifications === 'function') {
+               console.log('- Active Notifications:', window.NotificationSystem.getActiveNotifications());
+           } else {
+               console.log('- Notification Container:', !!document.getElementById('notification-container'));
+           }
+       }
+       
+       console.log('- Import Manager:', !!window.ImportManager);
+       console.log('- Tracking Service:', !!window.trackingService);
+   };
+   
+   // Auto-run diagnostics in dev mode
+   if (window.location.hostname === 'localhost' || window.location.search.includes('debug=true')) {
+       setTimeout(() => {
+           window.debugModalSystem();
+       }, 3000);
+   }
+   </script>
 
 </body>
 </html>
