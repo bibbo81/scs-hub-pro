@@ -1,12 +1,13 @@
 // core/services/supabase-client.js
 
 // Verifica che Supabase sia disponibile
-if (!window.supabaseCreateClient) {
-    console.error('❌ Supabase non caricato! Assicurati che il CDN sia incluso in tracking.html');
+if (!window.supabase || !window.supabase.createClient) {
+    console.error('❌ Supabase non caricato! Assicurati che il CDN sia incluso nella pagina HTML');
     throw new Error('Supabase not loaded');
 }
 
-const createClient = window.supabaseCreateClient;
+// Usa createClient dalla libreria Supabase globale
+const createClient = window.supabase.createClient;
 
 // Configurazione Supabase
 const SUPABASE_URL = 'https://gnlrmnsdmpjzitsysowq.supabase.co';
@@ -151,7 +152,7 @@ window.supabaseRequireAuth = requireAuth;
 window.supabaseGetCurrentOrg = getCurrentOrg;
 window.supabaseAuth = auth;
 
-console.log('✅ Supabase client inizializzato con autenticazione');
+console.log('✅ Supabase client inizializzato correttamente');
 
 // Auto-inizializza auth anonima se non c'è utente
 (async () => {
