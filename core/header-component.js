@@ -31,6 +31,11 @@ export class HeaderComponent {
         this.userInfoCache = null;
         this.userInfoCacheTime = 0;
         
+        // FIX: Aggiungi flag per tracciare lo stato e prevenire notifiche ripetute
+        this.lastAuthState = null;
+        this.notificationShownAt = 0;
+        this.MIN_NOTIFICATION_INTERVAL = 60000; // 1 minuto tra notifiche
+        
         // Set singleton instance
         headerInstance = this;
     }
@@ -127,6 +132,37 @@ export class HeaderComponent {
     }
     
     async render() {
+        // Inietta CSS anti-flash una sola volta
+        if (!document.getElementById('anti-flash-styles')) {
+            const style = document.createElement('style');
+            style.id = 'anti-flash-styles';
+            style.textContent = `
+                /* Previeni flash durante cambio tab */
+                .sol-notification {
+                    will-change: transform, opacity;
+                }
+                /* Smooth transitions per header updates */
+                .user-avatar, #userName, #userInitial {
+                    transition: opacity 0.2s ease;
+                }
+                /* Previeni layout shift */
+                .api-status-container {
+                    min-width: 150px;
+                }
+                
+                /* Previeni flash del dropdown durante aggiornamenti */
+                .sol-dropdown {
+                    transition: opacity 0.2s ease;
+                }
+                
+                /* Stabilizza header durante caricamento */
+                .sol-header {
+                    min-height: 64px;
+                }
+            `;
+            document.head.appendChild(style);
+        }
+        
         return `
             ${await this.renderHeader()}
             ${await this.renderDropdowns()}
@@ -491,13 +527,34 @@ export class HeaderComponent {
             });
         }
         
-        // Listen for auth state changes
+        // FIX: Listen for auth state changes con gestione notifiche migliorata
         if (supabase) {
             supabase.auth.onAuthStateChange((event, session) => {
                 console.log('[HeaderComponent] Auth state changed:', event);
+                
+                // Previeni notifiche ripetute
+                const now = Date.now();
+                const shouldShowNotification = (
+                    event === 'SIGNED_IN' && 
+                    this.lastAuthState !== 'SIGNED_IN' &&
+                    (now - this.notificationShownAt) > this.MIN_NOTIFICATION_INTERVAL
+                );
+                
+                this.lastAuthState = event;
                 this.invalidateUserCache();
                 
-                // Update user info in header after auth change
+                if (shouldShowNotification) {
+                    this.notificationShownAt = now;
+                    
+                    // Mostra notifica solo se è un vero login, non un refresh
+                    if (window.NotificationSystem && !document.hidden) {
+                        window.NotificationSystem.success('Accesso effettuato con successo!', {
+                            duration: 3000
+                        });
+                    }
+                }
+                
+                // Update user info
                 if (event === 'SIGNED_IN') {
                     setTimeout(async () => {
                         const userInfo = await this.getUserInfo();

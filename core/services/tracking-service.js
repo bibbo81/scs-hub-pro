@@ -167,43 +167,43 @@ class TrackingService {
     }
 
     async loadApiConfiguration() {
-    try {
-        // NUOVO: Cerca le API keys con i nomi CORRETTI in localStorage
-        const v1Key = localStorage.getItem('shipsgo_v1_api_key') || 
-                      localStorage.getItem('shipsgo_api_key');
-        const v2Key = localStorage.getItem('shipsgo_v2_api_key') || 
-                      localStorage.getItem('shipsgo_v2_token');
-        
-        if (v1Key) {
-            this.apiConfig.v1 = {
-                baseUrl: 'https://shipsgo.com/api/v1.2',
-                authCode: v1Key,
-                enabled: true
-            };
-            console.log('[TrackingService] ShipsGo v1.2 configured from localStorage');
+        try {
+            // NUOVO: Cerca le API keys con i nomi CORRETTI in localStorage
+            const v1Key = localStorage.getItem('shipsgo_v1_api_key') || 
+                          localStorage.getItem('shipsgo_api_key');
+            const v2Key = localStorage.getItem('shipsgo_v2_api_key') || 
+                          localStorage.getItem('shipsgo_v2_token');
+            
+            if (v1Key) {
+                this.apiConfig.v1 = {
+                    baseUrl: 'https://shipsgo.com/api/v1.2',
+                    authCode: v1Key,
+                    enabled: true
+                };
+                console.log('[TrackingService] ShipsGo v1.2 configured from localStorage');
+            }
+            
+            if (v2Key) {
+                this.apiConfig.v2 = {
+                    baseUrl: 'https://api.shipsgo.com/api/v2',
+                    userToken: v2Key,
+                    enabled: true
+                };
+                console.log('[TrackingService] ShipsGo v2.0 configured from localStorage');
+            }
+            
+            // Modalità mock se nessuna API configurata
+            this.mockMode = !this.hasApiKeys();
+            
+            if (!this.mockMode) {
+                console.log('[TrackingService] API keys found in localStorage, mock mode disabled');
+            }
+            
+        } catch (error) {
+            console.error('[TrackingService] Error loading API config:', error);
+            this.mockMode = true;
         }
-        
-        if (v2Key) {
-            this.apiConfig.v2 = {
-                baseUrl: 'https://api.shipsgo.com/api/v2',
-                userToken: v2Key,
-                enabled: true
-            };
-            console.log('[TrackingService] ShipsGo v2.0 configured from localStorage');
-        }
-        
-        // Modalità mock se nessuna API configurata
-        this.mockMode = !this.hasApiKeys();
-        
-        if (!this.mockMode) {
-            console.log('[TrackingService] API keys found in localStorage, mock mode disabled');
-        }
-        
-    } catch (error) {
-        console.error('[TrackingService] Error loading API config:', error);
-        this.mockMode = true;
     }
-}
 
     async callShipsGoAPI(version, endpoint, method, params, data, contentType) {
         if (this.useSupabase) {
@@ -737,7 +737,6 @@ class TrackingService {
             }
         };
     }
-
     // ========================================
     // API TO COLUMN MAPPING
     // ========================================
@@ -1578,52 +1577,59 @@ class TrackingService {
             v2: null,
             overall: false
         };
-
-        if (this.apiConfig.v1?.enabled) {
+        
+        if (this.apiConfig.v1?.enabled && this.apiConfig.v1?.authCode) {
             try {
+                // Test con un endpoint che richiede solo auth, non dati specifici
                 const response = await this.callShipsGoAPI(
                     'v1.2',
-                    '/ContainerService/GetShippingLineList',
-                    'GET'
+                    '/ContainerService/GetContainerInfo',
+                    'GET',
+                    {
+                        requestId: 'TEST123', // Un ID di test
+                        mappoint: 'false'
+                    }
                 );
                 
+                // Anche un errore 404 significa che l'API è raggiungibile
                 results.v1 = {
-                    success: response.success,
+                    success: response.success || response.status === 404,
                     status: response.status,
-                    message: response.success ? 'Connected successfully' : 'Connection failed'
+                    message: response.success ? 'Connesso' : 'API raggiungibile'
                 };
             } catch (error) {
                 results.v1 = {
                     success: false,
-                    message: error.message
+                    message: error.message || 'Errore di connessione'
                 };
             }
         }
-
-        if (this.apiConfig.v2?.enabled) {
+        
+        if (this.apiConfig.v2?.enabled && this.apiConfig.v2?.userToken) {
             try {
+                // Per v2, usa l'endpoint della lista che non richiede parametri specifici
                 const response = await this.callShipsGoAPI(
                     'v2',
-                    '/air/airlines',
+                    '/air/shipments',
                     'GET'
                 );
                 
                 results.v2 = {
                     success: response.success,
                     status: response.status,
-                    message: response.success ? 'Connected successfully' : 'Connection failed'
+                    message: response.success ? 'Connesso' : 'Errore API'
                 };
             } catch (error) {
                 results.v2 = {
                     success: false,
-                    message: error.message
+                    message: error.message || 'Errore di connessione'
                 };
             }
         }
-
+        
         results.overall = (results.v1?.success || results.v2?.success) || false;
         
-        console.log('[TrackingService] 🔗 Connection test results:', results);
+        console.log('[TrackingService] 🔗 Test connessione:', results);
         return results;
     }
 

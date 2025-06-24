@@ -13,6 +13,10 @@ const createClient = window.supabase.createClient;
 const SUPABASE_URL = 'https://gnlrmnsdmpjzitsysowq.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdubHJtbnNkbXBqeml0c3lzb3dxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk0NjMxMzQsImV4cCI6MjA2NTAzOTEzNH0.UoJJoDUoDXGbiWnKNN48qb9PVQWOW_X_MXqAfzTHSaA';
 
+// Flag per tracciare lo stato dell'inizializzazione
+let isInitializing = false;
+let initializationComplete = false;
+
 // Crea client Supabase (una sola volta)
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     auth: {
@@ -151,18 +155,52 @@ window.supabaseDebug = debug;
 window.supabaseRequireAuth = requireAuth;
 window.supabaseGetCurrentOrg = getCurrentOrg;
 window.supabaseAuth = auth;
+window.supabaseInstance = supabase; // Aggiungi riferimento per initializeSupabase
 
 console.log('✅ Supabase client inizializzato correttamente');
 
-// Auto-inizializza auth anonima se non c'è utente
-(async () => {
+// Funzione di inizializzazione con protezione contro multiple chiamate
+async function initializeSupabase() {
+    // Previeni inizializzazioni multiple
+    if (isInitializing || initializationComplete) {
+        console.log('[Supabase] Already initialized or initializing');
+        return window.supabaseInstance;
+    }
+    
+    isInitializing = true;
+    
     try {
+        // Controlla se c'è già un utente
         const user = await auth.getUser();
         if (!user) {
             console.log('🔐 Nessun utente trovato, inizializzazione auth anonima...');
             await requireAuth();
         }
+        
+        initializationComplete = true;
+        
+        // Notifica solo per veri eventi di login, non per token refresh
+        supabase.auth.onAuthStateChange((event, session) => {
+            console.log('[Supabase] Auth event:', event);
+            
+            // Solo log, niente notifiche qui - lascia che sia header-component a gestirle
+            if (event === 'TOKEN_REFRESHED') {
+                console.log('[Supabase] Token refreshed silently');
+            }
+        });
+        
+        console.log('[Supabase] Initialization complete');
+        return window.supabaseInstance;
+        
     } catch (error) {
-        console.log('⚠️ Auto-init auth skipped:', error.message);
+        console.error('[Supabase] Initialization error:', error);
+        throw error;
+    } finally {
+        isInitializing = false;
     }
-})();
+}
+
+// Auto-inizializza usando la nuova funzione protetta
+initializeSupabase().catch(error => {
+    console.log('⚠️ Auto-init auth skipped:', error.message);
+});

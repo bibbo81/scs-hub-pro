@@ -30,10 +30,31 @@ export class NotificationSystem {
         }
     }
     
+    isDuplicate(message, type) {
+        // Controlla se esiste già una notifica simile attiva
+        const activeNotifications = this.container.querySelectorAll('.sol-notification');
+        
+        for (const notification of activeNotifications) {
+            const msgElement = notification.querySelector('[style*="font-weight: 600"]');
+            if (msgElement && msgElement.textContent === message) {
+                // Notifica duplicata trovata
+                console.log('[NotificationSystem] Prevented duplicate notification:', message);
+                return true;
+            }
+        }
+        
+        return false;
+    }
+    
     show(message, type = 'info', duration = 3000, options = {}) {
         // Validazione input
         if (!message || typeof message !== 'string') {
             console.warn('[NotificationSystem] Invalid message:', message);
+            return null;
+        }
+        
+        // Previeni duplicati (tranne per loading e progress)
+        if (type !== 'loading' && !options.allowDuplicate && this.isDuplicate(message, type)) {
             return null;
         }
         
