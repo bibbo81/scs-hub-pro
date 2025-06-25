@@ -317,6 +317,13 @@ window.trackingInit = async function() {
         setupCheckboxListeners();  // Setup listeners
         setupEventListeners();
         
+        setTimeout(() => {
+            if (!document.getElementById('bulkActionsContainer')) {
+                console.warn('⚠️ Bulk actions not created, retrying...');
+                setupBulkActions();
+            }
+        }, 500);
+
         // Load initial data
         await loadTrackings();
         console.log('✅ [Tracking] Initial data loaded');
