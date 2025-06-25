@@ -80,7 +80,7 @@ window.headerInitLock = false;
     const V = window.APP_VERSION;
     
     import(`/core/api-client.js?v=${V}`).then(m => window.api = m.default);
-    import(`/core/header-component.js?v=${V}`).then(m => window.headerComponent = m.default);
+    // import(`/core/header-component.js?v=${V}`).then(m => window.headerComponent = m.default);
     import(`/core/notification-system.js?v=${V}`).then(m => window.NotificationSystem = m.default);
     import(`/core/table-manager.js?v=${V}`).then(m => window.TableManager = m.default);
     import(`/assets/js/app.js?v=${V}`).then(m => window.App = m.default);

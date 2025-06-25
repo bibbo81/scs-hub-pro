@@ -1,8 +1,17 @@
 // app.js - Global application entry point ES6 - FIXED
 import api from '/core/api-client.js';
-import headerComponent from '/core/header-component.js';
 import notificationSystem from '/core/notification-system.js';
 import modalSystem from '/core/modal-system.js';
+
+// Import dinamico per headerComponent con versioning
+const V = window.APP_VERSION || 'v47.1';
+let headerComponent;
+
+(async () => {
+    const module = await import(`/core/header-component.js?v=${V}`);
+    headerComponent = module.default;
+    window.headerComponent = headerComponent; // Esponi globalmente
+})();
 
 class Application {
     constructor() {
@@ -126,8 +135,21 @@ class Application {
         this.modules.api = api;
     }
     
-    // Initialize UI components - FIX: NON RE-INIT HEADER
+    // Initialize UI components - MODIFICATO per attendere headerComponent
     async initUI() {
+        // Attendi che headerComponent sia disponibile
+        let attempts = 0;
+        while (!headerComponent && attempts < 20) {
+            await new Promise(resolve => setTimeout(resolve, 100));
+            attempts++;
+        }
+        
+        if (!headerComponent) {
+            console.error('[App] headerComponent not loaded after 2 seconds');
+            // Prova a usare window.headerComponent se disponibile
+            headerComponent = window.headerComponent;
+        }
+        
         // Store references to UI modules
         this.modules.header = headerComponent;
         this.modules.notifications = notificationSystem;
