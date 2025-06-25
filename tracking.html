@@ -41,6 +41,11 @@
     </script>
     
     <script>
+// Previeni inizializzazioni multiple dell'header durante auth
+window.headerInitLock = false;
+</script>
+    
+    <script>
         (function() {
             console.log('🧹 [PreInit] Cleaning up existing modal systems...');
             
