@@ -1,62 +1,66 @@
 // table-manager.js - Gestione tabelle dinamiche con sorting, filtering, pagination
 
 export class TableManager {
-    constructor(containerId, options = {}) {
-        this.container = document.getElementById(containerId);
-        if (!this.container) {
-            throw new Error(`Container ${containerId} not found`);
-        }
-        
-        // Default options
-        this.options = {
-            sortable: true,
-            filterable: true,
-            searchable: true,
-            paginate: true,
-            pageSize: 20,
-            pageSizes: [10, 20, 50, 100],
-            responsive: true,
-            hoverable: true,
-            selectable: false,
-            loading: false,
-            emptyMessage: 'Nessun dato disponibile',
-            ...options
-        };
-        
-        // State
-        this.data = [];
-        this.filteredData = [];
-        this.displayData = [];
-        this.currentPage = 1;
-        this.sortColumn = null;
-        this.sortDirection = 'asc';
-        this.searchTerm = '';
-        this.filters = {};
-        this.selectedRows = new Set();
-        
-        // Inizializzazione AdvancedSearch sicura
-        this.advancedSearch = null;
-        this.searchDebounceTimer = null;
-
-        // Inizializza AdvancedSearch dopo il caricamento
-        setTimeout(() => {
-            if (window.AdvancedSearch) {
-                this.advancedSearch = new window.AdvancedSearch({
-                    searchInMetadata: true,
-                    debounceMs: 300,
-                    maxSuggestions: 5,
-                    fuzzyThreshold: 0.6
-                });
-                console.log('✅ AdvancedSearch inizializzato in TableManager');
-            } else {
-                console.warn('⚠️ AdvancedSearch non disponibile, creazione inline...');
-                // Crea AdvancedSearch inline se non disponibile
-                this.createInlineAdvancedSearch();
-            }
-        }, 100);
-        
-        this.init();
+   constructor(containerId, options = {}) {
+    this.container = document.getElementById(containerId);
+    if (!this.container) {
+        throw new Error(`Container ${containerId} not found`);
     }
+    
+    // Default options
+    this.options = {
+        sortable: true,
+        filterable: true,
+        searchable: true,
+        paginate: true,
+        pageSize: 20,
+        pageSizes: [10, 20, 50, 100],
+        responsive: true,
+        hoverable: true,
+        selectable: false,
+        loading: false,
+        emptyMessage: 'Nessun dato disponibile',
+        enableColumnDrag: false,  // AGGIUNGI QUESTO DEFAULT
+        ...options
+    };
+    
+    // FIX: Aggiungi alias per retrocompatibilità
+    this.config = this.options;
+    
+    // State
+    this.data = [];
+    this.filteredData = [];
+    this.displayData = [];
+    this.currentPage = 1;
+    this.sortColumn = null;
+    this.sortDirection = 'asc';
+    this.searchTerm = '';
+    this.filters = {};
+    this.selectedRows = new Set();
+    
+    // Inizializzazione AdvancedSearch sicura
+    this.advancedSearch = null;
+    this.searchDebounceTimer = null;
+
+    // Inizializza AdvancedSearch dopo il caricamento
+    setTimeout(() => {
+        if (window.AdvancedSearch) {
+            this.advancedSearch = new window.AdvancedSearch({
+                searchInMetadata: true,
+                debounceMs: 300,
+                maxSuggestions: 5,
+                fuzzyThreshold: 0.6
+            });
+            console.log('✅ AdvancedSearch inizializzato in TableManager');
+        } else {
+            console.warn('⚠️ AdvancedSearch non disponibile, creazione inline...');
+            // Crea AdvancedSearch inline se non disponibile
+            this.createInlineAdvancedSearch();
+        }
+    }, 100);
+    
+    this.init();
+}
 
     // Crea AdvancedSearch inline se il modulo non è disponibile
     createInlineAdvancedSearch() {
@@ -914,8 +918,9 @@ export class TableManager {
     }
 
     // Abilita drag & drop delle colonne
-    enableColumnDrag() {
-    if (!this.config.enableColumnDrag) return;
+  enableColumnDrag() {
+    // FIX: Controlla che config esista e che enableColumnDrag sia true
+    if (!this.config || !this.config.enableColumnDrag) return;
     
     // Aspetta che il DOM sia pronto
     setTimeout(() => {

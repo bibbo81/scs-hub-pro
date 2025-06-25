@@ -180,7 +180,7 @@ window.headerInitLock = false;
     console.log('✅ [ES6] Core modules loading with version:', V);
 
         // Make modules available globally for backward compatibility
-        window.api = api;
+        // window.api = api;
         window.headerComponent = headerComponent;
         window.NotificationSystem = notificationSystem;
         window.TableManager = TableManager;
@@ -398,9 +398,9 @@ window.headerInitLock = false;
         }
         
         // Aggiorna API status indicator
-        if (window.ApiStatusIndicator) {
-            window.ApiStatusIndicator.checkApiStatus();
-        }
+        if (window.ApiStatusIndicator && typeof window.ApiStatusIndicator.checkApiStatus === 'function') {
+    window.ApiStatusIndicator.checkApiStatus();
+}
     });
 
     </script>
