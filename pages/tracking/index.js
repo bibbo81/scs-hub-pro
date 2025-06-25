@@ -2306,7 +2306,8 @@ window.loadTrackings = loadTrackings;
 window.refreshTrackingList = loadTrackings; // Alias per compatibilità
 window.trackings = trackings; // Make trackings array available for debugging
 // Esponi anche la funzione per i filtri
-window.exportFilteredTrackings = exportFilteredTrackings; handleRefreshTracking(id) {
+window.exportFilteredTrackings = exportFilteredTrackings;
+async function handleRefreshTracking(id) {
     const tracking = trackings.find(t => t.id == id);
     if (!tracking) return;
     
@@ -2959,10 +2960,94 @@ function formatDate(date) {
 }
 
 // Stats order management
+// Stats order management
 function saveStatsOrder() {
     const cards = document.querySelectorAll('.sol-stat-card');
     const order = Array.from(cards).map(card => card.dataset.id);
     localStorage.setItem('trackingStatsOrder', JSON.stringify(order));
 }
 
-function
+function restoreStatsOrder() {
+    const savedOrder = localStorage.getItem('trackingStatsOrder');
+    if (!savedOrder) return;
+    
+    try {
+        const order = JSON.parse(savedOrder);
+        const statsGrid = document.getElementById('statsGrid');
+        const cards = Array.from(statsGrid.querySelectorAll('.sol-stat-card'));
+        
+        cards.sort((a, b) => {
+            const aIndex = order.indexOf(a.dataset.id);
+            const bIndex = order.indexOf(b.dataset.id);
+            return aIndex - bIndex;
+        });
+        
+        cards.forEach(card => statsGrid.appendChild(card));
+    } catch (e) {
+        console.error('Error restoring stats order:', e);
+    }
+}
+
+// Auto refresh - FUNZIONE MODIFICATA
+function startAutoRefresh() {
+    // MODIFICATO: Refresh ogni 10 minuti invece di 5
+    // e solo se ci sono tracking attivi (non delivered/exception)
+    setInterval(() => {
+        // Controlla se ci sono tracking attivi da aggiornare
+        const activeTrackings = trackings.filter(t => 
+            !['delivered', 'exception'].includes(t.status)
+        );
+        
+        // Se ci sono tracking attivi, ricarica
+        if (activeTrackings.length > 0) {
+            console.log('🔄 Auto-refresh: updating active trackings...');
+            loadTrackings();
+        }
+    }, 10 * 60 * 1000); // 10 minuti invece di 5
+}
+
+// ====================
+// HELPER FUNCTIONS MANCANTI
+// ====================
+
+// Create progress modal helper
+function createProgressModal() {
+    const modal = document.createElement('div');
+    modal.id = 'progressModal';
+    modal.innerHTML = `
+        <div class="sol-modal-overlay">
+            <div class="sol-modal sol-modal-medium">
+                <div class="sol-modal-header">
+                    <h3 class="sol-modal-title">Aggiornamento Tracking</h3>
+                </div>
+                <div class="sol-modal-body">
+                    <div class="sol-progress">
+                        <div id="progressBar" class="sol-progress-bar" style="width: 0%"></div>
+                    </div>
+                    <p id="progressText" class="sol-progress-text">Inizializzazione...</p>
+                </div>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(modal);
+    return modal;
+}
+
+// Update progress modal helper
+function updateProgressModal(progress) {
+    const progressBar = document.getElementById('progressBar');
+    const progressText = document.getElementById('progressText');
+    
+    if (progressBar && progressText) {
+        const percentage = Math.round((progress.completed / progress.total) * 100);
+        progressBar.style.width = percentage + '%';
+        progressText.textContent = `Aggiornati ${progress.completed} di ${progress.total} tracking`;
+    }
+}
+
+// Make loadTrackings globally available for import
+window.loadTrackings = loadTrackings;
+window.refreshTrackingList = loadTrackings; // Alias per compatibilità
+window.trackings = trackings; // Make trackings array available for debugging
+// Esponi anche la funzione per i filtri
+window.exportFilteredTrackings = exportFilteredTrackings;
