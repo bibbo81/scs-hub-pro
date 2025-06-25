@@ -1427,6 +1427,53 @@ function generateDemoTimeline(tracking) {
        }
    })();
    </script>
+
+<script>
+window.setupBulkActions = function() {
+    console.log('🔧 [setupBulkActions] Creating bulk actions container...');
+    
+    if (document.getElementById('bulkActionsContainer')) {
+        console.log('✅ Container already exists');
+        return;
+    }
+    
+    const bulkActions = document.createElement('div');
+    bulkActions.id = 'bulkActionsContainer';
+    bulkActions.style.display = 'none';
+    bulkActions.className = 'bulk-actions-container';
+    bulkActions.innerHTML = `
+        <div class="bulk-actions-bar">
+            <span class="selected-count">
+                <i class="fas fa-check-square"></i>
+                <span id="selectedCount">0</span> selezionati
+            </span>
+            <div class="bulk-actions">
+                <button class="btn btn-sm btn-primary" onclick="bulkRefreshTrackings()">
+                    <i class="fas fa-sync-alt"></i> Aggiorna Selezionati
+                </button>
+                <button class="btn btn-sm btn-danger" onclick="bulkDeleteTrackings()">
+                    <i class="fas fa-trash"></i> Elimina Selezionati
+                </button>
+                <button class="btn btn-sm btn-secondary" onclick="exportSelectedTrackings()">
+                    <i class="fas fa-file-export"></i> Esporta Selezionati
+                </button>
+                <button class="btn btn-sm btn-outline" onclick="clearSelection()">
+                    <i class="fas fa-times"></i> Deseleziona
+                </button>
+            </div>
+        </div>
+    `;
+    
+    const targetContainer = document.querySelector('.sol-card-header');
+    if (targetContainer && targetContainer.parentNode) {
+        targetContainer.parentNode.insertBefore(bulkActions, targetContainer.nextSibling);
+        console.log('✅ Bulk actions container created!');
+    } else {
+        console.error('❌ Target container not found!');
+    }
+};
+</script>
+
 <script>
     // Fix per auto-inizializzare bulk actions
     window.addEventListener('load', function() {
