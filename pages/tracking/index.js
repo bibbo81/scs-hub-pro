@@ -90,8 +90,8 @@ const STATUS_MAPPING = {
 let trackingTable = null;
 let trackings = [];
 let statsCards = [];
+// ✅ PASSO 1: Rimuovi 'select' da currentColumns
 let currentColumns = [
-    'select',  // AGGIUNTO: checkbox come prima colonna
     'tracking_number',
     'tracking_type',
     'carrier_code',
@@ -103,79 +103,67 @@ let currentColumns = [
     'actions'
 ];
 
-// Column definitions - AGGIORNATE CON MAPPING CORRETTO
+// ✅ PASSO 2: Column definitions - RIMUOVI completamente la colonna select
 const availableColumns = [
-    // NUOVA COLONNA SELECT
-    { 
-        key: 'select', 
-        label: '', 
-        visible: true, 
-        order: 0, 
-        required: false, 
-        isCheckbox: true,
-        width: '40px'
-    },
-    
-    // Colonne Base
-    { key: 'tracking_number', label: 'Numero Tracking', visible: true, order: 1, required: true },
-    { key: 'tracking_type', label: 'Tipo', visible: true, order: 2 },
-    { key: 'carrier_code', label: 'Vettore', visible: true, order: 3 },
-    { key: 'status', label: 'Stato', visible: true, order: 4 },
-    { key: 'origin_port', label: 'Origine', visible: true, order: 5 },
-    { key: 'destination_port', label: 'Destinazione', visible: true, order: 6 },
-    { key: 'reference_number', label: 'Riferimento', visible: true, order: 7 },
+    // Colonne Base - order aggiornati (0,1,2... invece di 1,2,3...)
+    { key: 'tracking_number', label: 'Numero Tracking', visible: true, order: 0, required: true },
+    { key: 'tracking_type', label: 'Tipo', visible: true, order: 1 },
+    { key: 'carrier_code', label: 'Vettore', visible: true, order: 2 },
+    { key: 'status', label: 'Stato', visible: true, order: 3 },
+    { key: 'origin_port', label: 'Origine', visible: true, order: 4 },
+    { key: 'destination_port', label: 'Destinazione', visible: true, order: 5 },
+    { key: 'reference_number', label: 'Riferimento', visible: true, order: 6 },
 
     // Colonne ShipsGo Mare
-    { key: 'booking', label: 'Booking', visible: false, order: 8 },
-    { key: 'container_count', label: 'Container Count', visible: false, order: 9 },
-    { key: 'port_of_loading', label: 'Port Of Loading', visible: false, order: 10 },
-    { key: 'date_of_loading', label: 'Date Of Loading', visible: false, order: 11 },
-    { key: 'pol_country', label: 'POL Country', visible: false, order: 12 },  // ← NASCOSTA
-    { key: 'pol_country_code', label: 'POL Country Code', visible: false, order: 13 },  // ← NASCOSTA
-    { key: 'port_of_discharge', label: 'Port Of Discharge', visible: false, order: 14 },
-    { key: 'date_of_discharge', label: 'Date Of Discharge', visible: false, order: 15 },
-    { key: 'pod_country', label: 'POD Country', visible: false, order: 16 },  // ← NASCOSTA
-    { key: 'pod_country_code', label: 'POD Country Code', visible: false, order: 17 },  // ← NASCOSTA
-    { key: 'co2_emission', label: 'CO₂ Emission (Tons)', visible: false, order: 18 },
-    { key: 'tags', label: 'Tags', visible: false, order: 19 },
-    { key: 'created_at_shipsgo', label: 'Created At', visible: false, order: 20 },
+    { key: 'booking', label: 'Booking', visible: false, order: 7 },
+    { key: 'container_count', label: 'Container Count', visible: false, order: 8 },
+    { key: 'port_of_loading', label: 'Port Of Loading', visible: false, order: 9 },
+    { key: 'date_of_loading', label: 'Date Of Loading', visible: false, order: 10 },
+    { key: 'pol_country', label: 'POL Country', visible: false, order: 11 },
+    { key: 'pol_country_code', label: 'POL Country Code', visible: false, order: 12 },
+    { key: 'port_of_discharge', label: 'Port Of Discharge', visible: false, order: 13 },
+    { key: 'date_of_discharge', label: 'Date Of Discharge', visible: false, order: 14 },
+    { key: 'pod_country', label: 'POD Country', visible: false, order: 15 },
+    { key: 'pod_country_code', label: 'POD Country Code', visible: false, order: 16 },
+    { key: 'co2_emission', label: 'CO₂ Emission (Tons)', visible: false, order: 17 },
+    { key: 'tags', label: 'Tags', visible: false, order: 18 },
+    { key: 'created_at_shipsgo', label: 'Created At', visible: false, order: 19 },
 
     // Colonne ShipsGo Air  
-    { key: 'awb_number', label: 'AWB Number', visible: false, order: 21 },
-    { key: 'airline', label: 'Airline', visible: false, order: 22 },
-    { key: 'origin', label: 'Origin', visible: false, order: 23 },
-    { key: 'origin_name', label: 'Origin Name', visible: false, order: 24 },  // NASCOSTA
-    { key: 'date_of_departure', label: 'Date Of Departure', visible: true, order: 25 },
-    { key: 'origin_country', label: 'Origin Country', visible: true, order: 26 },  // ← CAMBIA IN TRUE
-    { key: 'origin_country_code', label: 'Origin Country Code', visible: true, order: 27 },  // ← CAMBIA IN TRUE
-    { key: 'destination', label: 'Destination', visible: false, order: 28 },  // NASCOSTA
-    { key: 'destination_name', label: 'Destination Name', visible: false, order: 29 },  // NASCOSTA
-    { key: 'date_of_arrival', label: 'Date Of Arrival', visible: true, order: 30 },
-    { key: 'destination_country', label: 'Destination Country', visible: true, order: 31 },  // ← CAMBIA IN TRUE
-    { key: 'destination_country_code', label: 'Destination Country Code', visible: true, order: 32 },  // ← CAMBIA IN TRUE
-    { key: 'transit_time', label: 'Transit Time', visible: false, order: 33 },
-    { key: 'ts_count', label: 'TS Count', visible: false, order: 34 },
+    { key: 'awb_number', label: 'AWB Number', visible: false, order: 20 },
+    { key: 'airline', label: 'Airline', visible: false, order: 21 },
+    { key: 'origin', label: 'Origin', visible: false, order: 22 },
+    { key: 'origin_name', label: 'Origin Name', visible: false, order: 23 },
+    { key: 'date_of_departure', label: 'Date Of Departure', visible: true, order: 24 },
+    { key: 'origin_country', label: 'Origin Country', visible: true, order: 25 },
+    { key: 'origin_country_code', label: 'Origin Country Code', visible: true, order: 26 },
+    { key: 'destination', label: 'Destination', visible: false, order: 27 },
+    { key: 'destination_name', label: 'Destination Name', visible: false, order: 28 },
+    { key: 'date_of_arrival', label: 'Date Of Arrival', visible: true, order: 29 },
+    { key: 'destination_country', label: 'Destination Country', visible: true, order: 30 },
+    { key: 'destination_country_code', label: 'Destination Country Code', visible: true, order: 31 },
+    { key: 'transit_time', label: 'Transit Time', visible: false, order: 32 },
+    { key: 'ts_count', label: 'TS Count', visible: false, order: 33 },
     
     // Colonne Sistema
-    { key: 'last_event_location', label: 'Ultima Posizione', visible: true, order: 35 },
-    { key: 'eta', label: 'ETA', visible: true, order: 36 },
-    { key: 'created_at', label: 'Data Inserimento', visible: false, order: 37 },
+    { key: 'last_event_location', label: 'Ultima Posizione', visible: true, order: 34 },
+    { key: 'eta', label: 'ETA', visible: true, order: 35 },
+    { key: 'created_at', label: 'Data Inserimento', visible: false, order: 36 },
     
     // Actions column
-    { key: 'actions', label: 'Azioni', visible: true, order: 38, required: true, isAction: true }
+    { key: 'actions', label: 'Azioni', visible: true, order: 37, required: true, isAction: true }
 ];
 
-// Default columns (saved in localStorage)
-const DEFAULT_COLUMNS = ['select', 
+// ✅ PASSO 3: Default columns (saved in localStorage) - RIMUOVI 'select'
+const DEFAULT_COLUMNS = [
     'tracking_number', 
     'tracking_type', 
     'carrier_code', 
     'status', 
     'origin_port', 
     'destination_port',
-    'date_of_departure',  // ← AGGIUNTO per vedere la data partenza
+    'date_of_departure',
     'eta', 
-    // 'created_at',        ← RIMOSSO
     'actions'
 ];
 
@@ -196,8 +184,6 @@ window.bulkDeleteTrackings = bulkDeleteTrackings;
 window.exportSelectedTrackings = exportSelectedTrackings;
 
 // Modifica la funzione trackingInit per includere l'inizializzazione dell'indicatore
-// Sostituisci la funzione window.trackingInit esistente con questa versione aggiornata:
-
 window.trackingInit = async function() {
     console.log('🚀 [Tracking] Initializing page...');
     
@@ -215,12 +201,13 @@ window.trackingInit = async function() {
                 console.log('🚧 [Tracking] Running in mock mode (no API keys)');
                 notificationSystem.warning('Sistema in modalità demo. Configura le API in Settings.', { duration: 5000 });
             }
+            
             // In trackingInit, aggiungi dopo le altre inizializzazioni:
-if (!window.supabaseTrackingService) {
-    const module = await import('/core/services/supabase-tracking-service.js');
-    window.supabaseTrackingService = module.default;
-    console.log('✅ Supabase tracking service loaded');
-}
+            if (!window.supabaseTrackingService) {
+                const module = await import('/core/services/supabase-tracking-service.js');
+                window.supabaseTrackingService = module.default;
+                console.log('✅ Supabase tracking service loaded');
+            }
         }
         
         // NUOVO: Inizializza indicatore API status
@@ -280,20 +267,16 @@ if (!window.supabaseTrackingService) {
             window.NotificationSystem.error('Errore inizializzazione pagina tracking');
         }
     }
-
-    
 };
 
-// Load saved column preferences
+// ✅ PASSO 6: Load saved column preferences - AGGIORNATA
 function loadSavedColumns() {
     const saved = localStorage.getItem('trackingColumns');
     if (saved) {
         try {
             currentColumns = JSON.parse(saved);
-            // Assicurati che 'select' sia sempre la prima colonna
-            if (!currentColumns.includes('select')) {
-                currentColumns.unshift('select');
-            }
+            // ✅ RIMUOVI select se presente
+            currentColumns = currentColumns.filter(col => col !== 'select');
             // AGGIUNGI: Rimuovi sempre created_at
             currentColumns = currentColumns.filter(col => col !== 'created_at');
         } catch (e) {
@@ -306,19 +289,19 @@ function loadSavedColumns() {
 
 // Show column manager modal
 function showColumnManager() {
-    // Filtra la colonna select dalla lista gestibile
-    const manageableColumns = availableColumns.filter(col => col.key !== 'select');
+    // Non serve più filtrare la colonna select perché non esiste più
+    const manageableColumns = availableColumns;
     
-    // AGGIUNGI QUESTO: Filtra anche le colonne POL/POD che abbiamo nascosto
-    const columnsToHide = ['pol_country', 'pol_country_code', 'pod_country', 'pod_country_code', 'port_of_loading', 'port_of_discharge', 'origin',              // Nascosto: usiamo origin_port unificato
-        'origin_name',         // Nascosto: usiamo origin_port unificato
-        'destination',         // Nascosto: usiamo destination_port unificato
-        'destination_name',
-        'date_of_discharge'     // Nascosto: usiamo destination_port unificato
+    // AGGIUNGI QUESTO: Filtra le colonne POL/POD che abbiamo nascosto
+    const columnsToHide = [
+        'pol_country', 'pol_country_code', 'pod_country', 'pod_country_code', 
+        'port_of_loading', 'port_of_discharge', 'origin', 'origin_name', 
+        'destination', 'destination_name', 'date_of_discharge'
     ];
-    console.log('Hiding columns:', columnsToHide); // <-- QUI
+    console.log('Hiding columns:', columnsToHide);
     const visibleColumns = manageableColumns.filter(col => !columnsToHide.includes(col.key));
-    console.log('Visible columns:', visibleColumns.map(c => c.key)); // <-- E QUI
+    console.log('Visible columns:', visibleColumns.map(c => c.key));
+    
     const content = `
         <div class="column-manager">
             <div class="column-manager-header">
@@ -328,7 +311,7 @@ function showColumnManager() {
                 </button>
             </div>
             <div class="column-list" id="columnList">
-                ${visibleColumns.map(col => {  // CAMBIA: usa visibleColumns invece di manageableColumns
+                ${visibleColumns.map(col => {
                     const isChecked = currentColumns.includes(col.key);
                     const isRequired = col.required;
                     return `
@@ -408,7 +391,7 @@ window.updateColumnSelection = function(checkbox) {
 // Update column order based on DOM
 function updateColumnOrder() {
     const items = document.querySelectorAll('.column-item');
-    const newOrder = ['select']; // Sempre prima
+    const newOrder = []; // ✅ Non più 'select' come primo elemento
     
     items.forEach(item => {
         const column = item.dataset.column;
@@ -509,32 +492,14 @@ function setupTrackingTable() {
         const colDef = availableColumns.find(c => c.key === colKey);
         if (!colDef) return null;
         
-        // AGGIUNGI QUESTA RIGA:
-        const noDragColumns = ['select', 'actions']; // Colonne non trascinabili
-        
-        // Gestione colonna checkbox
-        if (colDef.isCheckbox) {
-            return {
-                key: 'select',
-                label: `<input type="checkbox" class="select-all" onchange="toggleSelectAll(this)">`,
-                sortable: false,
-                className: 'no-drag', // ← AGGIUNGI QUESTA RIGA
-                width: colDef.width,
-                formatter: (value, row) => `
-                    <input type="checkbox" 
-                           class="row-select" 
-                           data-row-id="${row.id}"
-                           onchange="updateSelectedCount()">
-                `
-            };
-        }
+        const noDragColumns = ['actions']; // ✅ Rimuovi 'select' da qui
         
         if (colDef.isAction) {
             return {
                 key: 'actions',
                 label: 'Azioni',
                 sortable: false,
-                className: 'no-drag', // ← AGGIUNGI QUESTA RIGA
+                className: 'no-drag',
                 formatter: (value, row) => `
                     <div class="action-buttons">
                         <button class="btn-icon" onclick="refreshTracking('${row.id}')" title="Aggiorna">
@@ -555,21 +520,31 @@ function setupTrackingTable() {
         return {
             key: colKey,
             label: colDef.label,
-            sortable: !colDef.isAction && !colDef.isCheckbox,
-            className: noDragColumns.includes(colKey) ? 'no-drag' : '', // ← AGGIUNGI QUESTA RIGA
+            sortable: !colDef.isAction,
+            className: noDragColumns.includes(colKey) ? 'no-drag' : '',
             formatter: formatter
         };
     }).filter(Boolean);
     
-    // MODIFICA ANCHE LA CREAZIONE DEL TABLE MANAGER:
+    // ✅ PASSO 5: MODIFICA LA CREAZIONE DEL TABLE MANAGER
     trackingTable = new TableManager('trackingTableContainer', {
         columns: columns,
         emptyMessage: 'Nessun tracking attivo. Aggiungi il tuo primo tracking per iniziare.',
         pageSize: 20,
-        enableColumnDrag: true // ← AGGIUNGI QUESTA RIGA
+        enableColumnDrag: true,
+        selectable: true,  // ✅ AGGIUNGI QUESTA RIGA
+        onSelectionChange: function(selectedData) {  // ✅ AGGIUNGI QUESTO CALLBACK
+            updateSelectedCount();
+            const count = selectedData.length;
+            const container = document.getElementById('bulkActionsContainer');
+            if (container) {
+                container.style.display = count > 0 ? 'block' : 'none';
+                const countEl = document.getElementById('selectedCount');
+                if (countEl) countEl.textContent = count;
+            }
+        }
     });
     
-    // 🆕 AGGIUNGI QUESTE RIGHE ALLA FINE:
     // Esponi trackingTable globalmente
     window.trackingTable = trackingTable;
     console.log('✅ trackingTable esposto globalmente');
@@ -631,31 +606,25 @@ function updateSelectedCount() {
     }
 }
 
-// Modifica la funzione toggleSelectAll esistente
-function toggleSelectAll(checkbox) {
-    const checkboxes = document.querySelectorAll('.row-select');
-    checkboxes.forEach(cb => {
-        cb.checked = checkbox.checked;
-        // Trigger change event per aggiornare il contatore
-        cb.dispatchEvent(new Event('change'));
-    });
-    updateSelectedCount();
-}
+// ✅ RIMUOVI la funzione toggleSelectAll esistente - non serve più
 
 // Aggiungi listener per i checkbox individuali
 function setupCheckboxListeners() {
-    document.addEventListener('change', (e) => {
-        if (e.target.classList.contains('row-select')) {
-            updateSelectedCount();
-        }
-    });
+    // ✅ Non serve più - il TableManager gestisce tutto
+    console.log('✅ [Tracking] Checkbox listeners gestiti dal TableManager');
 }
 
-// Funzione per ottenere le righe selezionate
+// ✅ PASSO 7: Funzione per ottenere le righe selezionate - AGGIORNATA
 function getSelectedRows() {
+    // ✅ USA IL METODO DEL TABLE MANAGER
+    if (window.trackingTable && window.trackingTable.getSelectedRows) {
+        return window.trackingTable.getSelectedRows();
+    }
+    
+    // Fallback al metodo originale
     const selected = [];
-    document.querySelectorAll('.row-select:checked').forEach(checkbox => {
-        const rowId = checkbox.dataset.rowId;
+    document.querySelectorAll('.row-select:checked, .select-row:checked').forEach(checkbox => {
+        const rowId = checkbox.dataset.rowId || checkbox.dataset.id;
         const tracking = trackings.find(t => t.id == rowId);
         if (tracking) selected.push(tracking);
     });
@@ -729,9 +698,7 @@ async function bulkRefreshTrackings() {
         progressModal.close();
         notificationSystem.error('Errore durante l\'aggiornamento multiplo: ' + error.message);
     }
-}
-
-// Bulk delete
+}// Bulk delete
 async function bulkDeleteTrackings() {
     const selected = getSelectedRows();
     if (selected.length === 0) return;
@@ -790,13 +757,20 @@ async function exportSelectedTrackings() {
     }
 }
 
-// Clear selection
+// ✅ PASSO 8: Clear selection - AGGIORNATA
 function clearSelection() {
-    document.querySelectorAll('.row-select').forEach(cb => cb.checked = false);
-    const selectAll = document.querySelector('.select-all');
-    if (selectAll) selectAll.checked = false;
+    if (window.trackingTable && window.trackingTable.clearSelection) {
+        window.trackingTable.clearSelection();
+    } else {
+        // Fallback
+        document.querySelectorAll('.row-select, .select-row').forEach(cb => cb.checked = false);
+        const selectAll = document.querySelector('.select-all');
+        if (selectAll) selectAll.checked = false;
+    }
     updateSelectedCount();
-}// ========== FIX: COLUMN FORMATTERS AGGIORNATI ==========
+}
+
+// ========== COLUMN FORMATTERS AGGIORNATI ==========
 function getColumnFormatter(key) {
     const formatters = {
         tracking_type: (value) => {
@@ -887,21 +861,21 @@ function getColumnFormatter(key) {
         // FIX TRANSIT TIME - CALCOLO CORRETTO
         transit_time: (value, row) => {
             // Per AIR: usa il campo diretto salvato
-             if (value && value !== '-') {
-        // Se è una stringa con "days", estrai solo il numero
-        if (typeof value === 'string' && value.includes('days')) {
-            const match = value.match(/\d+/);
-            return match ? match[0] : '-';
-        }
-        // Se è un numero, mostralo
-        if (typeof value === 'number') {
-            return value.toString();
-        }
-        // Se è già una stringa numerica, mostrala
-        if (typeof value === 'string' && /^\d+$/.test(value)) {
-            return value;
-        }
-    }            
+            if (value && value !== '-') {
+                // Se è una stringa con "days", estrai solo il numero
+                if (typeof value === 'string' && value.includes('days')) {
+                    const match = value.match(/\d+/);
+                    return match ? match[0] : '-';
+                }
+                // Se è un numero, mostralo
+                if (typeof value === 'number') {
+                    return value.toString();
+                }
+                // Se è già una stringa numerica, mostrala
+                if (typeof value === 'string' && /^\d+$/.test(value)) {
+                    return value;
+                }
+            }            
             if (row.tracking_type === 'awb') {
                 const transitValue = row.transit_time ||  // Campo diretto
                                    row.metadata?.transit_time ||
@@ -1011,11 +985,14 @@ function getColumnFormatter(key) {
             return formatDateOnly(date);
         },
         
-        date_of_discharge: (value, row) => {
+         date_of_discharge: (value, row) => {
             // NASCOSTA - usiamo date_of_arrival unificato
             return '-';
-        },
-        
+        }
+    };
+    
+   // Continuazione dei formatters...
+    const moreFormatters = {
         // MAPPING PER COLONNE SHIPSGO SEA
         port_of_loading: (value, row) => {
             return value || 
@@ -1294,36 +1271,36 @@ function getColumnFormatter(key) {
         },
         
         created_at: (value, row) => {
-    if (!value) {
-        // Controlla anche nel row object
-        value = row.created_at || row.createdAt;
-    }
-    
-    if (!value || value === '-') return '-';
-    
-    // Se è già formattata nel formato italiano, ritornala
-    if (typeof value === 'string' && value.match(/^\d{2}\/\d{2}\/\d{4}/)) {
-        return value;
-    }
-    
-    try {
-        const date = new Date(value);
-        if (isNaN(date.getTime())) return value;
-        
-        const day = date.getDate().toString().padStart(2, '0');
-        const month = (date.getMonth() + 1).toString().padStart(2, '0');
-        const year = date.getFullYear();
-        const hours = date.getHours().toString().padStart(2, '0');
-        const minutes = date.getMinutes().toString().padStart(2, '0');
-        
-        return `${day}/${month}/${year} ${hours}:${minutes}`;
-    } catch (error) {
-        return value || '-';
-    }
-},
+            if (!value) {
+                // Controlla anche nel row object
+                value = row.created_at || row.createdAt;
+            }
+            
+            if (!value || value === '-') return '-';
+            
+            // Se è già formattata nel formato italiano, ritornala
+            if (typeof value === 'string' && value.match(/^\d{2}\/\d{2}\/\d{4}/)) {
+                return value;
+            }
+            
+            try {
+                const date = new Date(value);
+                if (isNaN(date.getTime())) return value;
+                
+                const day = date.getDate().toString().padStart(2, '0');
+                const month = (date.getMonth() + 1).toString().padStart(2, '0');
+                const year = date.getFullYear();
+                const hours = date.getHours().toString().padStart(2, '0');
+                const minutes = date.getMinutes().toString().padStart(2, '0');
+                
+                return `${day}/${month}/${year} ${hours}:${minutes}`;
+            } catch (error) {
+                return value || '-';
+            }
+        },
         
         // FIX ULTIMA POSIZIONE (per la colonna last_event_location)
-        last_event_location: (value, row) => {
+         last_event_location: (value, row) => {
             // Per AWB usa il campo diretto
             if (row.tracking_type === 'awb') {
                 return row.ultima_posizione || 
@@ -1346,8 +1323,11 @@ function getColumnFormatter(key) {
         }
     };
     
+    // Combina i formatters
+    const allFormatters = { ...formatters, ...moreFormatters };
+    
     // Return formatter or default
-    return formatters[key] || ((value) => value || '-');
+    return allFormatters[key] || ((value) => value || '-');
 }
 
 // Helper function per formattare solo la data (senza orario)
@@ -1373,7 +1353,9 @@ function formatDateOnly(dateStr) {
     } catch (e) {}
     
     return dateStr;
-}// Helper function per parsare date in vari formati
+}
+
+// Helper function per parsare date in vari formati
 function parseDate(dateStr) {
     if (!dateStr) return null;
     
@@ -1412,154 +1394,82 @@ function setupEventListeners() {
         this.isOpening = true;
         setTimeout(() => this.isOpening = false, 1000);
         
-        if (window.showEnhancedTrackingForm) {
-            window.showEnhancedTrackingForm();
+        if (window.showEnhancedTrackingForm) {window.showEnhancedTrackingForm();
         } else {
-            showAddTrackingForm();
+            window.showAddTrackingForm();
         }
-    }, 'Add Tracking');
-    safeAddListener('#refreshAllBtn', 'click', refreshAllTrackings, 'Refresh All');
-    safeAddListener('#exportPdfBtn', 'click', exportToPDF, 'Export PDF');
-    safeAddListener('#exportExcelBtn', 'click', exportToExcel, 'Export Excel');
+    }, 'Add tracking button');
     
-    // Filters
-    safeAddListener('#statusFilter', 'change', applyFilters, 'Status Filter');
-    safeAddListener('#typeFilter', 'change', applyFilters, 'Type Filter');
+    // Filter dropdowns
+    safeAddListener('#statusFilter', 'change', applyFilters, 'Status filter');
+    safeAddListener('#typeFilter', 'change', applyFilters, 'Type filter');
     
-    // Count successful attachments
-    const buttonsToCheck = [
-        '#addTrackingBtn', '#refreshAllBtn', '#exportPdfBtn', 
-        '#exportExcelBtn', '#statusFilter', '#typeFilter'
-    ];
-    
-    const attachedCount = buttonsToCheck.reduce((count, selector) => {
-        return count + (document.querySelector(selector) ? 1 : 0);
-    }, 0);
-    
-    console.log(`📊 [Tracking] Event listeners: ${attachedCount}/${buttonsToCheck.length} elements found`);
-    
-    // If some elements are missing, try again after a delay
-    if (attachedCount < buttonsToCheck.length) {
-        console.log('⏱️ [Tracking] Some elements missing, retrying in 500ms...');
-        setTimeout(() => {
-            console.log('🔄 [Tracking] Retrying event listener setup...');
-            setupEventListeners();
-        }, 500);
-    }
+    console.log('✅ [Tracking] Event listeners setup complete');
 }
 
-// Helper per CSV
-function convertToCSV(data) {
-    const headers = ['tracking_number', 'tracking_type', 'carrier_code', 'status', 
-                    'origin_port', 'destination_port', 'reference_number', 'eta'];
-    
-    const rows = data.map(t => headers.map(h => t[h] || '').join(','));
-    return [headers.join(','), ...rows].join('\n');
-}
-
-function downloadCSV(content, filename) {
-    const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = filename;
-    a.click();
-    URL.revokeObjectURL(url);
-}
-
-// Load trackings from localStorage OR Supabase
+// SOSTITUISCI loadTrackings con questa versione MODIFICATA PER SUPABASE
 async function loadTrackings() {
-    console.log('🔄 [Tracking] Loading trackings...');
-    
     try {
-        if (!trackingTable) {
-            console.warn('⚠️ [Tracking] TrackingTable not initialized, calling setupTrackingTable()');
-            setupTrackingTable();
+        // MODIFICATO: Prova prima Supabase, poi fallback a localStorage
+        if (window.supabaseTrackingService) {
+            try {
+                const supabaseTrackings = await window.supabaseTrackingService.getTrackings();
+                if (supabaseTrackings && supabaseTrackings.length > 0) {
+                    console.log(`✅ [Tracking] Caricati ${supabaseTrackings.length} tracking da Supabase`);
+                    trackings = supabaseTrackings;
+                } else {
+                    // Se Supabase è vuoto, carica da localStorage e sincronizza
+                    const localTrackings = JSON.parse(localStorage.getItem('trackings') || '[]');
+                    if (localTrackings.length > 0) {
+                        console.log('📤 [Tracking] Sincronizzando tracking locali con Supabase...');
+                        // Sincronizza con Supabase
+                        for (const tracking of localTrackings) {
+                            try {
+                                await window.supabaseTrackingService.createTracking(tracking);
+                            } catch (err) {
+                                console.warn('⚠️ [Tracking] Errore sync tracking:', err);
+                            }
+                        }
+                        trackings = localTrackings;
+                    }
+                }
+            } catch (error) {
+                console.error('❌ [Tracking] Errore caricamento da Supabase:', error);
+                // Fallback to localStorage
+                trackings = JSON.parse(localStorage.getItem('trackings') || '[]');
+            }
+        } else {
+            // Se Supabase non è disponibile, usa localStorage
+            trackings = JSON.parse(localStorage.getItem('trackings') || '[]');
         }
         
-        trackingTable.loading(true);
-        
-        // MODIFICATO: Carica da Supabase se disponibile, altrimenti da localStorage
-        try {
-    // Sempre Supabase come fonte primaria
-    const { data, error } = await window.supabase
-        .from('trackings')
-        .select('*')
-        .order('created_at', { ascending: false });
-    
-    if (error) throw error;
-    
-    trackings = data || [];
-    console.log(`📊 [Tracking] Loaded ${trackings.length} trackings from Supabase`);
-    
-} catch (error) {
-    console.error('❌ [Tracking] Supabase error:', error);
-    
-    // Fallback a localStorage SOLO se Supabase non è disponibile
-    const stored = localStorage.getItem('trackings');
-    if (stored) {
-        trackings = JSON.parse(stored);
-        console.log('📊 [Tracking] Fallback: Loaded from localStorage');
-    } else {
-        trackings = [];
-        console.log('📊 [Tracking] No data available');
-    }
-}
-        
-        // DEBUG: Verifica i campi data
-        if (trackings.length > 0) {
-            console.log('🔍 DEBUG - Ultimo tracking:', {
-                departure: trackings[trackings.length - 1].departure,
-                date_of_departure: trackings[trackings.length - 1].date_of_departure,
-                metadata: trackings[trackings.length - 1].metadata
-            });
-        }
-        
-        // Ensure all trackings have required fields
-        trackings = trackings.map(t => ({
-            ...t,
-            id: t.id || Date.now() + Math.random(),
-            created_at: t.created_at || new Date().toISOString(),
-            eta: t.eta || generateETA(t.status)
-        }));
-        
-        // Save back to ensure consistency (solo se non stiamo usando Supabase)
-        if (!window.supabaseTrackingService) {
+        // Se non ci sono tracking, genera mock data in development
+        if (trackings.length === 0 && window.location.hostname === 'localhost') {
+            console.log('🎲 [Tracking] Generating mock trackings...');
+            trackings = generateMockTrackings();
             localStorage.setItem('trackings', JSON.stringify(trackings));
         }
         
-        // Update stats
-        updateStats(calculateStats(trackings));
+        // Calculate stats
+        const stats = calculateStats(trackings);
+        updateStats(stats);
         
         // Update table
         trackingTable.setData(trackings);
-        console.log('📋 [Tracking] Table data set');
+        
+        // Update global reference
+        window.currentTrackings = trackings;
         
         // Update timeline if active
-        window.currentTrackings = trackings;
         if (window.timelineView && window.timelineView.isActive()) {
             window.timelineView.refresh();
         }
         
-        console.log(`✅ [Tracking] Successfully loaded ${trackings.length} trackings`);
+        console.log(`📊 [Tracking] Loaded ${trackings.length} trackings`);
         
     } catch (error) {
         console.error('❌ [Tracking] Error loading trackings:', error);
-        if (window.NotificationSystem) {
-            window.NotificationSystem.error('Errore nel caricamento dei tracking');
-        }
-        
-        // Fallback: generate mock data
-        trackings = generateMockTrackings();
-        updateStats(calculateStats(trackings));
-        if (trackingTable) {
-            trackingTable.setData(trackings);
-        }
-        
-    } finally {
-        if (trackingTable) {
-            trackingTable.loading(false);
-        }
+        notificationSystem.error('Errore caricamento tracking');
     }
 }
 
@@ -2054,7 +1964,9 @@ window.detectTrackingType = function(value) {
     } else if (hint) {
         hint.textContent = '';
     }
-}// SOSTITUISCI la funzione handleAddTracking con questa versione MODIFICATA PER SUPABASE:
+}
+
+// SOSTITUISCI la funzione handleAddTracking con questa versione MODIFICATA PER SUPABASE:
 async function handleAddTracking(event) {
     event.preventDefault();
     
@@ -2659,7 +2571,9 @@ async function handleDeleteTracking(id) {
         console.error('[Delete] Error:', error);
         notificationSystem.error('Errore durante l\'eliminazione');
     }
-}// Refresh all trackings - MODIFICATA PER USARE bulkTrack E SUPABASE
+}
+
+// Refresh all trackings - MODIFICATA PER USARE bulkTrack E SUPABASE
 async function refreshAllTrackings() {
     const activeTrackings = trackings.filter(t => !['delivered', 'exception'].includes(t.status));
     
