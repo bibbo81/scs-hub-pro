@@ -205,6 +205,12 @@ window.trackingInit = async function() {
                 console.log('🚧 [Tracking] Running in mock mode (no API keys)');
                 notificationSystem.warning('Sistema in modalità demo. Configura le API in Settings.', { duration: 5000 });
             }
+            // In trackingInit, aggiungi dopo le altre inizializzazioni:
+if (!window.supabaseTrackingService) {
+    const module = await import('/core/services/supabase-tracking-service.js');
+    window.supabaseTrackingService = module.default;
+    console.log('✅ Supabase tracking service loaded');
+}
         }
         
         // NUOVO: Inizializza indicatore API status
@@ -264,6 +270,8 @@ window.trackingInit = async function() {
             window.NotificationSystem.error('Errore inizializzazione pagina tracking');
         }
     }
+
+    
 };
 
 // Load saved column preferences
