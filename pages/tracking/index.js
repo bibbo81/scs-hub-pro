@@ -698,7 +698,9 @@ async function bulkRefreshTrackings() {
         progressModal.close();
         notificationSystem.error('Errore durante l\'aggiornamento multiplo: ' + error.message);
     }
-}// Bulk delete
+}
+
+// Bulk delete
 async function bulkDeleteTrackings() {
     const selected = getSelectedRows();
     if (selected.length === 0) return;
@@ -985,14 +987,11 @@ function getColumnFormatter(key) {
             return formatDateOnly(date);
         },
         
-         date_of_discharge: (value, row) => {
+        date_of_discharge: (value, row) => {
             // NASCOSTA - usiamo date_of_arrival unificato
             return '-';
-        }
-    };
-    
-   // Continuazione dei formatters...
-    const moreFormatters = {
+        },
+        
         // MAPPING PER COLONNE SHIPSGO SEA
         port_of_loading: (value, row) => {
             return value || 
@@ -1300,7 +1299,7 @@ function getColumnFormatter(key) {
         },
         
         // FIX ULTIMA POSIZIONE (per la colonna last_event_location)
-         last_event_location: (value, row) => {
+        last_event_location: (value, row) => {
             // Per AWB usa il campo diretto
             if (row.tracking_type === 'awb') {
                 return row.ultima_posizione || 
@@ -1323,11 +1322,8 @@ function getColumnFormatter(key) {
         }
     };
     
-    // Combina i formatters
-    const allFormatters = { ...formatters, ...moreFormatters };
-    
     // Return formatter or default
-    return allFormatters[key] || ((value) => value || '-');
+    return formatters[key] || ((value) => value || '-');
 }
 
 // Helper function per formattare solo la data (senza orario)
@@ -1366,9 +1362,7 @@ function parseDate(dateStr) {
     }
     
     return new Date(dateStr);
-}
-
-// Setup event listeners
+}// Setup event listeners
 function setupEventListeners() {
     console.log('🔗 [Tracking] Setting up event listeners...');
     
@@ -1394,82 +1388,154 @@ function setupEventListeners() {
         this.isOpening = true;
         setTimeout(() => this.isOpening = false, 1000);
         
-        if (window.showEnhancedTrackingForm) {window.showEnhancedTrackingForm();
+        if (window.showEnhancedTrackingForm) {
+            window.showEnhancedTrackingForm();
         } else {
-            window.showAddTrackingForm();
+            showAddTrackingForm();
         }
-    }, 'Add tracking button');
+    }, 'Add Tracking');
+    safeAddListener('#refreshAllBtn', 'click', refreshAllTrackings, 'Refresh All');
+    safeAddListener('#exportPdfBtn', 'click', exportToPDF, 'Export PDF');
+    safeAddListener('#exportExcelBtn', 'click', exportToExcel, 'Export Excel');
     
-    // Filter dropdowns
-    safeAddListener('#statusFilter', 'change', applyFilters, 'Status filter');
-    safeAddListener('#typeFilter', 'change', applyFilters, 'Type filter');
+    // Filters
+    safeAddListener('#statusFilter', 'change', applyFilters, 'Status Filter');
+    safeAddListener('#typeFilter', 'change', applyFilters, 'Type Filter');
     
-    console.log('✅ [Tracking] Event listeners setup complete');
+    // Count successful attachments
+    const buttonsToCheck = [
+        '#addTrackingBtn', '#refreshAllBtn', '#exportPdfBtn', 
+        '#exportExcelBtn', '#statusFilter', '#typeFilter'
+    ];
+    
+    const attachedCount = buttonsToCheck.reduce((count, selector) => {
+        return count + (document.querySelector(selector) ? 1 : 0);
+    }, 0);
+    
+    console.log(`📊 [Tracking] Event listeners: ${attachedCount}/${buttonsToCheck.length} elements found`);
+    
+    // If some elements are missing, try again after a delay
+    if (attachedCount < buttonsToCheck.length) {
+        console.log('⏱️ [Tracking] Some elements missing, retrying in 500ms...');
+        setTimeout(() => {
+            console.log('🔄 [Tracking] Retrying event listener setup...');
+            setupEventListeners();
+        }, 500);
+    }
 }
 
-// SOSTITUISCI loadTrackings con questa versione MODIFICATA PER SUPABASE
+// Helper per CSV
+function convertToCSV(data) {
+    const headers = ['tracking_number', 'tracking_type', 'carrier_code', 'status', 
+                    'origin_port', 'destination_port', 'reference_number', 'eta'];
+    
+    const rows = data.map(t => headers.map(h => t[h] || '').join(','));
+    return [headers.join(','), ...rows].join('\n');
+}
+
+function downloadCSV(content, filename) {
+    const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+}
+
+// Load trackings from localStorage OR Supabase
 async function loadTrackings() {
+    console.log('🔄 [Tracking] Loading trackings...');
+    
     try {
-        // MODIFICATO: Prova prima Supabase, poi fallback a localStorage
-        if (window.supabaseTrackingService) {
-            try {
-                const supabaseTrackings = await window.supabaseTrackingService.getTrackings();
-                if (supabaseTrackings && supabaseTrackings.length > 0) {
-                    console.log(`✅ [Tracking] Caricati ${supabaseTrackings.length} tracking da Supabase`);
-                    trackings = supabaseTrackings;
-                } else {
-                    // Se Supabase è vuoto, carica da localStorage e sincronizza
-                    const localTrackings = JSON.parse(localStorage.getItem('trackings') || '[]');
-                    if (localTrackings.length > 0) {
-                        console.log('📤 [Tracking] Sincronizzando tracking locali con Supabase...');
-                        // Sincronizza con Supabase
-                        for (const tracking of localTrackings) {
-                            try {
-                                await window.supabaseTrackingService.createTracking(tracking);
-                            } catch (err) {
-                                console.warn('⚠️ [Tracking] Errore sync tracking:', err);
-                            }
-                        }
-                        trackings = localTrackings;
-                    }
-                }
-            } catch (error) {
-                console.error('❌ [Tracking] Errore caricamento da Supabase:', error);
-                // Fallback to localStorage
-                trackings = JSON.parse(localStorage.getItem('trackings') || '[]');
-            }
-        } else {
-            // Se Supabase non è disponibile, usa localStorage
-            trackings = JSON.parse(localStorage.getItem('trackings') || '[]');
+        if (!trackingTable) {
+            console.warn('⚠️ [Tracking] TrackingTable not initialized, calling setupTrackingTable()');
+            setupTrackingTable();
         }
         
-        // Se non ci sono tracking, genera mock data in development
-        if (trackings.length === 0 && window.location.hostname === 'localhost') {
-            console.log('🎲 [Tracking] Generating mock trackings...');
-            trackings = generateMockTrackings();
+        trackingTable.loading(true);
+        
+        // MODIFICATO: Carica da Supabase se disponibile, altrimenti da localStorage
+        try {
+            // Sempre Supabase come fonte primaria
+            const { data, error } = await window.supabase
+                .from('trackings')
+                .select('*')
+                .order('created_at', { ascending: false });
+            
+            if (error) throw error;
+            
+            trackings = data || [];
+            console.log(`📊 [Tracking] Loaded ${trackings.length} trackings from Supabase`);
+            
+        } catch (error) {
+            console.error('❌ [Tracking] Supabase error:', error);
+            
+            // Fallback a localStorage SOLO se Supabase non è disponibile
+            const stored = localStorage.getItem('trackings');
+            if (stored) {
+                trackings = JSON.parse(stored);
+                console.log('📊 [Tracking] Fallback: Loaded from localStorage');
+            } else {
+                trackings = [];
+                console.log('📊 [Tracking] No data available');
+            }
+        }
+        
+        // DEBUG: Verifica i campi data
+        if (trackings.length > 0) {
+            console.log('🔍 DEBUG - Ultimo tracking:', {
+                departure: trackings[trackings.length - 1].departure,
+                date_of_departure: trackings[trackings.length - 1].date_of_departure,
+                metadata: trackings[trackings.length - 1].metadata
+            });
+        }
+        
+        // Ensure all trackings have required fields
+        trackings = trackings.map(t => ({
+            ...t,
+            id: t.id || Date.now() + Math.random(),
+            created_at: t.created_at || new Date().toISOString(),
+            eta: t.eta || generateETA(t.status)
+        }));
+        
+        // Save back to ensure consistency (solo se non stiamo usando Supabase)
+        if (!window.supabaseTrackingService) {
             localStorage.setItem('trackings', JSON.stringify(trackings));
         }
         
-        // Calculate stats
-        const stats = calculateStats(trackings);
-        updateStats(stats);
+        // Update stats
+        updateStats(calculateStats(trackings));
         
         // Update table
         trackingTable.setData(trackings);
-        
-        // Update global reference
-        window.currentTrackings = trackings;
+        console.log('📋 [Tracking] Table data set');
         
         // Update timeline if active
+        window.currentTrackings = trackings;
         if (window.timelineView && window.timelineView.isActive()) {
             window.timelineView.refresh();
         }
         
-        console.log(`📊 [Tracking] Loaded ${trackings.length} trackings`);
+        console.log(`✅ [Tracking] Successfully loaded ${trackings.length} trackings`);
         
     } catch (error) {
         console.error('❌ [Tracking] Error loading trackings:', error);
-        notificationSystem.error('Errore caricamento tracking');
+        if (window.NotificationSystem) {
+            window.NotificationSystem.error('Errore nel caricamento dei tracking');
+        }
+        
+        // Fallback: generate mock data
+        trackings = generateMockTrackings();
+        updateStats(calculateStats(trackings));
+        if (trackingTable) {
+            trackingTable.setData(trackings);
+        }
+        
+    } finally {
+        if (trackingTable) {
+            trackingTable.loading(false);
+        }
     }
 }
 
@@ -2156,10 +2222,91 @@ async function handleAddTracking(event) {
     
     // Close modal and reload
     window.ModalSystem.closeAll();
+}// SOSTITUISCI anche handleRefreshTracking MODIFICATA PER SUPABASE:
+async function restoreStatsOrder() {
+    const savedOrder = localStorage.getItem('trackingStatsOrder');
+    if (!savedOrder) return;
+    
+    try {
+        const order = JSON.parse(savedOrder);
+        const statsGrid = document.getElementById('statsGrid');
+        const cards = Array.from(statsGrid.querySelectorAll('.sol-stat-card'));
+        
+        cards.sort((a, b) => {
+            const aIndex = order.indexOf(a.dataset.id);
+            const bIndex = order.indexOf(b.dataset.id);
+            return aIndex - bIndex;
+        });
+        
+        cards.forEach(card => statsGrid.appendChild(card));
+    } catch (e) {
+        console.error('Error restoring stats order:', e);
+    }
 }
 
-// SOSTITUISCI anche handleRefreshTracking MODIFICATA PER SUPABASE:
-async function handleRefreshTracking(id) {
+// Auto refresh - FUNZIONE MODIFICATA
+function startAutoRefresh() {
+    // MODIFICATO: Refresh ogni 10 minuti invece di 5
+    // e solo se ci sono tracking attivi (non delivered/exception)
+    setInterval(() => {
+        // Controlla se ci sono tracking attivi da aggiornare
+        const activeTrackings = trackings.filter(t => 
+            !['delivered', 'exception'].includes(t.status)
+        );
+        
+        // Se ci sono tracking attivi, ricarica
+        if (activeTrackings.length > 0) {
+            console.log('🔄 Auto-refresh: updating active trackings...');
+            loadTrackings();
+        }
+    }, 10 * 60 * 1000); // 10 minuti invece di 5
+}
+
+// ====================
+// HELPER FUNCTIONS MANCANTI
+// ====================
+
+// Create progress modal helper
+function createProgressModal() {
+    const modal = document.createElement('div');
+    modal.id = 'progressModal';
+    modal.innerHTML = `
+        <div class="sol-modal-overlay">
+            <div class="sol-modal sol-modal-medium">
+                <div class="sol-modal-header">
+                    <h3 class="sol-modal-title">Aggiornamento Tracking</h3>
+                </div>
+                <div class="sol-modal-body">
+                    <div class="sol-progress">
+                        <div id="progressBar" class="sol-progress-bar" style="width: 0%"></div>
+                    </div>
+                    <p id="progressText" class="sol-progress-text">Inizializzazione...</p>
+                </div>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(modal);
+    return modal;
+}
+
+// Update progress modal helper
+function updateProgressModal(progress) {
+    const progressBar = document.getElementById('progressBar');
+    const progressText = document.getElementById('progressText');
+    
+    if (progressBar && progressText) {
+        const percentage = Math.round((progress.completed / progress.total) * 100);
+        progressBar.style.width = percentage + '%';
+        progressText.textContent = `Aggiornati ${progress.completed} di ${progress.total} tracking`;
+    }
+}
+
+// Make loadTrackings globally available for import
+window.loadTrackings = loadTrackings;
+window.refreshTrackingList = loadTrackings; // Alias per compatibilità
+window.trackings = trackings; // Make trackings array available for debugging
+// Esponi anche la funzione per i filtri
+window.exportFilteredTrackings = exportFilteredTrackings; handleRefreshTracking(id) {
     const tracking = trackings.find(t => t.id == id);
     if (!tracking) return;
     
@@ -2818,87 +2965,4 @@ function saveStatsOrder() {
     localStorage.setItem('trackingStatsOrder', JSON.stringify(order));
 }
 
-function restoreStatsOrder() {
-    const savedOrder = localStorage.getItem('trackingStatsOrder');
-    if (!savedOrder) return;
-    
-    try {
-        const order = JSON.parse(savedOrder);
-        const statsGrid = document.getElementById('statsGrid');
-        const cards = Array.from(statsGrid.querySelectorAll('.sol-stat-card'));
-        
-        cards.sort((a, b) => {
-            const aIndex = order.indexOf(a.dataset.id);
-            const bIndex = order.indexOf(b.dataset.id);
-            return aIndex - bIndex;
-        });
-        
-        cards.forEach(card => statsGrid.appendChild(card));
-    } catch (e) {
-        console.error('Error restoring stats order:', e);
-    }
-}
-
-// Auto refresh - FUNZIONE MODIFICATA
-function startAutoRefresh() {
-    // MODIFICATO: Refresh ogni 10 minuti invece di 5
-    // e solo se ci sono tracking attivi (non delivered/exception)
-    setInterval(() => {
-        // Controlla se ci sono tracking attivi da aggiornare
-        const activeTrackings = trackings.filter(t => 
-            !['delivered', 'exception'].includes(t.status)
-        );
-        
-        // Se ci sono tracking attivi, ricarica
-        if (activeTrackings.length > 0) {
-            console.log('🔄 Auto-refresh: updating active trackings...');
-            loadTrackings();
-        }
-    }, 10 * 60 * 1000); // 10 minuti invece di 5
-}
-
-// ====================
-// HELPER FUNCTIONS MANCANTI
-// ====================
-
-// Create progress modal helper
-function createProgressModal() {
-    const modal = document.createElement('div');
-    modal.id = 'progressModal';
-    modal.innerHTML = `
-        <div class="sol-modal-overlay">
-            <div class="sol-modal sol-modal-medium">
-                <div class="sol-modal-header">
-                    <h3 class="sol-modal-title">Aggiornamento Tracking</h3>
-                </div>
-                <div class="sol-modal-body">
-                    <div class="sol-progress">
-                        <div id="progressBar" class="sol-progress-bar" style="width: 0%"></div>
-                    </div>
-                    <p id="progressText" class="sol-progress-text">Inizializzazione...</p>
-                </div>
-            </div>
-        </div>
-    `;
-    document.body.appendChild(modal);
-    return modal;
-}
-
-// Update progress modal helper
-function updateProgressModal(progress) {
-    const progressBar = document.getElementById('progressBar');
-    const progressText = document.getElementById('progressText');
-    
-    if (progressBar && progressText) {
-        const percentage = Math.round((progress.completed / progress.total) * 100);
-        progressBar.style.width = percentage + '%';
-        progressText.textContent = `Aggiornati ${progress.completed} di ${progress.total} tracking`;
-    }
-}
-
-// Make loadTrackings globally available for import
-window.loadTrackings = loadTrackings;
-window.refreshTrackingList = loadTrackings; // Alias per compatibilità
-window.trackings = trackings; // Make trackings array available for debugging
-// Esponi anche la funzione per i filtri
-window.exportFilteredTrackings = exportFilteredTrackings;
+function
