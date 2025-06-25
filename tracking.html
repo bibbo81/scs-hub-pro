@@ -516,7 +516,8 @@ window.headerInitLock = false;
         window.userSettingsService = userSettingsService;
     </script>
 
-    <script src="/pages/tracking/api-status-indicator.js" type="module"></script>
+    <!-- 🔥 RIMOSSO: API Status Indicator che non funziona mai -->
+<!-- <script src="/pages/tracking/api-status-indicator.js" type="module"></script> -->
 
     <script>
     // Definisci trackingInit se non esiste dal modulo index.js
@@ -742,11 +743,7 @@ window.headerInitLock = false;
             
             setupEventListeners();
             
-            // 6. Inizializza API status indicator
-            if (window.ApiStatusIndicator) {
-                await window.ApiStatusIndicator.init();
-                console.log('✅ API status indicator initialized');
-            }
+            // 🔥 RIMOSSO: API status indicator che non funzionava mai
             
             // 7. Setup auto-refresh (ogni 5 minuti)
             if (!window.autoRefreshInterval) {
@@ -839,35 +836,7 @@ window.headerInitLock = false;
     });
     </script>
     <style>
-        /* API Status Indicator Styles */
-        .api-status-container {
-            user-select: none;
-            transition: all 0.3s ease;
-        }
-        
-        .api-status-container:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-        
-        /* Config Banner Styles */
-        .api-config-banner {
-            position: relative;
-            animation: slideDown 0.3s ease-out;
-        }
-        
-        @keyframes slideDown {
-            from {
-                opacity: 0;
-                transform: translateY(-10px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-        
-        /* Adjust card header layout for API indicator */
+        /* Card header layout */
         .sol-card-header {
             display: flex;
             align-items: center;
@@ -881,10 +850,6 @@ window.headerInitLock = false;
             flex: 1;
         }
         
-        .api-status-container {
-            order: 2;
-        }
-        
         .sol-card-actions {
             order: 3;
         }
@@ -894,13 +859,8 @@ window.headerInitLock = false;
                 flex-direction: column;
                 align-items: stretch;
             }
-            
-            .api-status-container {
-                width: 100%;
-                justify-content: center;
-                margin: 0.5rem 0;
-            }
         }
+
         /* FIX 4: Add CSS for stat cards */
         .sol-stats-grid {
             display: grid;
@@ -982,7 +942,7 @@ window.headerInitLock = false;
             background: var(--sol-danger-light);
             color: var(--sol-danger);
         }
-    </style>
+</style>
 </head>
 <body>
     <main class="sol-main-content" id="mainContent">
@@ -1004,13 +964,9 @@ window.headerInitLock = false;
                     <i class="fas fa-file-excel"></i>
                     <span>Export Excel</span>
                 </button>
-                <a href="/settings.html#integrations" class="sol-btn sol-btn-glass api-status-link" id="apiStatusLink">
-                    <i class="fas fa-key"></i>
-                    <span>API Status</span>
-                    <span class="api-status-indicator" id="apiStatusIndicator">
-                        <i class="fas fa-spinner fa-spin"></i>
-                    </span>
-                </a>
+                
+                <!-- 🔥 RIMOSSO: Link API Status che era inutile e fastidioso -->
+
                 <button class="sol-btn sol-btn-primary" id="addTrackingBtn">
                     <i class="fas fa-plus"></i>
                     <span>Aggiungi Tracking</span>

@@ -21,6 +21,9 @@ class TrackingService {
         this.awbIdCache = new Map();
         this.useSupabase = false;
         this.initializationPromise = null; // Per evitare inizializzazioni multiple
+        this.debugMode = window.location.hostname === 'localhost';
+        this.lastApiCheck = 0; // Per evitare controlli troppo frequenti
+
     }
 
     // ========================================
@@ -48,8 +51,11 @@ class TrackingService {
     }
 
     async _doInitialize() {
-        try {
-            console.log('[TrackingService] Starting initialization...');
+    try {
+        if (this.debugMode) {
+            console.group('🔧 [TrackingService] DETAILED INITIALIZATION');
+            console.log('Starting detailed initialization process...');
+        }
             
             // SEMPRE verifica connessione Supabase prima
             const connected = await this.testSupabaseConnection();
@@ -90,15 +96,23 @@ class TrackingService {
             this.loadAWBIdCache();
             
             this.initialized = true;
-            
-            console.log('[TrackingService] ✅ Initialization complete', {
-                mockMode: this.mockMode,
-                useSupabase: this.useSupabase,
-                hasV1: !!this.apiConfig.v1?.authCode,
-                hasV2: !!this.apiConfig.v2?.userToken
-            });
-            
-            return true;
+
+if (this.debugMode) {
+    console.log('[TrackingService] ✅ Initialization complete');
+    console.table({
+        'Mock Mode': this.mockMode,
+        'Use Supabase': this.useSupabase,
+        'Has V1 Key': !!this.apiConfig.v1?.authCode,
+        'Has V2 Key': !!this.apiConfig.v2?.userToken,
+        'V1 Key Preview': this.apiConfig.v1?.authCode ? 
+            this.apiConfig.v1.authCode.substring(0, 8) + '...' : 'NONE',
+        'V2 Key Preview': this.apiConfig.v2?.userToken ? 
+            this.apiConfig.v2.userToken.substring(0, 8) + '...' : 'NONE'
+    });
+    console.groupEnd();
+}
+
+return true;
             
         } catch (error) {
             console.error('[TrackingService] ❌ Init error:', error);
@@ -178,7 +192,9 @@ class TrackingService {
 
     // Metodo pubblico per forzare sincronizzazione
     async syncWithCloud() {
-        console.log('[TrackingService] 🔄 Forcing sync with cloud...');
+    if (this.debugMode) {
+        console.group('🔄 [TrackingService] FORCING CLOUD SYNC');
+    }
         
         if (!this.useSupabase) {
             console.warn('[TrackingService] Sync skipped - not using Supabase');
@@ -208,11 +224,13 @@ class TrackingService {
             } else {
                 console.log('[TrackingService] No API keys found during sync');
                 this.mockMode = true;
+                if (this.debugMode) console.groupEnd();
                 return false;
             }
             
         } catch (error) {
             console.error('[TrackingService] Sync error:', error);
+            if (this.debugMode) console.groupEnd();
             return false;
         }
     }
@@ -1743,9 +1761,22 @@ class TrackingService {
     }
 
     hasApiKeys() {
-        // Verifica che ci siano effettivamente le keys, non solo i config
-        return !!(this.apiConfig.v1?.authCode || this.apiConfig.v2?.userToken);
+    const hasKeys = !!(this.apiConfig.v1?.authCode || this.apiConfig.v2?.userToken);
+    
+    // Debug ogni tanto per evitare spam
+    const now = Date.now();
+    if (this.debugMode && (now - this.lastApiCheck > 5000)) {
+        this.lastApiCheck = now;
+        console.log('[TrackingService] 🔍 hasApiKeys check:', {
+            hasKeys: hasKeys,
+            v1Available: !!this.apiConfig.v1?.authCode,
+            v2Available: !!this.apiConfig.v2?.userToken,
+            mockMode: this.mockMode
+        });
     }
+    
+    return hasKeys;
+}
 
     getStats() {
         return {
@@ -1797,4 +1828,12 @@ class TrackingService {
 }
 
 // Export singleton
-export default new TrackingService();
+const trackingService = new TrackingService();
+
+// Esponi metodi di debug in development
+if (window.location.hostname === 'localhost') {
+    window.debugTrackingService = () => trackingService.debugCurrentState();
+    console.log('🔧 Debug function available: window.debugTrackingService()');
+}
+
+export default trackingService;
