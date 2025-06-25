@@ -7,7 +7,7 @@
     
    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
-    window.APP_VERSION = 'v48.1'; // Incrementa ad ogni deploy
+    window.APP_VERSION = 'v47.1'; // Incrementa ad ogni deploy
 
   // Esponi globalmente per i moduli ES6 - CON CONTROLLO ROBUSTO
   (function() {
@@ -59,21 +59,9 @@
     
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23007AFF'%3E%3Cpath d='M20 8h-3V4H3c-1.1 0-2 .9-2 2v11h2c0 1.66 1.34 3 3 3s3-1.34 3-3h6c0 1.66 1.34 3 3 3s3-1.34 3-3h2v-5l-4zM6 18.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm13.5-9l1.96 2.5H17V9.5h2.5zm-1.5 9c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z'/%3E%3C/svg%3E">
     
-    <script>
-        const cssVersion = window.APP_VERSION || 'v48.1';
-        const cssFiles = [
-            '/assets/css/solarium.css',
-            '/assets/css/timeline.css',
-            '/pages/tracking/tracking-table.css'
-        ];
-        
-        cssFiles.forEach(href => {
-            const link = document.createElement('link');
-            link.rel = 'stylesheet';
-            link.href = `${href}?v=${cssVersion}`;
-            document.head.appendChild(link);
-        });
-    </script>
+    <link rel="stylesheet" href="/assets/css/solarium.css">
+    <link rel="stylesheet" href="/assets/css/timeline.css">
+    <link rel="stylesheet" href="/pages/tracking/tracking-table.css">
 
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -84,8 +72,7 @@
     <script type="module" src="/core/modal-system.js"></script>
     
     <script type="module">
-    // Define V once for all main module imports
-    const V = window.APP_VERSION || 'v48.1'; 
+    const V = window.APP_VERSION;
     
     import(`/core/api-client.js?v=${V}`).then(m => window.api = m.default);
     import(`/core/header-component.js?v=${V}`).then(m => window.headerComponent = m.default);
@@ -99,24 +86,16 @@
     console.log('✅ [ES6] Core modules loading with version:', V);
 
         // Make modules available globally for backward compatibility
-        // NOTE: These assignments will now correctly reflect the 'then' block's resolution
-        // The original code tried to assign immediately without waiting for the promise to resolve.
-        // For actual global exposure, consider carefully if `window.someVar = m.default` within
-        // each `.then()` is sufficient or if a more structured approach is needed.
-        // For this task, we assume the user intends the modules to be assigned globally
-        // within the scope of this script after being imported with the version.
-        // However, direct synchronous assignment outside the .then() is problematic.
-        // Removing the incorrect synchronous global assignments.
-        // window.api = api; // This 'api' is undefined here
-        // window.headerComponent = headerComponent; // This 'headerComponent' is undefined here
-        // window.NotificationSystem = notificationSystem; // This 'notificationSystem' is undefined here
-        // window.TableManager = TableManager; // This 'TableManager' is undefined here
-        // window.App = app; // This 'app' is undefined here
-        // window.AdvancedSearch = AdvancedSearch; // This 'AdvancedSearch' is undefined here
-        // window.apiKeyManager = apiKeyManager; // This 'apiKeyManager' is undefined here
-        // window.organizationApiKeysService = organizationApiKeysService; // This 'organizationApiKeysService' is undefined here
+        window.api = api;
+        window.headerComponent = headerComponent;
+        window.NotificationSystem = notificationSystem;
+        window.TableManager = TableManager;
+        window.App = app;
+        window.AdvancedSearch = AdvancedSearch;
+        window.apiKeyManager = apiKeyManager;
+        window.organizationApiKeysService = organizationApiKeysService;
 
-        // FORCE LOG ASSIGNMENTS (these logs were already there, retaining them)
+        // FORCE LOG ASSIGNMENTS
         console.log('🚀 [ES6] Module assignments:');
         console.log('  - api:', !!window.api);
         console.log('  - headerComponent:', !!window.headerComponent);
@@ -144,44 +123,39 @@
     </script>
     
     <script type="module">
-        // Use window.APP_VERSION directly for imports, no need to redeclare V/VERSION
-        import(`/core/auth-ui-component.js?v=${window.APP_VERSION || 'v48.1'}`).then(m => {
-            const authUI = m.default;
+        import authUI from '/core/auth-ui-component.js';
+        
+        // L'auth UI si inizializza automaticamente
+        console.log('✅ Auth UI component loaded');
+        
+        // Ascolta i cambiamenti di stato auth
+        authUI.onAuthStateChange((event, session) => {
+            console.log('Auth state changed:', event);
             
-            // L'auth UI si inizializza automaticamente
-            console.log('✅ Auth UI component loaded');
-            
-            // Ascolta i cambiamenti di stato auth
-            authUI.onAuthStateChange((event, session) => {
-                console.log('Auth state changed:', event);
-                
-                // Ricarica i tracking quando l'utente si autentica
-                if (event === 'SIGNED_IN' && window.loadTrackings) {
-                    // Aspetta un attimo per dare tempo al database di aggiornarsi
-                    setTimeout(() => {
-                        window.loadTrackings();
-                        window.NotificationSystem?.success('Dati sincronizzati con il tuo account');
-                    }, 1000);
-                }
-            });
-            
-            // Debug commands per sviluppo
-            window.debugAuth = () => {
-                console.log('🔐 Auth Debug Info:');
-                console.log('- Use Supabase:', authUI.useSupabase);
-                console.log('- Current User:', authUI.getCurrentUser());
-                console.log('- Is Anonymous:', authUI.isAnonymous);
-                console.log('- Is Authenticated:', authUI.isAuthenticated());
-            };
+            // Ricarica i tracking quando l'utente si autentica
+            if (event === 'SIGNED_IN' && window.loadTrackings) {
+                // Aspetta un attimo per dare tempo al database di aggiornarsi
+                setTimeout(() => {
+                    window.loadTrackings();
+                    window.NotificationSystem?.success('Dati sincronizzati con il tuo account');
+                }, 1000);
+            }
         });
+        
+        // Debug commands per sviluppo
+        window.debugAuth = () => {
+            console.log('🔐 Auth Debug Info:');
+            console.log('- Use Supabase:', authUI.useSupabase);
+            console.log('- Current User:', authUI.getCurrentUser());
+            console.log('- Is Anonymous:', authUI.isAnonymous);
+            console.log('- Is Authenticated:', authUI.isAuthenticated());
+        };
     </script>
     
     <script type="module">
-        // Use window.APP_VERSION directly for imports, no need to redeclare V/VERSION
-        import(`/core/auth-guard.js?v=${window.APP_VERSION || 'v48.1'}`).then(m => {
-            // The guard auto-initializes upon import, so we just need to ensure it's loaded.
-            console.log('✅ Auth Guard loaded and initialized');
-        });
+        import authGuard from '/core/auth-guard.js';
+        // Il guard si auto-inizializza
+        console.log('✅ Auth Guard loaded and initialized');
     </script>
     
     <script>
@@ -208,27 +182,17 @@
     });
     </script>
     
-    <script>
-        // Use window.APP_VERSION directly for imports, no need to redeclare v
-        const currentAppVersion = window.APP_VERSION || 'v48.1';
-        const scripts = [
-            '/core/auth.js',
-            '/core/auth-init.js',
-            '/core/import-manager.js',
-            '/pages/tracking/tracking-form-progressive.js',
-            '/core/export-manager.js'
-        ];
-        
-        scripts.forEach(src => {
-            const script = document.createElement('script');
-            script.src = `${src}?v=${currentAppVersion}`;
-            document.head.appendChild(script);
-        });
-    </script>
+    <script src="/core/auth.js"></script>
+    <script src="/core/auth-init.js"></script>
+    <script src="/core/import-manager.js"></script>
+    
+    <script src="/pages/tracking/tracking-form-progressive.js"></script>
+
+    <script src="/core/export-manager.js"></script>
     
     <script type="module">
-    // Use window.APP_VERSION directly for imports, no need to redeclare VERSION
-    import(`/core/services/tracking-service.js?v=${window.APP_VERSION || 'v48.1'}`).then(m => {
+   const VERSION = 'v47.1'; // Usa la stessa versione
+    import(`/core/services/tracking-service.js?v=${VERSION}`).then(m => {
         window.trackingService = m.default;
         console.log('✅ Tracking Service caricato via ES6 import');
     });
@@ -236,8 +200,7 @@
     
     <script type="module">
     // Import Supabase client e esponilo globalmente
-    // Use window.APP_VERSION directly for imports, no need to redeclare V
-    import { supabase } from `/core/services/supabase-client.js?v=${window.APP_VERSION || 'v48.1'}`;
+    import { supabase } from '/core/services/supabase-client.js';
     // IMPORTANTE: Esponi supabase globalmente per debug e altri moduli
     window.supabase = supabase;
     console.log('✅ Supabase client exposed globally');
@@ -251,10 +214,9 @@
     
     <script type="module">
     // Import e esponi tutti i servizi necessari
-    // Use window.APP_VERSION directly for imports, no need to redeclare V
-    import { supabase } from `/core/services/supabase-client.js?v=${window.APP_VERSION || 'v48.1'}`;
-    import userSettingsService from `/core/services/user-settings-service.js?v=${window.APP_VERSION || 'v48.1'}`;
-    import organizationApiKeysService from `/core/services/organization-api-keys-service.js?v=${window.APP_VERSION || 'v48.1'}`;
+    import { supabase } from '/core/services/supabase-client.js';
+    import userSettingsService from '/core/services/user-settings-service.js';
+    import organizationApiKeysService from '/core/services/organization-api-keys-service.js';
     // import trackingService from '/core/services/tracking-service.js'; // Removed duplicate import
 
     // Esponi globalmente per debug
@@ -441,7 +403,7 @@
         try {
             // Check Supabase auth
             if (window.supabase && window.supabase.auth) {
-                const { data: { user } = {} } = await window.supabase.auth.getUser(); // Add default empty object to data
+                const { data: { user } } = await window.supabase.auth.getUser();
                 console.log('Supabase User:', user?.email || 'Not authenticated');
             } else {
                 console.log('Supabase: Not available (window.supabase is', typeof window.supabase, ')');
@@ -461,11 +423,10 @@
             
             // Check tracking service state
             if (window.trackingService) {
-                const stats = window.trackingService.getStats();
-                console.log('Tracking Service Stats:', stats);
+                console.log('Tracking Service Stats:', window.trackingService.getStats());
                 console.log('Has API Keys:', window.trackingService.hasApiKeys());
-                console.log('Mock Mode:', stats.mockMode);
-                console.log('Use Supabase:', stats.useSupabase);
+                console.log('Mock Mode:', window.trackingService.mockMode);
+                console.log('Use Supabase:', window.trackingService.useSupabase);
                 
                 // Check API config
                 const hasV1 = !!(window.trackingService.apiConfig?.v1?.authCode);
@@ -481,15 +442,7 @@
             console.log('LocalStorage trackings:', localStorage.getItem('trackings') ? 'Present' : 'null');
             
         } catch (error) {
-            console.error('❌ Test error:', error);
-            // Use ModalSystem for user-facing errors
-            if (window.ModalSystem) {
-                window.ModalSystem.alert({
-                    type: 'error',
-                    title: 'Errore durante il test',
-                    message: error.message
-                });
-            }
+            console.error('Debug error:', error);
         }
         
         console.log('========================');
@@ -541,8 +494,7 @@
     
     <script type="module">
     // Import del modulo tracking/index.js con fix per column formatters
-    // Use window.APP_VERSION directly for imports, no need to redeclare V
-    import(`/pages/tracking/index.js?v=${window.APP_VERSION || 'v48.1'}`).then(module => {
+    import('/pages/tracking/index.js').then(module => {
         console.log('✅ Tracking module loaded');
         
         // Fix column formatter per Transit Time
@@ -614,8 +566,7 @@
     </script>
     
     <script type="module">
-        // Use window.APP_VERSION directly for imports, no need to redeclare V
-        import userSettingsService from `/core/services/user-settings-service.js?v=${window.APP_VERSION || 'v48.1'}`;
+        import userSettingsService from '/core/services/user-settings-service.js';
         window.userSettingsService = userSettingsService;
     </script>
 
@@ -1517,11 +1468,7 @@
         }
         
         if (!window.ModalSystem) {
-            // Replaced alert with NotificationSystem or console.error
-            console.error('❌ ModalSystem not available for testing');
-            if (window.NotificationSystem) {
-                window.NotificationSystem.error('ModalSystem non disponibile per il test.');
-            }
+            alert('❌ ModalSystem not available');
             return;
         }
         
@@ -1606,62 +1553,29 @@
             
         } catch (error) {
             console.error('❌ Modal test failed:', error);
-            // Replaced alert with NotificationSystem or console.error
-            if (window.NotificationSystem) {
-                window.NotificationSystem.error('Test modal fallito: ' + error.message);
-            }
+            alert('❌ Modal test failed: ' + error.message);
         }
     };
 
     // Clear Production Data Function (for production use)
     function clearProductionData() {
-        // Replaced confirm with ModalSystem.confirm
-        if (window.ModalSystem) {
-            window.ModalSystem.confirm({
-                title: 'Conferma Cancellazione Dati',
-                message: '⚠️ ATTENZIONE: Cancellare tutti i dati di tracking locali? I dati su Supabase NON saranno cancellati.',
-                confirmText: 'Sì, Cancella',
-                cancelText: 'No, Annulla',
-                type: 'warning'
-            }).then((confirmed) => {
-                if (confirmed) {
-                    // Pulisci solo localStorage, non toccare Supabase
-                    localStorage.removeItem('trackings');
-                    localStorage.removeItem('mockTrackings'); // Rimuovi eventuali residui
-                    localStorage.removeItem('trackingColumns');
-                    localStorage.removeItem('trackingStatsOrder');
-                    localStorage.removeItem('trackingFilters');
-                    localStorage.removeItem('trackingViewMode');
-                    localStorage.removeItem('awbIdCache');
-                    
-                    if (window.NotificationSystem?.success) {
-                        window.NotificationSystem.success('Cache locale cancellata. Ricaricamento dati da cloud...');
-                    }
-                    
-                    setTimeout(() => {
-                        window.location.reload();
-                    }, 1000);
-                }
-            });
-        } else {
-            // Fallback to old confirm if ModalSystem is not available (shouldn't happen in production code if ModalSystem is critical)
-            if (confirm('⚠️ ATTENZIONE: Cancellare tutti i dati di tracking locali? I dati su Supabase NON saranno cancellati.')) {
-                localStorage.removeItem('trackings');
-                localStorage.removeItem('mockTrackings');
-                localStorage.removeItem('trackingColumns');
-                localStorage.removeItem('trackingStatsOrder');
-                localStorage.removeItem('trackingFilters');
-                localStorage.removeItem('trackingViewMode');
-                localStorage.removeItem('awbIdCache');
-                
-                if (window.NotificationSystem?.success) {
-                    window.NotificationSystem.success('Cache locale cancellata. Ricaricamento dati da cloud...');
-                }
-                
-                setTimeout(() => {
-                    window.location.reload();
-                }, 1000);
+        if (confirm('⚠️ ATTENZIONE: Cancellare tutti i dati di tracking locali? I dati su Supabase NON saranno cancellati.')) {
+            // Pulisci solo localStorage, non toccare Supabase
+            localStorage.removeItem('trackings');
+            localStorage.removeItem('mockTrackings'); // Rimuovi eventuali residui
+            localStorage.removeItem('trackingColumns');
+            localStorage.removeItem('trackingStatsOrder');
+            localStorage.removeItem('trackingFilters');
+            localStorage.removeItem('trackingViewMode');
+            localStorage.removeItem('awbIdCache');
+            
+            if (window.NotificationSystem?.success) {
+                window.NotificationSystem.success('Cache locale cancellata. Ricaricamento dati da cloud...');
             }
+            
+            setTimeout(() => {
+                window.location.reload();
+            }, 1000);
         }
     }
     
@@ -1674,7 +1588,7 @@
         
         try {
             // 1. Check authentication
-            const { data: { user } = {} } = await window.supabase.auth.getUser(); // Add default empty object to data
+            const { data: { user } } = await window.supabase.auth.getUser();
             if (!user) {
                 console.error('❌ User not authenticated');
                 window.NotificationSystem?.error('Devi essere autenticato per eseguire il test');
@@ -1739,17 +1653,10 @@
             console.log('\n⚙️ TRACKING SERVICE:');
             if (window.trackingService) {
                 const stats = window.trackingService.getStats();
-                console.log('Tracking Service Stats:', stats);
-                console.log('Has API Keys:', window.trackingService.hasApiKeys());
-                console.log('Mock Mode:', stats.mockMode);
-                console.log('Use Supabase:', stats.useSupabase);
-                
-                // Check API config
-                const hasV1 = !!(window.trackingService.apiConfig?.v1?.authCode);
-                const hasV2 = !!(window.trackingService.apiConfig?.v2?.userToken);
-                console.log('API Config:', { hasV1, hasV2 });
-            } else {
-                console.log('TrackingService: Not available');
+                console.log('- Initialized:', stats.initialized);
+                console.log('- Mock Mode:', stats.mockMode);
+                console.log('- Use Supabase:', stats.useSupabase);
+                console.log('- Has API Keys:', window.trackingService.hasApiKeys());
             }
             
             // 6. Generate final checksum
