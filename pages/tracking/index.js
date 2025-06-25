@@ -1464,25 +1464,31 @@ async function loadTrackings() {
         trackingTable.loading(true);
         
         // MODIFICATO: Carica da Supabase se disponibile, altrimenti da localStorage
-        if (window.supabaseTrackingService) {
-            console.log('📦 [Tracking] Loading from Supabase...');
-            try {
-                trackings = await window.supabaseTrackingService.getTrackings();
-                console.log(`📊 [Tracking] Loaded ${trackings.length} trackings from Supabase`);
-            } catch (error) {
-                console.error('❌ [Tracking] Error loading from Supabase:', error);
-                // Fallback to localStorage
-                const stored = localStorage.getItem('trackings');
-                trackings = stored ? JSON.parse(stored) : generateMockTrackings();
-                console.log(`📊 [Tracking] Fallback: Loaded ${trackings.length} trackings from localStorage`);
-            }
-        } else {
-            // Load from localStorage
-            const stored = localStorage.getItem('trackings');
-            console.log('📦 [Tracking] LocalStorage data:', stored ? 'Found' : 'Empty');
-            trackings = stored ? JSON.parse(stored) : generateMockTrackings();
-            console.log(`📊 [Tracking] Loaded ${trackings.length} trackings`);
-        }
+        try {
+    // Sempre Supabase come fonte primaria
+    const { data, error } = await window.supabase
+        .from('trackings')
+        .select('*')
+        .order('created_at', { ascending: false });
+    
+    if (error) throw error;
+    
+    trackings = data || [];
+    console.log(`📊 [Tracking] Loaded ${trackings.length} trackings from Supabase`);
+    
+} catch (error) {
+    console.error('❌ [Tracking] Supabase error:', error);
+    
+    // Fallback a localStorage SOLO se Supabase non è disponibile
+    const stored = localStorage.getItem('trackings');
+    if (stored) {
+        trackings = JSON.parse(stored);
+        console.log('📊 [Tracking] Fallback: Loaded from localStorage');
+    } else {
+        trackings = [];
+        console.log('📊 [Tracking] No data available');
+    }
+}
         
         // DEBUG: Verifica i campi data
         if (trackings.length > 0) {
