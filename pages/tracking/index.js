@@ -255,11 +255,11 @@ window.trackingInit = async function() {
         console.log('[Tracking] ✅ getColumnFormatter exposed in trackingInit');
         
        // Setup page components - ORDINE IMPORTANTE!
-setupStatsCards();
-setupTrackingTable();      // PRIMA crea la tabella
-setupBulkActions();        // POI setup bulk actions (dopo che DOM è pronto)
-setupCheckboxListeners();  // Setup listeners
-setupEventListeners();
+        setupStatsCards();
+        setupTrackingTable();      // PRIMA crea la tabella
+        setupBulkActions();        // POI setup bulk actions (dopo che DOM è pronto)
+        setupCheckboxListeners();  // Setup listeners
+        setupEventListeners();
         
         // Load initial data
         await loadTrackings();
@@ -588,7 +588,7 @@ onSelectionChange: function(selectedData) {
 }
 
 // === BULK ACTIONS FUNCTIONS ===
-function setupBulkActions() {
+window.setupBulkActions = function() {
     console.log('🔧 [setupBulkActions] Starting setup...');
     
     // Cerca il container giusto - prova più selettori
