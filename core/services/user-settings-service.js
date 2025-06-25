@@ -105,23 +105,23 @@ class UserSettingsService {
     }
 
     async getApiKey(provider) {
-        try {
-            const settings = await this.getSettings();
-            
-            if (settings?.api_keys?.[provider]) {
-                // Decrypt the key
-                return atob(settings.api_keys[provider]); // In produzione usa crypto-js
-            }
-            
-            // Fallback to localStorage
-            return localStorage.getItem(`${provider}_api_key`);
-            
-        } catch (error) {
-            console.error('Error getting API key:', error);
-            // Fallback to localStorage
-            return localStorage.getItem(`${provider}_api_key`);
+    try {
+        const settings = await this.getSettings();
+        
+        if (settings?.api_keys?.[provider]) {
+            // NON decrittare - restituisci direttamente
+            return settings.api_keys[provider];
         }
+        
+        // Fallback to localStorage
+        return localStorage.getItem(`${provider}_api_key`);
+        
+    } catch (error) {
+        console.error('Error getting API key:', error);
+        // Fallback to localStorage
+        return localStorage.getItem(`${provider}_api_key`);
     }
+}
 
     async removeApiKey(provider) {
         try {
