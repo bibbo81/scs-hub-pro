@@ -107,19 +107,6 @@
         console.log('✅ API Key Manager importato:', !!window.apiKeyManager);
         console.log('✅ OrganizationApiKeysService exposed globally');
         
-        // Force header initialization if not already done
-        if (window.headerComponent && typeof window.headerComponent.init === 'function') {
-            setTimeout(async () => {
-                try {
-                    if (!document.querySelector('.sol-header')) {
-                        console.log('🔧 [ES6] Force initializing header...');
-                        await window.headerComponent.init();
-                    }
-                } catch (error) {
-                    console.error('❌ [ES6] Header init error:', error);
-                }
-            }, 500);
-        }
     </script>
     
     <script type="module">
