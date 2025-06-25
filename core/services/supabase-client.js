@@ -12,6 +12,7 @@ const createClient = window.supabase.createClient;
 // Configurazione Supabase
 const SUPABASE_URL = 'https://gnlrmnsdmpjzitsysowq.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_UlQ7dXvHEK9ciK0wi2ABUg_jlPcwsNg';
+
 // Flag per tracciare lo stato dell'inizializzazione
 let isInitializing = false;
 let initializationComplete = false;
@@ -35,29 +36,25 @@ export const requireAuth = async () => {
     const { data: { user } } = await supabase.auth.getUser();
     
     if (!user) {
-        console.log('🔐 Nessun utente, tentativo login anonimo...');
-        
-        // Tenta login anonimo
+        // PRODUCTION: Login anonimo disabilitato per sicurezza
+        // Se vuoi abilitarlo, decommenta le righe seguenti:
+        /*
         const { data, error } = await supabase.auth.signInAnonymously();
-        
         if (error) {
-            console.error('❌ Login anonimo fallito:', error);
             throw new Error('Authentication required: ' + error.message);
         }
-        
-        console.log('✅ Login anonimo riuscito:', data.user.id);
         return data.user;
+        */
+        throw new Error('Authentication required');
     }
     
-    console.log('👤 Utente già autenticato:', user.id);
     return user;
 };
 
-// Helper per ottenere org corrente (per futuro)
+// Helper per ottenere org corrente
 export const getCurrentOrg = async () => {
     const user = await requireAuth();
     
-    // Per ora ritorna org default
     const { data, error } = await supabase
         .from('organization_members')
         .select('organization_id, organizations(*)')
@@ -65,7 +62,6 @@ export const getCurrentOrg = async () => {
         .single();
     
     if (error) {
-        console.log('📦 Nessuna organizzazione trovata (normale per utenti anonimi)');
         return null;
     }
     
@@ -104,8 +100,9 @@ export const auth = {
     },
 
     async signInAnonymously() {
-        const { data, error } = await supabase.auth.signInAnonymously();
-        return { data, error };
+        // PRODUCTION: Disabilitato per sicurezza
+        throw new Error('Anonymous sign-in is disabled in production');
+        // Per abilitare: return await supabase.auth.signInAnonymously();
     },
 
     onAuthStateChange(callback) {
@@ -113,56 +110,35 @@ export const auth = {
     }
 };
 
-// Helper per debug
+// Helper per debug (solo in development)
 export const debug = {
     async testConnection() {
-        try {
-            const { data, error } = await supabase
-                .from('trackings')
-                .select('count')
-                .limit(1);
-            
-            if (error) throw error;
-            
-            console.log('✅ Supabase connection successful');
-            return true;
-        } catch (error) {
-            console.error('❌ Supabase connection failed:', error);
-            return false;
+        if (window.location.hostname === 'localhost') {
+            try {
+                const { data, error } = await supabase
+                    .from('trackings')
+                    .select('count')
+                    .limit(1);
+                
+                if (error) throw error;
+                return true;
+            } catch (error) {
+                console.error('Supabase connection failed:', error);
+                return false;
+            }
         }
-    },
-    
-    async testAuth() {
-        try {
-            const user = await requireAuth();
-            console.log('✅ Auth test successful:', {
-                id: user.id,
-                email: user.email || 'Anonymous',
-                role: user.role
-            });
-            return true;
-        } catch (error) {
-            console.error('❌ Auth test failed:', error);
-            return false;
-        }
+        return null;
     }
 };
 
-// Esponi globalmente per debug e retrocompatibilità
+// Esponi globalmente per retrocompatibilità
 window.supabaseClient = supabase;
-window.supabaseDebug = debug;
-window.supabaseRequireAuth = requireAuth;
-window.supabaseGetCurrentOrg = getCurrentOrg;
 window.supabaseAuth = auth;
-window.supabaseInstance = supabase; // Aggiungi riferimento per initializeSupabase
-
-console.log('✅ Supabase client inizializzato correttamente');
+window.supabaseInstance = supabase;
 
 // Funzione di inizializzazione con protezione contro multiple chiamate
 async function initializeSupabase() {
-    // Previeni inizializzazioni multiple
     if (isInitializing || initializationComplete) {
-        console.log('[Supabase] Already initialized or initializing');
         return window.supabaseInstance;
     }
     
@@ -171,37 +147,30 @@ async function initializeSupabase() {
     try {
         // Controlla se c'è già un utente
         const user = await auth.getUser();
-        if (!user) {
-            console.log('🔐 Nessun utente trovato, inizializzazione auth anonima...');
-            await requireAuth();
-        }
         
         initializationComplete = true;
         
-        // Notifica solo per veri eventi di login, non per token refresh
+        // Listen to auth changes silently
         supabase.auth.onAuthStateChange((event, session) => {
-            console.log('[Supabase] Auth event:', event);
-            
-            // Solo log, niente notifiche qui - lascia che sia header-component a gestirle
-            if (event === 'TOKEN_REFRESHED') {
-                console.log('[Supabase] Token refreshed silently');
+            // Solo log per eventi importanti
+            if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') {
+                console.log('[Auth]', event);
             }
         });
         
-        console.log('[Supabase] Initialization complete');
         return window.supabaseInstance;
         
     } catch (error) {
-        console.error('[Supabase] Initialization error:', error);
-        throw error;
+        // Silent fail in production
+        return window.supabaseInstance;
     } finally {
         isInitializing = false;
     }
 }
 
-// Auto-inizializza usando la nuova funzione protetta
-initializeSupabase().catch(error => {
-    console.log('⚠️ Auto-init auth skipped:', error.message);
+// Auto-inizializza
+initializeSupabase().catch(() => {
+    // Silent fail
 });
 
 // Export default
@@ -210,5 +179,4 @@ export default supabase;
 // Esponi globalmente SOLO UNA VOLTA
 if (typeof window !== 'undefined' && !window.supabase) {
     window.supabase = supabase;
-    console.log('[Supabase Client] ✅ Exposed globally as window.supabase');
 }

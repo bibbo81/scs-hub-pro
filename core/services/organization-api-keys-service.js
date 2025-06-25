@@ -10,74 +10,49 @@ class OrganizationApiKeysService {
     }
 
     // Ottieni l'organizzazione corrente dell'utente
-async getCurrentOrganization() {
-    if (this.currentOrg) return this.currentOrg;
-    
-    try {
-        const user = await requireAuth();
-        if (!user) {
-            console.log('[OrgApiKeys] No user authenticated');
+    async getCurrentOrganization() {
+        if (this.currentOrg) return this.currentOrg;
+
+        try {
+            const user = await requireAuth();
+            if (!user) {
+                return null;
+            }
+
+            // PRODUCTION FIX: Query semplificata per evitare errore 406
+            // Prima ottieni membership
+            const { data: memberData, error: memberError } = await supabase
+                .from('organization_members')
+                .select('organization_id, role')
+                .eq('user_id', user.id)
+                .maybeSingle(); // Usa maybeSingle invece di single
+
+            if (memberError || !memberData) {
+                return null;
+            }
+
+            // Poi ottieni organizzazione
+            const { data: orgData, error: orgError } = await supabase
+                .from('organizations')
+                .select('id, name')
+                .eq('id', memberData.organization_id)
+                .single();
+
+            if (orgError || !orgData) {
+                return null;
+            }
+
+            // Salva in cache
+            this.currentOrg = orgData;
+            this.userRole = memberData.role;
+
+            return this.currentOrg;
+
+        } catch (error) {
+            // Silent fail in production
             return null;
         }
-        
-        const { data, error } = await supabase
-            .from('organization_members')
-            .select(`
-                organization_id,
-                role,
-                organizations (
-                    id,
-                    name
-                )
-            `)
-            .eq('user_id', user.id)
-            .single();
-            
-        if (error) {
-            // Se l'errore è 406, probabilmente è un problema di header
-            if (error.code === '406') {
-                console.warn('[OrgApiKeys] 406 error - retrying with different approach');
-                
-                // Prova con una query più semplice
-                const { data: simpleData, error: simpleError } = await supabase
-                    .from('organization_members')
-                    .select('organization_id, role')
-                    .eq('user_id', user.id)
-                    .single();
-                    
-                if (!simpleError && simpleData) {
-                    // Carica l'organizzazione separatamente
-                    const { data: orgData, error: orgError } = await supabase
-                        .from('organizations')
-                        .select('id, name')
-                        .eq('id', simpleData.organization_id)
-                        .single();
-                        
-                    if (!orgError && orgData) {
-                        this.currentOrg = orgData;
-                        this.userRole = simpleData.role;
-                        return this.currentOrg;
-                    }
-                }
-            }
-            
-            throw error;
-        }
-        
-        // Salva i dati in cache
-        if (data && data.organizations) {
-            this.currentOrg = data.organizations;
-            this.userRole = data.role;
-            return this.currentOrg;
-        }
-        
-        return null;
-        
-    } catch (error) {
-        console.log('[OrgApiKeys] No organization found for user:', error.message);
-        return null;
     }
-}
 
     // Verifica se l'utente è admin
     async isAdmin() {
@@ -119,12 +94,12 @@ async getCurrentOrganization() {
 
             // Invalida cache
             this.cache.delete(`${org.id}_${provider}`);
-            
+
             console.log(`✅ API key aziendale per ${provider} salvata`);
-            
+
             // Notifica altri utenti dell'organizzazione
             await this.notifyApiKeyUpdate(provider);
-            
+
             return true;
 
         } catch (error) {
@@ -179,10 +154,10 @@ async getCurrentOrganization() {
 
             // Decripta
             const decryptedKey = atob(data.api_key);
-            
+
             // Salva in cache
             this.cache.set(cacheKey, decryptedKey);
-            
+
             return decryptedKey;
 
         } catch (error) {
@@ -235,12 +210,12 @@ async getCurrentOrganization() {
 
             // Invalida cache
             this.cache.delete(`${org.id}_${provider}`);
-            
+
             console.log(`✅ API key aziendale per ${provider} rimossa`);
-            
+
             // Notifica altri utenti
             await this.notifyApiKeyUpdate(provider);
-            
+
             return true;
 
         } catch (error) {
@@ -281,11 +256,11 @@ async getCurrentOrganization() {
                 .channel(`org-${org.id}-api-keys`)
                 .on('broadcast', { event: 'api-key-updated' }, (payload) => {
                     console.log('📢 API key aziendale aggiornata:', payload);
-                    
+
                     // Invalida cache
                     const provider = payload.payload.provider;
                     this.cache.delete(`${org.id}_${provider}`);
-                    
+
                     // Chiama callback
                     if (callback) callback(payload.payload);
                 })
@@ -314,7 +289,7 @@ async getCurrentOrganization() {
             for (const provider of providers) {
                 const hasOrgKey = !!(await this.getOrganizationApiKey(provider));
                 const hasPersonalKey = !!(await userSettingsService.getApiKey(provider));
-                
+
                 info.apiKeys[provider] = {
                     hasOrganizationKey: hasOrgKey,
                     hasPersonalKey: hasPersonalKey,
@@ -382,11 +357,11 @@ async getCurrentOrganization() {
             if (memberError) throw memberError;
 
             console.log('✅ Organizzazione demo creata:', org);
-            
+
             // Reset cache
             this.currentOrg = null;
             this.userRole = null;
-            
+
             return org;
 
         } catch (error) {
@@ -402,10 +377,10 @@ const orgApiKeysService = new OrganizationApiKeysService();
 // Auto-subscribe agli aggiornamenti
 orgApiKeysService.subscribeToApiKeyUpdates((update) => {
     console.log('🔄 API key aziendale aggiornata:', update);
-    
+
     // Dispatch evento per aggiornare UI
-    window.dispatchEvent(new CustomEvent('orgApiKeyUpdated', { 
-        detail: update 
+    window.dispatchEvent(new CustomEvent('orgApiKeyUpdated', {
+        detail: update
     }));
 });
 

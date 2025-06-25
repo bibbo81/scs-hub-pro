@@ -68,226 +68,6 @@
     
     <script type="module" src="/core/modal-system.js"></script>
     
-    <script>
-    // Disabilita il mock interceptor
-    window.FORCE_MOCK_API = false;
-    // Verifica
-    console.log('Force Mock:', window.FORCE_MOCK_API);
-    
-    if (window.FORCE_MOCK_API) {
-        const originalFetch = window.fetch;
-        window.fetch = function(...args) {
-            const url = args[0];
-            
-            // Intercetta chiamate a Netlify functions
-            if (url.includes('/netlify/functions/')) {
-                console.log('[ForceMock] Intercepting:', url);
-                
-                // Mock per notifications
-                if (url.includes('notifications')) {
-                    return Promise.resolve({
-                        ok: true,
-                        status: 200,
-                        headers: new Headers({'content-type': 'application/json'}),
-                        json: () => Promise.resolve({
-                            notifications: [
-                                {
-                                    id: 1,
-                                    type: 'shipment',
-                                    title: 'Spedizione in arrivo',
-                                    message: 'Container MSKU1234567 arriverà domani',
-                                    read: false,
-                                    created_at: new Date().toISOString()
-                                },
-                                {
-                                    id: 2,
-                                    type: 'warning',
-                                    title: 'Ritardo spedizione',
-                                    message: 'BL MSCU7654321 è in ritardo di 2 giorni',
-                                    read: false,
-                                    created_at: new Date(Date.now() - 86400000).toISOString()
-                                }
-                            ],
-                            unread_count: 2,
-                            total: 2
-                        })
-                    });
-                }
-                
-                // Mock per GET trackings
-                if (url.includes('get-trackings') && args[1]?.method !== 'POST') {
-                    return Promise.resolve({
-                        ok: true,
-                        status: 200,
-                        headers: new Headers({'content-type': 'application/json'}),
-                        json: () => {
-                            // Combina mock data con localStorage
-                            const savedTrackings = JSON.parse(localStorage.getItem('mockTrackings') || '[]');
-                            const mockTrackings = window.MockData?.generateTrackings()?.trackings || [];
-                            
-                            // Merge: saved + mock (evita duplicati per ID)
-                            const seenIds = new Set(savedTrackings.map(t => t.id));
-                            const allTrackings = [
-                                ...savedTrackings,
-                                ...mockTrackings.filter(t => !seenIds.has(t.id))
-                            ];
-                            
-                            return Promise.resolve({
-                                trackings: allTrackings,
-                                stats: {
-                                    total: allTrackings.length,
-                                    in_transit: allTrackings.filter(t => t.status === 'in_transit').length,
-                                    out_for_delivery: allTrackings.filter(t => t.status === 'out_for_delivery').length,
-                                    delivered: allTrackings.filter(t => t.status === 'delivered').length,
-                                    delayed: allTrackings.filter(t => t.status === 'delayed').length,
-                                    registered: allTrackings.filter(t => t.status === 'registered').length
-                                }
-                            });
-                        }
-                    });
-                }
-                
-                // Mock per POST add-tracking
-                if (url.includes('add-tracking')) {
-                    // Parse body
-                    let bodyData;
-                    try {
-                        bodyData = JSON.parse(args[1].body);
-                    } catch (e) {
-                        bodyData = {};
-                    }
-                    
-                    // Recupera trackings esistenti
-                    const mockTrackings = JSON.parse(localStorage.getItem('mockTrackings') || '[]');
-                    
-                    // Crea nuovo tracking
-                    const newTracking = {
-                        id: Date.now(),
-                        ...bodyData,
-                        status: bodyData.status || 'registered',
-                        created_at: new Date().toISOString(),
-                        updated_at: new Date().toISOString(),
-                        last_event_date: new Date().toISOString(),
-                        last_event_location: 'Registered',
-                        user_id: 'mock-user'
-                    };
-                    
-                    // Salva
-                    mockTrackings.push(newTracking);
-                    localStorage.setItem('mockTrackings', JSON.stringify(mockTrackings));
-                    
-                    console.log('[Mock] Tracking added:', newTracking);
-                    
-                    return Promise.resolve({
-                        ok: true,
-                        status: 200,
-                        headers: new Headers({'content-type': 'application/json'}),
-                        json: () => Promise.resolve({ 
-                            success: true, 
-                            data: newTracking 
-                        })
-                    });
-                }
-                
-                // Mock per POST import-trackings (batch)
-                if (url.includes('import-trackings')) {
-                    let bodyData;
-                    try {
-                        bodyData = JSON.parse(args[1].body);
-                    } catch (e) {
-                        bodyData = { trackings: [] };
-                    }
-                    
-                    const mockTrackings = JSON.parse(localStorage.getItem('mockTrackings') || '[]');
-                    const imported = [];
-                    
-                    // Import tutti i tracking
-                    bodyData.trackings?.forEach(tracking => {
-                        const newTracking = {
-                            id: Date.now() + Math.random(),
-                            ...tracking,
-                            status: tracking.status || 'registered',
-                            created_at: new Date().toISOString(),
-                            updated_at: new Date().toISOString(),
-                            user_id: 'mock-user'
-                        };
-                        mockTrackings.push(newTracking);
-                        imported.push(newTracking);
-                    });
-                    
-                    localStorage.setItem('mockTrackings', JSON.stringify(mockTrackings));
-                    
-                    console.log('[Mock] Batch import:', imported.length, 'trackings');
-                    
-                    return Promise.resolve({
-                        ok: true,
-                        status: 200,
-                        headers: new Headers({'content-type': 'application/json'}),
-                        json: () => Promise.resolve({ 
-                            success: true,
-                            result: {
-                                imported: imported.length,
-                                updated: 0,
-                                skipped: 0,
-                                errors: 0
-                            },
-                            data: imported
-                        })
-                    });
-                }
-                
-                // Mock per POST update-tracking
-                if (url.includes('update-tracking')) {
-                    return Promise.resolve({
-                        ok: true,
-                        status: 200,
-                        headers: new Headers({'content-type': 'application/json'}),
-                        json: () => Promise.resolve({ success: true, message: 'Updated' })
-                    });
-                }
-                
-                // Mock per POST delete-tracking
-                if (url.includes('delete-tracking')) {
-                    let bodyData;
-                    try {
-                        bodyData = JSON.parse(args[1].body);
-                    } catch (e) {
-                        bodyData = {};
-                    }
-                    
-                    if (bodyData.trackingId) {
-                        const mockTrackings = JSON.parse(localStorage.getItem('mockTrackings') || '[]');
-                        const filtered = mockTrackings.filter(t => t.id !== bodyData.trackingId);
-                        localStorage.setItem('mockTrackings', JSON.stringify(filtered));
-                        
-                        console.log('[Mock] Tracking deleted:', bodyData.trackingId);
-                    }
-                    
-                    return Promise.resolve({
-                        ok: true,
-                        status: 200,
-                        headers: new Headers({'content-type': 'application/json'}),
-                        json: () => Promise.resolve({ success: true })
-                    });
-                }
-                
-                // Default response per altre chiamate
-                return Promise.resolve({
-                    ok: true,
-                    status: 200,
-                    headers: new Headers({'content-type': 'application/json'}),
-                    json: () => Promise.resolve({ success: true, data: {} })
-                });
-            }
-            
-            // Passa attraverso per URL non-Netlify
-            return originalFetch.apply(this, args);
-        };
-        
-        console.log('[ForceMock] Complete mock interceptor installed');
-    }
-    </script>
-    
     <script type="module">
         // Import core modules
         import api from '/core/api-client.js';
@@ -704,8 +484,6 @@
     });
     </script>
     
-    <script src="/core/mock-data.js"></script>
-
     <script type="module">
     // Import del modulo tracking/index.js con fix per column formatters
     import('/pages/tracking/index.js').then(module => {
@@ -1261,9 +1039,13 @@
                         <i class="fas fa-spinner fa-spin"></i>
                     </span>
                 </a>
-                <button class="sol-btn sol-btn-glass" onclick="clearMockData()">
+                <button class="sol-btn sol-btn-glass" onclick="clearProductionData()">
                     <i class="fas fa-trash"></i>
                     <span>Clear Data</span>
+                </button>
+                <button class="sol-btn sol-btn-glass" onclick="testCrossBrowserData()">
+                    <i class="fas fa-check-double"></i>
+                    <span>Test Sync</span>
                 </button>
                 <button class="sol-btn sol-btn-glass" onclick="testModalSystem()">
                     <i class="fas fa-flask"></i>
@@ -1767,18 +1549,20 @@
         }
     };
 
-    // Clear Mock Data Function
-    function clearMockData() {
-        if (confirm('Cancellare tutti i dati di tracking? Questa azione non può essere annullata.')) {
+    // Clear Production Data Function (for production use)
+    function clearProductionData() {
+        if (confirm('⚠️ ATTENZIONE: Cancellare tutti i dati di tracking locali? I dati su Supabase NON saranno cancellati.')) {
+            // Pulisci solo localStorage, non toccare Supabase
             localStorage.removeItem('trackings');
-            localStorage.removeItem('mockTrackings');
+            localStorage.removeItem('mockTrackings'); // Rimuovi eventuali residui
             localStorage.removeItem('trackingColumns');
             localStorage.removeItem('trackingStatsOrder');
             localStorage.removeItem('trackingFilters');
             localStorage.removeItem('trackingViewMode');
+            localStorage.removeItem('awbIdCache');
             
             if (window.NotificationSystem?.success) {
-                window.NotificationSystem.success('Dati cancellati con successo');
+                window.NotificationSystem.success('Cache locale cancellata. Ricaricamento dati da cloud...');
             }
             
             setTimeout(() => {
@@ -1787,8 +1571,116 @@
         }
     }
     
-    // Global assignment for onclick
-    window.clearMockData = clearMockData;
+    // Cross-Browser Data Consistency Test
+    async function testCrossBrowserData() {
+        console.log('🔍 CROSS-BROWSER DATA CONSISTENCY TEST');
+        console.log('=====================================');
+        console.log('Browser:', navigator.userAgent.split(' ').pop());
+        console.log('Timestamp:', new Date().toISOString());
+        
+        try {
+            // 1. Check authentication
+            const { data: { user } } = await window.supabase.auth.getUser();
+            if (!user) {
+                console.error('❌ User not authenticated');
+                window.NotificationSystem?.error('Devi essere autenticato per eseguire il test');
+                return;
+            }
+            
+            console.log('✅ User ID:', user.id);
+            console.log('✅ Email:', user.email || 'Anonymous');
+            
+            // 2. Get trackings from Supabase
+            console.log('\n📦 TRACKINGS DATA:');
+            const { data: trackings, error: trackingsError } = await window.supabase
+                .from('trackings')
+                .select('*')
+                .order('created_at', { ascending: false });
+            
+            if (trackingsError) {
+                console.error('❌ Error loading trackings:', trackingsError);
+            } else {
+                console.log('- Count:', trackings?.length || 0);
+                console.log('- First tracking:', trackings?.[0] ? {
+                    id: trackings[0].id,
+                    tracking_number: trackings[0].tracking_number,
+                    status: trackings[0].status,
+                    created_at: trackings[0].created_at
+                } : 'None');
+                
+                // Generate checksum for trackings
+                if (trackings && trackings.length > 0) {
+                    const trackingChecksum = trackings
+                        .map(t => `${t.id}-${t.tracking_number}-${t.status}`)
+                        .join('|')
+                        .substring(0, 50); // First 50 chars
+                    console.log('- Checksum:', trackingChecksum);
+                }
+            }
+            
+            // 3. Get API keys
+            console.log('\n🔑 API KEYS:');
+            if (window.userSettingsService) {
+                const keys = await window.userSettingsService.getAllApiKeys();
+                console.log('- Personal Keys:', Object.keys(keys).filter(k => keys[k]).join(', ') || 'None');
+                
+                // Generate checksum for keys
+                const keyChecksum = Object.keys(keys)
+                    .filter(k => keys[k])
+                    .map(k => `${k}:${keys[k].substring(0, 8)}...`)
+                    .join('|');
+                console.log('- Keys Checksum:', keyChecksum || 'No keys');
+            }
+            
+            // 4. Check organization
+            console.log('\n🏢 ORGANIZATION:');
+            if (window.organizationApiKeysService) {
+                const orgInfo = await window.organizationApiKeysService.getOrganizationApiKeysInfo();
+                console.log('- Has Organization:', orgInfo.hasOrganization);
+                console.log('- Organization Name:', orgInfo.organizationName || 'None');
+                console.log('- Is Admin:', orgInfo.isAdmin || false);
+            }
+            
+            // 5. Check tracking service state
+            console.log('\n⚙️ TRACKING SERVICE:');
+            if (window.trackingService) {
+                const stats = window.trackingService.getStats();
+                console.log('- Initialized:', stats.initialized);
+                console.log('- Mock Mode:', stats.mockMode);
+                console.log('- Use Supabase:', stats.useSupabase);
+                console.log('- Has API Keys:', window.trackingService.hasApiKeys());
+            }
+            
+            // 6. Generate final checksum
+            console.log('\n📊 FINAL DATA CHECKSUM:');
+            const finalChecksum = {
+                userId: user.id.substring(0, 8),
+                trackingCount: trackings?.length || 0,
+                hasApiKeys: window.trackingService?.hasApiKeys() || false,
+                timestamp: Date.now()
+            };
+            
+            const checksumString = btoa(JSON.stringify(finalChecksum)).substring(0, 20);
+            console.log('🔐 CHECKSUM:', checksumString);
+            console.log('\n✅ Confronta questo checksum su browser diversi!');
+            console.log('    Se i checksum sono identici, i dati sono sincronizzati.');
+            console.log('=====================================');
+            
+            // Show notification
+            window.NotificationSystem?.info(`Checksum: ${checksumString}`, {
+                title: 'Test Cross-Browser Completato',
+                duration: 10000
+            });
+            
+        } catch (error) {
+            console.error('❌ Test error:', error);
+            window.NotificationSystem?.error('Errore durante il test: ' + error.message);
+        }
+    }
+    
+    // Global assignments
+    window.clearProductionData = clearProductionData;
+    window.testCrossBrowserData = testCrossBrowserData;
     
     // Debug function for tracking system
     window.debugTrackingSystem = function() {
