@@ -79,7 +79,14 @@ export class HeaderComponent {
     async _performInit() {
         console.log('🔧 [HeaderComponent] Starting initialization...');
         
-        // PULIZIA HEADER DUPLICATI
+        // CRITICAL: Rimuovi TUTTI gli header esistenti prima di inizializzare
+        const existingHeaders = document.querySelectorAll('.sol-header');
+        if (existingHeaders.length > 0) {
+            console.warn(`[HeaderComponent] Found ${existingHeaders.length} existing headers, removing ALL...`);
+            existingHeaders.forEach(header => header.remove());
+        }
+        
+        // PULIZIA HEADER DUPLICATI (per sicurezza extra)
         this._cleanupDuplicateHeaders();
         
         // Inietta stili per mobile checkbox fix
@@ -719,10 +726,17 @@ export class HeaderComponent {
         this.invalidateUserCache();
         
         // Update user info
-        if (event === 'SIGNED_IN') {
+        if (event === 'SIGNED_IN' || event === 'USER_UPDATED') {
+            // CRITICAL: Solo aggiorna il display, NON re-inizializzare
             setTimeout(async () => {
                 const userInfo = await this.getUserInfo();
                 this.updateUserDisplay(userInfo);
+                
+                // Aggiorna anche i dropdown se esistono
+                const dropdownName = document.querySelector('.user-name');
+                const dropdownEmail = document.querySelector('.user-email');
+                if (dropdownName) dropdownName.textContent = userInfo.name;
+                if (dropdownEmail) dropdownEmail.textContent = userInfo.email;
             }, 500);
         }
         
@@ -1049,12 +1063,17 @@ async function autoInitHeader() {
 // Single event listener con once: true e check preventivo
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
-        // Double-check: non inizializzare se header già presente
-        if (!document.querySelector('.sol-header')) {
-            autoInitHeader();
-        } else {
-            console.log('[HeaderComponent] Header found at DOMContentLoaded, skipping auto-init');
-        }
+        // CRITICAL: Aspetta che Supabase sia pronto prima di inizializzare
+        setTimeout(() => {
+            // Double-check: non inizializzare se header già presente
+            if (!document.querySelector('.sol-header')) {
+                autoInitHeader();
+            } else {
+                console.log('[HeaderComponent] Header found at DOMContentLoaded, skipping auto-init');
+                // Ma assicurati che gli event listener siano attaccati
+                headerComponent.attachEventListeners();
+            }
+        }, 200); // Delay per dare tempo a Supabase di caricare
     }, { once: true });
 } else {
     // DOM già caricato - usa setTimeout per evitare race conditions
@@ -1064,8 +1083,10 @@ if (document.readyState === 'loading') {
             autoInitHeader();
         } else {
             console.log('[HeaderComponent] Header found after load, skipping auto-init');
+            // Ma assicurati che gli event listener siano attaccati
+            headerComponent.attachEventListeners();
         }
-    }, 100);
+    }, 200); // Delay per dare tempo a Supabase di caricare
 }
 
 // FIX 2: handleLogout MIGLIORATO per Demo User
