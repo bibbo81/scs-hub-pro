@@ -1429,102 +1429,66 @@ function generateDemoTimeline(tracking) {
    </script>
 
 <script>
-window.setupBulkActions = function() {
-    console.log('🔧 [setupBulkActions] Creating bulk actions container...');
-    
-    if (document.getElementById('bulkActionsContainer')) {
-        console.log('✅ Container already exists');
-        return;
-    }
-    
-    const bulkActions = document.createElement('div');
-    bulkActions.id = 'bulkActionsContainer';
-    bulkActions.style.display = 'none';
-    bulkActions.className = 'bulk-actions-container';
-    bulkActions.innerHTML = `
-        <div class="bulk-actions-bar">
-            <span class="selected-count">
-                <i class="fas fa-check-square"></i>
-                <span id="selectedCount">0</span> selezionati
-            </span>
-            <div class="bulk-actions">
-                <button class="btn btn-sm btn-primary" onclick="bulkRefreshTrackings()">
-                    <i class="fas fa-sync-alt"></i> Aggiorna Selezionati
-                </button>
-                <button class="btn btn-sm btn-danger" onclick="bulkDeleteTrackings()">
-                    <i class="fas fa-trash"></i> Elimina Selezionati
-                </button>
-                <button class="btn btn-sm btn-secondary" onclick="exportSelectedTrackings()">
-                    <i class="fas fa-file-export"></i> Esporta Selezionati
-                </button>
-                <button class="btn btn-sm btn-outline" onclick="clearSelection()">
-                    <i class="fas fa-times"></i> Deseleziona
-                </button>
+// AUTO-CREATE BULK ACTIONS AFTER PAGE LOAD
+window.addEventListener('DOMContentLoaded', function() {
+    setTimeout(function() {
+        // Check if already exists
+        if (document.getElementById('bulkActionsContainer')) return;
+        
+        // Create container
+        const container = document.createElement('div');
+        container.id = 'bulkActionsContainer';
+        container.className = 'bulk-actions-container';
+        container.style.display = 'none';
+        
+        container.innerHTML = `
+            <div class="bulk-actions-bar">
+                <span class="selected-count">
+                    <i class="fas fa-check-square"></i>
+                    <span id="selectedCount">0</span> selezionati
+                </span>
+                <div class="bulk-actions">
+                    <button class="btn btn-sm btn-primary" onclick="bulkRefreshTrackings()">
+                        <i class="fas fa-sync-alt"></i> Aggiorna
+                    </button>
+                    <button class="btn btn-sm btn-danger" onclick="bulkDeleteTrackings()">
+                        <i class="fas fa-trash"></i> Elimina
+                    </button>
+                    <button class="btn btn-sm btn-secondary" onclick="exportSelectedTrackings()">
+                        <i class="fas fa-file-export"></i> Esporta
+                    </button>
+                    <button class="btn btn-sm btn-outline" onclick="clearSelection()">
+                        <i class="fas fa-times"></i> Deseleziona
+                    </button>
+                </div>
             </div>
-        </div>
-    `;
-    
-    const targetContainer = document.querySelector('.sol-card-header');
-    if (targetContainer && targetContainer.parentNode) {
-        targetContainer.parentNode.insertBefore(bulkActions, targetContainer.nextSibling);
-        console.log('✅ Bulk actions container created!');
-    } else {
-        console.error('❌ Target container not found!');
-    }
-};
+        `;
+        
+        // Insert before table
+        const table = document.getElementById('trackingTableContainer');
+        if (table) {
+            table.parentNode.insertBefore(container, table);
+            
+            // Connect to table
+            const checkTable = setInterval(function() {
+                if (window.trackingTable && window.trackingTable.onSelectionChange) {
+                    clearInterval(checkTable);
+                    
+                    // Override selection handler
+                    const original = window.trackingTable.onSelectionChange;
+                    window.trackingTable.onSelectionChange = function(selected) {
+                        if (original) original(selected);
+                        container.style.display = selected.length > 0 ? 'block' : 'none';
+                        document.getElementById('selectedCount').textContent = selected.length;
+                    };
+                    
+                    console.log('✅ Bulk actions connected to table!');
+                }
+            }, 100);
+        }
+    }, 2000);
+});
 </script>
 
-<script>
-    // Fix per auto-inizializzare bulk actions
-    window.addEventListener('load', function() {
-        console.log('🔧 [BulkActions Fix] Window loaded, checking for setupBulkActions...');
-        
-        // Prova immediatamente
-        if (typeof window.setupBulkActions === 'function' && !document.getElementById('bulkActionsContainer')) {
-            console.log('✅ [BulkActions Fix] Calling setupBulkActions immediately');
-            window.setupBulkActions();
-        }
-        
-        // Riprova dopo 500ms per sicurezza
-        setTimeout(() => {
-            if (typeof window.setupBulkActions === 'function' && !document.getElementById('bulkActionsContainer')) {
-                console.log('✅ [BulkActions Fix] Calling setupBulkActions after delay');
-                window.setupBulkActions();
-            } else if (document.getElementById('bulkActionsContainer')) {
-                console.log('✅ [BulkActions Fix] Container already exists');
-            } else {
-                console.warn('⚠️ [BulkActions Fix] setupBulkActions not found');
-            }
-        }, 500);
-        
-        // Final check dopo 2 secondi
-        setTimeout(() => {
-            if (!document.getElementById('bulkActionsContainer')) {
-                console.error('❌ [BulkActions Fix] Failed to create bulk actions container after 2s');
-                
-                // Tentativo estremo: cerca la funzione nel modulo
-                if (window.trackingInit && typeof window.trackingInit === 'function') {
-                    console.log('🔧 [BulkActions Fix] Found trackingInit, trying from there...');
-                    // Trigger manual setup se possibile
-                    const setupBtn = document.querySelector('[onclick*="setupBulkActions"]');
-                    if (setupBtn) {
-                        console.log('🔧 [BulkActions Fix] Found setup button, triggering...');
-                        setupBtn.click();
-                    }
-                }
-            } else {
-                console.log('✅ [BulkActions Fix] Bulk actions container successfully created');
-            }
-        }, 2000);
-    });
-    
-    // Aggiungi anche listener per quando trackingInit è completato
-    window.addEventListener('trackingInitComplete', function() {
-        console.log('📡 [BulkActions Fix] trackingInitComplete event received');
-        if (typeof window.setupBulkActions === 'function' && !document.getElementById('bulkActionsContainer')) {
-            window.setupBulkActions();
-        }
-    });
-    </script>
 </body>
 </html>
