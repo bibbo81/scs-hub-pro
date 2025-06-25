@@ -1465,9 +1465,7 @@
         while (!window.ModalSystem && attempts < 10) {
             await new Promise(resolve => setTimeout(resolve, 100));
             attempts++;
-        }
-        
-        if (!window.ModalSystem) {
+        }if (!window.ModalSystem) {
             alert('❌ ModalSystem not available');
             return;
         }
@@ -1732,30 +1730,31 @@
         
         if (window.ModalSystem) {
             if (typeof window.ModalSystem.debugInfo === 'function') {
-                console.log('- Modal System Debug:', window.ModalSystem.debugInfo());} else {
-               console.log('- Active Modals:', document.querySelectorAll('.sol-modal-overlay').length);
-           }
-       }
-       
-       if (window.NotificationSystem) {
-           if (typeof window.NotificationSystem.getActiveNotifications === 'function') {
-               console.log('- Active Notifications:', window.NotificationSystem.getActiveNotifications());
-           } else {
-               console.log('- Notification Container:', !!document.getElementById('notification-container'));
-           }
-       }
-       
-       console.log('- Import Manager:', !!window.ImportManager);
-       console.log('- Tracking Service:', !!window.trackingService);
-   };
-   
-   // Auto-run diagnostics in dev mode
-   if (window.location.hostname === 'localhost' || window.location.search.includes('debug=true')) {
-       setTimeout(() => {
-           window.debugModalSystem();
-       }, 3000);
-   }
-   </script>
+                console.log('- Modal System Debug:', window.ModalSystem.debugInfo());
+            } else {
+                console.log('- Active Modals:', document.querySelectorAll('.sol-modal-overlay').length);
+            }
+        }
+        
+        if (window.NotificationSystem) {
+            if (typeof window.NotificationSystem.getActiveNotifications === 'function') {
+                console.log('- Active Notifications:', window.NotificationSystem.getActiveNotifications());
+            } else {
+                console.log('- Notification Container:', !!document.getElementById('notification-container'));
+            }
+        }
+        
+        console.log('- Import Manager:', !!window.ImportManager);
+        console.log('- Tracking Service:', !!window.trackingService);
+    };
+    
+    // Auto-run diagnostics in dev mode
+    if (window.location.hostname === 'localhost' || window.location.search.includes('debug=true')) {
+        setTimeout(() => {
+            window.debugModalSystem();
+        }, 3000);
+    }
+    </script>
 
 </body>
 </html>
