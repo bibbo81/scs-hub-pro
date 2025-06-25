@@ -263,6 +263,23 @@ window.setupBulkActions = function() {
 
 console.log('✅ [Global Functions] setupBulkActions permanently added');
 
+document.addEventListener('DOMContentLoaded', function() {
+    if (typeof window.setupBulkActions === 'function') {
+        console.log('🚀 Auto-calling setupBulkActions on DOM ready');
+        window.setupBulkActions();
+    }
+});
+
+// NUOVO: Fallback se DOMContentLoaded è già passato
+if (document.readyState === 'complete' || document.readyState === 'interactive') {
+    setTimeout(() => {
+        if (typeof window.setupBulkActions === 'function' && !document.getElementById('bulkActionsContainer')) {
+            console.log('🚀 Calling setupBulkActions (fallback)');
+            window.setupBulkActions();
+        }
+    }, 1000);
+}
+
 // Modifica la funzione trackingInit per includere l'inizializzazione dell'indicatore
 window.trackingInit = async function() {
     console.log('🚀 [Tracking] Initializing page...');
@@ -317,13 +334,6 @@ window.trackingInit = async function() {
         setupCheckboxListeners();  // Setup listeners
         setupEventListeners();
         
-        setTimeout(() => {
-            if (!document.getElementById('bulkActionsContainer')) {
-                console.warn('⚠️ Bulk actions not created, retrying...');
-                setupBulkActions();
-            }
-        }, 500);
-
         // Load initial data
         await loadTrackings();
         console.log('✅ [Tracking] Initial data loaded');
