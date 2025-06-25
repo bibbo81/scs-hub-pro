@@ -1,4 +1,4 @@
-// pages/tracking/api-status-indicator.js - Componente per indicatore stato API
+// pages/tracking/api-status-indicator.js - VERSIONE OTTIMIZZATA
 
 class ApiStatusIndicator {
     constructor() {
@@ -6,7 +6,9 @@ class ApiStatusIndicator {
         this.hasApiKeys = false;
         this.isConfigured = false;
         this.bannerElement = null;
-        this.wasConfigured = false; // Track se era già configurato
+        this.wasConfigured = false;
+        this.checkInterval = null; // Aggiungi riferimento all'intervallo
+        this.lastCheckTime = 0; // Per evitare controlli troppo frequenti
     }
 
     // Inizializza l'indicatore
@@ -22,7 +24,7 @@ class ApiStatusIndicator {
         // Ascolta eventi di aggiornamento API keys
         window.addEventListener('apiKeysUpdated', () => this.checkApiStatus());
         
-        // NUOVO: Ascolta evento quando le API keys vengono caricate automaticamente da Supabase
+        // Ascolta evento quando le API keys vengono caricate automaticamente da Supabase
         window.addEventListener('apiKeysAutoLoaded', async (event) => {
             console.log('[ApiStatusIndicator] 🔑 API Keys auto-loaded from Supabase:', event.detail);
             await this.checkApiStatus();
@@ -42,11 +44,84 @@ class ApiStatusIndicator {
             }
         });
         
-        // Controlla periodicamente (ogni 30 secondi)
-        setInterval(() => this.checkApiStatus(), 30000);
+        // MODIFICATO: Controlla periodicamente solo ogni 5 minuti invece di 30 secondi
+        // e solo se le API non sono configurate
+        this.checkInterval = setInterval(() => {
+            if (!this.hasApiKeys || !this.isConfigured) {
+                this.checkApiStatus();
+            }
+        }, 5 * 60 * 1000); // 5 minuti invece di 30 secondi
     }
 
-    // Trova o crea il container per l'indicatore
+    // Controlla lo stato delle API con throttling
+    async checkApiStatus() {
+        try {
+            // Evita controlli troppo frequenti (massimo uno ogni 10 secondi)
+            const now = Date.now();
+            if (now - this.lastCheckTime < 10000) {
+                return;
+            }
+            this.lastCheckTime = now;
+            
+            console.log('[ApiStatusIndicator] Checking API status...');
+            
+            // Controlla tramite tracking service
+            if (window.trackingService) {
+                this.hasApiKeys = window.trackingService.hasApiKeys();
+                this.isConfigured = !window.trackingService.mockMode;
+                
+                // Ottieni più dettagli
+                const stats = window.trackingService.getStats();
+                this.apiV1 = stats.apiConfig.v1;
+                this.apiV2 = stats.apiConfig.v2;
+                
+                console.log('[ApiStatusIndicator] Status:', {
+                    hasApiKeys: this.hasApiKeys,
+                    isConfigured: this.isConfigured
+                });
+            } else {
+                // Fallback: controlla userSettingsService
+                if (window.userSettingsService) {
+                    const keys = await window.userSettingsService.getAllApiKeys();
+                    this.hasApiKeys = !!(keys.shipsgo_v1 || keys.shipsgo_v2);
+                    this.apiV1 = !!keys.shipsgo_v1;
+                    this.apiV2 = !!keys.shipsgo_v2;
+                }
+            }
+            
+            // Se API configurate, rimuovi il banner e ferma i controlli periodici
+            if (this.hasApiKeys && this.isConfigured) {
+                this.removeBanner();
+                // Ferma i controlli periodici se le API sono configurate
+                if (this.checkInterval) {
+                    clearInterval(this.checkInterval);
+                    this.checkInterval = null;
+                }
+            }
+            
+            // Aggiorna UI
+            this.updateUI();
+            
+        } catch (error) {
+            console.error('[ApiStatusIndicator] Error checking status:', error);
+            this.hasApiKeys = false;
+            this.updateUI();
+        }
+    }
+
+    // Cleanup quando il componente viene distrutto
+    destroy() {
+        if (this.checkInterval) {
+            clearInterval(this.checkInterval);
+            this.checkInterval = null;
+        }
+        
+        // Rimuovi event listeners
+        window.removeEventListener('apiKeysUpdated', () => this.checkApiStatus());
+        window.removeEventListener('apiKeysAutoLoaded', () => this.checkApiStatus());
+    }
+
+    // Il resto del codice rimane uguale...
     findOrCreateContainer() {
         // Cerca il container esistente nel header della pagina
         let container = document.querySelector('.api-status-container');
@@ -87,60 +162,8 @@ class ApiStatusIndicator {
         }
     }
 
-    // Controlla lo stato delle API
-    async checkApiStatus() {
-        try {
-            console.log('[ApiStatusIndicator] Checking API status...');
-            
-            // Controlla tramite tracking service
-            if (window.trackingService) {
-                this.hasApiKeys = window.trackingService.hasApiKeys();
-                this.isConfigured = !window.trackingService.mockMode;
-                
-                // Ottieni più dettagli
-                const stats = window.trackingService.getStats();
-                this.apiV1 = stats.apiConfig.v1;
-                this.apiV2 = stats.apiConfig.v2;
-                
-                console.log('[ApiStatusIndicator] Status from TrackingService:', {
-                    hasApiKeys: this.hasApiKeys,
-                    isConfigured: this.isConfigured,
-                    mockMode: window.trackingService.mockMode,
-                    v1: this.apiV1,
-                    v2: this.apiV2
-                });
-            } else {
-                // Fallback: controlla userSettingsService
-                if (window.userSettingsService) {
-                    const keys = await window.userSettingsService.getAllApiKeys();
-                    this.hasApiKeys = !!(keys.shipsgo_v1 || keys.shipsgo_v2);
-                    this.apiV1 = !!keys.shipsgo_v1;
-                    this.apiV2 = !!keys.shipsgo_v2;
-                }
-            }
-            
-            // NUOVO: Se API configurate, rimuovi il banner
-            if (this.hasApiKeys && this.isConfigured) {
-                this.removeBanner();
-            }
-            
-            // Aggiorna UI
-            this.updateUI();
-            
-        } catch (error) {
-            console.error('[ApiStatusIndicator] Error checking status:', error);
-            this.hasApiKeys = false;
-            this.updateUI();
-        }
-    }
-
     // Aggiorna l'UI dell'indicatore
     updateUI() {
-        console.log('[ApiStatusIndicator] Updating UI:', {
-            hasApiKeys: this.hasApiKeys,
-            isConfigured: this.isConfigured
-        });
-        
         if (!this.container) return;
         
         if (this.hasApiKeys && this.isConfigured) {
@@ -213,7 +236,7 @@ class ApiStatusIndicator {
         return text;
     }
 
-    // NUOVO: Rimuovi banner
+    // Rimuovi banner
     removeBanner() {
         const banner = document.querySelector('.api-config-banner');
         if (banner) {

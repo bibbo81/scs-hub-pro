@@ -1,9 +1,7 @@
 // ===== MODAL SYSTEM DEFINITIVO - VERSIONE COMPLETA E CORRETTA =====
 (function() {
     'use strict';
-    
-    console.log('🔧 Loading COMPLETE Modal System - All fixes applied');
-    
+        
     // ===== FORCE CLEANUP ALL EXISTING MODAL SYSTEMS =====
     function forceCleanupExistingModals() {
         document.querySelectorAll('.sol-modal-overlay, [id^="modal-"], .modal-overlay, .modal').forEach(el => {
@@ -22,7 +20,6 @@
             }
         }
         
-        console.log('🧹 Forced cleanup of existing modal systems');
     }
 
     // ===== COMPLETE MODAL SYSTEM CLASS =====
@@ -47,7 +44,6 @@
             this.setupGlobalHandlers();
             this.isInitialized = true;
             
-            console.log('✅ COMPLETE Modal System initialized');
         }
 
         setupStyles() {
@@ -755,16 +751,12 @@
         window.modalSystem = completeModalSystem;
         
         window.debugModals = () => {
-            console.log('🐛 Modal System Debug:', completeModalSystem.debugInfo());
+        return completeModalSystem.debugInfo(); // Ritorna l'info senza loggarla
         };
         
         window.forceCloseAllModals = () => {
             completeModalSystem.closeAll();
-            console.log('🧹 Force closed all modals');
         };
-        
-        console.log('✅ COMPLETE Modal System ready - All fixes applied!');
-        console.log('📊 Debug commands: window.debugModals(), window.forceCloseAllModals()');
         
         return completeModalSystem;
     }
@@ -786,8 +778,6 @@
     if (typeof window !== 'undefined' && window.define && window.define.amd) {
         window.define([], () => CompleteModalSystem);
     }
-
-    console.log('🎯 COMPLETE Modal System loaded - All issues resolved!');
     
 })();
 

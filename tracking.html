@@ -9,6 +9,95 @@
 <script>
     window.APP_VERSION = 'v47.1'; // Incrementa ad ogni deploy
 
+    // Sistema di logging configurabile
+    window.LOG_LEVELS = {
+        DEBUG: 0,
+        INFO: 1,
+        WARN: 2,
+        ERROR: 3,
+        NONE: 4
+    };
+
+    // Imposta il livello di log in base all'ambiente
+    window.currentLogLevel = window.location.hostname === 'localhost' 
+        ? window.LOG_LEVELS.DEBUG 
+        : window.LOG_LEVELS.WARN; // In production mostra solo warning ed errori
+
+    // Override console methods per filtrare i log
+    const originalConsole = {
+        log: console.log,
+        info: console.info,
+        warn: console.warn,
+        error: console.error,
+        debug: console.debug
+    };
+
+    // Funzione per determinare se un messaggio deve essere loggato
+    function shouldLog(level, message) {
+        // Lista di messaggi da ignorare sempre in production
+        const ignoredPatterns = [
+            '[ApiStatusIndicator] Checking API status',
+            '[ApiStatusIndicator] Status from TrackingService',
+            '[ApiStatusIndicator] Updating UI',
+            '[NotificationSystem] Prevented duplicate',
+            'Column drag enabled',
+            'Search input found',
+            'applyFilters called with searchTerm'
+        ];
+        
+        // In production, ignora i pattern ripetitivi
+        if (window.location.hostname !== 'localhost') {
+            for (const pattern of ignoredPatterns) {
+                if (message && message.toString().includes(pattern)) {
+                    return false;
+                }
+            }
+        }
+        
+        return level >= window.currentLogLevel;
+    }
+
+    // Override console.log
+    console.log = function(...args) {
+        if (shouldLog(window.LOG_LEVELS.DEBUG, args[0])) {
+            originalConsole.log.apply(console, args);
+        }
+    };
+
+    // Override console.info
+    console.info = function(...args) {
+        if (shouldLog(window.LOG_LEVELS.INFO, args[0])) {
+            originalConsole.info.apply(console, args);
+        }
+    };
+
+    // Override console.debug
+    console.debug = function(...args) {
+        if (shouldLog(window.LOG_LEVELS.DEBUG, args[0])) {
+            originalConsole.debug.apply(console, args);
+        }
+    };
+
+    // Mantieni sempre warn ed error
+    console.warn = originalConsole.warn;
+    console.error = originalConsole.error;
+
+    // Funzione per abilitare/disabilitare log temporaneamente
+    window.enableDebugLogs = function() {
+        window.currentLogLevel = window.LOG_LEVELS.DEBUG;
+        console.log('🐛 Debug logs enabled');
+    };
+
+    window.disableDebugLogs = function() {
+        window.currentLogLevel = window.LOG_LEVELS.WARN;
+        console.log('🔇 Debug logs disabled');
+    };
+
+    // Notifica lo stato del logging
+    if (window.location.hostname !== 'localhost') {
+        console.info('🚀 Production mode: Debug logs are disabled. Use enableDebugLogs() to enable temporarily.');
+    }
+
   // Esponi globalmente per i moduli ES6 - CON CONTROLLO ROBUSTO
   (function() {
     function setupSupabaseGlobal() {
@@ -202,9 +291,7 @@ window.headerInitLock = false;
     } else {
         console.error('❌ Supabase not properly initialized');
     }
-    </script>
-    
-    <script type="module">
+    </script><script type="module">
     // Import e esponi tutti i servizi necessari
     import { supabase } from '/core/services/supabase-client.js';
     import userSettingsService from '/core/services/user-settings-service.js';
@@ -219,116 +306,45 @@ window.headerInitLock = false;
 
     console.log('✅ All services exposed globally for debugging');
 
-    // Helper function per test rapido
-    window.quickTest = async () => {
-        console.log('🚀 QUICK TEST - Cross-Browser Sync');
-        
-        try {
-            // 1. Check auth
-            const { data: { user } } = await window.supabase.auth.getUser();
-            console.log('1. Auth:', user ? `✅ ${user.email}` : '❌ Not authenticated');
-            
-            if (!user) {
-                console.log('⚠️ Not authenticated. Please login first.');
-                return;
-            }
-            
-            // 2. Check API keys in cloud
-            const keys = await window.userSettingsService.getAllApiKeys();
-            console.log('2. Personal API Keys:', keys);
-            
-            // 3. Check organization keys
-            const orgKeys = await window.organizationApiKeysService.getOrganizationApiKeys();
-            console.log('3. Organization API Keys:', orgKeys);
-            
-            // 4. Check tracking service
-            const stats = window.trackingService.getStats();
-            console.log('4. Tracking Service:', {
-                initialized: stats.initialized,
-                mockMode: stats.mockMode,
-                hasKeys: window.trackingService.hasApiKeys()
-            });
-            
-            // 5. Force sync
-            console.log('5. Forcing sync...');
-            const synced = await window.trackingService.syncWithCloud();
-            console.log('   Sync result:', synced ? '✅ Success' : '❌ Failed');
-            
-            // 6. Re-check after sync
-            const newStats = window.trackingService.getStats();
-            console.log('6. After sync:', {
-                mockMode: newStats.mockMode,
-                hasKeys: newStats.hasKeys
-            });
-            
-            // 7. Summary
-            console.log('\n📊 SUMMARY:');
-            console.log('- User:', user.email);
-            console.log('- Has Personal Keys:', Object.keys(keys).length > 0);
-            console.log('- Has Org Keys:', orgKeys.length > 0);
-            console.log('- Mock Mode:', newStats.mockMode);
-            console.log('- Ready for real tracking:', !newStats.mockMode && window.trackingService.hasApiKeys());
-            
-        } catch (error) {
-            console.error('❌ Test error:', error);
-        }
-    };
-
     // Auto-sync on page load
     document.addEventListener('DOMContentLoaded', async () => {
-        // Wait for services to be ready
-        let attempts = 0;
-        const waitForServices = setInterval(async () => {
-            attempts++;
+    // Wait for services to be ready
+    let attempts = 0;
+    const waitForServices = setInterval(async () => {
+        attempts++;
+        
+        if (window.trackingService && window.supabase && window.userSettingsService) {
+            clearInterval(waitForServices);
             
-            if (window.trackingService && window.supabase && window.userSettingsService) {
-                clearInterval(waitForServices);
+            // Check if user is authenticated
+            const { data: { user } } = await window.supabase.auth.getUser();
+            
+            if (user) {
+                // Wait for tracking service initialization
+                if (!window.trackingService.initialized) {
+                    await window.trackingService.initialize();
+                }
                 
-                console.log('[Auto-Sync] Services ready, checking auth...');
-                
-                // Check if user is authenticated
-                const { data: { user } } = await window.supabase.auth.getUser();
-                
-                if (user) {
-                    console.log('[Auto-Sync] User authenticated:', user.email);
+                // Force sync if in mock mode but has Supabase
+                if (window.trackingService.mockMode && window.trackingService.useSupabase) {
+                    const synced = await window.trackingService.syncWithCloud();
                     
-                    // Wait for tracking service initialization
-                    if (!window.trackingService.initialized) {
-                        console.log('[Auto-Sync] Waiting for tracking service init...');
-                        await window.trackingService.initialize();
-                    }
-                    
-                    // Force sync if in mock mode but has Supabase
-                    if (window.trackingService.mockMode && window.trackingService.useSupabase) {
-                        console.log('[Auto-Sync] 🔄 Mock mode detected, forcing cloud sync...');
-                        const synced = await window.trackingService.syncWithCloud();
-                        
-                        if (synced) {
-                            console.log('[Auto-Sync] ✅ Synced successfully!');
-                            
-                            // Reload trackings
-                            if (window.loadTrackings) {
-                                setTimeout(() => {
-                                    window.loadTrackings();
-                                    console.log('[Auto-Sync] ✅ Trackings reloaded');
-                                }, 500);
-                            }
+                    if (synced) {
+                        // Reload trackings
+                        if (window.loadTrackings) {
+                            setTimeout(() => {
+                                window.loadTrackings();
+                            }, 500);
                         }
                     }
                 }
-            } else if (attempts > 20) {
-                clearInterval(waitForServices);
-                console.log('[Auto-Sync] Timeout waiting for services');
             }
-        }, 250);
-    });
+        } else if (attempts > 20) {
+            clearInterval(waitForServices);
+        }
+    }, 250);
+});
 
-    // Comandi utili
-    console.log('🛠️ Debug Commands:');
-    console.log('- window.quickTest() - Run complete sync test');
-    console.log('- window.debugCrossBrowserSync() - Detailed debug info');
-    console.log('- await window.trackingService.syncWithCloud() - Force sync');
-    console.log('- await window.trackingService.reinitialize() - Full reset');
     </script>
     
     <script type="module">
@@ -387,66 +403,6 @@ window.headerInitLock = false;
         }
     });
 
-    // Debug helper per test cross-browser - VERSIONE AGGIORNATA
-    window.debugCrossBrowserSync = async () => {
-        console.log('🔍 DEBUG CROSS-BROWSER SYNC');
-        console.log('========================');
-        
-        try {
-            // Check Supabase auth
-            if (window.supabase && window.supabase.auth) {
-                const { data: { user } } = await window.supabase.auth.getUser();
-                console.log('Supabase User:', user?.email || 'Not authenticated');
-            } else {
-                console.log('Supabase: Not available (window.supabase is', typeof window.supabase, ')');
-            }
-            
-            // Check API keys in cloud
-            if (window.userSettingsService) {
-                try {
-                    const keys = await window.userSettingsService.getAllApiKeys();
-                    console.log('Cloud API Keys:', keys);
-                } catch (e) {
-                    console.log('Cloud API Keys: Error -', e.message);
-                }
-            } else {
-                console.log('UserSettingsService: Not available');
-            }
-            
-            // Check tracking service state
-            if (window.trackingService) {
-                console.log('Tracking Service Stats:', window.trackingService.getStats());
-                console.log('Has API Keys:', window.trackingService.hasApiKeys());
-                console.log('Mock Mode:', window.trackingService.mockMode);
-                console.log('Use Supabase:', window.trackingService.useSupabase);
-                
-                // Check API config
-                const hasV1 = !!(window.trackingService.apiConfig?.v1?.authCode);
-                const hasV2 = !!(window.trackingService.apiConfig?.v2?.userToken);
-                console.log('API Config:', { hasV1, hasV2 });
-            } else {
-                console.log('TrackingService: Not available');
-            }
-            
-            // Check localStorage
-            console.log('LocalStorage v1:', localStorage.getItem('shipsgo_v1_api_key') || 'null');
-            console.log('LocalStorage config:', localStorage.getItem('trackingServiceConfig') || 'null');
-            console.log('LocalStorage trackings:', localStorage.getItem('trackings') ? 'Present' : 'null');
-            
-        } catch (error) {
-            console.error('Debug error:', error);
-        }
-        
-        console.log('========================');
-        console.log('Commands:');
-        console.log('- Force sync: await window.trackingService.syncWithCloud()');
-        console.log('- Reinitialize: await window.trackingService.reinitialize()');
-        console.log('- Check auth: await window.supabase.auth.getUser()');
-        console.log('- Get API keys: await window.userSettingsService.getAllApiKeys()');
-    };
-
-    console.log('✅ Cross-browser sync support added');
-    console.log('📋 Debug with: window.debugCrossBrowserSync()');
     </script>
     
     <script type="module">
@@ -482,9 +438,7 @@ window.headerInitLock = false;
             }
         }, 5000);
     });
-    </script>
-    
-    <script type="module">
+    </script><script type="module">
     // Import del modulo tracking/index.js con fix per column formatters
     import('/pages/tracking/index.js').then(module => {
         console.log('✅ Tracking module loaded');
@@ -1039,22 +993,6 @@ window.headerInitLock = false;
                         <i class="fas fa-spinner fa-spin"></i>
                     </span>
                 </a>
-                <button class="sol-btn sol-btn-glass" onclick="clearProductionData()">
-                    <i class="fas fa-trash"></i>
-                    <span>Clear Data</span>
-                </button>
-                <button class="sol-btn sol-btn-glass" onclick="testCrossBrowserData()">
-                    <i class="fas fa-check-double"></i>
-                    <span>Test Sync</span>
-                </button>
-                <button class="sol-btn sol-btn-glass" onclick="testModalSystem()">
-                    <i class="fas fa-flask"></i>
-                    <span>Test Modals</span>
-                </button>
-                <button class="sol-btn sol-btn-glass" onclick="debugTrackingSystem()" title="Debug System">
-                    <i class="fas fa-bug"></i>
-                    <span>Debug</span>
-                </button>
                 <button class="sol-btn sol-btn-primary" id="addTrackingBtn">
                     <i class="fas fa-plus"></i>
                     <span>Aggiungi Tracking</span>
@@ -1130,9 +1068,7 @@ window.headerInitLock = false;
         </div>
     </main>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-
-    <script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script><script>
     // Timeline View Functions
     (function() {
         let currentView = 'table';
@@ -1358,395 +1294,95 @@ window.headerInitLock = false;
         }
         
         // Generate demo timeline (fallback when no real events)
-        function generateDemoTimeline(tracking) {
-            const events = [];
-            const now = new Date();
-            
-            // Base events on status
-            if (tracking.status === 'registered') {
-                events.push({
-                    title: 'Spedizione Registrata',
-                    date: new Date(now - 1 * 24 * 60 * 60 * 1000),
-                    location: tracking.origin_name,
-                    description: 'Informazioni spedizione ricevute'
-                });
-            }
-            
-            if (tracking.status === 'in_transit' || tracking.status === 'delivered') {
-                events.push({
-                    title: 'Partenza dall\'Origine',
-                    date: new Date(now - 5 * 24 * 60 * 60 * 1000),
-                    location: tracking.origin_name,
-                    description: 'Container caricato e nave partita'
-                });
-                
-                events.push({
-                    title: 'In Transito',
-                    date: new Date(now - 3 * 24 * 60 * 60 * 1000),
-                    location: 'Mare Mediterraneo',
-                    description: 'Navigazione in corso'
-                });
-            }
-            
-            if (tracking.status === 'delivered') {
-                events.push({
-                    title: 'Arrivo a Destinazione',
-                    date: new Date(now - 2 * 24 * 60 * 60 * 1000),
-                    location: tracking.destination_name,
-                    description: 'Nave arrivata e container scaricato'
-                });
-                
-                events.push({
-                    title: 'Consegnato',
-                    date: new Date(now - 1 * 24 * 60 * 60 * 1000),
-                    location: tracking.destination_name,
-                    description: 'Container consegnato al destinatario',
-                    class: 'delivered'
-                });
-            }
-            
-            let html = '<div class="sol-timeline-events">';
-            
-            events.forEach((event, index) => {
-                const isLast = index === events.length - 1;
-                html += `
-                    <div class="sol-timeline-item ${event.class || ''} ${isLast ? 'last' : ''}">
-                        <div class="sol-timeline-event">
-                            <div class="sol-timeline-event-header">
-                                <span class="sol-timeline-event-title">${event.title}</span>
-                                <span class="sol-timeline-event-date">${event.date.toLocaleDateString('it-IT')}</span>
-                            </div>
-                            <div class="sol-timeline-event-location">
-                                <i class="fas fa-map-marker-alt"></i>
-                                ${event.location}
-                            </div>
-                            <div class="sol-timeline-event-description">${event.description}</div>
-                        </div>
+        // Generate demo timeline (fallback when no real events)
+function generateDemoTimeline(tracking) {
+    const events = [];
+    const now = new Date();
+    
+    // Base events on status
+    if (tracking.status === 'registered') {
+        events.push({
+            title: 'Spedizione Registrata',
+            date: new Date(now - 1 * 24 * 60 * 60 * 1000),
+            location: tracking.origin_name,
+            description: 'Informazioni spedizione ricevute'
+        });
+    }
+    
+    if (tracking.status === 'in_transit' || tracking.status === 'delivered') {
+        events.push({
+            title: 'Partenza dall\'Origine',
+            date: new Date(now - 5 * 24 * 60 * 60 * 1000),
+            location: tracking.origin_name,
+            description: 'Container caricato e nave partita'
+        });
+        
+        events.push({
+            title: 'In Transito',
+            date: new Date(now - 3 * 24 * 60 * 60 * 1000),
+            location: 'Mare Mediterraneo',
+            description: 'Navigazione in corso'
+        });
+    }
+    
+    if (tracking.status === 'delivered') {
+        events.push({
+            title: 'Arrivo a Destinazione',
+            date: new Date(now - 2 * 24 * 60 * 60 * 1000),
+            location: tracking.destination_name,
+            description: 'Nave arrivata e container scaricato'
+        });
+        
+        events.push({
+            title: 'Consegnato',
+            date: new Date(now - 1 * 24 * 60 * 60 * 1000),
+            location: tracking.destination_name,
+            description: 'Container consegnato al destinatario',
+            class: 'delivered'
+        });
+    }
+    
+    let html = '<div class="sol-timeline-events">';
+    
+    events.forEach((event, index) => {
+        const isLast = index === events.length - 1;
+        html += `
+            <div class="sol-timeline-item ${event.class || ''} ${isLast ? 'last' : ''}">
+                <div class="sol-timeline-event">
+                    <div class="sol-timeline-event-header">
+                        <span class="sol-timeline-event-title">${event.title}</span>
+                        <span class="sol-timeline-event-date">${event.date.toLocaleDateString('it-IT')}</span>
                     </div>
-                `;
-            });
-            
-            html += '</div>';
-            
-            return html;
-        }
-        
-        // Export functions to window for integration
-        window.timelineView = {
-            init: initViewToggle,
-            refresh: loadTimelineView,
-            isActive: () => currentView === 'timeline'
-        };
-        
-        // Auto-init on DOM ready
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', initViewToggle);
-        } else {
-            initViewToggle();
-        }
-    })();
-    </script>
-
-    <script>
-    // Test Modal System function
-    window.testModalSystem = async function() {
-        console.log('🧪 Testing Modal System...');
-        
-        // Wait for ModalSystem to be ready
-        let attempts = 0;
-        while (!window.ModalSystem && attempts < 10) {
-            await new Promise(resolve => setTimeout(resolve, 100));
-            attempts++;
-        }if (!window.ModalSystem) {
-            alert('❌ ModalSystem not available');
-            return;
-        }
-        
-        try {
-            // Test 1: Simple Alert
-            console.log('Test 1: Alert');
-            await window.ModalSystem.alert({
-                type: 'info',
-                title: '🧪 Test Alert',
-                message: 'Modal system is working! Click OK to continue testing.'
-            });
-            
-            // Test 2: Confirm Dialog
-            console.log('Test 2: Confirm');
-            const confirmResult = await window.ModalSystem.confirm({
-                title: '🧪 Test Confirm',
-                message: 'Do you want to continue with more tests?',
-                confirmText: 'Yes, Continue',
-                cancelText: 'No, Stop'
-            });
-            
-            if (!confirmResult) {
-                console.log('✅ Modal tests stopped by user');
-                return;
-            }
-            
-            // Test 3: Progress Modal
-            console.log('Test 3: Progress');
-            const progress = window.ModalSystem.progress({
-                title: '🧪 Test Progress',
-                message: 'Testing progress modal...'
-            });
-            
-            for (let i = 0; i <= 100; i += 10) {
-                progress.update(i, `Processing... ${i}%`);
-                await new Promise(resolve => setTimeout(resolve, 200));
-            }
-            
-            progress.close();
-            
-            // Test 4: Custom Modal with Buttons
-            console.log('Test 4: Custom Modal');
-            await new Promise(resolve => {
-                window.ModalSystem.show({
-                    title: '🧪 Test Custom Modal',
-                    content: `
-                        <div style="text-align: center; padding: 20px;">
-                            <p>This is a custom modal with multiple buttons.</p>
-                            <p style="color: var(--sol-success); font-weight: bold;">✅ All modal tests passed!</p>
-                        </div>
-                    `,
-                    buttons: [
-                        {
-                            text: 'Test Notification',
-                            class: 'sol-btn-glass',
-                            onclick: () => {
-                                if (window.NotificationSystem) {
-                                    window.NotificationSystem.success('Notification test successful!');
-                                }
-                                return false; // Don't close modal
-                            }
-                        },
-                        {
-                            text: 'Finish Tests',
-                            class: 'sol-btn-primary',
-                            onclick: () => {
-                                resolve();
-                                return true; // Close modal
-                            }
-                        }
-                    ]
-                });
-            });
-            
-            console.log('✅ All modal tests completed successfully!');
-            
-            if (window.NotificationSystem) {
-                window.NotificationSystem.success('🎉 Modal System Test Complete', {
-                    subtitle: 'All modal types working correctly'
-                });
-            }
-            
-        } catch (error) {
-            console.error('❌ Modal test failed:', error);
-            alert('❌ Modal test failed: ' + error.message);
-        }
-    };
-
-    // Clear Production Data Function (for production use)
-    function clearProductionData() {
-        if (confirm('⚠️ ATTENZIONE: Cancellare tutti i dati di tracking locali? I dati su Supabase NON saranno cancellati.')) {
-            // Pulisci solo localStorage, non toccare Supabase
-            localStorage.removeItem('trackings');
-            localStorage.removeItem('mockTrackings'); // Rimuovi eventuali residui
-            localStorage.removeItem('trackingColumns');
-            localStorage.removeItem('trackingStatsOrder');
-            localStorage.removeItem('trackingFilters');
-            localStorage.removeItem('trackingViewMode');
-            localStorage.removeItem('awbIdCache');
-            
-            if (window.NotificationSystem?.success) {
-                window.NotificationSystem.success('Cache locale cancellata. Ricaricamento dati da cloud...');
-            }
-            
-            setTimeout(() => {
-                window.location.reload();
-            }, 1000);
-        }
-    }
+                    <div class="sol-timeline-event-location">
+                        <i class="fas fa-map-marker-alt"></i>
+                        ${event.location}
+                    </div>
+                    <div class="sol-timeline-event-description">${event.description}</div>
+                </div>
+            </div>
+        `;
+    });
     
-    // Cross-Browser Data Consistency Test
-    async function testCrossBrowserData() {
-        console.log('🔍 CROSS-BROWSER DATA CONSISTENCY TEST');
-        console.log('=====================================');
-        console.log('Browser:', navigator.userAgent.split(' ').pop());
-        console.log('Timestamp:', new Date().toISOString());
-        
-        try {
-            // 1. Check authentication
-            const { data: { user } } = await window.supabase.auth.getUser();
-            if (!user) {
-                console.error('❌ User not authenticated');
-                window.NotificationSystem?.error('Devi essere autenticato per eseguire il test');
-                return;
-            }
-            
-            console.log('✅ User ID:', user.id);
-            console.log('✅ Email:', user.email || 'Anonymous');
-            
-            // 2. Get trackings from Supabase
-            console.log('\n📦 TRACKINGS DATA:');
-            const { data: trackings, error: trackingsError } = await window.supabase
-                .from('trackings')
-                .select('*')
-                .order('created_at', { ascending: false });
-            
-            if (trackingsError) {
-                console.error('❌ Error loading trackings:', trackingsError);
-            } else {
-                console.log('- Count:', trackings?.length || 0);
-                console.log('- First tracking:', trackings?.[0] ? {
-                    id: trackings[0].id,
-                    tracking_number: trackings[0].tracking_number,
-                    status: trackings[0].status,
-                    created_at: trackings[0].created_at
-                } : 'None');
-                
-                // Generate checksum for trackings
-                if (trackings && trackings.length > 0) {
-                    const trackingChecksum = trackings
-                        .map(t => `${t.id}-${t.tracking_number}-${t.status}`)
-                        .join('|')
-                        .substring(0, 50); // First 50 chars
-                    console.log('- Checksum:', trackingChecksum);
-                }
-            }
-            
-            // 3. Get API keys
-            console.log('\n🔑 API KEYS:');
-            if (window.userSettingsService) {
-                const keys = await window.userSettingsService.getAllApiKeys();
-                console.log('- Personal Keys:', Object.keys(keys).filter(k => keys[k]).join(', ') || 'None');
-                
-                // Generate checksum for keys
-                const keyChecksum = Object.keys(keys)
-                    .filter(k => keys[k])
-                    .map(k => `${k}:${keys[k].substring(0, 8)}...`)
-                    .join('|');
-                console.log('- Keys Checksum:', keyChecksum || 'No keys');
-            }
-            
-            // 4. Check organization
-            console.log('\n🏢 ORGANIZATION:');
-            if (window.organizationApiKeysService) {
-                const orgInfo = await window.organizationApiKeysService.getOrganizationApiKeysInfo();
-                console.log('- Has Organization:', orgInfo.hasOrganization);
-                console.log('- Organization Name:', orgInfo.organizationName || 'None');
-                console.log('- Is Admin:', orgInfo.isAdmin || false);
-            }
-            
-            // 5. Check tracking service state
-            console.log('\n⚙️ TRACKING SERVICE:');
-            if (window.trackingService) {
-                const stats = window.trackingService.getStats();
-                console.log('- Initialized:', stats.initialized);
-                console.log('- Mock Mode:', stats.mockMode);
-                console.log('- Use Supabase:', stats.useSupabase);
-                console.log('- Has API Keys:', window.trackingService.hasApiKeys());
-            }
-            
-            // 6. Generate final checksum
-            console.log('\n📊 FINAL DATA CHECKSUM:');
-            const finalChecksum = {
-                userId: user.id.substring(0, 8),
-                trackingCount: trackings?.length || 0,
-                hasApiKeys: window.trackingService?.hasApiKeys() || false,
-                timestamp: Date.now()
-            };
-            
-            const checksumString = btoa(JSON.stringify(finalChecksum)).substring(0, 20);
-            console.log('🔐 CHECKSUM:', checksumString);
-            console.log('\n✅ Confronta questo checksum su browser diversi!');
-            console.log('    Se i checksum sono identici, i dati sono sincronizzati.');
-            console.log('=====================================');
-            
-            // Show notification
-            window.NotificationSystem?.info(`Checksum: ${checksumString}`, {
-                title: 'Test Cross-Browser Completato',
-                duration: 10000
-            });
-            
-        } catch (error) {
-            console.error('❌ Test error:', error);
-            window.NotificationSystem?.error('Errore durante il test: ' + error.message);
-        }
-    }
+    html += '</div>';
     
-    // Global assignments
-    window.clearProductionData = clearProductionData;
-    window.testCrossBrowserData = testCrossBrowserData;
-    
-    // Debug function for tracking system
-    window.debugTrackingSystem = function() {
-        console.log('🔍 [DEBUG] TRACKING SYSTEM STATUS:');
-        console.log('Header Component:', !!window.headerComponent);
-        console.log('Table Manager:', !!window.TableManager);
-        console.log('Modal System:', !!window.ModalSystem);
-        console.log('Notification System:', !!window.NotificationSystem);
-        console.log('Import Manager:', !!window.ImportManager);
-        console.log('Tracking Init:', !!window.trackingInit);
-        console.log('Current Trackings:', window.currentTrackings?.length || 0);
-        
-        // Check DOM elements
-        console.log('Header in DOM:', !!document.querySelector('.sol-header'));
-        console.log('Table Container:', !!document.getElementById('trackingTableContainer'));
-        console.log('Add Button:', !!document.getElementById('addTrackingBtn'));
-        console.log('Stats Grid:', !!document.getElementById('statsGrid'));
-        
-        // Check localStorage
-        const stored = localStorage.getItem('trackings');
-        console.log('LocalStorage trackings:', stored ? JSON.parse(stored).length : 0);
-        
-        // Try to force reload trackings
-        if (window.loadTrackings) {
-            console.log('🔄 Forcing trackings reload...');
-            window.loadTrackings();
-        }
-        
-        if (window.NotificationSystem) {
-            window.NotificationSystem.info('Debug info logged to console');
-        }
-    };
-    </script>
-
-    <script>
-    // Modal system diagnostics
-    window.debugModalSystem = function() {
-        console.log('🔍 Modal System Diagnostics:');
-        console.log('- ModalSystem available:', !!window.ModalSystem);
-        console.log('- NotificationSystem available:', !!window.NotificationSystem);
-        
-        if (window.ModalSystem) {
-            if (typeof window.ModalSystem.debugInfo === 'function') {
-                console.log('- Modal System Debug:', window.ModalSystem.debugInfo());
-            } else {
-                console.log('- Active Modals:', document.querySelectorAll('.sol-modal-overlay').length);
-            }
-        }
-        
-        if (window.NotificationSystem) {
-            if (typeof window.NotificationSystem.getActiveNotifications === 'function') {
-                console.log('- Active Notifications:', window.NotificationSystem.getActiveNotifications());
-            } else {
-                console.log('- Notification Container:', !!document.getElementById('notification-container'));
-            }
-        }
-        
-        console.log('- Import Manager:', !!window.ImportManager);
-        console.log('- Tracking Service:', !!window.trackingService);
-    };
-    
-    // Auto-run diagnostics in dev mode
-    if (window.location.hostname === 'localhost' || window.location.search.includes('debug=true')) {
-        setTimeout(() => {
-            window.debugModalSystem();
-        }, 3000);
-    }
-    </script>
+    return html;
+}
+       
+       // Export functions to window for integration
+       window.timelineView = {
+           init: initViewToggle,
+           refresh: loadTimelineView,
+           isActive: () => currentView === 'timeline'
+       };
+       
+       // Auto-init on DOM ready
+       if (document.readyState === 'loading') {
+           document.addEventListener('DOMContentLoaded', initViewToggle);
+       } else {
+           initViewToggle();
+       }
+   })();
+   </script>
 
 </body>
 </html>

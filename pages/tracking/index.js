@@ -796,9 +796,7 @@ function clearSelection() {
     const selectAll = document.querySelector('.select-all');
     if (selectAll) selectAll.checked = false;
     updateSelectedCount();
-}
-
-// ========== FIX: COLUMN FORMATTERS AGGIORNATI ==========
+}// ========== FIX: COLUMN FORMATTERS AGGIORNATI ==========
 function getColumnFormatter(key) {
     const formatters = {
         tracking_type: (value) => {
@@ -2056,8 +2054,7 @@ window.detectTrackingType = function(value) {
     } else if (hint) {
         hint.textContent = '';
     }
-}
-// SOSTITUISCI la funzione handleAddTracking con questa versione MODIFICATA PER SUPABASE:
+}// SOSTITUISCI la funzione handleAddTracking con questa versione MODIFICATA PER SUPABASE:
 async function handleAddTracking(event) {
     event.preventDefault();
     
@@ -2928,12 +2925,22 @@ function restoreStatsOrder() {
     }
 }
 
-// Auto refresh
+// Auto refresh - FUNZIONE MODIFICATA
 function startAutoRefresh() {
-    // Refresh every 5 minutes
+    // MODIFICATO: Refresh ogni 10 minuti invece di 5
+    // e solo se ci sono tracking attivi (non delivered/exception)
     setInterval(() => {
-        loadTrackings();
-    }, 5 * 60 * 1000);
+        // Controlla se ci sono tracking attivi da aggiornare
+        const activeTrackings = trackings.filter(t => 
+            !['delivered', 'exception'].includes(t.status)
+        );
+        
+        // Se ci sono tracking attivi, ricarica
+        if (activeTrackings.length > 0) {
+            console.log('🔄 Auto-refresh: updating active trackings...');
+            loadTrackings();
+        }
+    }, 10 * 60 * 1000); // 10 minuti invece di 5
 }
 
 // ====================
