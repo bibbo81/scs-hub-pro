@@ -193,20 +193,35 @@ export class HeaderComponent {
             return;
         }
         
-        // Controlla se header esiste già
+        // CRITICAL FIX: Controlla se header esiste già PRIMA di fare qualsiasi cosa
         const existingHeader = document.querySelector('.sol-header');
         if (existingHeader) {
-            console.log('⚠️ [HeaderComponent] Header already exists, skipping mount');
+            console.log('⚠️ [HeaderComponent] Header already exists, reusing it');
+            
+            // Se l'header esiste già, aggiorna solo i contenuti dinamici se necessario
+            const userInfo = await this.getUserInfo();
+            this.updateUserDisplay(userInfo);
+            
+            // Re-attach event listeners nel caso siano stati persi
+            this.attachEventListeners();
+            
             return;
         }
         
+        // Solo se non esiste un header, creane uno nuovo
         const headerHtml = await this.render();
         container.insertAdjacentHTML('afterbegin', headerHtml);
         
-        console.log('✅ [HeaderComponent] Header HTML inserted into DOM');
+        console.log('✅ [HeaderComponent] New header HTML inserted into DOM');
     }
     
     async render() {
+        // CRITICAL FIX: Non renderizzare se esiste già un header
+        if (document.querySelector('.sol-header')) {
+            console.warn('[HeaderComponent] Header already exists, skipping render');
+            return '';
+        }
+        
         // Inietta CSS anti-flash una sola volta
         if (!document.getElementById('anti-flash-styles')) {
             const style = document.createElement('style');
@@ -342,6 +357,12 @@ export class HeaderComponent {
     
     // FIX 4: renderDropdowns ASYNC
     async renderDropdowns() {
+        // CRITICAL FIX: Non renderizzare dropdown se esistono già
+        if (document.querySelector('#userDropdown') || document.querySelector('#notificationDropdown')) {
+            console.warn('[HeaderComponent] Dropdowns already exist, skipping render');
+            return '';
+        }
+        
         return `
             ${await this.renderUserDropdown()}
             ${this.renderNotificationDropdown()}
@@ -392,6 +413,12 @@ export class HeaderComponent {
     }
     
     renderSidebar() {
+        // CRITICAL FIX: Non renderizzare sidebar se esiste già
+        if (document.querySelector('#sidebar')) {
+            console.warn('[HeaderComponent] Sidebar already exists, skipping render');
+            return '';
+        }
+        
         const mainMenuItems = [
             { icon: 'fa-chart-line', label: 'Dashboard', href: '/dashboard.html' },
             { icon: 'fa-box', label: 'Tracking', href: '/tracking.html' },
@@ -497,6 +524,12 @@ export class HeaderComponent {
     }
     
     renderBackdrop() {
+        // CRITICAL FIX: Non renderizzare backdrop se esiste già
+        if (document.querySelector('#backdrop')) {
+            console.warn('[HeaderComponent] Backdrop already exists, skipping render');
+            return '';
+        }
+        
         return '<div class="sol-backdrop" id="backdrop"></div>';
     }
     
@@ -505,152 +538,177 @@ export class HeaderComponent {
     }
     
     attachEventListeners() {
+        // CRITICAL FIX: Previeni attach multipli di event listeners
+        // Rimuovi vecchi listener prima di aggiungerne di nuovi
+        
         // Menu toggle
         const menuToggle = document.getElementById('menuToggle');
-        if (menuToggle) {
+        if (menuToggle && !menuToggle.hasEventListener) {
             menuToggle.addEventListener('click', () => {
                 const sidebar = document.getElementById('sidebar');
                 const backdrop = document.getElementById('backdrop');
                 if (sidebar) sidebar.classList.toggle('active');
                 if (backdrop) backdrop.classList.toggle('active');
             });
+            menuToggle.hasEventListener = true;
         }
         
         // Backdrop click
         const backdrop = document.getElementById('backdrop');
-        if (backdrop) {
+        if (backdrop && !backdrop.hasEventListener) {
             backdrop.addEventListener('click', () => {
                 const sidebar = document.getElementById('sidebar');
                 sidebar?.classList.remove('active');
                 backdrop.classList.remove('active');
             });
+            backdrop.hasEventListener = true;
         }
         
         // User menu
         const userMenuBtn = document.getElementById('userMenuBtn');
-        if (userMenuBtn) {
+        if (userMenuBtn && !userMenuBtn.hasEventListener) {
             userMenuBtn.addEventListener('click', (e) => {
                 e.stopPropagation();
                 e.preventDefault();
                 this.toggleDropdown('userDropdown', 'userMenuBtn');
             });
+            userMenuBtn.hasEventListener = true;
         }
         
         // Notifications
         const notificationBtn = document.getElementById('notificationBtn');
-        if (notificationBtn) {
+        if (notificationBtn && !notificationBtn.hasEventListener) {
             notificationBtn.addEventListener('click', (e) => {
                 e.stopPropagation();
                 e.preventDefault();
                 this.toggleDropdown('notificationDropdown', 'notificationBtn');
             });
+            notificationBtn.hasEventListener = true;
         }
         
         // Global search
         const globalSearch = document.getElementById('globalSearch');
-        if (globalSearch) {
+        if (globalSearch && !globalSearch.hasEventListener) {
             globalSearch.addEventListener('input', (e) => {
                 this.handleSearch(e.target.value);
             });
+            globalSearch.hasEventListener = true;
         }
         
         // Custom actions
         this.options.customActions.forEach(action => {
             const btn = document.querySelector(`[data-action="${action.id || action.label}"]`);
-            if (btn && action.handler) {
+            if (btn && action.handler && !btn.hasEventListener) {
                 btn.addEventListener('click', action.handler);
+                btn.hasEventListener = true;
             }
         });
         
-        // Close dropdowns on outside click
-        document.addEventListener('click', (e) => {
-            if (!e.target.closest('#userMenuBtn') && 
-                !e.target.closest('#notificationBtn') && 
-                !e.target.closest('#userDropdown') && 
-                !e.target.closest('#notificationDropdown')) {
-                
-                setTimeout(() => {
-                    this.closeAllDropdowns();
-                }, 10);
-            }
-        });
+        // Close dropdowns on outside click - use once to prevent multiple listeners
+        if (!this._outsideClickListenerAttached) {
+            document.addEventListener('click', (e) => {
+                if (!e.target.closest('#userMenuBtn') && 
+                    !e.target.closest('#notificationBtn') && 
+                    !e.target.closest('#userDropdown') && 
+                    !e.target.closest('#notificationDropdown')) {
+                    
+                    setTimeout(() => {
+                        this.closeAllDropdowns();
+                    }, 10);
+                }
+            });
+            this._outsideClickListenerAttached = true;
+        }
         
         // Prevent dropdown close when clicking inside
         const userDropdown = document.getElementById('userDropdown');
-        if (userDropdown) {
+        if (userDropdown && !userDropdown.hasEventListener) {
             userDropdown.addEventListener('click', (e) => {
                 if (!e.target.closest('a') && !e.target.closest('button')) {
                     e.stopPropagation();
                 }
             });
+            userDropdown.hasEventListener = true;
         }
         
         const notificationDropdown = document.getElementById('notificationDropdown');
-        if (notificationDropdown) {
+        if (notificationDropdown && !notificationDropdown.hasEventListener) {
             notificationDropdown.addEventListener('click', (e) => {
                 if (!e.target.closest('a') && !e.target.closest('button')) {
                     e.stopPropagation();
                 }
             });
+            notificationDropdown.hasEventListener = true;
         }
         
         // Mark all notifications as read
         const markAllRead = document.querySelector('.mark-all-read');
-        if (markAllRead) {
+        if (markAllRead && !markAllRead.hasEventListener) {
             markAllRead.addEventListener('click', () => {
                 this.markAllNotificationsRead();
             });
+            markAllRead.hasEventListener = true;
         }
         
         // FIX: Listen for auth state changes con gestione notifiche migliorata
-        if (supabase) {
+        if (supabase && !this._authListenerAttached) {
             supabase.auth.onAuthStateChange((event, session) => {
                 this.handleAuthStateChange(event, session);
             });
+            this._authListenerAttached = true;
         }
         
-        // Aggiungi listener per visibility change
-        document.addEventListener('visibilitychange', () => {
-            if (document.hidden) {
-                // Tab in background - sospendi notifiche
-                this.tabInBackground = true;
-            } else {
-                // Tab tornata attiva
-                this.tabInBackground = false;
-            }
-        });
+        // Aggiungi listener per visibility change - use once
+        if (!this._visibilityListenerAttached) {
+            document.addEventListener('visibilitychange', () => {
+                if (document.hidden) {
+                    // Tab in background - sospendi notifiche
+                    this.tabInBackground = true;
+                } else {
+                    // Tab tornata attiva
+                    this.tabInBackground = false;
+                }
+            });
+            this._visibilityListenerAttached = true;
+        }
         
-        // Fix touch events per mobile
-        document.addEventListener('touchstart', (e) => {
-            const checkbox = e.target.closest('.tracking-checkbox');
-            if (checkbox) {
-                e.preventDefault(); // Previeni default touch behavior
-                e.stopPropagation(); // Stop event bubbling
-                
-                // Toggle checkbox
-                checkbox.checked = !checkbox.checked;
-                
-                // Trigger change event
-                const changeEvent = new Event('change', { bubbles: true });
-                checkbox.dispatchEvent(changeEvent);
-                
-                // Visual feedback
-                checkbox.style.transform = 'scale(0.95)';
-                setTimeout(() => {
-                    checkbox.style.transform = '';
-                }, 100);
-            }
-        }, { passive: false });
+        // Fix touch events per mobile - use once
+        if (!this._touchListenerAttached) {
+            document.addEventListener('touchstart', (e) => {
+                const checkbox = e.target.closest('.tracking-checkbox');
+                if (checkbox) {
+                    e.preventDefault(); // Previeni default touch behavior
+                    e.stopPropagation(); // Stop event bubbling
+                    
+                    // Toggle checkbox
+                    checkbox.checked = !checkbox.checked;
+                    
+                    // Trigger change event
+                    const changeEvent = new Event('change', { bubbles: true });
+                    checkbox.dispatchEvent(changeEvent);
+                    
+                    // Visual feedback
+                    checkbox.style.transform = 'scale(0.95)';
+                    setTimeout(() => {
+                        checkbox.style.transform = '';
+                    }, 100);
+                }
+            }, { passive: false });
+            this._touchListenerAttached = true;
+        }
         
-        // Previeni zoom su double tap
-        let lastTouchEnd = 0;
-        document.addEventListener('touchend', (e) => {
-            const now = Date.now();
-            if (now - lastTouchEnd <= 300) {
-                e.preventDefault();
-            }
-            lastTouchEnd = now;
-        }, false);
+        // Previeni zoom su double tap - use once
+        if (!this._touchEndListenerAttached) {
+            let lastTouchEnd = 0;
+            document.addEventListener('touchend', (e) => {
+                const now = Date.now();
+                if (now - lastTouchEnd <= 300) {
+                    e.preventDefault();
+                }
+                lastTouchEnd = now;
+            }, false);
+            this._touchEndListenerAttached = true;
+        }
     }
     
     // Modifica il metodo handleAuthStateChange
@@ -949,31 +1007,65 @@ export class HeaderComponent {
 // Export singleton instance
 const headerComponent = new HeaderComponent();
 
-// FIX 1: PREVIENI AUTO-INIT MULTIPLE
+// FIX 1: PREVIENI AUTO-INIT MULTIPLE con flag più robusto
 let autoInitDone = false;
+let autoInitPromise = null;
 
 async function autoInitHeader() {
+    // Se già fatto, ritorna subito
     if (autoInitDone) {
         console.log('[HeaderComponent] Auto-init already done');
-        return;
+        return autoInitPromise || headerComponent;
+    }
+    
+    // Se in corso, aspetta
+    if (autoInitPromise) {
+        console.log('[HeaderComponent] Auto-init in progress, waiting...');
+        return autoInitPromise;
     }
     
     autoInitDone = true;
     
-    try {
-        await headerComponent.init();
-        console.log('✅ [HeaderComponent] Auto-initialization complete');
-    } catch (error) {
-        console.error('❌ [HeaderComponent] Auto-initialization failed:', error);
+    // CRITICAL: Controlla se header esiste già PRIMA di inizializzare
+    if (document.querySelector('.sol-header')) {
+        console.log('[HeaderComponent] Header already exists in DOM, skipping auto-init');
+        return headerComponent;
     }
+    
+    autoInitPromise = (async () => {
+        try {
+            await headerComponent.init();
+            console.log('✅ [HeaderComponent] Auto-initialization complete');
+            return headerComponent;
+        } catch (error) {
+            console.error('❌ [HeaderComponent] Auto-initialization failed:', error);
+            throw error;
+        }
+    })();
+    
+    return autoInitPromise;
 }
 
-// Single event listener con once: true
+// Single event listener con once: true e check preventivo
 if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', autoInitHeader, { once: true });
+    document.addEventListener('DOMContentLoaded', () => {
+        // Double-check: non inizializzare se header già presente
+        if (!document.querySelector('.sol-header')) {
+            autoInitHeader();
+        } else {
+            console.log('[HeaderComponent] Header found at DOMContentLoaded, skipping auto-init');
+        }
+    }, { once: true });
 } else {
     // DOM già caricato - usa setTimeout per evitare race conditions
-    setTimeout(autoInitHeader, 100);
+    setTimeout(() => {
+        // Double-check: non inizializzare se header già presente
+        if (!document.querySelector('.sol-header')) {
+            autoInitHeader();
+        } else {
+            console.log('[HeaderComponent] Header found after load, skipping auto-init');
+        }
+    }, 100);
 }
 
 // FIX 2: handleLogout MIGLIORATO per Demo User
@@ -1059,6 +1151,33 @@ window.exportSystemState = function() {
     a.download = `system-state-${Date.now()}.json`;
     a.click();
     URL.revokeObjectURL(url);
+};
+
+// CRITICAL: Aggiungi metodo di debug per verificare lo stato
+window.debugHeaderState = function() {
+    console.log('🔍 Header Component Debug:');
+    console.log('- Singleton instance:', !!headerInstance);
+    console.log('- Initialized:', headerComponent.initialized);
+    console.log('- Auto-init done:', autoInitDone);
+    console.log('- Headers in DOM:', document.querySelectorAll('.sol-header').length);
+    console.log('- Sidebars in DOM:', document.querySelectorAll('#sidebar').length);
+    console.log('- User dropdowns:', document.querySelectorAll('#userDropdown').length);
+    console.log('- Notification dropdowns:', document.querySelectorAll('#notificationDropdown').length);
+    console.log('- Backdrops:', document.querySelectorAll('#backdrop').length);
+    
+    return {
+        singleton: !!headerInstance,
+        initialized: headerComponent.initialized,
+        autoInitDone,
+        headersCount: document.querySelectorAll('.sol-header').length,
+        elements: {
+            headers: document.querySelectorAll('.sol-header').length,
+            sidebars: document.querySelectorAll('#sidebar').length,
+            userDropdowns: document.querySelectorAll('#userDropdown').length,
+            notificationDropdowns: document.querySelectorAll('#notificationDropdown').length,
+            backdrops: document.querySelectorAll('#backdrop').length
+        }
+    };
 };
 
 export default headerComponent;
