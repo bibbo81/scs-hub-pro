@@ -47,3 +47,4 @@ public/core/mock-data.js
 *.bak.history/
 .history/
 .DS_Store
+.DS_Store
