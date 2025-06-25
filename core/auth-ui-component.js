@@ -126,9 +126,10 @@ class AuthUIComponent {
                 </button>
             `;
         } else {
-            const displayName = window.authInit?.formatUserName(this.currentUser) || 
-                              this.currentUser.email?.split('@')[0] || 
-                              'Utente';
+           const displayName = this.currentUser?.user_metadata?.full_name || 
+                   this.currentUser?.user_metadata?.name ||
+                   this.currentUser?.email?.split('@')[0] ||
+                   'Utente';
             
             indicator.innerHTML = `
                 <div class="auth-user-info">
@@ -151,7 +152,11 @@ class AuthUIComponent {
             if (this.isAnonymous) {
                 userName.textContent = 'Modalità Demo';
             } else {
-                userName.textContent = window.authInit?.formatUserName(this.currentUser) || 'Utente';
+                const displayName = this.currentUser?.user_metadata?.full_name || 
+                  this.currentUser?.user_metadata?.name ||
+                  this.currentUser?.email?.split('@')[0] ||
+                  'Utente';
+userName.textContent = displayName;
             }
         }
         

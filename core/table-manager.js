@@ -915,14 +915,25 @@ export class TableManager {
 
     // Abilita drag & drop delle colonne
     enableColumnDrag() {
-        // Aspetta che il DOM sia pronto
-        setTimeout(() => {
-            const headerRow = this.container.querySelector('.data-table thead tr, .sol-table thead tr');
-            if (!headerRow || !window.Sortable) {
-                console.warn('Cannot enable column drag: headerRow or Sortable not found');
-                return;
-            }
-            
+    if (!this.config.enableColumnDrag) return;
+    
+    // Aspetta che il DOM sia pronto
+    setTimeout(() => {
+        const headerRow = this.container.querySelector('.data-table thead tr, .sol-table thead tr');
+        
+        if (!headerRow) {
+            console.warn('Column drag: Header row not found, retrying...');
+            // Riprova dopo un altro delay
+            setTimeout(() => this.enableColumnDrag(), 500);
+            return;
+        }
+        
+        if (!window.Sortable) {
+            console.warn('Column drag: Sortable.js not loaded');
+            return;
+        }
+        
+        try {
             // Distruggi istanza precedente se esiste
             if (this.columnSortable) {
                 this.columnSortable.destroy();
@@ -934,16 +945,19 @@ export class TableManager {
                 ghostClass: 'column-drag-ghost',
                 chosenClass: 'column-drag-chosen',
                 dragClass: 'column-drag-active',
-                handle: 'th:not(.no-drag)',  // Solo th non marcati come no-drag
-                filter: '.no-drag',          // Escludi colonne non trascinabili
+                handle: 'th:not(.no-drag)',
+                filter: '.no-drag',
                 onEnd: (evt) => {
                     this.handleColumnReorder(evt.oldIndex, evt.newIndex);
                 }
             });
             
             console.log('Column drag enabled');
-        }, 100);
-    }
+        } catch (error) {
+            console.error('Error enabling column drag:', error);
+        }
+    }, 100); // Delay per assicurarsi che il DOM sia pronto
+}
 
     // Gestisci il riordino delle colonne - VERSIONE CORRETTA CON RELOAD
     handleColumnReorder(oldIndex, newIndex) {

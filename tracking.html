@@ -776,6 +776,24 @@ window.headerInitLock = false;
     };
 
     console.log('✅ trackingInit defined globally');
+    
+    if (!window.showAddTrackingForm) {
+    // Aspetta che il modulo index.js sia caricato
+    const checkForFunction = setInterval(() => {
+        if (window.showAddTrackingForm) {
+            clearInterval(checkForFunction);
+            console.log('✅ showAddTrackingForm is now available');
+        }
+    }, 100);
+    
+    // Timeout dopo 5 secondi
+    setTimeout(() => {
+        clearInterval(checkForFunction);
+        if (!window.showAddTrackingForm) {
+            console.warn('⚠️ showAddTrackingForm still not available after 5s');
+        }
+    }, 5000);
+}
     </script>
     
     <script>
