@@ -191,8 +191,91 @@ window.getSelectedRows = function() {
     }
     console.warn('⚠️ [getSelectedRows] trackingTable not available, returning empty array');
     return [];
+    
+};
+window.getSelectedRows = function() {
+    console.log('🔍 [getSelectedRows] Called');
+    if (window.trackingTable && window.trackingTable.getSelectedRows) {
+        const selected = window.trackingTable.getSelectedRows();
+        console.log('✅ [getSelectedRows] Found', selected.length, 'items');
+        return selected;
+    }
+    console.warn('⚠️ [getSelectedRows] trackingTable not available, returning empty array');
+    return [];
 };
 
+// Fix permanente per clearSelection
+window.clearSelection = function() {
+    console.log('🧹 [clearSelection] Called');
+    if (window.trackingTable && window.trackingTable.clearSelection) {
+        window.trackingTable.clearSelection();
+        console.log('✅ [clearSelection] Selection cleared');
+    } else {
+        console.warn('⚠️ [clearSelection] trackingTable not available');
+    }
+    updateSelectedCount();
+};
+
+console.log('✅ [Global Functions] getSelectedRows and clearSelection permanently added');
+
+// AGGIUNGI QUI LA NUOVA FUNZIONE setupBulkActions
+window.setupBulkActions = function() {
+    console.log('🔧 [setupBulkActions] Starting setup...');
+    
+    let targetContainer = document.querySelector('.sol-card-header');
+    
+    if (!targetContainer) {
+        targetContainer = document.querySelector('.sol-card');
+        console.warn('⚠️ [setupBulkActions] .sol-card-header not found, using .sol-card');
+    }
+    
+    if (!targetContainer) {
+        console.error('❌ [setupBulkActions] No suitable container found!');
+        return;
+    }
+    
+    if (document.getElementById('bulkActionsContainer')) {
+        console.log('✅ [setupBulkActions] Container already exists');
+        return;
+    }
+    
+    const bulkActions = document.createElement('div');
+    bulkActions.id = 'bulkActionsContainer';
+    bulkActions.style.display = 'none';
+    bulkActions.className = 'bulk-actions-container';
+    bulkActions.innerHTML = `
+        <div class="bulk-actions-bar">
+            <span class="selected-count">
+                <i class="fas fa-check-square"></i>
+                <span id="selectedCount">0</span> selezionati
+            </span>
+            <div class="bulk-actions">
+                <button class="btn btn-sm btn-primary" onclick="bulkRefreshTrackings()">
+                    <i class="fas fa-sync-alt"></i> Aggiorna Selezionati
+                </button>
+                <button class="btn btn-sm btn-danger" onclick="bulkDeleteTrackings()">
+                    <i class="fas fa-trash"></i> Elimina Selezionati
+                </button>
+                <button class="btn btn-sm btn-secondary" onclick="exportSelectedTrackings()">
+                    <i class="fas fa-file-export"></i> Esporta Selezionati
+                </button>
+                <button class="btn btn-sm btn-outline" onclick="clearSelection()">
+                    <i class="fas fa-times"></i> Deseleziona
+                </button>
+            </div>
+        </div>
+    `;
+    
+    if (targetContainer.parentNode) {
+        targetContainer.parentNode.insertBefore(bulkActions, targetContainer.nextSibling);
+        console.log('✅ [setupBulkActions] Container created and inserted');
+    }
+};
+
+console.log('✅ [Global Functions] setupBulkActions permanently added');
+
+// Modifica la funzione trackingInit per includere l'inizializzazione dell'indicatore
+    
 // Fix permanente per clearSelection
 window.clearSelection = function() {
     console.log('🧹 [clearSelection] Called');
