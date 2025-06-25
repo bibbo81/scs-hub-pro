@@ -1427,6 +1427,57 @@ function generateDemoTimeline(tracking) {
        }
    })();
    </script>
-
+<script>
+    // Fix per auto-inizializzare bulk actions
+    window.addEventListener('load', function() {
+        console.log('🔧 [BulkActions Fix] Window loaded, checking for setupBulkActions...');
+        
+        // Prova immediatamente
+        if (typeof window.setupBulkActions === 'function' && !document.getElementById('bulkActionsContainer')) {
+            console.log('✅ [BulkActions Fix] Calling setupBulkActions immediately');
+            window.setupBulkActions();
+        }
+        
+        // Riprova dopo 500ms per sicurezza
+        setTimeout(() => {
+            if (typeof window.setupBulkActions === 'function' && !document.getElementById('bulkActionsContainer')) {
+                console.log('✅ [BulkActions Fix] Calling setupBulkActions after delay');
+                window.setupBulkActions();
+            } else if (document.getElementById('bulkActionsContainer')) {
+                console.log('✅ [BulkActions Fix] Container already exists');
+            } else {
+                console.warn('⚠️ [BulkActions Fix] setupBulkActions not found');
+            }
+        }, 500);
+        
+        // Final check dopo 2 secondi
+        setTimeout(() => {
+            if (!document.getElementById('bulkActionsContainer')) {
+                console.error('❌ [BulkActions Fix] Failed to create bulk actions container after 2s');
+                
+                // Tentativo estremo: cerca la funzione nel modulo
+                if (window.trackingInit && typeof window.trackingInit === 'function') {
+                    console.log('🔧 [BulkActions Fix] Found trackingInit, trying from there...');
+                    // Trigger manual setup se possibile
+                    const setupBtn = document.querySelector('[onclick*="setupBulkActions"]');
+                    if (setupBtn) {
+                        console.log('🔧 [BulkActions Fix] Found setup button, triggering...');
+                        setupBtn.click();
+                    }
+                }
+            } else {
+                console.log('✅ [BulkActions Fix] Bulk actions container successfully created');
+            }
+        }, 2000);
+    });
+    
+    // Aggiungi anche listener per quando trackingInit è completato
+    window.addEventListener('trackingInitComplete', function() {
+        console.log('📡 [BulkActions Fix] trackingInitComplete event received');
+        if (typeof window.setupBulkActions === 'function' && !document.getElementById('bulkActionsContainer')) {
+            window.setupBulkActions();
+        }
+    });
+    </script>
 </body>
 </html>
