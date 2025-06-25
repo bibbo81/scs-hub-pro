@@ -178,8 +178,8 @@ class SupabaseTrackingService {
             },
             
             // Timestamps
-            created_at: trackingData.created_at || new Date().toISOString(),
-            updated_at: new Date().toISOString()
+            created_at: this.parseDate(trackingData.created_at) || new Date().toISOString(),
+            updated_at: this.parseDate(trackingData.updated_at) || new Date().toISOString()
         };
 
         // Rimuovi campi undefined/null
