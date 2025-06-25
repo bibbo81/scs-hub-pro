@@ -1,14 +1,24 @@
 // /pages/tracking/index.js - Logica specifica per la pagina tracking
 // FIX: Import corretti per i moduli
-import TableManager from '../../core/table-manager.js';
-// Modal system loads globally, use window reference
-const modalSystem = window.ModalSystem;
-import notificationSystem from '../../core/notification-system.js';
-// Aggiungi all'inizio del file pages/tracking/index.js
-import trackingService from '/core/services/tracking-service.js';
+// Versioning per evitare problemi cache
+const V = window.APP_VERSION || 'v48.1';
 
-// Importa l'indicatore API status
-import '/pages/tracking/api-status-indicator.js';
+// Import con versioning
+const imports = {
+    TableManager: import(`../../core/table-manager.js?v=${V}`),
+    notificationSystem: import(`../../core/notification-system.js?v=${V}`),
+    trackingService: import(`/core/services/tracking-service.js?v=${V}`),
+    apiStatusIndicator: import(`/pages/tracking/api-status-indicator.js?v=${V}`)
+};
+
+// Attendi tutti gli import
+const modules = await Promise.all(Object.values(imports));
+const TableManager = modules[0].default;
+const notificationSystem = modules[1].default;
+const trackingService = modules[2].default;
+
+// Modal system usa riferimento globale
+const modalSystem = window.ModalSystem;
 
 // ===== AGGIUNGI QUESTE RIGHE SUBITO DOPO GLI IMPORT =====
 // Esponi subito trackingInit per evitare race conditions

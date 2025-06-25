@@ -5,8 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Supply Chain Hub - Tracking Spedizioni</title>
     
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
+    window.APP_VERSION = 'v47.1'; // Incrementa ad ogni deploy
+</script>
   // Esponi globalmente per i moduli ES6 - CON CONTROLLO ROBUSTO
   (function() {
     function setupSupabaseGlobal() {
@@ -69,15 +71,18 @@
     <script type="module" src="/core/modal-system.js"></script>
     
     <script type="module">
-        // Import core modules
-        import api from '/core/api-client.js';
-        import headerComponent from '/core/header-component.js';
-        import notificationSystem from '/core/notification-system.js';
-        import TableManager from '/core/table-manager.js';
-        import app from '/assets/js/app.js';
-        import AdvancedSearch from '/core/advanced-search.js';
-        import apiKeyManager from '/core/components/api-key-manager.js';
-        import organizationApiKeysService from '/core/services/organization-api-keys-service.js';
+    const V = window.APP_VERSION;
+    
+    import(`/core/api-client.js?v=${V}`).then(m => window.api = m.default);
+    import(`/core/header-component.js?v=${V}`).then(m => window.headerComponent = m.default);
+    import(`/core/notification-system.js?v=${V}`).then(m => window.NotificationSystem = m.default);
+    import(`/core/table-manager.js?v=${V}`).then(m => window.TableManager = m.default);
+    import(`/assets/js/app.js?v=${V}`).then(m => window.App = m.default);
+    import(`/core/advanced-search.js?v=${V}`).then(m => window.AdvancedSearch = m.default);
+    import(`/core/components/api-key-manager.js?v=${V}`).then(m => window.apiKeyManager = m.default);
+    import(`/core/services/organization-api-keys-service.js?v=${V}`).then(m => window.organizationApiKeysService = m.default);
+    
+    console.log('✅ [ES6] Core modules loading with version:', V);
 
         // Make modules available globally for backward compatibility
         window.api = api;
@@ -185,9 +190,11 @@
     <script src="/core/export-manager.js"></script>
     
     <script type="module">
-    import trackingService from '/core/services/tracking-service.js';
-    window.trackingService = trackingService;
-    console.log('✅ Tracking Service caricato via ES6 import');
+   const VERSION = 'v47.1'; // Usa la stessa versione
+    import(`/core/services/tracking-service.js?v=${VERSION}`).then(m => {
+        window.trackingService = m.default;
+        console.log('✅ Tracking Service caricato via ES6 import');
+    });
     </script>
     
     <script type="module">
