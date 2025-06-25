@@ -2291,26 +2291,6 @@ async function handleAddTracking(event) {
     
     // Close modal and reload
     window.ModalSystem.closeAll();
-}// SOSTITUISCI anche handleRefreshTracking MODIFICATA PER SUPABASE:
-async function restoreStatsOrder() {
-    const savedOrder = localStorage.getItem('trackingStatsOrder');
-    if (!savedOrder) return;
-    
-    try {
-        const order = JSON.parse(savedOrder);
-        const statsGrid = document.getElementById('statsGrid');
-        const cards = Array.from(statsGrid.querySelectorAll('.sol-stat-card'));
-        
-        cards.sort((a, b) => {
-            const aIndex = order.indexOf(a.dataset.id);
-            const bIndex = order.indexOf(b.dataset.id);
-            return aIndex - bIndex;
-        });
-        
-        cards.forEach(card => statsGrid.appendChild(card));
-    } catch (e) {
-        console.error('Error restoring stats order:', e);
-    }
 }
 
 // Auto refresh - FUNZIONE MODIFICATA
