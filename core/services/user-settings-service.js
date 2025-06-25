@@ -1,4 +1,4 @@
-// core/services/user-settings-service.js
+// core/services/user-settings-service.js - FIX DEFINITIVO PER MODALITÀ DEMO
 import { supabase, requireAuth } from './supabase-client.js';
 
 class UserSettingsService {
@@ -6,6 +6,7 @@ class UserSettingsService {
         this.cache = null;
         this.cacheTimeout = 5 * 60 * 1000; // 5 minuti
         this.lastFetch = null;
+        this.debugMode = window.location.hostname === 'localhost';
     }
 
     async getSettings(forceRefresh = false) {
@@ -47,6 +48,13 @@ class UserSettingsService {
             this.cache = data;
             this.lastFetch = Date.now();
 
+            if (this.debugMode) {
+                console.log('[UserSettingsService] ✅ Settings loaded:', {
+                    hasApiKeys: !!(data?.api_keys),
+                    keyCount: Object.keys(data?.api_keys || {}).length
+                });
+            }
+
             return data;
         } catch (error) {
             console.error('Error fetching user settings:', error);
@@ -64,13 +72,13 @@ class UserSettingsService {
             const user = await requireAuth();
             const settings = await this.getSettings();
             
-            // Encrypt the API key (basic encryption - potresti usare una libreria più robusta)
-            const encryptedKey = btoa(apiKey); // In produzione usa crypto-js o simile
+            // 🔥 CRITICO: NON crittare le API keys - salvarle in chiaro
+            // La crittografia causava il problema della modalità demo
             
             // Update api_keys
             const updatedApiKeys = {
                 ...settings.api_keys,
-                [provider]: encryptedKey
+                [provider]: apiKey // 👈 SALVATO IN CHIARO, NON CRIPTATO
             };
 
             // Save to Supabase
@@ -92,7 +100,15 @@ class UserSettingsService {
             // Also save to localStorage as backup
             localStorage.setItem(`${provider}_api_key`, apiKey);
 
-            console.log(`✅ API key for ${provider} saved successfully`);
+            if (this.debugMode) {
+                console.log(`✅ API key for ${provider} saved in plain text to Supabase`);
+            }
+
+            // 🔥 IMPORTANTE: Dispatch evento per notificare altri servizi
+            window.dispatchEvent(new CustomEvent('apiKeysUpdated', {
+                detail: { provider, saved: true }
+            }));
+
             return true;
 
         } catch (error) {
@@ -104,24 +120,37 @@ class UserSettingsService {
         }
     }
 
+    // 🔥 FIX PRINCIPALE: getApiKey NON deve decrittare nulla
     async getApiKey(provider) {
-    try {
-        const settings = await this.getSettings();
-        
-        if (settings?.api_keys?.[provider]) {
-            // NON decrittare - restituisci direttamente
-            return settings.api_keys[provider];
+        try {
+            const settings = await this.getSettings();
+            
+            if (settings?.api_keys?.[provider]) {
+                // 👈 RESTITUISCE DIRETTAMENTE - NO DECRIPTAZIONE
+                const key = settings.api_keys[provider];
+                
+                if (this.debugMode) {
+                    console.log(`[UserSettingsService] 🔑 API key found for ${provider}:`, 
+                        key ? `${key.substring(0, 8)}...` : 'null');
+                }
+                
+                return key;
+            }
+            
+            // Fallback to localStorage
+            const localKey = localStorage.getItem(`${provider}_api_key`);
+            if (localKey && this.debugMode) {
+                console.log(`[UserSettingsService] 🔑 Fallback to localStorage for ${provider}`);
+            }
+            
+            return localKey;
+            
+        } catch (error) {
+            console.error('Error getting API key:', error);
+            // Fallback to localStorage
+            return localStorage.getItem(`${provider}_api_key`);
         }
-        
-        // Fallback to localStorage
-        return localStorage.getItem(`${provider}_api_key`);
-        
-    } catch (error) {
-        console.error('Error getting API key:', error);
-        // Fallback to localStorage
-        return localStorage.getItem(`${provider}_api_key`);
     }
-}
 
     async removeApiKey(provider) {
         try {
@@ -149,6 +178,11 @@ class UserSettingsService {
             // Also remove from localStorage
             localStorage.removeItem(`${provider}_api_key`);
 
+            // Dispatch evento
+            window.dispatchEvent(new CustomEvent('apiKeysUpdated', {
+                detail: { provider, removed: true }
+            }));
+
             console.log(`✅ API key for ${provider} removed`);
             return true;
 
@@ -171,33 +205,48 @@ class UserSettingsService {
             }
         }
 
-        console.log(`✅ Migrated ${migrated} API keys to Supabase`);
+        if (migrated > 0) {
+            console.log(`✅ Migrated ${migrated} API keys to Supabase`);
+        }
         return migrated;
     }
 
-    // Helper to get all API keys
+    // 🔥 FIX: getAllApiKeys deve restituire le chiavi in chiaro
     async getAllApiKeys() {
-    try {
-        const settings = await this.getSettings();
-        return settings?.api_keys || {};
-    } catch (error) {
-        console.error('Error getting all API keys:', error);
-        return this.getLocalApiKeys();
+        try {
+            const settings = await this.getSettings();
+            const apiKeys = settings?.api_keys || {};
+            
+            if (this.debugMode) {
+                console.log('[UserSettingsService] 📋 All API keys:', 
+                    Object.keys(apiKeys).map(k => `${k}: ${apiKeys[k] ? 'SET' : 'MISSING'}`));
+            }
+            
+            return apiKeys; // 👈 RESTITUISCE DIRETTAMENTE - NO DECRIPTAZIONE
+        } catch (error) {
+            console.error('Error getting all API keys:', error);
+            return this.getLocalApiKeys();
+        }
     }
-}
 
     // Get local API keys (fallback)
     getLocalApiKeys() {
-    return {
-        shipsgo_v1: localStorage.getItem('shipsgo_api_key') || localStorage.getItem('shipsgo_v1_api_key'),
-        shipsgo_v2: localStorage.getItem('shipsgo_v2_token') || localStorage.getItem('shipsgo_v2_api_key')
-    };
-}
+        return {
+            shipsgo_v1: localStorage.getItem('shipsgo_api_key') || localStorage.getItem('shipsgo_v1_api_key'),
+            shipsgo_v2: localStorage.getItem('shipsgo_v2_token') || localStorage.getItem('shipsgo_v2_api_key')
+        };
+    }
 
     // Check if user has any API keys configured
     async hasApiKeys() {
         const keys = await this.getAllApiKeys();
-        return Object.values(keys).some(key => key && key.length > 0);
+        const hasKeys = Object.values(keys).some(key => key && key.length > 0);
+        
+        if (this.debugMode) {
+            console.log('[UserSettingsService] 🔍 Has API keys:', hasKeys);
+        }
+        
+        return hasKeys;
     }
 
     // Save preferences
@@ -244,6 +293,35 @@ class UserSettingsService {
             return defaultValue;
         }
     }
+
+    // 🔥 NUOVO: Metodo di debug per verificare lo stato
+    async debugApiKeys() {
+        if (!this.debugMode) return;
+        
+        try {
+            const settings = await this.getSettings();
+            const apiKeys = settings?.api_keys || {};
+            
+            console.group('🔍 [UserSettingsService] API Keys Debug');
+            console.log('📄 Raw settings:', settings);
+            console.log('🔑 API Keys object:', apiKeys);
+            console.log('🗝️ Available providers:', Object.keys(apiKeys));
+            
+            for (const [provider, key] of Object.entries(apiKeys)) {
+                console.log(`   ${provider}:`, key ? `${key.substring(0, 8)}...` : 'NOT SET');
+            }
+            
+            console.log('💾 LocalStorage fallback:');
+            const localKeys = this.getLocalApiKeys();
+            for (const [provider, key] of Object.entries(localKeys)) {
+                console.log(`   ${provider}:`, key ? `${key.substring(0, 8)}...` : 'NOT SET');
+            }
+            
+            console.groupEnd();
+        } catch (error) {
+            console.error('Debug failed:', error);
+        }
+    }
 }
 
 // Export singleton
@@ -256,6 +334,11 @@ const userSettingsService = new UserSettingsService();
         if (user && !user.is_anonymous) {
             // Migra API key esistenti
             await userSettingsService.migrateLocalApiKeys();
+            
+            // Debug in development
+            if (window.location.hostname === 'localhost') {
+                await userSettingsService.debugApiKeys();
+            }
         }
     } catch (error) {
         console.log('User settings migration skipped:', error.message);
