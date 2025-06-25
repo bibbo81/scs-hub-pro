@@ -1429,66 +1429,132 @@ function generateDemoTimeline(tracking) {
    </script>
 
 <script>
-// AUTO-CREATE BULK ACTIONS AFTER PAGE LOAD
+// FIX DEFINITIVO BULK ACTIONS + ENHANCED FORM
 window.addEventListener('DOMContentLoaded', function() {
-    setTimeout(function() {
-        // Check if already exists
-        if (document.getElementById('bulkActionsContainer')) return;
-        
-        // Create container
-        const container = document.createElement('div');
-        container.id = 'bulkActionsContainer';
-        container.className = 'bulk-actions-container';
-        container.style.display = 'none';
-        
-        container.innerHTML = `
-            <div class="bulk-actions-bar">
-                <span class="selected-count">
-                    <i class="fas fa-check-square"></i>
-                    <span id="selectedCount">0</span> selezionati
-                </span>
-                <div class="bulk-actions">
-                    <button class="btn btn-sm btn-primary" onclick="bulkRefreshTrackings()">
-                        <i class="fas fa-sync-alt"></i> Aggiorna
-                    </button>
-                    <button class="btn btn-sm btn-danger" onclick="bulkDeleteTrackings()">
-                        <i class="fas fa-trash"></i> Elimina
-                    </button>
-                    <button class="btn btn-sm btn-secondary" onclick="exportSelectedTrackings()">
-                        <i class="fas fa-file-export"></i> Esporta
-                    </button>
-                    <button class="btn btn-sm btn-outline" onclick="clearSelection()">
-                        <i class="fas fa-times"></i> Deseleziona
-                    </button>
-                </div>
-            </div>
-        `;
-        
-        // Insert before table
-        const table = document.getElementById('trackingTableContainer');
-        if (table) {
-            table.parentNode.insertBefore(container, table);
+    // 1. ENSURE ENHANCED FORM
+    setTimeout(() => {
+        if (!window.showEnhancedTrackingForm) {
+            const script = document.createElement('script');
+            script.src = '/pages/tracking/tracking-form-progressive.js';
+            document.head.appendChild(script);
+        }
+    }, 500);
+    
+    // 2. CREATE BULK ACTIONS
+    setTimeout(() => {
+        if (!document.getElementById('bulkActionsContainer')) {
+            const container = document.createElement('div');
+            container.id = 'bulkActionsContainer';
+            container.className = 'bulk-actions-container';
+            container.style.display = 'none';
             
-            // Connect to table
-            const checkTable = setInterval(function() {
-                if (window.trackingTable && window.trackingTable.onSelectionChange) {
-                    clearInterval(checkTable);
-                    
-                    // Override selection handler
-                    const original = window.trackingTable.onSelectionChange;
-                    window.trackingTable.onSelectionChange = function(selected) {
-                        if (original) original(selected);
-                        container.style.display = selected.length > 0 ? 'block' : 'none';
-                        document.getElementById('selectedCount').textContent = selected.length;
-                    };
-                    
-                    console.log('✅ Bulk actions connected to table!');
-                }
-            }, 100);
+            container.innerHTML = `
+                <div class="bulk-actions-bar">
+                    <span class="selected-count">
+                        <i class="fas fa-check-square"></i>
+                        <span id="selectedCount">0</span> selezionati
+                    </span>
+                    <div class="bulk-actions">
+                        <button class="btn btn-sm btn-primary" onclick="bulkRefreshTrackings()">
+                            <i class="fas fa-sync-alt"></i> Aggiorna
+                        </button>
+                        <button class="btn btn-sm btn-danger" onclick="bulkDeleteTrackings()">
+                            <i class="fas fa-trash"></i> Elimina
+                        </button>
+                        <button class="btn btn-sm btn-outline" onclick="clearSelection()">
+                            <i class="fas fa-times"></i> Deseleziona
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            const table = document.getElementById('trackingTableContainer');
+            if (table) {
+                table.parentNode.insertBefore(container, table);
+                
+                // Connect to table
+                const connectInterval = setInterval(() => {
+                    if (window.trackingTable && window.trackingTable.onSelectionChange) {
+                        clearInterval(connectInterval);
+                        
+                        const original = window.trackingTable.onSelectionChange;
+                        window.trackingTable.onSelectionChange = function(selected) {
+                            if (original) original(selected);
+                            container.style.display = selected.length > 0 ? 'block' : 'none';
+                            document.getElementById('selectedCount').textContent = selected.length;
+                        };
+                    }
+                }, 100);
+            }
         }
     }, 2000);
 });
 </script>
 
 </body>
+<script>
+// EMERGENCY FIX - DEFINISCI TUTTO MANUALMENTE
+console.log('🚨 EMERGENCY FIX LOADING...');
+
+// Fix Add Tracking
+document.addEventListener('click', function(e) {
+    if (e.target.id === 'addTrackingBtn' || e.target.closest('#addTrackingBtn')) {
+        e.preventDefault();
+        
+        // Carica form progressive se non c'è
+        if (!window.showEnhancedTrackingForm) {
+            const script = document.createElement('script');
+            script.src = '/pages/tracking/tracking-form-progressive.js?v=' + Date.now();
+            script.onload = () => {
+                if (window.showEnhancedTrackingForm) {
+                    window.showEnhancedTrackingForm();
+                }
+            };
+            document.head.appendChild(script);
+        } else {
+            window.showEnhancedTrackingForm();
+        }
+    }
+});
+
+// Fix altri bottoni
+window.refreshAllTrackings = () => alert('Funzione temporaneamente non disponibile');
+window.exportToPDF = () => alert('Funzione temporaneamente non disponibile');
+window.exportToExcel = () => alert('Funzione temporaneamente non disponibile');
+window.showColumnManager = () => alert('Funzione temporaneamente non disponibile');
+
+// Carica trackings da localStorage
+const trackings = JSON.parse(localStorage.getItem('trackings') || '[]');
+console.log('📦 Found', trackings.length, 'trackings in localStorage');
+
+// Mostra trackings nella tabella
+if (trackings.length > 0 && document.getElementById('trackingTableContainer')) {
+    document.getElementById('trackingTableContainer').innerHTML = `
+        <table class="sol-table">
+            <thead>
+                <tr>
+                    <th>Tracking Number</th>
+                    <th>Tipo</th>
+                    <th>Stato</th>
+                    <th>Origine</th>
+                    <th>Destinazione</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${trackings.map(t => `
+                    <tr>
+                        <td>${t.tracking_number}</td>
+                        <td>${t.tracking_type || '-'}</td>
+                        <td>${t.status || '-'}</td>
+                        <td>${t.origin_port || '-'}</td>
+                        <td>${t.destination_port || '-'}</td>
+                    </tr>
+                `).join('')}
+            </tbody>
+        </table>
+    `;
+}
+
+console.log('✅ EMERGENCY FIX APPLIED');
+</script>
 </html>
