@@ -177,16 +177,14 @@ class UserSettingsService {
 
     // Helper to get all API keys
     async getAllApiKeys() {
-        const keys = {};
-        const providers = ['shipsgo_v1', 'shipsgo_v2'];
-
-        for (const provider of providers) {
-            const key = await this.getApiKey(provider);
-            if (key) keys[provider] = key;
-        }
-
-        return keys;
+    try {
+        const settings = await this.getSettings();
+        return settings?.api_keys || {};
+    } catch (error) {
+        console.error('Error getting all API keys:', error);
+        return this.getLocalApiKeys();
     }
+}
 
     // Get local API keys (fallback)
     getLocalApiKeys() {
