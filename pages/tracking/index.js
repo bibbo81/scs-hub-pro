@@ -182,6 +182,30 @@ window.clearSelection = clearSelection;
 window.bulkRefreshTrackings = bulkRefreshTrackings;
 window.bulkDeleteTrackings = bulkDeleteTrackings;
 window.exportSelectedTrackings = exportSelectedTrackings;
+window.getSelectedRows = function() {
+    console.log('🔍 [getSelectedRows] Called');
+    if (window.trackingTable && window.trackingTable.getSelectedRows) {
+        const selected = window.trackingTable.getSelectedRows();
+        console.log('✅ [getSelectedRows] Found', selected.length, 'items');
+        return selected;
+    }
+    console.warn('⚠️ [getSelectedRows] trackingTable not available, returning empty array');
+    return [];
+};
+
+// Fix permanente per clearSelection
+window.clearSelection = function() {
+    console.log('🧹 [clearSelection] Called');
+    if (window.trackingTable && window.trackingTable.clearSelection) {
+        window.trackingTable.clearSelection();
+        console.log('✅ [clearSelection] Selection cleared');
+    } else {
+        console.warn('⚠️ [clearSelection] trackingTable not available');
+    }
+    updateSelectedCount();
+};
+
+console.log('✅ [Global Functions] getSelectedRows and clearSelection permanently added');
 
 // Modifica la funzione trackingInit per includere l'inizializzazione dell'indicatore
 window.trackingInit = async function() {
@@ -230,12 +254,12 @@ window.trackingInit = async function() {
         window.getColumnFormatter = getColumnFormatter;
         console.log('[Tracking] ✅ getColumnFormatter exposed in trackingInit');
         
-        // Setup page components - ORDINE IMPORTANTE!
-        setupStatsCards();
-        setupBulkActions();        // PRIMA della tabella
-        setupCheckboxListeners();  // Setup listeners
-        setupTrackingTable();      // POI crea la tabella
-        setupEventListeners();
+       // Setup page components - ORDINE IMPORTANTE!
+setupStatsCards();
+setupTrackingTable();      // PRIMA crea la tabella
+setupBulkActions();        // POI setup bulk actions (dopo che DOM è pronto)
+setupCheckboxListeners();  // Setup listeners
+setupEventListeners();
         
         // Load initial data
         await loadTrackings();
@@ -532,17 +556,21 @@ function setupTrackingTable() {
         emptyMessage: 'Nessun tracking attivo. Aggiungi il tuo primo tracking per iniziare.',
         pageSize: 20,
         enableColumnDrag: true,
-        selectable: true,  // ✅ AGGIUNGI QUESTA RIGA
-        onSelectionChange: function(selectedData) {  // ✅ AGGIUNGI QUESTO CALLBACK
-            updateSelectedCount();
-            const count = selectedData.length;
-            const container = document.getElementById('bulkActionsContainer');
-            if (container) {
-                container.style.display = count > 0 ? 'block' : 'none';
-                const countEl = document.getElementById('selectedCount');
-                if (countEl) countEl.textContent = count;
-            }
-        }
+        selectable: true,
+onSelectionChange: function(selectedData) {
+    console.log('🔄 [onSelectionChange] Called with', selectedData.length, 'items');
+    updateSelectedCount();
+    const count = selectedData.length;
+    const container = document.getElementById('bulkActionsContainer');
+    if (container) {
+        container.style.display = count > 0 ? 'block' : 'none';
+        const countEl = document.getElementById('selectedCount');
+        if (countEl) countEl.textContent = count;
+        console.log('✅ [onSelectionChange] Bulk actions visibility updated');
+    } else {
+        console.error('❌ [onSelectionChange] bulkActionsContainer not found!');
+    }
+}
     });
     
     // Esponi trackingTable globalmente
@@ -561,36 +589,60 @@ function setupTrackingTable() {
 
 // === BULK ACTIONS FUNCTIONS ===
 function setupBulkActions() {
-    // Crea il container per le azioni bulk se non esiste
-    const tableContainer = document.querySelector('.sol-card-header');
-    if (tableContainer && !document.getElementById('bulkActionsContainer')) {
-        const bulkActions = document.createElement('div');
-        bulkActions.id = 'bulkActionsContainer';
-        bulkActions.style.display = 'none';
-        bulkActions.innerHTML = `
-            <div class="bulk-actions-bar">
-                <span class="selected-count">
-                    <i class="fas fa-check-square"></i>
-                    <span id="selectedCount">0</span> selezionati
-                </span>
-                <div class="bulk-actions">
-                    <button class="btn btn-sm btn-primary" onclick="bulkRefreshTrackings()">
-                        <i class="fas fa-sync-alt"></i> Aggiorna Selezionati
-                    </button>
-                    <button class="btn btn-sm btn-danger" onclick="bulkDeleteTrackings()">
-                        <i class="fas fa-trash"></i> Elimina Selezionati
-                    </button>
-                    <button class="btn btn-sm btn-secondary" onclick="exportSelectedTrackings()">
-                        <i class="fas fa-file-export"></i> Esporta Selezionati
-                    </button>
-                    <button class="btn btn-sm btn-outline" onclick="clearSelection()">
-                        <i class="fas fa-times"></i> Deseleziona
-                    </button>
-                </div>
-            </div>
-        `;
-        tableContainer.appendChild(bulkActions);
+    console.log('🔧 [setupBulkActions] Starting setup...');
+    
+    // Cerca il container giusto - prova più selettori
+    let targetContainer = document.querySelector('.sol-card-header');
+    
+    // Se non trova .sol-card-header, prova alternative
+    if (!targetContainer) {
+        targetContainer = document.querySelector('.sol-card');
+        console.warn('⚠️ [setupBulkActions] .sol-card-header not found, using .sol-card');
     }
+    
+    if (!targetContainer) {
+        console.error('❌ [setupBulkActions] No suitable container found!');
+        return;
+    }
+    
+    // Verifica se il bulk actions container esiste già
+    if (document.getElementById('bulkActionsContainer')) {
+        console.log('✅ [setupBulkActions] Container already exists');
+        return;
+    }
+    
+    // Crea il container per le azioni bulk
+    const bulkActions = document.createElement('div');
+    bulkActions.id = 'bulkActionsContainer';
+    bulkActions.style.display = 'none';
+    bulkActions.className = 'bulk-actions-container'; // Aggiungi classe per CSS
+    bulkActions.innerHTML = `
+        <div class="bulk-actions-bar">
+            <span class="selected-count">
+                <i class="fas fa-check-square"></i>
+                <span id="selectedCount">0</span> selezionati
+            </span>
+            <div class="bulk-actions">
+                <button class="btn btn-sm btn-primary" onclick="bulkRefreshTrackings()">
+                    <i class="fas fa-sync-alt"></i> Aggiorna Selezionati
+                </button>
+                <button class="btn btn-sm btn-danger" onclick="bulkDeleteTrackings()">
+                    <i class="fas fa-trash"></i> Elimina Selezionati
+                </button>
+                <button class="btn btn-sm btn-secondary" onclick="exportSelectedTrackings()">
+                    <i class="fas fa-file-export"></i> Esporta Selezionati
+                </button>
+                <button class="btn btn-sm btn-outline" onclick="clearSelection()">
+                    <i class="fas fa-times"></i> Deseleziona
+                </button>
+            </div>
+        </div>
+    `;
+    
+    // Inserisci dopo l'header invece di dentro
+    targetContainer.parentNode.insertBefore(bulkActions, targetContainer.nextSibling);
+    
+    console.log('✅ [setupBulkActions] Container created and inserted');
 }
 
 // Funzione per aggiornare il contatore dei selezionati
