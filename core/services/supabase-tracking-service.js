@@ -193,31 +193,41 @@ class SupabaseTrackingService {
     }
 
     parseDate(dateValue) {
-        if (!dateValue || dateValue === '-') return null;
-        
-        try {
-            // Se è già una data ISO valida
-            if (typeof dateValue === 'string' && dateValue.match(/^\d{4}-\d{2}-\d{2}/)) {
-                return new Date(dateValue).toISOString();
-            }
-            
-            // Se è formato italiano DD/MM/YYYY
-            if (typeof dateValue === 'string' && dateValue.match(/^\d{2}\/\d{2}\/\d{4}/)) {
-                const [day, month, year] = dateValue.split('/');
-                return new Date(year, month - 1, day).toISOString();
-            }
-            
-            // Prova parsing generico
-            const parsed = new Date(dateValue);
-            if (!isNaN(parsed.getTime())) {
-                return parsed.toISOString();
-            }
-        } catch (e) {
-            console.warn('Date parse error:', dateValue, e);
+    if (!dateValue || dateValue === '-') return null;
+    
+    try {
+        // Se è già una data ISO valida
+        if (typeof dateValue === 'string' && dateValue.match(/^\d{4}-\d{2}-\d{2}/)) {
+            return new Date(dateValue).toISOString();
         }
         
-        return null;
+        // Se è formato italiano DD/MM/YYYY o DD/MM/YYYY HH:mm:ss
+        if (typeof dateValue === 'string' && dateValue.match(/^\d{2}\/\d{2}\/\d{4}/)) {
+            // Separa data e ora se presente
+            const [datePart, timePart] = dateValue.split(' ');
+            const [day, month, year] = datePart.split('/');
+            
+            if (timePart) {
+                // Se c'è l'orario HH:mm:ss
+                const [hours, minutes, seconds] = timePart.split(':');
+                return new Date(year, month - 1, day, hours || 0, minutes || 0, seconds || 0).toISOString();
+            } else {
+                // Solo data
+                return new Date(year, month - 1, day).toISOString();
+            }
+        }
+        
+        // Prova parsing generico
+        const parsed = new Date(dateValue);
+        if (!isNaN(parsed.getTime())) {
+            return parsed.toISOString();
+        }
+    } catch (e) {
+        console.warn('Date parse error:', dateValue, e);
     }
+    
+    return null;
+}
 
     extractCountry(location) {
         // Estrai il paese dal nome del porto/aeroporto
