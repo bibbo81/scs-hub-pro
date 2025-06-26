@@ -398,5 +398,248 @@
             };
         }
     </script>
+
+<!-- DEBUG FIX - AGGIUNTO PER RISOLVERE I PROBLEMI -->
+<script>
+(function() {
+    'use strict';
+    
+    console.log('🔧 DEBUG FIX: Starting complete debug fix...');
+    
+    // 1. INIZIALIZZA VARIABILI GLOBALI MANCANTI
+    window.trackings = window.trackings || [];
+    window.filteredTrackings = window.filteredTrackings || [];
+    window.selectedTrackingIds = window.selectedTrackingIds || new Set();
+    
+    console.log('✅ Global variables initialized');
+    
+    // 2. FIX CARICAMENTO DATI
+    async function fixDataLoading() {
+        console.log('🔧 Fixing data loading...');
+        
+        // Attendi che supabaseTrackingService sia disponibile
+        let attempts = 0;
+        while (!window.supabaseTrackingService && attempts < 50) {
+            await new Promise(resolve => setTimeout(resolve, 100));
+            attempts++;
+        }
+        
+        if (window.supabaseTrackingService && window.supabaseTrackingService.getAllTrackings) {
+            try {
+                console.log('📦 Loading trackings from Supabase...');
+                const data = await window.supabaseTrackingService.getAllTrackings();
+                
+                if (data && data.length > 0) {
+                    window.trackings = data;
+                    window.filteredTrackings = data;
+                    console.log(`✅ Loaded ${data.length} trackings`);
+                    
+                    // Forza render
+                    if (window.renderTable) {
+                        window.renderTable();
+                    } else {
+                        manualRenderTable();
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading from Supabase:', error);
+            }
+        }
+    }
+    
+    // 3. RENDER MANUALE FALLBACK
+    function manualRenderTable() {
+        console.log('🔧 Manual table render...');
+        
+        const tbody = document.getElementById('trackingTableBody');
+        if (!tbody) {
+            console.error('tbody not found');
+            return;
+        }
+        
+        const emptyState = document.getElementById('emptyState');
+        
+        if (window.filteredTrackings.length === 0) {
+            tbody.innerHTML = '';
+            if (emptyState) emptyState.style.display = 'block';
+            return;
+        }
+        
+        if (emptyState) emptyState.style.display = 'none';
+        
+        tbody.innerHTML = window.filteredTrackings.map(tracking => `
+            <tr data-id="${tracking.id}">
+                <td>
+                    <input type="checkbox" class="row-select" data-id="${tracking.id}">
+                </td>
+                <td>
+                    <strong>${tracking.tracking_number || '-'}</strong>
+                    ${tracking.reference ? `<br><small>${tracking.reference}</small>` : ''}
+                </td>
+                <td>
+                    <span class="badge badge-${tracking.tracking_type || 'container'}">
+                        ${tracking.tracking_type || 'container'}
+                    </span>
+                </td>
+                <td>
+                    <span class="badge badge-${getStatusClass(tracking.status)}">
+                        ${tracking.status || 'pending'}
+                    </span>
+                </td>
+                <td>${tracking.origin_name || '-'}</td>
+                <td>${tracking.destination_name || '-'}</td>
+                <td>${formatDate(tracking.eta) || '-'}</td>
+                <td>
+                    <div class="action-buttons">
+                        <button class="btn btn-sm btn-primary" onclick="refreshTracking('${tracking.id}')">
+                            <i class="fas fa-sync"></i>
+                        </button>
+                        <button class="btn btn-sm btn-info" onclick="viewDetails('${tracking.id}')">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                        <button class="btn btn-sm btn-danger" onclick="deleteTracking('${tracking.id}')">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </td>
+            </tr>
+        `).join('');
+        
+        console.log('✅ Table rendered with', window.filteredTrackings.length, 'rows');
+    }
+    
+    // 4. FIX DELETE FUNCTION
+    window.deleteTracking = async function(id) {
+        console.log('🗑️ Delete tracking:', id);
+        
+        // Conferma
+        const confirmed = window.ModalSystem?.confirm 
+            ? await window.ModalSystem.confirm('Conferma', 'Eliminare questo tracking?')
+            : confirm('Eliminare questo tracking?');
+            
+        if (!confirmed) return;
+        
+        try {
+            // Elimina da Supabase
+            if (window.supabaseTrackingService?.deleteTracking) {
+                await window.supabaseTrackingService.deleteTracking(id);
+            }
+            
+            // Rimuovi da arrays locali
+            window.trackings = window.trackings.filter(t => t.id !== id);
+            window.filteredTrackings = window.filteredTrackings.filter(t => t.id !== id);
+            
+            // Re-render
+            if (window.renderTable) {
+                window.renderTable();
+            } else {
+                manualRenderTable();
+            }
+            
+            // Notifica
+            if (window.NotificationSystem) {
+                window.NotificationSystem.success('Tracking eliminato');
+            }
+        } catch (error) {
+            console.error('Delete error:', error);
+            alert('Errore durante l\'eliminazione');
+        }
+    };
+    
+    // 5. HELPER FUNCTIONS
+    function getStatusClass(status) {
+        const statusMap = {
+            'delivered': 'success',
+            'in_transit': 'primary',
+            'pending': 'warning',
+            'exception': 'danger'
+        };
+        return statusMap[status?.toLowerCase()] || 'secondary';
+    }
+    
+    function formatDate(dateString) {
+        if (!dateString) return null;
+        try {
+            return new Date(dateString).toLocaleDateString('it-IT');
+        } catch {
+            return dateString;
+        }
+    }
+    
+    // 6. FIX RENDER TABLE GLOBALE
+    if (!window.renderTable || typeof window.renderTable !== 'function') {
+        window.renderTable = manualRenderTable;
+    }
+    
+    // 7. OVERRIDE loadTrackings
+    const originalLoadTrackings = window.loadTrackings;
+    window.loadTrackings = async function() {
+        console.log('📦 Enhanced loadTrackings called');
+        
+        try {
+            if (originalLoadTrackings) {
+                await originalLoadTrackings();
+            }
+            
+            // Se trackings è ancora vuoto, carica manualmente
+            if (!window.trackings || window.trackings.length === 0) {
+                await fixDataLoading();
+            }
+        } catch (error) {
+            console.error('Load error:', error);
+            await fixDataLoading();
+        }
+    };
+    
+    // 8. AUTO-INIT DOPO DOM READY
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', async () => {
+            console.log('🚀 DOM ready, initializing fix...');
+            await fixDataLoading();
+        });
+    } else {
+        // DOM già pronto
+        setTimeout(async () => {
+            console.log('🚀 Immediate init...');
+            await fixDataLoading();
+        }, 1000);
+    }
+    
+    // 9. EXPOSE DEBUG FUNCTIONS
+    window.debugTracking = {
+        reload: fixDataLoading,
+        render: manualRenderTable,
+        showData: () => {
+            console.log('Trackings:', window.trackings);
+            console.log('Filtered:', window.filteredTrackings);
+            console.log('Selected:', Array.from(window.selectedTrackingIds));
+        },
+        testRender: () => {
+            // Test con dati mock
+            window.filteredTrackings = [
+                {
+                    id: 'test-1',
+                    tracking_number: 'TEST123456',
+                    tracking_type: 'container',
+                    status: 'in_transit',
+                    origin_name: 'Milano',
+                    destination_name: 'Roma',
+                    eta: new Date().toISOString()
+                }
+            ];
+            manualRenderTable();
+        }
+    };
+    
+    console.log('✅ DEBUG FIX COMPLETE - Use window.debugTracking for debugging');
+    console.log('Available commands:');
+    console.log('- debugTracking.reload() - Ricarica dati');
+    console.log('- debugTracking.render() - Renderizza tabella');
+    console.log('- debugTracking.showData() - Mostra dati');
+    console.log('- debugTracking.testRender() - Test render con dati mock');
+    
+})();
+</script>
+
 </body>
 </html>
