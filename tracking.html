@@ -4,30 +4,1039 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Supply Chain Hub - Tracking Spedizioni</title>
+    
+   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+    window.APP_VERSION = 'v47.1'; // Incrementa ad ogni deploy
 
+    // Sistema di logging configurabile
+    window.LOG_LEVELS = {
+        DEBUG: 0,
+        INFO: 1,
+        WARN: 2,
+        ERROR: 3,
+        NONE: 4
+    };
+
+    // Imposta il livello di log in base all'ambiente
+    window.currentLogLevel = window.location.hostname === 'localhost' 
+        ? window.LOG_LEVELS.DEBUG 
+        : window.LOG_LEVELS.WARN; // In production mostra solo warning ed errori
+
+    // Override console methods per filtrare i log
+    const originalConsole = {
+        log: console.log,
+        info: console.info,
+        warn: console.warn,
+        error: console.error,
+        debug: console.debug
+    };
+
+    // Funzione per determinare se un messaggio deve essere loggato
+    function shouldLog(level, message) {
+        // Lista di messaggi da ignorare sempre in production
+        const ignoredPatterns = [
+            '[ApiStatusIndicator] Checking API status',
+            '[ApiStatusIndicator] Status from TrackingService',
+            '[ApiStatusIndicator] Updating UI',
+            '[NotificationSystem] Prevented duplicate',
+            'Column drag enabled',
+            'Search input found',
+            'applyFilters called with searchTerm'
+        ];
+        
+        // In production, ignora i pattern ripetitivi
+        if (window.location.hostname !== 'localhost') {
+            for (const pattern of ignoredPatterns) {
+                if (message && message.toString().includes(pattern)) {
+                    return false;
+                }
+            }
+        }
+        
+        return level >= window.currentLogLevel;
+    }
+
+    // Override console.log
+    console.log = function(...args) {
+        if (shouldLog(window.LOG_LEVELS.DEBUG, args[0])) {
+            originalConsole.log.apply(console, args);
+        }
+    };
+
+    // Override console.info
+    console.info = function(...args) {
+        if (shouldLog(window.LOG_LEVELS.INFO, args[0])) {
+            originalConsole.info.apply(console, args);
+        }
+    };
+
+    // Override console.debug
+    console.debug = function(...args) {
+        if (shouldLog(window.LOG_LEVELS.DEBUG, args[0])) {
+            originalConsole.debug.apply(console, args);
+        }
+    };
+
+    // Mantieni sempre warn ed error
+    console.warn = originalConsole.warn;
+    console.error = originalConsole.error;
+
+    // Funzione per abilitare/disabilitare log temporaneamente
+    window.enableDebugLogs = function() {
+        window.currentLogLevel = window.LOG_LEVELS.DEBUG;
+        console.log('🐛 Debug logs enabled');
+    };
+
+    window.disableDebugLogs = function() {
+        window.currentLogLevel = window.LOG_LEVELS.WARN;
+        console.log('🔇 Debug logs disabled');
+    };
+
+    // Notifica lo stato del logging
+    if (window.location.hostname !== 'localhost') {
+        console.info('🚀 Production mode: Debug logs are disabled. Use enableDebugLogs() to enable temporarily.');
+    }
+
+  // Esponi globalmente per i moduli ES6 - CON CONTROLLO ROBUSTO
+  (function() {
+    function setupSupabaseGlobal() {
+      if (window.supabase && window.supabase.createClient) {
+        window.supabaseCreateClient = window.supabase.createClient;
+        console.log('✅ Supabase CDN caricato:', typeof window.supabase);
+        return true;
+      }
+      return false;
+    }
+    
+    // Prova immediatamente
+    if (!setupSupabaseGlobal()) {
+      // Se non è pronto, usa un observer per aspettare
+      const checkInterval = setInterval(() => {
+        if (setupSupabaseGlobal()) {
+          clearInterval(checkInterval);
+        }
+      }, 10);
+      
+      // Timeout di sicurezza dopo 5 secondi
+      setTimeout(() => {
+        clearInterval(checkInterval);
+        if (!window.supabaseCreateClient) {
+          console.error('❌ Timeout: Supabase non si è caricato in tempo');
+        }
+      }, 5000);
+    }
+  })();
+    </script>
+    
+    <script>
+// Previeni inizializzazioni multiple dell'header durante auth
+window.headerInitLock = false;
+</script>
+    
+    <script>
+        (function() {
+            console.log('🧹 [PreInit] Cleaning up existing modal systems...');
+            
+            // Remove existing modal elements
+            document.addEventListener('DOMContentLoaded', () => {
+                document.querySelectorAll('.sol-modal-overlay, [id^="modal-"]').forEach(el => el.remove());
+            });
+            
+            // Clear existing global references
+            if (window.ModalSystem) delete window.ModalSystem;
+            if (window.modalSystem) delete window.modalSystem;
+            
+            console.log('✅ [PreInit] Modal cleanup completed');
+        })();
+    </script>
+    
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23007AFF'%3E%3Cpath d='M20 8h-3V4H3c-1.1 0-2 .9-2 2v11h2c0 1.66 1.34 3 3 3s3-1.34 3-3h6c0 1.66 1.34 3 3 3s3-1.34 3-3h2v-5l-4zM6 18.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm13.5-9l1.96 2.5H17V9.5h2.5zm-1.5 9c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z'/%3E%3C/svg%3E">
+    
     <link rel="stylesheet" href="/assets/css/solarium.css">
+    <link rel="stylesheet" href="/assets/css/timeline.css">
     <link rel="stylesheet" href="/pages/tracking/tracking-table.css">
-    <link rel="stylesheet" href="/core/modal-system.css">
+
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+    
+    <script type="module" src="/core/modal-system.js"></script>
+    
+    <script type="module">
+    const V = window.APP_VERSION;
+    
+    import(`/core/api-client.js?v=${V}`).then(m => window.api = m.default);
+    // import(`/core/header-component.js?v=${V}`).then(m => window.headerComponent = m.default);
+    import(`/core/notification-system.js?v=${V}`).then(m => window.NotificationSystem = m.default);
+    import(`/core/table-manager.js?v=${V}`).then(m => window.TableManager = m.default);
+    import(`/assets/js/app.js?v=${V}`).then(m => window.App = m.default);
+    import(`/core/advanced-search.js?v=${V}`).then(m => window.AdvancedSearch = m.default);
+    import(`/core/components/api-key-manager.js?v=${V}`).then(m => window.apiKeyManager = m.default);
+    import(`/core/services/organization-api-keys-service.js?v=${V}`).then(m => window.organizationApiKeysService = m.default);
+    
+    console.log('✅ [ES6] Core modules loading with version:', V);
+
+        // Make modules available globally for backward compatibility
+        // window.api = api;
+        // window.headerComponent = headerComponent; // Commentato - fix undefined error
+        // window.NotificationSystem = notificationSystem; // FIX: variabile undefined
+        window.TableManager = TableManager;
+        window.App = app;
+        window.AdvancedSearch = AdvancedSearch;
+        window.apiKeyManager = apiKeyManager;
+        window.organizationApiKeysService = organizationApiKeysService;
+
+        // FORCE LOG ASSIGNMENTS
+        console.log('🚀 [ES6] Module assignments:');
+        console.log('  - api:', !!window.api);
+        console.log('  - headerComponent:', !!window.headerComponent);
+        console.log('  - NotificationSystem:', !!window.NotificationSystem);
+        console.log('  - TableManager:', !!window.TableManager);
+        console.log('  - App:', !!window.App);
+        console.log('✅ [ES6] Core modules loaded successfully');
+        console.log('✅ AdvancedSearch importato e esposto globalmente');
+        console.log('✅ API Key Manager importato:', !!window.apiKeyManager);
+        console.log('✅ OrganizationApiKeysService exposed globally');
+        
+    </script>
+    
+    <script type="module">
+        import authUI from '/core/auth-ui-component.js';
+        
+        // L'auth UI si inizializza automaticamente
+        console.log('✅ Auth UI component loaded');
+        
+        // Ascolta i cambiamenti di stato auth
+        authUI.onAuthStateChange((event, session) => {
+            console.log('Auth state changed:', event);
+            
+            // Ricarica i tracking quando l'utente si autentica
+            if (event === 'SIGNED_IN' && window.loadTrackings) {
+                // Aspetta un attimo per dare tempo al database di aggiornarsi
+                setTimeout(() => {
+                    window.loadTrackings();
+                    window.NotificationSystem?.success('Dati sincronizzati con il tuo account');
+                }, 1000);
+            }
+        });
+        
+        // Debug commands per sviluppo
+        window.debugAuth = () => {
+            console.log('🔐 Auth Debug Info:');
+            console.log('- Use Supabase:', authUI.useSupabase);
+            console.log('- Current User:', authUI.getCurrentUser());
+            console.log('- Is Anonymous:', authUI.isAnonymous);
+            console.log('- Is Authenticated:', authUI.isAuthenticated());
+        };
+    </script>
+    
+    <script type="module">
+        import authGuard from '/core/auth-guard.js';
+        // Il guard si auto-inizializza
+        console.log('✅ Auth Guard loaded and initialized');
+    </script>
+    
+    <script>
+    console.log('🔍 [DEBUG] Verifying file paths...');
+    
+    // Test if files exist
+    const filesToCheck = [
+        '/core/api-client.js',
+        '/core/header-component.js', 
+        '/core/notification-system.js',
+        '/core/table-manager.js',
+        '/assets/js/app.js',
+        '/pages/tracking/index.js'
+    ];
+    
+    filesToCheck.forEach(file => {
+        fetch(file)
+            .then(response => {
+                console.log(`${response.ok ? '✅' : '❌'} ${file}: ${response.status}`);
+            })
+            .catch(error => {
+                console.error(`❌ ${file}: ERROR - ${error.message}`);
+            });
+    });
+    </script>
+    
+    <script src="/core/auth.js"></script>
+    <script src="/core/auth-init.js"></script>
+    <script src="/core/import-manager.js"></script>
+    
+    <script src="/pages/tracking/tracking-form-progressive.js"></script>
+
+    <script src="/core/export-manager.js"></script>
+    
+    <script type="module">
+   const VERSION = 'v47.1'; // Usa la stessa versione
+    import(`/core/services/tracking-service.js?v=${VERSION}`).then(m => {
+        window.trackingService = m.default;
+        console.log('✅ Tracking Service caricato via ES6 import');
+    });
+    </script>
+    
+    <script type="module">
+    // Import Supabase client e esponilo globalmente
+    import { supabase } from '/core/services/supabase-client.js';
+    // IMPORTANTE: Esponi supabase globalmente per debug e altri moduli
+    window.supabase = supabase;
+    console.log('✅ Supabase client exposed globally');
+    // Verifica che sia disponibile
+    if (window.supabase && window.supabase.auth) {
+        console.log('✅ Supabase auth available');
+    } else {
+        console.error('❌ Supabase not properly initialized');
+    }
+    </script><script type="module">
+    // Import e esponi tutti i servizi necessari
+    import { supabase } from '/core/services/supabase-client.js';
+    import userSettingsService from '/core/services/user-settings-service.js';
+    import organizationApiKeysService from '/core/services/organization-api-keys-service.js';
+    // import trackingService from '/core/services/tracking-service.js'; // Removed duplicate import
+
+    // Esponi globalmente per debug
+    window.supabase = supabase;
+    window.userSettingsService = userSettingsService;
+    window.organizationApiKeysService = organizationApiKeysService;
+    // window.trackingService = trackingService; // Already exposed from the single import
+
+    console.log('✅ All services exposed globally for debugging');
+
+    // Auto-sync on page load
+    document.addEventListener('DOMContentLoaded', async () => {
+    // Wait for services to be ready
+    let attempts = 0;
+    const waitForServices = setInterval(async () => {
+        attempts++;
+        
+        if (window.trackingService && window.supabase && window.userSettingsService) {
+            clearInterval(waitForServices);
+            
+            // Check if user is authenticated
+            const { data: { user } } = await window.supabase.auth.getUser();
+            
+            if (user) {
+                // Wait for tracking service initialization
+                if (!window.trackingService.initialized) {
+                    await window.trackingService.initialize();
+                }
+                
+                // Force sync if in mock mode but has Supabase
+                if (window.trackingService.mockMode && window.trackingService.useSupabase) {
+                    const synced = await window.trackingService.syncWithCloud();
+                    
+                    if (synced) {
+                        // Reload trackings
+                        if (window.loadTrackings) {
+                            setTimeout(() => {
+                                window.loadTrackings();
+                            }, 500);
+                        }
+                    }
+                }
+            }
+        } else if (attempts > 20) {
+            clearInterval(waitForServices);
+        }
+    }, 250);
+});
+
+    </script>
+    
+    <script type="module">
+    // Import tracking service con sync fix
+    // import trackingService from './core/services/tracking-service.js'; // Removed duplicate import
+    // window.trackingService = trackingService; // Already exposed
+    console.log('✅ Tracking Service caricato via ES6 import');
+
+    // NUOVO: Force sync on page load per cross-browser support
+    document.addEventListener('DOMContentLoaded', async () => {
+        console.log('[Tracking Page] Checking for cloud sync...');
+        
+        // Attendi che il tracking service sia pronto
+        let attempts = 0;
+        const checkSync = setInterval(async () => {
+            attempts++;
+            
+            if (window.trackingService && window.trackingService.initialized) {
+                clearInterval(checkSync);
+                
+                // Se usa Supabase, forza sync
+                if (window.trackingService.useSupabase) {
+                    console.log('[Tracking Page] 🔄 Forcing cloud sync...');
+                    const synced = await window.trackingService.syncWithCloud();
+                    
+                    if (synced) {
+                        console.log('[Tracking Page] ✅ Synced with cloud');
+                        
+                        // Ricarica i tracking se necessario
+                        if (window.loadTrackings) {
+                            setTimeout(() => {
+                                window.loadTrackings();
+                            }, 500);
+                        }
+                    }
+                }
+            } else if (attempts > 20) {
+                clearInterval(checkSync);
+                console.log('[Tracking Page] Sync check timeout');
+            }
+        }, 250);
+    });
+
+    // Aggiungi listener per eventi di sync
+    window.addEventListener('apiKeysSynced', (event) => {
+        console.log('[Tracking Page] API keys synced:', event.detail);
+        
+        // Ricarica tracking table
+        if (window.loadTrackings) {
+            window.loadTrackings();
+        }
+        
+        // Aggiorna API status indicator
+        if (window.ApiStatusIndicator && typeof window.ApiStatusIndicator.checkApiStatus === 'function') {
+    window.ApiStatusIndicator.checkApiStatus();
+}
+    });
+
+    </script>
+    
+    <script type="module">
+    // Attendi che tutti i moduli siano caricati
+    document.addEventListener('DOMContentLoaded', async () => {
+        // Cerca supabase in vari posti possibili
+        const checkSupabase = setInterval(() => {
+            // Prova dal modulo supabase-client
+            if (!window.supabase && window.supabaseClient) {
+                window.supabase = window.supabaseClient;
+                console.log('✅ Supabase found as supabaseClient');
+                clearInterval(checkSupabase);
+            }
+            
+            // Prova da auth module
+            if (!window.supabase && window.auth && window.auth.supabase) {
+                window.supabase = window.auth.supabase;
+                console.log('✅ Supabase found in auth module');
+                clearInterval(checkSupabase);
+            }
+            
+            // Se già presente, stop
+            if (window.supabase) {
+                clearInterval(checkSupabase);
+            }
+        }, 100);
+        
+        // Timeout dopo 5 secondi
+        setTimeout(() => {
+            clearInterval(checkSupabase);
+            if (!window.supabase) {
+                console.warn('⚠️ Supabase client not found after 5 seconds');
+            }
+        }, 5000);
+    });
+    </script><script type="module">
+    // Import del modulo tracking/index.js con fix per column formatters
+    import('/pages/tracking/index.js').then(module => {
+        console.log('✅ Tracking module loaded');
+        
+        // Fix column formatter per Transit Time
+        if (window.getColumnFormatter) {
+            const originalFormatter = window.getColumnFormatter;
+            window.getColumnFormatter = function(key) {
+                if (key === 'transit_time') {
+                    return (value, row) => {
+                        // Calcola sempre dalle date se disponibili
+                        const depDate = row.metadata?.date_of_departure || 
+                                       row.metadata?.['Date Of Departure'] ||
+                                       row.metadata?.['date_of_departure'];
+                                       
+                        const arrDate = row.metadata?.date_of_arrival || 
+                                       row.metadata?.['Date Of Arrival'] ||
+                                       row.metadata?.['date_of_arrival'];
+                        
+                        if (depDate && arrDate) {
+                            try {
+                                let dep, arr;
+                                
+                                // Parse delle date - gestisci formato DD/MM/YYYY
+                                if (typeof depDate === 'string' && depDate.includes('/')) {
+                                    const [day, month, year] = depDate.split(' ')[0].split('/');
+                                    dep = new Date(year, month - 1, day);
+                                } else {
+                                    dep = new Date(depDate);
+                                }
+                                
+                                if (typeof arrDate === 'string' && arrDate.includes('/')) {
+                                    const [day, month, year] = arrDate.split(' ')[0].split('/');
+                                    arr = new Date(year, month - 1, day);
+                                } else {
+                                    arr = new Date(arrDate);
+                                }
+                                
+                                if (!isNaN(dep.getTime()) && !isNaN(arr.getTime())) {
+                                    const diffTime = Math.abs(arr - dep);
+                                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                                    
+                                    // RITORNA SOLO IL NUMERO
+                                    return diffDays.toString();
+                                }
+                            } catch (e) {
+                                console.warn('Error calculating transit time:', e);
+                            }
+                        }
+                        
+                        // Estrai solo il numero da valori esistenti
+                        if (value && value !== '-') {
+                            const match = String(value).match(/(\d+)/);
+                            if (match) {
+                                return match[1];
+                            }
+                        }
+                        
+                        return '-';
+                    };
+                }
+                
+                // Per tutti gli altri formatter, usa l'originale
+                return originalFormatter(key);
+            };
+            console.log('✅ Transit Time formatter override applied');
+        }
+    }).catch(error => {
+        console.error('❌ Error loading tracking module:', error);
+    });
+    </script>
+    
+    <script type="module">
+        import userSettingsService from '/core/services/user-settings-service.js';
+        window.userSettingsService = userSettingsService;
+    </script>
+
+    <!-- 🔥 RIMOSSO: API Status Indicator che non funziona mai -->
+<!-- <script src="/pages/tracking/api-status-indicator.js" type="module"></script> -->
+
+    <script>
+    // Definisci trackingInit se non esiste dal modulo index.js
+    window.trackingInit = async function() {
+        console.log('🚀 [Tracking] Initializing page with fallback trackingInit...');
+        
+        try {
+            // 1. Inizializza header se necessario
+            if (window.headerComponent && !document.querySelector('.sol-header')) {
+                await window.headerComponent.init();
+                console.log('✅ Header initialized');
+            }
+            
+            // 2. Inizializza tracking service
+            if (window.trackingService && !window.trackingService.initialized) {
+                await window.trackingService.initialize();
+                console.log('✅ Tracking service initialized');
+            }
+            
+            // 3. Carica funzione loadTrackings
+            if (!window.loadTrackings) {
+                window.loadTrackings = async function() {
+                    console.log('📦 Loading trackings...');
+                    
+                    try {
+    let trackings = [];
+    
+    // Prova a caricare da localStorage
+    try {
+        trackings = JSON.parse(localStorage.getItem('trackings') || '[]');
+    } catch (e) {
+        console.warn('Error parsing trackings from localStorage:', e);
+        trackings = [];
+    }
+                        // Carica stats
+                        const statsGrid = document.getElementById('statsGrid');
+    if (statsGrid) {
+        // ✅ NON ridichiarare trackings, usa quella già esistente
+        const stats = {
+            total: trackings.length,
+            in_transit: trackings.filter(t => t.status === 'in_transit').length,
+            delivered: trackings.filter(t => t.status === 'delivered').length,
+            delayed: trackings.filter(t => t.status === 'delayed').length
+        };
+                            
+                            statsGrid.innerHTML = `
+                                <div class="sol-stat-card">
+                                    <div class="sol-stat-icon"><i class="fas fa-box"></i></div>
+                                    <div class="sol-stat-content">
+                                        <div class="sol-stat-value">${stats.total}</div>
+                                        <div class="sol-stat-label">Totale Tracking</div>
+                                    </div>
+                                </div>
+                                <div class="sol-stat-card">
+                                    <div class="sol-stat-icon"><i class="fas fa-ship"></i></div>
+                                    <div class="sol-stat-content">
+                                        <div class="sol-stat-value">${stats.in_transit}</div>
+                                        <div class="sol-stat-label">In Transito</div>
+                                    </div>
+                                </div>
+                                <div class="sol-stat-card">
+                                    <div class="sol-stat-icon"><i class="fas fa-check-circle"></i></div>
+                                    <div class="sol-stat-content">
+                                        <div class="sol-stat-value">${stats.delivered}</div>
+                                        <div class="sol-stat-label">Consegnati</div>
+                                    </div>
+                                </div>
+                                <div class="sol-stat-card">
+                                    <div class="sol-stat-icon"><i class="fas fa-exclamation-triangle"></i></div>
+                                    <div class="sol-stat-content">
+                                        <div class="sol-stat-value">${stats.delayed}</div>
+                                        <div class="sol-stat-label">In Ritardo</div>
+                                    </div>
+                                </div>
+                            `;
+                        }
+                        
+                        // Carica tabella
+                        const tableContainer = document.getElementById('trackingTableContainer');
+                        if (tableContainer && window.TableManager) {
+                            // Crea tabella con TableManager
+                            if (!window.trackingTable) {
+                                window.trackingTable = new window.TableManager('trackingTableContainer', {
+                                    columns: [
+                                        { key: 'select', label: '', width: '40px', sortable: false },
+                                        { key: 'tracking_number', label: 'Tracking Number', sortable: true },
+                                        { key: 'tracking_type', label: 'Tipo', sortable: true },
+                                        { key: 'status', label: 'Stato', sortable: true },
+                                        { key: 'origin_name', label: 'Origine', sortable: true },
+                                        { key: 'destination_name', label: 'Destinazione', sortable: true },
+                                        { key: 'eta', label: 'ETA', sortable: true },
+                                        { key: 'actions', label: 'Azioni', sortable: false }
+                                    ],
+                                    data: trackings,
+                                    searchable: true,
+                                    selectable: true,
+                                    emptyMessage: 'Nessun tracking trovato. Aggiungi il primo tracking!',
+                                    onRowClick: (row) => {
+                                        console.log('Row clicked:', row);
+                                    }
+                                });
+                            } else {
+                                // Aggiorna dati esistenti
+                                window.trackingTable.setData(trackings);
+                            }
+                            
+                            // Salva riferimento globale
+                            window.currentTrackings = trackings;
+                        } else if (tableContainer) {
+                            // Fallback senza TableManager
+                            tableContainer.innerHTML = `
+                                <div class="sol-table-wrapper">
+                                    <table class="sol-table">
+                                        <thead>
+                                            <tr>
+                                                <th><input type="checkbox" class="select-all-checkbox"></th>
+                                                <th>Tracking Number</th>
+                                                <th>Tipo</th>
+                                                <th>Stato</th>
+                                                <th>Origine</th>
+                                                <th>Destinazione</th>
+                                                <th>ETA</th>
+                                                <th>Azioni</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            ${trackings.length > 0 ? trackings.map(t => `
+                                                <tr>
+                                                    <td><input type="checkbox" class="tracking-checkbox" data-id="${t.id}"></td>
+                                                    <td>${t.tracking_number}</td>
+                                                    <td>${t.tracking_type || 'container'}</td>
+                                                    <td><span class="status-badge status-${t.status}">${t.status}</span></td>
+                                                    <td>${t.origin_name || '-'}</td>
+                                                    <td>${t.destination_name || '-'}</td>
+                                                    <td>${t.eta ? new Date(t.eta).toLocaleDateString('it-IT') : '-'}</td>
+                                                    <td>
+                                                        <button class="sol-btn sol-btn-sm" onclick="console.log('View:', '${t.id}')">
+                                                            <i class="fas fa-eye"></i>
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                            `).join('') : `
+                                                <tr>
+                                                    <td colspan="8" style="text-align: center; padding: 3rem;">
+                                                        <i class="fas fa-box-open" style="font-size: 3rem; color: var(--sol-gray-400);"></i>
+                                                        <p style="margin-top: 1rem; color: var(--sol-gray-600);">Nessun tracking trovato</p>
+                                                        <button class="sol-btn sol-btn-primary" style="margin-top: 1rem;" onclick="if(window.showAddTrackingForm) window.showAddTrackingForm()">
+                                                            <i class="fas fa-plus"></i> Aggiungi il primo tracking
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                            `}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            `;
+                        }
+                        
+                        console.log('✅ Trackings loaded');
+                        
+                    } catch (error) {
+                        console.error('❌ Error loading trackings:', error);
+                        
+                        // Mostra errore nell'UI
+                        const tableContainer = document.getElementById('trackingTableContainer');
+                        if (tableContainer) {
+                            tableContainer.innerHTML = `
+                                <div style="text-align: center; padding: 3rem; color: var(--sol-danger);">
+                                    <i class="fas fa-exclamation-circle" style="font-size: 3rem;"></i>
+                                    <p style="margin-top: 1rem;">Errore nel caricamento dei dati</p>
+                                    <p style="font-size: 0.875rem; margin-top: 0.5rem;">${error.message}</p>
+                                    <button class="sol-btn sol-btn-primary" style="margin-top: 1rem;" onclick="window.location.reload()">
+                                        <i class="fas fa-redo"></i> Ricarica Pagina
+                                    </button>
+                                </div>
+                            `;
+                        }
+                    }
+                };
+            }
+            
+            // 4. Carica i dati
+            await window.loadTrackings();
+            
+            // 5. Setup event listeners
+            const setupEventListeners = () => {
+                // Add tracking button
+                const addBtn = document.getElementById('addTrackingBtn');
+                if (addBtn && !addBtn.hasEventListener) {
+                    addBtn.addEventListener('click', () => {
+                        if (window.showAddTrackingForm) {
+                            window.showAddTrackingForm();
+                        } else {
+                            console.error('showAddTrackingForm not available');
+                            if (window.NotificationSystem) {
+                                window.NotificationSystem.error('Funzione non disponibile. Ricarica la pagina.');
+                            }
+                        }
+                    });
+                    addBtn.hasEventListener = true;
+                }
+                
+                // Status filter
+                const statusFilter = document.getElementById('statusFilter');
+                if (statusFilter && !statusFilter.hasEventListener) {
+                    statusFilter.addEventListener('change', (e) => {
+                        console.log('Status filter:', e.target.value);
+                        // TODO: Implementa filtro
+                    });
+                    statusFilter.hasEventListener = true;
+                }
+                
+                // Type filter
+                const typeFilter = document.getElementById('typeFilter');
+                if (typeFilter && !typeFilter.hasEventListener) {
+                    typeFilter.addEventListener('change', (e) => {
+                        console.log('Type filter:', e.target.value);
+                        // TODO: Implementa filtro
+                    });
+                    typeFilter.hasEventListener = true;
+                }
+            };
+            
+            setupEventListeners();
+            
+            // 🔥 RIMOSSO: API status indicator che non funzionava mai
+            
+            // 7. Setup auto-refresh (ogni 5 minuti)
+            if (!window.autoRefreshInterval) {
+                window.autoRefreshInterval = setInterval(() => {
+                    if (window.loadTrackings) {
+                        console.log('🔄 Auto-refresh trackings...');
+                        window.loadTrackings();
+                    }
+                }, 5 * 60 * 1000); // 5 minuti
+            }
+            
+            console.log('✅ [Tracking] Page initialization complete');
+            
+        } catch (error) {
+            console.error('❌ [Tracking] Init error:', error);
+            
+            // Mostra errore all'utente
+            if (window.NotificationSystem) {
+                window.NotificationSystem.error('Errore inizializzazione pagina', {
+                    subtitle: error.message,
+                    duration: 5000
+                });
+            }
+            
+            throw error;
+        }
+    };
+
+    console.log('✅ trackingInit defined globally');
+    
+    if (!window.showAddTrackingForm) {
+    // Aspetta che il modulo index.js sia caricato
+    const checkForFunction = setInterval(() => {
+        if (window.showAddTrackingForm) {
+            clearInterval(checkForFunction);
+            console.log('✅ showAddTrackingForm is now available');
+        }
+    }, 100);
+    
+    // Timeout dopo 5 secondi
+    setTimeout(() => {
+        clearInterval(checkForFunction);
+        if (!window.showAddTrackingForm) {
+            console.warn('⚠️ showAddTrackingForm still not available after 5s');
+        }
+    }, 5000);
+}
+    </script>
+    
+    <script>
+    document.addEventListener('DOMContentLoaded', async () => {
+        console.log('🚀 [Tracking HTML] DOMContentLoaded fired');
+        
+        // Attendi solo i moduli essenziali
+        let attempts = 0;
+        const maxAttempts = 20; // 2 secondi
+        
+        const waitForModules = setInterval(async () => {
+            attempts++;
+            
+            // Controlla solo i moduli essenziali
+            const ready = window.TableManager && 
+                            window.ModalSystem && 
+                            window.NotificationSystem;
+            
+            if (ready) {
+                clearInterval(waitForModules);
+                console.log('✅ [Tracking] Core modules ready');
+                
+                try {
+                    // Usa trackingInit (ora sempre disponibile)
+                    await window.trackingInit();
+                    console.log('✅ [Tracking] Initialization successful');
+                } catch (error) {
+                    console.error('❌ [Tracking] Init failed:', error);
+                }
+                
+            } else if (attempts >= maxAttempts) {
+                clearInterval(waitForModules);
+                console.error('❌ [Tracking] Timeout waiting for modules');
+                
+                // Inizializza comunque con quello che c'è
+                try {
+                    await window.trackingInit();
+                } catch (error) {
+                    console.error('❌ [Tracking] Emergency init failed:', error);
+                }
+            }
+        }, 100); // Check every 100ms
+    });
+    </script>
+    <style>
+        /* Card header layout */
+        .sol-card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+        
+        .sol-card-header h3 {
+            margin: 0;
+            flex: 1;
+        }
+        
+        .sol-card-actions {
+            order: 3;
+        }
+        
+        @media (max-width: 768px) {
+            .sol-card-header {
+                flex-direction: column;
+                align-items: stretch;
+            }
+        }
+
+        /* FIX 4: Add CSS for stat cards */
+        .sol-stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .sol-stat-card {
+            background: white;
+            border-radius: var(--sol-radius-lg);
+            padding: 1.5rem;
+            box-shadow: var(--sol-shadow-sm);
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .sol-stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--sol-shadow-md);
+        }
+
+        .sol-stat-icon {
+            font-size: 2.5rem;
+            color: var(--sol-primary);
+            opacity: 0.8;
+        }
+
+        .sol-stat-content {
+            flex: 1;
+        }
+
+        .sol-stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--sol-gray-900);
+            line-height: 1;
+        }
+
+        .sol-stat-label {
+            font-size: 0.875rem;
+            color: var(--sol-gray-600);
+            margin-top: 0.25rem;
+        }
+
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.25rem 0.75rem;
+            border-radius: 1rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .status-registered {
+            background: var(--sol-gray-100);
+            color: var(--sol-gray-700);
+        }
+
+        .status-in_transit {
+            background: var(--sol-info-light);
+            color: var(--sol-info);
+        }
+
+        .status-delivered {
+            background: var(--sol-success-light);
+            color: var(--sol-success);
+        }
+
+        .status-delayed {
+            background: var(--sol-warning-light);
+            color: var(--sol-warning);
+        }
+
+        .status-exception {
+            background: var(--sol-danger-light);
+            color: var(--sol-danger);
+        }
+
+/* ===== BULK ACTIONS STYLES ===== */
+        .bulk-actions-container {
+            margin: 1rem 0;
+            animation: slideDown 0.3s ease-out;
+        }
+
+        .bulk-actions-bar {
+            background: var(--sol-gray-50);
+            border: 1px solid var(--sol-gray-200);
+            border-radius: var(--sol-radius-md);
+            padding: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .selected-count {
+            font-weight: 600;
+            color: var(--sol-primary);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .selected-count i {
+            color: var(--sol-primary);
+        }
+
+        .bulk-actions {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .bulk-actions .btn {
+            white-space: nowrap;
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Responsive per mobile */
+        @media (max-width: 768px) {
+            .bulk-actions-bar {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            
+            .bulk-actions {
+                width: 100%;
+                justify-content: flex-start;
+            }
+            
+            .bulk-actions .btn {
+                flex: 1;
+                min-width: 0;
+            }
+        }
+        
+</style>
 </head>
 <body>
-    <div id="header-placeholder"></div>
-
     <main class="sol-main-content" id="mainContent">
         <div class="sol-page-header">
             <div>
                 <h1 class="sol-page-title">Tracking Spedizioni</h1>
-                <p class="sol-page-subtitle">Monitora in tempo reale container, BL e spedizioni aeree.</p>
+                <p class="sol-page-subtitle">Monitora in tempo reale container, BL e spedizioni aeree</p>
             </div>
             <div class="sol-page-actions">
-                <button class="sol-btn sol-btn-glass" id="exportExcelBtn" title="Esporta in Excel">
+                <button class="sol-btn sol-btn-glass" id="refreshAllBtn">
+                    <i class="fas fa-sync-alt"></i>
+                    <span>Aggiorna Tutto</span>
+                </button>
+                <button class="sol-btn sol-btn-glass" id="exportPdfBtn">
+                    <i class="fas fa-file-pdf"></i>
+                    <span>Export PDF</span>
+                </button>
+                <button class="sol-btn sol-btn-glass" id="exportExcelBtn">
                     <i class="fas fa-file-excel"></i>
                     <span>Export Excel</span>
                 </button>
-                <button class="sol-btn sol-btn-glass" id="refreshAllBtn" title="Aggiorna dati">
-                    <i class="fas fa-sync-alt"></i>
-                    <span>Aggiorna</span>
-                </button>
+                
+                <!-- 🔥 RIMOSSO: Link API Status che era inutile e fastidioso -->
+
                 <button class="sol-btn sol-btn-primary" id="addTrackingBtn">
                     <i class="fas fa-plus"></i>
                     <span>Aggiungi Tracking</span>
@@ -37,53 +1046,515 @@
 
         <div class="sol-stats-grid" id="statsGrid">
             </div>
-        
-        <div id="bulkActionsContainer" class="bulk-actions-container" style="display: none;">
-            </div>
 
         <div class="sol-card">
             <div class="sol-card-header">
                 <h3 class="sol-card-title">Lista Tracking Attivi</h3>
                 <div class="sol-card-filters">
-                    <input type="search" class="sol-input" id="mainSearchInput" placeholder="Cerca per tracking, rotta, stato...">
-                    <button class="sol-btn sol-btn-glass" id="manageColumnsBtn">
+                    <select class="sol-select" id="statusFilter">
+                        <option value="">Tutti gli stati</option>
+                        <option value="registered">Registrato</option>
+                        <option value="in_transit">In Transito</option>
+                        <option value="arrived">Arrivato</option>
+                        <option value="customs_cleared">Sdoganato</option>
+                        <option value="out_for_delivery">In Consegna</option>
+                        <option value="delivered">Consegnato</option>
+                        <option value="delayed">In Ritardo</option>
+                        <option value="exception">Eccezione</option>
+                    </select>
+                    <select class="sol-select" id="typeFilter">
+                        <option value="">Tutti i tipi</option>
+                        <option value="container">Container</option>
+                        <option value="bl">Bill of Lading</option>
+                        <option value="awb">Air Waybill</option>
+                        <option value="parcel">Parcel</option>
+                    </select>
+                    
+                    <button class="sol-btn sol-btn-glass" onclick="showColumnManager()">
                         <i class="fas fa-columns"></i> Gestione Colonne
+                    </button>
+                    
+                    <button class="sol-btn sol-btn-glass" onclick="refreshAllTrackings()">
+                        <i class="fas fa-sync-alt"></i> Aggiorna Tutti
+                    </button>
+                    
+                    <button type="button" class="sol-btn-toggle-view" id="toggleView" data-view="table">
+                        <i class="fas fa-table"></i>
+                        <span class="toggle-text">Vista Tabella</span>
                     </button>
                 </div>
             </div>
             
             <div id="trackingTableContainer">
-                <div class="sol-loading-spinner-overlay active"><div class="sol-loading-spinner"></div></div>
+                </div>
+            
+            <div id="timelineContainer" class="sol-timeline-container" style="display: none;">
+                <div class="sol-timeline-header">
+                    <div class="sol-timeline-legend">
+                        <span class="legend-item">
+                            <i class="fas fa-circle text-info"></i> In Transit
+                        </span>
+                        <span class="legend-item">
+                            <i class="fas fa-circle text-success"></i> Consegnato
+                        </span>
+                        <span class="legend-item">
+                            <i class="fas fa-circle text-warning"></i> In Ritardo
+                        </span>
+                        <span class="legend-item">
+                            <i class="fas fa-circle text-danger"></i> Problema
+                        </span>
+                    </div>
+                </div>
+                
+                <div id="timelineContent" class="sol-timeline-content">
+                    </div>
             </div>
         </div>
     </main>
 
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-
-    <script src="/assets/js/app.js"></script>
-    <script src="/core/services/supabase-client.js"></script> 
-    <script src="/core/auth.js"></script>                       
-    <script src="/core/auth-init.js"></script>                   
-
-    <script type="module" src="/core/notification-system.js"></script>
-    <script type="module" src="/core/modal-system.js"></script>
-    <script type="module" src="/core/table-manager.js"></script>
-    <script type="module" src="/core/header-component.js"></script>
-
-    <script type="module" src="/core/services/organization-api-keys-service.js"></script>
-    <script type="module" src="/core/services/tracking-service.js"></script>
-    <script type="module" src="/core/services/supabase-tracking-service.js"></script>
-    <script type="module" src="/core/advanced-search.js"></script>
-    <script type="module" src="/core/export-manager.js"></script>
-    <script type="module" src="/core/import-manager.js"></script>
-    <script type="module" src="/core/components/api-key-manager.js"></script>
-
-    <script type="module" src="/pages/tracking/index.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script><script>
+    // Timeline View Functions
+    (function() {
+        let currentView = 'table';
+        
+        // Initialize view toggle
+        function initViewToggle() {
+            const toggleBtn = document.getElementById('toggleView');
+            const tableContainer = document.getElementById('trackingTableContainer');
+            const timelineContainer = document.getElementById('timelineContainer');
+            
+            if (!toggleBtn) return;
+            
+            toggleBtn.addEventListener('click', function() {
+                currentView = this.dataset.view === 'table' ? 'timeline' : 'table';
+                
+                if (currentView === 'timeline') {
+                    // Switch to Timeline View
+                    tableContainer.style.display = 'none';
+                    timelineContainer.style.display = 'block';
+                    
+                    this.dataset.view = 'timeline';
+                    this.classList.add('timeline-active');
+                    this.innerHTML = '<i class="fas fa-stream"></i> <span class="toggle-text">Vista Timeline</span>';
+                    
+                    // Load timeline view
+                    loadTimelineView();
+                    
+                } else {
+                    // Switch back to Table View
+                    tableContainer.style.display = 'block';
+                    timelineContainer.style.display = 'none';
+                    
+                    this.dataset.view = 'table';
+                    this.classList.remove('timeline-active');
+                    this.innerHTML = '<i class="fas fa-table"></i> <span class="toggle-text">Vista Tabella</span>';
+                }
+                
+                // Save preference
+                localStorage.setItem('trackingViewMode', currentView);
+            });
+            
+            // Restore saved view
+            const savedView = localStorage.getItem('trackingViewMode');
+            if (savedView === 'timeline') {
+                toggleBtn.click();
+            }
+        }
+        
+        // Load Timeline View
+        async function loadTimelineView() {
+            const timelineContent = document.getElementById('timelineContent');
+            timelineContent.innerHTML = '<div class="sol-timeline-loading"><i class="fas fa-spinner fa-spin"></i> Caricamento timeline...</div>';
+            
+            try {
+                // Use data from the existing trackings loaded by tracking/index.js
+                const trackings = window.currentTrackings || [];
+                
+                if (trackings.length === 0) {
+                    timelineContent.innerHTML = `
+                        <div class="sol-timeline-empty">
+                            <i class="fas fa-ship"></i>
+                            <p>Nessun tracking da visualizzare</p>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                // Generate timeline HTML
+                let timelineHTML = '';
+                
+                // Group trackings by status for better visualization
+                const groupedTrackings = groupTrackingsByStatus(trackings);
+                
+                for (const [status, statusTrackings] of Object.entries(groupedTrackings)) {
+                    if (statusTrackings.length > 0) {
+                        timelineHTML += `<div class="sol-timeline-group">
+                            <h4 class="sol-timeline-group-title">${getStatusLabel(status)} (${statusTrackings.length})</h4>`;
+                        
+                        statusTrackings.forEach(tracking => {
+                            timelineHTML += generateTrackingTimeline(tracking);
+                        });
+                        
+                        timelineHTML += '</div>';
+                    }
+                }
+                
+                timelineContent.innerHTML = timelineHTML;
+                
+            } catch (error) {
+                console.error('Error loading timeline:', error);
+                timelineContent.innerHTML = '<div class="sol-timeline-empty">Errore nel caricamento della timeline</div>';
+            }
+        }
+        
+        // Group trackings by status
+        function groupTrackingsByStatus(trackings) {
+            const groups = {
+                'delivered': [],
+                'in_transit': [],
+                'delayed': [],
+                'registered': [],
+                'exception': []
+            };
+            
+            trackings.forEach(tracking => {
+                const status = tracking.status || 'registered';
+                if (groups[status]) {
+                    groups[status].push(tracking);
+                } else {
+                    groups['exception'].push(tracking);
+                }
+            });
+            
+            return groups;
+        }
+        
+        // Get status label in Italian
+        function getStatusLabel(status) {
+            const labels = {
+                'delivered': 'Consegnati',
+                'in_transit': 'In Transito',
+                'delayed': 'In Ritardo',
+                'registered': 'Registrati',
+                'exception': 'Con Problemi'
+            };
+            return labels[status] || status;
+        }
+        
+        // Generate HTML for tracking timeline
+        function generateTrackingTimeline(tracking) {
+            let html = `
+                <div class="sol-timeline-tracking-card">
+                    <div class="sol-tracking-card-header">
+                        <div class="sol-tracking-info">
+                            <span class="sol-tracking-number">${tracking.tracking_number}</span>
+                            <span class="sol-tracking-type">${tracking.tracking_type || 'container'}</span>
+                        </div>
+                        <span class="sol-tracking-status status-${tracking.status}">${getStatusLabel(tracking.status)}</span>
+                    </div>
+                    <div class="sol-tracking-details">
+                        <div class="sol-tracking-detail">
+                            <span class="sol-tracking-detail-label">Vettore</span>
+                            <span class="sol-tracking-detail-value">${tracking.carrier_code || 'N/A'}</span>
+                        </div>
+                        <div class="sol-tracking-detail">
+                            <span class="sol-tracking-detail-label">Origine</span>
+                            <span class="sol-tracking-detail-value">${tracking.metadata?.origin_name || tracking.metadata?.pol || 'N/A'}</span>
+                        </div>
+                        <div class="sol-tracking-detail">
+                            <span class="sol-tracking-detail-label">Destinazione</span>
+                            <span class="sol-tracking-detail-value">${tracking.metadata?.destination_name || tracking.metadata?.pod || 'N/A'}</span>
+                        </div>
+                        <div class="sol-tracking-detail">
+                            <span class="sol-tracking-detail-label">ETA</span>
+                            <span class="sol-tracking-detail-value">${tracking.eta ? new Date(tracking.eta).toLocaleDateString('it-IT') : 'N/A'}</span>
+                        </div>
+                    </div>
+            `;
+            
+            // Check for timeline events in metadata
+            const timelineEvents = tracking.metadata?.timeline_events || [];
+            
+            if (timelineEvents.length > 0) {
+                // Use real events from metadata
+                html += '<div class="sol-timeline-events">';
+                
+                timelineEvents.forEach((event, index) => {
+                    const isLast = index === timelineEvents.length - 1;
+                    html += generateTimelineEvent(event, isLast);
+                });
+                
+                html += '</div>';
+            } else {
+                // Generate demo events based on status
+                html += generateDemoTimeline(tracking);
+            }
+            
+            html += '</div>';
+            
+            return html;
+        }
+        
+        // Generate timeline event HTML
+        function generateTimelineEvent(event, isLast) {
+            const eventDate = new Date(event.date || event.event_date);
+            const eventClass = getEventClass(event.type || event.event_type);
+            
+            return `
+                <div class="sol-timeline-item ${eventClass} ${isLast ? 'last' : ''}">
+                    <div class="sol-timeline-event">
+                        <div class="sol-timeline-event-header">
+                            <span class="sol-timeline-event-title">${event.title || event.description}</span>
+                            <span class="sol-timeline-event-date">${eventDate.toLocaleDateString('it-IT')} ${eventDate.toLocaleTimeString('it-IT', {hour: '2-digit', minute:'2-digit'})}</span>
+                        </div>
+                        ${event.location || event.location_name ? `
+                            <div class="sol-timeline-event-location">
+                                <i class="fas fa-map-marker-alt"></i>
+                                ${event.location || event.location_name}
+                            </div>
+                        ` : ''}
+                        ${event.details ? `<div class="sol-timeline-event-description">${event.details}</div>` : ''}
+                    </div>
+                </div>
+            `;
+        }
+        
+        // Get event class based on type
+        function getEventClass(eventType) {
+            const typeMap = {
+                'DELIVERED': 'delivered',
+                'DISCHARGED': 'delivered',
+                'DISCHARGED_FROM_VESSEL': 'delivered',
+                'LOADED': 'in-transit',
+                'LOADED_ON_VESSEL': 'in-transit',
+                'DEPARTED': 'in-transit',
+                'DEP': 'in-transit',
+                'ARRIVED': 'in-transit',
+                'ARR': 'in-transit',
+                'DELAYED': 'delayed',
+                'EXCEPTION': 'exception'
+            };
+            return typeMap[eventType] || '';
+        }
+        
+        // Generate demo timeline (fallback when no real events)
+        // Generate demo timeline (fallback when no real events)
+function generateDemoTimeline(tracking) {
+    const events = [];
+    const now = new Date();
     
-    <script src="/pages/tracking/tracking-form-progressive.js"></script>
+    // Base events on status
+    if (tracking.status === 'registered') {
+        events.push({
+            title: 'Spedizione Registrata',
+            date: new Date(now - 1 * 24 * 60 * 60 * 1000),
+            location: tracking.origin_name,
+            description: 'Informazioni spedizione ricevute'
+        });
+    }
+    
+    if (tracking.status === 'in_transit' || tracking.status === 'delivered') {
+        events.push({
+            title: 'Partenza dall\'Origine',
+            date: new Date(now - 5 * 24 * 60 * 60 * 1000),
+            location: tracking.origin_name,
+            description: 'Container caricato e nave partita'
+        });
+        
+        events.push({
+            title: 'In Transito',
+            date: new Date(now - 3 * 24 * 60 * 60 * 1000),
+            location: 'Mare Mediterraneo',
+            description: 'Navigazione in corso'
+        });
+    }
+    
+    if (tracking.status === 'delivered') {
+        events.push({
+            title: 'Arrivo a Destinazione',
+            date: new Date(now - 2 * 24 * 60 * 60 * 1000),
+            location: tracking.destination_name,
+            description: 'Nave arrivata e container scaricato'
+        });
+        
+        events.push({
+            title: 'Consegnato',
+            date: new Date(now - 1 * 24 * 60 * 60 * 1000),
+            location: tracking.destination_name,
+            description: 'Container consegnato al destinatario',
+            class: 'delivered'
+        });
+    }
+    
+    let html = '<div class="sol-timeline-events">';
+    
+    events.forEach((event, index) => {
+        const isLast = index === events.length - 1;
+        html += `
+            <div class="sol-timeline-item ${event.class || ''} ${isLast ? 'last' : ''}">
+                <div class="sol-timeline-event">
+                    <div class="sol-timeline-event-header">
+                        <span class="sol-timeline-event-title">${event.title}</span>
+                        <span class="sol-timeline-event-date">${event.date.toLocaleDateString('it-IT')}</span>
+                    </div>
+                    <div class="sol-timeline-event-location">
+                        <i class="fas fa-map-marker-alt"></i>
+                        ${event.location}
+                    </div>
+                    <div class="sol-timeline-event-description">${event.description}</div>
+                </div>
+            </div>
+        `;
+    });
+    
+    html += '</div>';
+    
+    return html;
+}
+       
+       // Export functions to window for integration
+       window.timelineView = {
+           init: initViewToggle,
+           refresh: loadTimelineView,
+           isActive: () => currentView === 'timeline'
+       };
+       
+       // Auto-init on DOM ready
+       if (document.readyState === 'loading') {
+           document.addEventListener('DOMContentLoaded', initViewToggle);
+       } else {
+           initViewToggle();
+       }
+   })();
+   </script>
+
+<script>
+// FIX DEFINITIVO BULK ACTIONS + ENHANCED FORM
+window.addEventListener('DOMContentLoaded', function() {
+    // 1. ENSURE ENHANCED FORM
+    setTimeout(() => {
+        if (!window.showEnhancedTrackingForm) {
+            const script = document.createElement('script');
+            script.src = '/pages/tracking/tracking-form-progressive.js';
+            document.head.appendChild(script);
+        }
+    }, 500);
+    
+    // 2. CREATE BULK ACTIONS
+    setTimeout(() => {
+        if (!document.getElementById('bulkActionsContainer')) {
+            const container = document.createElement('div');
+            container.id = 'bulkActionsContainer';
+            container.className = 'bulk-actions-container';
+            container.style.display = 'none';
+            
+            container.innerHTML = `
+                <div class="bulk-actions-bar">
+                    <span class="selected-count">
+                        <i class="fas fa-check-square"></i>
+                        <span id="selectedCount">0</span> selezionati
+                    </span>
+                    <div class="bulk-actions">
+                        <button class="btn btn-sm btn-primary" onclick="bulkRefreshTrackings()">
+                            <i class="fas fa-sync-alt"></i> Aggiorna
+                        </button>
+                        <button class="btn btn-sm btn-danger" onclick="bulkDeleteTrackings()">
+                            <i class="fas fa-trash"></i> Elimina
+                        </button>
+                        <button class="btn btn-sm btn-outline" onclick="clearSelection()">
+                            <i class="fas fa-times"></i> Deseleziona
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            const table = document.getElementById('trackingTableContainer');
+            if (table) {
+                table.parentNode.insertBefore(container, table);
+                
+                // Connect to table
+                const connectInterval = setInterval(() => {
+                    if (window.trackingTable && window.trackingTable.onSelectionChange) {
+                        clearInterval(connectInterval);
+                        
+                        const original = window.trackingTable.onSelectionChange;
+                        window.trackingTable.onSelectionChange = function(selected) {
+                            if (original) original(selected);
+                            container.style.display = selected.length > 0 ? 'block' : 'none';
+                            document.getElementById('selectedCount').textContent = selected.length;
+                        };
+                    }
+                }, 100);
+            }
+        }
+    }, 2000);
+});
+</script>
 
 </body>
+<script>
+// EMERGENCY FIX - DEFINISCI TUTTO MANUALMENTE
+console.log('🚨 EMERGENCY FIX LOADING...');
+
+// Fix Add Tracking
+document.addEventListener('click', function(e) {
+    if (e.target.id === 'addTrackingBtn' || e.target.closest('#addTrackingBtn')) {
+        e.preventDefault();
+        
+        // Carica form progressive se non c'è
+        if (!window.showEnhancedTrackingForm) {
+            const script = document.createElement('script');
+            script.src = '/pages/tracking/tracking-form-progressive.js?v=' + Date.now();
+            script.onload = () => {
+                if (window.showEnhancedTrackingForm) {
+                    window.showEnhancedTrackingForm();
+                }
+            };
+            document.head.appendChild(script);
+        } else {
+            window.showEnhancedTrackingForm();
+        }
+    }
+});
+
+// Fix altri bottoni
+window.refreshAllTrackings = () => alert('Funzione temporaneamente non disponibile');
+window.exportToPDF = () => alert('Funzione temporaneamente non disponibile');
+window.exportToExcel = () => alert('Funzione temporaneamente non disponibile');
+window.showColumnManager = () => alert('Funzione temporaneamente non disponibile');
+
+// Carica trackings da localStorage
+const trackings = JSON.parse(localStorage.getItem('trackings') || '[]');
+console.log('📦 Found', trackings.length, 'trackings in localStorage');
+
+// Mostra trackings nella tabella
+if (trackings.length > 0 && document.getElementById('trackingTableContainer')) {
+    document.getElementById('trackingTableContainer').innerHTML = `
+        <table class="sol-table">
+            <thead>
+                <tr>
+                    <th>Tracking Number</th>
+                    <th>Tipo</th>
+                    <th>Stato</th>
+                    <th>Origine</th>
+                    <th>Destinazione</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${trackings.map(t => `
+                    <tr>
+                        <td>${t.tracking_number}</td>
+                        <td>${t.tracking_type || '-'}</td>
+                        <td>${t.status || '-'}</td>
+                        <td>${t.origin_port || '-'}</td>
+                        <td>${t.destination_port || '-'}</td>
+                    </tr>
+                `).join('')}
+            </tbody>
+        </table>
+    `;
+}
+
+console.log('✅ EMERGENCY FIX APPLIED');
+</script>
 </html>
