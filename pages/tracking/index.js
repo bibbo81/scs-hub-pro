@@ -47,18 +47,32 @@ const STATUS_DISPLAY = {
     'pending': { label: 'In attesa', class: 'warning', icon: 'fa-clock' }
 };
 
-// Available columns configuration
+// Available columns configuration - TUTTE LE COLONNE
 const AVAILABLE_COLUMNS = [
     { key: 'tracking_number', label: 'Tracking Number', required: true, sortable: true },
     { key: 'tracking_type', label: 'Tipo', sortable: true },
     { key: 'current_status', label: 'Stato', sortable: true },
+    { key: 'carrier_code', label: 'Carrier Code', sortable: true },
     { key: 'carrier_name', label: 'Carrier', sortable: true },
-    { key: 'origin_port', label: 'Origine', sortable: true },
-    { key: 'destination_port', label: 'Destinazione', sortable: true },
+    { key: 'reference_number', label: 'Riferimento', sortable: true },
+    { key: 'booking', label: 'Booking', sortable: true },
+    { key: 'origin_port', label: 'Porto Origine', sortable: true },
+    { key: 'origin_country', label: 'Paese Origine', sortable: true },
+    { key: 'destination_port', label: 'Porto Destinazione', sortable: true },
+    { key: 'destination_country', label: 'Paese Destinazione', sortable: true },
     { key: 'eta', label: 'ETA', sortable: true },
+    { key: 'ata', label: 'ATA', sortable: true },
+    { key: 'etd', label: 'ETD', sortable: true },
+    { key: 'atd', label: 'ATD', sortable: true },
     { key: 'vessel_name', label: 'Nave/Volo', sortable: true },
+    { key: 'voyage_number', label: 'Viaggio', sortable: true },
     { key: 'container_number', label: 'Container', sortable: true },
-    { key: 'reference', label: 'Riferimento', sortable: true },
+    { key: 'container_size', label: 'Dimensione', sortable: true },
+    { key: 'last_event_date', label: 'Data Ultimo Evento', sortable: true },
+    { key: 'last_event_location', label: 'Luogo Ultimo Evento', sortable: true },
+    { key: 'last_event_description', label: 'Descrizione Ultimo Evento', sortable: true },
+    { key: 'transit_time', label: 'Tempo Transito', sortable: true },
+    { key: 'created_at', label: 'Data Creazione', sortable: true },
     { key: 'last_update', label: 'Ultimo Aggiornamento', sortable: true }
 ];
 
@@ -601,7 +615,9 @@ function showAddTrackingForm() {
 
 function showImportDialog() {
     console.log('Show import dialog');
-    if (window.ImportManager) {
+    
+    // Check if ImportManager exists and use it
+    if (window.ImportManager && window.ImportManager.showImportDialog) {
         window.ImportManager.showImportDialog('tracking', {
             columnMapping: COLUMN_MAPPING,
             statusMapping: getStatusMapping(),
@@ -611,13 +627,43 @@ function showImportDialog() {
                 window.NotificationSystem?.success(`Importati ${data.length} tracking`);
             }
         });
+    } else if (window.ImportManager && window.ImportManager.init) {
+        // Initialize ImportManager if needed
+        window.ImportManager.init();
+        setTimeout(() => {
+            window.ImportManager.showImportDialog('tracking', {
+                columnMapping: COLUMN_MAPPING,
+                statusMapping: getStatusMapping(),
+                onImportComplete: async (data) => {
+                    await loadTrackings();
+                    window.NotificationSystem?.success(`Importati ${data.length} tracking`);
+                }
+            });
+        }, 100);
     } else {
-        window.NotificationSystem?.info('Import in sviluppo...');
+        // Fallback: show file input
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = '.csv,.xlsx,.xls';
+        input.onchange = async (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                window.NotificationSystem?.info('Caricamento file...');
+                // Basic import logic here
+                window.NotificationSystem?.warning('Import manuale non ancora implementato');
+            }
+        };
+        input.click();
     }
 }
 
-function exportData() {
-    if (window.ExportManager) {
+function exportData(type = 'excel') {
+    if (!filteredTrackings || filteredTrackings.length === 0) {
+        window.NotificationSystem?.warning('Nessun dato da esportare');
+        return;
+    }
+    
+    if (window.ExportManager && window.ExportManager.exportData) {
         // Prepare data with proper column names
         const exportData = filteredTrackings.map(t => ({
             'Tracking Number': t.tracking_number,
@@ -629,17 +675,46 @@ function exportData() {
             'ETA': t.eta,
             'Vessel/Flight': t.vessel_name || '-',
             'Container': t.container_number || '-',
-            'Reference': t.reference || '-',
+            'Reference': t.reference_number || '-',
             'Last Update': t.last_update
         }));
         
         window.ExportManager.exportData(exportData, {
             filename: `tracking_export_${new Date().toISOString().split('T')[0]}`,
-            type: 'excel'
+            type: type
         });
-    } else if (tableManager) {
-        tableManager.export('excel');
+    } else if (tableManager && tableManager.export) {
+        tableManager.export(type);
+    } else {
+        // Fallback to basic CSV export
+        const csv = convertToCSV(filteredTrackings);
+        downloadCSV(csv, `tracking_export_${new Date().toISOString().split('T')[0]}.csv`);
     }
+}
+
+// Helper functions for fallback export
+function convertToCSV(data) {
+    if (!data || data.length === 0) return '';
+    
+    const headers = ['Tracking Number', 'Carrier', 'Status', 'Origin', 'Destination', 'ETA'];
+    const rows = data.map(t => [
+        t.tracking_number,
+        t.carrier_name || t.carrier_code || '-',
+        STATUS_DISPLAY[t.current_status]?.label || t.current_status || '-',
+        t.origin_port || '-',
+        t.destination_port || '-',
+        t.eta ? new Date(t.eta).toLocaleDateString('it-IT') : '-'
+    ]);
+    
+    return [headers, ...rows].map(row => row.map(cell => `"${cell}"`).join(',')).join('\n');
+}
+
+function downloadCSV(csv, filename) {
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = filename;
+    link.click();
 }
 
 function resetFilters() {
@@ -652,7 +727,11 @@ function resetFilters() {
 
 function toggleSelectAll(checkbox) {
     if (tableManager) {
-        tableManager.selectAll(checkbox.checked);
+        if (checkbox.checked) {
+            tableManager.selectAll();
+        } else {
+            tableManager.deselectAll();
+        }
     }
 }
 
