@@ -93,48 +93,48 @@
             </div>
 
             <!-- Stats Row -->
-            <div class="row mb-4">
-                <div class="col-lg-3 col-md-6 mb-3 mb-lg-0">
-                    <div class="stat-card">
-                        <div class="stat-icon bg-primary">
+            <div class="d-flex justify-content-between align-items-center mb-4" style="gap: 1rem; overflow-x: auto;">
+                <div class="stat-card flex-fill">
+                    <div class="d-flex align-items-center">
+                        <div class="stat-icon bg-primary mr-3">
                             <i class="fas fa-box-open"></i>
                         </div>
                         <div class="stat-content">
-                            <h3 id="totalTrackings">0</h3>
-                            <p>Totale Tracking</p>
+                            <h3 id="totalTrackings" class="mb-0">0</h3>
+                            <p class="mb-0">Totale Tracking</p>
                         </div>
                     </div>
                 </div>
-                <div class="col-lg-3 col-md-6 mb-3 mb-lg-0">
-                    <div class="stat-card">
-                        <div class="stat-icon bg-success">
+                <div class="stat-card flex-fill">
+                    <div class="d-flex align-items-center">
+                        <div class="stat-icon bg-success mr-3">
                             <i class="fas fa-check-circle"></i>
                         </div>
                         <div class="stat-content">
-                            <h3 id="deliveredCount">0</h3>
-                            <p>Consegnati</p>
+                            <h3 id="deliveredCount" class="mb-0">0</h3>
+                            <p class="mb-0">Consegnati</p>
                         </div>
                     </div>
                 </div>
-                <div class="col-lg-3 col-md-6 mb-3 mb-lg-0">
-                    <div class="stat-card">
-                        <div class="stat-icon bg-info">
+                <div class="stat-card flex-fill">
+                    <div class="d-flex align-items-center">
+                        <div class="stat-icon bg-info mr-3">
                             <i class="fas fa-truck"></i>
                         </div>
                         <div class="stat-content">
-                            <h3 id="inTransitCount">0</h3>
-                            <p>In Transito</p>
+                            <h3 id="inTransitCount" class="mb-0">0</h3>
+                            <p class="mb-0">In Transito</p>
                         </div>
                     </div>
                 </div>
-                <div class="col-lg-3 col-md-6 mb-3 mb-lg-0">
-                    <div class="stat-card">
-                        <div class="stat-icon bg-warning">
+                <div class="stat-card flex-fill">
+                    <div class="d-flex align-items-center">
+                        <div class="stat-icon bg-warning mr-3">
                             <i class="fas fa-exclamation-triangle"></i>
                         </div>
                         <div class="stat-content">
-                            <h3 id="exceptionCount">0</h3>
-                            <p>Con Problemi</p>
+                            <h3 id="exceptionCount" class="mb-0">0</h3>
+                            <p class="mb-0">Con Problemi</p>
                         </div>
                     </div>
                 </div>
@@ -186,22 +186,9 @@
                         <div class="col-md-2">
                             <div class="form-group">
                                 <label>&nbsp;</label>
-                                <div class="dropdown">
-                                    <button class="btn btn-primary btn-block dropdown-toggle" type="button" data-toggle="dropdown">
-                                        <i class="fas fa-download mr-2"></i>Esporta
-                                    </button>
-                                    <div class="dropdown-menu dropdown-menu-right">
-                                        <a class="dropdown-item" href="#" onclick="exportData('excel'); return false;">
-                                            <i class="fas fa-file-excel mr-2"></i>Excel
-                                        </a>
-                                        <a class="dropdown-item" href="#" onclick="exportData('csv'); return false;">
-                                            <i class="fas fa-file-csv mr-2"></i>CSV
-                                        </a>
-                                        <a class="dropdown-item" href="#" onclick="exportData('pdf'); return false;">
-                                            <i class="fas fa-file-pdf mr-2"></i>PDF
-                                        </a>
-                                    </div>
-                                </div>
+                                <button class="btn btn-primary btn-block" onclick="exportData()">
+                                    <i class="fas fa-download mr-2"></i>Esporta
+                                </button>
                             </div>
                         </div>
                     </div>
