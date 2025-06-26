@@ -1492,6 +1492,37 @@ window.addEventListener('DOMContentLoaded', function() {
 </script>
 
 </body>
+
+<script>
+// EMERGENCY FIX - Definisci le funzioni mancanti
+window.toggleSelectAll = function() {
+    console.log('toggleSelectAll placeholder');
+};
+
+// Ricarica i moduli dopo 1 secondo
+setTimeout(() => {
+    console.log('🚨 Attempting emergency module reload...');
+    
+    // Se i moduli non sono caricati, prova a ricaricarli
+    if (!window.TableManager) {
+        import('/core/table-manager.js').then(m => {
+            window.TableManager = m.default;
+            console.log('✅ TableManager caricato');
+        });
+    }
+    
+    if (!window.trackingInit) {
+        import('/pages/tracking/index.js').then(m => {
+            console.log('✅ Tracking index caricato');
+            if (window.trackingInit) {
+                window.trackingInit();
+            }
+        }).catch(e => {
+            console.error('❌ Errore caricamento tracking:', e);
+        });
+    }
+}, 1000);
+</script>
 <script>
 // EMERGENCY FIX - DEFINISCI TUTTO MANUALMENTE
 console.log('🚨 EMERGENCY FIX LOADING...');
