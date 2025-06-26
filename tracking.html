@@ -384,6 +384,50 @@
                             // Call the existing importFile method
                             const result = await this.importFile(file, importOptions);
                             
+                            // If there's a processedData error, handle the import manually
+                            if (!result || !result.success) {
+                                console.log('Import failed, trying manual processing...');
+                                
+                                // Parse the file manually
+                                const data = await this.parseFile(file);
+                                if (data && data.data && data.data.length > 0) {
+                                    // Save trackings
+                                    const trackings = data.data.map((row, index) => ({
+                                        id: crypto.randomUUID ? crypto.randomUUID() : `import-${Date.now()}-${index}`,
+                                        ...row,
+                                        tracking_type: row.tracking_type || 'container',
+                                        current_status: this.mapStatus(row.status || row.current_status || 'registered'),
+                                        created_at: new Date().toISOString(),
+                                        updated_at: new Date().toISOString()
+                                    }));
+                                    
+                                    // Save to Supabase if available
+                                    if (window.supabaseTrackingService) {
+                                        let imported = 0;
+                                        for (const tracking of trackings) {
+                                            try {
+                                                await window.supabaseTrackingService.createTracking(tracking);
+                                                imported++;
+                                            } catch (err) {
+                                                console.error('Error saving tracking:', err);
+                                            }
+                                        }
+                                        
+                                        window.NotificationSystem?.success(`Importati ${imported} tracking`);
+                                        
+                                        // Refresh the table
+                                        if (window.trackingDebug?.refresh) {
+                                            await window.trackingDebug.refresh();
+                                        }
+                                        
+                                        return {
+                                            success: true,
+                                            stats: { imported, total: trackings.length }
+                                        };
+                                    }
+                                }
+                            }
+                            
                             // Refresh trackings after successful import
                             if (result && result.success && window.trackingDebug) {
                                 await window.trackingDebug.refresh();
@@ -392,6 +436,12 @@
                             return result;
                         } catch (error) {
                             console.error('Import error:', error);
+                            
+                            // Try to show a user-friendly error
+                            if (window.NotificationSystem) {
+                                window.NotificationSystem.error('Errore durante l\'import: ' + error.message);
+                            }
+                            
                             return {
                                 success: false,
                                 error: error.message
