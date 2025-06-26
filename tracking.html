@@ -1146,6 +1146,428 @@
     
 })();
 </script>
+<script>
+    (function() {
+    'use strict';
+    
+    console.log('🔧 TBODY FIX: Starting definitive table fix...');
+    
+    // ========================================
+    // 1. TROVA O CREA TBODY
+    // ========================================
+    
+    function findOrCreateTbody() {
+        console.log('🔍 Looking for tbody...');
+        
+        // Metodo 1: Cerca per ID
+        let tbody = document.getElementById('trackingTableBody');
+        if (tbody) {
+            console.log('✅ Found tbody by ID');
+            return tbody;
+        }
+        
+        // Metodo 2: Cerca nel table
+        const table = document.getElementById('trackingTable');
+        if (table) {
+            tbody = table.querySelector('tbody');
+            if (tbody) {
+                console.log('✅ Found tbody in table');
+                // Aggiungi ID se manca
+                if (!tbody.id) {
+                    tbody.id = 'trackingTableBody';
+                }
+                return tbody;
+            }
+            
+            // Metodo 3: Crea tbody se non esiste
+            console.log('⚠️ Creating new tbody');
+            tbody = document.createElement('tbody');
+            tbody.id = 'trackingTableBody';
+            table.appendChild(tbody);
+            console.log('✅ Created and appended tbody');
+            return tbody;
+        }
+        
+        // Metodo 4: Cerca in table-container
+        const tableContainer = document.getElementById('trackingTableContainer');
+        if (tableContainer) {
+            // Cerca qualsiasi table nel container
+            const tables = tableContainer.querySelectorAll('table');
+            for (const tbl of tables) {
+                tbody = tbl.querySelector('tbody');
+                if (tbody) {
+                    console.log('✅ Found tbody in container table');
+                    if (!tbody.id) {
+                        tbody.id = 'trackingTableBody';
+                    }
+                    return tbody;
+                }
+            }
+            
+            // Se c'è una table senza tbody, crealo
+            if (tables.length > 0) {
+                tbody = document.createElement('tbody');
+                tbody.id = 'trackingTableBody';
+                tables[0].appendChild(tbody);
+                console.log('✅ Created tbody in container table');
+                return tbody;
+            }
+        }
+        
+        console.error('❌ No table found to attach tbody');
+        return null;
+    }
+    
+    // ========================================
+    // 2. VERIFICA STRUTTURA TABELLA
+    // ========================================
+    
+    function verifyTableStructure() {
+        console.log('🔍 Verifying table structure...');
+        
+        // Cerca tutti i possibili contenitori
+        const containers = [
+            document.getElementById('trackingTableContainer'),
+            document.querySelector('.table-responsive'),
+            document.querySelector('.tracking-table-wrapper'),
+            document.querySelector('.content-wrapper')
+        ];
+        
+        for (const container of containers) {
+            if (container) {
+                console.log('Found container:', container.className || container.id);
+                
+                // Cerca tabelle
+                const tables = container.querySelectorAll('table');
+                console.log('Tables found:', tables.length);
+                
+                if (tables.length > 0) {
+                    const table = tables[0];
+                    
+                    // Assicurati che abbia ID
+                    if (!table.id) {
+                        table.id = 'trackingTable';
+                    }
+                    
+                    // Verifica thead
+                    let thead = table.querySelector('thead');
+                    if (!thead) {
+                        thead = document.createElement('thead');
+                        thead.innerHTML = `
+                            <tr>
+                                <th><input type="checkbox" id="selectAll"></th>
+                                <th>Tracking Number</th>
+                                <th>Tipo</th>
+                                <th>Stato</th>
+                                <th>Origine</th>
+                                <th>Destinazione</th>
+                                <th>ETA</th>
+                                <th>Azioni</th>
+                            </tr>
+                        `;
+                        table.insertBefore(thead, table.firstChild);
+                        console.log('✅ Created thead');
+                    }
+                    
+                    // Verifica tbody
+                    const tbody = findOrCreateTbody();
+                    if (tbody) {
+                        console.log('✅ Table structure verified');
+                        return { table, thead, tbody };
+                    }
+                }
+            }
+        }
+        
+        console.error('❌ Could not verify table structure');
+        return null;
+    }
+    
+    // ========================================
+    // 3. RENDER FORZATO
+    // ========================================
+    
+    function forceRenderTable() {
+        console.log('🚀 Force rendering table...');
+        
+        const structure = verifyTableStructure();
+        if (!structure) {
+            console.error('❌ Cannot render without table structure');
+            return;
+        }
+        
+        const { tbody } = structure;
+        
+        // Nascondi empty state
+        const emptyState = document.getElementById('emptyState');
+        if (emptyState) emptyState.style.display = 'none';
+        
+        // Verifica dati
+        if (!window.filteredTrackings || window.filteredTrackings.length === 0) {
+            console.log('📦 No filtered trackings, checking main array...');
+            
+            if (window.trackings && window.trackings.length > 0) {
+                window.filteredTrackings = window.trackings;
+                console.log('✅ Using main trackings array:', window.trackings.length);
+            } else {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="8" class="text-center py-4">
+                            <i class="fas fa-box-open fa-3x text-muted mb-3"></i>
+                            <p class="text-muted">Nessun tracking trovato</p>
+                            <button class="btn btn-primary" onclick="showAddTrackingForm()">
+                                <i class="fas fa-plus"></i> Aggiungi Tracking
+                            </button>
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+        }
+        
+        // Render righe
+        console.log('🎨 Rendering', window.filteredTrackings.length, 'trackings...');
+        
+        tbody.innerHTML = window.filteredTrackings.map(tracking => `
+            <tr data-id="${tracking.id}">
+                <td>
+                    <input type="checkbox" class="form-check-input row-select" data-id="${tracking.id}">
+                </td>
+                <td>
+                    <strong>${tracking.tracking_number || '-'}</strong>
+                    ${tracking.reference ? `<br><small class="text-muted">${tracking.reference}</small>` : ''}
+                </td>
+                <td>
+                    <span class="badge bg-secondary">${tracking.tracking_type || 'container'}</span>
+                </td>
+                <td>
+                    <span class="badge bg-${getStatusClass(tracking.status)}">${tracking.status || 'pending'}</span>
+                </td>
+                <td>${tracking.origin_name || '-'}</td>
+                <td>${tracking.destination_name || '-'}</td>
+                <td>${formatDate(tracking.eta) || '-'}</td>
+                <td>
+                    <div class="btn-group btn-group-sm">
+                        <button class="btn btn-primary" onclick="refreshTracking('${tracking.id}')" title="Aggiorna">
+                            <i class="fas fa-sync"></i>
+                        </button>
+                        <button class="btn btn-info" onclick="viewDetails('${tracking.id}')" title="Dettagli">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                        <button class="btn btn-danger" onclick="deleteTracking('${tracking.id}')" title="Elimina">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </td>
+            </tr>
+        `).join('');
+        
+        console.log('✅ Table rendered successfully');
+        
+        // Mostra la tabella
+        tbody.style.display = '';
+        const table = tbody.closest('table');
+        if (table) table.style.display = '';
+    }
+    
+    // ========================================
+    // 4. HELPERS
+    // ========================================
+    
+    function getStatusClass(status) {
+        const statusMap = {
+            'delivered': 'success',
+            'in_transit': 'primary', 
+            'pending': 'warning',
+            'exception': 'danger',
+            'created': 'secondary'
+        };
+        return statusMap[status?.toLowerCase()] || 'secondary';
+    }
+    
+    function formatDate(dateString) {
+        if (!dateString || dateString === '-') return '-';
+        try {
+            const date = new Date(dateString);
+            return date.toLocaleDateString('it-IT');
+        } catch {
+            return dateString;
+        }
+    }
+    
+    // ========================================
+    // 5. OVERRIDE RENDER FUNCTIONS
+    // ========================================
+    
+    // Override del manual render
+    if (window.manualRenderTable) {
+        const originalManualRender = window.manualRenderTable;
+        window.manualRenderTable = function() {
+            console.log('🔧 Intercepted manualRenderTable');
+            const tbody = findOrCreateTbody();
+            if (tbody) {
+                // Chiama l'originale con tbody garantito
+                return originalManualRender.call(this);
+            } else {
+                // Usa il nostro render
+                forceRenderTable();
+            }
+        };
+    }
+    
+    // Override del render principale
+    if (window.renderTable) {
+        const originalRender = window.renderTable;
+        window.renderTable = function() {
+            console.log('🔧 Intercepted renderTable');
+            try {
+                originalRender.call(this);
+            } catch (e) {
+                console.error('Original render failed:', e);
+                forceRenderTable();
+            }
+        };
+    } else {
+        window.renderTable = forceRenderTable;
+    }
+    
+    // ========================================
+    // 6. COLUMN SELECTOR
+    // ========================================
+    
+    function addColumnSelector() {
+        console.log('🎛️ Adding column selector...');
+        
+        // Trova contenitore pulsanti
+        const buttonContainers = [
+            document.querySelector('.d-flex.gap-2.mb-3'),
+            document.querySelector('.tracking-controls'),
+            document.querySelector('.page-header .actions'),
+            document.querySelector('.toolbar')
+        ];
+        
+        let buttonContainer = null;
+        for (const container of buttonContainers) {
+            if (container) {
+                buttonContainer = container;
+                break;
+            }
+        }
+        
+        if (!buttonContainer) {
+            console.log('⚠️ No button container found, creating one...');
+            
+            const tableContainer = document.getElementById('trackingTableContainer') || 
+                                 document.querySelector('.table-responsive') ||
+                                 document.querySelector('.content-wrapper');
+                                 
+            if (tableContainer) {
+                buttonContainer = document.createElement('div');
+                buttonContainer.className = 'd-flex gap-2 mb-3';
+                tableContainer.parentNode.insertBefore(buttonContainer, tableContainer);
+            }
+        }
+        
+        if (buttonContainer && !document.getElementById('columnSelectorBtn')) {
+            const btn = document.createElement('button');
+            btn.id = 'columnSelectorBtn';
+            btn.className = 'btn btn-outline-secondary';
+            btn.innerHTML = '<i class="fas fa-columns"></i> Colonne';
+            btn.onclick = () => {
+                alert('Column selector sarà disponibile a breve!');
+                // TODO: Implementare column selector
+            };
+            
+            buttonContainer.insertBefore(btn, buttonContainer.firstChild);
+            console.log('✅ Column selector button added');
+        }
+    }
+    
+    // ========================================
+    // 7. AUTO-INIT
+    // ========================================
+    
+    async function autoInit() {
+        console.log('🚀 Auto-initializing tbody fix...');
+        
+        // Attendi DOM
+        if (document.readyState === 'loading') {
+            await new Promise(resolve => {
+                document.addEventListener('DOMContentLoaded', resolve);
+            });
+        }
+        
+        // Attendi un attimo per altri script
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        // Verifica struttura
+        const structure = verifyTableStructure();
+        if (structure) {
+            console.log('✅ Table structure ready');
+            
+            // Aggiungi column selector
+            addColumnSelector();
+            
+            // Se ci sono dati, renderizza
+            if (window.trackings && window.trackings.length > 0) {
+                forceRenderTable();
+            } else {
+                // Attendi dati
+                console.log('⏳ Waiting for data...');
+                
+                let attempts = 0;
+                const dataChecker = setInterval(() => {
+                    if (window.trackings && window.trackings.length > 0) {
+                        clearInterval(dataChecker);
+                        window.filteredTrackings = window.filteredTrackings || window.trackings;
+                        forceRenderTable();
+                    }
+                    
+                    attempts++;
+                    if (attempts > 20) {
+                        clearInterval(dataChecker);
+                        console.log('⚠️ No data after 10 seconds');
+                    }
+                }, 500);
+            }
+        }
+    }
+    
+    // ========================================
+    // 8. DEBUG COMMANDS
+    // ========================================
+    
+    window.tbodyFix = {
+        findTbody: findOrCreateTbody,
+        verify: verifyTableStructure,
+        render: forceRenderTable,
+        debug: () => {
+            console.log('=== TBODY FIX DEBUG ===');
+            console.log('Tables found:', document.querySelectorAll('table').length);
+            console.log('Tbody elements:', document.querySelectorAll('tbody').length);
+            console.log('trackings:', window.trackings?.length || 0);
+            console.log('filteredTrackings:', window.filteredTrackings?.length || 0);
+            
+            const structure = verifyTableStructure();
+            if (structure) {
+                console.log('Table:', structure.table);
+                console.log('Thead:', structure.thead);
+                console.log('Tbody:', structure.tbody);
+            }
+        }
+    };
+    
+    // Avvia auto-init
+    autoInit();
+    
+    console.log('✅ TBODY FIX LOADED');
+    console.log('Debug commands:');
+    console.log('- tbodyFix.debug() - Mostra info debug');
+    console.log('- tbodyFix.render() - Forza render');
+    console.log('- tbodyFix.verify() - Verifica struttura');
+    
+})();
+</script>
 
 </body>
 </html>
