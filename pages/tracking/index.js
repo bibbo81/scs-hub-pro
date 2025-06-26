@@ -616,7 +616,7 @@ function showAddTrackingForm() {
 function showImportDialog() {
     console.log('Show import dialog');
     
-    // Check if ImportManager exists and use it
+    // Use the CompleteImportManager with showImportDialog
     if (window.ImportManager && window.ImportManager.showImportDialog) {
         window.ImportManager.showImportDialog('tracking', {
             columnMapping: COLUMN_MAPPING,
@@ -627,34 +627,170 @@ function showImportDialog() {
                 window.NotificationSystem?.success(`Importati ${data.length} tracking`);
             }
         });
-    } else if (window.ImportManager && window.ImportManager.init) {
-        // Initialize ImportManager if needed
-        window.ImportManager.init();
-        setTimeout(() => {
-            window.ImportManager.showImportDialog('tracking', {
-                columnMapping: COLUMN_MAPPING,
-                statusMapping: getStatusMapping(),
-                onImportComplete: async (data) => {
-                    await loadTrackings();
-                    window.NotificationSystem?.success(`Importati ${data.length} tracking`);
+    } else if (window.ModalSystem) {
+        // Use your modal system with import options
+        const modalContent = `
+            <div class="import-dialog">
+                <h3>Importa Tracking</h3>
+                <p>Seleziona un file CSV o Excel da importare:</p>
+                
+                <div class="import-dropzone" id="importDropzone" style="border: 2px dashed #ccc; border-radius: 8px; padding: 40px; text-align: center; cursor: pointer;">
+                    <i class="fas fa-cloud-upload-alt fa-3x mb-3 text-primary"></i>
+                    <p>Trascina qui il file o clicca per selezionare</p>
+                    <input type="file" id="importFileInput" accept=".csv,.xlsx,.xls" style="display: none;">
+                </div>
+                
+                <div class="import-info mt-3">
+                    <small class="text-muted">Formati supportati: CSV, Excel (.xlsx, .xls)</small><br>
+                    <small class="text-muted">Colonne richieste: tracking_number, carrier_code</small>
+                </div>
+                
+                <div class="mt-3">
+                    <button class="btn btn-secondary btn-sm" onclick="window.ImportManager?.downloadTemplate?.()">
+                        <i class="fas fa-download mr-2"></i>Scarica Template
+                    </button>
+                </div>
+            </div>
+        `;
+        
+        window.ModalSystem.show({
+            title: 'Importa Tracking',
+            content: modalContent,
+            size: 'md',
+            buttons: [
+                {
+                    text: 'Annulla',
+                    className: 'btn-secondary',
+                    action: () => window.ModalSystem.hide()
                 }
-            });
+            ]
+        });
+        
+        // Setup dropzone after modal is shown
+        setTimeout(() => {
+            const dropzone = document.getElementById('importDropzone');
+            const fileInput = document.getElementById('importFileInput');
+            
+            if (dropzone && fileInput) {
+                // Click to select file
+                dropzone.onclick = () => fileInput.click();
+                
+                // Drag and drop
+                dropzone.ondragover = (e) => {
+                    e.preventDefault();
+                    dropzone.style.backgroundColor = '#f0f0f0';
+                };
+                
+                dropzone.ondragleave = () => {
+                    dropzone.style.backgroundColor = '';
+                };
+                
+                dropzone.ondrop = (e) => {
+                    e.preventDefault();
+                    dropzone.style.backgroundColor = '';
+                    
+                    const files = e.dataTransfer.files;
+                    if (files.length > 0) {
+                        handleImportFile(files[0]);
+                    }
+                };
+                
+                // File input change
+                fileInput.onchange = (e) => {
+                    if (e.target.files.length > 0) {
+                        handleImportFile(e.target.files[0]);
+                    }
+                };
+            }
         }, 100);
     } else {
-        // Fallback: show file input
-        const input = document.createElement('input');
-        input.type = 'file';
-        input.accept = '.csv,.xlsx,.xls';
-        input.onchange = async (e) => {
-            const file = e.target.files[0];
-            if (file) {
-                window.NotificationSystem?.info('Caricamento file...');
-                // Basic import logic here
-                window.NotificationSystem?.warning('Import manuale non ancora implementato');
-            }
-        };
-        input.click();
+        // Fallback
+        window.NotificationSystem?.warning('Sistema di import non disponibile');
     }
+}
+
+// Handle import file
+async function handleImportFile(file) {
+    console.log('Importing file:', file.name);
+    
+    // Close modal
+    window.ModalSystem?.hide();
+    
+    // Show progress
+    window.NotificationSystem?.info('Caricamento file in corso...');
+    
+    try {
+        if (window.ImportManager && window.ImportManager.importFile) {
+            // Use CompleteImportManager
+            const result = await window.ImportManager.importFile(file, {
+                entity: 'tracking',
+                columnMapping: COLUMN_MAPPING,
+                statusMapping: getStatusMapping(),
+                saveToSupabase: true
+            });
+            
+            if (result.success) {
+                await loadTrackings();
+                window.NotificationSystem?.success(`Import completato: ${result.stats.imported} tracking importati`);
+            } else {
+                window.NotificationSystem?.error('Errore durante l\'import');
+            }
+        } else {
+            // Basic import fallback
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                try {
+                    let data;
+                    if (file.name.endsWith('.csv')) {
+                        // Parse CSV
+                        data = parseCSV(e.target.result);
+                    } else {
+                        // Parse Excel
+                        const workbook = XLSX.read(e.target.result, { type: 'binary' });
+                        const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                        data = XLSX.utils.sheet_to_json(firstSheet);
+                    }
+                    
+                    // Process and save data
+                    console.log('Parsed data:', data);
+                    window.NotificationSystem?.success(`Letti ${data.length} record dal file`);
+                    
+                } catch (error) {
+                    console.error('Import error:', error);
+                    window.NotificationSystem?.error('Errore nel parsing del file');
+                }
+            };
+            
+            if (file.name.endsWith('.csv')) {
+                reader.readAsText(file);
+            } else {
+                reader.readAsBinaryString(file);
+            }
+        }
+    } catch (error) {
+        console.error('Import error:', error);
+        window.NotificationSystem?.error('Errore durante l\'import: ' + error.message);
+    }
+}
+
+// Parse CSV helper
+function parseCSV(text) {
+    const lines = text.split('\n');
+    const headers = lines[0].split(',').map(h => h.trim());
+    const data = [];
+    
+    for (let i = 1; i < lines.length; i++) {
+        if (lines[i].trim()) {
+            const values = lines[i].split(',');
+            const row = {};
+            headers.forEach((header, index) => {
+                row[header] = values[index]?.trim() || '';
+            });
+            data.push(row);
+        }
+    }
+    
+    return data;
 }
 
 function exportData(type = 'excel') {
@@ -663,32 +799,63 @@ function exportData(type = 'excel') {
         return;
     }
     
-    if (window.ExportManager && window.ExportManager.exportData) {
+    // Try to use the advanced ExportManager
+    if (window.ExportManager && window.ExportManager.exportTrackings) {
+        window.ExportManager.exportTrackings(filteredTrackings, type);
+    } else if (window.ExportManager && window.ExportManager.exportData) {
         // Prepare data with proper column names
         const exportData = filteredTrackings.map(t => ({
             'Tracking Number': t.tracking_number,
             'Type': t.tracking_type === 'air_waybill' ? 'Air' : 'Sea',
+            'Carrier Code': t.carrier_code || t.carrier_name,
+            'Carrier': t.carrier_name,
+            'Status': STATUS_DISPLAY[t.current_status]?.label || t.current_status,
+            'Reference': t.reference_number || '-',
+            'Booking': t.booking || '-',
+            'Origin Port': t.origin_port || '-',
+            'Origin Country': t.origin_country || '-',
+            'Destination Port': t.destination_port || '-',
+            'Destination Country': t.destination_country || '-',
+            'ETA': t.eta ? new Date(t.eta).toLocaleDateString('it-IT') : '-',
+            'ATA': t.ata ? new Date(t.ata).toLocaleDateString('it-IT') : '-',
+            'Vessel/Flight': t.vessel_name || '-',
+            'Voyage': t.voyage_number || '-',
+            'Container': t.container_number || '-',
+            'Last Event': t.last_event_description || '-',
+            'Last Update': t.last_update ? new Date(t.last_update).toLocaleString('it-IT') : '-'
+        }));
+        
+        const options = {
+            filename: `tracking_export_${new Date().toISOString().split('T')[0]}`,
+            type: type,
+            sheetName: 'Tracking Data',
+            creator: 'Supply Chain Hub',
+            title: 'Tracking Export',
+            includeHeaders: true,
+            autoFilter: true,
+            freezePane: { row: 1 }
+        };
+        
+        window.ExportManager.exportData(exportData, options);
+    } else if (type === 'csv') {
+        // Fallback to basic CSV export
+        const csv = convertToCSV(filteredTrackings);
+        downloadCSV(csv, `tracking_export_${new Date().toISOString().split('T')[0]}.csv`);
+    } else if (type === 'excel' && window.XLSX) {
+        // Fallback to basic Excel export
+        const ws = XLSX.utils.json_to_sheet(filteredTrackings.map(t => ({
+            'Tracking Number': t.tracking_number,
             'Carrier': t.carrier_name,
             'Status': STATUS_DISPLAY[t.current_status]?.label || t.current_status,
             'Origin': t.origin_port,
             'Destination': t.destination_port,
-            'ETA': t.eta,
-            'Vessel/Flight': t.vessel_name || '-',
-            'Container': t.container_number || '-',
-            'Reference': t.reference_number || '-',
-            'Last Update': t.last_update
-        }));
-        
-        window.ExportManager.exportData(exportData, {
-            filename: `tracking_export_${new Date().toISOString().split('T')[0]}`,
-            type: type
-        });
-    } else if (tableManager && tableManager.export) {
-        tableManager.export(type);
+            'ETA': t.eta || '-'
+        })));
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, 'Tracking');
+        XLSX.writeFile(wb, `tracking_export_${Date.now()}.xlsx`);
     } else {
-        // Fallback to basic CSV export
-        const csv = convertToCSV(filteredTrackings);
-        downloadCSV(csv, `tracking_export_${new Date().toISOString().split('T')[0]}.csv`);
+        window.NotificationSystem?.error('Export non disponibile per questo formato');
     }
 }
 
