@@ -509,66 +509,24 @@ function resetFilters() {
     applyFilters();
 }
 
-// Add tracking form - Fix for missing prompt method
+// Add tracking form - Fix for missing show method
 async function showAddTrackingForm() {
+    console.log('showAddTrackingForm called, checking available methods...');
+    
     if (window.TrackingFormProgressive?.showEnhancedTrackingForm) {
         window.TrackingFormProgressive.showEnhancedTrackingForm();
-    } else if (window.ModalSystem) {
-        // Create custom form since prompt doesn't exist
-        const modalContent = `
-            <form id="addTrackingForm">
-                <div class="mb-3">
-                    <label class="form-label">Tracking Number *</label>
-                    <input type="text" class="form-control" name="tracking_number" required>
-                </div>
-                <div class="mb-3">
-                    <label class="form-label">Carrier</label>
-                    <select class="form-control" name="carrier_code">
-                        <option value="">Seleziona...</option>
-                        <option value="fedex">FedEx</option>
-                        <option value="dhl">DHL</option>
-                        <option value="ups">UPS</option>
-                        <option value="gls">GLS</option>
-                        <option value="tnt">TNT</option>
-                    </select>
-                </div>
-                <div class="mb-3">
-                    <label class="form-label">Riferimento</label>
-                    <input type="text" class="form-control" name="reference">
-                </div>
-            </form>
-        `;
-        
-        window.ModalSystem.show({
-            title: 'Aggiungi Tracking',
-            body: modalContent,
-            buttons: [
-                {
-                    text: 'Annulla',
-                    class: 'sol-btn-secondary',
-                    action: 'close'
-                },
-                {
-                    text: 'Aggiungi',
-                    class: 'sol-btn-primary',
-                    action: async (modal) => {
-                        const form = document.getElementById('addTrackingForm');
-                        const formData = new FormData(form);
-                        const data = Object.fromEntries(formData);
-                        
-                        if (data.tracking_number) {
-                            modal.close();
-                            await addTracking(data);
-                        }
-                    }
-                }
-            ]
-        });
     } else {
-        // Ultimate fallback
+        // Ultimate fallback with native prompt
         const trackingNumber = prompt('Inserisci il tracking number:');
         if (trackingNumber) {
-            await addTracking({ tracking_number: trackingNumber });
+            const carrier = prompt('Inserisci il carrier (fedex, dhl, ups, gls, tnt):') || '';
+            const reference = prompt('Inserisci un riferimento (opzionale):') || '';
+            
+            await addTracking({ 
+                tracking_number: trackingNumber,
+                carrier_code: carrier,
+                reference: reference
+            });
         }
     }
 }
@@ -812,52 +770,27 @@ function detectShipsGoType(content) {
     return 'generic';
 }
 
-// Export trackings - Fix for missing confirm method
+// Export trackings - Fix with native confirm
 async function exportTrackings() {
     try {
-        // Create custom dialog since confirm doesn't exist
-        if (window.ModalSystem && window.ModalSystem.show) {
-            window.ModalSystem.show({
-                title: 'Formato Export',
-                body: 'Seleziona il formato di export:',
-                buttons: [
-                    {
-                        text: 'PDF',
-                        class: 'sol-btn-secondary',
-                        action: async (modal) => {
-                            modal.close();
-                            if (window.ExportManager) {
-                                await window.ExportManager.exportToPDF(filteredTrackings, 'tracking-export');
-                            }
-                        }
-                    },
-                    {
-                        text: 'Excel',
-                        class: 'sol-btn-primary',
-                        action: async (modal) => {
-                            modal.close();
-                            if (window.ExportManager) {
-                                await window.ExportManager.exportToExcel(filteredTrackings, 'tracking-export');
-                            }
-                        }
-                    }
-                ]
-            });
-        } else {
-            // Fallback to native confirm
-            const useExcel = confirm('Clicca OK per Excel, Annulla per PDF');
-            if (window.ExportManager) {
-                if (useExcel) {
-                    await window.ExportManager.exportToExcel(filteredTrackings, 'tracking-export');
-                } else {
-                    await window.ExportManager.exportToPDF(filteredTrackings, 'tracking-export');
-                }
+        // Use native confirm as fallback
+        const useExcel = confirm('Export in Excel?\n(OK = Excel, Annulla = PDF)');
+        
+        if (window.ExportManager) {
+            if (useExcel) {
+                await window.ExportManager.exportToExcel(filteredTrackings, 'tracking-export');
+                window.NotificationSystem?.success('Export Excel completato');
+            } else {
+                await window.ExportManager.exportToPDF(filteredTrackings, 'tracking-export');
+                window.NotificationSystem?.success('Export PDF completato');
             }
+        } else {
+            window.NotificationSystem?.error('Export Manager non disponibile');
         }
     } catch (error) {
         console.error('Error exporting:', error);
         if (window.NotificationSystem) {
-            window.NotificationSystem.error('Errore nell\'export');
+            window.NotificationSystem.error('Errore nell\'export: ' + error.message);
         }
     }
 }
