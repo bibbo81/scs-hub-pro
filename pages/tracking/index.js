@@ -328,7 +328,23 @@ function applyFilters() {
 
 // Render table
 function renderTable() {
-    const tbody = document.getElementById('trackingTableBody');
+    // Fix: cerca prima nel table manager se esiste
+    let tbody = document.getElementById('trackingTableBody');
+    
+    // Se non trova l'elemento, prova a cercarlo nella tabella
+    if (!tbody) {
+        const table = document.getElementById('trackingTable');
+        if (table) {
+            tbody = table.querySelector('tbody');
+            if (!tbody) {
+                // Crea il tbody se non esiste
+                tbody = document.createElement('tbody');
+                tbody.id = 'trackingTableBody';
+                table.appendChild(tbody);
+            }
+        }
+    }
+    
     const emptyState = document.getElementById('emptyState');
     
     if (!tbody) {
@@ -493,29 +509,66 @@ function resetFilters() {
     applyFilters();
 }
 
-// Add tracking form
+// Add tracking form - Fix for missing prompt method
 async function showAddTrackingForm() {
     if (window.TrackingFormProgressive?.showEnhancedTrackingForm) {
         window.TrackingFormProgressive.showEnhancedTrackingForm();
-    } else {
-        // Fallback to basic modal
-        const result = await window.ModalSystem?.prompt({
+    } else if (window.ModalSystem) {
+        // Create custom form since prompt doesn't exist
+        const modalContent = `
+            <form id="addTrackingForm">
+                <div class="mb-3">
+                    <label class="form-label">Tracking Number *</label>
+                    <input type="text" class="form-control" name="tracking_number" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Carrier</label>
+                    <select class="form-control" name="carrier_code">
+                        <option value="">Seleziona...</option>
+                        <option value="fedex">FedEx</option>
+                        <option value="dhl">DHL</option>
+                        <option value="ups">UPS</option>
+                        <option value="gls">GLS</option>
+                        <option value="tnt">TNT</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Riferimento</label>
+                    <input type="text" class="form-control" name="reference">
+                </div>
+            </form>
+        `;
+        
+        window.ModalSystem.show({
             title: 'Aggiungi Tracking',
-            fields: [
-                { name: 'tracking_number', label: 'Tracking Number', type: 'text', required: true },
-                { name: 'carrier_code', label: 'Carrier', type: 'select', options: [
-                    { value: 'fedex', label: 'FedEx' },
-                    { value: 'dhl', label: 'DHL' },
-                    { value: 'ups', label: 'UPS' },
-                    { value: 'gls', label: 'GLS' },
-                    { value: 'tnt', label: 'TNT' }
-                ]},
-                { name: 'reference', label: 'Riferimento', type: 'text' }
+            body: modalContent,
+            buttons: [
+                {
+                    text: 'Annulla',
+                    class: 'sol-btn-secondary',
+                    action: 'close'
+                },
+                {
+                    text: 'Aggiungi',
+                    class: 'sol-btn-primary',
+                    action: async (modal) => {
+                        const form = document.getElementById('addTrackingForm');
+                        const formData = new FormData(form);
+                        const data = Object.fromEntries(formData);
+                        
+                        if (data.tracking_number) {
+                            modal.close();
+                            await addTracking(data);
+                        }
+                    }
+                }
             ]
         });
-        
-        if (result) {
-            await addTracking(result);
+    } else {
+        // Ultimate fallback
+        const trackingNumber = prompt('Inserisci il tracking number:');
+        if (trackingNumber) {
+            await addTracking({ tracking_number: trackingNumber });
         }
     }
 }
@@ -759,27 +812,53 @@ function detectShipsGoType(content) {
     return 'generic';
 }
 
-// Export trackings
+// Export trackings - Fix for missing confirm method
 async function exportTrackings() {
     try {
-        const format = await window.ModalSystem?.confirm({
-            title: 'Formato Export',
-            message: 'Seleziona il formato di export:',
-            confirmText: 'Excel',
-            cancelText: 'PDF',
-            type: 'info'
-        });
-        
-        if (window.ExportManager) {
-            if (format) {
-                await window.ExportManager.exportToExcel(filteredTrackings, 'tracking-export');
-            } else {
-                await window.ExportManager.exportToPDF(filteredTrackings, 'tracking-export');
+        // Create custom dialog since confirm doesn't exist
+        if (window.ModalSystem && window.ModalSystem.show) {
+            window.ModalSystem.show({
+                title: 'Formato Export',
+                body: 'Seleziona il formato di export:',
+                buttons: [
+                    {
+                        text: 'PDF',
+                        class: 'sol-btn-secondary',
+                        action: async (modal) => {
+                            modal.close();
+                            if (window.ExportManager) {
+                                await window.ExportManager.exportToPDF(filteredTrackings, 'tracking-export');
+                            }
+                        }
+                    },
+                    {
+                        text: 'Excel',
+                        class: 'sol-btn-primary',
+                        action: async (modal) => {
+                            modal.close();
+                            if (window.ExportManager) {
+                                await window.ExportManager.exportToExcel(filteredTrackings, 'tracking-export');
+                            }
+                        }
+                    }
+                ]
+            });
+        } else {
+            // Fallback to native confirm
+            const useExcel = confirm('Clicca OK per Excel, Annulla per PDF');
+            if (window.ExportManager) {
+                if (useExcel) {
+                    await window.ExportManager.exportToExcel(filteredTrackings, 'tracking-export');
+                } else {
+                    await window.ExportManager.exportToPDF(filteredTrackings, 'tracking-export');
+                }
             }
         }
     } catch (error) {
         console.error('Error exporting:', error);
-        window.NotificationSystem?.error('Errore nell\'export');
+        if (window.NotificationSystem) {
+            window.NotificationSystem.error('Errore nell\'export');
+        }
     }
 }
 
