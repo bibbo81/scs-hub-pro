@@ -12,6 +12,91 @@
     <link rel="stylesheet" href="/assets/css/solarium.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
+    <!-- Inline styles for critical elements -->
+    <style>
+        /* Ensure table is visible */
+        #trackingTableBody { display: table-row-group !important; }
+        .table-responsive { overflow-x: auto; }
+        
+        /* Loading state */
+        #loadingState { padding: 3rem; text-align: center; }
+        #emptyState { padding: 3rem; text-align: center; }
+        
+        /* Bulk actions bar */
+        .bulk-actions-bar {
+            position: sticky;
+            top: 0;
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            border-radius: 0.25rem;
+            z-index: 100;
+        }
+        
+        .bulk-actions-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        /* Status badges */
+        .badge {
+            display: inline-block;
+            padding: 0.25em 0.6em;
+            font-size: 0.75em;
+            font-weight: 600;
+            line-height: 1;
+            text-align: center;
+            white-space: nowrap;
+            vertical-align: baseline;
+            border-radius: 0.25rem;
+        }
+        
+        .badge-success { background-color: #28a745; color: white; }
+        .badge-info { background-color: #17a2b8; color: white; }
+        .badge-primary { background-color: #007bff; color: white; }
+        .badge-warning { background-color: #ffc107; color: #212529; }
+        .badge-danger { background-color: #dc3545; color: white; }
+        .badge-secondary { background-color: #6c757d; color: white; }
+        
+        /* Carrier badges */
+        .carrier-badge {
+            display: inline-block;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+        
+        .carrier-badge.fedex { background: #4d148c; color: white; }
+        .carrier-badge.dhl { background: #ffcc00; color: #d40511; }
+        .carrier-badge.ups { background: #351c15; color: white; }
+        .carrier-badge.gls { background: #0066cc; color: white; }
+        .carrier-badge.tnt { background: #ff6600; color: white; }
+        
+        /* Button group */
+        .btn-group-sm .sol-btn {
+            padding: 0.25rem 0.5rem;
+            font-size: 0.875rem;
+        }
+        
+        /* Page header */
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid #dee2e6;
+        }
+        
+        .page-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+    </style>
+    
     <!-- Core Libraries -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
@@ -153,48 +238,112 @@
         // Import modules with versioning
         const V = window.APP_VERSION;
         
-        // Import all required modules
-        Promise.all([
-            import(`/core/api-client.js?v=${V}`),
-            import(`/core/header-component.js?v=${V}`),
-            import(`/core/notification-system.js?v=${V}`),
-            import(`/core/modal-system.js?v=${V}`),
-            import(`/core/table-manager.js?v=${V}`),
-            import(`/core/export-manager.js?v=${V}`),
-            import(`/core/import-manager.js?v=${V}`),
-            import(`/core/services/supabase-client.js?v=${V}`),
-            import(`/core/services/supabase-tracking-service.js?v=${V}`),
-            import(`/core/services/organization-api-keys-service.js?v=${V}`),
-            import(`/core/services/tracking-service.js?v=${V}`),
-            import(`/pages/tracking/tracking-form-progressive.js?v=${V}`)
-        ]).then(modules => {
-            // Expose modules globally
-            window.api = modules[0].default;
-            window.headerComponent = modules[1].default;
-            window.NotificationSystem = modules[2].default;
-            window.ModalSystem = modules[3].default;
-            window.TableManager = modules[4].default;
-            window.ExportManager = modules[5].default;
-            window.ImportManager = modules[6].default;
-            window.supabase = modules[7].supabase;
-            window.supabaseTrackingService = modules[8].default;
-            window.organizationApiKeysService = modules[9].default;
-            window.trackingService = modules[10].default;
-            window.TrackingFormProgressive = modules[11];
-            
-            console.log('✅ All modules loaded successfully');
-            
-            // Initialize page
-            import(`/pages/tracking/index.js?v=${V}`).then(module => {
+        // Import modules one by one with error handling
+        (async () => {
+            try {
+                // Core modules
+                const apiModule = await import(`/core/api-client.js?v=${V}`).catch(() => null);
+                const headerModule = await import(`/core/header-component.js?v=${V}`).catch(() => null);
+                const notificationModule = await import(`/core/notification-system.js?v=${V}`).catch(() => null);
+                const modalModule = await import(`/core/modal-system.js?v=${V}`).catch(() => null);
+                const tableModule = await import(`/core/table-manager.js?v=${V}`).catch(() => null);
+                const exportModule = await import(`/core/export-manager.js?v=${V}`).catch(() => null);
+                const importModule = await import(`/core/import-manager.js?v=${V}`).catch(() => null);
+                
+                // Supabase modules
+                const supabaseClientModule = await import(`/core/services/supabase-client.js?v=${V}`).catch(() => null);
+                const supabaseTrackingModule = await import(`/core/services/supabase-tracking-service.js?v=${V}`).catch(() => null);
+                const orgApiKeysModule = await import(`/core/services/organization-api-keys-service.js?v=${V}`).catch(() => null);
+                
+                // Services
+                const trackingServiceModule = await import(`/core/services/tracking-service.js?v=${V}`).catch(() => null);
+                const trackingFormModule = await import(`/pages/tracking/tracking-form-progressive.js?v=${V}`).catch(() => null);
+                
+                // Expose modules globally
+                if (apiModule) window.api = apiModule.default;
+                if (headerModule) window.headerComponent = headerModule.default;
+                if (notificationModule) window.NotificationSystem = notificationModule.default;
+                if (modalModule) window.ModalSystem = modalModule.default;
+                if (tableModule) window.TableManager = tableModule.default;
+                if (exportModule) window.ExportManager = exportModule.default;
+                if (importModule) window.ImportManager = importModule.default;
+                if (supabaseClientModule) window.supabase = supabaseClientModule.supabase;
+                if (supabaseTrackingModule) window.supabaseTrackingService = supabaseTrackingModule.default;
+                if (orgApiKeysModule) window.organizationApiKeysService = orgApiKeysModule.default;
+                if (trackingServiceModule) window.trackingService = trackingServiceModule.default;
+                if (trackingFormModule) window.TrackingFormProgressive = trackingFormModule;
+                
+                console.log('✅ Modules loaded:', {
+                    api: !!window.api,
+                    header: !!window.headerComponent,
+                    notification: !!window.NotificationSystem,
+                    modal: !!window.ModalSystem,
+                    table: !!window.TableManager,
+                    export: !!window.ExportManager,
+                    import: !!window.ImportManager,
+                    supabase: !!window.supabase,
+                    tracking: !!window.trackingService
+                });
+                
+                // Initialize page
+                await import(`/pages/tracking/index.js?v=${V}`);
                 console.log('✅ Tracking page initialized');
-            });
-        }).catch(error => {
-            console.error('❌ Error loading modules:', error);
-        });
+                
+            } catch (error) {
+                console.error('❌ Error during initialization:', error);
+                
+                // Show error to user
+                document.getElementById('loadingState').innerHTML = `
+                    <div class="alert alert-danger">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <strong>Errore di caricamento</strong><br>
+                        Si è verificato un errore nel caricamento della pagina.<br>
+                        <small>${error.message}</small><br>
+                        <button class="btn btn-sm btn-primary mt-2" onclick="location.reload()">
+                            <i class="fas fa-redo"></i> Ricarica
+                        </button>
+                    </div>
+                `;
+            }
+        })();
     </script>
 
     <!-- Legacy Scripts -->
     <script src="/core/auth.js"></script>
     <script src="/core/auth-init.js"></script>
+    
+    <!-- Fallback functions -->
+    <script>
+        // Fallback functions in case modules don't load
+        if (!window.refreshTracking) {
+            window.refreshTracking = function(id) {
+                console.log('Refreshing tracking:', id);
+                alert('Funzione non disponibile al momento');
+            };
+        }
+        
+        if (!window.viewDetails) {
+            window.viewDetails = function(id) {
+                console.log('Viewing details:', id);
+                alert('Funzione non disponibile al momento');
+            };
+        }
+        
+        if (!window.deleteTracking) {
+            window.deleteTracking = function(id) {
+                console.log('Deleting tracking:', id);
+                if (confirm('Eliminare questo tracking?')) {
+                    // Remove from localStorage
+                    const stored = localStorage.getItem('trackings');
+                    if (stored) {
+                        const trackings = JSON.parse(stored);
+                        const filtered = trackings.filter(t => t.id !== id);
+                        localStorage.setItem('trackings', JSON.stringify(filtered));
+                        location.reload();
+                    }
+                }
+            };
+        }
+    </script>
 </body>
 </html>

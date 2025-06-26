@@ -141,23 +141,34 @@ const STATUS_MAPPING = {
 };
 
 // Initialize when DOM is ready
-document.addEventListener('DOMContentLoaded', async () => {
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initialize);
+} else {
+    initialize();
+}
+
+async function initialize() {
     console.log('🚀 Initializing tracking page...');
     
-    // Wait for modules to be available
-    await waitForModules();
-    
-    // Initialize components
-    await initializeComponents();
-    
-    // Load initial data
-    await loadTrackings();
-    
-    // Setup event listeners
-    setupEventListeners();
-    
-    console.log('✅ Tracking page initialized');
-});
+    try {
+        // Wait for modules to be available
+        await waitForModules();
+        
+        // Initialize components
+        await initializeComponents();
+        
+        // Setup event listeners
+        setupEventListeners();
+        
+        // Load initial data
+        await loadTrackings();
+        
+        console.log('✅ Tracking page initialized');
+    } catch (error) {
+        console.error('❌ Initialization error:', error);
+        showError('Errore durante l\'inizializzazione della pagina');
+    }
+}
 
 // Wait for required modules
 async function waitForModules() {
@@ -187,28 +198,40 @@ async function waitForModules() {
 async function initializeComponents() {
     try {
         // Initialize header
-        if (window.headerComponent) {
+        if (window.headerComponent && typeof window.headerComponent.init === 'function') {
             window.headerComponent.init();
+            console.log('✅ Header initialized');
+        } else {
+            console.warn('⚠️ Header component not available');
         }
         
         // Initialize tracking service
-        if (window.trackingService) {
+        if (window.trackingService && typeof window.trackingService.init === 'function') {
             await window.trackingService.init();
+            console.log('✅ Tracking service initialized');
+        } else {
+            console.warn('⚠️ Tracking service not available');
         }
         
-        // Initialize table manager
+        // Initialize table manager if available
         if (window.TableManager) {
-            tableManager = new window.TableManager('trackingTable', {
-                searchable: true,
-                sortable: true,
-                paginated: true,
-                itemsPerPage: 20
-            });
+            const tableElement = document.getElementById('trackingTable');
+            if (tableElement) {
+                tableManager = new window.TableManager('trackingTable', {
+                    searchable: true,
+                    sortable: true,
+                    paginated: true,
+                    itemsPerPage: 20
+                });
+                console.log('✅ Table manager initialized');
+            }
+        } else {
+            console.warn('⚠️ TableManager not available');
         }
         
-        console.log('✅ Components initialized');
     } catch (error) {
         console.error('❌ Error initializing components:', error);
+        // Continue execution even if some components fail
     }
 }
 
@@ -217,19 +240,64 @@ async function loadTrackings() {
     try {
         showLoadingState();
         
-        // Load from Supabase
-        const data = await window.supabaseTrackingService.getAllTrackings();
-        trackings = data || [];
+        // Check if service is available
+        if (!window.supabaseTrackingService) {
+            console.error('❌ supabaseTrackingService not available');
+            
+            // Try to load from localStorage as fallback
+            const stored = localStorage.getItem('trackings');
+            if (stored) {
+                trackings = JSON.parse(stored);
+                console.log('📦 Loaded from localStorage:', trackings.length);
+            } else {
+                trackings = [];
+            }
+        } else {
+            // Load from Supabase
+            const data = await window.supabaseTrackingService.getAllTrackings();
+            trackings = data || [];
+            console.log(`✅ Loaded ${trackings.length} trackings from Supabase`);
+        }
         
         // Apply filters and render
         applyFilters();
         
-        console.log(`✅ Loaded ${trackings.length} trackings`);
     } catch (error) {
         console.error('❌ Error loading trackings:', error);
-        window.NotificationSystem?.error('Errore nel caricamento dei tracking');
+        
+        // Show user-friendly error
+        showError('Impossibile caricare i tracking. Riprova più tardi.');
+        
+        // Try localStorage fallback
+        const stored = localStorage.getItem('trackings');
+        if (stored) {
+            trackings = JSON.parse(stored);
+            applyFilters();
+        }
     } finally {
         hideLoadingState();
+    }
+}
+
+// Show error message
+function showError(message) {
+    const tbody = document.getElementById('trackingTableBody');
+    const emptyState = document.getElementById('emptyState');
+    const loadingState = document.getElementById('loadingState');
+    
+    if (loadingState) loadingState.style.display = 'none';
+    if (emptyState) emptyState.style.display = 'none';
+    
+    if (tbody) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="8" class="text-center py-5">
+                    <div class="alert alert-danger d-inline-block">
+                        <i class="fas fa-exclamation-triangle"></i> ${message}
+                    </div>
+                </td>
+            </tr>
+        `;
     }
 }
 
@@ -263,16 +331,28 @@ function renderTable() {
     const tbody = document.getElementById('trackingTableBody');
     const emptyState = document.getElementById('emptyState');
     
-    if (!tbody) return;
-    
-    if (filteredTrackings.length === 0) {
-        tbody.innerHTML = '';
-        if (emptyState) emptyState.style.display = 'block';
+    if (!tbody) {
+        console.error('❌ Table body element not found');
         return;
     }
     
-    if (emptyState) emptyState.style.display = 'none';
+    // Hide loading state
+    hideLoadingState();
     
+    if (filteredTrackings.length === 0) {
+        tbody.innerHTML = '';
+        tbody.style.display = '';
+        if (emptyState) {
+            emptyState.style.display = 'block';
+        }
+        return;
+    }
+    
+    if (emptyState) {
+        emptyState.style.display = 'none';
+    }
+    
+    tbody.style.display = '';
     tbody.innerHTML = filteredTrackings.map(tracking => `
         <tr data-id="${tracking.id}">
             <td>
@@ -291,9 +371,9 @@ function renderTable() {
                     ${tracking.carrier_name || tracking.carrier_code || '-'}
                 </span>
             </td>
-            <td>${renderStatus(tracking.status)}</td>
-            <td>${tracking.origin || '-'}</td>
-            <td>${tracking.destination || '-'}</td>
+            <td>${renderStatus(tracking.status || tracking.current_status)}</td>
+            <td>${tracking.origin || tracking.origin_port || '-'}</td>
+            <td>${tracking.destination || tracking.destination_port || '-'}</td>
             <td>
                 <small>${formatDate(tracking.last_update || tracking.updated_at)}</small>
             </td>
@@ -321,6 +401,8 @@ function renderTable() {
     
     // Update selection checkboxes
     updateSelectionUI();
+    
+    console.log(`✅ Rendered ${filteredTrackings.length} trackings`);
 }
 
 // Render status badge
