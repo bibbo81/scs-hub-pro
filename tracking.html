@@ -259,7 +259,7 @@
         import headerComponent from '/core/header-component.js';
         import notificationSystem from '/core/notification-system.js';
         import modalSystem from '/core/modal-system.js';
-        import supabaseClient from '/core/supabase-client.js';
+        import { supabase } from '/core/services/supabase-client.js';
         import supabaseTrackingService from '/core/services/supabase-tracking-service.js';
         import organizationApiKeysService from '/core/services/organization-api-keys-service.js';
         import ExportManager from '/core/export-manager.js';
@@ -270,7 +270,7 @@
         window.headerComponent = headerComponent;
         window.NotificationSystem = notificationSystem;
         window.ModalSystem = modalSystem;
-        window.supabaseClient = supabaseClient;
+        window.supabase = supabase;
         window.supabaseTrackingService = supabaseTrackingService;
         window.organizationApiKeysService = organizationApiKeysService;
         window.ExportManager = ExportManager;
@@ -314,5 +314,19 @@
     
     <!-- Load Progressive Form -->
     <script src="/pages/tracking/tracking-form-progressive.js"></script>
+    
+    <!-- Fix for progressive form -->
+    <script>
+        // Ensure showEnhancedTrackingForm is available
+        if (window.trackingFormProgressive && !window.showEnhancedTrackingForm) {
+            window.showEnhancedTrackingForm = function() {
+                if (window.trackingFormProgressive.show) {
+                    window.trackingFormProgressive.show();
+                } else {
+                    console.log('Progressive form not ready yet');
+                }
+            };
+        }
+    </script>
 </body>
 </html>
