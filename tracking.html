@@ -404,118 +404,82 @@
 (function() {
     'use strict';
     
-    console.log('🚀 COMBINED FIX: Starting all fixes...');
+    console.log('🎯 SINGLE FIX: Starting definitive tracking table fix...');
     
-    // ========================================
-    // PARTE 1: INIZIALIZZAZIONE VARIABILI
-    // ========================================
-    
-    window.trackings = window.trackings || [];
-    window.filteredTrackings = window.filteredTrackings || [];
-    window.selectedTrackingIds = window.selectedTrackingIds || new Set();
-    
-    // ========================================
-    // PARTE 2: COLONNE DISPONIBILI
-    // ========================================
-    
-    const AVAILABLE_COLUMNS = [
-        { key: 'tracking_number', label: 'Tracking Number', required: true },
-        { key: 'reference', label: 'Riferimento', required: false },
-        { key: 'tracking_type', label: 'Tipo', required: false },
-        { key: 'status', label: 'Stato', required: true },
-        { key: 'carrier', label: 'Carrier', required: false },
-        { key: 'origin_name', label: 'Origine', required: false },
-        { key: 'destination_name', label: 'Destinazione', required: false },
-        { key: 'eta', label: 'ETA', required: false }
-    ];
-    
-    let visibleColumns = ['tracking_number', 'status', 'carrier', 'origin_name', 'destination_name', 'eta'];
-    
-    // ========================================
-    // PARTE 3: HELPER FUNCTIONS
-    // ========================================
-    
-    function getStatusClass(status) {
-        const statusMap = {
-            'delivered': 'success',
-            'in_transit': 'primary',
-            'pending': 'warning',
-            'exception': 'danger',
-            'created': 'secondary'
+    // 1. DISABILITA TABLEMANAGER
+    // Il problema principale è che TableManager sta sovrascrivendo il contenuto
+    if (window.trackingTable && window.trackingTable.render) {
+        console.log('🛑 Disabling TableManager render...');
+        window.trackingTable.render = function() {
+            console.log('TableManager render blocked');
         };
-        return statusMap[status?.toLowerCase()] || 'secondary';
     }
     
-    function formatDate(dateString) {
-        if (!dateString || dateString === '-') return '-';
-        try {
-            const date = new Date(dateString);
-            return date.toLocaleDateString('it-IT');
-        } catch {
-            return dateString;
-        }
-    }
-    
-    // ========================================
-    // PARTE 4: TROVA O CREA TBODY
-    // ========================================
-    
-    function findOrCreateTbody() {
-        // Cerca tbody esistente
-        let tbody = document.getElementById('trackingTableBody');
-        if (tbody) return tbody;
+    // 2. FUNZIONE DI RENDER DEFINITIVA
+    function renderTrackingTableDefinitive() {
+        console.log('🎨 Rendering tracking table (definitive)...');
         
-        // Cerca nella tabella
-        const table = document.getElementById('trackingTable');
-        if (table) {
-            tbody = table.querySelector('tbody');
-            if (!tbody) {
-                tbody = document.createElement('tbody');
-                tbody.id = 'trackingTableBody';
-                table.appendChild(tbody);
-            }
-            return tbody;
-        }
-        
-        return null;
-    }
-    
-    // ========================================
-    // PARTE 5: RENDER TABELLA
-    // ========================================
-    
-    function renderTableComplete() {
-        console.log('📊 Rendering table...');
-        
-        const tbody = findOrCreateTbody();
-        if (!tbody) {
-            console.error('Cannot find tbody');
+        // Trova o crea struttura tabella
+        let table = document.getElementById('trackingTable');
+        if (!table) {
+            console.error('❌ Table not found!');
             return;
         }
         
-        // Nascondi empty state
-        const emptyState = document.getElementById('emptyState');
-        if (emptyState) emptyState.style.display = 'none';
-        
-        // Usa trackings se filteredTrackings è vuoto
-        if (!window.filteredTrackings || window.filteredTrackings.length === 0) {
-            window.filteredTrackings = window.trackings;
+        // Assicurati che ci sia il tbody
+        let tbody = table.querySelector('tbody');
+        if (!tbody) {
+            tbody = document.createElement('tbody');
+            tbody.id = 'trackingTableBody';
+            table.appendChild(tbody);
         }
         
-        // Se ancora vuoto, mostra messaggio
-        if (!window.filteredTrackings || window.filteredTrackings.length === 0) {
+        // Verifica dati
+        const data = window.filteredTrackings || window.trackings || [];
+        console.log(`📊 Rendering ${data.length} trackings`);
+        
+        if (data.length === 0) {
             tbody.innerHTML = `
                 <tr>
                     <td colspan="8" class="text-center py-4">
-                        <p>Nessun tracking trovato</p>
+                        <i class="fas fa-box-open fa-3x text-muted mb-3"></i>
+                        <p class="text-muted">Nessun tracking trovato</p>
                     </td>
                 </tr>
             `;
             return;
         }
         
+        // Render header se non esiste
+        let thead = table.querySelector('thead');
+        if (!thead || thead.children.length === 0) {
+            thead = thead || document.createElement('thead');
+            thead.innerHTML = `
+                <tr>
+                    <th style="width: 40px;"><input type="checkbox" id="selectAll"></th>
+                    <th>Tracking Number</th>
+                    <th>Tipo</th>
+                    <th>Stato</th>
+                    <th>Carrier</th>
+                    <th>Origine</th>
+                    <th>Destinazione</th>
+                    <th>Azioni</th>
+                </tr>
+            `;
+            if (!table.querySelector('thead')) {
+                table.insertBefore(thead, tbody);
+            }
+        }
+        
         // Render righe
-        tbody.innerHTML = window.filteredTrackings.map(function(tracking) {
+        tbody.innerHTML = data.map(tracking => {
+            const statusClass = {
+                'delivered': 'success',
+                'in_transit': 'primary',
+                'pending': 'warning',
+                'exception': 'danger'
+            }[tracking.status?.toLowerCase()] || 'secondary';
+            
             return `
                 <tr data-id="${tracking.id}">
                     <td>
@@ -523,26 +487,26 @@
                     </td>
                     <td>
                         <strong>${tracking.tracking_number || '-'}</strong>
-                        ${tracking.reference ? '<br><small class="text-muted">' + tracking.reference + '</small>' : ''}
+                        ${tracking.reference ? `<br><small class="text-muted">${tracking.reference}</small>` : ''}
                     </td>
                     <td>
                         <span class="badge bg-secondary">${tracking.tracking_type || 'container'}</span>
                     </td>
                     <td>
-                        <span class="badge bg-${getStatusClass(tracking.status)}">${tracking.status || 'pending'}</span>
+                        <span class="badge bg-${statusClass}">${tracking.status || 'pending'}</span>
                     </td>
+                    <td>${tracking.carrier || '-'}</td>
                     <td>${tracking.origin_name || '-'}</td>
                     <td>${tracking.destination_name || '-'}</td>
-                    <td>${formatDate(tracking.eta) || '-'}</td>
                     <td>
-                        <div class="btn-group btn-group-sm">
-                            <button class="btn btn-primary" onclick="refreshTracking('${tracking.id}')" title="Aggiorna">
+                        <div class="btn-group btn-group-sm" role="group">
+                            <button type="button" class="btn btn-primary" onclick="refreshTracking('${tracking.id}')" title="Aggiorna">
                                 <i class="fas fa-sync"></i>
                             </button>
-                            <button class="btn btn-info" onclick="viewDetails('${tracking.id}')" title="Dettagli">
+                            <button type="button" class="btn btn-info" onclick="viewDetails('${tracking.id}')" title="Dettagli">
                                 <i class="fas fa-eye"></i>
                             </button>
-                            <button class="btn btn-danger" onclick="deleteTracking('${tracking.id}')" title="Elimina">
+                            <button type="button" class="btn btn-danger" onclick="actualDeleteTracking('${tracking.id}')" title="Elimina">
                                 <i class="fas fa-trash"></i>
                             </button>
                         </div>
@@ -551,277 +515,191 @@
             `;
         }).join('');
         
-        console.log('✅ Table rendered with ' + window.filteredTrackings.length + ' rows');
+        // Assicurati che la tabella sia visibile
+        table.style.display = '';
+        tbody.style.display = '';
+        
+        // Nascondi empty state se esiste
+        const emptyState = document.getElementById('emptyState');
+        if (emptyState) emptyState.style.display = 'none';
+        
+        console.log('✅ Table rendered successfully with', data.length, 'rows');
     }
     
-    // ========================================
-    // PARTE 6: CARICA DATI
-    // ========================================
-    
-    async function loadDataAndRender() {
-        console.log('📦 Loading data...');
-        
-        // Attendi che il servizio sia pronto
-        let attempts = 0;
-        while (!window.supabaseTrackingService && attempts < 30) {
-            await new Promise(function(resolve) { setTimeout(resolve, 100); });
-            attempts++;
-        }
-        
-        if (window.supabaseTrackingService && window.supabaseTrackingService.getAllTrackings) {
-            try {
-                const data = await window.supabaseTrackingService.getAllTrackings();
-                if (data && data.length > 0) {
-                    window.trackings = data;
-                    window.filteredTrackings = data;
-                    console.log('✅ Loaded ' + data.length + ' trackings');
-                    renderTableComplete();
-                }
-            } catch (error) {
-                console.error('Error loading data:', error);
-            }
-        }
-    }
-    
-    // ========================================
-    // PARTE 7: DELETE FUNCTION
-    // ========================================
-    
-    window.deleteTracking = async function(id) {
+    // 3. DELETE FUNCTION CHE FUNZIONA
+    window.actualDeleteTracking = async function(id) {
         if (!confirm('Eliminare questo tracking?')) return;
         
         try {
-            if (window.supabaseTrackingService && window.supabaseTrackingService.deleteTracking) {
+            // Elimina da Supabase
+            if (window.supabaseTrackingService?.deleteTracking) {
                 await window.supabaseTrackingService.deleteTracking(id);
             }
             
-            window.trackings = window.trackings.filter(function(t) { return t.id !== id; });
-            window.filteredTrackings = window.filteredTrackings.filter(function(t) { return t.id !== id; });
+            // Rimuovi dai dati locali
+            window.trackings = window.trackings.filter(t => t.id !== id);
+            window.filteredTrackings = window.filteredTrackings.filter(t => t.id !== id);
             
-            renderTableComplete();
+            // Re-render
+            renderTrackingTableDefinitive();
             
+            // Notifica
             if (window.NotificationSystem) {
                 window.NotificationSystem.success('Tracking eliminato');
             }
         } catch (error) {
             console.error('Delete error:', error);
-            alert('Errore durante eliminazione');
+            alert('Errore durante l\'eliminazione');
         }
     };
     
-    // ========================================
-    // PARTE 8: COLUMN SELECTOR BUTTON
-    // ========================================
-    
+    // 4. AGGIUNGI PULSANTE COLONNE
     function addColumnSelectorButton() {
-        const buttonContainer = document.querySelector('.d-flex.gap-2.mb-3');
-        if (!buttonContainer || document.getElementById('columnSelectorBtn')) return;
+        const container = document.querySelector('.d-flex.gap-2.mb-3');
+        if (!container || document.getElementById('columnSelectorBtn')) return;
         
         const btn = document.createElement('button');
         btn.id = 'columnSelectorBtn';
         btn.className = 'btn btn-outline-secondary';
         btn.innerHTML = '<i class="fas fa-columns"></i> Gestisci Colonne';
-        btn.onclick = function() {
-            showColumnSelector();
-        };
+        btn.onclick = () => alert('Gestione colonne in arrivo!');
         
-        buttonContainer.insertBefore(btn, buttonContainer.firstChild);
-    }
-    
-    function showColumnSelector() {
-        alert('Selettore colonne disponibile prossimamente!');
-        // TODO: Implementare modal per selezione colonne
-    }
-    
-    // ========================================
-    // PARTE 9: OVERRIDE RENDER
-    // ========================================
-    
-    if (window.renderTable) {
-        const originalRender = window.renderTable;
-        window.renderTable = function() {
-            try {
-                originalRender();
-            } catch (e) {
-                console.error('Original render failed:', e);
-            }
-            renderTableComplete();
-        };
-    } else {
-        window.renderTable = renderTableComplete;
-    }
-    
-    // ========================================
-    // PARTE 10: STILI
-    // ========================================
-    
-    function injectStyles() {
-        const style = document.createElement('style');
-        style.textContent = `
-            #trackingTable {
-                width: 100%;
-                background: white;
-            }
-            
-            #trackingTable thead th {
-                background: #f8f9fa;
-                padding: 12px;
-                font-weight: 600;
-            }
-            
-            #trackingTable tbody td {
-                padding: 12px;
-                vertical-align: middle;
-                border-bottom: 1px solid #dee2e6;
-            }
-            
-            #trackingTable tbody tr:hover {
-                background-color: #f8f9fa;
-            }
-            
-            .badge {
-                padding: 4px 8px;
-                border-radius: 4px;
-                font-size: 12px;
-            }
-        `;
-        document.head.appendChild(style);
-    }
-    
-    // ========================================
-    // PARTE 11: INIZIALIZZAZIONE
-    // ========================================
-    
-    async function init() {
-        console.log('🚀 Initializing combined fix...');
+        // Inserisci prima del pulsante Importa
+        const importBtn = container.querySelector('[onclick*="showImportDialog"]');
+        if (importBtn) {
+            container.insertBefore(btn, importBtn);
+        } else {
+            container.insertBefore(btn, container.firstChild);
+        }
         
-        // Inietta stili
-        injectStyles();
+        console.log('✅ Column selector button added');
+    }
+    
+    // 5. OVERRIDE TUTTI I RENDER
+    window.renderTable = renderTrackingTableDefinitive;
+    
+    // Se esiste il render originale, sostituiscilo
+    if (window.originalRenderTable) {
+        window.originalRenderTable = renderTrackingTableDefinitive;
+    }
+    
+    // 6. STILI PER VISIBILITÀ
+    const style = document.createElement('style');
+    style.textContent = `
+        #trackingTable {
+            display: table !important;
+            width: 100% !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+        }
+        
+        #trackingTableBody {
+            display: table-row-group !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+        }
+        
+        #trackingTable thead {
+            background-color: #f8f9fa;
+        }
+        
+        #trackingTable th {
+            padding: 12px;
+            font-weight: 600;
+            border-bottom: 2px solid #dee2e6;
+        }
+        
+        #trackingTable td {
+            padding: 12px;
+            vertical-align: middle;
+        }
+        
+        #trackingTable tbody tr:hover {
+            background-color: #f8f9fa;
+        }
+        
+        .badge {
+            font-size: 0.875rem;
+            padding: 0.375rem 0.75rem;
+        }
+        
+        .btn-group-sm > .btn {
+            padding: 0.25rem 0.5rem;
+            font-size: 0.875rem;
+        }
+    `;
+    document.head.appendChild(style);
+    
+    // 7. INIZIALIZZAZIONE FORZATA
+    async function forceInit() {
+        console.log('🚀 Force initializing...');
         
         // Aggiungi pulsante colonne
         addColumnSelectorButton();
         
-        // Carica dati e renderizza
-        await loadDataAndRender();
-        
-        // Se non ci sono ancora dati, riprova
-        if (window.trackings.length === 0) {
-            setTimeout(loadDataAndRender, 2000);
-        }
+        // Attendi che i dati siano caricati
+        let attempts = 0;
+        const checkData = setInterval(() => {
+            if (window.trackings && window.trackings.length > 0) {
+                clearInterval(checkData);
+                console.log('✅ Data found, rendering...');
+                
+                // Imposta filteredTrackings se vuoto
+                if (!window.filteredTrackings || window.filteredTrackings.length === 0) {
+                    window.filteredTrackings = window.trackings;
+                }
+                
+                // Render forzato
+                renderTrackingTableDefinitive();
+                
+                // Previeni future modifiche
+                setTimeout(() => {
+                    const tbody = document.getElementById('trackingTableBody');
+                    if (tbody && tbody.children.length === 0 && window.trackings.length > 0) {
+                        console.log('⚠️ Table was cleared, re-rendering...');
+                        renderTrackingTableDefinitive();
+                    }
+                }, 1000);
+                
+            } else if (attempts > 30) {
+                clearInterval(checkData);
+                console.log('❌ No data after 15 seconds');
+            }
+            attempts++;
+        }, 500);
     }
     
-    // ========================================
-    // PARTE 12: DEBUG COMMANDS
-    // ========================================
-    
-    window.trackingFix = {
-        reload: loadDataAndRender,
-        render: renderTableComplete,
-        showData: function() {
+    // 8. COMANDI DEBUG
+    window.singleFix = {
+        render: renderTrackingTableDefinitive,
+        showData: () => {
             console.log('Trackings:', window.trackings);
             console.log('Filtered:', window.filteredTrackings);
+            console.log('Tbody rows:', document.querySelectorAll('#trackingTableBody tr').length);
+        },
+        forceVisible: () => {
+            const table = document.getElementById('trackingTable');
+            const tbody = document.getElementById('trackingTableBody');
+            if (table) {
+                table.style.cssText = 'display: table !important; visibility: visible !important; opacity: 1 !important;';
+            }
+            if (tbody) {
+                tbody.style.cssText = 'display: table-row-group !important; visibility: visible !important; opacity: 1 !important;';
+            }
+            console.log('✅ Forced visibility');
         }
     };
     
-    // Avvia quando DOM è pronto
+    // Avvia inizializzazione
     if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', init);
+        document.addEventListener('DOMContentLoaded', forceInit);
     } else {
-        setTimeout(init, 500);
+        forceInit();
     }
     
-    console.log('✅ COMBINED FIX LOADED');
-    console.log('Commands: trackingFix.reload(), trackingFix.render(), trackingFix.showData()');
+    console.log('✅ SINGLE FIX LOADED');
+    console.log('Commands: singleFix.render(), singleFix.showData(), singleFix.forceVisible()');
     
-})();
-</script>
-
-<script>
-(function() {
-    'use strict';
-    
-    console.log('🔧 TBODY FIX: Verifica e correzione tbody...');
-    
-    // Funzione per trovare o creare tbody
-    function fixTbodyStructure() {
-        // Cerca tbody
-        let tbody = document.getElementById('trackingTableBody');
-        if (tbody) {
-            console.log('✅ tbody trovato');
-            return tbody;
-        }
-        
-        // Cerca table
-        const table = document.getElementById('trackingTable');
-        if (!table) {
-            console.error('❌ Table non trovata!');
-            
-            // Cerca in container
-            const container = document.getElementById('trackingTableContainer');
-            if (container) {
-                const tables = container.querySelectorAll('table');
-                if (tables.length > 0) {
-                    tables[0].id = 'trackingTable';
-                    console.log('✅ Assegnato ID a table');
-                }
-            }
-            return null;
-        }
-        
-        // Cerca tbody nella table
-        tbody = table.querySelector('tbody');
-        if (!tbody) {
-            // Crea tbody
-            tbody = document.createElement('tbody');
-            tbody.id = 'trackingTableBody';
-            table.appendChild(tbody);
-            console.log('✅ tbody creato e aggiunto');
-        } else {
-            // Assegna ID se manca
-            tbody.id = 'trackingTableBody';
-            console.log('✅ ID assegnato a tbody esistente');
-        }
-        
-        return tbody;
-    }
-    
-    // Verifica e sistema la struttura
-    setTimeout(function() {
-        console.log('🔍 Controllo struttura tabella...');
-        
-        const tbody = fixTbodyStructure();
-        if (tbody) {
-            console.log('✅ Struttura tabella OK');
-            
-            // Se ci sono dati ma la tabella è vuota, forza render
-            if (window.trackings && window.trackings.length > 0 && tbody.children.length === 0) {
-                console.log('📊 Forzatura render tabella...');
-                if (window.trackingFix && window.trackingFix.render) {
-                    window.trackingFix.render();
-                } else if (window.renderTable) {
-                    window.renderTable();
-                }
-            }
-        }
-        
-        // Verifica presenza dati
-        console.log('📦 Dati presenti:', {
-            trackings: window.trackings ? window.trackings.length : 0,
-            filtered: window.filteredTrackings ? window.filteredTrackings.length : 0
-        });
-        
-    }, 2000); // Aspetta 2 secondi per essere sicuro che tutto sia caricato
-    
-    // Comando debug
-    window.checkTable = function() {
-        console.log('=== CHECK TABLE ===');
-        console.log('Table:', document.getElementById('trackingTable'));
-        console.log('Tbody:', document.getElementById('trackingTableBody'));
-        console.log('Rows:', document.querySelectorAll('#trackingTableBody tr').length);
-        console.log('Data:', window.trackings ? window.trackings.length : 'No data');
-    };
-    
-    console.log('✅ TBODY FIX caricato. Usa checkTable() per debug');
 })();
 </script>
 
