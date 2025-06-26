@@ -11,7 +11,11 @@
     <!-- CSS -->
     <link rel="stylesheet" href="/assets/css/solarium.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/core/modal-system.css">
     <link rel="stylesheet" href="/pages/tracking/tracking-complete.css">
+    
+    <!-- Supabase -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
     <!-- Inline styles for critical elements -->
     <style>
@@ -322,15 +326,21 @@
     <!-- Fix for progressive form -->
     <script>
         // Ensure showEnhancedTrackingForm is available
-        if (window.trackingFormProgressive && !window.showEnhancedTrackingForm) {
-            window.showEnhancedTrackingForm = function() {
-                if (window.trackingFormProgressive.show) {
-                    window.trackingFormProgressive.show();
-                } else {
-                    console.log('Progressive form not ready yet');
-                }
-            };
-        }
+        setTimeout(() => {
+            if (!window.showEnhancedTrackingForm) {
+                window.showEnhancedTrackingForm = function() {
+                    console.log('Opening tracking form...');
+                    if (window.trackingFormProgressive && window.trackingFormProgressive.show) {
+                        window.trackingFormProgressive.show();
+                    } else if (window.showWorkflowProgress) {
+                        // Use the workflow progress as fallback
+                        window.showWorkflowProgress();
+                    } else {
+                        window.NotificationSystem?.error('Form non disponibile');
+                    }
+                };
+            }
+        }, 1000);
     </script>
 </body>
 </html>
