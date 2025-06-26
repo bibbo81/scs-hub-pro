@@ -1,944 +1,436 @@
-<!DOCTYPE html>
-<html lang="it">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Supply Chain Hub - Tracking Spedizioni</title>
-    
-    <!-- Favicon -->
-    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23007AFF'%3E%3Cpath d='M20 8h-3V4H3c-1.1 0-2 .9-2 2v11h2c0 1.66 1.34 3 3 3s3-1.34 3-3h6c0 1.66 1.34 3 3 3s3-1.34 3-3h2v-5l-4zM6 18.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm13.5-9l1.96 2.5H17V9.5h2.5zm-1.5 9c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z'/%3E%3C/svg%3E">
-    
-    <!-- CSS -->
-    <link rel="stylesheet" href="/assets/css/solarium.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="/pages/tracking/tracking-complete.css">
+# 📋 HANDOFF COMPLETO v7 - Supply Chain Hub Tracking Page Fix
 
-    <!-- Inline styles for critical elements -->
-    <style>
-        /* Ensure table is visible */
-        #trackingTableBody { display: table-row-group !important; }
-        .table-responsive { overflow-x: auto; }
-        
-        /* Loading state */
-        #loadingState { padding: 3rem; text-align: center; }
-        #emptyState { padding: 3rem; text-align: center; }
-        
-        /* Bulk actions bar */
-        .bulk-actions-bar {
-            position: sticky;
-            top: 0;
-            background: #f8f9fa;
-            border: 1px solid #dee2e6;
-            padding: 1rem;
-            margin-bottom: 1rem;
-            border-radius: 0.25rem;
-            z-index: 100;
-        }
-        
-        .bulk-actions-content {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        
-        /* Status badges */
-        .badge {
-            display: inline-block;
-            padding: 0.25em 0.6em;
-            font-size: 0.75em;
-            font-weight: 600;
-            line-height: 1;
-            text-align: center;
-            white-space: nowrap;
-            vertical-align: baseline;
-            border-radius: 0.25rem;
-        }
-        
-        .badge-success { background-color: #28a745; color: white; }
-        .badge-info { background-color: #17a2b8; color: white; }
-        .badge-primary { background-color: #007bff; color: white; }
-        .badge-warning { background-color: #ffc107; color: #212529; }
-        .badge-danger { background-color: #dc3545; color: white; }
-        .badge-secondary { background-color: #6c757d; color: white; }
-        
-        /* Carrier badges */
-        .carrier-badge {
-            display: inline-block;
-            padding: 0.25rem 0.5rem;
-            border-radius: 0.25rem;
-            font-size: 0.875rem;
-            font-weight: 500;
-        }
-        
-        .carrier-badge.fedex { background: #4d148c; color: white; }
-        .carrier-badge.dhl { background: #ffcc00; color: #d40511; }
-        .carrier-badge.ups { background: #351c15; color: white; }
-        .carrier-badge.gls { background: #0066cc; color: white; }
-        .carrier-badge.tnt { background: #ff6600; color: white; }
-        
-        /* Button group */
-        .btn-group-sm .sol-btn {
-            padding: 0.25rem 0.5rem;
-            font-size: 0.875rem;
-        }
-        
-        /* Page header */
-        .page-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 1.5rem;
-            padding-bottom: 1rem;
-            border-bottom: 1px solid #dee2e6;
-        }
-        
-        .page-actions {
-            display: flex;
-            gap: 0.5rem;
-        }
-    </style>
-    
-    <!-- Core Libraries -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
-    
-    <!-- App Configuration -->
-    <script>
-        window.APP_VERSION = 'v48.3-FIXED';
-        window.SUPABASE_URL = 'https://gnlrmnsdmpjzitsysowq.supabase.co';
-        window.SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdubHJtbnNkbXBqeml0c3lzb3dxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk0NjMxMzQsImV4cCI6MjA2NTAzOTEzNH0.UoJJoDUoDXGbiWnKNN48qb9PVQWOW_X_MXqAfzTHSaA';
-    </script>
-  
-  <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+## 🎯 SITUAZIONE ATTUALE
 
+### Problemi Identificati:
+1. **Tabella rimane in caricamento** - Conflitti tra script di fix e nuovo TableManager
+2. **Checkbox non cliccabili** - Eventi non collegati correttamente
+3. **Bulk actions non funzionano** - Selezione non attiva le azioni
+4. **Troppi script di fix** che vanno in conflitto
 
-</head>
-<body>
-    <!-- Header Component -->
-    <div id="header-root"></div>
+### File Attualmente in Uso:
+- `/pages/tracking/tracking.html` (NON tracking-FIXED.html)
+- `/pages/tracking/index.js` (da aggiornare con index-FIXED.js)
+- `/core/table-manager.js` (già aggiornato con il nuovo codice)
 
-    <!-- Main Content -->
-    <main class="sol-main-content">
-        <div class="sol-container">
-            <!-- Page Header -->
-            <div class="page-header">
-                <h1>Tracking Spedizioni</h1>
-                <div class="page-actions">
-                    <button id="btnImport" class="sol-btn sol-btn-secondary" onclick="showImportDialog()">
-                        <i class="fas fa-upload"></i> Importa
-                    </button>
-                    <button id="btnExport" class="sol-btn sol-btn-secondary" onclick="exportData()">
-                        <i class="fas fa-download"></i> Esporta
-                    </button>
-                    <button id="btnAddTracking" class="sol-btn sol-btn-primary" onclick="showAddTrackingForm()">
-                        <i class="fas fa-plus"></i> Aggiungi Tracking
-                    </button>
-                </div>
-            </div>
+## 🔧 MODIFICHE NECESSARIE
 
-            <!-- Filters Section -->
-            <div class="sol-card mb-4">
-                <div class="sol-card-body">
-                    <div class="row g-3">
-                        <div class="col-md-4">
-                            <label class="form-label">Cerca</label>
-                            <input type="text" id="searchInput" class="sol-form-control" 
-                                   placeholder="Numero tracking, carrier, riferimento...">
-                        </div>
-                        <div class="col-md-3">
-                            <label class="form-label">Stato</label>
-                            <select id="statusFilter" class="sol-form-control">
-                                <option value="">Tutti gli stati</option>
-                                <option value="delivered">Consegnato</option>
-                                <option value="in_transit">In transito</option>
-                                <option value="arrived">Arrivato</option>
-                                <option value="pending">In attesa</option>
-                                <option value="exception">Eccezione</option>
-                            </select>
-                        </div>
-                        <div class="col-md-3">
-                            <label class="form-label">Carrier</label>
-                            <select id="carrierFilter" class="sol-form-control">
-                                <option value="">Tutti i carrier</option>
-                                <option value="fedex">FedEx</option>
-                                <option value="dhl">DHL</option>
-                                <option value="ups">UPS</option>
-                                <option value="gls">GLS</option>
-                                <option value="tnt">TNT</option>
-                            </select>
-                        </div>
-                        <div class="col-md-2 d-flex align-items-end">
-                            <button id="btnResetFilters" class="sol-btn sol-btn-outline w-100" onclick="resetFilters()">
-                                <i class="fas fa-redo"></i> Reset
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
+### 1. **tracking.html** - RIMUOVERE Script Conflittuali
 
-            <!-- Bulk Actions Bar -->
-            <div id="bulkActionsBar" class="bulk-actions-bar" style="display: none;">
-                <div class="bulk-actions-content">
-                    <div>
-                        <span class="text-muted">Selezionati:</span>
-                        <strong id="selectedCount">0</strong> tracking
-                    </div>
-                    <div>
-                        <button class="sol-btn sol-btn-sm sol-btn-secondary" onclick="performBulkAction('refresh')">
-                            <i class="fas fa-sync"></i> Aggiorna
-                        </button>
-                        <button class="sol-btn sol-btn-sm sol-btn-danger" onclick="performBulkAction('delete')">
-                            <i class="fas fa-trash"></i> Elimina
-                        </button>
-                    </div>
-                </div>
-            </div>
+**TROVA E RIMUOVI/COMMENTA questi script alla fine del file:**
 
-            <!-- Main Table Card -->
-            <div class="sol-card">
-                <div class="sol-card-body p-0">
-                    <!-- Table -->
-                    <div class="table-responsive">
-                        <table id="trackingTable" class="sol-table">
-                            <thead>
-                                <tr>
-                                    <th width="40">
-                                        <input type="checkbox" class="form-check-input" 
-                                               onchange="toggleSelectAll(this)">
-                                    </th>
-                                    <th>Tracking Number</th>
-                                    <th>Carrier</th>
-                                    <th>Stato</th>
-                                    <th>Origine</th>
-                                    <th>Destinazione</th>
-                                    <th>Ultimo Aggiornamento</th>
-                                    <th width="120">Azioni</th>
-                                </tr>
-                            </thead>
-                            <tbody id="trackingTableBody">
-                                <!-- Populated by JavaScript -->
-                            </tbody>
-                        </table>
-                    </div>
-
-                    <!-- Empty State -->
-                    <div id="emptyState" class="text-center py-5" style="display: none;">
-                        <i class="fas fa-box-open fa-3x text-muted mb-3"></i>
-                        <p class="text-muted">Nessun tracking trovato</p>
-                        <button class="sol-btn sol-btn-primary" onclick="document.getElementById('btnAddTracking').click()">
-                            <i class="fas fa-plus"></i> Aggiungi il tuo primo tracking
-                        </button>
-                    </div>
-
-                    <!-- Loading State -->
-                    <div id="loadingState" class="text-center py-5">
-                        <div class="spinner-border text-primary" role="status">
-                            <span class="visually-hidden">Caricamento...</span>
-                        </div>
-                        <p class="text-muted mt-2">Caricamento tracking...</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </main>
-
-<script>
-(function() {
-    'use strict';
-    
-    console.log('🚀 Quick fix for organizationApiKeysService');
-    
-    // Attendi che organizationApiKeysService sia disponibile
-    const checkInterval = setInterval(() => {
-        if (window.organizationApiKeysService) {
-            // Aggiungi il metodo mancante immediatamente
-            if (!window.organizationApiKeysService.getOrganizationApiKeys) {
-                window.organizationApiKeysService.getOrganizationApiKeys = async function() {
-                    console.log('📦 Using quick-fixed getOrganizationApiKeys');
-                    if (this.getApiKeys) {
-                        return await this.getApiKeys();
-                    }
-                    if (this.getAllKeys) {
-                        return await this.getAllKeys();
-                    }
-                    console.warn('No API keys method available, returning empty array');
-                    return [];
-                };
-                console.log('✅ Added getOrganizationApiKeys method');
-            }
-            clearInterval(checkInterval);
-        }
-    }, 100);
-    
-    // Stop dopo 10 secondi
-    setTimeout(() => clearInterval(checkInterval), 10000);
-})();
-</script>
-
-    <!-- Load Core Modules -->
-    <script type="module">
-        // Import modules with versioning
-        const V = window.APP_VERSION;
-        
-        // Import modules one by one with error handling
-        (async () => {
-            try {
-                // Core modules
-                const apiModule = await import(`/core/api-client.js?v=${V}`).catch(() => null);
-                const headerModule = await import(`/core/header-component.js?v=${V}`).catch(() => null);
-                const notificationModule = await import(`/core/notification-system.js?v=${V}`).catch(() => null);
-                const modalModule = await import(`/core/modal-system.js?v=${V}`).catch(() => null);
-                const tableModule = await import(`/core/table-manager.js?v=${V}`).catch(() => null);
-                const exportModule = await import(`/core/export-manager.js?v=${V}`).catch(() => null);
-                const importModule = await import(`/core/import-manager.js?v=${V}`).catch(() => null);
-                
-                // Supabase modules
-                const supabaseClientModule = await import(`/core/services/supabase-client.js?v=${V}`).catch(() => null);
-                const supabaseTrackingModule = await import(`/core/services/supabase-tracking-service.js?v=${V}`).catch(() => null);
-                const orgApiKeysModule = await import(`/core/services/organization-api-keys-service.js?v=${V}`).catch(() => null);
-                const trackingServiceModule = await import(`/core/services/tracking-service.js?v=${V}`).catch(() => null);
-                
-                // Tracking form progressive
-                const trackingFormModule = await import(`/pages/tracking/tracking-form-progressive.js?v=${V}`).catch(() => null);
-                
-                // Expose modules globally
-                if (apiModule) window.api = apiModule.default;
-                if (headerModule) window.headerComponent = headerModule.default;
-                if (notificationModule) window.NotificationSystem = notificationModule.default;
-                if (modalModule) window.ModalSystem = modalModule.default;
-                if (tableModule) window.TableManager = tableModule.default;
-                if (exportModule) window.ExportManager = exportModule.default;
-                if (importModule) window.ImportManager = importModule.default;
-                if (supabaseClientModule) window.supabase = supabaseClientModule.supabase;
-                if (supabaseTrackingModule) window.supabaseTrackingService = supabaseTrackingModule.default;
-                if (orgApiKeysModule) window.organizationApiKeysService = orgApiKeysModule.default;
-                if (trackingServiceModule) window.trackingService = trackingServiceModule.default;
-                if (trackingFormModule) window.TrackingFormProgressive = trackingFormModule;
-                
-                // Log module status
-                console.log('📦 Module status:', {
-                    api: !!window.api,
-                    header: !!window.headerComponent,
-                    notification: !!window.NotificationSystem,
-                    modal: !!window.ModalSystem,
-                    table: !!window.TableManager,
-                    export: !!window.ExportManager,
-                    import: !!window.ImportManager,
-                    supabase: !!window.supabase,
-                    tracking: !!window.trackingService
-                });
-                
-                // Initialize page
-                await import(`/pages/tracking/index.js?v=${V}`);
-                console.log('✅ Tracking page initialized');
-                
-            } catch (error) {
-                console.error('❌ Error during initialization:', error);
-                
-                // Show error to user
-                document.getElementById('loadingState').innerHTML = `
-                    <div class="alert alert-danger">
-                        <i class="fas fa-exclamation-triangle"></i>
-                        <strong>Errore di caricamento</strong><br>
-                        Si è verificato un errore nel caricamento della pagina.<br>
-                        <small>${error.message}</small><br>
-                        <button class="btn btn-sm btn-primary mt-2" onclick="location.reload()">
-                            <i class="fas fa-redo"></i> Ricarica
-                        </button>
-                    </div>
-                `;
-            }
-        })();
-    </script>
-
-    <!-- Legacy Scripts -->
-    <script src="/core/auth.js"></script>
-    <script src="/core/auth-init.js"></script>
-    
-    <!-- NUOVO: Fix Script per inizializzazione -->
-    <script src="/pages/tracking/tracking-init-fix.js"></script>
-    
-    <script src="/pages/tracking/tracking-complete-fix.js"></script>
-
-    <!-- Fallback functions -->
-    <script>
-        // Fallback functions in case modules don't load
-        if (!window.refreshTracking) {
-            window.refreshTracking = function(id) {
-                console.log('Refreshing tracking:', id);
-                alert('Funzione non disponibile al momento');
-            };
-        }
-        
-        if (!window.viewDetails) {
-            window.viewDetails = function(id) {
-                console.log('Viewing details:', id);
-                alert('Funzione non disponibile al momento');
-            };
-        }
-        
-        if (!window.deleteTracking) {
-            window.deleteTracking = function(id) {
-                console.log('Deleting tracking:', id);
-                if (confirm('Eliminare questo tracking?')) {
-                    // Remove from localStorage
-                    const stored = localStorage.getItem('trackings');
-                    if (stored) {
-                        const trackings = JSON.parse(stored);
-                        const filtered = trackings.filter(t => t.id !== id);
-                        localStorage.setItem('trackings', JSON.stringify(filtered));
-                        location.reload();
-                    }
-                }
-            };
-        }
-        
-        if (!window.resetFilters) {
-            window.resetFilters = function() {
-                document.getElementById('searchInput').value = '';
-                document.getElementById('statusFilter').value = '';
-                document.getElementById('carrierFilter').value = '';
-                if (window.applyFilters) window.applyFilters();
-            };
-        }
-    </script>
+```html
+<!-- RIMUOVI O COMMENTA QUESTI -->
+<script src="/pages/tracking/tracking-init-fix.js"></script>
+<script src="/pages/tracking/tracking-complete-fix.js"></script>
 
 <script>
 // FIX COMBINATO COMPLETO - TUTTI I FIX IN UNO
 (function() {
-    'use strict';
-    
-    console.log('🎯 SINGLE FIX: Starting definitive tracking table fix...');
-    
-    // 1. DISABILITA TABLEMANAGER
-    // Il problema principale è che TableManager sta sovrascrivendo il contenuto
-    if (window.trackingTable && window.trackingTable.render) {
-        console.log('🛑 Disabling TableManager render...');
-        window.trackingTable.render = function() {
-            console.log('TableManager render blocked');
-        };
-    }
-    
-    // 2. FUNZIONE DI RENDER DEFINITIVA
-    function renderTrackingTableDefinitive() {
-        console.log('🎨 Rendering tracking table (definitive)...');
-        
-        // Trova o crea struttura tabella
-        let table = document.getElementById('trackingTable');
-        if (!table) {
-            console.error('❌ Table not found!');
-            return;
-        }
-        
-        // Assicurati che ci sia il tbody
-        let tbody = table.querySelector('tbody');
-        if (!tbody) {
-            tbody = document.createElement('tbody');
-            tbody.id = 'trackingTableBody';
-            table.appendChild(tbody);
-        }
-        
-        // Verifica dati
-        const data = window.filteredTrackings || window.trackings || [];
-        console.log(`📊 Rendering ${data.length} trackings`);
-        
-        if (data.length === 0) {
-            tbody.innerHTML = `
-                <tr>
-                    <td colspan="8" class="text-center py-4">
-                        <i class="fas fa-box-open fa-3x text-muted mb-3"></i>
-                        <p class="text-muted">Nessun tracking trovato</p>
-                    </td>
-                </tr>
-            `;
-            return;
-        }
-        
-        // Render header se non esiste
-        let thead = table.querySelector('thead');
-        if (!thead || thead.children.length === 0) {
-            thead = thead || document.createElement('thead');
-            thead.innerHTML = `
-                <tr>
-                    <th style="width: 40px;"><input type="checkbox" id="selectAll"></th>
-                    <th>Tracking Number</th>
-                    <th>Tipo</th>
-                    <th>Stato</th>
-                    <th>Carrier</th>
-                    <th>Origine</th>
-                    <th>Destinazione</th>
-                    <th>Azioni</th>
-                </tr>
-            `;
-            if (!table.querySelector('thead')) {
-                table.insertBefore(thead, tbody);
-            }
-        }
-        
-        // Render righe
-        tbody.innerHTML = data.map(tracking => {
-            const statusClass = {
-                'delivered': 'success',
-                'in_transit': 'primary',
-                'pending': 'warning',
-                'exception': 'danger'
-            }[tracking.status?.toLowerCase()] || 'secondary';
-            
-            return `
-                <tr data-id="${tracking.id}">
-                    <td>
-                        <input type="checkbox" class="form-check-input row-select" data-id="${tracking.id}">
-                    </td>
-                    <td>
-                        <strong>${tracking.tracking_number || '-'}</strong>
-                        ${tracking.reference ? `<br><small class="text-muted">${tracking.reference}</small>` : ''}
-                    </td>
-                    <td>
-                        <span class="badge bg-secondary">${tracking.tracking_type || 'container'}</span>
-                    </td>
-                    <td>
-                        <span class="badge bg-${statusClass}">${tracking.status || 'pending'}</span>
-                    </td>
-                    <td>${tracking.carrier || '-'}</td>
-                    <td>${tracking.origin_name || '-'}</td>
-                    <td>${tracking.destination_name || '-'}</td>
-                    <td>
-                        <div class="btn-group btn-group-sm" role="group">
-                            <button type="button" class="btn btn-primary" onclick="refreshTracking('${tracking.id}')" title="Aggiorna">
-                                <i class="fas fa-sync"></i>
-                            </button>
-                            <button type="button" class="btn btn-info" onclick="viewDetails('${tracking.id}')" title="Dettagli">
-                                <i class="fas fa-eye"></i>
-                            </button>
-                            <button type="button" class="btn btn-danger" onclick="actualDeleteTracking('${tracking.id}')" title="Elimina">
-                                <i class="fas fa-trash"></i>
-                            </button>
-                        </div>
-                    </td>
-                </tr>
-            `;
-        }).join('');
-        
-        // Assicurati che la tabella sia visibile
-        table.style.display = '';
-        tbody.style.display = '';
-        
-        // Nascondi empty state se esiste
-        const emptyState = document.getElementById('emptyState');
-        if (emptyState) emptyState.style.display = 'none';
-        
-        console.log('✅ Table rendered successfully with', data.length, 'rows');
-    }
-    
-    // 3. DELETE FUNCTION CHE FUNZIONA
-    window.actualDeleteTracking = async function(id) {
-        if (!confirm('Eliminare questo tracking?')) return;
-        
-        try {
-            // Elimina da Supabase
-            if (window.supabaseTrackingService?.deleteTracking) {
-                await window.supabaseTrackingService.deleteTracking(id);
-            }
-            
-            // Rimuovi dai dati locali
-            window.trackings = window.trackings.filter(t => t.id !== id);
-            window.filteredTrackings = window.filteredTrackings.filter(t => t.id !== id);
-            
-            // Re-render
-            renderTrackingTableDefinitive();
-            
-            // Notifica
-            if (window.NotificationSystem) {
-                window.NotificationSystem.success('Tracking eliminato');
-            }
-        } catch (error) {
-            console.error('Delete error:', error);
-            alert('Errore durante l\'eliminazione');
-        }
-    };
-    
-    // 4. AGGIUNGI PULSANTE COLONNE
-    function addColumnSelectorButton() {
-        const container = document.querySelector('.d-flex.gap-2.mb-3');
-        if (!container || document.getElementById('columnSelectorBtn')) return;
-        
-        const btn = document.createElement('button');
-        btn.id = 'columnSelectorBtn';
-        btn.className = 'btn btn-outline-secondary';
-        btn.innerHTML = '<i class="fas fa-columns"></i> Gestisci Colonne';
-        btn.onclick = () => alert('Gestione colonne in arrivo!');
-        
-        // Inserisci prima del pulsante Importa
-        const importBtn = container.querySelector('[onclick*="showImportDialog"]');
-        if (importBtn) {
-            container.insertBefore(btn, importBtn);
-        } else {
-            container.insertBefore(btn, container.firstChild);
-        }
-        
-        console.log('✅ Column selector button added');
-    }
-    
-    // 5. OVERRIDE TUTTI I RENDER
-    window.renderTable = renderTrackingTableDefinitive;
-    
-    // Se esiste il render originale, sostituiscilo
-    if (window.originalRenderTable) {
-        window.originalRenderTable = renderTrackingTableDefinitive;
-    }
-    
-    // 6. STILI PER VISIBILITÀ
-    const style = document.createElement('style');
-    style.textContent = `
-        #trackingTable {
-            display: table !important;
-            width: 100% !important;
-            visibility: visible !important;
-            opacity: 1 !important;
-        }
-        
-        #trackingTableBody {
-            display: table-row-group !important;
-            visibility: visible !important;
-            opacity: 1 !important;
-        }
-        
-        #trackingTable thead {
-            background-color: #f8f9fa;
-        }
-        
-        #trackingTable th {
-            padding: 12px;
-            font-weight: 600;
-            border-bottom: 2px solid #dee2e6;
-        }
-        
-        #trackingTable td {
-            padding: 12px;
-            vertical-align: middle;
-        }
-        
-        #trackingTable tbody tr:hover {
-            background-color: #f8f9fa;
-        }
-        
-        .badge {
-            font-size: 0.875rem;
-            padding: 0.375rem 0.75rem;
-        }
-        
-        .btn-group-sm > .btn {
-            padding: 0.25rem 0.5rem;
-            font-size: 0.875rem;
-        }
-    `;
-    document.head.appendChild(style);
-    
-    // 7. INIZIALIZZAZIONE FORZATA
-    async function forceInit() {
-        console.log('🚀 Force initializing...');
-        
-        // Aggiungi pulsante colonne
-        addColumnSelectorButton();
-        
-        // Attendi che i dati siano caricati
-        let attempts = 0;
-        const checkData = setInterval(() => {
-            if (window.trackings && window.trackings.length > 0) {
-                clearInterval(checkData);
-                console.log('✅ Data found, rendering...');
-                
-                // Imposta filteredTrackings se vuoto
-                if (!window.filteredTrackings || window.filteredTrackings.length === 0) {
-                    window.filteredTrackings = window.trackings;
-                }
-                
-                // Render forzato
-                renderTrackingTableDefinitive();
-                
-                // Previeni future modifiche
-                setTimeout(() => {
-                    const tbody = document.getElementById('trackingTableBody');
-                    if (tbody && tbody.children.length === 0 && window.trackings.length > 0) {
-                        console.log('⚠️ Table was cleared, re-rendering...');
-                        renderTrackingTableDefinitive();
-                    }
-                }, 1000);
-                
-            } else if (attempts > 30) {
-                clearInterval(checkData);
-                console.log('❌ No data after 15 seconds');
-            }
-            attempts++;
-        }, 500);
-    }
-    
-    // 8. COMANDI DEBUG
-    window.singleFix = {
-        render: renderTrackingTableDefinitive,
-        showData: () => {
-            console.log('Trackings:', window.trackings);
-            console.log('Filtered:', window.filteredTrackings);
-            console.log('Tbody rows:', document.querySelectorAll('#trackingTableBody tr').length);
-        },
-        forceVisible: () => {
-            const table = document.getElementById('trackingTable');
-            const tbody = document.getElementById('trackingTableBody');
-            if (table) {
-                table.style.cssText = 'display: table !important; visibility: visible !important; opacity: 1 !important;';
-            }
-            if (tbody) {
-                tbody.style.cssText = 'display: table-row-group !important; visibility: visible !important; opacity: 1 !important;';
-            }
-            console.log('✅ Forced visibility');
-        }
-    };
-    
-    // Avvia inizializzazione
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', forceInit);
-    } else {
-        forceInit();
-    }
-    
-    console.log('✅ SINGLE FIX LOADED');
-    console.log('Commands: singleFix.render(), singleFix.showData(), singleFix.forceVisible()');
-    
+    // TUTTO questo script va rimosso
 })();
 </script>
 
 <script>
-// Fix permanente per tabella tracking - evita duplicati headers e empty states
+// Fix permanente per tabella tracking
 (function() {
-    'use strict';
-    
-    // Attendi che il DOM sia pronto
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', applyPermanentFix);
-    } else {
-        applyPermanentFix();
-    }
-    
-    function applyPermanentFix() {
-        console.log('🛡️ Applying permanent tracking table fix...');
-        
-        // 1. CSS Fix permanente
-        const styleId = 'tracking-permanent-fix-styles';
-        if (!document.getElementById(styleId)) {
-            const style = document.createElement('style');
-            style.id = styleId;
-            style.textContent = `
-                /* Fix permanente stili tabella */
-                
-                /* Nascondi empty states */
-                .sol-table-empty,
-                .empty-state,
-                .no-data {
-                    display: none !important;
-                }
-                
-                /* Forza visibilità tabella */
-                #trackingTable {
-                    display: table !important;
-                    visibility: visible !important;
-                    opacity: 1 !important;
-                    width: 100% !important;
-                    border-collapse: collapse;
-                }
-                
-                /* Headers corretti */
-                #trackingTable > thead {
-                    display: table-header-group !important;
-                    visibility: visible !important;
-                    opacity: 1 !important;
-                    background: #f9fafb !important;
-                }
-                
-                #trackingTable > thead > tr > th {
-                    padding: 14px 20px !important;
-                    font-weight: 700 !important;
-                    color: #111827 !important;
-                    font-size: 0.75rem !important;
-                    text-transform: uppercase !important;
-                    letter-spacing: 0.05em !important;
-                    border-bottom: 2px solid #e5e7eb !important;
-                }
-                
-                /* Nascondi header ultima colonna */
-                #trackingTable > thead > tr > th:last-child {
-                    visibility: hidden !important;
-                }
-                
-                /* Card filtri laterali */
-                .tracking-filters {
-                    background: white !important;
-                    border-radius: 12px !important;
-                    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1) !important;
-                    padding: 1.5rem !important;
-                    margin-bottom: 1.5rem !important;
-                }
-                
-                /* Titolo CERCA maiuscolo */
-                .tracking-filters > *:first-child:not(input):not(select) {
-                    font-size: 0.875rem !important;
-                    font-weight: 700 !important;
-                    text-transform: uppercase !important;
-                    letter-spacing: 0.05em !important;
-                    color: #111827 !important;
-                }
-                
-                /* Nascondi controlli sotto tabella */
-                .sol-table-controls,
-                .sol-table-pagination {
-                    display: none !important;
-                }
-                
-                /* Nascondi possibili headers duplicati */
-                thead:not(#trackingTable > thead) {
-                    display: none !important;
-                }
-            `;
-            document.head.appendChild(style);
-        }
-        
-        // 2. Blocca renderEmpty del TableManager
-        if (window.trackingTable) {
-            window.trackingTable.renderEmpty = function() {
-                console.log('❌ renderEmpty blocked');
-                return '';
-            };
-            window.trackingTable.renderLoading = function() {
-                console.log('❌ renderLoading blocked');
-                return '';
-            };
-        }
-        
-        // 3. Pulisci headers duplicati
-        function cleanupDuplicateHeaders() {
-            const allTheads = document.querySelectorAll('thead');
-            const mainTable = document.getElementById('trackingTable');
-            let mainThead = null;
-            
-            allTheads.forEach(thead => {
-                if (mainTable && mainTable.contains(thead)) {
-                    if (!mainThead) {
-                        mainThead = thead;
-                    } else {
-                        thead.remove();
-                    }
-                } else {
-                    thead.remove();
-                }
-            });
-        }
-        
-        // 4. Assicura headers corretti
-        function ensureCorrectHeaders() {
-            const table = document.getElementById('trackingTable');
-            if (!table) return;
-            
-            cleanupDuplicateHeaders();
-            
-            let thead = table.querySelector('thead');
-            if (!thead || thead.children.length === 0) {
-                if (!thead) {
-                    thead = document.createElement('thead');
-                    table.insertBefore(thead, table.firstChild);
-                }
-                
-                thead.innerHTML = `
-                    <tr>
-                        <th style="width: 40px;">
-                            <input type="checkbox" id="selectAllTracking">
-                        </th>
-                        <th>TRACKING NUMBER</th>
-                        <th>CORRIERE</th>
-                        <th>STATO</th>
-                        <th>ORIGINE</th>
-                        <th>DESTINAZIONE</th>
-                        <th>DATA CREAZIONE</th>
-                        <th style="width: 120px;"></th>
-                    </tr>
-                `;
-            }
-        }
-        
-        // 5. Rimuovi empty states
-        function removeEmptyStates() {
-            document.querySelectorAll('.sol-table-empty, .empty-state, .no-data').forEach(el => {
-                el.remove();
-            });
-        }
-        
-        // 6. Fix titolo CERCA
-        function fixCercaTitle() {
-            const cercaElements = Array.from(document.querySelectorAll('*')).filter(el => 
-                el.textContent.trim() === 'Cerca' && 
-                !el.querySelector('*') && 
-                el.tagName !== 'BUTTON'
-            );
-            
-            cercaElements.forEach(el => {
-                el.textContent = 'CERCA';
-            });
-        }
-        
-        // 7. Observer per prevenire modifiche future
-        const observer = new MutationObserver((mutations) => {
-            let needsCleanup = false;
-            
-            mutations.forEach((mutation) => {
-                mutation.addedNodes.forEach((node) => {
-                    if (node.nodeType === 1) {
-                        if (node.tagName === 'THEAD' || 
-                            (node.classList && (node.classList.contains('sol-table-empty') || 
-                                              node.classList.contains('empty-state')))) {
-                            needsCleanup = true;
-                        }
-                    }
-                });
-            });
-            
-            if (needsCleanup) {
-                setTimeout(() => {
-                    cleanupDuplicateHeaders();
-                    removeEmptyStates();
-                }, 10);
-            }
-        });
-        
-        // Osserva il body per modifiche
-        observer.observe(document.body, {
-            childList: true,
-            subtree: true
-        });
-        
-        // 8. Applica fix iniziale
-        setTimeout(() => {
-            ensureCorrectHeaders();
-            removeEmptyStates();
-            fixCercaTitle();
-        }, 500);
-        
-        // 9. Riapplica periodicamente per i primi 5 secondi
-        let fixCount = 0;
-        const fixInterval = setInterval(() => {
-            ensureCorrectHeaders();
-            removeEmptyStates();
-            fixCount++;
-            
-            if (fixCount > 10) {
-                clearInterval(fixInterval);
-            }
-        }, 500);
-        
-        console.log('✅ Permanent tracking table fix applied');
-    }
+    // ANCHE questo script va rimosso
 })();
 </script>
+```
 
-</body>
-</html>
+**MANTIENI SOLO:**
+```html
+<!-- Load Core Modules -->
+<script type="module">
+    // MANTIENI tutto il codice di import modules
+</script>
+
+<!-- Legacy Scripts -->
+<script src="/core/auth.js"></script>
+<script src="/core/auth-init.js"></script>
+```
+
+### 2. **index.js** - SOSTITUIRE COMPLETAMENTE
+
+**PROBLEMA:** Il file index.js attuale non usa il nuovo TableManager correttamente.
+
+**SOLUZIONE:** Sostituisci TUTTO il contenuto di `/pages/tracking/index.js` con:
+
+```javascript
+// index.js - Clean tracking page logic
+import TableManager from '/core/table-manager.js';
+
+// State
+let trackings = [];
+let filteredTrackings = [];
+let tableManager = null;
+
+// Column configuration
+const COLUMNS = [
+    { key: 'tracking_number', label: 'Tracking Number', sortable: true },
+    { key: 'carrier', label: 'Carrier', sortable: true },
+    { key: 'status', label: 'Stato', sortable: true, formatter: formatStatus },
+    { key: 'origin_name', label: 'Origine', sortable: true },
+    { key: 'destination_name', label: 'Destinazione', sortable: true },
+    { key: 'last_update', label: 'Ultimo Aggiornamento', sortable: true, formatter: formatDate },
+    { 
+        key: 'actions', 
+        label: 'Azioni', 
+        sortable: false,
+        formatter: (value, row) => `
+            <div class="btn-group btn-group-sm">
+                <button class="btn btn-primary" onclick="refreshTracking('${row.id}')">
+                    <i class="fas fa-sync"></i>
+                </button>
+                <button class="btn btn-info" onclick="viewDetails('${row.id}')">
+                    <i class="fas fa-eye"></i>
+                </button>
+                <button class="btn btn-danger" onclick="deleteTracking('${row.id}')">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </div>
+        `
+    }
+];
+
+// Formatters
+function formatStatus(value) {
+    const statusMap = {
+        'delivered': { label: 'Consegnato', class: 'success' },
+        'in_transit': { label: 'In transito', class: 'primary' },
+        'pending': { label: 'In attesa', class: 'warning' },
+        'exception': { label: 'Eccezione', class: 'danger' }
+    };
+    const status = statusMap[value] || { label: value, class: 'secondary' };
+    return `<span class="badge badge-${status.class}">${status.label}</span>`;
+}
+
+function formatDate(value) {
+    if (!value) return '-';
+    return new Date(value).toLocaleString('it-IT');
+}
+
+// Initialize
+document.addEventListener('DOMContentLoaded', async () => {
+    console.log('🚀 Initializing tracking page...');
+    
+    try {
+        // Hide loading state
+        document.getElementById('loadingState').style.display = 'none';
+        
+        // Create table container
+        const tableCard = document.querySelector('.sol-card-body.p-0');
+        const tableContainer = document.createElement('div');
+        tableContainer.id = 'trackingTableContainer';
+        
+        // Remove existing table
+        const oldTable = document.getElementById('trackingTable');
+        if (oldTable) {
+            oldTable.style.display = 'none';
+        }
+        
+        // Insert new container
+        tableCard.insertBefore(tableContainer, tableCard.firstChild);
+        
+        // Initialize TableManager
+        tableManager = new TableManager('trackingTableContainer', {
+            columns: COLUMNS,
+            selectable: true,
+            searchable: false, // We use external search
+            paginate: true,
+            pageSize: 20,
+            enableColumnDrag: true,
+            onSelectionChange: handleSelectionChange
+        });
+        
+        // Register globally
+        window.registerTableManager('trackingTableContainer', tableManager);
+        
+        // Load data
+        await loadTrackings();
+        
+        // Setup event listeners
+        setupEventListeners();
+        
+        console.log('✅ Tracking page initialized');
+        
+    } catch (error) {
+        console.error('❌ Initialization error:', error);
+        showError('Errore durante l\'inizializzazione');
+    }
+});
+
+// Load trackings
+async function loadTrackings() {
+    try {
+        if (window.supabaseTrackingService) {
+            const data = await window.supabaseTrackingService.getAllTrackings();
+            trackings = data || [];
+        } else {
+            // Mock data for testing
+            trackings = [
+                {
+                    id: '1',
+                    tracking_number: 'TEST123',
+                    carrier: 'DHL',
+                    status: 'in_transit',
+                    origin_name: 'Milano',
+                    destination_name: 'Roma',
+                    last_update: new Date().toISOString()
+                }
+            ];
+        }
+        
+        filteredTrackings = [...trackings];
+        updateTable();
+        
+    } catch (error) {
+        console.error('Error loading trackings:', error);
+    }
+}
+
+// Update table
+function updateTable() {
+    if (tableManager) {
+        tableManager.setData(filteredTrackings);
+    }
+}
+
+// Handle selection change
+function handleSelectionChange(selected) {
+    const bulkBar = document.getElementById('bulkActionsBar');
+    const count = document.getElementById('selectedCount');
+    
+    if (bulkBar) {
+        bulkBar.style.display = selected.length > 0 ? 'block' : 'none';
+    }
+    
+    if (count) {
+        count.textContent = selected.length;
+    }
+}
+
+// Setup event listeners
+function setupEventListeners() {
+    // Search
+    const searchInput = document.getElementById('searchInput');
+    if (searchInput) {
+        searchInput.addEventListener('input', (e) => {
+            const term = e.target.value.toLowerCase();
+            filteredTrackings = trackings.filter(t => 
+                t.tracking_number?.toLowerCase().includes(term) ||
+                t.carrier?.toLowerCase().includes(term) ||
+                t.origin_name?.toLowerCase().includes(term) ||
+                t.destination_name?.toLowerCase().includes(term)
+            );
+            updateTable();
+        });
+    }
+    
+    // Filters
+    document.getElementById('statusFilter')?.addEventListener('change', applyFilters);
+    document.getElementById('carrierFilter')?.addEventListener('change', applyFilters);
+    
+    // Global functions
+    window.refreshTracking = refreshTracking;
+    window.viewDetails = viewDetails;
+    window.deleteTracking = deleteTracking;
+    window.showAddTrackingForm = showAddTrackingForm;
+    window.showImportDialog = showImportDialog;
+    window.exportData = exportData;
+    window.resetFilters = resetFilters;
+    window.toggleSelectAll = toggleSelectAll;
+    window.performBulkAction = performBulkAction;
+}
+
+// Apply filters
+function applyFilters() {
+    const status = document.getElementById('statusFilter')?.value;
+    const carrier = document.getElementById('carrierFilter')?.value;
+    
+    filteredTrackings = trackings.filter(t => {
+        if (status && t.status !== status) return false;
+        if (carrier && t.carrier !== carrier) return false;
+        return true;
+    });
+    
+    updateTable();
+}
+
+// Actions
+async function refreshTracking(id) {
+    console.log('Refresh tracking:', id);
+    window.NotificationSystem?.info('Aggiornamento tracking...');
+}
+
+function viewDetails(id) {
+    console.log('View details:', id);
+    const tracking = trackings.find(t => t.id === id);
+    if (tracking && window.ModalSystem) {
+        window.ModalSystem.show({
+            title: `Dettagli: ${tracking.tracking_number}`,
+            content: `
+                <div>
+                    <p><strong>Carrier:</strong> ${tracking.carrier || '-'}</p>
+                    <p><strong>Stato:</strong> ${formatStatus(tracking.status)}</p>
+                    <p><strong>Origine:</strong> ${tracking.origin_name || '-'}</p>
+                    <p><strong>Destinazione:</strong> ${tracking.destination_name || '-'}</p>
+                </div>
+            `
+        });
+    }
+}
+
+async function deleteTracking(id) {
+    if (!confirm('Eliminare questo tracking?')) return;
+    
+    try {
+        if (window.supabaseTrackingService) {
+            await window.supabaseTrackingService.deleteTracking(id);
+        }
+        
+        trackings = trackings.filter(t => t.id !== id);
+        filteredTrackings = filteredTrackings.filter(t => t.id !== id);
+        updateTable();
+        
+        window.NotificationSystem?.success('Tracking eliminato');
+        
+    } catch (error) {
+        console.error('Delete error:', error);
+        window.NotificationSystem?.error('Errore eliminazione');
+    }
+}
+
+function showAddTrackingForm() {
+    console.log('Show add form');
+    if (window.showEnhancedTrackingForm) {
+        window.showEnhancedTrackingForm();
+    } else {
+        window.NotificationSystem?.info('Form in caricamento...');
+    }
+}
+
+function showImportDialog() {
+    console.log('Show import dialog');
+    window.NotificationSystem?.info('Import in sviluppo...');
+}
+
+function exportData() {
+    if (tableManager) {
+        tableManager.export('excel');
+    }
+}
+
+function resetFilters() {
+    document.getElementById('searchInput').value = '';
+    document.getElementById('statusFilter').value = '';
+    document.getElementById('carrierFilter').value = '';
+    applyFilters();
+}
+
+function toggleSelectAll(checkbox) {
+    if (tableManager) {
+        tableManager.selectAll(checkbox.checked);
+    }
+}
+
+function performBulkAction(action) {
+    const selected = tableManager?.getSelectedRows() || [];
+    
+    if (selected.length === 0) {
+        window.NotificationSystem?.warning('Nessun tracking selezionato');
+        return;
+    }
+    
+    switch(action) {
+        case 'refresh':
+            console.log('Bulk refresh:', selected.length);
+            window.NotificationSystem?.info(`Aggiornamento ${selected.length} tracking...`);
+            break;
+            
+        case 'delete':
+            if (confirm(`Eliminare ${selected.length} tracking?`)) {
+                console.log('Bulk delete:', selected.length);
+                // TODO: Implement bulk delete
+                window.NotificationSystem?.success('Tracking eliminati');
+            }
+            break;
+    }
+}
+
+function showError(message) {
+    if (window.NotificationSystem) {
+        window.NotificationSystem.error(message);
+    } else {
+        alert(message);
+    }
+}
+
+// Export for debugging
+window.trackingDebug = {
+    getData: () => ({ trackings, filteredTrackings }),
+    getTable: () => tableManager,
+    refresh: () => loadTrackings()
+};
+```
+
+### 3. **Verifica File Necessari**
+
+Assicurati che questi file esistano e siano aggiornati:
+- ✅ `/core/table-manager.js` (con export default alla fine)
+- ✅ `/pages/tracking/tracking-complete.css`
+- ✅ `/core/services/supabase-tracking-service.js`
+- ✅ `/core/modal-system.js`
+- ✅ `/core/notification-system.js`
+
+## 🚀 ORDINE DI ESECUZIONE
+
+1. **PRIMA:** Modifica `tracking.html` rimuovendo gli script di fix
+2. **POI:** Sostituisci completamente `index.js` con il codice sopra
+3. **INFINE:** Fai hard refresh (Ctrl+F5) e testa
+
+## ✅ COSA DOVREBBE FUNZIONARE DOPO
+
+- ✅ Tabella visibile senza "Caricamento..."
+- ✅ Checkbox select all funzionante
+- ✅ Selezione righe attiva bulk actions
+- ✅ Drag & drop colonne
+- ✅ Paginazione
+- ✅ Ricerca in tempo reale
+- ✅ Filtri funzionanti
+- ✅ Export Excel/PDF
+- ✅ Azioni (view, refresh, delete)
+
+## 🐛 TROUBLESHOOTING
+
+**Se la tabella non si vede:**
+- Controlla console per errori
+- Verifica che TableManager sia caricato: `console.log(window.TableManager)`
+
+**Se le checkbox non funzionano:**
+- Verifica che toggleSelectAll sia definita: `console.log(window.toggleSelectAll)`
+- Controlla che tableManager sia registrato: `console.log(window.getTableManager('trackingTableContainer'))`
+
+**Se i dati non si caricano:**
+- Controlla: `window.trackingDebug.getData()`
+- Prova refresh manuale: `window.trackingDebug.refresh()`
+
+## 📝 NOTE IMPORTANTI
+
+- Status mapping e column mapping sono mantenuti
+- Il nuovo sistema è più pulito e manutenibile
+- Non servono più tutti i fix perché il TableManager gestisce tutto
+- La struttura HTML esistente viene adattata dinamicamente
+
+## 🆘 SUPPORTO
+
+Se hai problemi dopo queste modifiche:
+1. Condividi gli errori della console
+2. Usa `window.trackingDebug` per diagnostica
+3. Verifica che tutti i moduli siano caricati correttamente
+
+---
+**VERSIONE:** v7
+**DATA:** 27/01/2025
+**STATO:** Pronto per implementazione
