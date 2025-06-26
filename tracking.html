@@ -703,5 +703,235 @@
 })();
 </script>
 
+<script>
+// Fix permanente per tabella tracking - evita duplicati headers e empty states
+(function() {
+    'use strict';
+    
+    // Attendi che il DOM sia pronto
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', applyPermanentFix);
+    } else {
+        applyPermanentFix();
+    }
+    
+    function applyPermanentFix() {
+        console.log('🛡️ Applying permanent tracking table fix...');
+        
+        // 1. CSS Fix permanente
+        const styleId = 'tracking-permanent-fix-styles';
+        if (!document.getElementById(styleId)) {
+            const style = document.createElement('style');
+            style.id = styleId;
+            style.textContent = `
+                /* Fix permanente stili tabella */
+                
+                /* Nascondi empty states */
+                .sol-table-empty,
+                .empty-state,
+                .no-data {
+                    display: none !important;
+                }
+                
+                /* Forza visibilità tabella */
+                #trackingTable {
+                    display: table !important;
+                    visibility: visible !important;
+                    opacity: 1 !important;
+                    width: 100% !important;
+                    border-collapse: collapse;
+                }
+                
+                /* Headers corretti */
+                #trackingTable > thead {
+                    display: table-header-group !important;
+                    visibility: visible !important;
+                    opacity: 1 !important;
+                    background: #f9fafb !important;
+                }
+                
+                #trackingTable > thead > tr > th {
+                    padding: 14px 20px !important;
+                    font-weight: 700 !important;
+                    color: #111827 !important;
+                    font-size: 0.75rem !important;
+                    text-transform: uppercase !important;
+                    letter-spacing: 0.05em !important;
+                    border-bottom: 2px solid #e5e7eb !important;
+                }
+                
+                /* Nascondi header ultima colonna */
+                #trackingTable > thead > tr > th:last-child {
+                    visibility: hidden !important;
+                }
+                
+                /* Card filtri laterali */
+                .tracking-filters {
+                    background: white !important;
+                    border-radius: 12px !important;
+                    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1) !important;
+                    padding: 1.5rem !important;
+                    margin-bottom: 1.5rem !important;
+                }
+                
+                /* Titolo CERCA maiuscolo */
+                .tracking-filters > *:first-child:not(input):not(select) {
+                    font-size: 0.875rem !important;
+                    font-weight: 700 !important;
+                    text-transform: uppercase !important;
+                    letter-spacing: 0.05em !important;
+                    color: #111827 !important;
+                }
+                
+                /* Nascondi controlli sotto tabella */
+                .sol-table-controls,
+                .sol-table-pagination {
+                    display: none !important;
+                }
+                
+                /* Nascondi possibili headers duplicati */
+                thead:not(#trackingTable > thead) {
+                    display: none !important;
+                }
+            `;
+            document.head.appendChild(style);
+        }
+        
+        // 2. Blocca renderEmpty del TableManager
+        if (window.trackingTable) {
+            window.trackingTable.renderEmpty = function() {
+                console.log('❌ renderEmpty blocked');
+                return '';
+            };
+            window.trackingTable.renderLoading = function() {
+                console.log('❌ renderLoading blocked');
+                return '';
+            };
+        }
+        
+        // 3. Pulisci headers duplicati
+        function cleanupDuplicateHeaders() {
+            const allTheads = document.querySelectorAll('thead');
+            const mainTable = document.getElementById('trackingTable');
+            let mainThead = null;
+            
+            allTheads.forEach(thead => {
+                if (mainTable && mainTable.contains(thead)) {
+                    if (!mainThead) {
+                        mainThead = thead;
+                    } else {
+                        thead.remove();
+                    }
+                } else {
+                    thead.remove();
+                }
+            });
+        }
+        
+        // 4. Assicura headers corretti
+        function ensureCorrectHeaders() {
+            const table = document.getElementById('trackingTable');
+            if (!table) return;
+            
+            cleanupDuplicateHeaders();
+            
+            let thead = table.querySelector('thead');
+            if (!thead || thead.children.length === 0) {
+                if (!thead) {
+                    thead = document.createElement('thead');
+                    table.insertBefore(thead, table.firstChild);
+                }
+                
+                thead.innerHTML = `
+                    <tr>
+                        <th style="width: 40px;">
+                            <input type="checkbox" id="selectAllTracking">
+                        </th>
+                        <th>TRACKING NUMBER</th>
+                        <th>CORRIERE</th>
+                        <th>STATO</th>
+                        <th>ORIGINE</th>
+                        <th>DESTINAZIONE</th>
+                        <th>DATA CREAZIONE</th>
+                        <th style="width: 120px;"></th>
+                    </tr>
+                `;
+            }
+        }
+        
+        // 5. Rimuovi empty states
+        function removeEmptyStates() {
+            document.querySelectorAll('.sol-table-empty, .empty-state, .no-data').forEach(el => {
+                el.remove();
+            });
+        }
+        
+        // 6. Fix titolo CERCA
+        function fixCercaTitle() {
+            const cercaElements = Array.from(document.querySelectorAll('*')).filter(el => 
+                el.textContent.trim() === 'Cerca' && 
+                !el.querySelector('*') && 
+                el.tagName !== 'BUTTON'
+            );
+            
+            cercaElements.forEach(el => {
+                el.textContent = 'CERCA';
+            });
+        }
+        
+        // 7. Observer per prevenire modifiche future
+        const observer = new MutationObserver((mutations) => {
+            let needsCleanup = false;
+            
+            mutations.forEach((mutation) => {
+                mutation.addedNodes.forEach((node) => {
+                    if (node.nodeType === 1) {
+                        if (node.tagName === 'THEAD' || 
+                            (node.classList && (node.classList.contains('sol-table-empty') || 
+                                              node.classList.contains('empty-state')))) {
+                            needsCleanup = true;
+                        }
+                    }
+                });
+            });
+            
+            if (needsCleanup) {
+                setTimeout(() => {
+                    cleanupDuplicateHeaders();
+                    removeEmptyStates();
+                }, 10);
+            }
+        });
+        
+        // Osserva il body per modifiche
+        observer.observe(document.body, {
+            childList: true,
+            subtree: true
+        });
+        
+        // 8. Applica fix iniziale
+        setTimeout(() => {
+            ensureCorrectHeaders();
+            removeEmptyStates();
+            fixCercaTitle();
+        }, 500);
+        
+        // 9. Riapplica periodicamente per i primi 5 secondi
+        let fixCount = 0;
+        const fixInterval = setInterval(() => {
+            ensureCorrectHeaders();
+            removeEmptyStates();
+            fixCount++;
+            
+            if (fixCount > 10) {
+                clearInterval(fixInterval);
+            }
+        }, 500);
+        
+        console.log('✅ Permanent tracking table fix applied');
+    }
+})();
+</script>
+
 </body>
 </html>
