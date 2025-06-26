@@ -238,6 +238,39 @@
         </div>
     </main>
 
+<script>
+(function() {
+    'use strict';
+    
+    console.log('🚀 Quick fix for organizationApiKeysService');
+    
+    // Attendi che organizationApiKeysService sia disponibile
+    const checkInterval = setInterval(() => {
+        if (window.organizationApiKeysService) {
+            // Aggiungi il metodo mancante immediatamente
+            if (!window.organizationApiKeysService.getOrganizationApiKeys) {
+                window.organizationApiKeysService.getOrganizationApiKeys = async function() {
+                    console.log('📦 Using quick-fixed getOrganizationApiKeys');
+                    if (this.getApiKeys) {
+                        return await this.getApiKeys();
+                    }
+                    if (this.getAllKeys) {
+                        return await this.getAllKeys();
+                    }
+                    console.warn('No API keys method available, returning empty array');
+                    return [];
+                };
+                console.log('✅ Added getOrganizationApiKeys method');
+            }
+            clearInterval(checkInterval);
+        }
+    }, 100);
+    
+    // Stop dopo 10 secondi
+    setTimeout(() => clearInterval(checkInterval), 10000);
+})();
+</script>
+
     <!-- Load Core Modules -->
     <script type="module">
         // Import modules with versioning
