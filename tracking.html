@@ -367,80 +367,136 @@
                 if (window.ImportManager && !window.ImportManager.handleImport) {
                     console.log('Adding handleImport to ImportManager...');
                     window.ImportManager.handleImport = async function(file, options = {}) {
-                        console.log('Progressive form calling handleImport, redirecting to importFile...');
-                        
-                        // Adapt options for importFile
-                        const importOptions = {
-                            entity: 'tracking',
-                            columnMapping: window.COLUMN_MAPPING || {},
-                            statusMapping: window.getStatusMapping ? window.getStatusMapping() : {},
-                            saveToSupabase: true,
-                            trackingService: window.trackingService,
-                            supabaseService: window.supabaseTrackingService,
-                            ...options
-                        };
+                        console.log('Progressive form calling handleImport...');
                         
                         try {
-                            // Call the existing importFile method
-                            const result = await this.importFile(file, importOptions);
+                            // Parse the file directly using ImportManager's parseFile
+                            console.log('Parsing file:', file.name);
+                            const parseResult = await this.parseFile(file);
                             
-                            // If there's a processedData error, handle the import manually
-                            if (!result || !result.success) {
-                                console.log('Import failed, trying manual processing...');
+                            if (!parseResult || !parseResult.data || parseResult.data.length === 0) {
+                                throw new Error('Nessun dato trovato nel file');
+                            }
+                            
+                            console.log('Parsed data:', parseResult.data.length, 'rows');
+                            
+                            // Process the data
+                            const trackings = [];
+                            const errors = [];
+                            
+                            for (let i = 0; i < parseResult.data.length; i++) {
+                                const row = parseResult.data[i];
                                 
-                                // Parse the file manually
-                                const data = await this.parseFile(file);
-                                if (data && data.data && data.data.length > 0) {
-                                    // Save trackings
-                                    const trackings = data.data.map((row, index) => ({
-                                        id: crypto.randomUUID ? crypto.randomUUID() : `import-${Date.now()}-${index}`,
-                                        ...row,
-                                        tracking_type: row.tracking_type || 'container',
-                                        current_status: this.mapStatus(row.status || row.current_status || 'registered'),
-                                        created_at: new Date().toISOString(),
-                                        updated_at: new Date().toISOString()
-                                    }));
+                                try {
+                                    // Apply column mapping
+                                    const mapped = {};
+                                    const columnMapping = window.COLUMN_MAPPING || {};
                                     
-                                    // Save to Supabase if available
-                                    if (window.supabaseTrackingService) {
-                                        let imported = 0;
-                                        for (const tracking of trackings) {
-                                            try {
-                                                await window.supabaseTrackingService.createTracking(tracking);
-                                                imported++;
-                                            } catch (err) {
-                                                console.error('Error saving tracking:', err);
-                                            }
+                                    Object.entries(row).forEach(([key, value]) => {
+                                        const mappedKey = columnMapping[key] || key.toLowerCase().replace(/\s+/g, '_');
+                                        mapped[mappedKey] = value;
+                                    });
+                                    
+                                    // Ensure required fields
+                                    if (!mapped.tracking_number) {
+                                        throw new Error(`Riga ${i + 1}: Tracking number mancante`);
+                                    }
+                                    
+                                    // Map status
+                                    if (mapped.status || mapped.current_status) {
+                                        const status = (mapped.status || mapped.current_status || '').toString();
+                                        mapped.current_status = this.mapStatus ? this.mapStatus(status) : status.toLowerCase();
+                                        delete mapped.status;
+                                    }
+                                    
+                                    // Detect tracking type if not specified
+                                    if (!mapped.tracking_type && mapped.tracking_number) {
+                                        const num = mapped.tracking_number.toString();
+                                        mapped.tracking_type = /^\d{3}-?\d{8}$/.test(num) ? 'air_waybill' : 'container';
+                                    }
+                                    
+                                    // Add metadata
+                                    const tracking = {
+                                        id: crypto.randomUUID ? crypto.randomUUID() : `import-${Date.now()}-${i}`,
+                                        ...mapped,
+                                        created_at: new Date().toISOString(),
+                                        updated_at: new Date().toISOString(),
+                                        metadata: {
+                                            import_source: 'manual',
+                                            import_date: new Date().toISOString(),
+                                            original_file: file.name
                                         }
-                                        
-                                        window.NotificationSystem?.success(`Importati ${imported} tracking`);
-                                        
-                                        // Refresh the table
-                                        if (window.trackingDebug?.refresh) {
-                                            await window.trackingDebug.refresh();
-                                        }
-                                        
-                                        return {
-                                            success: true,
-                                            stats: { imported, total: trackings.length }
-                                        };
+                                    };
+                                    
+                                    trackings.push(tracking);
+                                    
+                                } catch (error) {
+                                    errors.push({
+                                        row: i + 1,
+                                        error: error.message,
+                                        data: row
+                                    });
+                                    console.error(`Error processing row ${i + 1}:`, error);
+                                }
+                            }
+                            
+                            console.log('Processed trackings:', trackings.length, 'errors:', errors.length);
+                            
+                            // Save to Supabase
+                            let imported = 0;
+                            let failed = 0;
+                            
+                            if (window.supabaseTrackingService && trackings.length > 0) {
+                                // Show progress
+                                window.NotificationSystem?.info(`Salvataggio ${trackings.length} tracking...`);
+                                
+                                for (const tracking of trackings) {
+                                    try {
+                                        await window.supabaseTrackingService.createTracking(tracking);
+                                        imported++;
+                                    } catch (error) {
+                                        console.error('Error saving tracking:', tracking.tracking_number, error);
+                                        failed++;
                                     }
                                 }
                             }
                             
-                            // Refresh trackings after successful import
-                            if (result && result.success && window.trackingDebug) {
-                                await window.trackingDebug.refresh();
+                            // Show results
+                            if (imported > 0) {
+                                window.NotificationSystem?.success(`✅ Importati ${imported} tracking`);
+                            }
+                            if (failed > 0) {
+                                window.NotificationSystem?.warning(`⚠️ ${failed} tracking non importati`);
+                            }
+                            if (errors.length > 0) {
+                                window.NotificationSystem?.warning(`⚠️ ${errors.length} righe con errori nel file`);
                             }
                             
-                            return result;
+                            // Refresh the table
+                            if (window.trackingDebug?.refresh) {
+                                setTimeout(() => window.trackingDebug.refresh(), 500);
+                            }
+                            
+                            // Close the import modal
+                            const closeBtn = document.querySelector('.custom-modal-close');
+                            if (closeBtn) {
+                                closeBtn.click();
+                            }
+                            
+                            return {
+                                success: imported > 0,
+                                stats: {
+                                    imported,
+                                    failed,
+                                    errors: errors.length,
+                                    total: parseResult.data.length
+                                },
+                                errors
+                            };
+                            
                         } catch (error) {
-                            console.error('Import error:', error);
-                            
-                            // Try to show a user-friendly error
-                            if (window.NotificationSystem) {
-                                window.NotificationSystem.error('Errore durante l\'import: ' + error.message);
-                            }
+                            console.error('Import handleImport error:', error);
+                            window.NotificationSystem?.error('Errore import: ' + error.message);
                             
                             return {
                                 success: false,
