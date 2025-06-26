@@ -1,0 +1,537 @@
+/* tracking-complete.css - Complete styles for all tracking features */
+
+/* ========== TABLE ENHANCEMENTS ========== */
+
+/* Column drag & drop */
+.sol-table th:not(.no-drag),
+.data-table th:not(.no-drag) {
+    cursor: move;
+    position: relative;
+    user-select: none;
+}
+
+.sol-table th:not(.no-drag):hover,
+.data-table th:not(.no-drag):hover {
+    background: var(--sol-gray-100);
+}
+
+/* Drag ghost */
+.column-drag-ghost {
+    opacity: 0.4;
+    background: var(--sol-primary-light) !important;
+}
+
+.column-drag-chosen {
+    background: var(--sol-primary-light) !important;
+}
+
+.column-drag-active {
+    cursor: move !important;
+}
+
+/* ========== ADVANCED SEARCH ========== */
+
+.sol-table-search {
+    position: relative;
+    flex: 1;
+    max-width: 400px;
+}
+
+.search-input-wrapper {
+    position: relative;
+}
+
+.search-input-wrapper .search-icon {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--sol-gray-400);
+    pointer-events: none;
+}
+
+.sol-table-search-input {
+    padding-right: 40px;
+}
+
+/* Search suggestions dropdown */
+.search-suggestions {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: white;
+    border: 1px solid var(--sol-gray-200);
+    border-radius: var(--sol-radius-md);
+    box-shadow: var(--sol-shadow-lg);
+    max-height: 300px;
+    overflow-y: auto;
+    z-index: 1000;
+    margin-top: 4px;
+}
+
+.search-suggestion {
+    padding: 12px 16px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    transition: background var(--sol-transition-fast);
+    border-bottom: 1px solid var(--sol-gray-100);
+}
+
+.search-suggestion:last-child {
+    border-bottom: none;
+}
+
+.search-suggestion:hover,
+.search-suggestion.active {
+    background: var(--sol-primary-light);
+}
+
+.search-suggestion i {
+    color: var(--sol-gray-500);
+    width: 20px;
+    text-align: center;
+}
+
+.search-suggestion small {
+    color: var(--sol-gray-500);
+    margin-left: auto;
+    font-size: 0.75rem;
+}
+
+/* ========== PAGINATION ENHANCEMENTS ========== */
+
+.sol-table-pagination {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem;
+    background: var(--sol-gray-50);
+    border-top: 1px solid var(--sol-gray-200);
+}
+
+.sol-table-pagination-controls {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.pagination-buttons {
+    display: flex;
+    gap: 0.25rem;
+}
+
+.sol-pagination-btn {
+    padding: 0.375rem 0.75rem;
+    border: 1px solid var(--sol-gray-300);
+    background: white;
+    color: var(--sol-gray-700);
+    border-radius: var(--sol-radius-sm);
+    cursor: pointer;
+    transition: all var(--sol-transition-fast);
+    font-size: 0.875rem;
+    line-height: 1.5;
+    min-width: 36px;
+    text-align: center;
+}
+
+.sol-pagination-btn:hover:not(:disabled) {
+    background: var(--sol-gray-100);
+    border-color: var(--sol-gray-400);
+}
+
+.sol-pagination-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.sol-pagination-btn.active {
+    background: var(--sol-primary);
+    color: white;
+    border-color: var(--sol-primary);
+}
+
+.sol-table-pagesize {
+    padding: 0.375rem 0.75rem;
+    border: 1px solid var(--sol-gray-300);
+    border-radius: var(--sol-radius-sm);
+    background: white;
+    font-size: 0.875rem;
+}
+
+/* ========== COLUMN MANAGER MODAL ========== */
+
+.column-manager {
+    max-height: 500px;
+}
+
+.column-manager-header {
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--sol-gray-200);
+}
+
+.column-list {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.column-item {
+    display: flex;
+    align-items: center;
+    padding: 0.75rem;
+    margin-bottom: 0.5rem;
+    background: var(--sol-gray-50);
+    border: 1px solid var(--sol-gray-200);
+    border-radius: var(--sol-radius-sm);
+    cursor: move;
+    transition: all var(--sol-transition-fast);
+}
+
+.column-item:hover {
+    background: white;
+    box-shadow: var(--sol-shadow-sm);
+}
+
+.column-item.dragging {
+    opacity: 0.5;
+    background: var(--sol-primary-light);
+}
+
+.column-drag-handle {
+    color: var(--sol-gray-400);
+    margin-right: 1rem;
+    cursor: move;
+}
+
+.column-checkbox {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex: 1;
+}
+
+.column-checkbox input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+}
+
+/* ========== BULK ACTIONS BAR ========== */
+
+#bulkActionsContainer {
+    display: none;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.75rem 1rem;
+    background: var(--sol-primary-light);
+    border-radius: var(--sol-radius-md);
+    animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.bulk-actions-info {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--sol-primary);
+    font-weight: 500;
+}
+
+/* ========== ACTION BUTTONS ========== */
+
+.action-buttons {
+    display: flex;
+    gap: 0.25rem;
+    justify-content: center;
+}
+
+.btn-icon {
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    border: none;
+    background: transparent;
+    color: var(--sol-gray-600);
+    cursor: pointer;
+    border-radius: var(--sol-radius-sm);
+    transition: all var(--sol-transition-fast);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn-icon:hover {
+    background: var(--sol-gray-100);
+    color: var(--sol-gray-900);
+    transform: scale(1.1);
+}
+
+.btn-icon.text-danger:hover {
+    background: var(--sol-danger-light);
+    color: var(--sol-danger);
+}
+
+/* ========== STATUS BADGES ========== */
+
+.badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.25rem 0.75rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    border-radius: var(--sol-radius-full);
+    white-space: nowrap;
+}
+
+.badge i {
+    font-size: 0.625rem;
+}
+
+.badge-primary {
+    background: var(--sol-primary-light);
+    color: var(--sol-primary);
+}
+
+.badge-success {
+    background: var(--sol-success-light);
+    color: var(--sol-success);
+}
+
+.badge-info {
+    background: var(--sol-info-light);
+    color: var(--sol-info);
+}
+
+.badge-warning {
+    background: var(--sol-warning-light);
+    color: var(--sol-warning);
+}
+
+.badge-danger {
+    background: var(--sol-danger-light);
+    color: var(--sol-danger);
+}
+
+.badge-secondary {
+    background: var(--sol-gray-100);
+    color: var(--sol-gray-700);
+}
+
+/* ========== IMPORT/EXPORT MODALS ========== */
+
+.import-options {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.5rem;
+    padding: 2rem 0;
+}
+
+.import-option {
+    text-align: center;
+    padding: 2rem;
+    background: var(--sol-gray-50);
+    border: 2px solid transparent;
+    border-radius: var(--sol-radius-lg);
+    cursor: pointer;
+    transition: all var(--sol-transition-fast);
+}
+
+.import-option:hover {
+    background: white;
+    border-color: var(--sol-primary);
+    transform: translateY(-4px);
+    box-shadow: var(--sol-shadow-lg);
+}
+
+.import-option i {
+    margin-bottom: 1rem;
+}
+
+.import-option h4 {
+    margin: 1rem 0 0.5rem;
+    color: var(--sol-gray-900);
+}
+
+.import-option p {
+    margin: 0;
+    color: var(--sol-gray-600);
+    font-size: 0.875rem;
+}
+
+/* ========== TRACKING DETAILS MODAL ========== */
+
+.tracking-details {
+    padding: 1rem 0;
+}
+
+.detail-section {
+    margin-bottom: 2rem;
+}
+
+.detail-section:last-child {
+    margin-bottom: 0;
+}
+
+.detail-section h4 {
+    margin-bottom: 1rem;
+    color: var(--sol-gray-900);
+    font-weight: 600;
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid var(--sol-primary);
+}
+
+.detail-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+}
+
+.detail-item {
+    padding: 0.5rem 0;
+}
+
+.detail-item label {
+    display: block;
+    font-size: 0.75rem;
+    color: var(--sol-gray-500);
+    margin-bottom: 0.25rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.detail-item strong,
+.detail-item span {
+    font-size: 0.875rem;
+    color: var(--sol-gray-900);
+}
+
+/* ========== TIMELINE EVENTS ========== */
+
+.events-timeline {
+    position: relative;
+    padding-left: 2rem;
+}
+
+.timeline-event {
+    position: relative;
+    padding-bottom: 1.5rem;
+    border-left: 2px solid var(--sol-gray-200);
+    padding-left: 1.5rem;
+}
+
+.timeline-event:last-child {
+    border-left: none;
+    padding-bottom: 0;
+}
+
+.timeline-event::before {
+    content: '';
+    position: absolute;
+    left: -7px;
+    top: 0;
+    width: 12px;
+    height: 12px;
+    background: var(--sol-primary);
+    border-radius: 50%;
+    border: 2px solid white;
+    box-shadow: 0 0 0 2px var(--sol-gray-200);
+}
+
+.timeline-date {
+    font-size: 0.75rem;
+    color: var(--sol-gray-500);
+    margin-bottom: 0.25rem;
+}
+
+.timeline-content {
+    font-size: 0.875rem;
+    color: var(--sol-gray-900);
+}
+
+/* ========== LOADING STATES ========== */
+
+.sol-table-loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 4rem 2rem;
+    color: var(--sol-gray-600);
+}
+
+.loading-spinner {
+    width: 40px;
+    height: 40px;
+    border: 3px solid var(--sol-gray-200);
+    border-top-color: var(--sol-primary);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-bottom: 1rem;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* ========== EMPTY STATE ========== */
+
+.sol-table-empty {
+    text-align: center;
+    padding: 4rem 2rem;
+    color: var(--sol-gray-500);
+}
+
+.sol-table-empty i {
+    margin-bottom: 1rem;
+}
+
+/* ========== RESPONSIVE ADJUSTMENTS ========== */
+
+@media (max-width: 768px) {
+    .sol-table-controls {
+        flex-direction: column;
+        gap: 1rem;
+    }
+    
+    .sol-table-search {
+        max-width: 100%;
+    }
+    
+    .sol-table-actions {
+        width: 100%;
+        justify-content: center;
+    }
+    
+    .sol-table-pagination {
+        flex-direction: column;
+        gap: 1rem;
+        text-align: center;
+    }
+    
+    .import-options {
+        grid-template-columns: 1fr;
+    }
+    
+    .detail-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    #bulkActionsContainer {
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+}
