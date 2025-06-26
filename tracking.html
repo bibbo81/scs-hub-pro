@@ -104,7 +104,7 @@
     
     <!-- App Configuration -->
     <script>
-        window.APP_VERSION = 'v48.2';
+        window.APP_VERSION = 'v48.3-FIXED';
         window.SUPABASE_URL = 'https://gnlrmnsdmpjzitsysowq.supabase.co';
         window.SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdubHJtbnNkbXBqeml0c3lzb3dxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk0NjMxMzQsImV4cCI6MjA2NTAzOTEzNH0.UoJJoDUoDXGbiWnKNN48qb9PVQWOW_X_MXqAfzTHSaA';
     </script>
@@ -120,13 +120,13 @@
             <div class="page-header">
                 <h1>Tracking Spedizioni</h1>
                 <div class="page-actions">
-                    <button id="btnImport" class="sol-btn sol-btn-secondary">
-                        <i class="fas fa-file-import"></i> Importa
+                    <button id="btnImport" class="sol-btn sol-btn-secondary" onclick="showImportDialog()">
+                        <i class="fas fa-upload"></i> Importa
                     </button>
-                    <button id="btnExport" class="sol-btn sol-btn-secondary">
-                        <i class="fas fa-file-export"></i> Esporta
+                    <button id="btnExport" class="sol-btn sol-btn-secondary" onclick="exportData()">
+                        <i class="fas fa-download"></i> Esporta
                     </button>
-                    <button id="btnAddTracking" class="sol-btn sol-btn-primary">
+                    <button id="btnAddTracking" class="sol-btn sol-btn-primary" onclick="showAddTrackingForm()">
                         <i class="fas fa-plus"></i> Aggiungi Tracking
                     </button>
                 </div>
@@ -137,21 +137,24 @@
                 <div class="sol-card-body">
                     <div class="row g-3">
                         <div class="col-md-4">
-                            <input type="text" id="searchInput" class="form-control" 
-                                   placeholder="Cerca tracking number, carrier...">
+                            <label class="form-label">Cerca</label>
+                            <input type="text" id="searchInput" class="sol-form-control" 
+                                   placeholder="Numero tracking, carrier, riferimento...">
                         </div>
                         <div class="col-md-3">
-                            <select id="statusFilter" class="form-control">
+                            <label class="form-label">Stato</label>
+                            <select id="statusFilter" class="sol-form-control">
                                 <option value="">Tutti gli stati</option>
                                 <option value="delivered">Consegnato</option>
                                 <option value="in_transit">In transito</option>
                                 <option value="arrived">Arrivato</option>
-                                <option value="out_for_delivery">In consegna</option>
+                                <option value="pending">In attesa</option>
                                 <option value="exception">Eccezione</option>
                             </select>
                         </div>
                         <div class="col-md-3">
-                            <select id="carrierFilter" class="form-control">
+                            <label class="form-label">Carrier</label>
+                            <select id="carrierFilter" class="sol-form-control">
                                 <option value="">Tutti i carrier</option>
                                 <option value="fedex">FedEx</option>
                                 <option value="dhl">DHL</option>
@@ -160,9 +163,9 @@
                                 <option value="tnt">TNT</option>
                             </select>
                         </div>
-                        <div class="col-md-2">
-                            <button id="btnResetFilters" class="sol-btn sol-btn-secondary w-100">
-                                <i class="fas fa-undo"></i> Reset
+                        <div class="col-md-2 d-flex align-items-end">
+                            <button id="btnResetFilters" class="sol-btn sol-btn-outline w-100" onclick="resetFilters()">
+                                <i class="fas fa-redo"></i> Reset
                             </button>
                         </div>
                     </div>
@@ -172,30 +175,32 @@
             <!-- Bulk Actions Bar -->
             <div id="bulkActionsBar" class="bulk-actions-bar" style="display: none;">
                 <div class="bulk-actions-content">
-                    <span id="selectedCount">0 selezionati</span>
-                    <div class="bulk-actions-buttons">
-                        <button id="btnBulkRefresh" class="sol-btn sol-btn-sm sol-btn-primary">
+                    <div>
+                        <span class="text-muted">Selezionati:</span>
+                        <strong id="selectedCount">0</strong> tracking
+                    </div>
+                    <div>
+                        <button class="sol-btn sol-btn-sm sol-btn-secondary" onclick="performBulkAction('refresh')">
                             <i class="fas fa-sync"></i> Aggiorna
                         </button>
-                        <button id="btnBulkExport" class="sol-btn sol-btn-sm sol-btn-secondary">
-                            <i class="fas fa-download"></i> Esporta
-                        </button>
-                        <button id="btnBulkDelete" class="sol-btn sol-btn-sm sol-btn-danger">
+                        <button class="sol-btn sol-btn-sm sol-btn-danger" onclick="performBulkAction('delete')">
                             <i class="fas fa-trash"></i> Elimina
                         </button>
                     </div>
                 </div>
             </div>
 
-            <!-- Tracking Table -->
+            <!-- Main Table Card -->
             <div class="sol-card">
-                <div class="sol-card-body">
+                <div class="sol-card-body p-0">
+                    <!-- Table -->
                     <div class="table-responsive">
-                        <table class="sol-table" id="trackingTable">
+                        <table id="trackingTable" class="sol-table">
                             <thead>
                                 <tr>
                                     <th width="40">
-                                        <input type="checkbox" id="selectAll" class="form-check-input">
+                                        <input type="checkbox" class="form-check-input" 
+                                               onchange="toggleSelectAll(this)">
                                     </th>
                                     <th>Tracking Number</th>
                                     <th>Carrier</th>
@@ -203,7 +208,7 @@
                                     <th>Origine</th>
                                     <th>Destinazione</th>
                                     <th>Ultimo Aggiornamento</th>
-                                    <th width="100">Azioni</th>
+                                    <th width="120">Azioni</th>
                                 </tr>
                             </thead>
                             <tbody id="trackingTableBody">
@@ -254,9 +259,9 @@
                 const supabaseClientModule = await import(`/core/services/supabase-client.js?v=${V}`).catch(() => null);
                 const supabaseTrackingModule = await import(`/core/services/supabase-tracking-service.js?v=${V}`).catch(() => null);
                 const orgApiKeysModule = await import(`/core/services/organization-api-keys-service.js?v=${V}`).catch(() => null);
-                
-                // Services
                 const trackingServiceModule = await import(`/core/services/tracking-service.js?v=${V}`).catch(() => null);
+                
+                // Tracking form progressive
                 const trackingFormModule = await import(`/pages/tracking/tracking-form-progressive.js?v=${V}`).catch(() => null);
                 
                 // Expose modules globally
@@ -271,21 +276,10 @@
                 if (supabaseTrackingModule) window.supabaseTrackingService = supabaseTrackingModule.default;
                 if (orgApiKeysModule) window.organizationApiKeysService = orgApiKeysModule.default;
                 if (trackingServiceModule) window.trackingService = trackingServiceModule.default;
-                if (trackingFormModule) {
-                    window.TrackingFormProgressive = trackingFormModule;
-                    // Check if the function is directly exported
-                    if (trackingFormModule.showEnhancedTrackingForm) {
-                        window.showEnhancedTrackingForm = trackingFormModule.showEnhancedTrackingForm;
-                        console.log('✅ showEnhancedTrackingForm exposed globally');
-                    }
-                    // Check default export
-                    if (trackingFormModule.default?.showEnhancedTrackingForm) {
-                        window.showEnhancedTrackingForm = trackingFormModule.default.showEnhancedTrackingForm;
-                        console.log('✅ showEnhancedTrackingForm from default export');
-                    }
-                }
+                if (trackingFormModule) window.TrackingFormProgressive = trackingFormModule;
                 
-                console.log('✅ Modules loaded:', {
+                // Log module status
+                console.log('📦 Module status:', {
                     api: !!window.api,
                     header: !!window.headerComponent,
                     notification: !!window.NotificationSystem,
@@ -324,6 +318,10 @@
     <script src="/core/auth.js"></script>
     <script src="/core/auth-init.js"></script>
     
+    <!-- NUOVO: Fix Script per inizializzazione -->
+    <script src="/pages/tracking/tracking-init-fix.js"></script>
+    
+
     <!-- Fallback functions -->
     <script>
         // Fallback functions in case modules don't load
@@ -354,6 +352,15 @@
                         location.reload();
                     }
                 }
+            };
+        }
+        
+        if (!window.resetFilters) {
+            window.resetFilters = function() {
+                document.getElementById('searchInput').value = '';
+                document.getElementById('statusFilter').value = '';
+                document.getElementById('carrierFilter').value = '';
+                if (window.applyFilters) window.applyFilters();
             };
         }
     </script>

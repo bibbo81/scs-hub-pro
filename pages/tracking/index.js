@@ -311,11 +311,16 @@ function showError(message) {
     }
 }
 
-// Apply filters
+// Apply filters - Dynamic options
 function applyFilters() {
     const searchTerm = document.getElementById('searchInput')?.value.toLowerCase() || '';
     const statusFilter = document.getElementById('statusFilter')?.value || '';
     const carrierFilter = document.getElementById('carrierFilter')?.value || '';
+    
+    // Populate filter dropdowns dynamically on first load
+    if (trackings.length > 0) {
+        populateFilterOptions();
+    }
     
     filteredTrackings = trackings.filter(tracking => {
         // Search filter
@@ -325,7 +330,8 @@ function applyFilters() {
             tracking.reference?.toLowerCase().includes(searchTerm);
         
         // Status filter
-        const matchesStatus = !statusFilter || tracking.status === statusFilter;
+        const trackingStatus = tracking.status || tracking.current_status;
+        const matchesStatus = !statusFilter || trackingStatus === statusFilter;
         
         // Carrier filter
         const matchesCarrier = !carrierFilter || tracking.carrier_code === carrierFilter;
@@ -334,6 +340,35 @@ function applyFilters() {
     });
     
     renderTable();
+}
+
+// Populate filter dropdowns with actual data
+function populateFilterOptions() {
+    // Get unique statuses
+    const statuses = [...new Set(trackings.map(t => t.status || t.current_status).filter(Boolean))];
+    const statusSelect = document.getElementById('statusFilter');
+    if (statusSelect && statusSelect.options.length <= 1) {
+        statuses.forEach(status => {
+            const option = new Option(
+                status.replace(/_/g, ' ').charAt(0).toUpperCase() + status.slice(1).replace(/_/g, ' '),
+                status
+            );
+            statusSelect.add(option);
+        });
+    }
+    
+    // Get unique carriers
+    const carriers = [...new Set(trackings.map(t => t.carrier_code).filter(Boolean))];
+    const carrierSelect = document.getElementById('carrierFilter');
+    if (carrierSelect && carrierSelect.options.length <= 1) {
+        carriers.forEach(carrier => {
+            const option = new Option(
+                carrier.toUpperCase(),
+                carrier
+            );
+            carrierSelect.add(option);
+        });
+    }
 }
 
 // Render table
@@ -431,18 +466,27 @@ function renderTable() {
     console.log(`✅ Rendered ${filteredTrackings.length} trackings`);
 }
 
-// Render status badge
+// Render status badge - Dynamic classes
 function renderStatus(status) {
+    if (!status) return '<span class="badge badge-secondary">-</span>';
+    
     const statusConfig = {
         delivered: { class: 'badge-success', icon: 'check-circle', text: 'Consegnato' },
         in_transit: { class: 'badge-info', icon: 'truck', text: 'In transito' },
         arrived: { class: 'badge-primary', icon: 'inbox', text: 'Arrivato' },
         out_for_delivery: { class: 'badge-warning', icon: 'truck-loading', text: 'In consegna' },
         exception: { class: 'badge-danger', icon: 'exclamation-triangle', text: 'Eccezione' },
-        pending: { class: 'badge-secondary', icon: 'clock', text: 'In attesa' }
+        pending: { class: 'badge-secondary', icon: 'clock', text: 'In attesa' },
+        registered: { class: 'badge-secondary', icon: 'file-alt', text: 'Registrato' },
+        customs_cleared: { class: 'badge-info', icon: 'passport', text: 'Sdoganato' },
+        delayed: { class: 'badge-warning', icon: 'hourglass-half', text: 'In ritardo' }
     };
     
-    const config = statusConfig[status] || statusConfig.pending;
+    const config = statusConfig[status] || { 
+        class: 'badge-secondary', 
+        icon: 'question', 
+        text: status.replace(/_/g, ' ').charAt(0).toUpperCase() + status.slice(1).replace(/_/g, ' ')
+    };
     
     return `
         <span class="badge ${config.class}">
@@ -519,7 +563,7 @@ function resetFilters() {
     applyFilters();
 }
 
-// Add tracking form - Enhanced debug and fallback
+// Add tracking form - Clean without hardcoded values
 async function showAddTrackingForm() {
     console.log('showAddTrackingForm called, checking available methods...');
     console.log('TrackingFormProgressive:', window.TrackingFormProgressive);
@@ -540,7 +584,7 @@ async function showAddTrackingForm() {
         // Ultimate fallback with native prompt
         const trackingNumber = prompt('Inserisci il tracking number:');
         if (trackingNumber) {
-            const carrier = prompt('Carrier (fedex/dhl/ups/gls/tnt) - lascia vuoto per auto-detect:') || '';
+            const carrier = prompt('Carrier (opzionale):') || '';
             const reference = prompt('Riferimento (opzionale):') || '';
             
             await addTracking({ 
@@ -832,25 +876,42 @@ async function exportTrackings() {
     }
 }
 
-// Basic CSV export fallback
+// Basic CSV export fallback - Clean without hardcoded headers
 function exportBasicCSV() {
     try {
-        const headers = ['tracking_number', 'carrier_code', 'status', 'origin', 'destination', 'reference', 'last_update'];
-        const rows = filteredTrackings.map(t => [
-            t.tracking_number || '',
-            t.carrier_code || '',
-            t.status || t.current_status || '',
-            t.origin || t.origin_port || '',
-            t.destination || t.destination_port || '',
-            t.reference || '',
-            t.last_update || t.updated_at || ''
-        ]);
+        // Get headers dynamically from first tracking object
+        const firstTracking = filteredTrackings[0] || {};
+        const headers = Object.keys(firstTracking).filter(key => 
+            !key.startsWith('_') && // Skip private fields
+            key !== 'id' && // Skip internal ID
+            firstTracking[key] !== null && 
+            firstTracking[key] !== undefined
+        );
         
+        // If no trackings, use minimal headers
+        if (headers.length === 0) {
+            window.NotificationSystem?.warning('Nessun dato da esportare');
+            return;
+        }
+        
+        // Create CSV data
+        const rows = filteredTrackings.map(tracking => 
+            headers.map(header => {
+                const value = tracking[header] || '';
+                // Escape quotes and wrap in quotes if contains comma
+                return typeof value === 'string' && value.includes(',') 
+                    ? `"${value.replace(/"/g, '""')}"` 
+                    : value;
+            })
+        );
+        
+        // Build CSV
         let csv = headers.join(',') + '\n';
         rows.forEach(row => {
-            csv += row.map(cell => `"${cell}"`).join(',') + '\n';
+            csv += row.join(',') + '\n';
         });
         
+        // Download
         const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
         const link = document.createElement('a');
         link.href = URL.createObjectURL(blob);
