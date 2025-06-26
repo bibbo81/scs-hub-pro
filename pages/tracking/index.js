@@ -223,6 +223,17 @@ document.addEventListener('DOMContentLoaded', async () => {
         setupEventListeners();
         
         // Initialize tracking service if available
+        if (!window.trackingService) {
+            // Try to import it
+            try {
+                const module = await import('/core/services/tracking-service.js');
+                window.trackingService = module.default || module.trackingService || module;
+                console.log('🔧 Tracking service imported');
+            } catch (error) {
+                console.warn('⚠️ Could not import tracking service:', error);
+            }
+        }
+        
         if (window.trackingService) {
             console.log('🔧 Initializing tracking service...');
             const initialized = await window.trackingService.initialize();

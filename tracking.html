@@ -346,41 +346,68 @@
     
     <!-- Fix for progressive form -->
     <script>
-        // Ensure showEnhancedTrackingForm is available
-        setTimeout(() => {
-            if (!window.showEnhancedTrackingForm) {
-                window.showEnhancedTrackingForm = function() {
-                    console.log('Opening tracking form...');
-                    if (window.trackingFormProgressive && window.trackingFormProgressive.show) {
-                        window.trackingFormProgressive.show();
-                    } else if (window.showWorkflowProgress) {
-                        // Use the workflow progress as fallback
-                        window.showWorkflowProgress();
-                    } else {
-                        window.NotificationSystem?.error('Form non disponibile');
-                    }
-                };
-            }
-            
-            // Add handleImport method to ImportManager for progressive form
-            if (window.ImportManager && !window.ImportManager.handleImport) {
-                window.ImportManager.handleImport = async function(file, options = {}) {
-                    console.log('Progressive form calling handleImport, redirecting to importFile...');
-                    
-                    // Adapt options for importFile
-                    const importOptions = {
-                        entity: 'tracking',
-                        columnMapping: window.COLUMN_MAPPING || {},
-                        statusMapping: window.getStatusMapping ? window.getStatusMapping() : {},
-                        saveToSupabase: true,
-                        ...options
+        // Wait for all modules to be loaded
+        document.addEventListener('DOMContentLoaded', () => {
+            setTimeout(() => {
+                // Ensure showEnhancedTrackingForm is available
+                if (!window.showEnhancedTrackingForm) {
+                    window.showEnhancedTrackingForm = function() {
+                        console.log('Opening tracking form...');
+                        if (window.trackingFormProgressive && window.trackingFormProgressive.show) {
+                            window.trackingFormProgressive.show();
+                        } else if (window.showWorkflowProgress) {
+                            window.showWorkflowProgress();
+                        } else {
+                            window.NotificationSystem?.error('Form non disponibile');
+                        }
                     };
-                    
-                    // Call the existing importFile method
-                    return await this.importFile(file, importOptions);
-                };
-            }
-        }, 1000);
+                }
+                
+                // Add handleImport method to ImportManager for progressive form
+                if (window.ImportManager && !window.ImportManager.handleImport) {
+                    console.log('Adding handleImport to ImportManager...');
+                    window.ImportManager.handleImport = async function(file, options = {}) {
+                        console.log('Progressive form calling handleImport, redirecting to importFile...');
+                        
+                        // Adapt options for importFile
+                        const importOptions = {
+                            entity: 'tracking',
+                            columnMapping: window.COLUMN_MAPPING || {},
+                            statusMapping: window.getStatusMapping ? window.getStatusMapping() : {},
+                            saveToSupabase: true,
+                            trackingService: window.trackingService,
+                            supabaseService: window.supabaseTrackingService,
+                            ...options
+                        };
+                        
+                        try {
+                            // Call the existing importFile method
+                            const result = await this.importFile(file, importOptions);
+                            
+                            // Refresh trackings after successful import
+                            if (result && result.success && window.trackingDebug) {
+                                await window.trackingDebug.refresh();
+                            }
+                            
+                            return result;
+                        } catch (error) {
+                            console.error('Import error:', error);
+                            return {
+                                success: false,
+                                error: error.message
+                            };
+                        }
+                    };
+                }
+                
+                // Also ensure column mapping is available globally
+                if (!window.COLUMN_MAPPING && window.trackingDebug) {
+                    window.COLUMN_MAPPING = window.trackingDebug.getColumnMapping();
+                }
+                
+                console.log('Progressive form fixes applied');
+            }, 2000); // Wait 2 seconds to ensure everything is loaded
+        });
     </script>
 </body>
 </html>
