@@ -11,7 +11,7 @@ const createClient = window.supabase.createClient;
 
 // Configurazione Supabase
 const SUPABASE_URL = 'https://gnlrmnsdmpjzitsysowq.supabase.co';
-const SUPABASE_ANON_KEY = 'sb_publishable_UlQ7dXvHEK9ciK0wi2ABUg_jlPcwsNg';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdubHJtbnNkbXBqeml0c3lzb3dxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk0NjMxMzQsImV4cCI6MjA2NTAzOTEzNH0.UoJJoDUoDXGbiWnKNN48qb9PVQWOW_X_MXqAfzTHSaA';
 
 // Flag per tracciare lo stato dell'inizializzazione
 let isInitializing = false;
