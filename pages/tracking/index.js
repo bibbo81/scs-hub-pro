@@ -6,6 +6,140 @@ let filteredTrackings = [];
 let tableManager = null;
 let selectedTrackingIds = new Set();
 
+// ===== COLUMN MAPPING - MANTENUTO DAL SISTEMA ORIGINALE =====
+const COLUMN_MAPPING = {
+    // Container/Tracking info
+    'Container': 'tracking_number',
+    'ContainerNumber': 'tracking_number',
+    'Container Number': 'tracking_number',
+    'AWB Number': 'tracking_number',
+    'Tracking Number': 'tracking_number',
+    'tracking_number': 'tracking_number',
+    
+    // Carrier info
+    'Carrier': 'carrier_code',
+    'ShippingLine': 'carrier_code',
+    'Shipping Line': 'carrier_code',
+    'Airline': 'carrier_code',
+    'carrier_code': 'carrier_code',
+    'CarrierName': 'carrier_name',
+    'carrier_name': 'carrier_name',
+    
+    // Status
+    'Status': 'current_status',
+    'CurrentStatus': 'current_status',
+    'Current Status': 'current_status',
+    'status': 'current_status',
+    
+    // Ports
+    'Port Of Loading': 'origin_port',
+    'Pol': 'origin_port',
+    'POL': 'origin_port',
+    'Origin': 'origin_port',
+    'origin_port': 'origin_port',
+    'Port Of Discharge': 'destination_port',
+    'Pod': 'destination_port',
+    'POD': 'destination_port',
+    'Destination': 'destination_port',
+    'destination_port': 'destination_port',
+    
+    // Countries
+    'POL Country': 'origin_country',
+    'FromCountry': 'origin_country',
+    'POL Country Code': 'origin_country_code',
+    'FromCountryCode': 'origin_country_code',
+    'POD Country': 'destination_country',
+    'ToCountry': 'destination_country',
+    'POD Country Code': 'destination_country_code',
+    'ToCountryCode': 'destination_country_code',
+    
+    // Dates
+    'Date Of Loading': 'date_of_loading',
+    'LoadingDate': 'date_of_loading',
+    'Date Of Departure': 'date_of_departure',
+    'Date Of Discharge': 'date_of_arrival',
+    'Date Of Arrival': 'date_of_arrival',
+    'ETA': 'eta',
+    'ETD': 'etd',
+    
+    // References
+    'Reference': 'reference',
+    'Reference Number': 'reference',
+    'Booking': 'booking',
+    'Booking Number': 'booking',
+    'BL Number': 'bl_number',
+    
+    // Type
+    'Type': 'tracking_type',
+    'Tracking Type': 'tracking_type',
+    'tracking_type': 'tracking_type'
+};
+
+// ===== STATUS MAPPING - MANTENUTO DAL SISTEMA ORIGINALE =====
+const STATUS_MAPPING = {
+    // In Transit
+    'Sailing': 'in_transit',
+    'In Transit': 'in_transit',
+    'In transito': 'in_transit',
+    'At local FedEx facility': 'in_transit',
+    'Departed FedEx hub': 'in_transit',
+    'On the way': 'in_transit',
+    'Arrived at FedEx hub': 'in_transit',
+    'At destination sort facility': 'in_transit',
+    'Left FedEx origin facility': 'in_transit',
+    'Picked up': 'in_transit',
+    'Arrivata nella Sede GLS locale.': 'in_transit',
+    'In transito.': 'in_transit',
+    'Partita dalla sede mittente. In transito.': 'in_transit',
+    'La spedizione è in transito': 'in_transit',
+    'Loading': 'in_transit',
+    'Loaded': 'in_transit',
+    'Gate In': 'in_transit',
+    'Transhipment': 'in_transit',
+    
+    // Arrived/Discharged (nuovo stato)
+    'Arrived': 'arrived',
+    'Arrivata': 'arrived',
+    'Discharged': 'arrived',
+    'Scaricato': 'arrived',
+    'Discharging': 'arrived',
+    
+    // Out for Delivery
+    'On FedEx vehicle for delivery': 'out_for_delivery',
+    'Consegna prevista nel corso della giornata odierna.': 'out_for_delivery',
+    'La spedizione è in consegna': 'out_for_delivery',
+    'In consegna': 'out_for_delivery',
+    'Gate Out': 'out_for_delivery',
+    
+    // Delivered
+    'Delivered': 'delivered',
+    'Consegnato': 'delivered',
+    'LA spedizione è stata consegnata': 'delivered',
+    'Consegnata.': 'delivered',
+    'La spedizione è stata consegnata': 'delivered',
+    'Empty': 'delivered',
+    'Empty Returned': 'delivered',
+    'POD': 'delivered',
+    
+    // Customs
+    'International shipment release - Import': 'customs_cleared',
+    'Sdoganata': 'customs_cleared',
+    'Customs Cleared': 'customs_cleared',
+    
+    // Registered
+    'Shipment information sent to FedEx': 'registered',
+    'Spedizione creata': 'registered',
+    'La spedizione e\' stata creata dal mittente, attendiamo che ci venga affidata per l\'invio a destinazione.': 'registered',
+    'Registered': 'registered',
+    'Pending': 'registered',
+    'Booked': 'registered',
+    'Booking Confirmed': 'registered',
+    
+    // Delayed/Exception
+    'Delayed': 'delayed',
+    'Exception': 'exception'
+};
+
 // Initialize when DOM is ready
 document.addEventListener('DOMContentLoaded', async () => {
     console.log('🚀 Initializing tracking page...');
@@ -304,22 +438,41 @@ async function showAddTrackingForm() {
     }
 }
 
-// Add tracking
+// Add tracking with proper status mapping
 async function addTracking(data) {
     try {
-        const tracking = await window.supabaseTrackingService.createTracking({
-            ...data,
-            status: 'pending',
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-        });
+        // Apply status mapping if status provided
+        if (data.status && STATUS_MAPPING[data.status]) {
+            data.status = STATUS_MAPPING[data.status];
+        } else if (!data.status) {
+            data.status = 'pending';
+        }
         
-        if (tracking) {
+        // Apply column mapping for any imported data
+        const mappedData = {};
+        for (const [key, value] of Object.entries(data)) {
+            const mappedKey = COLUMN_MAPPING[key] || key;
+            mappedData[mappedKey] = value;
+        }
+        
+        // Ensure required fields
+        const tracking = {
+            ...mappedData,
+            status: mappedData.status || 'pending',
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+            user_id: null, // Will be set by Supabase RLS
+            organization_id: null // Will be set based on user's org
+        };
+        
+        const result = await window.supabaseTrackingService.createTracking(tracking);
+        
+        if (result) {
             window.NotificationSystem?.success('Tracking aggiunto con successo');
             await loadTrackings();
             
             // Auto-refresh new tracking
-            setTimeout(() => refreshTracking(tracking.id), 1000);
+            setTimeout(() => refreshTracking(result.id), 1000);
         }
     } catch (error) {
         console.error('Error adding tracking:', error);
@@ -327,7 +480,7 @@ async function addTracking(data) {
     }
 }
 
-// Refresh tracking
+// Refresh tracking with status mapping
 async function refreshTracking(id) {
     try {
         const tracking = trackings.find(t => t.id === id);
@@ -340,12 +493,23 @@ async function refreshTracking(id) {
             btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
         }
         
-        // Call tracking service to update
-        const updated = await window.trackingService.updateTrackingStatus(tracking.tracking_number, tracking.carrier_code);
+        // Call tracking service to update from API
+        const updated = await window.trackingService.updateTrackingStatus(
+            tracking.tracking_number, 
+            tracking.carrier_code
+        );
         
         if (updated) {
+            // Apply status mapping to API response
+            if (updated.status && STATUS_MAPPING[updated.status]) {
+                updated.status = STATUS_MAPPING[updated.status];
+            }
+            
             // Update in Supabase
-            await window.supabaseTrackingService.updateTracking(id, updated);
+            await window.supabaseTrackingService.updateTracking(id, {
+                ...updated,
+                last_update: new Date().toISOString()
+            });
             
             // Reload data
             await loadTrackings();
@@ -355,6 +519,13 @@ async function refreshTracking(id) {
     } catch (error) {
         console.error('Error refreshing tracking:', error);
         window.NotificationSystem?.error('Errore nell\'aggiornamento');
+    } finally {
+        // Reset button state
+        const btn = document.querySelector(`button[onclick="refreshTracking('${id}')"]`);
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-sync"></i>';
+        }
     }
 }
 
@@ -429,14 +600,81 @@ async function deleteTracking(id) {
     }
 }
 
-// Import dialog
+// Import dialog with ShipsGo detection
 async function showImportDialog() {
     if (window.ImportManager?.showImportDialog) {
         await window.ImportManager.showImportDialog();
         await loadTrackings(); // Reload after import
+    } else if (window.ImportManager?.importFile) {
+        // Use file input as fallback
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = '.csv,.xlsx,.xls';
+        
+        input.onchange = async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            
+            try {
+                // Detect ShipsGo file type
+                const fileContent = await readFileContent(file);
+                const shipsgoType = detectShipsGoType(fileContent);
+                
+                console.log('[Import] Detected ShipsGo type:', shipsgoType);
+                
+                // Import with column and status mapping
+                await window.ImportManager.importFile(file, {
+                    updateExisting: false,
+                    shipsgoType: shipsgoType,
+                    statusMapping: STATUS_MAPPING,
+                    columnMapping: COLUMN_MAPPING
+                });
+                
+                await loadTrackings();
+            } catch (error) {
+                console.error('Import error:', error);
+                window.NotificationSystem?.error('Errore durante l\'import: ' + error.message);
+            }
+        };
+        
+        input.click();
     } else {
         window.NotificationSystem?.warning('Import manager non disponibile');
     }
+}
+
+// Helper to read file content
+async function readFileContent(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (e) => resolve(e.target.result);
+        reader.onerror = (e) => reject(e);
+        reader.readAsText(file);
+    });
+}
+
+// Detect ShipsGo file type
+function detectShipsGoType(content) {
+    const headers = content.split('\n')[0].toLowerCase();
+    
+    // Check for AIR indicators
+    if (headers.includes('awb number') || 
+        headers.includes('airline') || 
+        headers.includes('ts count') ||
+        headers.includes('transit time')) {
+        return 'air';
+    }
+    
+    // Check for SEA indicators
+    if (headers.includes('container count') || 
+        headers.includes('port of loading') || 
+        headers.includes('port of discharge') ||
+        headers.includes('co2 emission')) {
+        return 'sea';
+    }
+    
+    // Default fallback
+    return 'generic';
 }
 
 // Export trackings
@@ -617,3 +855,7 @@ window.refreshTracking = refreshTracking;
 window.viewDetails = viewDetails;
 window.deleteTracking = deleteTracking;
 window.loadTrackings = loadTrackings;
+
+// Expose mapping for debugging and external use
+window.COLUMN_MAPPING = COLUMN_MAPPING;
+window.STATUS_MAPPING = STATUS_MAPPING;
