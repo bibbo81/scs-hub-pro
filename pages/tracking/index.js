@@ -170,20 +170,30 @@ async function initialize() {
     }
 }
 
-// Wait for required modules
+// Wait for required modules with timeout
 async function waitForModules() {
     const maxAttempts = 30;
     let attempts = 0;
     
+    console.log('Waiting for modules...');
+    
     while (attempts < maxAttempts) {
         const modulesReady = window.TableManager && 
                            window.NotificationSystem && 
-                           window.ModalSystem &&
-                           window.trackingService &&
                            window.supabaseTrackingService;
         
         if (modulesReady) {
-            console.log('✅ All modules ready');
+            console.log('✅ Core modules ready');
+            
+            // Log status of optional modules
+            console.log('Optional modules status:', {
+                ModalSystem: !!window.ModalSystem,
+                ExportManager: !!window.ExportManager,
+                ImportManager: !!window.ImportManager,
+                trackingService: !!window.trackingService,
+                TrackingFormProgressive: !!window.TrackingFormProgressive
+            });
+            
             return;
         }
         
@@ -191,7 +201,7 @@ async function waitForModules() {
         await new Promise(resolve => setTimeout(resolve, 100));
     }
     
-    throw new Error('Required modules not loaded in time');
+    console.warn('⚠️ Some modules not loaded after timeout, continuing anyway...');
 }
 
 // Initialize components
@@ -509,18 +519,29 @@ function resetFilters() {
     applyFilters();
 }
 
-// Add tracking form - Fix for missing show method
+// Add tracking form - Enhanced debug and fallback
 async function showAddTrackingForm() {
     console.log('showAddTrackingForm called, checking available methods...');
+    console.log('TrackingFormProgressive:', window.TrackingFormProgressive);
+    console.log('Available methods:', Object.keys(window.TrackingFormProgressive || {}));
     
-    if (window.TrackingFormProgressive?.showEnhancedTrackingForm) {
+    // Try different methods from TrackingFormProgressive
+    if (window.showEnhancedTrackingForm && typeof window.showEnhancedTrackingForm === 'function') {
+        console.log('Using global showEnhancedTrackingForm');
+        window.showEnhancedTrackingForm();
+    } else if (window.TrackingFormProgressive?.showEnhancedTrackingForm) {
+        console.log('Using TrackingFormProgressive.showEnhancedTrackingForm');
         window.TrackingFormProgressive.showEnhancedTrackingForm();
+    } else if (window.TrackingFormProgressive?.showTrackingForm) {
+        console.log('Using TrackingFormProgressive.showTrackingForm');
+        window.TrackingFormProgressive.showTrackingForm();
     } else {
+        console.log('Using native prompt fallback');
         // Ultimate fallback with native prompt
         const trackingNumber = prompt('Inserisci il tracking number:');
         if (trackingNumber) {
-            const carrier = prompt('Inserisci il carrier (fedex, dhl, ups, gls, tnt):') || '';
-            const reference = prompt('Inserisci un riferimento (opzionale):') || '';
+            const carrier = prompt('Carrier (fedex/dhl/ups/gls/tnt) - lascia vuoto per auto-detect:') || '';
+            const reference = prompt('Riferimento (opzionale):') || '';
             
             await addTracking({ 
                 tracking_number: trackingNumber,
@@ -693,11 +714,13 @@ async function deleteTracking(id) {
     }
 }
 
-// Import dialog with ShipsGo detection
+// Import dialog with enhanced fallback
 async function showImportDialog() {
+    console.log('Import dialog called, checking ImportManager:', window.ImportManager);
+    
     if (window.ImportManager?.showImportDialog) {
         await window.ImportManager.showImportDialog();
-        await loadTrackings(); // Reload after import
+        await loadTrackings();
     } else if (window.ImportManager?.importFile) {
         // Use file input as fallback
         const input = document.createElement('input');
@@ -709,10 +732,13 @@ async function showImportDialog() {
             if (!file) return;
             
             try {
+                window.NotificationSystem?.info('Importazione in corso...');
+                
                 // Detect ShipsGo file type
                 const fileContent = await readFileContent(file);
                 const shipsgoType = detectShipsGoType(fileContent);
                 
+                console.log('[Import] File selected:', file.name);
                 console.log('[Import] Detected ShipsGo type:', shipsgoType);
                 
                 // Import with column and status mapping
@@ -724,6 +750,7 @@ async function showImportDialog() {
                 });
                 
                 await loadTrackings();
+                window.NotificationSystem?.success('Import completato');
             } catch (error) {
                 console.error('Import error:', error);
                 window.NotificationSystem?.error('Errore durante l\'import: ' + error.message);
@@ -732,7 +759,9 @@ async function showImportDialog() {
         
         input.click();
     } else {
-        window.NotificationSystem?.warning('Import manager non disponibile');
+        // No import manager available
+        window.NotificationSystem?.error('Import manager non disponibile. Ricarica la pagina.');
+        console.error('ImportManager not found:', window.ImportManager);
     }
 }
 
@@ -770,28 +799,68 @@ function detectShipsGoType(content) {
     return 'generic';
 }
 
-// Export trackings - Fix with native confirm
+// Export trackings - Enhanced with debug
 async function exportTrackings() {
+    console.log('Export called, checking ExportManager:', window.ExportManager);
+    
     try {
+        if (!window.ExportManager) {
+            // Try to create a basic CSV export
+            console.log('ExportManager not found, using basic CSV export');
+            exportBasicCSV();
+            return;
+        }
+        
         // Use native confirm as fallback
         const useExcel = confirm('Export in Excel?\n(OK = Excel, Annulla = PDF)');
         
-        if (window.ExportManager) {
-            if (useExcel) {
-                await window.ExportManager.exportToExcel(filteredTrackings, 'tracking-export');
-                window.NotificationSystem?.success('Export Excel completato');
-            } else {
-                await window.ExportManager.exportToPDF(filteredTrackings, 'tracking-export');
-                window.NotificationSystem?.success('Export PDF completato');
-            }
+        if (useExcel) {
+            await window.ExportManager.exportToExcel(filteredTrackings, 'tracking-export');
+            window.NotificationSystem?.success('Export Excel completato');
         } else {
-            window.NotificationSystem?.error('Export Manager non disponibile');
+            await window.ExportManager.exportToPDF(filteredTrackings, 'tracking-export');
+            window.NotificationSystem?.success('Export PDF completato');
         }
     } catch (error) {
         console.error('Error exporting:', error);
-        if (window.NotificationSystem) {
-            window.NotificationSystem.error('Errore nell\'export: ' + error.message);
+        window.NotificationSystem?.error('Errore nell\'export: ' + error.message);
+        
+        // Fallback to basic CSV
+        if (confirm('Export fallito. Vuoi esportare in CSV semplice?')) {
+            exportBasicCSV();
         }
+    }
+}
+
+// Basic CSV export fallback
+function exportBasicCSV() {
+    try {
+        const headers = ['tracking_number', 'carrier_code', 'status', 'origin', 'destination', 'reference', 'last_update'];
+        const rows = filteredTrackings.map(t => [
+            t.tracking_number || '',
+            t.carrier_code || '',
+            t.status || t.current_status || '',
+            t.origin || t.origin_port || '',
+            t.destination || t.destination_port || '',
+            t.reference || '',
+            t.last_update || t.updated_at || ''
+        ]);
+        
+        let csv = headers.join(',') + '\n';
+        rows.forEach(row => {
+            csv += row.map(cell => `"${cell}"`).join(',') + '\n';
+        });
+        
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = `tracking-export-${new Date().toISOString().split('T')[0]}.csv`;
+        link.click();
+        
+        window.NotificationSystem?.success('Export CSV completato');
+    } catch (error) {
+        console.error('Error in basic CSV export:', error);
+        window.NotificationSystem?.error('Errore export CSV: ' + error.message);
     }
 }
 

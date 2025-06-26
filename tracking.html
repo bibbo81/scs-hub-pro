@@ -271,7 +271,19 @@
                 if (supabaseTrackingModule) window.supabaseTrackingService = supabaseTrackingModule.default;
                 if (orgApiKeysModule) window.organizationApiKeysService = orgApiKeysModule.default;
                 if (trackingServiceModule) window.trackingService = trackingServiceModule.default;
-                if (trackingFormModule) window.TrackingFormProgressive = trackingFormModule;
+                if (trackingFormModule) {
+                    window.TrackingFormProgressive = trackingFormModule;
+                    // Check if the function is directly exported
+                    if (trackingFormModule.showEnhancedTrackingForm) {
+                        window.showEnhancedTrackingForm = trackingFormModule.showEnhancedTrackingForm;
+                        console.log('✅ showEnhancedTrackingForm exposed globally');
+                    }
+                    // Check default export
+                    if (trackingFormModule.default?.showEnhancedTrackingForm) {
+                        window.showEnhancedTrackingForm = trackingFormModule.default.showEnhancedTrackingForm;
+                        console.log('✅ showEnhancedTrackingForm from default export');
+                    }
+                }
                 
                 console.log('✅ Modules loaded:', {
                     api: !!window.api,
