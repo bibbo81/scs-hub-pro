@@ -23,6 +23,10 @@
     
     <!-- XLSX for Excel support -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    
+    <!-- jsPDF for PDF export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
 
     <!-- Inline styles for critical elements -->
     <style>
@@ -93,48 +97,48 @@
             </div>
 
             <!-- Stats Row -->
-            <div class="d-flex justify-content-between align-items-center mb-4" style="gap: 1rem; overflow-x: auto;">
-                <div class="stat-card flex-fill">
+            <div class="stats-container d-flex justify-content-around align-items-center mb-4 p-4" style="background: #f8f9fa; border-radius: 12px;">
+                <div class="stat-item text-center">
                     <div class="d-flex align-items-center">
-                        <div class="stat-icon bg-primary mr-3">
-                            <i class="fas fa-box-open"></i>
+                        <div class="stat-icon mr-3" style="font-size: 2.5rem; color: #6366f1;">
+                            <i class="fas fa-box"></i>
                         </div>
-                        <div class="stat-content">
-                            <h3 id="totalTrackings" class="mb-0">0</h3>
-                            <p class="mb-0">Totale Tracking</p>
+                        <div class="text-left">
+                            <h2 class="mb-0" id="totalTrackings">0</h2>
+                            <p class="mb-0 text-muted">Totale Tracking</p>
                         </div>
                     </div>
                 </div>
-                <div class="stat-card flex-fill">
+                <div class="stat-item text-center">
                     <div class="d-flex align-items-center">
-                        <div class="stat-icon bg-success mr-3">
+                        <div class="stat-icon mr-3" style="font-size: 2.5rem; color: #3b82f6;">
+                            <i class="fas fa-ship"></i>
+                        </div>
+                        <div class="text-left">
+                            <h2 class="mb-0" id="inTransitCount">0</h2>
+                            <p class="mb-0 text-muted">In Transito</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="stat-item text-center">
+                    <div class="d-flex align-items-center">
+                        <div class="stat-icon mr-3" style="font-size: 2.5rem; color: #8b5cf6;">
                             <i class="fas fa-check-circle"></i>
                         </div>
-                        <div class="stat-content">
-                            <h3 id="deliveredCount" class="mb-0">0</h3>
-                            <p class="mb-0">Consegnati</p>
+                        <div class="text-left">
+                            <h2 class="mb-0" id="deliveredCount">0</h2>
+                            <p class="mb-0 text-muted">Consegnati</p>
                         </div>
                     </div>
                 </div>
-                <div class="stat-card flex-fill">
+                <div class="stat-item text-center">
                     <div class="d-flex align-items-center">
-                        <div class="stat-icon bg-info mr-3">
-                            <i class="fas fa-truck"></i>
-                        </div>
-                        <div class="stat-content">
-                            <h3 id="inTransitCount" class="mb-0">0</h3>
-                            <p class="mb-0">In Transito</p>
-                        </div>
-                    </div>
-                </div>
-                <div class="stat-card flex-fill">
-                    <div class="d-flex align-items-center">
-                        <div class="stat-icon bg-warning mr-3">
+                        <div class="stat-icon mr-3" style="font-size: 2.5rem; color: #f59e0b;">
                             <i class="fas fa-exclamation-triangle"></i>
                         </div>
-                        <div class="stat-content">
-                            <h3 id="exceptionCount" class="mb-0">0</h3>
-                            <p class="mb-0">Con Problemi</p>
+                        <div class="text-left">
+                            <h2 class="mb-0" id="exceptionCount">0</h2>
+                            <p class="mb-0 text-muted">In Ritardo</p>
                         </div>
                     </div>
                 </div>
@@ -276,6 +280,7 @@
         // Import ExportManager (might be a global or named export)
         // import ExportManager from '/core/export-manager.js';
         import TableManager from '/core/table-manager.js';
+        import trackingService from '/core/services/tracking-service.js';
         
         // Make modules available globally
         window.api = api;

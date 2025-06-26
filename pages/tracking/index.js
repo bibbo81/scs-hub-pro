@@ -224,8 +224,20 @@ document.addEventListener('DOMContentLoaded', async () => {
         
         // Initialize tracking service if available
         if (window.trackingService) {
-            await window.trackingService.initialize();
-            console.log('✅ Tracking service initialized');
+            console.log('🔧 Initializing tracking service...');
+            const initialized = await window.trackingService.initialize();
+            if (initialized) {
+                console.log('✅ Tracking service initialized with org API keys');
+                
+                // Debug: check API configuration
+                if (window.trackingService.hasApiKeys()) {
+                    console.log('✅ ShipsGo API keys loaded from organization');
+                } else {
+                    console.warn('⚠️ No ShipsGo API keys found');
+                }
+            }
+        } else {
+            console.warn('⚠️ Tracking service not available');
         }
         
         console.log('✅ Tracking page initialized');
@@ -441,22 +453,59 @@ async function refreshTracking(id) {
     window.NotificationSystem?.info('Aggiornamento tracking...');
     
     try {
+        // Check if tracking service is available and initialized
+        if (!window.trackingService) {
+            console.log('Initializing tracking service...');
+            // Try to load tracking service
+            const script = document.createElement('script');
+            script.src = '/core/services/tracking-service.js';
+            script.type = 'module';
+            document.head.appendChild(script);
+            
+            // Wait for it to load
+            await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+        
         if (window.trackingService && window.trackingService.track) {
+            // Initialize if needed
+            if (!window.trackingService.initialized) {
+                await window.trackingService.initialize();
+            }
+            
             // Use tracking service with ShipsGo API
             const result = await window.trackingService.track(
                 tracking.tracking_number, 
-                tracking.tracking_type
+                tracking.tracking_type || 'container'
             );
             
+            console.log('ShipsGo API result:', result);
+            console.log('Using Supabase proxy:', window.trackingService.useSupabase);
+            console.log('API Config:', {
+                hasV1: !!window.trackingService.apiConfig?.v1?.authCode,
+                hasV2: !!window.trackingService.apiConfig?.v2?.userToken,
+                mockMode: window.trackingService.mockMode
+            });
+            
             if (result && result.status !== 'error') {
-                // Update local data
+                // Update local data with ShipsGo response
                 const updatedTracking = {
                     ...tracking,
                     current_status: result.stato_attuale || tracking.current_status,
                     last_update: new Date().toISOString(),
                     eta: result.eta || tracking.eta,
+                    ata: result.ata || tracking.ata,
                     vessel_name: result.nome_nave || tracking.vessel_name,
-                    last_event: result.ultimo_evento
+                    voyage_number: result.viaggio || tracking.voyage_number,
+                    last_event_date: result.ultimo_evento?.data || tracking.last_event_date,
+                    last_event_location: result.ultimo_evento?.location || tracking.last_event_location,
+                    last_event_description: result.ultimo_evento?.descrizione || tracking.last_event_description,
+                    origin_port: result.porto_carico || tracking.origin_port,
+                    destination_port: result.porto_scarico || tracking.destination_port,
+                    metadata: {
+                        ...tracking.metadata,
+                        shipsgo_last_update: new Date().toISOString(),
+                        events: result.eventi || []
+                    }
                 };
                 
                 // Update in Supabase
@@ -470,17 +519,22 @@ async function refreshTracking(id) {
                     trackings[index] = updatedTracking;
                     filteredTrackings = [...trackings];
                     updateTable();
+                    updateStats();
                 }
                 
-                window.NotificationSystem?.success('Tracking aggiornato');
+                window.NotificationSystem?.success('Tracking aggiornato con dati ShipsGo');
             } else {
-                throw new Error(result?.message || 'Errore aggiornamento');
+                throw new Error(result?.message || 'Nessun dato ricevuto da ShipsGo');
             }
         } else {
             // Fallback: just update timestamp
-            setTimeout(() => {
-                window.NotificationSystem?.success('Tracking aggiornato');
-            }, 1000);
+            console.warn('Tracking service not available, using fallback');
+            if (window.supabaseTrackingService) {
+                await window.supabaseTrackingService.updateTracking(id, {
+                    last_update: new Date().toISOString()
+                });
+            }
+            window.NotificationSystem?.warning('Aggiornamento senza API ShipsGo');
         }
         
     } catch (error) {
