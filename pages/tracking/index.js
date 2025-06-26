@@ -657,109 +657,59 @@ async function deleteTracking(id) {
 }
 
 function showAddTrackingForm() {
-    console.log('Show add form');
-    if (window.showEnhancedTrackingForm) {
+    console.log('Show add form - using progressive form');
+    
+    // Use the progressive form directly
+    if (window.showWorkflowProgress) {
+        // This is the enhanced progressive form with import tab
+        window.showWorkflowProgress();
+    } else if (window.showEnhancedTrackingForm) {
         window.showEnhancedTrackingForm();
-    } else if (window.trackingFormProgressive) {
+    } else if (window.trackingFormProgressive && window.trackingFormProgressive.show) {
         window.trackingFormProgressive.show();
     } else {
-        window.NotificationSystem?.info('Form in caricamento...');
+        // Fallback: try to trigger it after a delay
+        window.NotificationSystem?.info('Caricamento form...');
+        setTimeout(() => {
+            if (window.showWorkflowProgress) {
+                window.showWorkflowProgress();
+            } else {
+                window.NotificationSystem?.error('Form tracking non disponibile');
+            }
+        }, 500);
     }
 }
 
 function showImportDialog() {
-    console.log('Show import dialog');
+    console.log('Show import dialog - redirecting to progressive form import tab');
     
-    // Use the CompleteImportManager with showImportDialog
-    if (window.ImportManager && window.ImportManager.showImportDialog) {
-        window.ImportManager.showImportDialog('tracking', {
-            columnMapping: COLUMN_MAPPING,
-            statusMapping: getStatusMapping(),
-            onImportComplete: async (data) => {
-                // Reload trackings after import
-                await loadTrackings();
-                window.NotificationSystem?.success(`Importati ${data.length} tracking`);
-            }
-        });
-    } else if (window.ModalSystem) {
-        // Use your modal system with import options
-        const modalContent = `
-            <div class="import-dialog">
-                <h3>Importa Tracking</h3>
-                <p>Seleziona un file CSV o Excel da importare:</p>
-                
-                <div class="import-dropzone" id="importDropzone" style="border: 2px dashed #ccc; border-radius: 8px; padding: 40px; text-align: center; cursor: pointer;">
-                    <i class="fas fa-cloud-upload-alt fa-3x mb-3 text-primary"></i>
-                    <p>Trascina qui il file o clicca per selezionare</p>
-                    <input type="file" id="importFileInput" accept=".csv,.xlsx,.xls" style="display: none;">
-                </div>
-                
-                <div class="import-info mt-3">
-                    <small class="text-muted">Formati supportati: CSV, Excel (.xlsx, .xls)</small><br>
-                    <small class="text-muted">Colonne richieste: tracking_number, carrier_code</small>
-                </div>
-                
-                <div class="mt-3">
-                    <button class="btn btn-secondary btn-sm" onclick="window.ImportManager?.downloadTemplate?.()">
-                        <i class="fas fa-download mr-2"></i>Scarica Template
-                    </button>
-                </div>
-            </div>
-        `;
+    // Open the progressive form and switch to import tab
+    if (window.showWorkflowProgress) {
+        window.showWorkflowProgress();
         
-        window.ModalSystem.show({
-            title: 'Importa Tracking',
-            content: modalContent,
-            size: 'md',
-            buttons: [
-                {
-                    text: 'Annulla',
-                    className: 'btn-secondary',
-                    action: () => window.ModalSystem.hide()
-                }
-            ]
-        });
-        
-        // Setup dropzone after modal is shown
+        // After a short delay, switch to import tab
         setTimeout(() => {
-            const dropzone = document.getElementById('importDropzone');
-            const fileInput = document.getElementById('importFileInput');
-            
-            if (dropzone && fileInput) {
-                // Click to select file
-                dropzone.onclick = () => fileInput.click();
-                
-                // Drag and drop
-                dropzone.ondragover = (e) => {
-                    e.preventDefault();
-                    dropzone.style.backgroundColor = '#f0f0f0';
-                };
-                
-                dropzone.ondragleave = () => {
-                    dropzone.style.backgroundColor = '';
-                };
-                
-                dropzone.ondrop = (e) => {
-                    e.preventDefault();
-                    dropzone.style.backgroundColor = '';
-                    
-                    const files = e.dataTransfer.files;
-                    if (files.length > 0) {
-                        handleImportFile(files[0]);
-                    }
-                };
-                
-                // File input change
-                fileInput.onchange = (e) => {
-                    if (e.target.files.length > 0) {
-                        handleImportFile(e.target.files[0]);
-                    }
-                };
+            const importTab = document.querySelector('[data-tab="import"]');
+            if (importTab) {
+                importTab.click();
             }
-        }, 100);
+        }, 300);
     } else {
-        // Fallback
-        window.NotificationSystem?.warning('Sistema di import non disponibile');
+        // Fallback: try to open form after delay
+        window.NotificationSystem?.info('Apertura import...');
+        setTimeout(() => {
+            if (window.showWorkflowProgress) {
+                window.showWorkflowProgress();
+                setTimeout(() => {
+                    const importTab = document.querySelector('[data-tab="import"]');
+                    if (importTab) {
+                        importTab.click();
+                    }
+                }, 300);
+            } else {
+                window.NotificationSystem?.error('Import non disponibile');
+            }
+        }, 500);
     }
 }
 
@@ -774,51 +724,184 @@ async function handleImportFile(file) {
     window.NotificationSystem?.info('Caricamento file in corso...');
     
     try {
+        // Check available ImportManager methods
+        console.log('ImportManager methods:', Object.keys(window.ImportManager || {}));
+        
         if (window.ImportManager && window.ImportManager.importFile) {
-            // Use CompleteImportManager
+            // Use importFile method (that's what your ImportManager exposes)
             const result = await window.ImportManager.importFile(file, {
                 entity: 'tracking',
                 columnMapping: COLUMN_MAPPING,
                 statusMapping: getStatusMapping(),
-                saveToSupabase: true
+                saveToSupabase: !!window.supabaseTrackingService,
+                trackingService: window.trackingService,
+                supabaseService: window.supabaseTrackingService
             });
             
-            if (result.success) {
+            console.log('Import result:', result);
+            
+            if (result && result.success) {
+                // The ImportManager already saves to localStorage/Supabase
+                // Just reload the trackings
                 await loadTrackings();
-                window.NotificationSystem?.success(`Import completato: ${result.stats.imported} tracking importati`);
+                window.NotificationSystem?.success(`Import completato: ${result.stats?.imported || 0} tracking importati`);
+                
+                if (result.stats?.errors > 0) {
+                    window.NotificationSystem?.warning(`${result.stats.errors} record con errori`);
+                }
             } else {
-                window.NotificationSystem?.error('Errore durante l\'import');
+                window.NotificationSystem?.error(`Errore import: ${result?.error || 'Errore sconosciuto'}`);
             }
+            
         } else {
-            // Basic import fallback
+            // Fallback: manual parsing
+            console.warn('ImportManager not available, using fallback');
+            
             const reader = new FileReader();
             reader.onload = async (e) => {
                 try {
                     let data;
+                    
                     if (file.name.endsWith('.csv')) {
-                        // Parse CSV
-                        data = parseCSV(e.target.result);
+                        // Parse CSV with PapaParse if available
+                        if (window.Papa) {
+                            const result = Papa.parse(e.target.result, {
+                                header: true,
+                                dynamicTyping: true,
+                                skipEmptyLines: true,
+                                transformHeader: (header) => {
+                                    // Clean headers
+                                    return header.trim();
+                                }
+                            });
+                            
+                            if (result.errors.length > 0) {
+                                console.warn('CSV parsing warnings:', result.errors);
+                            }
+                            
+                            data = result.data;
+                        } else {
+                            // Fallback CSV parser
+                            data = parseCSV(e.target.result);
+                        }
                     } else {
                         // Parse Excel
-                        const workbook = XLSX.read(e.target.result, { type: 'binary' });
+                        if (!window.XLSX) {
+                            throw new Error('XLSX library not loaded');
+                        }
+                        
+                        const workbook = XLSX.read(e.target.result, { 
+                            type: file.name.endsWith('.xlsx') ? 'binary' : 'array'
+                        });
                         const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-                        data = XLSX.utils.sheet_to_json(firstSheet);
+                        data = XLSX.utils.sheet_to_json(firstSheet, {
+                            defval: '', // Default value for empty cells
+                            raw: false  // Format dates
+                        });
                     }
                     
-                    // Process and save data
                     console.log('Parsed data:', data);
-                    window.NotificationSystem?.success(`Letti ${data.length} record dal file`);
+                    
+                    if (!data || data.length === 0) {
+                        throw new Error('Nessun dato trovato nel file');
+                    }
+                    
+                    // Map columns using COLUMN_MAPPING
+                    const mappedData = data.map((row, index) => {
+                        const mapped = {
+                            id: crypto.randomUUID ? crypto.randomUUID() : `import-${Date.now()}-${index}`,
+                            created_at: new Date().toISOString(),
+                            updated_at: new Date().toISOString()
+                        };
+                        
+                        // Apply column mapping
+                        Object.entries(row).forEach(([key, value]) => {
+                            const cleanKey = key.trim();
+                            const mappedKey = COLUMN_MAPPING[cleanKey] || cleanKey.toLowerCase().replace(/\s+/g, '_');
+                            
+                            // Clean value
+                            const cleanValue = value?.toString().trim() || '';
+                            
+                            if (cleanValue) {
+                                mapped[mappedKey] = cleanValue;
+                            }
+                        });
+                        
+                        // Map status if present
+                        if (mapped.current_status || mapped.status) {
+                            const status = (mapped.current_status || mapped.status || '').toLowerCase();
+                            const statusMap = getStatusMapping();
+                            mapped.current_status = statusMap[status] || status;
+                            delete mapped.status; // Remove duplicate
+                        }
+                        
+                        // Detect tracking type if not specified
+                        if (!mapped.tracking_type && mapped.tracking_number) {
+                            mapped.tracking_type = detectTrackingType(mapped.tracking_number);
+                        }
+                        
+                        // Ensure required fields
+                        if (!mapped.tracking_number) {
+                            console.warn(`Row ${index + 1} missing tracking number:`, row);
+                            return null;
+                        }
+                        
+                        return mapped;
+                    }).filter(Boolean); // Remove null entries
+                    
+                    console.log('Mapped data:', mappedData);
+                    
+                    if (mappedData.length === 0) {
+                        throw new Error('Nessun tracking valido trovato');
+                    }
+                    
+                    // Save to Supabase if available
+                    if (window.supabaseTrackingService) {
+                        let imported = 0;
+                        let errors = 0;
+                        
+                        // Show progress
+                        window.NotificationSystem?.info(`Importazione di ${mappedData.length} tracking...`);
+                        
+                        for (const tracking of mappedData) {
+                            try {
+                                await window.supabaseTrackingService.createTracking(tracking);
+                                imported++;
+                            } catch (err) {
+                                console.error('Error importing tracking:', tracking.tracking_number, err);
+                                errors++;
+                            }
+                        }
+                        
+                        // Reload trackings
+                        await loadTrackings();
+                        
+                        // Show results
+                        if (imported > 0) {
+                            window.NotificationSystem?.success(`Importati ${imported} tracking`);
+                        }
+                        if (errors > 0) {
+                            window.NotificationSystem?.warning(`${errors} tracking con errori`);
+                        }
+                    } else {
+                        // Just show what was read
+                        window.NotificationSystem?.success(`Letti ${mappedData.length} tracking dal file`);
+                        console.log('Trackings ready for import:', mappedData);
+                    }
                     
                 } catch (error) {
-                    console.error('Import error:', error);
-                    window.NotificationSystem?.error('Errore nel parsing del file');
+                    console.error('Import parsing error:', error);
+                    window.NotificationSystem?.error('Errore nel parsing: ' + error.message);
                 }
             };
             
+            // Read file based on type
             if (file.name.endsWith('.csv')) {
                 reader.readAsText(file);
-            } else {
+            } else if (file.name.endsWith('.xlsx')) {
                 reader.readAsBinaryString(file);
+            } else {
+                reader.readAsArrayBuffer(file);
             }
         }
     } catch (error) {

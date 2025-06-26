@@ -338,6 +338,9 @@
     <!-- Page Logic -->
     <script type="module" src="/pages/tracking/index.js"></script>
     
+    <!-- Load Tracking Service -->
+    <script type="module" src="/core/services/tracking-service.js"></script>
+    
     <!-- Load Progressive Form -->
     <script src="/pages/tracking/tracking-form-progressive.js"></script>
     
@@ -356,6 +359,25 @@
                     } else {
                         window.NotificationSystem?.error('Form non disponibile');
                     }
+                };
+            }
+            
+            // Add handleImport method to ImportManager for progressive form
+            if (window.ImportManager && !window.ImportManager.handleImport) {
+                window.ImportManager.handleImport = async function(file, options = {}) {
+                    console.log('Progressive form calling handleImport, redirecting to importFile...');
+                    
+                    // Adapt options for importFile
+                    const importOptions = {
+                        entity: 'tracking',
+                        columnMapping: window.COLUMN_MAPPING || {},
+                        statusMapping: window.getStatusMapping ? window.getStatusMapping() : {},
+                        saveToSupabase: true,
+                        ...options
+                    };
+                    
+                    // Call the existing importFile method
+                    return await this.importFile(file, importOptions);
                 };
             }
         }, 1000);
