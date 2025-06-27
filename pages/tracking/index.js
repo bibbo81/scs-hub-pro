@@ -51,6 +51,7 @@ const STATUS_DISPLAY = {
 
 // Available columns configuration - TUTTE LE COLONNE
 const AVAILABLE_COLUMNS = [
+    // Colonne Base
     { key: 'tracking_number', label: 'Tracking Number', required: true, sortable: true },
     { key: 'tracking_type', label: 'Tipo', sortable: true },
     { key: 'current_status', label: 'Stato', sortable: true },
@@ -58,24 +59,43 @@ const AVAILABLE_COLUMNS = [
     { key: 'carrier_name', label: 'Carrier', sortable: true },
     { key: 'reference_number', label: 'Riferimento', sortable: true },
     { key: 'booking', label: 'Booking', sortable: true },
-    { key: 'origin_port', label: 'Porto Origine', sortable: true },
+    
+    // Colonne UNIFICATE Origine/Destinazione
+    { key: 'origin_port', label: 'Origine', sortable: true }, // Unifica POL/Origin Name
+    { key: 'destination_port', label: 'Destinazione', sortable: true }, // Unifica POD/Destination Name
+    
+    // Colonne Paese (utili per filtri)
     { key: 'origin_country', label: 'Paese Origine', sortable: true },
-    { key: 'destination_port', label: 'Porto Destinazione', sortable: true },
     { key: 'destination_country', label: 'Paese Destinazione', sortable: true },
-    { key: 'eta', label: 'ETA', sortable: true },
-    { key: 'ata', label: 'ATA', sortable: true },
-    { key: 'etd', label: 'ETD', sortable: true },
-    { key: 'atd', label: 'ATD', sortable: true },
-    { key: 'vessel_name', label: 'Nave/Volo', sortable: true },
-    { key: 'voyage_number', label: 'Viaggio', sortable: true },
+    
+    // Colonne Container/AWB
     { key: 'container_number', label: 'Container', sortable: true },
     { key: 'container_size', label: 'Dimensione', sortable: true },
-    { key: 'last_event_date', label: 'Data Ultimo Evento', sortable: true },
-    { key: 'last_event_location', label: 'Luogo Ultimo Evento', sortable: true },
-    { key: 'last_event_description', label: 'Descrizione Ultimo Evento', sortable: true },
+    { key: 'container_count', label: 'Container Count', sortable: true },
+    { key: 'awb_number', label: 'AWB Number', sortable: true },
+    
+    // Colonne Date OTTIMIZZATE
+    { key: 'date_of_departure', label: 'Data Partenza', sortable: true }, // Unifica Loading/Departure
+    { key: 'eta', label: 'ETA/Data Arrivo', sortable: true }, // Unifica Discharge/Arrival
+    { key: 'last_update', label: 'Ultimo Aggiornamento', sortable: true },
+    
+    // Colonne Vessel/Flight
+    { key: 'vessel_name', label: 'Nave/Volo', sortable: true },
+    { key: 'voyage_number', label: 'Viaggio', sortable: true },
+    { key: 'airline', label: 'Airline', sortable: true },
+    
+    // Colonne Eventi
+    { key: 'last_event_location', label: 'Ultima Posizione', sortable: true },
+    { key: 'last_event_description', label: 'Ultimo Evento', sortable: true },
+    
+    // Colonne Metriche
     { key: 'transit_time', label: 'Tempo Transito', sortable: true },
-    { key: 'created_at', label: 'Data Creazione', sortable: true },
-    { key: 'last_update', label: 'Ultimo Aggiornamento', sortable: true }
+    { key: 'ts_count', label: 'TS Count', sortable: true },
+    { key: 'co2_emission', label: 'CO₂ Emission', sortable: true },
+    
+    // Altre
+    { key: 'tags', label: 'Tags', sortable: true },
+    { key: 'created_at', label: 'Data Creazione', sortable: true }
 ];
 
 // Default visible columns
@@ -84,71 +104,192 @@ const DEFAULT_VISIBLE_COLUMNS = [
     'tracking_type', 
     'current_status',
     'carrier_name',
-    'origin_port',
-    'destination_port',
-    'eta'
+    'origin_port',        // Mostra origine unificata
+    'destination_port',   // Mostra destinazione unificata
+    'date_of_departure',  // Data partenza unificata
+    'eta'                 // ETA/Arrivo unificato
 ];
 
 // Column configuration for table
+// Column configuration for table - CON FORMATTER OTTIMIZZATI
 const TABLE_COLUMNS = [
     { 
         key: 'tracking_number', 
-        label: 'Tracking Number', 
+        label: 'TRACKING NUMBER', 
         sortable: true,
         formatter: (value, row) => {
-            const typeIcon = row.tracking_type === 'air_waybill' ? 'fa-plane' : 'fa-ship';
-            return `<i class="fas ${typeIcon} text-muted mr-1"></i> ${value}`;
+            const typeIcon = row.tracking_type === 'awb' || row.tracking_type === 'air_waybill' 
+                ? 'fa-plane' : 'fa-ship';
+            const typeColor = row.tracking_type === 'awb' || row.tracking_type === 'air_waybill'
+                ? 'text-info' : 'text-primary';
+            return `<i class="fas ${typeIcon} ${typeColor} mr-1"></i> <strong>${value}</strong>`;
         }
     },
     { 
-        key: 'carrier_name', 
-        label: 'Carrier', 
+        key: 'tracking_type', 
+        label: 'TIPO', 
         sortable: true,
-        formatter: (value) => value || '-'
+        formatter: (value) => {
+            const types = {
+                'container': { icon: 'fa-cube', text: 'MARE', color: 'primary' },
+                'bl': { icon: 'fa-file-alt', text: 'B/L', color: 'info' },
+                'awb': { icon: 'fa-plane', text: 'AEREO', color: 'warning' },
+                'air_waybill': { icon: 'fa-plane', text: 'AEREO', color: 'warning' },
+                'parcel': { icon: 'fa-box', text: 'PARCEL', color: 'success' }
+            };
+            const config = types[value] || { icon: 'fa-question', text: value || 'N/A', color: 'secondary' };
+            return `<span class="badge badge-${config.color}">
+                <i class="fas ${config.icon}"></i> ${config.text}
+            </span>`;
+        }
     },
     { 
         key: 'current_status', 
-        label: 'Stato', 
+        label: 'STATO', 
         sortable: true, 
         formatter: formatStatus 
     },
     { 
-        key: 'origin_port', 
-        label: 'Origine', 
+        key: 'carrier_name', 
+        label: 'CARRIER', 
         sortable: true,
-        formatter: (value) => value || '-'
+        formatter: (value, row) => {
+            // Per AWB usa airline se disponibile
+            if ((row.tracking_type === 'awb' || row.tracking_type === 'air_waybill') && row.airline) {
+                return row.airline;
+            }
+            return value || row.carrier_code || '-';
+        }
+    },
+    { 
+        key: 'origin_port', 
+        label: 'ORIGINE', 
+        sortable: true,
+        formatter: (value, row) => {
+            // LOGICA UNIFICATA come nel vecchio file
+            if (row.tracking_type === 'awb' || row.tracking_type === 'air_waybill') {
+                // Per AIR: usa Origin Name (nome completo)
+                return row.origin_name || 
+                       row.metadata?.origin_name ||
+                       row.metadata?.['Origin Name'] ||
+                       row.origin_port ||
+                       value || '-';
+            }
+            // Per SEA: usa Port Of Loading
+            return row.port_of_loading || 
+                   row.metadata?.port_of_loading ||
+                   row.metadata?.['Port Of Loading'] ||
+                   row.origin_port ||
+                   value || '-';
+        }
     },
     { 
         key: 'destination_port', 
-        label: 'Destinazione', 
+        label: 'DESTINAZIONE', 
         sortable: true,
-        formatter: (value) => value || '-'
+        formatter: (value, row) => {
+            // LOGICA UNIFICATA come nel vecchio file
+            if (row.tracking_type === 'awb' || row.tracking_type === 'air_waybill') {
+                // Per AIR: usa Destination Name (nome completo)
+                return row.destination_name || 
+                       row.metadata?.destination_name ||
+                       row.metadata?.['Destination Name'] ||
+                       row.destination_port ||
+                       value || '-';
+            }
+            // Per SEA: usa Port Of Discharge
+            return row.port_of_discharge || 
+                   row.metadata?.port_of_discharge ||
+                   row.metadata?.['Port Of Discharge'] ||
+                   row.destination_port ||
+                   value || '-';
+        }
+    },
+    { 
+        key: 'date_of_departure', 
+        label: 'PARTENZA', 
+        sortable: true,
+        formatter: (value, row) => {
+            let date;
+            
+            // UNIFICATO: Per SEA usa Date Of Loading, per AIR usa Date Of Departure
+            if (row.tracking_type === 'container' || row.tracking_type === 'bl') {
+                date = row.date_of_loading || 
+                       row.metadata?.date_of_loading ||
+                       row.metadata?.['Date Of Loading'] ||
+                       row.departure ||
+                       value;
+            } else {
+                date = row.date_of_departure || 
+                       row.metadata?.date_of_departure ||
+                       row.metadata?.['Date Of Departure'] ||
+                       row.departure ||
+                       value;
+            }
+            
+            return formatDateOnly(date);
+        }
     },
     { 
         key: 'eta', 
         label: 'ETA', 
-        sortable: true, 
-        formatter: formatDate 
+        sortable: true,
+        formatter: (value, row) => {
+            let date;
+            
+            // Per AIR: usa Date Of Arrival
+            if (row.tracking_type === 'awb' || row.tracking_type === 'air_waybill') {
+                date = row.date_of_arrival || 
+                       row.metadata?.date_of_arrival ||
+                       row.metadata?.['Date Of Arrival'] ||
+                       row.eta ||
+                       value;
+            } else {
+                // Per SEA: usa Date Of Discharge
+                date = row.date_of_discharge || 
+                       row.metadata?.date_of_discharge ||
+                       row.metadata?.['Date Of Discharge'] ||
+                       row.eta ||
+                       value;
+            }
+            
+            if (!date) return '-';
+            
+            const formattedDate = formatDateOnly(date);
+            
+            // Aggiungi indicatore se è futuro
+            try {
+                const etaDate = new Date(date);
+                const today = new Date();
+                const diffDays = Math.ceil((etaDate - today) / (1000 * 60 * 60 * 24));
+                
+                if (diffDays > 0 && diffDays < 30) {
+                    return `${formattedDate} <small class="text-muted">(${diffDays}g)</small>`;
+                }
+            } catch (e) {}
+            
+            return formattedDate;
+        }
     },
     { 
         key: 'last_update', 
-        label: 'Ultimo Aggiornamento', 
+        label: 'ULTIMO AGGIORNAMENTO', 
         sortable: true, 
         formatter: formatDate 
     },
     { 
         key: 'actions', 
-        label: 'Azioni', 
+        label: 'AZIONI', 
         sortable: false,
         formatter: (value, row) => `
             <div class="btn-group btn-group-sm">
-                <button class="btn btn-primary" onclick="refreshTracking('${row.id}')">
+                <button class="btn btn-primary btn-sm" onclick="refreshTracking('${row.id}')" title="Aggiorna">
                     <i class="fas fa-sync"></i>
                 </button>
-                <button class="btn btn-info" onclick="viewDetails('${row.id}')">
+                <button class="btn btn-info btn-sm" onclick="viewDetails('${row.id}')" title="Dettagli">
                     <i class="fas fa-eye"></i>
                 </button>
-                <button class="btn btn-danger" onclick="deleteTracking('${row.id}')">
+                <button class="btn btn-danger btn-sm" onclick="deleteTracking('${row.id}')" title="Elimina">
                     <i class="fas fa-trash"></i>
                 </button>
             </div>
@@ -184,6 +325,31 @@ function formatDate(value) {
     }
     
     return formattedDate;
+}
+
+// Helper function per formattare solo la data (senza orario)
+function formatDateOnly(dateStr) {
+    if (!dateStr || dateStr === '-') return '-';
+    
+    // Se è già nel formato DD/MM/YYYY, ritornalo
+    if (typeof dateStr === 'string' && /^\d{1,2}\/\d{1,2}\/\d{4}$/.test(dateStr)) {
+        return dateStr;
+    }
+    
+    // Se ha anche l'orario, prendi solo la data
+    if (typeof dateStr === 'string' && /^\d{1,2}\/\d{1,2}\/\d{4}\s+\d{1,2}:\d{1,2}/.test(dateStr)) {
+        return dateStr.split(' ')[0];
+    }
+    
+    // Altrimenti prova a parsare
+    try {
+        const d = new Date(dateStr);
+        if (!isNaN(d.getTime())) {
+            return d.toLocaleDateString('it-IT');
+        }
+    } catch (e) {}
+    
+    return dateStr;
 }
 
 // Initialize

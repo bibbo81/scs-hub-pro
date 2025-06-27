@@ -1,8 +1,78 @@
 // tracking-fixes.js - Fix temporanei per tracking page
 console.log('🔧 Loading tracking fixes...');
 
+// ========== FIX IMMEDIATO PER ORGANIZATION API KEYS ==========
+// Applica SUBITO, non aspettare DOMContentLoaded
+(function() {
+    console.log('🚀 [API Fix] Applying immediate fix...');
+    
+    // Attendi che il service sia disponibile
+    const checkInterval = setInterval(() => {
+        if (window.organizationApiKeysService) {
+            clearInterval(checkInterval);
+            
+            if (!window.organizationApiKeysService.getOrganizationApiKeys) {
+                console.log('🔧 [API Fix] Adding missing method NOW...');
+                
+                window.organizationApiKeysService.getOrganizationApiKeys = async function() {
+                    try {
+                        // Prova tutti i metodi possibili
+                        if (this.getApiKeys) {
+                            console.log('[API Fix] Using getApiKeys method');
+                            return await this.getApiKeys();
+                        }
+                        
+                        if (this.getOrganizationKeys) {
+                            console.log('[API Fix] Using getOrganizationKeys method');
+                            return await this.getOrganizationKeys();
+                        }
+                        
+                        if (this.getKeys) {
+                            console.log('[API Fix] Using getKeys method');
+                            return await this.getKeys();
+                        }
+                        
+                        // Fallback diretto a Supabase
+                        if (window.supabase) {
+                            console.log('[API Fix] Using direct Supabase query');
+                            const { data: { user } } = await window.supabase.auth.getUser();
+                            if (!user) return null;
+                            
+                            const { data, error } = await window.supabase
+                                .from('organization_api_keys')
+                                .select('*')
+                                .single();
+                                
+                            if (error) {
+                                console.error('[API Fix] Supabase error:', error);
+                                return null;
+                            }
+                            
+                            return data;
+                        }
+                        
+                        console.warn('[API Fix] No method available');
+                        return null;
+                    } catch (error) {
+                        console.error('[API Fix] Error:', error);
+                        return null;
+                    }
+                };
+                
+                console.log('✅ [API Fix] Method added IMMEDIATELY');
+            } else {
+                console.log('✅ [API Fix] Method already exists');
+            }
+        }
+    }, 10); // Check ogni 10ms
+    
+    // Timeout dopo 2 secondi
+    setTimeout(() => clearInterval(checkInterval), 2000);
+})();
+
 // ========== FIX 1: IMPORT EXCEL ==========
 window.detectShipsGoType = function(content) {
+    // QUESTO RESTA UGUALE - NON MODIFICARE
     const headers = content.split('\n')[0].toLowerCase();
     
     if (headers.includes('awb number') || 
@@ -130,45 +200,6 @@ window.handleImportFixed = async function(file) {
     }
 };
 
-// ========== FIX 2: ORGANIZATION API KEYS SERVICE ==========
-async function fixOrganizationApiKeysService() {
-    if (window.organizationApiKeysService && !window.organizationApiKeysService.getOrganizationApiKeys) {
-        console.log('🔧 [API Fix] Adding missing method...');
-        
-        window.organizationApiKeysService.getOrganizationApiKeys = async function() {
-            try {
-                if (this.getApiKeys) {
-                    return await this.getApiKeys();
-                }
-                
-                if (window.supabase) {
-                    const { data: { user } } = await window.supabase.auth.getUser();
-                    if (!user) return null;
-                    
-                    const { data, error } = await window.supabase
-                        .from('organization_api_keys')
-                        .select('*')
-                        .single();
-                        
-                    if (error) {
-                        console.error('[API Fix] Error:', error);
-                        return null;
-                    }
-                    
-                    return data;
-                }
-                
-                return null;
-            } catch (error) {
-                console.error('[API Fix] Error:', error);
-                return null;
-            }
-        };
-        
-        console.log('✅ [API Fix] Method added');
-    }
-}
-
 // ========== FIX 3: PROGRESSIVE FORM TIMEOUT ==========
 function fixProgressiveFormTimeout() {
     // Override showAddTrackingForm per rimuovere timeout warning
@@ -225,7 +256,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     // Wait a bit for modules to load
     setTimeout(async () => {
-        await fixOrganizationApiKeysService();
         fixProgressiveFormTimeout();
         fixImportManager();
         setupFileInputInterceptor();

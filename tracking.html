@@ -515,6 +515,30 @@
             }, 2000); // Wait 2 seconds to ensure everything is loaded
         });
     </script>
-    <script src="/pages/tracking/tracking-fixes.js"></script>
+   <script>
+// Fix immediato per evitare race condition
+document.addEventListener('DOMContentLoaded', () => {
+    // Se organizationApiKeysService non ha il metodo dopo 100ms, crealo
+    setTimeout(() => {
+        if (window.organizationApiKeysService && !window.organizationApiKeysService.getOrganizationApiKeys) {
+            console.log('🚨 Emergency fix for organizationApiKeysService');
+            window.organizationApiKeysService.getOrganizationApiKeys = async function() {
+                // Cerca il metodo corretto
+                const methodNames = ['getApiKeys', 'getOrganizationKeys', 'getKeys', 'loadKeys'];
+                for (const method of methodNames) {
+                    if (typeof this[method] === 'function') {
+                        console.log(`Using ${method} as fallback`);
+                        return await this[method]();
+                    }
+                }
+                return null;
+            };
+        }
+    }, 100);
+});
+</script>
+
+<!-- Load all fixes -->
+<script src="/pages/tracking/tracking-fixes.js"></script>
 </body>
 </html>
