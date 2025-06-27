@@ -4,42 +4,24 @@
     
     console.log('🔧 TRACKING SUBMIT FIX: Initializing...');
     
-    // COSTANTI PER EVITARE LOOP
-    const MAX_RETRIES = 10;
-    const RETRY_DELAY = 500; // ms
-    let retryCount = 0;
+    // Flag per tracciare se abbiamo già intercettato
+    let isIntercepted = false;
     
-    // AGGIUNGI QUI LA NUOVA VARIABILE
-    let hasReachedMaxRetries = false;
-    
-    // Funzione per intercettare il submit del form
-    function interceptFormSubmit() {
-    // PREVIENI ESECUZIONE SE GIÀ RAGGIUNTO IL LIMITE
-    if (hasReachedMaxRetries) {
-        console.log('🛑 Already reached max retries, skipping');
-        return;
-    }
-    
-    // CONTROLLO RETRY COUNT
-    if (retryCount++ >= MAX_RETRIES) {
-        console.log('⚠️ Max retries reached for form interception');
-        hasReachedMaxRetries = true; // Setta il flag
-        return;
-    }
+    // Funzione per intercettare il form quando viene creato
+    function interceptFormWhenReady() {
+        // Se già intercettato, esci
+        if (isIntercepted) return;
         
-        // Cerca il form
         const form = document.getElementById('enhancedSingleForm');
+        const submitBtn = document.getElementById('enhSubmitBtn');
         
         if (!form) {
-            console.log(`⏳ Form not found, retry ${retryCount}/${MAX_RETRIES}...`);
-            setTimeout(interceptFormSubmit, RETRY_DELAY);
+            // Il form non esiste ancora, non è un errore
             return;
         }
         
         console.log('✅ Form found, intercepting submit');
-        
-        // Reset retry count on success
-        retryCount = 0;
+        isIntercepted = true;
         
         // Salva il vecchio handler se esiste
         const oldSubmitHandler = form.onsubmit;
@@ -87,7 +69,6 @@
         }, true); // Use capture phase to intercept before other handlers
         
         // Intercetta anche il bottone di submit
-        const submitBtn = document.getElementById('enhSubmitBtn');
         if (submitBtn && submitBtn.dataset.intercepted !== 'true') {
             submitBtn.dataset.intercepted = 'true';
             const oldClickHandler = submitBtn.onclick;
@@ -116,6 +97,29 @@
         }
     }
     
+    // Usa MutationObserver per rilevare quando il form viene aggiunto al DOM
+    const observer = new MutationObserver((mutations) => {
+        // Controlla se il form è stato aggiunto
+        for (const mutation of mutations) {
+            if (mutation.type === 'childList') {
+                // Controlla se il form esiste ora
+                if (document.getElementById('enhancedSingleForm')) {
+                    interceptFormWhenReady();
+                    // Possiamo fermare l'observer dopo aver intercettato
+                    if (isIntercepted) {
+                        observer.disconnect();
+                    }
+                }
+            }
+        }
+    });
+    
+    // Osserva l'intero body per cambiamenti
+    observer.observe(document.body, {
+        childList: true,
+        subtree: true
+    });
+    
     // Reset workflow visibility when modal closes
     window.addEventListener('click', function(e) {
         if (e.target.classList.contains('custom-modal-close') || 
@@ -124,24 +128,17 @@
         }
     });
     
-    // Start intercepting when DOM is ready
+    // Controlla anche subito nel caso il form esista già
     if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', interceptFormSubmit);
+        document.addEventListener('DOMContentLoaded', interceptFormWhenReady);
     } else {
-        // Usa un delay maggiore per dare tempo ai componenti di caricarsi
-        setTimeout(interceptFormSubmit, 1000);
+        interceptFormWhenReady();
     }
     
-    // Funzione di cleanup per resettare lo stato
+    // Funzione di cleanup
     window.resetSubmitFix = function() {
-    // Non resettare se abbiamo già raggiunto il limite
-    if (hasReachedMaxRetries) {
-        console.log('🛑 Cannot reset - max retries already reached');
-        return;
-    }
-    
-    retryCount = 0;
-    window._workflowVisible = false;
+        isIntercepted = false;
+        window._workflowVisible = false;
         
         // Rimuovi flag di intercettazione
         const form = document.getElementById('enhancedSingleForm');
@@ -167,19 +164,16 @@
         console.log('- Workflow visible:', window._workflowVisible);
         console.log('- showWorkflowModal exists:', typeof window.showWorkflowModal);
         console.log('- handleEnhancedSubmit exists:', typeof window.handleEnhancedSubmit);
-        console.log('- Retry count:', retryCount);
-        console.log('- Max retries:', MAX_RETRIES);
+        console.log('- Is intercepted:', isIntercepted);
+        console.log('- Observer active:', !!observer);
         
         return {
             formReady: !!document.getElementById('enhancedSingleForm'),
             workflowReady: typeof window.showWorkflowModal === 'function',
-            retryInfo: {
-                current: retryCount,
-                max: MAX_RETRIES
-            }
+            intercepted: isIntercepted
         };
     };
     
-    console.log('✅ TRACKING SUBMIT FIX: Applied (with retry limits)');
+    console.log('✅ TRACKING SUBMIT FIX: Applied (with MutationObserver)');
     
 })();
