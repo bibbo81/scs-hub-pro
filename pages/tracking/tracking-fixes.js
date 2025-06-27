@@ -1,322 +1,424 @@
-// tracking-fixes.js - Fix temporanei per tracking page
-console.log('🔧 Loading tracking fixes...');
-
-// ========== FIX IMMEDIATO PER ORGANIZATION API KEYS ==========
-// Applica SUBITO, non aspettare DOMContentLoaded
+// tracking-fixes.js - FIX per workflow modal nel posto giusto
 (function() {
-    console.log('🚀 [API Fix] Applying immediate fix...');
+    'use strict';
     
-    // Attendi che il service sia disponibile
-    const checkInterval = setInterval(() => {
-        if (window.organizationApiKeysService) {
-            clearInterval(checkInterval);
+    console.log('🔧 TRACKING FIXES: Applying workflow modal fix...');
+    
+    // Override showWorkflowModal per mostrarla DENTRO il modal esistente
+    let originalShowWorkflowModal = null;
+    
+    // Intercetta la definizione di showWorkflowModal
+    Object.defineProperty(window, 'showWorkflowModal', {
+        get: function() {
+            return originalShowWorkflowModal;
+        },
+        set: function(fn) {
+            console.log('🎯 TRACKING FIXES: Intercepting showWorkflowModal');
             
-            if (!window.organizationApiKeysService.getOrganizationApiKeys) {
-                console.log('🔧 [API Fix] Adding missing method NOW...');
+            // Salva l'originale
+            const originalFn = fn;
+            
+            // Crea la versione corretta
+            originalShowWorkflowModal = function() {
+                console.log('🚀 TRACKING FIXES: showWorkflowModal called - FIXED VERSION');
                 
-                window.organizationApiKeysService.getOrganizationApiKeys = async function() {
-                    try {
-                        // Prova tutti i metodi possibili
-                        if (this.getApiKeys) {
-                            console.log('[API Fix] Using getApiKeys method');
-                            return await this.getApiKeys();
-                        }
-                        
-                        if (this.getOrganizationKeys) {
-                            console.log('[API Fix] Using getOrganizationKeys method');
-                            return await this.getOrganizationKeys();
-                        }
-                        
-                        if (this.getKeys) {
-                            console.log('[API Fix] Using getKeys method');
-                            return await this.getKeys();
-                        }
-                        
-                        // Fallback diretto a Supabase
-                        if (window.supabase) {
-    console.log('[API Fix] Using direct Supabase query');
-    const { data: { user } } = await window.supabase.auth.getUser();
-    if (!user) return null;
-    
-    // Gestisci MULTIPLE API keys (V1 e V2)
-    const { data: apiKeys, error } = await window.supabase
-        .from('organization_api_keys')
-        .select('*');
-        
-    if (error) {
-        console.error('[API Fix] Supabase error:', error);
-        return null;
-    }
-    
-    if (!apiKeys || apiKeys.length === 0) {
-        console.log('[API Fix] No API keys found');
-        return null;
-    }
-    
-    console.log('[API Fix] Found', apiKeys.length, 'API keys');
-    
-    // Se tracking service si aspetta array, ritorna array
-    // Se si aspetta oggetto singolo, ritorna il primo
-    // Per ora ritorniamo tutto l'array
-    return apiKeys;
-}
-                        
-                        console.warn('[API Fix] No method available');
-                        return null;
-                    } catch (error) {
-                        console.error('[API Fix] Error:', error);
-                        return null;
+                // Trova il modal container esistente
+                const existingModalContent = document.querySelector('.custom-modal-content');
+                
+                if (existingModalContent) {
+                    console.log('✅ Found existing modal content - inserting workflow inside');
+                    
+                    // Nascondi il form esistente
+                    const formWrapper = existingModalContent.querySelector('.fullwidth-form-wrapper');
+                    if (formWrapper) {
+                        formWrapper.style.display = 'none';
                     }
-                };
-                
-                console.log('✅ [API Fix] Method added IMMEDIATELY');
-            } else {
-                console.log('✅ [API Fix] Method already exists');
-            }
-        }
-    }, 10); // Check ogni 10ms
-    
-    // Timeout dopo 2 secondi
-    setTimeout(() => clearInterval(checkInterval), 2000);
-})();
-
-// ========== FIX 1: IMPORT EXCEL ==========
-window.detectShipsGoType = function(content) {
-    // QUESTO RESTA UGUALE - NON MODIFICARE
-    const headers = content.split('\n')[0].toLowerCase();
-    
-    if (headers.includes('awb number') || 
-        headers.includes('airline') || 
-        headers.includes('ts count') ||
-        headers.includes('transit time')) {
-        return 'air';
-    }
-    
-    if (headers.includes('container count') || 
-        headers.includes('port of loading') || 
-        headers.includes('port of discharge') ||
-        headers.includes('co2 emission')) {
-        return 'sea';
-    }
-    
-    return 'generic';
-};
-
-// Fix handleImport per compatibilità con vecchio sistema
-window.handleImportFixed = async function(file) {
-    if (!file) return;
-    
-    try {
-        console.log('[Import Fix] Starting file import:', file.name);
-        
-        window.NotificationSystem?.info('Caricamento file in corso...', { duration: 0, id: 'import-loading' });
-        
-        // Leggi contenuto per tipo
-        const fileContent = await new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onload = (e) => resolve(e.target.result);
-            reader.onerror = reject;
-            reader.readAsText(file);
-        });
-        
-        const shipsgoType = window.detectShipsGoType(fileContent);
-        console.log('[Import Fix] Detected ShipsGo type:', shipsgoType);
-        
-        // Status mapping COMPLETO dal Google Sheets
-        const STATUS_MAPPING = {
-            // MARE - Stati inglesi
-            'Sailing': 'in_transit',
-            'Arrived': 'arrived',
-            'Delivered': 'delivered',
-            'Discharged': 'arrived',
-            
-            // CORRIERI - Stati italiani
-            'LA spedizione è stata consegnata': 'delivered',
-            'Consegnata.': 'delivered',
-            'La spedizione è stata consegnata': 'delivered',
-            'Consegna prevista nel corso della giornata odierna.': 'out_for_delivery',
-            'La spedizione è in consegna': 'out_for_delivery',
-            'La spedizione è in transito': 'in_transit',
-            'Arrivata nella Sede GLS locale.': 'in_transit',
-            'In transito.': 'in_transit',
-            'Partita dalla sede mittente. In transito.': 'in_transit',
-            'La spedizione e\' stata creata dal mittente, attendiamo che ci venga affidata per l\'invio a destinazione.': 'registered',
-            
-            // FEDEX - Stati inglesi
-            'On FedEx vehicle for delivery': 'out_for_delivery',
-            'At local FedEx facility': 'in_transit',
-            'Departed FedEx hub': 'in_transit',
-            'On the way': 'in_transit',
-            'Arrived at FedEx hub': 'in_transit',
-            'At destination sort facility': 'in_transit',
-            'Left FedEx origin facility': 'in_transit',
-            'Picked up': 'in_transit',
-            'Shipment information sent to FedEx': 'registered',
-            'International shipment release - Import': 'customs_cleared',
-            
-            // Altri stati comuni
-            'Empty': 'delivered',
-            'Empty Returned': 'delivered',
-            'POD': 'delivered',
-            'Registered': 'registered',
-            'Pending': 'registered',
-            'Booked': 'registered',
-            'Booking Confirmed': 'registered',
-            
-            // Mapping italiano -> stato sistema
-            'In transito': 'in_transit',
-            'Arrivata': 'arrived',
-            'Consegnato': 'delivered',
-            'Scaricato': 'arrived',
-            'In consegna': 'out_for_delivery',
-            'Sdoganata': 'customs_cleared',
-            'Spedizione creata': 'registered'
-        };
-        
-        if (window.ImportManager && window.ImportManager.importFile) {
-            const result = await window.ImportManager.importFile(file, {
-                updateExisting: false,
-                shipsgoType: shipsgoType,
-                statusMapping: STATUS_MAPPING
-            });
-            
-            console.log('[Import Fix] Result:', result);
-            
-            window.NotificationSystem?.dismiss('import-loading');
-            
-            if (result && result.success) {
-                window.NotificationSystem?.success(`Importati ${result.stats?.imported || 0} tracking`);
-                
-                if (window.trackingDebug?.refresh) {
-                    setTimeout(() => window.trackingDebug.refresh(), 500);
-                }
-                
-                // Close modal
-                setTimeout(() => {
-                    const closeBtn = document.querySelector('.custom-modal-close');
-                    if (closeBtn) closeBtn.click();
-                }, 1000);
-            } else {
-                window.NotificationSystem?.error('Errore durante l\'import');
-            }
-        } else {
-            throw new Error('ImportManager non disponibile');
-        }
-        
-    } catch (error) {
-        console.error('[Import Fix] Error:', error);
-        window.NotificationSystem?.dismiss('import-loading');
-        window.NotificationSystem?.error('Errore: ' + error.message);
-    }
-};
-
-// ========== FIX 3: PROGRESSIVE FORM TIMEOUT ==========
-function fixProgressiveFormTimeout() {
-    // Override showAddTrackingForm per rimuovere timeout warning
-    const originalShow = window.showAddTrackingForm;
-    window.showAddTrackingForm = function() {
-        console.log('[Form Fix] Opening tracking form...');
-        
-        if (window.showWorkflowProgress) {
-            window.showWorkflowProgress();
-        } else if (window.showEnhancedTrackingForm) {
-            window.showEnhancedTrackingForm();
-        } else if (window.trackingFormProgressive?.show) {
-            window.trackingFormProgressive.show();
-        } else {
-            // No timeout warning, just try again
-            setTimeout(() => {
-                if (window.showWorkflowProgress) {
-                    window.showWorkflowProgress();
+                    
+                    // Crea il workflow container DENTRO il modal esistente
+                    const workflowContainer = document.createElement('div');
+                    workflowContainer.className = 'workflow-inside-modal';
+                    workflowContainer.innerHTML = `
+                        <div class="workflow-modal-content">
+                            <h3>🚀 Elaborazione Tracking</h3>
+                            <div class="workflow-container">
+                                <div class="workflow-step" data-step="0">
+                                    <div class="step-icon">📋</div>
+                                    <div class="step-content">
+                                        <h4>Validazione</h4>
+                                        <p>Controllo dati inseriti</p>
+                                        <span class="step-status pending">In corso...</span>
+                                    </div>
+                                </div>
+                                
+                                <div class="workflow-arrow">→</div>
+                                
+                                <div class="workflow-step" data-step="1">
+                                    <div class="step-icon">🔄</div>
+                                    <div class="step-content">
+                                        <h4>API Check</h4>
+                                        <p>Recupero dati live</p>
+                                        <span class="step-status waiting">In attesa</span>
+                                    </div>
+                                </div>
+                                
+                                <div class="workflow-arrow">→</div>
+                                
+                                <div class="workflow-step" data-step="2">
+                                    <div class="step-icon">💾</div>
+                                    <div class="step-content">
+                                        <h4>Salvataggio</h4>
+                                        <p>Registrazione tracking</p>
+                                        <span class="step-status waiting">In attesa</span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="workflow-result" style="display: none;"></div>
+                        </div>
+                        
+                        <style>
+                        .workflow-inside-modal {
+                            padding: 30px;
+                            height: 100%;
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                        }
+                        
+                        .workflow-modal-content {
+                            background: white;
+                            border-radius: 12px;
+                            padding: 30px;
+                            max-width: 800px;
+                            width: 100%;
+                        }
+                        
+                        .workflow-modal-content h3 {
+                            margin: 0 0 25px 0;
+                            color: #333;
+                            font-size: 24px;
+                            text-align: center;
+                        }
+                        
+                        .workflow-container {
+                            display: flex;
+                            align-items: center;
+                            justify-content: space-between;
+                            margin-bottom: 30px;
+                        }
+                        
+                        .workflow-step {
+                            flex: 1;
+                            text-align: center;
+                            padding: 20px;
+                            border-radius: 8px;
+                            background: #f8f9fa;
+                            transition: all 0.3s ease;
+                        }
+                        
+                        .workflow-step.completed {
+                            background: #d4f4dd;
+                        }
+                        
+                        .workflow-step.error {
+                            background: #ffebee;
+                        }
+                        
+                        .step-icon {
+                            font-size: 48px;
+                            margin-bottom: 15px;
+                            color: #6c757d;
+                        }
+                        
+                        .workflow-step.completed .step-icon {
+                            color: #28a745;
+                        }
+                        
+                        .workflow-step.error .step-icon {
+                            color: #dc3545;
+                        }
+                        
+                        .step-content h4 {
+                            margin: 0 0 8px 0;
+                            font-size: 16px;
+                            color: #333;
+                        }
+                        
+                        .step-content p {
+                            margin: 0 0 12px 0;
+                            font-size: 14px;
+                            color: #6c757d;
+                        }
+                        
+                        .step-status {
+                            font-size: 14px;
+                            font-weight: 500;
+                            padding: 6px 12px;
+                            border-radius: 20px;
+                            display: inline-block;
+                        }
+                        
+                        .step-status.pending {
+                            background: #fff3cd;
+                            color: #856404;
+                        }
+                        
+                        .step-status.waiting {
+                            background: #e9ecef;
+                            color: #6c757d;
+                        }
+                        
+                        .step-status.success {
+                            background: #28a745;
+                            color: white;
+                        }
+                        
+                        .step-status.error {
+                            background: #dc3545;
+                            color: white;
+                        }
+                        
+                        .workflow-arrow {
+                            font-size: 24px;
+                            color: #6c757d;
+                            margin: 0 20px;
+                        }
+                        
+                        .workflow-result {
+                            background: #f8f9fa;
+                            border-radius: 8px;
+                            padding: 20px;
+                            margin-top: 20px;
+                        }
+                        
+                        .workflow-result h4 {
+                            margin: 0 0 15px 0;
+                            color: #333;
+                        }
+                        
+                        .result-success {
+                            display: flex;
+                            align-items: center;
+                            gap: 15px;
+                            color: #28a745;
+                        }
+                        
+                        .result-success i {
+                            font-size: 36px;
+                        }
+                        
+                        .result-error {
+                            display: flex;
+                            align-items: center;
+                            gap: 15px;
+                            color: #dc3545;
+                        }
+                        
+                        .result-error i {
+                            font-size: 36px;
+                        }
+                        
+                        .workflow-close {
+                            display: block;
+                            margin: 20px auto 0;
+                            padding: 10px 24px;
+                            background: #007bff;
+                            color: white;
+                            border: none;
+                            border-radius: 6px;
+                            font-size: 16px;
+                            cursor: pointer;
+                            transition: background 0.3s ease;
+                        }
+                        
+                        .workflow-close:hover {
+                            background: #0056b3;
+                        }
+                        
+                        @media (max-width: 768px) {
+                            .workflow-container {
+                                flex-direction: column;
+                            }
+                            
+                            .workflow-arrow {
+                                transform: rotate(90deg);
+                                margin: 20px 0;
+                            }
+                            
+                            .workflow-step {
+                                width: 100%;
+                            }
+                        }
+                        </style>
+                    `;
+                    
+                    // Inserisci nel modal esistente
+                    existingModalContent.appendChild(workflowContainer);
+                    
+                    // Salva riferimento globale per le funzioni di update
+                    window._workflowContainer = workflowContainer;
+                    
                 } else {
-                    console.error('[Form Fix] Form still not available');
+                    console.log('⚠️ No existing modal found - falling back to original');
+                    // Fallback: usa la funzione originale
+                    originalFn.call(this);
                 }
-            }, 100);
+            };
+            
+            // Rendi configurabile
+            originalShowWorkflowModal.useOriginal = function() {
+                originalFn.call(this);
+            };
+        },
+        configurable: true
+    });
+    
+    // Override updateWorkflowStep per funzionare con il nuovo container
+    let originalUpdateWorkflowStep = window.updateWorkflowStep;
+    window.updateWorkflowStep = function(stepIndex, status, statusText) {
+        console.log('📊 Update workflow step:', stepIndex, status, statusText);
+        
+        // Cerca nel container corretto
+        let step = null;
+        
+        // Prima cerca nel nostro container interno
+        if (window._workflowContainer) {
+            step = window._workflowContainer.querySelector(`[data-step="${stepIndex}"]`);
+        }
+        
+        // Se non trovato, cerca globalmente
+        if (!step) {
+            step = document.querySelector(`[data-step="${stepIndex}"]`);
+        }
+        
+        if (!step) {
+            console.warn('Step not found:', stepIndex);
+            return;
+        }
+        
+        step.className = `workflow-step ${status}`;
+        const statusEl = step.querySelector('.step-status');
+        if (statusEl) {
+            statusEl.className = `step-status ${status === 'completed' ? 'success' : status === 'error' ? 'error' : status}`;
+            statusEl.textContent = statusText;
         }
     };
-}
-
-// ========== FIX 4: IMPORT MANAGER INTEGRATION ==========
-function fixImportManager() {
-    if (window.ImportManager && !window.ImportManager.handleImport) {
-        window.ImportManager.handleImport = window.handleImportFixed;
-        console.log('✅ [Import Fix] handleImport added to ImportManager');
-    }
-}
-
-// ========== FIX 5: FILE INPUT INTERCEPTOR ==========
-function setupFileInputInterceptor() {
-    document.addEventListener('change', async (e) => {
-        if (e.target.type === 'file' && e.target.accept?.includes('xlsx')) {
-            const file = e.target.files[0];
-            if (file && (file.name.includes('shipsgo') || file.name.includes('shipments'))) {
-                console.log('📎 [Import Fix] Intercepting ShipsGo file:', file.name);
-                e.preventDefault();
-                e.stopPropagation();
-                e.target.value = ''; // Reset for re-selection
-                await window.handleImportFixed(file);
+    
+    // Override showWorkflowResult
+    let originalShowWorkflowResult = window.showWorkflowResult;
+    window.showWorkflowResult = function(success, message) {
+        console.log('📊 Show workflow result:', success, message);
+        
+        // Cerca nel container corretto
+        let resultDiv = null;
+        
+        // Prima cerca nel nostro container interno
+        if (window._workflowContainer) {
+            resultDiv = window._workflowContainer.querySelector('.workflow-result');
+        }
+        
+        // Se non trovato, cerca globalmente
+        if (!resultDiv) {
+            resultDiv = document.querySelector('.workflow-result');
+        }
+        
+        if (!resultDiv) {
+            console.warn('Result div not found');
+            return;
+        }
+        
+        resultDiv.innerHTML = success ? `
+            <div class="result-success">
+                <i class="fas fa-check-circle"></i>
+                <div>
+                    <h4>Operazione completata!</h4>
+                    <p>${message}</p>
+                </div>
+            </div>
+        ` : `
+            <div class="result-error">
+                <i class="fas fa-exclamation-circle"></i>
+                <div>
+                    <h4>Operazione fallita</h4>
+                    <p>${message}</p>
+                </div>
+            </div>
+        `;
+        
+        resultDiv.style.display = 'block';
+        
+        // Add close button
+        const closeBtn = document.createElement('button');
+        closeBtn.className = 'workflow-close';
+        closeBtn.textContent = 'Chiudi';
+        closeBtn.onclick = function() {
+            // Ripristina il form
+            const formWrapper = document.querySelector('.fullwidth-form-wrapper');
+            if (formWrapper) {
+                formWrapper.style.display = '';
             }
-        }
-    }, true);
-}
-
-// ========== APPLY ALL FIXES ==========
-document.addEventListener('DOMContentLoaded', async () => {
-    console.log('🚀 Applying tracking fixes...');
+            
+            // Rimuovi il workflow
+            if (window._workflowContainer) {
+                window._workflowContainer.remove();
+                window._workflowContainer = null;
+            }
+            
+            // Chiudi il modal dopo un breve ritardo se success
+            if (success) {
+                setTimeout(() => {
+                    if (window.closeCustomModal) {
+                        window.closeCustomModal();
+                    }
+                }, 500);
+            }
+        };
+        resultDiv.appendChild(closeBtn);
+    };
     
-    // Wait a bit for modules to load
-    setTimeout(async () => {
-        fixProgressiveFormTimeout();
-        fixImportManager();
-        setupFileInputInterceptor();
+    // Override closeAllModals per pulire anche il nostro container
+    let originalCloseAllModals = window.closeAllModals;
+    window.closeAllModals = function() {
+        console.log('🔧 Closing all modals (including workflow)');
         
-        console.log('✅ All tracking fixes applied');
-    }, 2000);
-});
-
-// ========== DEBUG UTILITIES ==========
-window.debugExcelFile = async function(file) {
-    const arrayBuffer = await file.arrayBuffer();
-    const workbook = XLSX.read(arrayBuffer, { type: 'array' });
-    
-    console.log('📊 Excel Debug:');
-    console.log('- File:', file.name);
-    console.log('- Size:', file.size, 'bytes');
-    console.log('- Sheets:', workbook.SheetNames);
-    
-    workbook.SheetNames.forEach(sheetName => {
-        const sheet = workbook.Sheets[sheetName];
-        const data = XLSX.utils.sheet_to_json(sheet, { header: 1 });
-        console.log(`\nSheet "${sheetName}":`);
-        console.log('- Headers:', data[0]);
-        console.log('- Rows:', data.length);
-        console.log('- First data row:', data[1]);
-    });
-};
-
-// Aggiungi questa funzione dopo gli altri fix
-function fixProgressiveFormInit() {
-    // Forza l'inizializzazione del form se non parte
-    if (window.trackingFormProgressive && !window.trackingFormProgressive.initialized) {
-        console.log('🔧 [Form Fix] Force initializing progressive form...');
-        
-        // Simula che showAddTrackingForm sia già presente
-        if (!window.showAddTrackingForm) {
-            window.showAddTrackingForm = function() {
-                console.log('[Form Fix] Dummy showAddTrackingForm');
-            };
+        // Pulisci il nostro workflow container
+        if (window._workflowContainer) {
+            window._workflowContainer.remove();
+            window._workflowContainer = null;
         }
         
-        // Forza init
-        if (window.trackingFormProgressive.init) {
-            window.trackingFormProgressive.init();
+        // Ripristina il form se nascosto
+        const formWrapper = document.querySelector('.fullwidth-form-wrapper');
+        if (formWrapper) {
+            formWrapper.style.display = '';
         }
-    }
-}
-
-// Nel DOMContentLoaded, aggiungi:
-setTimeout(() => {
-    fixProgressiveFormInit();  // ← AGGIUNGI QUESTA CHIAMATA
-}, 3000);
-
-console.log('✅ Tracking fixes loaded. Debug with: debugExcelFile(file)');
+        
+        // Chiama l'originale se esiste
+        if (originalCloseAllModals) {
+            originalCloseAllModals.call(this);
+        }
+        
+        // Fallback: rimuovi tutti i modal overlay
+        document.querySelectorAll('.workflow-modal-overlay, .error-modal-overlay, .custom-fullwidth-modal').forEach(el => {
+            el.classList.remove('active');
+            setTimeout(() => el.remove(), 300);
+        });
+    };
+    
+    console.log('✅ TRACKING FIXES: Workflow modal fix applied');
+    
+    // Debug helper
+    window.debugWorkflow = function() {
+        console.log('🔍 Workflow Debug:');
+        console.log('- showWorkflowModal defined:', typeof window.showWorkflowModal);
+        console.log('- _workflowContainer:', window._workflowContainer);
+        console.log('- Custom modal visible:', !!document.querySelector('.custom-fullwidth-modal'));
+        console.log('- Workflow overlays:', document.querySelectorAll('.workflow-modal-overlay').length);
+        return {
+            container: window._workflowContainer,
+            overlays: document.querySelectorAll('.workflow-modal-overlay'),
+            customModal: document.querySelector('.custom-fullwidth-modal')
+        };
+    };
+    
+})();
