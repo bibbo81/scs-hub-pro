@@ -861,20 +861,20 @@ async function deleteTracking(id) {
 function showAddTrackingForm() {
     console.log('Show add form - using progressive form');
     
-    // Use the progressive form directly
-    if (window.showWorkflowProgress) {
-        // This is the enhanced progressive form with import tab
-        window.showWorkflowProgress();
-    } else if (window.showEnhancedTrackingForm) {
+    // Prova prima il form enhanced completo
+    if (window.showEnhancedTrackingForm) {
         window.showEnhancedTrackingForm();
+    } else if (window.showWorkflowProgress) {
+        // Fallback al workflow
+        window.showWorkflowProgress();
     } else if (window.trackingFormProgressive && window.trackingFormProgressive.show) {
         window.trackingFormProgressive.show();
     } else {
-        // Fallback: try to trigger it after a delay
+        // Ultimo fallback
         window.NotificationSystem?.info('Caricamento form...');
         setTimeout(() => {
-            if (window.showWorkflowProgress) {
-                window.showWorkflowProgress();
+            if (window.showEnhancedTrackingForm) {
+                window.showEnhancedTrackingForm();
             } else {
                 window.NotificationSystem?.error('Form tracking non disponibile');
             }
