@@ -9,13 +9,23 @@
     const RETRY_DELAY = 500; // ms
     let retryCount = 0;
     
+    // AGGIUNGI QUI LA NUOVA VARIABILE
+    let hasReachedMaxRetries = false;
+    
     // Funzione per intercettare il submit del form
     function interceptFormSubmit() {
-        // CONTROLLO RETRY COUNT
-        if (retryCount++ >= MAX_RETRIES) {
-            console.log('⚠️ Max retries reached for form interception');
-            return;
-        }
+    // PREVIENI ESECUZIONE SE GIÀ RAGGIUNTO IL LIMITE
+    if (hasReachedMaxRetries) {
+        console.log('🛑 Already reached max retries, skipping');
+        return;
+    }
+    
+    // CONTROLLO RETRY COUNT
+    if (retryCount++ >= MAX_RETRIES) {
+        console.log('⚠️ Max retries reached for form interception');
+        hasReachedMaxRetries = true; // Setta il flag
+        return;
+    }
         
         // Cerca il form
         const form = document.getElementById('enhancedSingleForm');
@@ -124,8 +134,14 @@
     
     // Funzione di cleanup per resettare lo stato
     window.resetSubmitFix = function() {
-        retryCount = 0;
-        window._workflowVisible = false;
+    // Non resettare se abbiamo già raggiunto il limite
+    if (hasReachedMaxRetries) {
+        console.log('🛑 Cannot reset - max retries already reached');
+        return;
+    }
+    
+    retryCount = 0;
+    window._workflowVisible = false;
         
         // Rimuovi flag di intercettazione
         const form = document.getElementById('enhancedSingleForm');
