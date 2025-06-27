@@ -369,7 +369,64 @@ window.performanceReport = function() {
 </script>
     <!-- Page Logic -->
     <script type="module" src="/pages/tracking/index.js"></script>
-    
+    <!-- FIX: Assicura che showAddTrackingForm sia disponibile -->
+<script>
+// Fix per il timeout del progressive form
+window.addEventListener('DOMContentLoaded', () => {
+    // Se showAddTrackingForm non esiste, creala come fallback
+    if (!window.showAddTrackingForm) {
+        window.showAddTrackingForm = function() {
+            console.log('🔧 Using fallback showAddTrackingForm');
+            
+            // Prova prima il form enhanced
+            if (window.showEnhancedTrackingForm) {
+                window.showEnhancedTrackingForm();
+            } 
+            // Poi il workflow progress
+            else if (window.showWorkflowProgress) {
+                window.showWorkflowProgress();
+            } 
+            // Altrimenti mostra un messaggio
+            else {
+                if (window.ModalSystem) {
+                    window.ModalSystem.show({
+                        title: 'Aggiungi Tracking',
+                        content: `
+                            <div class="text-center p-4">
+                                <i class="fas fa-exclamation-triangle fa-3x text-warning mb-3"></i>
+                                <p>Il form di tracking è in caricamento...</p>
+                                <p class="text-muted">Riprova tra qualche istante</p>
+                            </div>
+                        `,
+                        buttons: [{
+                            text: 'OK',
+                            className: 'btn-primary',
+                            action: () => window.ModalSystem.hide()
+                        }]
+                    });
+                } else {
+                    alert('Form tracking non ancora disponibile, riprova tra poco');
+                }
+            }
+        };
+        
+        console.log('✅ Fallback showAddTrackingForm created');
+    }
+});
+
+// Forza il check dopo 2 secondi
+setTimeout(() => {
+    if (!window.showAddTrackingForm && window.trackingDebug) {
+        // Prova a recuperarla dal contesto di tracking
+        const trackingContext = window.trackingDebug.getData();
+        if (trackingContext.showAddTrackingForm) {
+            window.showAddTrackingForm = trackingContext.showAddTrackingForm;
+            console.log('✅ showAddTrackingForm recovered from tracking context');
+        }
+    }
+}, 2000);
+</script>
+
     <!-- Load Tracking Service -->
     <script type="module" src="/core/services/tracking-service.js"></script>
     
@@ -575,5 +632,21 @@ document.addEventListener('DOMContentLoaded', () => {
 <script src="/pages/tracking/tracking-detect-fix.js"></script>
 <script src="/pages/tracking/tracking-submit-fix.js"></script>
 <script src="/pages/tracking/shipsgo-detector.js"></script>
+<script>
+// Fix temporaneo per il form progressive
+document.addEventListener('DOMContentLoaded', () => {
+    // Forza il caricamento del form dopo un delay maggiore
+    setTimeout(() => {
+        if (window.showEnhancedTrackingForm && typeof window.showEnhancedTrackingForm === 'function') {
+            console.log('🔧 Form progressive pronto per l\'uso');
+            
+            // Se i fix non hanno trovato il form, resetta e riprova
+            if (window.resetSubmitFix) {
+                window.resetSubmitFix();
+            }
+        }
+    }, 3000);
+});
+</script>
 </body>
 </html>
