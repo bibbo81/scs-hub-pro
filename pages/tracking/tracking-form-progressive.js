@@ -2360,11 +2360,13 @@ async function handleEnhancedSubmit(e) {
             if (detectedAirline) {
                 formData.carrier = detectedAirline.code;
                 console.log('Auto-detected carrier:', formData.carrier);
+                console.log('Auto-detected airline details:', detectedAirline);
             }
         }
         
-        // Show workflow modal
-        showWorkflowModal();
+        // Show workflow modal - SEMPRE, per tutti i tracking
+        console.log('🎯 Showing workflow modal...');
+        const workflowController = showWorkflowModal();
         
         try {
             // Process tracking
