@@ -385,23 +385,5 @@ class ShipsGoStandardDetector {
     }
 }
 
-// INTEGRAZIONE CON IMPORT MANAGER
-// Sostituisci nel tuo import-manager.js:
-
-// In detectFileType:
-detectFileType(data) {
-    if (!data || data.length === 0) return 'generic';
-    
-    const headers = Object.keys(data[0]);
-    return ShipsGoStandardDetector.detectShipsGoType(headers);
-}
-
-// In processShipsGoFile, usa:
-if (type === 'shipsgo_air') {
-    tracking = ShipsGoStandardDetector.mapShipsGoAirRow(row);
-} else if (type === 'shipsgo_sea') {
-    tracking = ShipsGoStandardDetector.mapShipsGoSeaRow(row);
-}
-
 // Export per test
 window.ShipsGoStandardDetector = ShipsGoStandardDetector;
