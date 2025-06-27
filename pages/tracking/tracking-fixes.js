@@ -34,22 +34,32 @@ console.log('🔧 Loading tracking fixes...');
                         
                         // Fallback diretto a Supabase
                         if (window.supabase) {
-                            console.log('[API Fix] Using direct Supabase query');
-                            const { data: { user } } = await window.supabase.auth.getUser();
-                            if (!user) return null;
-                            
-                            const { data, error } = await window.supabase
-                                .from('organization_api_keys')
-                                .select('*')
-                                .single();
-                                
-                            if (error) {
-                                console.error('[API Fix] Supabase error:', error);
-                                return null;
-                            }
-                            
-                            return data;
-                        }
+    console.log('[API Fix] Using direct Supabase query');
+    const { data: { user } } = await window.supabase.auth.getUser();
+    if (!user) return null;
+    
+    // Gestisci MULTIPLE API keys (V1 e V2)
+    const { data: apiKeys, error } = await window.supabase
+        .from('organization_api_keys')
+        .select('*');
+        
+    if (error) {
+        console.error('[API Fix] Supabase error:', error);
+        return null;
+    }
+    
+    if (!apiKeys || apiKeys.length === 0) {
+        console.log('[API Fix] No API keys found');
+        return null;
+    }
+    
+    console.log('[API Fix] Found', apiKeys.length, 'API keys');
+    
+    // Se tracking service si aspetta array, ritorna array
+    // Se si aspetta oggetto singolo, ritorna il primo
+    // Per ora ritorniamo tutto l'array
+    return apiKeys;
+}
                         
                         console.warn('[API Fix] No method available');
                         return null;
@@ -283,5 +293,30 @@ window.debugExcelFile = async function(file) {
         console.log('- First data row:', data[1]);
     });
 };
+
+// Aggiungi questa funzione dopo gli altri fix
+function fixProgressiveFormInit() {
+    // Forza l'inizializzazione del form se non parte
+    if (window.trackingFormProgressive && !window.trackingFormProgressive.initialized) {
+        console.log('🔧 [Form Fix] Force initializing progressive form...');
+        
+        // Simula che showAddTrackingForm sia già presente
+        if (!window.showAddTrackingForm) {
+            window.showAddTrackingForm = function() {
+                console.log('[Form Fix] Dummy showAddTrackingForm');
+            };
+        }
+        
+        // Forza init
+        if (window.trackingFormProgressive.init) {
+            window.trackingFormProgressive.init();
+        }
+    }
+}
+
+// Nel DOMContentLoaded, aggiungi:
+setTimeout(() => {
+    fixProgressiveFormInit();  // ← AGGIUNGI QUESTA CHIAMATA
+}, 3000);
 
 console.log('✅ Tracking fixes loaded. Debug with: debugExcelFile(file)');
