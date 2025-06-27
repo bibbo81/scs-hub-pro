@@ -42,6 +42,8 @@ const STATUS_DISPLAY = {
     'delivered': { label: 'Consegnato', class: 'success', icon: 'fa-check-circle' },
     'registered': { label: 'Registrato', class: 'info', icon: 'fa-clipboard-check' },
     'customs_cleared': { label: 'Sdoganato', class: 'success', icon: 'fa-stamp' },
+    'out_for_delivery': { label: 'In Consegna', class: 'warning', icon: 'fa-truck' },
+    'arrived': { label: 'Arrivato', class: 'primary', icon: 'fa-anchor' },
     'delayed': { label: 'In Ritardo', class: 'danger', icon: 'fa-exclamation-triangle' },
     'exception': { label: 'Eccezione', class: 'warning', icon: 'fa-exclamation' },
     'pending': { label: 'In attesa', class: 'warning', icon: 'fa-clock' }
@@ -427,32 +429,55 @@ function applyFilters() {
 
 // Get status mapping for import
 function getStatusMapping() {
-    // Reverse mapping for import
-    const mapping = {};
-    Object.entries(STATUS_DISPLAY).forEach(([key, value]) => {
-        mapping[value.label.toLowerCase()] = key;
-    });
-    
-    // Add additional mappings
-    Object.assign(mapping, {
+    return {
+        // MARE - Stati inglesi
         'sailing': 'in_transit',
-        'in transit': 'in_transit',
-        'in transito': 'in_transit',
+        'arrived': 'arrived',
         'delivered': 'delivered',
-        'consegnato': 'delivered',
-        'consegnata': 'delivered',
+        'discharged': 'arrived',
+        
+        // CORRIERI - Stati italiani (lowercase)
+        'la spedizione è stata consegnata': 'delivered',
+        'consegnata.': 'delivered',
+        'la spedizione è stata consegnata': 'delivered',
+        'consegna prevista nel corso della giornata odierna.': 'out_for_delivery',
+        'la spedizione è in consegna': 'out_for_delivery',
+        'la spedizione è in transito': 'in_transit',
+        'arrivata nella sede gls locale.': 'in_transit',
+        'in transito.': 'in_transit',
+        'partita dalla sede mittente. in transito.': 'in_transit',
+        'la spedizione e\' stata creata dal mittente, attendiamo che ci venga affidata per l\'invio a destinazione.': 'registered',
+        
+        // FEDEX - Stati inglesi (lowercase)
+        'on fedex vehicle for delivery': 'out_for_delivery',
+        'at local fedex facility': 'in_transit',
+        'departed fedex hub': 'in_transit',
+        'on the way': 'in_transit',
+        'arrived at fedex hub': 'in_transit',
+        'at destination sort facility': 'in_transit',
+        'left fedex origin facility': 'in_transit',
+        'picked up': 'in_transit',
+        'shipment information sent to fedex': 'registered',
+        'international shipment release - import': 'customs_cleared',
+        
+        // Altri stati
         'empty': 'delivered',
         'empty returned': 'delivered',
-        'customs cleared': 'customs_cleared',
-        'sdoganata': 'customs_cleared',
+        'pod': 'delivered',
         'registered': 'registered',
-        'pending': 'pending',
+        'pending': 'registered',
         'booked': 'registered',
-        'delayed': 'delayed',
-        'exception': 'exception'
-    });
-    
-    return mapping;
+        'booking confirmed': 'registered',
+        
+        // Stati italiani semplici
+        'in transito': 'in_transit',
+        'arrivata': 'arrived',
+        'consegnato': 'delivered',
+        'scaricato': 'arrived',
+        'in consegna': 'out_for_delivery',
+        'sdoganata': 'customs_cleared',
+        'spedizione creata': 'registered'
+    };
 }
 
 // Actions
