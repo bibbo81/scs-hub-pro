@@ -136,16 +136,31 @@ function waitForShowAddTrackingForm() {
 
         // Override con wrapper che decide quale versione usare
         window.showAddTrackingForm = function(options) {
-            console.log('🎯 PROGRESSIVE FORM: Wrapper called with enhanced=' + (ENABLE_ENHANCED && isEnhancedReady()));
-            
-            if (ENABLE_ENHANCED && isEnhancedReady()) {
-                showEnhancedTrackingForm(options);
-            } else {
-                // Fallback al form originale
-                console.log('🔄 PROGRESSIVE FORM: Using original form');
-                originalShowAddTrackingForm(options);
+    console.log('🎯 PROGRESSIVE FORM: Wrapper called');
+    console.log('- ENABLE_ENHANCED:', ENABLE_ENHANCED);
+    console.log('- isEnhancedReady():', isEnhancedReady());
+    console.log('- trackingService:', !!window.trackingService);
+    console.log('- ImportManager:', !!window.ImportManager);
+    
+    if (ENABLE_ENHANCED && isEnhancedReady()) {
+        console.log('✅ Using enhanced form');
+        showEnhancedTrackingForm(options);
+    } else {
+        // Fallback al form originale
+        console.log('🔄 PROGRESSIVE FORM: Using original form');
+        console.log('- originalShowAddTrackingForm exists?', typeof originalShowAddTrackingForm);
+        
+        if (originalShowAddTrackingForm) {
+            originalShowAddTrackingForm(options);
+        } else {
+            console.error('❌ No original form function available!');
+            // Usa showWorkflowProgress come fallback
+            if (window.showWorkflowProgress) {
+                window.showWorkflowProgress(options);
             }
-        };
+        }
+    }
+};
         
         // Esponi la funzione enhanced per test diretti
         window.showEnhancedTrackingForm = showEnhancedTrackingForm;
