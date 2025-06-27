@@ -66,30 +66,35 @@
     }
     
     // SOLUZIONE: Usa MutationObserver per detectare quando showAddTrackingForm viene definita
-    function waitForShowAddTrackingForm() {
-        return new Promise((resolve) => {
-            // Controlla se è già disponibile
+    // Sostituisci la funzione waitForShowAddTrackingForm (intorno alla riga 70-90) con questa versione:
+
+function waitForShowAddTrackingForm() {
+    return new Promise((resolve) => {
+        // Controlla se è già disponibile
+        if (window.showAddTrackingForm) {
+            resolve();
+            return;
+        }
+        
+        let checkCount = 0;
+        const maxChecks = 20; // 10 secondi invece di 30
+        
+        // Altrimenti aspetta che venga definita
+        const checkInterval = setInterval(() => {
+            checkCount++;
+            
             if (window.showAddTrackingForm) {
-                resolve();
-                return;
-            }
-            
-            // Altrimenti aspetta che venga definita
-            const checkInterval = setInterval(() => {
-                if (window.showAddTrackingForm) {
-                    clearInterval(checkInterval);
-                    resolve();
-                }
-            }, 50);
-            
-            // Timeout di sicurezza (30 secondi)
-            setTimeout(() => {
                 clearInterval(checkInterval);
-                console.warn('⚠️ PROGRESSIVE FORM: Timeout waiting for showAddTrackingForm');
                 resolve();
-            }, 30000);
-        });
-    }
+            } else if (checkCount >= maxChecks) {
+                clearInterval(checkInterval);
+                console.log('⚠️ PROGRESSIVE FORM: showAddTrackingForm not found after 10s, continuing anyway');
+                // Continua comunque invece di bloccarsi
+                resolve();
+            }
+        }, 500); // Check ogni 500ms invece di 50ms
+    });
+}
     
     // SOLUZIONE: Inizializza solo dopo che TUTTO è pronto
     async function initializeWhenReady() {
