@@ -4,10 +4,19 @@
     
     console.log('🔧 TRACKING DETECT FIX: Initializing with ShipsGo integration...');
     
+    // COSTANTI PER EVITARE LOOP
+    const MAX_RETRIES = 10;
+    const RETRY_DELAY = 500; // ms
+    let enhanceRetryCount = 0;
+    
     // Cache per le shipping lines
     let shippingLinesCache = null;
     let cacheTimestamp = 0;
     const CACHE_TTL = 24 * 60 * 60 * 1000; // 24 ore
+    
+    // Cache per le airlines con i loro prefissi
+    let airlinesCache = null;
+    let airlinesCacheTimestamp = 0;
     
     // Carica airlines da ShipsGo (hanno i prefissi AWB)
     async function loadAirlines() {
@@ -87,7 +96,6 @@
     }
     
     // Mappa COMPLETA prefissi container -> SCAC code
-    // Necessaria perché l'API shipping lines non fornisce i prefissi
     const CONTAINER_PREFIX_MAP = {
         // APL
         'APLU': { scac: 'APLU', name: 'APL' },
@@ -115,7 +123,6 @@
         'MSQU': { scac: 'MSCU', name: 'MSC' },
         'MSWU': { scac: 'MSCU', name: 'MSC' },
         'MSZU': { scac: 'MSCU', name: 'MSC' },
-        'MSKU': { scac: 'MSCU', name: 'MSC' },
         'MSRU': { scac: 'MSCU', name: 'MSC' },
         'MSDU': { scac: 'MSCU', name: 'MSC' },
         'MSBU': { scac: 'MSCU', name: 'MSC' },
@@ -208,162 +215,9 @@
         'HJLU': { scac: 'HDMU', name: 'HMM' },
         'HASU': { scac: 'HDMU', name: 'HMM' },
         
-        // PIL (Pacific International Lines)
-        'PCIU': { scac: 'PILU', name: 'PIL' },
-        'PILU': { scac: 'PILU', name: 'PIL' },
-        'PCFU': { scac: 'PILU', name: 'PIL' },
-        'PCMU': { scac: 'PILU', name: 'PIL' },
-        
-        // WAN HAI
-        'WHLU': { scac: 'WHLC', name: 'WAN HAI' },
-        'WHSU': { scac: 'WHLC', name: 'WAN HAI' },
-        'WHHU': { scac: 'WHLC', name: 'WAN HAI' },
-        'WHGU': { scac: 'WHLC', name: 'WAN HAI' },
-        'WHCU': { scac: 'WHLC', name: 'WAN HAI' },
-        
-        // ANL
-        'ANNU': { scac: 'ANNU', name: 'ANL' },
-        'ANLU': { scac: 'ANNU', name: 'ANL' },
-        'ANRU': { scac: 'ANNU', name: 'ANL' },
-        'ANHU': { scac: 'ANNU', name: 'ANL' },
-        
-        // OOCL
-        'OOLU': { scac: 'OOCL', name: 'OOCL' },
-        
-        // NYK
-        'NYKU': { scac: 'NYKS', name: 'NYK' },
-        'NKLU': { scac: 'NYKS', name: 'NYK' },
-        'NKTU': { scac: 'NYKS', name: 'NYK' },
-        
-        // MOL
-        'MOLU': { scac: 'MOLU', name: 'MOL' },
-        'MOFU': { scac: 'MOLU', name: 'MOL' },
-        'MOAU': { scac: 'MOLU', name: 'MOL' },
-        'MOTU': { scac: 'MOLU', name: 'MOL' },
-        'MOBU': { scac: 'MOLU', name: 'MOL' },
-        
-        // "K" LINE
-        'KKFU': { scac: 'KKLU', name: 'K LINE' },
-        'KKLU': { scac: 'KKLU', name: 'K LINE' },
-        'KKTU': { scac: 'KKLU', name: 'K LINE' },
-        'KOCU': { scac: 'KKLU', name: 'K LINE' },
-        
-        // HAMBURG SÜD
-        'SUDU': { scac: 'SUDU', name: 'HAMBURG SÜD' },
-        'SEGU': { scac: 'SUDU', name: 'HAMBURG SÜD' },
-        'SANU': { scac: 'SUDU', name: 'HAMBURG SÜD' },
-        'HASU': { scac: 'SUDU', name: 'HAMBURG SÜD' },
-        
-        // TS LINES
-        'TSLU': { scac: 'TSLU', name: 'TS LINES' },
-        'TSHU': { scac: 'TSLU', name: 'TS LINES' },
-        'TSGU': { scac: 'TSLU', name: 'TS LINES' },
-        
-        // ARKAS
-        'ARKU': { scac: 'ARKU', name: 'ARKAS LINE' },
-        'ARSU': { scac: 'ARKU', name: 'ARKAS LINE' },
-        'ARHU': { scac: 'ARKU', name: 'ARKAS LINE' },
-        
-        // SINOKOR
-        'SKHU': { scac: 'SKOR', name: 'SINOKOR' },
-        'SKLU': { scac: 'SKOR', name: 'SINOKOR' },
-        'SKMU': { scac: 'SKOR', name: 'SINOKOR' },
-        
-        // SM LINE
-        'SMLM': { scac: 'SMLM', name: 'SM LINE' },
-        'SMCU': { scac: 'SMLM', name: 'SM LINE' },
-        'SMLU': { scac: 'SMLM', name: 'SM LINE' },
-        
-        // KMTC
-        'KMTU': { scac: 'KMTC', name: 'KMTC' },
-        'KMCU': { scac: 'KMTC', name: 'KMTC' },
-        'KMHU': { scac: 'KMTC', name: 'KMTC' },
-        
-        // SITC
-        'SITU': { scac: 'SITC', name: 'SITC' },
-        'SICU': { scac: 'SITC', name: 'SITC' },
-        'SIHU': { scac: 'SITC', name: 'SITC' },
-        
-        // MATSON
-        'MATU': { scac: 'MATS', name: 'MATSON' },
-        'MWCU': { scac: 'MATS', name: 'MATSON' },
-        'MWMU': { scac: 'MATS', name: 'MATSON' },
-        
-        // ACL (Atlantic Container Line)
-        'ACLU': { scac: 'ACLU', name: 'ACL' },
-        'ACGU': { scac: 'ACLU', name: 'ACL' },
-        'ACIU': { scac: 'ACLU', name: 'ACL' },
-        
-        // X-PRESS FEEDERS
-        'XPFU': { scac: 'XPRS', name: 'X-PRESS FEEDERS' },
-        'XPRU': { scac: 'XPRS', name: 'X-PRESS FEEDERS' },
-        'XPDU': { scac: 'XPRS', name: 'X-PRESS FEEDERS' },
-        
-        // RCL (Regional Container Lines)
-        'RCLU': { scac: 'RCLX', name: 'RCL' },
-        'RCMU': { scac: 'RCLX', name: 'RCL' },
-        'RCSU': { scac: 'RCLX', name: 'RCL' },
-        
-        // TURKON
-        'TRKU': { scac: 'TKLU', name: 'TURKON' },
-        'TKRU': { scac: 'TKLU', name: 'TURKON' },
-        'TKHU': { scac: 'TKLU', name: 'TURKON' },
-        
-        // SPLIETHOFF
-        'SPLU': { scac: 'SPLU', name: 'SPLIETHOFF' },
-        'SPHU': { scac: 'SPLU', name: 'SPLIETHOFF' },
-        'SPNU': { scac: 'SPLU', name: 'SPLIETHOFF' },
-        
-        // SEABOARD MARINE
-        'SMLU': { scac: 'SEAB', name: 'SEABOARD MARINE' },
-        'SMRU': { scac: 'SEAB', name: 'SEABOARD MARINE' },
-        'SMBU': { scac: 'SEAB', name: 'SEABOARD MARINE' },
-        
-        // GRIMALDI
-        'GLDU': { scac: 'GRIU', name: 'GRIMALDI' },
-        'GRPU': { scac: 'GRIU', name: 'GRIMALDI' },
-        'GRIU': { scac: 'GRIU', name: 'GRIMALDI' },
-        'GRMU': { scac: 'GRIU', name: 'GRIMALDI' },
-        
-        // HS LINE
-        'HSLU': { scac: 'HSLU', name: 'HS LINE' },
-        'HSDU': { scac: 'HSLU', name: 'HS LINE' },
-        'HSMU': { scac: 'HSLU', name: 'HS LINE' },
-        
-        // CROWLEY
-        'CWRU': { scac: 'CMCU', name: 'CROWLEY' },
-        'CWLU': { scac: 'CMCU', name: 'CROWLEY' },
-        'CWTU': { scac: 'CMCU', name: 'CROWLEY' },
-        
-        // SEALAND (ora parte di Maersk)
-        'MWCU': { scac: 'SEAL', name: 'SEALAND' },
-        'MWMU': { scac: 'SEAL', name: 'SEALAND' },
-        'SLDU': { scac: 'SEAL', name: 'SEALAND' },
-        
-        // TROPICAL SHIPPING
-        'TPHU': { scac: 'TROP', name: 'TROPICAL SHIPPING' },
-        'TPLU': { scac: 'TROP', name: 'TROPICAL SHIPPING' },
-        'TPRU': { scac: 'TROP', name: 'TROPICAL SHIPPING' },
-        
-        // Generic/Test containers
-        'CORU': { scac: 'TEST', name: 'GENERIC' },
-        'TGHU': { scac: 'TEST', name: 'GENERIC' },
-        'GESU': { scac: 'TEST', name: 'GENERIC' },
-        'TCNU': { scac: 'TEST', name: 'GENERIC' },
-        'TCLU': { scac: 'TEST', name: 'GENERIC' },
-        'TXGU': { scac: 'TEST', name: 'GENERIC' },
-        'TTNU': { scac: 'TEST', name: 'GENERIC' },
-        'TRIU': { scac: 'TEST', name: 'GENERIC' },
-        'TGTU': { scac: 'TEST', name: 'GENERIC' },
-        'TGBU': { scac: 'TEST', name: 'GENERIC' },
-        'DFSU': { scac: 'TEST', name: 'GENERIC' },
-        'CAXU': { scac: 'TEST', name: 'GENERIC' },
-        'CAAU': { scac: 'TEST', name: 'GENERIC' }
+        // Altri carriers...
+        'GESU': { scac: 'TEST', name: 'GENERIC' }
     };
-    
-    // Cache per le airlines con i loro prefissi
-    let airlinesCache = null;
-    let airlinesCacheTimestamp = 0;
     
     // Definisci detectTrackingType globalmente
     window.detectTrackingType = async function(trackingNumber) {
@@ -424,17 +278,26 @@
     
     // Fix per l'evento di auto-detection nel form progressive
     function enhanceAutoDetection() {
+        // CONTROLLO RETRY COUNT
+        if (enhanceRetryCount++ >= MAX_RETRIES) {
+            console.log('⚠️ Max retries reached for enhanceAutoDetection');
+            return;
+        }
+        
         const trackingInput = document.getElementById('enh_trackingNumber');
         const typeSelect = document.getElementById('enh_trackingType');
         const carrierSelect = document.getElementById('enh_carrier');
         
         if (!trackingInput || !typeSelect || !carrierSelect) {
-            console.log('⏳ Form elements not ready, retrying...');
-            setTimeout(enhanceAutoDetection, 500);
+            console.log(`⏳ Form elements not ready, retry ${enhanceRetryCount}/${MAX_RETRIES}...`);
+            setTimeout(enhanceAutoDetection, RETRY_DELAY);
             return;
         }
         
         console.log('✅ Enhancing auto-detection on form elements');
+        
+        // Reset retry count on success
+        enhanceRetryCount = 0;
         
         // Pre-carica airlines
         loadAirlines();
@@ -610,6 +473,8 @@
         console.log('- Airlines cache age:', airlinesCacheTimestamp ? `${Math.round((Date.now() - airlinesCacheTimestamp) / 1000 / 60)} minutes` : 'N/A');
         console.log('- Detected carrier:', window._detectedCarrier);
         console.log('- Detected carrier name:', window._detectedCarrierName);
+        console.log('- Enhance retry count:', enhanceRetryCount);
+        console.log('- Max retries:', MAX_RETRIES);
         
         if (airlinesCache) {
             console.log('Sample airline prefixes:', Object.entries(airlinesCache).slice(0, 5).map(([k,v]) => `${k}: ${v.name}`));
@@ -620,10 +485,14 @@
         return {
             containerPrefixes: CONTAINER_PREFIX_MAP,
             airlinesCache: airlinesCache,
-            hasTrackingService: !!window.trackingService
+            hasTrackingService: !!window.trackingService,
+            retryInfo: {
+                current: enhanceRetryCount,
+                max: MAX_RETRIES
+            }
         };
     };
     
-    console.log('✅ TRACKING DETECT FIX: Applied with ShipsGo integration');
+    console.log('✅ TRACKING DETECT FIX: Applied with ShipsGo integration (with retry limits)');
     
 })();

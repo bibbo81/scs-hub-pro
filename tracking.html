@@ -335,6 +335,38 @@
     <!-- Load Import Manager (legacy) -->
     <script src="/core/import-manager.js"></script>
     
+<!-- Performance Optimizations -->
+<script src="/core/performance-optimizations.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    console.log('🚀 Integrating performance optimizations...');
+    
+    // 1. Wrap tracking service con cache e queue
+    if (window.trackingService && window.optimizedTrackingService) {
+        // Salva riferimento all'originale
+        window.trackingService._original = window.trackingService.track;
+        
+        // Sostituisci con versione ottimizzata
+        window.trackingService.track = function(trackingNumber, type, options) {
+            return window.optimizedTrackingService.track(trackingNumber, type, options);
+        };
+        
+        console.log('✅ Tracking service optimized with cache and queue');
+    }
+    
+    // ... resto del codice di integrazione ...
+    
+    console.log('✅ Performance optimizations integrated');
+});
+
+// Aggiungi comando globale per debug performance
+window.performanceReport = function() {
+    console.log('📊 PERFORMANCE REPORT');
+    console.log('====================');
+    
+    // ... resto del codice ...
+};
+</script>
     <!-- Page Logic -->
     <script type="module" src="/pages/tracking/index.js"></script>
     

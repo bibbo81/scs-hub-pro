@@ -4,21 +4,42 @@
     
     console.log('🔧 TRACKING SUBMIT FIX: Initializing...');
     
+    // COSTANTI PER EVITARE LOOP
+    const MAX_RETRIES = 10;
+    const RETRY_DELAY = 500; // ms
+    let retryCount = 0;
+    
     // Funzione per intercettare il submit del form
     function interceptFormSubmit() {
+        // CONTROLLO RETRY COUNT
+        if (retryCount++ >= MAX_RETRIES) {
+            console.log('⚠️ Max retries reached for form interception');
+            return;
+        }
+        
         // Cerca il form
         const form = document.getElementById('enhancedSingleForm');
         
         if (!form) {
-            console.log('⏳ Form not found, retrying...');
-            setTimeout(interceptFormSubmit, 500);
+            console.log(`⏳ Form not found, retry ${retryCount}/${MAX_RETRIES}...`);
+            setTimeout(interceptFormSubmit, RETRY_DELAY);
             return;
         }
         
         console.log('✅ Form found, intercepting submit');
         
+        // Reset retry count on success
+        retryCount = 0;
+        
         // Salva il vecchio handler se esiste
         const oldSubmitHandler = form.onsubmit;
+        
+        // Flag per evitare multiple intercettazioni
+        if (form.dataset.intercepted === 'true') {
+            console.log('⚠️ Form already intercepted, skipping');
+            return;
+        }
+        form.dataset.intercepted = 'true';
         
         // Intercetta il submit
         form.addEventListener('submit', function(e) {
@@ -57,7 +78,8 @@
         
         // Intercetta anche il bottone di submit
         const submitBtn = document.getElementById('enhSubmitBtn');
-        if (submitBtn) {
+        if (submitBtn && submitBtn.dataset.intercepted !== 'true') {
+            submitBtn.dataset.intercepted = 'true';
             const oldClickHandler = submitBtn.onclick;
             
             submitBtn.addEventListener('click', function(e) {
@@ -96,19 +118,52 @@
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', interceptFormSubmit);
     } else {
+        // Usa un delay maggiore per dare tempo ai componenti di caricarsi
         setTimeout(interceptFormSubmit, 1000);
     }
+    
+    // Funzione di cleanup per resettare lo stato
+    window.resetSubmitFix = function() {
+        retryCount = 0;
+        window._workflowVisible = false;
+        
+        // Rimuovi flag di intercettazione
+        const form = document.getElementById('enhancedSingleForm');
+        if (form) {
+            form.dataset.intercepted = 'false';
+        }
+        
+        const submitBtn = document.getElementById('enhSubmitBtn');
+        if (submitBtn) {
+            submitBtn.dataset.intercepted = 'false';
+        }
+        
+        console.log('✅ Submit fix reset completed');
+    };
     
     // Debug helper
     window.debugSubmitFix = function() {
         console.log('📋 Submit Fix Debug:');
         console.log('- Form found:', !!document.getElementById('enhancedSingleForm'));
+        console.log('- Form intercepted:', document.getElementById('enhancedSingleForm')?.dataset.intercepted);
         console.log('- Submit button found:', !!document.getElementById('enhSubmitBtn'));
+        console.log('- Submit button intercepted:', document.getElementById('enhSubmitBtn')?.dataset.intercepted);
         console.log('- Workflow visible:', window._workflowVisible);
         console.log('- showWorkflowModal exists:', typeof window.showWorkflowModal);
         console.log('- handleEnhancedSubmit exists:', typeof window.handleEnhancedSubmit);
+        console.log('- Retry count:', retryCount);
+        console.log('- Max retries:', MAX_RETRIES);
+        
+        return {
+            formReady: !!document.getElementById('enhancedSingleForm'),
+            workflowReady: typeof window.showWorkflowModal === 'function',
+            retryInfo: {
+                current: retryCount,
+                max: MAX_RETRIES
+            }
+        };
     };
     
-    console.log('✅ TRACKING SUBMIT FIX: Applied');
+    console.log('✅ TRACKING SUBMIT FIX: Applied (with retry limits)');
     
 })();
