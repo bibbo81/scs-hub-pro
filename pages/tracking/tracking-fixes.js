@@ -4,277 +4,311 @@
     
     console.log('🔧 TRACKING FIXES: Applying workflow modal fix...');
     
-    // Override showWorkflowModal per mostrarla DENTRO il modal esistente
+    // Variabile per tracciare se abbiamo già applicato il fix
+    let isFixed = false;
     let originalShowWorkflowModal = null;
     
-    // Intercetta la definizione di showWorkflowModal
-    Object.defineProperty(window, 'showWorkflowModal', {
-        get: function() {
-            return originalShowWorkflowModal;
-        },
-        set: function(fn) {
-            console.log('🎯 TRACKING FIXES: Intercepting showWorkflowModal');
+    // Funzione che applica il fix
+    function applyWorkflowFix() {
+        if (isFixed || !window.showWorkflowModal) return;
+        
+        console.log('🎯 TRACKING FIXES: Applying fix to showWorkflowModal');
+        
+        const originalFn = window.showWorkflowModal;
+        originalShowWorkflowModal = originalFn;
+        
+        window.showWorkflowModal = function() {
+            console.log('🚀 TRACKING FIXES: showWorkflowModal called - FIXED VERSION');
             
-            // Salva l'originale
-            const originalFn = fn;
+            // Trova il modal container esistente
+            const existingModalContent = document.querySelector('.custom-modal-content');
             
-            // Crea la versione corretta
-            originalShowWorkflowModal = function() {
-                console.log('🚀 TRACKING FIXES: showWorkflowModal called - FIXED VERSION');
+            if (existingModalContent) {
+                console.log('✅ Found existing modal content - inserting workflow inside');
                 
-                // Trova il modal container esistente
-                const existingModalContent = document.querySelector('.custom-modal-content');
+                // Nascondi il form esistente
+                const formWrapper = existingModalContent.querySelector('.fullwidth-form-wrapper');
+                if (formWrapper) {
+                    formWrapper.style.display = 'none';
+                }
                 
-                if (existingModalContent) {
-                    console.log('✅ Found existing modal content - inserting workflow inside');
-                    
-                    // Nascondi il form esistente
-                    const formWrapper = existingModalContent.querySelector('.fullwidth-form-wrapper');
-                    if (formWrapper) {
-                        formWrapper.style.display = 'none';
-                    }
-                    
-                    // Crea il workflow container DENTRO il modal esistente
-                    const workflowContainer = document.createElement('div');
-                    workflowContainer.className = 'workflow-inside-modal';
-                    workflowContainer.innerHTML = `
-                        <div class="workflow-modal-content">
-                            <h3>🚀 Elaborazione Tracking</h3>
-                            <div class="workflow-container">
-                                <div class="workflow-step" data-step="0">
-                                    <div class="step-icon">📋</div>
-                                    <div class="step-content">
-                                        <h4>Validazione</h4>
-                                        <p>Controllo dati inseriti</p>
-                                        <span class="step-status pending">In corso...</span>
-                                    </div>
-                                </div>
-                                
-                                <div class="workflow-arrow">→</div>
-                                
-                                <div class="workflow-step" data-step="1">
-                                    <div class="step-icon">🔄</div>
-                                    <div class="step-content">
-                                        <h4>API Check</h4>
-                                        <p>Recupero dati live</p>
-                                        <span class="step-status waiting">In attesa</span>
-                                    </div>
-                                </div>
-                                
-                                <div class="workflow-arrow">→</div>
-                                
-                                <div class="workflow-step" data-step="2">
-                                    <div class="step-icon">💾</div>
-                                    <div class="step-content">
-                                        <h4>Salvataggio</h4>
-                                        <p>Registrazione tracking</p>
-                                        <span class="step-status waiting">In attesa</span>
-                                    </div>
+                // Rimuovi eventuali workflow precedenti
+                const existingWorkflow = existingModalContent.querySelector('.workflow-inside-modal');
+                if (existingWorkflow) {
+                    existingWorkflow.remove();
+                }
+                
+                // Crea il workflow container DENTRO il modal esistente
+                const workflowContainer = document.createElement('div');
+                workflowContainer.className = 'workflow-inside-modal';
+                workflowContainer.innerHTML = `
+                    <div class="workflow-modal-content">
+                        <h3>🚀 Elaborazione Tracking</h3>
+                        <div class="workflow-container">
+                            <div class="workflow-step" data-step="0">
+                                <div class="step-icon">📋</div>
+                                <div class="step-content">
+                                    <h4>Validazione</h4>
+                                    <p>Controllo dati inseriti</p>
+                                    <span class="step-status pending">In corso...</span>
                                 </div>
                             </div>
                             
-                            <div class="workflow-result" style="display: none;"></div>
+                            <div class="workflow-arrow">→</div>
+                            
+                            <div class="workflow-step" data-step="1">
+                                <div class="step-icon">🔄</div>
+                                <div class="step-content">
+                                    <h4>API Check</h4>
+                                    <p>Recupero dati live</p>
+                                    <span class="step-status waiting">In attesa</span>
+                                </div>
+                            </div>
+                            
+                            <div class="workflow-arrow">→</div>
+                            
+                            <div class="workflow-step" data-step="2">
+                                <div class="step-icon">💾</div>
+                                <div class="step-content">
+                                    <h4>Salvataggio</h4>
+                                    <p>Registrazione tracking</p>
+                                    <span class="step-status waiting">In attesa</span>
+                                </div>
+                            </div>
                         </div>
                         
-                        <style>
-                        .workflow-inside-modal {
-                            padding: 30px;
-                            height: 100%;
-                            display: flex;
-                            align-items: center;
-                            justify-content: center;
+                        <div class="workflow-result" style="display: none;"></div>
+                    </div>
+                    
+                    <style>
+                    .workflow-inside-modal {
+                        padding: 30px;
+                        height: 100%;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        animation: fadeIn 0.3s ease;
+                    }
+                    
+                    @keyframes fadeIn {
+                        from {
+                            opacity: 0;
+                            transform: translateY(20px);
                         }
-                        
-                        .workflow-modal-content {
-                            background: white;
-                            border-radius: 12px;
-                            padding: 30px;
-                            max-width: 800px;
-                            width: 100%;
+                        to {
+                            opacity: 1;
+                            transform: translateY(0);
                         }
-                        
-                        .workflow-modal-content h3 {
-                            margin: 0 0 25px 0;
-                            color: #333;
-                            font-size: 24px;
-                            text-align: center;
-                        }
-                        
+                    }
+                    
+                    .workflow-modal-content {
+                        background: white;
+                        border-radius: 12px;
+                        padding: 30px;
+                        max-width: 800px;
+                        width: 100%;
+                        box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+                    }
+                    
+                    .workflow-modal-content h3 {
+                        margin: 0 0 25px 0;
+                        color: #333;
+                        font-size: 24px;
+                        text-align: center;
+                    }
+                    
+                    .workflow-container {
+                        display: flex;
+                        align-items: center;
+                        justify-content: space-between;
+                        margin-bottom: 30px;
+                    }
+                    
+                    .workflow-step {
+                        flex: 1;
+                        text-align: center;
+                        padding: 20px;
+                        border-radius: 8px;
+                        background: #f8f9fa;
+                        transition: all 0.3s ease;
+                    }
+                    
+                    .workflow-step.completed {
+                        background: #d4f4dd;
+                    }
+                    
+                    .workflow-step.error {
+                        background: #ffebee;
+                    }
+                    
+                    .step-icon {
+                        font-size: 48px;
+                        margin-bottom: 15px;
+                        color: #6c757d;
+                    }
+                    
+                    .workflow-step.completed .step-icon {
+                        color: #28a745;
+                    }
+                    
+                    .workflow-step.error .step-icon {
+                        color: #dc3545;
+                    }
+                    
+                    .step-content h4 {
+                        margin: 0 0 8px 0;
+                        font-size: 16px;
+                        color: #333;
+                    }
+                    
+                    .step-content p {
+                        margin: 0 0 12px 0;
+                        font-size: 14px;
+                        color: #6c757d;
+                    }
+                    
+                    .step-status {
+                        font-size: 14px;
+                        font-weight: 500;
+                        padding: 6px 12px;
+                        border-radius: 20px;
+                        display: inline-block;
+                    }
+                    
+                    .step-status.pending {
+                        background: #fff3cd;
+                        color: #856404;
+                        animation: pulse 1.5s infinite;
+                    }
+                    
+                    @keyframes pulse {
+                        0% { opacity: 1; }
+                        50% { opacity: 0.6; }
+                        100% { opacity: 1; }
+                    }
+                    
+                    .step-status.waiting {
+                        background: #e9ecef;
+                        color: #6c757d;
+                    }
+                    
+                    .step-status.success {
+                        background: #28a745;
+                        color: white;
+                    }
+                    
+                    .step-status.error {
+                        background: #dc3545;
+                        color: white;
+                    }
+                    
+                    .workflow-arrow {
+                        font-size: 24px;
+                        color: #6c757d;
+                        margin: 0 20px;
+                    }
+                    
+                    .workflow-result {
+                        background: #f8f9fa;
+                        border-radius: 8px;
+                        padding: 20px;
+                        margin-top: 20px;
+                    }
+                    
+                    .workflow-result h4 {
+                        margin: 0 0 15px 0;
+                        color: #333;
+                    }
+                    
+                    .result-success {
+                        display: flex;
+                        align-items: center;
+                        gap: 15px;
+                        color: #28a745;
+                    }
+                    
+                    .result-success i {
+                        font-size: 36px;
+                    }
+                    
+                    .result-error {
+                        display: flex;
+                        align-items: center;
+                        gap: 15px;
+                        color: #dc3545;
+                    }
+                    
+                    .result-error i {
+                        font-size: 36px;
+                    }
+                    
+                    .workflow-close {
+                        display: block;
+                        margin: 20px auto 0;
+                        padding: 10px 24px;
+                        background: #007bff;
+                        color: white;
+                        border: none;
+                        border-radius: 6px;
+                        font-size: 16px;
+                        cursor: pointer;
+                        transition: background 0.3s ease;
+                    }
+                    
+                    .workflow-close:hover {
+                        background: #0056b3;
+                    }
+                    
+                    @media (max-width: 768px) {
                         .workflow-container {
-                            display: flex;
-                            align-items: center;
-                            justify-content: space-between;
-                            margin-bottom: 30px;
-                        }
-                        
-                        .workflow-step {
-                            flex: 1;
-                            text-align: center;
-                            padding: 20px;
-                            border-radius: 8px;
-                            background: #f8f9fa;
-                            transition: all 0.3s ease;
-                        }
-                        
-                        .workflow-step.completed {
-                            background: #d4f4dd;
-                        }
-                        
-                        .workflow-step.error {
-                            background: #ffebee;
-                        }
-                        
-                        .step-icon {
-                            font-size: 48px;
-                            margin-bottom: 15px;
-                            color: #6c757d;
-                        }
-                        
-                        .workflow-step.completed .step-icon {
-                            color: #28a745;
-                        }
-                        
-                        .workflow-step.error .step-icon {
-                            color: #dc3545;
-                        }
-                        
-                        .step-content h4 {
-                            margin: 0 0 8px 0;
-                            font-size: 16px;
-                            color: #333;
-                        }
-                        
-                        .step-content p {
-                            margin: 0 0 12px 0;
-                            font-size: 14px;
-                            color: #6c757d;
-                        }
-                        
-                        .step-status {
-                            font-size: 14px;
-                            font-weight: 500;
-                            padding: 6px 12px;
-                            border-radius: 20px;
-                            display: inline-block;
-                        }
-                        
-                        .step-status.pending {
-                            background: #fff3cd;
-                            color: #856404;
-                        }
-                        
-                        .step-status.waiting {
-                            background: #e9ecef;
-                            color: #6c757d;
-                        }
-                        
-                        .step-status.success {
-                            background: #28a745;
-                            color: white;
-                        }
-                        
-                        .step-status.error {
-                            background: #dc3545;
-                            color: white;
+                            flex-direction: column;
                         }
                         
                         .workflow-arrow {
-                            font-size: 24px;
-                            color: #6c757d;
-                            margin: 0 20px;
+                            transform: rotate(90deg);
+                            margin: 20px 0;
                         }
                         
-                        .workflow-result {
-                            background: #f8f9fa;
-                            border-radius: 8px;
-                            padding: 20px;
-                            margin-top: 20px;
+                        .workflow-step {
+                            width: 100%;
                         }
-                        
-                        .workflow-result h4 {
-                            margin: 0 0 15px 0;
-                            color: #333;
-                        }
-                        
-                        .result-success {
-                            display: flex;
-                            align-items: center;
-                            gap: 15px;
-                            color: #28a745;
-                        }
-                        
-                        .result-success i {
-                            font-size: 36px;
-                        }
-                        
-                        .result-error {
-                            display: flex;
-                            align-items: center;
-                            gap: 15px;
-                            color: #dc3545;
-                        }
-                        
-                        .result-error i {
-                            font-size: 36px;
-                        }
-                        
-                        .workflow-close {
-                            display: block;
-                            margin: 20px auto 0;
-                            padding: 10px 24px;
-                            background: #007bff;
-                            color: white;
-                            border: none;
-                            border-radius: 6px;
-                            font-size: 16px;
-                            cursor: pointer;
-                            transition: background 0.3s ease;
-                        }
-                        
-                        .workflow-close:hover {
-                            background: #0056b3;
-                        }
-                        
-                        @media (max-width: 768px) {
-                            .workflow-container {
-                                flex-direction: column;
-                            }
-                            
-                            .workflow-arrow {
-                                transform: rotate(90deg);
-                                margin: 20px 0;
-                            }
-                            
-                            .workflow-step {
-                                width: 100%;
-                            }
-                        }
-                        </style>
-                    `;
-                    
-                    // Inserisci nel modal esistente
-                    existingModalContent.appendChild(workflowContainer);
-                    
-                    // Salva riferimento globale per le funzioni di update
-                    window._workflowContainer = workflowContainer;
-                    
-                } else {
-                    console.log('⚠️ No existing modal found - falling back to original');
-                    // Fallback: usa la funzione originale
-                    originalFn.call(this);
-                }
-            };
-            
-            // Rendi configurabile
-            originalShowWorkflowModal.useOriginal = function() {
-                originalFn.call(this);
-            };
-        },
-        configurable: true
-    });
+                    }
+                    </style>
+                `;
+                
+                // Inserisci nel modal esistente
+                existingModalContent.appendChild(workflowContainer);
+                
+                // Salva riferimento globale per le funzioni di update
+                window._workflowContainer = workflowContainer;
+                
+            } else {
+                console.log('⚠️ No existing modal found - preventing default workflow modal');
+                // NON chiamare la funzione originale che crea un modal separato
+                // Invece, mostra un errore o riprova
+                console.error('Cannot show workflow - no modal container found');
+                window.NotificationSystem?.error('Errore: modal container non trovato');
+            }
+        };
+        
+        // Mark as fixed
+        window.showWorkflowModal._isFixed = true;
+        isFixed = true;
+    }
+    
+    // Controlla periodicamente se showWorkflowModal esiste
+    const checkInterval = setInterval(() => {
+        if (window.showWorkflowModal && !isFixed) {
+            clearInterval(checkInterval);
+            applyWorkflowFix();
+        }
+    }, 100);
+    
+    // Ferma il check dopo 30 secondi
+    setTimeout(() => clearInterval(checkInterval), 30000);
     
     // Override updateWorkflowStep per funzionare con il nuovo container
-    let originalUpdateWorkflowStep = window.updateWorkflowStep;
+    const originalUpdateWorkflowStep = window.updateWorkflowStep;
     window.updateWorkflowStep = function(stepIndex, status, statusText) {
         console.log('📊 Update workflow step:', stepIndex, status, statusText);
         
@@ -286,7 +320,7 @@
             step = window._workflowContainer.querySelector(`[data-step="${stepIndex}"]`);
         }
         
-        // Se non trovato, cerca globalmente
+        // Se non trovato, cerca globalmente (per retrocompatibilità)
         if (!step) {
             step = document.querySelector(`[data-step="${stepIndex}"]`);
         }
@@ -305,7 +339,7 @@
     };
     
     // Override showWorkflowResult
-    let originalShowWorkflowResult = window.showWorkflowResult;
+    const originalShowWorkflowResult = window.showWorkflowResult;
     window.showWorkflowResult = function(success, message) {
         console.log('📊 Show workflow result:', success, message);
         
@@ -377,7 +411,7 @@
     };
     
     // Override closeAllModals per pulire anche il nostro container
-    let originalCloseAllModals = window.closeAllModals;
+    const originalCloseAllModals = window.closeAllModals;
     window.closeAllModals = function() {
         console.log('🔧 Closing all modals (including workflow)');
         
@@ -394,7 +428,7 @@
         }
         
         // Chiama l'originale se esiste
-        if (originalCloseAllModals) {
+        if (originalCloseAllModals && typeof originalCloseAllModals === 'function') {
             originalCloseAllModals.call(this);
         }
         
@@ -411,14 +445,30 @@
     window.debugWorkflow = function() {
         console.log('🔍 Workflow Debug:');
         console.log('- showWorkflowModal defined:', typeof window.showWorkflowModal);
+        console.log('- showWorkflowModal fixed:', window.showWorkflowModal?._isFixed);
         console.log('- _workflowContainer:', window._workflowContainer);
         console.log('- Custom modal visible:', !!document.querySelector('.custom-fullwidth-modal'));
         console.log('- Workflow overlays:', document.querySelectorAll('.workflow-modal-overlay').length);
+        
+        // Force fix if needed
+        if (window.showWorkflowModal && !window.showWorkflowModal._isFixed) {
+            console.log('🔧 Applying fix now...');
+            applyWorkflowFix();
+        }
+        
         return {
             container: window._workflowContainer,
             overlays: document.querySelectorAll('.workflow-modal-overlay'),
-            customModal: document.querySelector('.custom-fullwidth-modal')
+            customModal: document.querySelector('.custom-fullwidth-modal'),
+            isFixed: isFixed
         };
+    };
+    
+    // Aggiungi anche un fix manuale che può essere chiamato
+    window.fixWorkflowModal = function() {
+        console.log('🔧 Manual workflow fix requested');
+        isFixed = false; // Reset flag
+        applyWorkflowFix();
     };
     
 })();
