@@ -639,14 +639,9 @@ document.addEventListener('DOMContentLoaded', () => {
     setTimeout(() => {
         if (window.showEnhancedTrackingForm && typeof window.showEnhancedTrackingForm === 'function') {
             console.log('🔧 Form progressive pronto per l\'uso');
-            
-            // Se i fix non hanno trovato il form, resetta e riprova
-            if (window.resetSubmitFix) {
-                window.resetSubmitFix();
-            }
         }
     }, 3000);
-});
+}); // <-- Questa parentesi chiude il DOMContentLoaded
 </script>
 </body>
 </html>
