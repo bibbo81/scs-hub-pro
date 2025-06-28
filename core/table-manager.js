@@ -321,18 +321,18 @@ export class TableManager {
     
     // Render select checkbox cell
     renderSelectCell(rowId, isSelected) {
-        return `
-            <td>
-                <input 
-                    type="checkbox" 
-                    class="select-row"
-                    data-id="${rowId}"
-                    ${isSelected ? 'checked' : ''}
-                    onchange="window.tableManagerSelectRow('${this.container.id}', '${rowId}', this.checked)"
-                >
-            </td>
-        `;
-    }
+    return `
+        <td>
+            <input 
+                type="checkbox" 
+                class="select-row"
+                value="${rowId}"
+                data-id="${rowId}"
+                ${isSelected ? 'checked' : ''}
+            >
+        </td>
+    `;
+}
     
     // Render cell
     renderCell(row, column) {
