@@ -13,6 +13,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="/core/modal-system.css">
     <link rel="stylesheet" href="/pages/tracking/tracking-complete.css">
+    <link rel="stylesheet" href="/pages/tracking/tracking-table.css">
     
     <!-- Supabase -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -77,6 +78,13 @@
         .badge-warning { background-color: #ffc107; color: #212529; }
         .badge-danger { background-color: #dc3545; color: white; }
         .badge-secondary { background-color: #6c757d; color: white; }
+
+        /* Force horizontal scroll */
+    #trackingTableContainer {
+        overflow-x: auto !important;
+        max-width: 100%;
+    }
+    
     </style>
 </head>
 <body>
@@ -631,6 +639,7 @@ document.addEventListener('DOMContentLoaded', () => {
 <script src="/pages/tracking/tracking-fixes.js"></script>
 <script src="/pages/tracking/tracking-detect-fix.js"></script>
 <script src="/pages/tracking/tracking-submit-fix.js"></script>
+<script src="/pages/tracking/api-keys-debug.js"></script>
 <script src="/pages/tracking/shipsgo-detector.js"></script>
 <script src="/pages/tracking/tracking-checkbox-fix.js"></script>
 <script>
