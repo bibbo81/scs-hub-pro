@@ -2200,6 +2200,22 @@ function waitForShowAddTrackingForm() {
                font-weight: 600;
                font-size: 13px;
            }
+               /* Animazione pulse per ID update */
+           @keyframes pulse {
+               0% { transform: scale(1); }
+               50% { transform: scale(1.1); }
+               100% { transform: scale(1); }
+           }
+           
+           /* Stile per ID display nella preview */
+           #shipsgo_id_display {
+               transition: all 0.3s ease;
+           }
+           
+           #shipsgo_id_display:hover {
+               background: rgba(40, 167, 69, 0.2) !important;
+               transform: translateY(-1px);
+           }
            </style>
        `;
    }
@@ -2654,33 +2670,68 @@ async function handleEnhancedSubmit(e) {
    }
    
    function showAWBIdFound(shipsgoId) {
-       const statusEl = document.querySelector('.detection-status');
-       if (statusEl) {
-           statusEl.innerHTML = `
-               <i class="fas fa-check-circle status-icon" style="color: #28a745;"></i>
-               <span class="status-text">✈️ AWB trovato - ID: ${shipsgoId}</span>
-           `;
-       }
-       
-       // Aggiungi anche un badge visibile sotto l'input
-       const inputWrapper = document.querySelector('.main-input-wrapper');
-       const existingBadge = inputWrapper.querySelector('.awb-id-badge');
-       if (existingBadge) existingBadge.remove();
-       
-       const badge = document.createElement('div');
-       badge.className = 'awb-id-badge';
-       badge.style.cssText = `
-           background: #28a745;
-           color: white;
-           padding: 4px 12px;
-           border-radius: 4px;
-           font-size: 12px;
-           margin-top: 8px;
-           display: inline-block;
-       `;
-       badge.innerHTML = `<i class="fas fa-database"></i> ShipsGo ID: ${shipsgoId}`;
-       inputWrapper.appendChild(badge);
-   }
+    const statusEl = document.querySelector('.detection-status');
+    if (statusEl) {
+        statusEl.innerHTML = `
+            <i class="fas fa-check-circle status-icon" style="color: #28a745;"></i>
+            <span class="status-text">✈️ AWB trovato - ID: ${shipsgoId}</span>
+        `;
+    }
+    
+    // Aggiungi anche un badge visibile sotto l'input
+    const inputWrapper = document.querySelector('.main-input-wrapper');
+    const existingBadge = inputWrapper.querySelector('.awb-id-badge');
+    if (existingBadge) existingBadge.remove();
+    
+    const badge = document.createElement('div');
+    badge.className = 'awb-id-badge';
+    badge.style.cssText = `
+        background: #28a745;
+        color: white;
+        padding: 4px 12px;
+        border-radius: 4px;
+        font-size: 12px;
+        margin-top: 8px;
+        display: inline-block;
+    `;
+    badge.innerHTML = `<i class="fas fa-database"></i> ShipsGo ID: ${shipsgoId}`;
+    inputWrapper.appendChild(badge);
+    
+    // NUOVO CODICE: Mostra l'ID anche nella preview card
+    const previewCard = document.querySelector('.preview-card .card-body');
+    if (previewCard) {
+        // Rimuovi eventuale ID display esistente
+        const existingIdDisplay = previewCard.querySelector('#shipsgo_id_display');
+        if (existingIdDisplay) existingIdDisplay.remove();
+        
+        // Crea nuovo display per l'ID
+        const idDisplay = document.createElement('div');
+        idDisplay.id = 'shipsgo_id_display';
+        idDisplay.style.cssText = `
+            margin-top: 12px;
+            padding: 10px;
+            background: rgba(40, 167, 69, 0.15);
+            border: 1px solid rgba(40, 167, 69, 0.3);
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        `;
+        idDisplay.innerHTML = `
+            <i class="fas fa-database" style="color: #28a745;"></i>
+            <strong style="color: white;">ShipsGo ID:</strong> 
+            <span id="shipsgo_id_value" style="color: #28a745; font-weight: 600;">${shipsgoId}</span>
+        `;
+        
+        // Inserisci prima della live preview
+        const livePreview = previewCard.querySelector('.live-preview');
+        if (livePreview) {
+            previewCard.insertBefore(idDisplay, livePreview);
+        } else {
+            previewCard.appendChild(idDisplay);
+        }
+    }
+}
    
    function showAWBIdNotFound() {
        const statusEl = document.querySelector('.detection-status');
@@ -2788,8 +2839,15 @@ async function handleEnhancedSubmit(e) {
                    // Salva l'ID in memoria
                    window.detectedAwbId = foundAwb.id;
                    
-                   // Mostra l'ID nell'interfaccia
-                   showAWBIdFound(foundAwb.id);
+                   /// Mostra l'ID nell'interfaccia
+showAWBIdFound(foundAwb.id);
+
+// NUOVO CODICE: Aggiorna anche il valore nella preview se già esiste
+const idValueElement = document.getElementById('shipsgo_id_value');
+if (idValueElement) {
+    idValueElement.textContent = foundAwb.id;
+    idValueElement.style.animation = 'pulse 0.5s ease';
+}
                    
                    // Pre-compila altri campi se disponibili
                    if (foundAwb.status) {
