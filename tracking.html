@@ -104,57 +104,58 @@
                     <button class="btn btn-info" onclick="showImportDialog()">
                         <i class="fas fa-file-import mr-2"></i>Importa
                     </button>
+                    <button class="btn btn-secondary" onclick="showColumnEditor()">
+        <i class="fas fa-columns mr-2"></i>Colonne
+    </button>
                 </div>
             </div>
 
             <!-- Stats Row -->
-            <div class="stats-container d-flex justify-content-around align-items-center mb-4 p-4" style="background: #f8f9fa; border-radius: 12px;">
-                <div class="stat-item text-center">
-                    <div class="d-flex align-items-center">
-                        <div class="stat-icon mr-3" style="font-size: 2.5rem; color: #6366f1;">
-                            <i class="fas fa-box"></i>
-                        </div>
-                        <div class="text-left">
-                            <h2 class="mb-0" id="totalTrackings">0</h2>
-                            <p class="mb-0 text-muted">Totale Tracking</p>
-                        </div>
-                    </div>
-                </div>
-                <div class="stat-item text-center">
-                    <div class="d-flex align-items-center">
-                        <div class="stat-icon mr-3" style="font-size: 2.5rem; color: #3b82f6;">
-                            <i class="fas fa-ship"></i>
-                        </div>
-                        <div class="text-left">
-                            <h2 class="mb-0" id="inTransitCount">0</h2>
-                            <p class="mb-0 text-muted">In Transito</p>
-                        </div>
-                    </div>
-                </div>
-                <div class="stat-item text-center">
-                    <div class="d-flex align-items-center">
-                        <div class="stat-icon mr-3" style="font-size: 2.5rem; color: #8b5cf6;">
-                            <i class="fas fa-check-circle"></i>
-                        </div>
-                        <div class="text-left">
-                            <h2 class="mb-0" id="deliveredCount">0</h2>
-                            <p class="mb-0 text-muted">Consegnati</p>
-                        </div>
-                    </div>
-                </div>
-                <div class="stat-item text-center">
-                    <div class="d-flex align-items-center">
-                        <div class="stat-icon mr-3" style="font-size: 2.5rem; color: #f59e0b;">
-                            <i class="fas fa-exclamation-triangle"></i>
-                        </div>
-                        <div class="text-left">
-                            <h2 class="mb-0" id="exceptionCount">0</h2>
-                            <p class="mb-0 text-muted">In Ritardo</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
+<div class="stats-grid mb-4">
+    <!-- Card 1: Totale Tracking -->
+    <div class="stat-card">
+        <div class="stat-icon">
+            <i class="fas fa-box"></i>
+        </div>
+        <div class="stat-content">
+            <h2 id="totalTrackings">0</h2>
+            <p>Totale Tracking</p>
+        </div>
+    </div>
+    
+    <!-- Card 2: In Transito -->
+    <div class="stat-card">
+        <div class="stat-icon">
+            <i class="fas fa-ship"></i>
+        </div>
+        <div class="stat-content">
+            <h2 id="inTransitCount">0</h2>
+            <p>In Transito</p>
+        </div>
+    </div>
+    
+    <!-- Card 3: Consegnati -->
+    <div class="stat-card">
+        <div class="stat-icon">
+            <i class="fas fa-check-circle"></i>
+        </div>
+        <div class="stat-content">
+            <h2 id="deliveredCount">0</h2>
+            <p>Consegnati</p>
+        </div>
+    </div>
+    
+    <!-- Card 4: In Ritardo -->
+    <div class="stat-card">
+        <div class="stat-icon">
+            <i class="fas fa-exclamation-triangle"></i>
+        </div>
+        <div class="stat-content">
+            <h2 id="exceptionCount">0</h2>
+            <p>In Ritardo</p>
+        </div>
+    </div>
+</div>
             <!-- Filters and Search -->
             <div class="sol-card mb-4">
                 <div class="sol-card-body">
@@ -190,6 +191,15 @@
                                 </select>
                             </div>
                         </div>
+<div class="col-md-2">
+    <div class="form-group">
+        <label for="apiVersion">API Version</label>
+        <select class="form-control" id="apiVersion" onchange="switchApiVersion(this.value)">
+            <option value="v1">ShipsGo v1.2</option>
+            <option value="v2">ShipsGo v2.0</option>
+        </select>
+    </div>
+</div>
                         <div class="col-md-2">
                             <div class="form-group">
                                 <label>&nbsp;</label>
@@ -616,6 +626,7 @@ setTimeout(() => {
 <!-- Load all fixes -->
 <script src="/pages/tracking/api-keys-permanent-fix.js"></script>
 <script src="/pages/tracking/tracking-fixes.js"></script>
+<script src="/pages/tracking/tracking-unified-mapping.js"></script>
 <script src="/pages/tracking/tracking-detect-fix.js"></script>
 <script src="/pages/tracking/tracking-submit-fix.js"></script>
 <script src="/pages/tracking/api-keys-debug.js"></script>
@@ -631,6 +642,26 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }, 3000);
 }); // <-- Questa parentesi chiude il DOMContentLoaded
+</script>
+<script>
+function switchApiVersion(version) {
+    if (window.trackingService) {
+        if (version === 'v2') {
+            window.trackingService.switchToV2Ocean();
+        } else {
+            window.trackingService.switchToV1Ocean();
+        }
+        window.NotificationSystem?.info(`Switched to ShipsGo ${version} for ocean tracking`);
+    }
+}
+
+// Set initial value
+document.addEventListener('DOMContentLoaded', () => {
+    const apiVersionSelect = document.getElementById('apiVersion');
+    if (apiVersionSelect && window.trackingService?.preferV2Ocean) {
+        apiVersionSelect.value = 'v2';
+    }
+});
 </script>
 </body>
 </html>

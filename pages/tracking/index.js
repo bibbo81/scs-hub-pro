@@ -104,10 +104,13 @@ const DEFAULT_VISIBLE_COLUMNS = [
     'tracking_type', 
     'current_status',
     'carrier_name',
-    'origin_port',        // Mostra origine unificata
-    'destination_port',   // Mostra destinazione unificata
-    'date_of_departure',  // Data partenza unificata
-    'eta'                 // ETA/Arrivo unificato
+    'origin_port',
+    'destination_port',
+    'date_of_departure',
+    'eta',
+    'reference_number',    // AGGIUNGI QUESTA
+    'co2_emission',        // AGGIUNGI QUESTA
+    'last_update'
 ];
 
 // Column configuration for table
@@ -276,6 +279,64 @@ const TABLE_COLUMNS = [
         label: 'ULTIMO AGGIORNAMENTO', 
         sortable: true, 
         formatter: formatDate 
+    },
+    { 
+        key: 'reference_number', 
+        label: 'RIFERIMENTO', 
+        sortable: true,
+        formatter: (value) => value || '-'
+    },
+    { 
+        key: 'booking', 
+        label: 'BOOKING', 
+        sortable: true,
+        formatter: (value, row) => {
+            // Mostra solo per container, non per aerei
+            if (row.tracking_type === 'awb' || row.tracking_type === 'air_waybill') return '-';
+            return value || '-';
+        }
+    },
+    { 
+        key: 'transit_time', 
+        label: 'TRANSITO', 
+        sortable: true,
+        formatter: (value) => {
+            if (!value) return '-';
+            return `<span class="badge badge-secondary">${value}</span>`;
+        }
+    },
+    { 
+        key: 'co2_emission', 
+        label: 'CO₂', 
+        sortable: true,
+        formatter: (value) => {
+            if (!value) return '-';
+            const num = parseFloat(value.toString().replace(/[^0-9.-]/g, ''));
+            if (isNaN(num)) return value;
+            const color = num > 2 ? 'danger' : num > 1 ? 'warning' : 'success';
+            return `<span class="text-${color}"><i class="fas fa-leaf"></i> ${num.toFixed(2)}t</span>`;
+        }
+    },
+    { 
+        key: 'container_count', 
+        label: 'N°', 
+        sortable: true,
+        formatter: (value, row) => {
+            // Mostra solo per container, non per aerei
+            if (row.tracking_type === 'awb' || row.tracking_type === 'air_waybill') return '-';
+            return value || '1';
+        }
+    },
+    { 
+        key: 'tags', 
+        label: 'TAGS', 
+        sortable: true,
+        formatter: (value) => {
+            if (!value || value === '-') return '-';
+            return value.split(',').map(tag => 
+                `<span class="badge badge-secondary mr-1">${tag.trim()}</span>`
+            ).join('');
+        }
     },
     { 
         key: 'actions', 
@@ -611,6 +672,243 @@ function setupEventListeners() {
         }
     };
 }
+
+function showColumnEditor() {
+    if (!window.ModalSystem) return;
+    
+    const currentVisible = tableManager?.options?.columns?.filter(c => !c.hidden).map(c => c.key) || DEFAULT_VISIBLE_COLUMNS;
+    
+    const content = `
+        <div class="column-editor">
+            <div class="column-editor-header">
+                <p>Seleziona le colonne da visualizzare e trascinale per riordinarle</p>
+                <div class="column-actions">
+                    <button class="btn btn-sm btn-secondary" onclick="selectAllColumns()">
+                        Seleziona Tutto
+                    </button>
+                    <button class="btn btn-sm btn-secondary" onclick="resetDefaultColumns()">
+                        Ripristina Default
+                    </button>
+                </div>
+            </div>
+            
+            <div class="column-list" id="columnEditorList">
+                ${AVAILABLE_COLUMNS.map(col => `
+                    <div class="column-item ${col.required ? 'required' : ''}" 
+                         data-column="${col.key}"
+                         draggable="${!col.required}">
+                        <div class="column-drag-handle">
+                            <i class="fas fa-grip-vertical"></i>
+                        </div>
+                        <label class="column-checkbox">
+                            <input type="checkbox" 
+                                   value="${col.key}" 
+                                   ${currentVisible.includes(col.key) ? 'checked' : ''}
+                                   ${col.required ? 'disabled' : ''}
+                                   onchange="updateColumnPreview()">
+                            <span class="column-label">${col.label}</span>
+                            ${col.required ? '<span class="badge badge-info ml-2">Obbligatorio</span>' : ''}
+                        </label>
+                    </div>
+                `).join('')}
+            </div>
+            
+            <div class="column-preview mt-3">
+                <small class="text-muted">
+                    <span id="selectedColumnsCount">${currentVisible.length}</span> colonne selezionate
+                </small>
+            </div>
+        </div>
+    `;
+    
+    window.ModalSystem.show({
+        title: 'Gestione Colonne',
+        content: content,
+        size: 'md',
+        buttons: [
+            {
+                text: 'Annulla',
+                className: 'btn-secondary',
+                action: () => window.ModalSystem.hide()
+            },
+            {
+                text: 'Applica',
+                className: 'btn-primary',
+                action: () => applyColumnChanges()
+            }
+        ]
+    });
+    
+    // Enable drag&drop
+    setTimeout(() => {
+        const list = document.getElementById('columnEditorList');
+        if (list && window.Sortable) {
+            new Sortable(list, {
+                animation: 150,
+                handle: '.column-drag-handle',
+                filter: '.required',
+                onEnd: () => updateColumnPreview()
+            });
+        }
+    }, 100);
+}
+
+// Funzioni helper per column editor
+window.selectAllColumns = function() {
+    document.querySelectorAll('#columnEditorList input[type="checkbox"]:not(:disabled)').forEach(cb => {
+        cb.checked = true;
+    });
+    updateColumnPreview();
+};
+
+window.resetDefaultColumns = function() {
+    document.querySelectorAll('#columnEditorList input[type="checkbox"]').forEach(cb => {
+        cb.checked = DEFAULT_VISIBLE_COLUMNS.includes(cb.value) || cb.disabled;
+    });
+    updateColumnPreview();
+};
+
+window.updateColumnPreview = function() {
+    const checked = document.querySelectorAll('#columnEditorList input[type="checkbox"]:checked').length;
+    document.getElementById('selectedColumnsCount').textContent = checked;
+};
+
+window.applyColumnChanges = function() {
+    // Ottieni l'ordine delle colonne
+    const columnOrder = [];
+    document.querySelectorAll('#columnEditorList .column-item').forEach(item => {
+        const key = item.dataset.column;
+        const checked = item.querySelector('input[type="checkbox"]').checked;
+        if (checked) {
+            columnOrder.push(key);
+        }
+    });
+    
+    // Ricostruisci TABLE_COLUMNS con il nuovo ordine
+    const newColumns = columnOrder.map(key => {
+        const availableCol = AVAILABLE_COLUMNS.find(c => c.key === key);
+        const existingCol = TABLE_COLUMNS.find(c => c.key === key);
+        
+        if (existingCol) {
+            return existingCol;
+        } else {
+            // Crea formatter per le nuove colonne
+            return {
+                key: key,
+                label: availableCol.label,
+                sortable: availableCol.sortable,
+                formatter: getColumnFormatter(key)
+            };
+        }
+    });
+    
+    // Aggiungi sempre la colonna actions alla fine
+    const actionsCol = TABLE_COLUMNS.find(c => c.key === 'actions');
+    if (actionsCol) {
+        newColumns.push(actionsCol);
+    }
+    
+    // Applica le modifiche
+    TABLE_COLUMNS.length = 0;
+    TABLE_COLUMNS.push(...newColumns);
+    
+    // Salva preferenze
+    localStorage.setItem('trackingVisibleColumns', JSON.stringify(columnOrder));
+    
+    // Ricrea table manager con nuove colonne
+    if (tableManager) {
+        tableManager.options.columns = newColumns;
+        updateTable();
+    }
+    
+    window.ModalSystem.hide();
+    window.NotificationSystem?.success('Colonne aggiornate');
+};
+
+// Aggiungi formatter per le nuove colonne
+function getColumnFormatter(key) {
+    switch(key) {
+        case 'vessel_name':
+            return (value, row) => {
+                if (!value) return '-';
+                const icon = row.tracking_type === 'awb' ? 'fa-plane' : 'fa-ship';
+                return `<i class="fas ${icon} text-primary mr-1"></i> ${value}`;
+            };
+        
+        case 'container_size':
+            return (value) => value ? `<span class="badge badge-info">${value}</span>` : '-';
+        
+        case 'last_event_location':
+            return (value, row) => {
+                if (!value) return '-';
+                return `<i class="fas fa-map-marker-alt text-danger mr-1"></i> ${value}`;
+            };
+        
+        case 'co2_emission':
+            return (value) => {
+                if (!value) return '-';
+                const num = parseFloat(value);
+                if (isNaN(num)) return value;
+                return `<span class="text-success">${num.toFixed(2)} tons</span>`;
+            };
+        
+        case 'transit_time':
+            return (value) => {
+                if (!value) return '-';
+                return `<span class="badge badge-secondary">${value} giorni</span>`;
+            };
+        
+        case 'pieces':
+        case 'weight':
+            return (value, row) => {
+                if (!value) return '-';
+                const unit = key === 'weight' ? 'kg' : 'pz';
+                return `${value} ${unit}`;
+            };
+        
+        case 'date_of_loading':
+        case 'date_of_departure':
+        case 'date_of_arrival':
+        case 'date_of_discharge':
+        case 'ata':
+        case 'last_event_date':
+            return formatDateOnly;
+        
+        case 'tags':
+            return (value) => {
+                if (!value) return '-';
+                const tags = value.split(',').map(tag => 
+                    `<span class="badge badge-secondary mr-1">${tag.trim()}</span>`
+                ).join('');
+                return tags;
+            };
+        
+        default:
+            return (value) => value || '-';
+    }
+}
+
+// Aggiungi bottone per editor colonne nell'UI
+// Modifica la sezione page-actions in tracking.html per aggiungere:
+/*
+<button class="btn btn-secondary" onclick="showColumnEditor()">
+    <i class="fas fa-columns mr-2"></i>Colonne
+</button>
+*/
+
+// Carica preferenze colonne all'avvio
+document.addEventListener('DOMContentLoaded', () => {
+    const savedColumns = localStorage.getItem('trackingVisibleColumns');
+    if (savedColumns) {
+        try {
+            const columnOrder = JSON.parse(savedColumns);
+            // Applica l'ordine salvato
+            // ... logica per riordinare TABLE_COLUMNS ...
+        } catch (e) {
+            console.error('Error loading column preferences:', e);
+        }
+    }
+});
 
 // Apply filters
 function applyFilters() {
