@@ -380,7 +380,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             enableColumnDrag: true,
             onSelectionChange: handleSelectionChange
         });
-        
+        // Rendi tableManager disponibile globalmente
+        window.tableManager = tableManager;
         // Register globally
         window.registerTableManager('trackingTableContainer', tableManager);
         
