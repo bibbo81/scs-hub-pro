@@ -2200,6 +2200,29 @@ function waitForShowAddTrackingForm() {
                font-weight: 600;
                font-size: 13px;
            }
+               
+/* Ocean ID Badge Style */
+           ocean-id-badge {
+    background: #007bff;
+    color: white;
+    padding: 4px 12px;
+    border-radius: 4px;
+    font-size: 12px;
+    margin-top: 8px;
+    display: inline-block;
+    animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-5px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
            </style>
        `;
    }
@@ -2543,6 +2566,58 @@ async function handleEnhancedSubmit(e) {
        
        // Initialize carriers
        updateCarrierWithShipsGoData('auto');
+// ============================================
+    // OCEAN VERSION CHANGE LISTENER
+    // ============================================
+    
+    // Aggiungi listener per quando cambia la versione Ocean API
+    setTimeout(() => {
+        const oceanRadios = document.querySelectorAll('input[name="ocean_api_version"]');
+        if (oceanRadios.length > 0) {
+            console.log('🎯 Setting up Ocean version listeners...');
+            
+            oceanRadios.forEach(radio => {
+                radio.addEventListener('change', async (e) => {
+                    console.log('🔄 Ocean version changed to:', e.target.value);
+                    
+                    const input = document.getElementById('enh_trackingNumber');
+                    if (input?.value) {
+                        const trackingNumber = input.value.trim().toUpperCase();
+                        const containerPattern = /^[A-Z]{4}\d{7}$/;
+                        
+                        // Se è v2.0 e abbiamo un container valido
+                        if (e.target.value === 'v2.0' && containerPattern.test(trackingNumber)) {
+                            console.log('🌊 Triggering Ocean v2 detection for:', trackingNumber);
+                            
+                            // Reset stato precedente
+                            window.detectedOceanId = null;
+                            const existingBadge = document.querySelector('.ocean-id-badge');
+                            if (existingBadge) existingBadge.remove();
+                            
+                            // Trigger detection
+                            await detectAndUpdateType(trackingNumber);
+                        } else if (e.target.value === 'v1.2') {
+                            // Se torniamo a v1.2, rimuovi badge Ocean ID
+                            window.detectedOceanId = null;
+                            const existingBadge = document.querySelector('.ocean-id-badge');
+                            if (existingBadge) existingBadge.remove();
+                            
+                            // Reset status
+                            const statusEl = document.querySelector('.detection-status');
+                            if (statusEl) {
+                                statusEl.innerHTML = `
+                                    <i class="fas fa-check-circle status-icon" style="color: #28a745;"></i>
+                                    <span class="status-text">🚢 Container rilevato</span>
+                                `;
+                            }
+                        }
+                    }
+                });
+            });
+            
+            console.log('✅ Ocean version listeners set up');
+        }
+    }, 1000); // Delay per assicurarsi che il DOM sia pronto
    }
    
    function setupImportInteractions() {
@@ -2701,7 +2776,93 @@ async function handleEnhancedSubmit(e) {
            `;
        }
    }
-   
+   // Funzione per cercare Ocean ID
+async function searchOceanId(containerNumber) {
+    console.log('🔍 Searching Ocean ID for:', containerNumber);
+    
+    if (!window.trackingService) {
+        console.error('TrackingService not available');
+        return null;
+    }
+    
+    try {
+        // Assicurati di usare v2
+        window.trackingService.preferV2Ocean = true;
+        
+        const shipments = await window.trackingService.getOceanShipmentsList();
+        const found = shipments.find(s => 
+            s.container_number === containerNumber.toUpperCase()
+        );
+        
+        if (found) {
+            console.log('✅ Ocean ID found:', found.id);
+            // Salva l'ID trovato
+            window.detectedOceanId = found.id;
+            return found;
+        } else {
+            console.log('⚠️ Container not found in Ocean shipments');
+            window.detectedOceanId = null;
+            return null;
+        }
+    } catch (error) {
+        console.error('❌ Error searching Ocean ID:', error);
+        window.detectedOceanId = null;
+        return null;
+    }
+}
+
+// Esponi globalmente per debug
+window.searchOceanId = searchOceanId;
+
+// UI functions for Ocean ID status
+function showOceanIdSearching() {
+    const statusEl = document.querySelector('.detection-status');
+    if (statusEl) {
+        statusEl.innerHTML = `
+            <i class="fas fa-circle-notch fa-spin status-icon" style="color: #007bff;"></i>
+            <span class="status-text">Ricerca Ocean ID...</span>
+        `;
+    }
+}
+
+function showOceanIdFound(oceanId) {
+    const statusEl = document.querySelector('.detection-status');
+    if (statusEl) {
+        statusEl.innerHTML = `
+            <i class="fas fa-check-circle status-icon" style="color: #28a745;"></i>
+            <span class="status-text">🚢 Container trovato - Ocean ID: ${oceanId}</span>
+        `;
+    }
+    
+    // Aggiungi badge visibile
+    const inputWrapper = document.querySelector('.main-input-wrapper');
+    const existingBadge = inputWrapper.querySelector('.ocean-id-badge');
+    if (existingBadge) existingBadge.remove();
+    
+    const badge = document.createElement('div');
+    badge.className = 'ocean-id-badge';
+    badge.style.cssText = `
+        background: #007bff;
+        color: white;
+        padding: 4px 12px;
+        border-radius: 4px;
+        font-size: 12px;
+        margin-top: 8px;
+        display: inline-block;
+    `;
+    badge.innerHTML = `<i class="fas fa-anchor"></i> Ocean ID: ${oceanId}`;
+    inputWrapper.appendChild(badge);
+}
+
+function showOceanIdNotFound() {
+    const statusEl = document.querySelector('.detection-status');
+    if (statusEl) {
+        statusEl.innerHTML = `
+            <i class="fas fa-info-circle status-icon" style="color: #ffc107;"></i>
+            <span class="status-text">🚢 Container non trovato in Ocean (verrà registrato)</span>
+        `;
+    }
+}
    async function detectAndUpdateType(trackingNumber) {
        // Simple detection logic
        let type = 'unknown';
@@ -2823,6 +2984,76 @@ async function handleEnhancedSubmit(e) {
                window.detectedAwbId = null;
            }
        }
+
+// ========== OCEAN v2.0 AUTO-DETECTION ==========
+    // Se è un container, verifica se dobbiamo cercare Ocean ID
+    if (type === 'container') {
+        console.log('📦 Container detected, checking Ocean API version...');
+        
+        // Piccolo delay per assicurarsi che il DOM sia aggiornato
+        setTimeout(async () => {
+            // Verifica se Ocean v2.0 è selezionato
+            const oceanV2Selected = document.querySelector('input[name="ocean_api_version"]:checked');
+            if (oceanV2Selected && oceanV2Selected.value === 'v2.0') {
+                console.log('🌊 Ocean v2.0 is selected - searching for ID...');
+                
+                // Mostra indicatore di caricamento
+                showOceanIdSearching();
+                
+                try {
+                    // Cerca l'Ocean ID
+                    const oceanShipment = await searchOceanId(trackingNumber);
+                    
+                    if (oceanShipment && oceanShipment.id) {
+                        // ID trovato!
+                        showOceanIdFound(oceanShipment.id);
+                        
+                        // Pre-compila altri campi se disponibili
+                        if (oceanShipment.status) {
+                            const statusMap = {
+                                'DELIVERED': 'delivered',
+                                'IN TRANSIT': 'in_transit',
+                                'IN_TRANSIT': 'in_transit',
+                                'ARRIVED': 'arrived',
+                                'REGISTERED': 'registered'
+                            };
+                            const mappedStatus = statusMap[oceanShipment.status?.toUpperCase()] || 'registered';
+                            const statusSelect = document.getElementById('enh_status');
+                            if (statusSelect) {
+                                statusSelect.value = mappedStatus;
+                            }
+                        }
+                        
+                        // Se ci sono informazioni sulla rotta
+                        if (oceanShipment.route) {
+                            if (oceanShipment.route.origin) {
+                                const originInput = document.getElementById('enh_origin');
+                                if (originInput && oceanShipment.route.origin.port) {
+                                    originInput.value = oceanShipment.route.origin.port;
+                                }
+                            }
+                            if (oceanShipment.route.destination) {
+                                const destInput = document.getElementById('enh_destination');
+                                if (destInput && oceanShipment.route.destination.port) {
+                                    destInput.value = oceanShipment.route.destination.port;
+                                }
+                            }
+                        }
+                    } else {
+                        // Container non trovato
+                        showOceanIdNotFound();
+                        window.detectedOceanId = null;
+                    }
+                } catch (error) {
+                    console.error('❌ Error searching Ocean ID:', error);
+                    // Non mostrare errore all'utente, continua normalmente
+                    showDetectionResult(type, carrier);
+                }
+            }
+        }, 100); // Piccolo delay per il DOM
+    }
+    // ========== FINE OCEAN v2.0 ==========
+
    }// ========================================
    // NUOVE FUNZIONI PER CARRIERS CON SHIPSGO
    // ========================================
@@ -3439,6 +3670,21 @@ function extractCountryCode(portName) {
 async function processEnhancedTracking(formData) {
        updateWorkflowStep(0, 'completed', 'Validato');
        
+// Se abbiamo un Ocean ID e stiamo tracciando un container
+    if (window.detectedOceanId && formData.trackingType === 'container') {
+        console.log('🌊 Adding Ocean ID to formData:', window.detectedOceanId);
+        
+        // Aggiungi l'Ocean ID ai dati del form
+        formData.shipsgoId = window.detectedOceanId;
+        formData.oceanId = window.detectedOceanId;
+        formData.useOceanV2 = true;
+        
+        // Assicurati che trackingService usi v2
+        if (window.trackingService) {
+            window.trackingService.preferV2Ocean = true;
+        }
+    }
+
        let apiResponse = null; // Initialize apiResponse
        
        // If using API, fetch live data based on operation type
@@ -3448,17 +3694,22 @@ async function processEnhancedTracking(formData) {
            try {
                if (formData.apiOperation === 'get' || formData.apiOperation === 'auto') {
                    // Per GET: prima ottieni i dati, poi salvali
-                   apiResponse = await window.trackingService.track(
-                       formData.trackingNumber,
-                       formData.trackingType,
-                       { 
-                           forceRefresh: true,
-                           // NUOVO: Se è un AWB e abbiamo rilevato un ID, passalo
-                           ...(formData.trackingType === 'awb' && window.detectedAwbId ? {
-                               shipsgoId: window.detectedAwbId
-                           } : {})
-                       }
-                   );
+                 apiResponse = await window.trackingService.track(
+        formData.trackingNumber,
+        formData.trackingType,
+        { 
+            forceRefresh: true,
+            // NUOVO: Se è un container e abbiamo rilevato un Ocean ID, passalo
+            ...(formData.trackingType === 'container' && window.detectedOceanId ? {
+                shipsgoId: window.detectedOceanId,
+                useV2: true
+            } : {}),
+            // Mantieni la logica AWB esistente
+            ...(formData.trackingType === 'awb' && window.detectedAwbId ? {
+                shipsgoId: window.detectedAwbId
+            } : {})
+        }
+    );
                    
                    // Log per debug
                    if (window.detectedAwbId && formData.trackingType === 'awb') {
