@@ -607,8 +607,28 @@ function waitForShowAddTrackingForm() {
                                                 </div>
                                             </div>
                                         </div>
-                                        
-                                        <div class="api-benefits">
+                                        <!-- OCEAN API VERSION SELECTOR -->
+                        <div class="api-version-selector" id="oceanApiVersionSection" style="display: none;">
+                            <h5>🌊 Versione API Ocean</h5>
+                            <div class="version-radio-group">
+                                <div class="version-radio">
+                                    <input type="radio" id="api_v12" name="ocean_api_version" value="v1.2" checked>
+                                    <label for="api_v12">
+                                        <i class="fas fa-anchor"></i> v1.2
+                                        <small style="display:block;opacity:0.8;margin-top:2px;">Standard (consigliato)</small>
+                                    </label>
+                                </div>
+                                <div class="version-radio">
+                                    <input type="radio" id="api_v20" name="ocean_api_version" value="v2.0">
+                                    <label for="api_v20">
+                                        <i class="fas fa-ship"></i> v2.0
+                                        <small style="display:block;opacity:0.8;margin-top:2px;">Nuovo (ID-based)</small>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="api-benefits">
                                             <div class="benefit">
                                                 <i class="fas fa-check-circle"></i>
                                                 <span>Dati sempre aggiornati</span>
