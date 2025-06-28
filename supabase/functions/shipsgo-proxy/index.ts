@@ -68,19 +68,29 @@ serve(async (req) => {
           })
         }
       }
-    } else if (version === 'v2') {
-      url = `https://api.shipsgo.com/api/v2${endpoint}`
+    } else if (version === 'v2' || version === 'v2.0') {
+      // FIX: Usa solo /v2 invece di /api/v2
+      url = `https://api.shipsgo.com/v2${endpoint}`
       headers['Authorization'] = `Bearer ${SHIPSGO_V2_TOKEN}`
       headers['Accept'] = 'application/json'
+      headers['Content-Type'] = 'application/json'
       
       if (method === 'GET' && params) {
         const urlParams = new URLSearchParams(params)
         url += '?' + urlParams.toString()
-      } else if (method === 'POST' && data) {
-        headers['Content-Type'] = 'application/json'
+      } else if ((method === 'POST' || method === 'PUT') && data) {
         body = JSON.stringify(data)
       }
     }
+
+    // Log per debug
+    console.log('ShipsGo request:', { 
+      url, 
+      method, 
+      version,
+      endpoint,
+      headers: Object.keys(headers) 
+    })
 
     // Esegui richiesta
     const response = await fetch(url, {
@@ -91,14 +101,26 @@ serve(async (req) => {
 
     const responseData = await response.json()
 
-    // Log per debug (rimuovi in produzione)
-    console.log('ShipsGo request:', { url, method, status: response.status })
+    // Log response per debug
+    console.log('ShipsGo response:', { 
+      status: response.status,
+      ok: response.ok,
+      dataKeys: responseData ? Object.keys(responseData) : []
+    })
 
-    return new Response(JSON.stringify({
+    // Aggiungi URL nella risposta per debug
+    const result = {
       success: response.ok,
       status: response.status,
-      data: responseData
-    }), {
+      data: responseData,
+      debug: {
+        url,
+        method,
+        version
+      }
+    }
+
+    return new Response(JSON.stringify(result), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     })
 
@@ -106,7 +128,8 @@ serve(async (req) => {
     console.error('Edge function error:', error)
     return new Response(JSON.stringify({ 
       success: false, 
-      error: error.message 
+      error: error.message,
+      stack: error.stack 
     }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
