@@ -69,19 +69,19 @@ serve(async (req) => {
         }
       }
     } else if (version === 'v2' || version === 'v2.0') {
-      // FIX: Usa solo /v2 invece di /api/v2
-      url = `https://api.shipsgo.com/v2${endpoint}`
-      headers['Authorization'] = `Bearer ${SHIPSGO_V2_TOKEN}`
-      headers['Accept'] = 'application/json'
-      headers['Content-Type'] = 'application/json'
-      
-      if (method === 'GET' && params) {
+    // FIX: Usa solo /v2 invece di /api/v2
+    url = `https://api.shipsgo.com/v2${endpoint}`
+    headers['X-Shipsgo-User-Token'] = SHIPSGO_V2_TOKEN  // <-- QUESTO È IL FIX!
+    headers['Accept'] = 'application/json'
+    headers['Content-Type'] = 'application/json'
+    
+    if (method === 'GET' && params) {
         const urlParams = new URLSearchParams(params)
         url += '?' + urlParams.toString()
-      } else if ((method === 'POST' || method === 'PUT') && data) {
+    } else if ((method === 'POST' || method === 'PUT') && data) {
         body = JSON.stringify(data)
-      }
     }
+}
 
     // Log per debug
     console.log('ShipsGo request:', { 
