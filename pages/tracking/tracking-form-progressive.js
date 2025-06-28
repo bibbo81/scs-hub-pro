@@ -655,81 +655,80 @@ function waitForShowAddTrackingForm() {
                     </form>
                 </div>
                 
-                <div class="tab-content" data-tab="import">
-                    <div class="import-fullwidth">
-                        <div class="import-layout-new">
-                            <div class="compact-drop-zone" id="enhDropZone">
-                                <div class="drop-content-compact">
-                                    <div class="drop-visual">
-                                        <div class="drop-icon">📁</div>
-                                        <h2>Trascina qui i tuoi file per l'import</h2>
-                                        <p>Oppure <button type="button" class="file-btn" onclick="document.getElementById('enhFileInput').click()">seleziona file dal computer</button></p>
-                                        <div class="format-badges">
-                                            <span class="badge">.XLSX</span>
-                                            <span class="badge">.XLS</span>
-                                            <span class="badge">.CSV</span>
-                                        </div>
-                                    </div>
-                                </div>
-                                <input type="file" id="enhFileInput" accept=".xlsx,.xls,.csv" style="display: none;">
-                            </div>
-                            
-                            <div class="features-sidebar">
-                                <h3>📊 Funzionalità Import Avanzate</h3>
-                                <div class="features-list">
-                                    <div class="feature-item">
-                                        <div class="feature-icon">🔍</div>
-                                        <div class="feature-text">
-                                            <strong>Auto-detection Formato</strong>
-                                            <span>Rilevamento automatico del formato file e della struttura dati</span>
-                                        </div>
-                                    </div>
-                                    
-                                    <div class="feature-item">
-                                        <div class="feature-icon">🗂️</div>
-                                        <div class="feature-text">
-                                            <strong>Mapping Intelligente</strong>
-                                            <span>Associazione automatica delle colonne con i campi tracking</span>
-                                        </div>
-                                    </div>
-                                    
-                                    <div class="feature-item">
-                                        <div class="feature-icon">👁️</div>
-                                        <div class="feature-text">
-                                            <strong>Preview & Validazione</strong>
-                                            <span>Anteprima completa dei dati prima dell'import definitivo</span>
-                                        </div>
-                                    </div>
-                                    
-                                    <div class="feature-item">
-                                        <div class="feature-icon">⚡</div>
-                                        <div class="feature-text">
-                                            <strong>Import Batch Veloce</strong>
-                                            <span>Elaborazione rapida di grandi quantità di tracking</span>
-                                        </div>
-                                    </div>
-                                    
-                                    <div class="feature-item">
-                                        <div class="feature-icon">🔧</div>
-                                        <div class="feature-text">
-                                            <strong>Controllo Qualità</strong>
-                                            <span>Validazione automatica e segnalazione errori</span>
-                                        </div>
-                                    </div>
-                                    
-                                    <div class="feature-item">
-                                        <div class="feature-icon">📈</div>
-                                        <div class="feature-text">
-                                            <strong>Statistiche Dettagliate</strong>
-                                            <span>Report completo sull'operazione di import</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
+               <div class="tab-content" data-tab="import">
+    <div class="import-fullwidth">
+        <div class="import-layout-new">
+            <div class="compact-drop-zone" id="enhDropZone">
+                <div class="drop-content-compact">
+                    <div class="drop-visual">
+                        <div class="drop-icon">📁</div>
+                        <h2>Trascina qui i tuoi file per l'import</h2>
+                        <p>Oppure <button type="button" class="file-btn" onclick="document.getElementById('enhFileInput').click()">seleziona file dal computer</button></p>
+                        <div class="format-badges">
+                            <span class="badge">.XLSX</span>
+                            <span class="badge">.XLS</span>
+                            <span class="badge">.CSV</span>
+                        </div>
+                    </div>
+                </div>
+                <input type="file" id="enhFileInput" accept=".xlsx,.xls,.csv" style="display: none;">
+            </div>
+            
+            <div class="features-sidebar">
+                <h3>📊 Funzionalità Import Avanzate</h3>
+                <div class="features-list">
+                    <div class="feature-item">
+                        <div class="feature-icon">🔍</div>
+                        <div class="feature-text">
+                            <strong>Auto-detection Formato</strong>
+                            <span>Rilevamento automatico del formato file e della struttura dati</span>
+                        </div>
+                    </div>
+                    
+                    <div class="feature-item">
+                        <div class="feature-icon">🗂️</div>
+                        <div class="feature-text">
+                            <strong>Mapping Intelligente</strong>
+                            <span>Associazione automatica delle colonne con i campi tracking</span>
+                        </div>
+                    </div>
+                    
+                    <div class="feature-item">
+                        <div class="feature-icon">👁️</div>
+                        <div class="feature-text">
+                            <strong>Preview & Validazione</strong>
+                            <span>Anteprima completa dei dati prima dell'import definitivo</span>
+                        </div>
+                    </div>
+                    
+                    <div class="feature-item">
+                        <div class="feature-icon">⚡</div>
+                        <div class="feature-text">
+                            <strong>Import Batch Veloce</strong>
+                            <span>Elaborazione rapida di grandi quantità di tracking</span>
+                        </div>
+                    </div>
+                    
+                    <div class="feature-item">
+                        <div class="feature-icon">🔧</div>
+                        <div class="feature-text">
+                            <strong>Controllo Qualità</strong>
+                            <span>Validazione automatica e segnalazione errori</span>
+                        </div>
+                    </div>
+                    
+                    <div class="feature-item">
+                        <div class="feature-icon">📈</div>
+                        <div class="feature-text">
+                            <strong>Statistiche Dettagliate</strong>
+                            <span>Report completo sull'operazione di import</span>
                         </div>
                     </div>
                 </div>
             </div>
+        </div>
+    </div>
+</div>
             
             ${getFormStyles()}
         `;
@@ -2547,38 +2546,46 @@ async function handleEnhancedSubmit(e) {
    }
    
    function setupImportInteractions() {
-       const dropZone = document.getElementById('enhDropZone');
-       const fileInput = document.getElementById('enhFileInput');
-       
-       if (!dropZone || !fileInput) return;
-       
-       // Drag & Drop
-       dropZone.addEventListener('dragover', (e) => {
-           e.preventDefault();
-           dropZone.classList.add('dragover');
-       });
-       
-       dropZone.addEventListener('dragleave', () => {
-           dropZone.classList.remove('dragover');
-       });
-       
-       dropZone.addEventListener('drop', (e) => {
-           e.preventDefault();
-           dropZone.classList.remove('dragover');
-           
-           const files = e.dataTransfer.files;
-           if (files.length > 0) {
-               handleFileSelect(files[0]);
-           }
-       });
-       
-       // File input
-       fileInput.addEventListener('change', (e) => {
-           if (e.target.files.length > 0) {
-               handleFileSelect(e.target.files[0]);
-           }
-       });
-   }
+    const dropZone = document.getElementById('enhDropZone');
+    const fileInput = document.getElementById('enhFileInput');
+    
+    if (!dropZone || !fileInput) return;
+    
+    // Click to select file
+    dropZone.addEventListener('click', (e) => {
+        if (e.target.tagName !== 'BUTTON') {
+            fileInput.click();
+        }
+    });
+    
+    // Drag & Drop
+    dropZone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        dropZone.classList.add('dragover');
+    });
+    
+    dropZone.addEventListener('dragleave', () => {
+        dropZone.classList.remove('dragover');
+    });
+    
+    dropZone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dropZone.classList.remove('dragover');
+        
+        const files = e.dataTransfer.files;
+        if (files.length > 0) {
+            handleFileSelect(files[0]);
+        }
+    });
+    
+    // File input change
+    fileInput.addEventListener('change', (e) => {
+        if (e.target.files.length > 0) {
+            handleFileSelect(e.target.files[0]);
+        }
+    });
+}
+
    
    // ========================================
    // AUTO-DETECTION LOGIC
@@ -3980,32 +3987,46 @@ transit_time: (() => {
    // ========================================
    
    async function handleFileSelect(file) {
-       if (!window.ImportManager) {
-           showErrorModal(
-               'Import non disponibile',
-               'Il modulo di import non è ancora caricato. Riprova tra qualche istante.',
-               'warning'
-           );
-           return;
-       }
-       
-       try {
-           const result = await window.ImportManager.handleImport(file);
-           if (result.success) {
-               closeCustomModal();
-               if (window.refreshTrackingList) {
-                   window.refreshTrackingList();
-               }
-           }
-       } catch (error) {
-           console.error('Import error:', error);
-           showErrorModal(
-               'Errore import',
-               error.message,
-               'error'
-           );
-       }
-   }
+    if (!window.ImportManager) {
+        showErrorModal(
+            'Import non disponibile',
+            'Il modulo di import non è ancora caricato. Riprova tra qualche istante.',
+            'warning'
+        );
+        return;
+    }
+    
+    try {
+        console.log('📁 File selezionato:', file.name);
+        
+        // Chiudi il modal corrente
+        closeCustomModal();
+        
+        // Mostra notifica
+        window.NotificationSystem?.info('Elaborazione file in corso...');
+        
+        // Usa ImportManager
+        const result = await window.ImportManager.handleImport(file);
+        
+        if (result.success) {
+            // Ricarica la tabella
+            if (window.loadTrackings) {
+                await window.loadTrackings();
+            }
+            
+            window.NotificationSystem?.success(`Import completato: ${result.imported || 0} tracking importati`);
+        } else {
+            window.NotificationSystem?.error('Errore durante l\'import: ' + (result.error || 'Errore sconosciuto'));
+        }
+    } catch (error) {
+        console.error('Import error:', error);
+        showErrorModal(
+            'Errore import',
+            error.message,
+            'error'
+        );
+    }
+}
    
    // ========================================
    // UI HELPERS

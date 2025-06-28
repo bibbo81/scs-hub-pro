@@ -420,6 +420,24 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
         
         console.log('✅ Tracking page initialized');
+        // Fix event delegation per checkbox dinamici
+        document.addEventListener('click', function(e) {
+            if (e.target.type === 'checkbox' && 
+                (e.target.classList.contains('select-row') || 
+                 e.target.closest('#trackingTableContainer'))) {
+                
+                const rowId = e.target.dataset.id || e.target.value;
+                const checked = e.target.checked;
+                
+                console.log('Checkbox clicked:', rowId, checked);
+                
+                if (tableManager && rowId) {
+                    tableManager.selectRow(parseInt(rowId), checked);
+                }
+            }
+        });
+        
+        console.log('✅ Checkbox event delegation added');
         
     } catch (error) {
         console.error('❌ Initialization error:', error);
@@ -555,6 +573,7 @@ function setupEventListeners() {
                 t.reference?.toLowerCase().includes(term)
             );
             updateTable();
+        
         });
     }
     
@@ -577,6 +596,13 @@ function setupEventListeners() {
     window.COLUMN_MAPPING = COLUMN_MAPPING;
     window.STATUS_DISPLAY = STATUS_DISPLAY;
     window.getStatusMapping = getStatusMapping;
+ window.updateBulkActionsBar = function() {
+        // Delega a handleSelectionChange che già esiste
+        if (tableManager) {
+            const selected = tableManager.getSelectedRows();
+            handleSelectionChange(selected);
+        }
+    };
 }
 
 // Apply filters
