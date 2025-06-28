@@ -421,21 +421,26 @@ document.addEventListener('DOMContentLoaded', async () => {
         
         console.log('✅ Tracking page initialized');
         // Fix event delegation per checkbox dinamici
-        document.addEventListener('click', function(e) {
-            if (e.target.type === 'checkbox' && 
-                (e.target.classList.contains('select-row') || 
-                 e.target.closest('#trackingTableContainer'))) {
-                
-                const rowId = e.target.dataset.id || e.target.value;
-                const checked = e.target.checked;
-                
-                console.log('Checkbox clicked:', rowId, checked);
-                
-                if (tableManager && rowId) {
-                    tableManager.selectRow(parseInt(rowId), checked);
-                }
-            }
-        });
+document.addEventListener('click', function(e) {
+    if (e.target.type === 'checkbox' && e.target.classList.contains('select-row')) {
+        e.stopPropagation();
+        
+        const rowId = e.target.value || e.target.dataset.id;
+        const checked = e.target.checked;
+        
+        // Ignora se rowId è "on" o non valido
+        if (!rowId || rowId === 'on') {
+            console.warn('Invalid checkbox rowId:', rowId);
+            return;
+        }
+        
+        console.log('Checkbox clicked:', rowId, checked);
+        
+        if (tableManager) {
+            tableManager.selectRow(rowId, checked);
+        }
+    }
+});
         
         console.log('✅ Checkbox event delegation added');
         
