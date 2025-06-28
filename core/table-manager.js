@@ -642,30 +642,42 @@ export class TableManager {
         }, 300);
     }
     
-    // Attach event listeners
-    attachEventListeners() {
-        // Search input
-        this.container.addEventListener('input', (e) => {
-            if (e.target.classList.contains('sol-table-search-input')) {
-                const value = e.target.value;
-                this.search(value);
-                
-                // Show suggestions
-                if (this.advancedSearch && value.length >= 2) {
-                    this.showSearchSuggestions(value);
-                } else {
-                    this.hideSearchSuggestions();
-                }
-            }
-        });
-        
-        // Hide suggestions on click outside
-        document.addEventListener('click', (e) => {
-            if (!e.target.closest('.sol-table-search')) {
+   attachEventListeners() {
+    // Search input
+    this.container.addEventListener('input', (e) => {
+        if (e.target.classList.contains('sol-table-search-input')) {
+            const value = e.target.value;
+            this.search(value);
+            
+            // Show suggestions
+            if (this.advancedSearch && value.length >= 2) {
+                this.showSearchSuggestions(value);
+            } else {
                 this.hideSearchSuggestions();
             }
-        });
-    }
+        }
+    });
+    
+    // Hide suggestions on click outside
+    document.addEventListener('click', (e) => {
+        if (!e.target.closest('.sol-table-search')) {
+            this.hideSearchSuggestions();
+        }
+    });
+    
+    // AGGIUNGI QUESTO CODICE QUI:
+    // Gestione click su checkbox con event delegation
+    this.container.addEventListener('change', (e) => {
+        if (e.target.classList.contains('select-row') && e.target.type === 'checkbox') {
+            e.stopPropagation();
+            
+            const rowId = e.target.value || e.target.dataset.id;
+            if (rowId && rowId !== 'on') {
+                this.selectRow(rowId, e.target.checked);
+            }
+        }
+    });
+}
     
     // Show search suggestions
     showSearchSuggestions(query) {

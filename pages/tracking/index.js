@@ -420,7 +420,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
         
         console.log('✅ Tracking page initialized');
-        // Fix event delegation per checkbox dinamici
+/*
+// Fix event delegation per checkbox dinamici
 document.addEventListener('click', function(e) {
     if (e.target.type === 'checkbox' && e.target.classList.contains('select-row')) {
         e.stopPropagation();
@@ -441,7 +442,7 @@ document.addEventListener('click', function(e) {
         }
     }
 });
-        
+*/     
         console.log('✅ Checkbox event delegation added');
         
     } catch (error) {
