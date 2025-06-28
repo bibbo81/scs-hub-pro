@@ -1,14 +1,14 @@
-// tracking-complete-fix-v2.js
+// tracking-complete-fix-v3.js
 // Fix completo per tutti i problemi del sistema di tracking
-// Versione 2.0 - Include Ocean API v2 selector e tutti i fix critici
+// Versione 3.0 - Include fix drag&drop colonne migliorato
 
 (function() {
     'use strict';
     
-    console.log('🚀 TRACKING COMPLETE FIX v2.0 - Starting...');
+    console.log('🚀 TRACKING COMPLETE FIX v3.0 - Starting...');
     
     // ========================================
-    // FIX 1: SORTABLE.JS INJECTION
+    // FIX 1: SORTABLE.JS INJECTION (ENHANCED)
     // ========================================
     function injectSortableJS() {
         if (!window.Sortable && !document.querySelector('script[src*="sortablejs"]')) {
@@ -17,12 +17,124 @@
             script.src = 'https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js';
             script.onload = () => {
                 console.log('✅ Sortable.js loaded');
-                // Re-enable column drag if tableManager exists
-                if (window.tableManager && window.tableManager.enableColumnDrag) {
-                    window.tableManager.enableColumnDrag();
-                }
+                // Enable drag&drop after loading
+                enableColumnDragDrop();
             };
             document.head.appendChild(script);
+        } else if (window.Sortable) {
+            // If Sortable is already loaded, enable drag&drop directly
+            enableColumnDragDrop();
+        }
+    }
+    
+    // New function to handle drag&drop functionality
+    function enableColumnDragDrop() {
+        console.log('🔧 Enabling column drag&drop...');
+        
+        // Wait for TableManager to be ready
+        if (!window.tableManager || !window.Sortable) {
+            console.log('⏳ Waiting for tableManager and Sortable...');
+            setTimeout(enableColumnDragDrop, 500);
+            return;
+        }
+        
+        // Find the header row
+        const headerRow = document.querySelector('#trackingTableContainer thead tr');
+        if (!headerRow) {
+            console.warn('⚠️ Header row not found, retrying...');
+            setTimeout(enableColumnDragDrop, 1000);
+            return;
+        }
+        
+        // Destroy existing instance if present
+        if (window.tableManager.columnSortable) {
+            try {
+                window.tableManager.columnSortable.destroy();
+                console.log('🗑️ Destroyed existing Sortable instance');
+            } catch (e) {
+                console.warn('Could not destroy existing Sortable:', e);
+            }
+        }
+        
+        // Create new Sortable instance
+        try {
+            window.tableManager.columnSortable = new Sortable(headerRow, {
+                animation: 150,
+                handle: 'th',
+                filter: '.no-drag, th:has(.select-all), th:first-child', // Exclude checkbox column
+                ghostClass: 'sortable-ghost',
+                dragClass: 'sortable-drag',
+                onStart: function(evt) {
+                    console.log('🎯 Drag started on column:', evt.oldIndex);
+                },
+                onEnd: function(evt) {
+                    console.log('📍 Column moved from', evt.oldIndex, 'to', evt.newIndex);
+                    
+                    // Update column order in tableManager
+                    if (window.tableManager.handleColumnReorder) {
+                        window.tableManager.handleColumnReorder(evt.oldIndex, evt.newIndex);
+                    } else {
+                        console.warn('⚠️ handleColumnReorder method not found');
+                        // Fallback: force table re-render
+                        if (window.tableManager.render) {
+                            window.tableManager.render();
+                        }
+                    }
+                    
+                    // Save column order to localStorage
+                    if (window.tableManager.saveColumnOrder) {
+                        window.tableManager.saveColumnOrder();
+                    }
+                }
+            });
+            
+            console.log('✅ Column drag&drop enabled successfully');
+            
+            // Add CSS for drag&drop visual feedback
+            if (!document.getElementById('sortable-drag-styles')) {
+                const styles = document.createElement('style');
+                styles.id = 'sortable-drag-styles';
+                styles.textContent = `
+                    .sortable-ghost {
+                        opacity: 0.4;
+                        background-color: #f0f0f0;
+                    }
+                    .sortable-drag {
+                        opacity: 0.8;
+                        cursor: move !important;
+                    }
+                    #trackingTableContainer th {
+                        cursor: move;
+                        user-select: none;
+                    }
+                    #trackingTableContainer th.no-drag,
+                    #trackingTableContainer th:first-child {
+                        cursor: default;
+                    }
+                `;
+                document.head.appendChild(styles);
+            }
+            
+        } catch (error) {
+            console.error('❌ Error creating Sortable instance:', error);
+            // Retry after a delay
+            setTimeout(enableColumnDragDrop, 2000);
+        }
+    }
+    
+    // Override the original enableColumnDrag method if it exists
+    function overrideTableManagerDragMethod() {
+        if (window.tableManager && !window.tableManager._originalEnableColumnDrag) {
+            console.log('🔄 Overriding tableManager.enableColumnDrag...');
+            
+            // Save original method
+            window.tableManager._originalEnableColumnDrag = window.tableManager.enableColumnDrag;
+            
+            // Replace with our enhanced version
+            window.tableManager.enableColumnDrag = function() {
+                console.log('📊 TableManager.enableColumnDrag called');
+                enableColumnDragDrop();
+            };
         }
     }
     
@@ -567,6 +679,7 @@
         
         // Critical fixes first
         injectSortableJS();
+        overrideTableManagerDragMethod();
         fixTableManagerUUID();
         fixModalButtons();
         
@@ -579,10 +692,11 @@
         // Debug helper
         window.trackingFixStatus = {
             sortable: !!window.Sortable,
+            sortableDragDrop: !!window.tableManager?.columnSortable,
             oceanV2: !!window.trackingService?.trackOceanShipmentV2,
             tableManagerFixed: !!window.tableManager?.selectRow.toString().includes('String'),
             oceanSelectorAdded: !!document.getElementById('oceanApiVersionSection'),
-            version: '2.0'
+            version: '3.0'
         };
         
         console.log('✅ All fixes initialized. Check window.trackingFixStatus for status.');
@@ -597,4 +711,4 @@
     
 })();
 
-console.log('✅ Tracking Complete Fix v2.0 loaded');
+console.log('✅ Tracking Complete Fix v3.0 loaded');
