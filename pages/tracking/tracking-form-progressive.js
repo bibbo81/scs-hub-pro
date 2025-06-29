@@ -4176,7 +4176,43 @@ if (apiResponse.events && Array.isArray(apiResponse.events)) {
                container_type: formData.container_type
            });
        }
-
+// FIX OCEAN V2: ESTRAI I DATI VESSEL/CONTAINER PRIMA DI CREARE finalData
+       if (apiResponse && apiResponse.metadata && apiResponse.metadata.source === 'shipsgo_v2_ocean') {
+           console.log('🚢 FIX OCEAN V2: Inizio estrazione dati...');
+           
+           const rawShipment = apiResponse.metadata.raw?.shipment || apiResponse.metadata.raw;
+           const movements = rawShipment?.containers?.[0]?.movements || [];
+           const container = rawShipment?.containers?.[0];
+           
+           console.log('🔍 Raw movements:', movements.length);
+           console.log('🔍 Container info:', container);
+           
+           // Trova l'ultimo vessel dai movements
+           for (let i = movements.length - 1; i >= 0; i--) {
+               if (movements[i].vessel && movements[i].vessel.name) {
+                   formData.vessel_name = movements[i].vessel.name;
+                   formData.vessel_imo = movements[i].vessel.imo || '-';
+                   formData.voyage_number = movements[i].voyage || '-';
+                   console.log('✅ Vessel trovato:', formData.vessel_name);
+                   break;
+               }
+           }
+           
+           // Container info
+           if (container) {
+               formData.container_size = container.size || '-';
+               formData.container_type = container.type || '-';
+               console.log('✅ Container info:', formData.container_size, formData.container_type);
+           }
+           
+           console.log('🔧 FIX OCEAN V2 COMPLETATO - formData aggiornata:', {
+               vessel_name: formData.vessel_name,
+               vessel_imo: formData.vessel_imo,
+               voyage_number: formData.voyage_number,
+               container_size: formData.container_size,
+               container_type: formData.container_type
+           });
+       }
        // Assicurati che tutti i campi abbiano un valore valido
        const finalData = {
            // IMPORTANTE: NON includere formData all'inizio per AWB!
@@ -4401,33 +4437,17 @@ container_size: formData.container_size || apiResponse.metadata?.raw?.shipment?.
 container_type: formData.container_type || apiResponse.metadata?.raw?.shipment?.containers?.[0]?.type || '-',
 carrier_name: formData.carrier_name || apiResponse.metadata?.mapped?.carrier_name || apiResponse.metadata?.raw?.shipment?.carrier?.name || '-',
 
-    // VESSEL INFO - COMPLETO
-    vessel_name: (() => {
-        if (formData.vessel_name && formData.vessel_name !== '-') return formData.vessel_name;
-        const movements = formData.metadata?.raw?.shipment?.containers?.[0]?.movements || [];
-        const lastVessel = [...movements].reverse().find(m => m.vessel?.name);
-        return lastVessel?.vessel?.name || '-';
-    })(),
-    vessel_imo: (() => {
-        if (formData.vessel_imo && formData.vessel_imo !== '-') return formData.vessel_imo;
-        const movements = formData.metadata?.raw?.shipment?.containers?.[0]?.movements || [];
-        const lastVessel = [...movements].reverse().find(m => m.vessel?.imo);
-        return lastVessel?.vessel?.imo || '-';
-    })(),
-    voyage_number: (() => {
-        if (formData.voyage_number && formData.voyage_number !== '-') return formData.voyage_number;
-        const movements = formData.metadata?.raw?.shipment?.containers?.[0]?.movements || [];
-        const lastVoyage = [...movements].reverse().find(m => m.voyage);
-        return lastVoyage?.voyage || '-';
-    })(),
+    // VESSEL INFO - USA I DATI DA formData (già estratti dal FIX)
+    vessel_name: formData.vessel_name || '-',
+    vessel_imo: formData.vessel_imo || '-',
+    voyage_number: formData.voyage_number || '-',
     flight_number: '-', // Solo per AWB
     airline: '-', // Solo per AWB
     
     // CONTAINER DETAILS - COMPLETO
     container_count: formData.container_count || formData.mappedFields?.container_count || formData.metadata?.raw?.shipment?.container_count || 1,
-    carrier_name: formData.carrier_name || formData.metadata?.mapped?.carrier_name || formData.carrier || '-',
-    container_size: formData.container_size || formData.metadata?.raw?.shipment?.containers?.[0]?.size || '-',
-    container_type: formData.container_type || formData.metadata?.raw?.shipment?.containers?.[0]?.type || '-',
+    container_size: formData.container_size || '-',
+    container_type: formData.container_type || '-',
     pieces: '-', // Solo per AWB/Parcel
     weight: '-', // Solo per AWB/Parcel
     
