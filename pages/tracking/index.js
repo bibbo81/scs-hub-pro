@@ -216,12 +216,13 @@ const TABLE_COLUMNS = [
     label: 'CARRIER', 
     sortable: true,
     formatter: (value, row) => {
-        // Prova tutti i possibili campi carrier
+        // CERCA IN TUTTI I CAMPI POSSIBILI
         const carrier = value || 
                        row.carrier_name || 
+                       row.metadata?.mapped?.carrier_name ||  // Ocean v2 mette qui
+                       row.mapped?.carrier_name ||             // Import mette qui
                        row.carrier || 
                        row.carrier_code || 
-                       row.metadata?.mapped?.carrier_name ||
                        '-';
         
         // Per AWB usa airline se disponibile
