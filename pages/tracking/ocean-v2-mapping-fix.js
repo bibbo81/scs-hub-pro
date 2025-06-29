@@ -281,7 +281,21 @@
         
         console.log('✅ Ocean v2 mapping fix initialized');
     }
-    
+    // Auto-sync ogni volta che la tabella si aggiorna
+const originalUpdateTable = window.updateTable;
+if (originalUpdateTable) {
+    window.updateTable = function() {
+        const result = originalUpdateTable.apply(this, arguments);
+        
+        // Sync window.trackings con i dati attuali
+        if (window.tableManager?.data) {
+            window.trackings = [...window.tableManager.data];
+            window.filteredTrackings = [...window.tableManager.data];
+        }
+        
+        return result;
+    };
+}
     // Start
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', initializeOceanV2MappingFix);
