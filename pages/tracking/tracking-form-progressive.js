@@ -3823,6 +3823,34 @@ if (apiResponse.status || apiResponse.metadata?.raw?.shipment?.status) {
 if (formData.trackingType === 'container' && window.detectedOceanId && apiResponse.metadata?.source === 'shipsgo_v2_ocean') {
     console.log('🌊 Processing Ocean v2 response with proper mapping');
     
+    // ESTRAI I DATI DAI MOVEMENTS
+    const movements = apiResponse.metadata?.raw?.shipment?.containers?.[0]?.movements || [];
+    let vesselInfo = null;
+    
+    // Trova l'ultimo movimento con vessel
+    for (let i = movements.length - 1; i >= 0; i--) {
+        if (movements[i].vessel?.name) {
+            vesselInfo = movements[i].vessel;
+            formData.vessel_name = movements[i].vessel.name;
+            formData.vessel_imo = movements[i].vessel.imo;
+            formData.voyage_number = movements[i].voyage;
+            break;
+        }
+    }
+    
+    // Estrai container info
+    const container = apiResponse.metadata?.raw?.shipment?.containers?.[0];
+    if (container) {
+        formData.container_size = container.size || '-';
+        formData.container_type = container.type || '-';
+    }
+    
+    // Estrai date of loading
+    const loadMovement = movements.find(m => m.event === 'LOAD');
+    if (loadMovement) {
+        formData.date_of_loading = loadMovement.timestamp;
+    }
+    
     // Estrai i dati mappati dal normalizer
     const mappedData = {
         trackingNumber: formData.trackingNumber,
@@ -3852,24 +3880,27 @@ if (formData.trackingType === 'container' && window.detectedOceanId && apiRespon
         current_status: apiResponse.status || formData.status || 'registered',
         
         // Dates
-        date_of_loading: apiResponse.date_of_loading || apiResponse.route?.origin?.date || '-',
-        date_of_departure: apiResponse.date_of_departure || apiResponse.date_of_loading || '-',
-        departure: formatDateDDMMYYYY(apiResponse.date_of_loading || apiResponse.route?.origin?.date),
+        date_of_loading: formData.date_of_loading || apiResponse.date_of_loading || '-',
+        date_of_departure: formData.date_of_loading || apiResponse.date_of_departure || '-',
         eta: apiResponse.eta || apiResponse.route?.destination?.eta || '-',
         ata: apiResponse.ata || '-',
         
-        // Vessel
-        vessel_name: apiResponse.vessel_name || apiResponse.vessel?.name || '-',
-        vessel_imo: apiResponse.vessel_imo || apiResponse.vessel?.imo || '-',
-        voyage_number: apiResponse.voyage_number || apiResponse.vessel?.voyage || '-',
+        // Vessel - USA I DATI ESTRATTI
+        vessel_name: formData.vessel_name || apiResponse.vessel_name || '-',
+        vessel_imo: formData.vessel_imo || apiResponse.vessel_imo || '-',
+        voyage_number: formData.voyage_number || apiResponse.voyage_number || '-',
         
-        // Other fields
+        // Container
+        container_size: formData.container_size || '-',
+        container_type: formData.container_type || '-',
+        container_count: apiResponse.mappedFields?.container_count || 1,
+        
+        // Altri campi
         reference: formData.reference || '-',
         booking: apiResponse.booking || apiResponse.bl_number || '-',
-        container_size: apiResponse.container_size || '-',
-        container_type: apiResponse.container_type || '-',
-        container_count: apiResponse.mappedFields?.container_count || 1,
         transit_time: apiResponse.mappedFields?.transit_time || null,
+        ts_count: apiResponse.ts_count || 0,
+        co2_emission: apiResponse.co2_emission || '-',
         
         // Events and metadata
         lastUpdate: apiResponse.lastUpdate || new Date().toISOString(),
@@ -3878,18 +3909,14 @@ if (formData.trackingType === 'container' && window.detectedOceanId && apiRespon
             ...apiResponse.metadata,
             ocean_v2_used: true,
             shipsgo_id: window.detectedOceanId
-        },
-        
-        // Additional mapped fields
-        vessel: apiResponse.vessel || null,
-        route: apiResponse.route || null,
-        mappedFields: apiResponse.mappedFields || {}
+        }
     };
     
     console.log('✅ Ocean v2 data properly mapped:', {
         carrier: `${mappedData.carrier_code} - ${mappedData.carrier_name}`,
         route: `${mappedData.origin_port} → ${mappedData.destination_port}`,
         vessel: mappedData.vessel_name,
+        container: `${mappedData.container_size}${mappedData.container_type}`,
         status: mappedData.status
     });
     
