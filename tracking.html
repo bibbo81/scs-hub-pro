@@ -191,15 +191,6 @@
                                 </select>
                             </div>
                         </div>
-<div class="col-md-2">
-    <div class="form-group">
-        <label for="apiVersion">API Version</label>
-        <select class="form-control" id="apiVersion" onchange="switchApiVersion(this.value)">
-            <option value="v1">ShipsGo v1.2</option>
-            <option value="v2">ShipsGo v2.0</option>
-        </select>
-    </div>
-</div>
                         <div class="col-md-2">
                             <div class="form-group">
                                 <label>&nbsp;</label>
@@ -634,6 +625,7 @@ setTimeout(() => {
 <script src="/pages/tracking/tracking-checkbox-fix.js"></script>
 <script src="/pages/tracking/ocean-v2-autodetection-fix.js"></script>
 <script src="/pages/tracking/ocean-v2-mapping-fix.js"></script>
+<script src="/pages/tracking/tracking-complete-fix-v2.js"></script>
 <script>
 // Fix temporaneo per il form progressive
 document.addEventListener('DOMContentLoaded', () => {
@@ -644,26 +636,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }, 3000);
 }); // <-- Questa parentesi chiude il DOMContentLoaded
-</script>
-<script>
-function switchApiVersion(version) {
-    if (window.trackingService) {
-        if (version === 'v2') {
-            window.trackingService.switchToV2Ocean();
-        } else {
-            window.trackingService.switchToV1Ocean();
-        }
-        window.NotificationSystem?.info(`Switched to ShipsGo ${version} for ocean tracking`);
-    }
-}
-
-// Set initial value
-document.addEventListener('DOMContentLoaded', () => {
-    const apiVersionSelect = document.getElementById('apiVersion');
-    if (apiVersionSelect && window.trackingService?.preferV2Ocean) {
-        apiVersionSelect.value = 'v2';
-    }
-});
 </script>
 </body>
 </html>

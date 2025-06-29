@@ -155,16 +155,17 @@ const DEFAULT_VISIBLE_COLUMNS = [
     'carrier_name',
     'origin_port',
     'destination_port',
-    'vessel_name',          // Aggiungi
-    'voyage_number',        // Aggiungi
+    'vessel_name',          // ← Aggiungi
+    'voyage_number',        // ← Aggiungi
     'date_of_departure',
     'eta',
     'reference_number',
     'booking',
-    'container_size',       // Aggiungi
-    'last_event_location',  // Aggiungi
-    'transit_time',         // Aggiungi
-    'co2_emission',
+    'container_size',       // ← Aggiungi
+    'container_type',       // ← Aggiungi
+    'last_event_location',  // ← Aggiungi
+    'transit_time',         // ← Aggiungi
+    'co2_emission',         // ← Aggiungi
     'last_update'
 ];
 
