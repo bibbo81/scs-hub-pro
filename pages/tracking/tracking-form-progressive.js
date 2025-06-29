@@ -608,7 +608,7 @@ function waitForShowAddTrackingForm() {
                                             </div>
                                         </div>
                                         <!-- OCEAN API VERSION SELECTOR -->
-                        <div class="api-version-selector" id="oceanApiVersionSection" style="display: none;">
+                        <div class="api-version-selector" id="oceanApiVersionSection" style="display: block;">
                             <h5>🌊 Versione API Ocean</h5>
                             <div class="version-radio-group">
                                 <div class="version-radio">
