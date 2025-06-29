@@ -3885,14 +3885,38 @@ if (formData.trackingType === 'container' && window.detectedOceanId && apiRespon
         eta: apiResponse.eta || apiResponse.route?.destination?.eta || '-',
         ata: apiResponse.ata || '-',
         
-        // Vessel - USA I DATI ESTRATTI
-        vessel_name: formData.vessel_name || apiResponse.vessel_name || '-',
-        vessel_imo: formData.vessel_imo || apiResponse.vessel_imo || '-',
-        voyage_number: formData.voyage_number || apiResponse.voyage_number || '-',
+        // Vessel - USA I DATI ESTRATTI DIRETTAMENTE
+vessel_name: (() => {
+    const movements = apiResponse.metadata?.raw?.shipment?.containers?.[0]?.movements || [];
+    for (let i = movements.length - 1; i >= 0; i--) {
+        if (movements[i].vessel?.name) {
+            return movements[i].vessel.name;
+        }
+    }
+    return apiResponse.vessel_name || '-';
+})(),
+vessel_imo: (() => {
+    const movements = apiResponse.metadata?.raw?.shipment?.containers?.[0]?.movements || [];
+    for (let i = movements.length - 1; i >= 0; i--) {
+        if (movements[i].vessel?.imo) {
+            return movements[i].vessel.imo;
+        }
+    }
+    return apiResponse.vessel_imo || '-';
+})(),
+voyage_number: (() => {
+    const movements = apiResponse.metadata?.raw?.shipment?.containers?.[0]?.movements || [];
+    for (let i = movements.length - 1; i >= 0; i--) {
+        if (movements[i].voyage) {
+            return movements[i].voyage;
+        }
+    }
+    return apiResponse.voyage_number || '-';
+})(),
         
         // Container
-        container_size: formData.container_size || '-',
-        container_type: formData.container_type || '-',
+        container_size: apiResponse.metadata?.raw?.shipment?.containers?.[0]?.size || '-',
+container_type: apiResponse.metadata?.raw?.shipment?.containers?.[0]?.type || '-',
         container_count: apiResponse.mappedFields?.container_count || 1,
         
         // Altri campi
