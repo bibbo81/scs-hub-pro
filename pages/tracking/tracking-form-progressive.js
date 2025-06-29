@@ -4313,6 +4313,13 @@ if (apiResponse.events && Array.isArray(apiResponse.events)) {
     date_of_discharge: formData.date_of_discharge || formData.metadata?.raw?.shipment?.route?.port_of_discharge?.date_of_discharge || '-',
     date_of_arrival: formData.date_of_arrival || formData.metadata?.raw?.shipment?.route?.port_of_discharge?.date_of_discharge || '-',
     
+// FIX OCEAN V2 - FORZA ESTRAZIONE DAI RAW
+vessel_name: formData.vessel_name || formData.metadata?.raw?.shipment?.containers?.[0]?.movements?.slice(-1)[0]?.vessel?.name || '-',
+voyage_number: formData.voyage_number || formData.metadata?.raw?.shipment?.containers?.[0]?.movements?.slice(-1)[0]?.voyage || '-',
+container_size: formData.container_size || formData.metadata?.raw?.shipment?.containers?.[0]?.size || '-',
+container_type: formData.container_type || formData.metadata?.raw?.shipment?.containers?.[0]?.type || '-',
+carrier_name: formData.carrier_name || formData.metadata?.mapped?.carrier_name || formData.metadata?.raw?.shipment?.carrier?.name || '-',
+
     // VESSEL INFO - COMPLETO
     vessel_name: (() => {
         if (formData.vessel_name && formData.vessel_name !== '-') return formData.vessel_name;
