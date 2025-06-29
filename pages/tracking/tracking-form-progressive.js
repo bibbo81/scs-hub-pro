@@ -4147,7 +4147,36 @@ if (apiResponse.events && Array.isArray(apiResponse.events)) {
            departure_date: formData.departure_date,
            tutti_i_campi: Object.keys(formData)
        });
-       
+              // FIX: ASSICURA CHE I DATI VESSEL/CONTAINER SIANO IN formData
+       if (apiResponse?.metadata?.source === 'shipsgo_v2_ocean') {
+           const movements = apiResponse.metadata?.raw?.shipment?.containers?.[0]?.movements || [];
+           const container = apiResponse.metadata?.raw?.shipment?.containers?.[0];
+           
+           // Trova l'ultimo vessel
+           for (let i = movements.length - 1; i >= 0; i--) {
+               if (movements[i].vessel?.name && !formData.vessel_name) {
+                   formData.vessel_name = movements[i].vessel.name;
+                   formData.vessel_imo = movements[i].vessel.imo || '-';
+                   formData.voyage_number = movements[i].voyage || '-';
+                   break;
+               }
+           }
+           
+           // Container info
+           if (container && !formData.container_size) {
+               formData.container_size = container.size || '-';
+               formData.container_type = container.type || '-';
+           }
+           
+           console.log('🔧 FIX OCEAN V2 - Dati aggiunti a formData:', {
+               vessel_name: formData.vessel_name,
+               vessel_imo: formData.vessel_imo,
+               voyage_number: formData.voyage_number,
+               container_size: formData.container_size,
+               container_type: formData.container_type
+           });
+       }
+
        // Assicurati che tutti i campi abbiano un valore valido
        const finalData = {
            // IMPORTANTE: NON includere formData all'inizio per AWB!
