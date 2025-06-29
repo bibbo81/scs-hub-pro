@@ -1,6 +1,9 @@
 // pages/products/index.js - Product Intelligence System
 // Phase 2: Revolutionary Business Intelligence Platform
 
+// Import organization service
+import organizationService from '/core/services/organization-service.js';
+
 // ===== PRODUCT INTELLIGENCE CORE =====
 
 class ProductIntelligenceSystem {
@@ -9,6 +12,7 @@ class ProductIntelligenceSystem {
         this.trackings = [];
         this.analytics = {};
         this.recommendations = [];
+        this.organizationId = null; // AGGIUNGI QUESTA RIGA
         this.charts = {};
         this.viewMode = 'grid'; // 'grid' or 'list'
         this.sortColumn = 'name';
@@ -28,21 +32,33 @@ class ProductIntelligenceSystem {
         this.loadData = this.loadData.bind(this);
         this.generateAnalytics = this.generateAnalytics.bind(this);
     }
+
+async init() {
+    console.log('[ProductIntelligence] Initializing system...');
     
-    async init() {
-        console.log('[ProductIntelligence] Initializing system...');
-        
-        // Load existing data
-        await this.loadData();
-        
-        // Generate analytics
-        await this.generateAnalytics();
-        
-        // Initialize UI
-        this.initializeUI();
-        
-        console.log('[ProductIntelligence] System initialized');
+    // CRITICAL: Inizializza organization service
+    await organizationService.init();
+    this.organizationId = organizationService.getCurrentOrgId();
+    
+    if (!this.organizationId) {
+        console.error('[ProductIntelligence] No organization found!');
+        this.showStatus('Nessuna organizzazione selezionata', 'error');
+        return;
     }
+    
+    console.log('[ProductIntelligence] Using organization:', this.organizationId);
+    
+    // Load existing data
+    await this.loadData();
+    
+    // Generate analytics
+    await this.generateAnalytics();
+    
+    // Initialize UI
+    this.initializeUI();
+    
+    console.log('[ProductIntelligence] System initialized');
+}  // ⬅️ LA PARENTESI DEVE ESSERE QUI
     
     async loadData() {
         // Load products from localStorage

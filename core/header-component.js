@@ -92,6 +92,8 @@ export class HeaderComponent {
         // Inietta stili per mobile checkbox fix
         this._injectMobileStyles();
         
+        this._injectOrgSelectorStyles();
+
         try {
             await this.mount();
             console.log('✅ [HeaderComponent] Header mounted to DOM');
@@ -192,7 +194,75 @@ export class HeaderComponent {
             document.head.insertAdjacentHTML('beforeend', mobileCheckboxStyles);
         }
     }
-    
+    _injectOrgSelectorStyles() {
+    if (!document.getElementById('org-selector-styles')) {
+        const orgStyles = `
+        <style id="org-selector-styles">
+        /* Organization Selector */
+        .org-selector {
+            position: relative;
+            margin-right: 1rem;
+        }
+
+        .org-selector .sol-dropdown {
+            position: absolute;
+            top: calc(100% + 8px);
+            right: 0;
+            min-width: 250px;
+            max-width: 300px;
+            z-index: 1000;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        .org-selector .sol-dropdown-header {
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--sol-gray-200);
+            font-weight: 600;
+        }
+
+        .org-selector .sol-dropdown-body {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .org-selector .sol-dropdown-item {
+            padding: 12px 16px;
+            cursor: pointer;
+            transition: background 0.2s;
+            border-bottom: 1px solid var(--sol-gray-100);
+        }
+
+        .org-selector .sol-dropdown-item:last-child {
+            border-bottom: none;
+        }
+
+        .org-selector .sol-dropdown-item:hover {
+            background: var(--sol-gray-50);
+        }
+
+        .org-selector .sol-dropdown-item.active {
+            background: var(--sol-primary-light);
+        }
+
+        @media (max-width: 768px) {
+            .org-selector {
+                margin-right: 0.5rem;
+            }
+            
+            .org-selector .sol-btn span.hide-mobile {
+                max-width: 100px;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+            }
+        }
+        </style>
+        `;
+        document.head.insertAdjacentHTML('beforeend', orgStyles);
+    }
+}
     async mount(selector = 'body') {
         const container = document.querySelector(selector);
         if (!container) {
@@ -349,19 +419,92 @@ export class HeaderComponent {
     }
     
     // FIX 4: renderRight ASYNC
-    async renderRight() {
-        const userInfo = await this.getUserInfo();
-        
-        return `
-            <div class="sol-header-right">
-                ${this.renderCustomActions()}
-                ${this.isDevMode ? this.renderDevActions() : ''}
-                ${this.options.showNotifications ? this.renderNotificationButton() : ''}
-                ${this.options.showUser ? this.renderUserButton(userInfo) : ''}
-            </div>
-        `;
-    }
+  async renderRight() {
+    const userInfo = await this.getUserInfo();
     
+    return `
+        <div class="sol-header-right">
+            ${await this.renderOrgSelector()}  <!-- AGGIUNGI QUESTA RIGA -->
+            ${this.renderCustomActions()}
+            ${this.isDevMode ? this.renderDevActions() : ''}
+            ${this.options.showNotifications ? this.renderNotificationButton() : ''}
+            ${this.options.showUser ? this.renderUserButton(userInfo) : ''}
+        </div>
+    `;
+}
+    // AGGIUNGI QUESTO NUOVO METODO COMPLETO
+    async renderOrgSelector() {
+        try {
+            // Check 1: Verifica se organizationService esiste
+            if (!window.organizationService) {
+                console.log('[Header] Organization service not available');
+                return ''; // Non mostra nulla se non c'è il service
+            }
+            
+            // Check 2: Se non è inizializzato, prova ad inizializzare
+            if (!window.organizationService.initialized) {
+                // Ma solo se siamo in una pagina che lo richiede
+                const currentPath = window.location.pathname;
+                const pagesWithOrg = ['/products.html', '/tracking.html', '/shipments.html'];
+                
+                if (!pagesWithOrg.some(page => currentPath.includes(page))) {
+                    return ''; // Non inizializzare su pagine che non lo usano
+                }
+                
+                try {
+                    await window.organizationService.init();
+                } catch (error) {
+                    console.log('[Header] Organization service init failed:', error);
+                    return ''; // Non mostra nulla se init fallisce
+                }
+            }
+            
+            // Check 3: Verifica se abbiamo dati validi
+            const currentOrg = window.organizationService.getCurrentOrg();
+            const userOrgs = window.organizationService.getUserOrgs();
+            
+            // Non mostrare se non c'è org o se c'è solo 1 org
+            if (!currentOrg || !userOrgs || userOrgs.length <= 1) {
+                return '';
+            }
+            
+            // Solo ora renderizza il selector
+            return `
+                <div class="org-selector">
+                    <button class="sol-btn sol-btn-glass" id="orgSelectorBtn" onclick="window.toggleOrgDropdown && window.toggleOrgDropdown(event)">
+                        <i class="fas fa-building"></i>
+                        <span class="hide-mobile">${currentOrg.organizations?.name || 'Organization'}</span>
+                        <i class="fas fa-chevron-down"></i>
+                    </button>
+                    <div class="sol-dropdown" id="orgDropdown" style="display: none;">
+                        <div class="sol-dropdown-header">
+                            <h4>Switch Organization</h4>
+                        </div>
+                        <div class="sol-dropdown-body">
+                            ${userOrgs.map(membership => `
+                                <div class="sol-dropdown-item ${membership.organization_id === currentOrg.organization_id ? 'active' : ''}"
+                                     onclick="window.switchOrganization && window.switchOrganization('${membership.organization_id}')">
+                                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                                        <div>
+                                            <strong>${membership.organizations?.name || 'Unknown'}</strong>
+                                            <br>
+                                            <small style="color: var(--sol-gray-600);">${membership.role || 'member'}</small>
+                                        </div>
+                                        ${membership.organization_id === currentOrg.organization_id ? 
+                                            '<i class="fas fa-check" style="color: var(--sol-success);"></i>' : ''}
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+        } catch (error) {
+            console.error('[Header] Error rendering org selector:', error);
+            return ''; // In caso di qualsiasi errore, non mostra nulla
+        }
+    }
     // FIX 4: renderDropdowns ASYNC
     async renderDropdowns() {
         // CRITICAL FIX: Non renderizzare dropdown se esistono già

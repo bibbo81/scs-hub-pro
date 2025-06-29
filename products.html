@@ -19,12 +19,15 @@
     
     <!-- STESSO setup JavaScript ES6 modules -->
     <script type="module">
-        // Import core modules IDENTICI
-        import api from '/core/api-client.js';
-        import headerComponent from '/core/header-component.js';
-        import notificationSystem from '/core/notification-system.js';
-        import modalSystem from '/core/modal-system.js';
-        
+    // Import core modules IDENTICI
+    import api from '/core/api-client.js';
+    import headerComponent from '/core/header-component.js';
+    import notificationSystem from '/core/notification-system.js';
+    import modalSystem from '/core/modal-system.js';
+    import organizationService from '/core/services/organization-service.js';
+    
+    // Make organization service available globally
+    window.organizationService = organizationService;
         // Make modules available globally for backward compatibility
         window.api = api;
         window.headerComponent = headerComponent;

@@ -303,6 +303,30 @@ class Application {
 
 // Create singleton instance
 const app = new Application();
+// Organization switching functions
+window.toggleOrgDropdown = function(event) {
+    event.stopPropagation();
+    const dropdown = document.getElementById('orgDropdown');
+    if (dropdown) {
+        dropdown.style.display = dropdown.style.display === 'none' ? 'block' : 'none';
+    }
+};
+
+window.switchOrganization = async function(orgId) {
+    if (window.organizationService) {
+        await window.organizationService.switchOrg(orgId);
+    }
+};
+
+// Close org dropdown on outside click
+document.addEventListener('click', (e) => {
+    if (!e.target.closest('.org-selector')) {
+        const orgDropdown = document.getElementById('orgDropdown');
+        if (orgDropdown) {
+            orgDropdown.style.display = 'none';
+        }
+    }
+});
 
 // Export singleton
 export default app;
