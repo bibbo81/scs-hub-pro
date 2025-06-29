@@ -357,8 +357,20 @@
         };
     }
     
-    // Normalize status
-    const status = this.normalizeStatus(shipmentData.status || 'registered');
+    // Normalize status - FIX COMPLETO
+    const status = (() => {
+        const rawStatus = (shipmentData.status || 'registered').toUpperCase();
+        const statusMap = {
+            'SAILING': 'in_transit',
+            'IN TRANSIT': 'in_transit',
+            'ARRIVED': 'arrived',
+            'DELIVERED': 'delivered',
+            'DISCHARGED': 'arrived',
+            'REGISTERED': 'registered',
+            'PENDING': 'registered'
+        };
+        return statusMap[rawStatus] || 'registered';
+    })();
     
     // Build normalized response
     const normalized = {
@@ -436,18 +448,59 @@
         },
         
         // Additional mapped fields for compatibility
-        mappedFields: {
-            carrier_code: carrierCode,
-            carrier_name: carrierName,
-            origin_port: originPort,
-            destination_port: destinationPort,
-            date_of_loading: departureDate,
-            eta: arrivalDate,
-            container_count: 1,
-            transit_time: this.calculateTransitTime(departureDate, arrivalDate)
-        }
-    };
+mappedFields: {
+    carrier_code: carrierCode,
+    carrier_name: carrierName,
+    origin_port: originPort,
+    destination_port: destinationPort,
+    date_of_loading: departureDate,
+    eta: arrivalDate,
+    container_count: 1,
+    transit_time: this.calculateTransitTime(departureDate, arrivalDate),
+    // AGGIUNGI TUTTI I CAMPI MANCANTI
+    vessel_name: vesselInfo?.name || '-',
+    vessel_imo: vesselInfo?.imo || '-',
+    voyage_number: vesselInfo?.voyage || '-',
+    container_size: shipmentData.container_size || shipmentData.size || '-',
+    container_type: shipmentData.container_type || shipmentData.type || '-',
+    origin_country: originCountry,
+    destination_country: destinationCountry,
+    booking: shipmentData.booking_number || shipmentData.booking || '-',
+    bl_number: shipmentData.bl_number || '-',
+    date_of_departure: departureDate,
+    date_of_discharge: arrivalDate,
+    last_event_location: (() => {
+        const movements = shipmentData.movements || [];
+        return movements.length > 0 ? movements[movements.length - 1].location?.name || '-' : '-';
+    })(),
+    last_event_date: (() => {
+        const movements = shipmentData.movements || [];
+        return movements.length > 0 ? movements[movements.length - 1].date || '-' : '-';
+    })(),
+    ts_count: shipmentData.route?.ts_count || 0,
+    co2_emission: shipmentData.route?.co2_emission || '-',
+    reference_number: '-',
+    tags: shipmentData.tags?.join(',') || '-'
+}
+// FORZA I CAMPI AL LIVELLO PRINCIPALE - AGGIUNGI QUI
+    ,carrier_name: carrierName || carrierCode || 'Unknown',
+    origin_country: originCountry,
+    destination_country: destinationCountry,
+    vessel_name: vesselInfo?.name || '-',
+    voyage_number: vesselInfo?.voyage || '-',
+    container_size: shipmentData.container_size || shipmentData.size || '-',
+    container_type: shipmentData.container_type || shipmentData.type || '-',
+    date_of_departure: departureDate,
+    date_of_discharge: arrivalDate,
+    last_event_location: (() => {
+        const movements = shipmentData.movements || [];
+        return movements.length > 0 ? movements[movements.length - 1].location?.name || '-' : '-';
+    })(),
+    transit_time: this.calculateTransitTime(departureDate, arrivalDate),
+    ts_count: shipmentData.route?.ts_count || 0,
+    co2_emission: shipmentData.route?.co2_emission || '-'
     
+};    
     console.log('✅ Normalized Ocean v2 response:', {
         carrier: `${carrierCode} - ${carrierName}`,
         route: `${originPort} → ${destinationPort}`,
