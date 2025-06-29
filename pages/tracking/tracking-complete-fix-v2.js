@@ -280,50 +280,198 @@
         };
         
         window.trackingService.normalizeOceanV2Response = function(data, containerNumber) {
-            const shipmentData = data.shipment || data;
-            
-            return {
-                success: true,
-                trackingNumber: containerNumber,
-                trackingType: 'container',
-                status: this.normalizeStatus(shipmentData.status || 'registered'),
-                lastUpdate: new Date().toISOString(),
-                
-                carrier: {
-                    code: shipmentData.shipping_line?.scac || 'UNKNOWN',
-                    name: shipmentData.shipping_line?.name || 'Unknown Carrier'
-                },
-                
-                route: {
-                    origin: {
-                        port: shipmentData.route?.origin?.port || '-',
-                        country: shipmentData.route?.origin?.country || '-',
-                        date: shipmentData.route?.origin?.departure_date
-                    },
-                    destination: {
-                        port: shipmentData.route?.destination?.port || '-',
-                        country: shipmentData.route?.destination?.country || '-',
-                        eta: shipmentData.route?.destination?.arrival_date
-                    }
-                },
-                
-                vessel: shipmentData.vessel ? {
-                    name: shipmentData.vessel.name,
-                    imo: shipmentData.vessel.imo,
-                    voyage: shipmentData.voyage
-                } : null,
-                
-                events: this.extractOceanV2Events(shipmentData),
-                
-                metadata: {
-                    source: 'shipsgo_v2_ocean',
-                    enriched_at: new Date().toISOString(),
-                    raw: data,
-                    shipsgo_id: shipmentData.id
-                }
-            };
-        };
+    console.log('🔍 Normalizing Ocean v2 response:', data);
+    
+    // Handle both direct response and wrapped response
+    const shipmentData = data.shipment || data.data || data;
+    
+    // Extract carrier info - FIX: Access the correct path
+    let carrierCode = 'UNKNOWN';
+    let carrierName = 'Unknown Carrier';
+    
+    // Try different paths for carrier data
+    if (shipmentData.carrier) {
+        carrierCode = shipmentData.carrier.scac || shipmentData.carrier.code || shipmentData.carrier.name || 'UNKNOWN';
+        carrierName = shipmentData.carrier.name || shipmentData.carrier.scac || 'Unknown Carrier';
+    } else if (shipmentData.shipping_line) {
+        carrierCode = shipmentData.shipping_line.scac || shipmentData.shipping_line.code || 'UNKNOWN';
+        carrierName = shipmentData.shipping_line.name || 'Unknown Carrier';
+    }
+    
+    // Extract route info - FIX: Access the correct nested structure
+    let originPort = '-';
+    let originCountry = '-';
+    let destinationPort = '-';
+    let destinationCountry = '-';
+    let departureDate = null;
+    let arrivalDate = null;
+    
+    if (shipmentData.route) {
+        // Origin info
+        if (shipmentData.route.port_of_loading) {
+            originPort = shipmentData.route.port_of_loading.location?.name || 
+                        shipmentData.route.port_of_loading.name || 
+                        shipmentData.route.port_of_loading || '-';
+            originCountry = shipmentData.route.port_of_loading.location?.country?.name || 
+                           shipmentData.route.port_of_loading.country || '-';
+        } else if (shipmentData.route.origin) {
+            originPort = shipmentData.route.origin.location?.name || 
+                        shipmentData.route.origin.port || 
+                        shipmentData.route.origin.name || '-';
+            originCountry = shipmentData.route.origin.location?.country?.name || 
+                           shipmentData.route.origin.country || '-';
+        }
         
+        // Destination info
+        if (shipmentData.route.port_of_discharge) {
+            destinationPort = shipmentData.route.port_of_discharge.location?.name || 
+                             shipmentData.route.port_of_discharge.name || 
+                             shipmentData.route.port_of_discharge || '-';
+            destinationCountry = shipmentData.route.port_of_discharge.location?.country?.name || 
+                                shipmentData.route.port_of_discharge.country || '-';
+        } else if (shipmentData.route.destination) {
+            destinationPort = shipmentData.route.destination.location?.name || 
+                             shipmentData.route.destination.port || 
+                             shipmentData.route.destination.name || '-';
+            destinationCountry = shipmentData.route.destination.location?.country?.name || 
+                                shipmentData.route.destination.country || '-';
+        }
+        
+        // Dates
+        departureDate = shipmentData.route.port_of_loading?.date || 
+                       shipmentData.route.origin?.departure_date || 
+                       shipmentData.route.origin?.date;
+                       
+        arrivalDate = shipmentData.route.port_of_discharge?.date || 
+                     shipmentData.route.destination?.arrival_date || 
+                     shipmentData.route.destination?.eta;
+    }
+    
+    // Extract vessel info
+    let vesselInfo = null;
+    if (shipmentData.vessel) {
+        vesselInfo = {
+            name: shipmentData.vessel.name || shipmentData.vessel_name,
+            imo: shipmentData.vessel.imo || shipmentData.vessel_imo,
+            voyage: shipmentData.voyage || shipmentData.voyage_number
+        };
+    }
+    
+    // Normalize status
+    const status = this.normalizeStatus(shipmentData.status || 'registered');
+    
+    // Build normalized response
+    const normalized = {
+        success: true,
+        trackingNumber: containerNumber,
+        trackingType: 'container',
+        status: status,
+        lastUpdate: new Date().toISOString(),
+        
+        // Carrier info - PROPERLY MAPPED
+        carrier: {
+            code: carrierCode,
+            name: carrierName
+        },
+        carrier_code: carrierCode,
+        carrier_name: carrierName,
+        
+        // Route info - PROPERLY MAPPED
+        route: {
+            origin: {
+                port: originPort,
+                country: originCountry,
+                date: departureDate
+            },
+            destination: {
+                port: destinationPort,
+                country: destinationCountry,
+                eta: arrivalDate
+            }
+        },
+        
+        // Direct port mappings for table display
+        origin_port: originPort,
+        port_of_loading: originPort,
+        destination_port: destinationPort,
+        port_of_discharge: destinationPort,
+        origin_country: originCountry,
+        destination_country: destinationCountry,
+        
+        // Dates
+        date_of_loading: departureDate,
+        date_of_departure: departureDate,
+        eta: arrivalDate,
+        ata: shipmentData.ata,
+        
+        // Vessel info
+        vessel: vesselInfo,
+        vessel_name: vesselInfo?.name,
+        vessel_imo: vesselInfo?.imo,
+        voyage_number: vesselInfo?.voyage,
+        
+        // Events
+        events: this.extractOceanV2Events(shipmentData),
+        
+        // Additional fields
+        booking: shipmentData.booking_number || shipmentData.booking,
+        bl_number: shipmentData.bl_number,
+        container_size: shipmentData.container_size || shipmentData.size,
+        container_type: shipmentData.container_type || shipmentData.type,
+        
+        // Metadata
+        metadata: {
+            source: 'shipsgo_v2_ocean',
+            enriched_at: new Date().toISOString(),
+            raw: data,
+            shipsgo_id: shipmentData.id,
+            mapped: {
+                carrier_code: carrierCode,
+                carrier_name: carrierName,
+                origin_port: originPort,
+                destination_port: destinationPort,
+                origin_country: originCountry,
+                destination_country: destinationCountry
+            }
+        },
+        
+        // Additional mapped fields for compatibility
+        mappedFields: {
+            carrier_code: carrierCode,
+            carrier_name: carrierName,
+            origin_port: originPort,
+            destination_port: destinationPort,
+            date_of_loading: departureDate,
+            eta: arrivalDate,
+            container_count: 1,
+            transit_time: this.calculateTransitTime(departureDate, arrivalDate)
+        }
+    };
+    
+    console.log('✅ Normalized Ocean v2 response:', {
+        carrier: `${carrierCode} - ${carrierName}`,
+        route: `${originPort} → ${destinationPort}`,
+        dates: {
+            departure: departureDate,
+            arrival: arrivalDate
+        }
+    });
+    
+    return normalized;
+};
+       window.trackingService.calculateTransitTime = function(departureDate, arrivalDate) {
+    if (!departureDate || !arrivalDate) return null;
+    
+    try {
+        const dep = new Date(departureDate);
+        const arr = new Date(arrivalDate);
+        const diffTime = Math.abs(arr - dep);
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        return diffDays;
+    } catch (e) {
+        return null;
+    }
+}; 
         window.trackingService.extractOceanV2Events = function(data) {
             const events = [];
             

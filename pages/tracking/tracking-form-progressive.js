@@ -3753,7 +3753,83 @@ async function processEnhancedTracking(formData) {
                    
                    if (apiResponse && apiResponse.success) {
                        console.log('✅ ENTRO nel mapping API');
-                       
+                       // OCEAN V2 SPECIAL HANDLING
+if (formData.trackingType === 'container' && window.detectedOceanId && apiResponse.metadata?.source === 'shipsgo_v2_ocean') {
+    console.log('🌊 Processing Ocean v2 response with proper mapping');
+    
+    // Estrai i dati mappati dal normalizer
+    const mappedData = {
+        trackingNumber: formData.trackingNumber,
+        trackingType: 'container',
+        
+        // Usa i dati già mappati dal normalizer
+        carrier: apiResponse.carrier_code || apiResponse.carrier?.code || formData.carrier || 'UNKNOWN',
+        carrier_code: apiResponse.carrier_code || apiResponse.carrier?.code || formData.carrier || 'UNKNOWN',
+        carrier_name: apiResponse.carrier_name || apiResponse.carrier?.name || 'Unknown Carrier',
+        
+        // Ports - usa i campi diretti mappati dal normalizer
+        origin: apiResponse.origin_port || apiResponse.route?.origin?.port || formData.origin || '-',
+        origin_port: apiResponse.origin_port || apiResponse.route?.origin?.port || formData.origin || '-',
+        port_of_loading: apiResponse.port_of_loading || apiResponse.origin_port || '-',
+        
+        destination: apiResponse.destination_port || apiResponse.route?.destination?.port || formData.destination || '-',
+        destination_port: apiResponse.destination_port || apiResponse.route?.destination?.port || formData.destination || '-',
+        port_of_discharge: apiResponse.port_of_discharge || apiResponse.destination_port || '-',
+        
+        // Countries
+        origin_country: apiResponse.origin_country || apiResponse.route?.origin?.country || '-',
+        destination_country: apiResponse.destination_country || apiResponse.route?.destination?.country || '-',
+        destination_country_code: extractCountryCode(apiResponse.destination_port || apiResponse.route?.destination?.port),
+        
+        // Status
+        status: apiResponse.status || formData.status || 'registered',
+        current_status: apiResponse.status || formData.status || 'registered',
+        
+        // Dates
+        date_of_loading: apiResponse.date_of_loading || apiResponse.route?.origin?.date || '-',
+        date_of_departure: apiResponse.date_of_departure || apiResponse.date_of_loading || '-',
+        departure: formatDateDDMMYYYY(apiResponse.date_of_loading || apiResponse.route?.origin?.date),
+        eta: apiResponse.eta || apiResponse.route?.destination?.eta || '-',
+        ata: apiResponse.ata || '-',
+        
+        // Vessel
+        vessel_name: apiResponse.vessel_name || apiResponse.vessel?.name || '-',
+        vessel_imo: apiResponse.vessel_imo || apiResponse.vessel?.imo || '-',
+        voyage_number: apiResponse.voyage_number || apiResponse.vessel?.voyage || '-',
+        
+        // Other fields
+        reference: formData.reference || '-',
+        booking: apiResponse.booking || apiResponse.bl_number || '-',
+        container_size: apiResponse.container_size || '-',
+        container_type: apiResponse.container_type || '-',
+        container_count: apiResponse.mappedFields?.container_count || 1,
+        transit_time: apiResponse.mappedFields?.transit_time || null,
+        
+        // Events and metadata
+        lastUpdate: apiResponse.lastUpdate || new Date().toISOString(),
+        events: apiResponse.events || [],
+        metadata: {
+            ...apiResponse.metadata,
+            ocean_v2_used: true,
+            shipsgo_id: window.detectedOceanId
+        },
+        
+        // Additional mapped fields
+        vessel: apiResponse.vessel || null,
+        route: apiResponse.route || null,
+        mappedFields: apiResponse.mappedFields || {}
+    };
+    
+    console.log('✅ Ocean v2 data properly mapped:', {
+        carrier: `${mappedData.carrier_code} - ${mappedData.carrier_name}`,
+        route: `${mappedData.origin_port} → ${mappedData.destination_port}`,
+        vessel: mappedData.vessel_name,
+        status: mappedData.status
+    });
+    
+    // Sostituisci formData con i dati mappati
+    Object.assign(formData, mappedData);
+}
                        // AGGIUNGI QUESTI LOG per debug
                        if (apiResponse && apiResponse.success && formData.trackingType === 'awb') {
     console.log('🔍 DEBUG AWB API Response DETTAGLIATO:');
