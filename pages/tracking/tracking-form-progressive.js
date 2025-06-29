@@ -4337,6 +4337,7 @@ if (apiResponse.events && Array.isArray(apiResponse.events)) {
     
     // CONTAINER DETAILS - COMPLETO
     container_count: formData.container_count || formData.mappedFields?.container_count || formData.metadata?.raw?.shipment?.container_count || 1,
+    carrier_name: formData.carrier_name || formData.metadata?.mapped?.carrier_name || formData.carrier || '-',
     container_size: formData.container_size || formData.metadata?.raw?.shipment?.containers?.[0]?.size || '-',
     container_type: formData.container_type || formData.metadata?.raw?.shipment?.containers?.[0]?.type || '-',
     pieces: '-', // Solo per AWB/Parcel
@@ -4416,7 +4417,12 @@ if (apiResponse.events && Array.isArray(apiResponse.events)) {
        if (!finalData.trackingNumber || finalData.trackingNumber === '-') {
            throw new Error('Tracking number mancante');
        } else {
-           // Salva in Supabase se disponibile
+           // Applica status mapping finale
+if (finalData.status === 'sailing' || finalData.status === 'SAILING') {
+    finalData.status = 'in_transit';
+    finalData.current_status = 'in_transit';
+}       
+        // Salva in Supabase se disponibile
            if (window.supabaseTrackingService) {
                try {
                    const savedTracking = await window.supabaseTrackingService.createTracking(finalData);

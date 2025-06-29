@@ -1714,3 +1714,4 @@ window.trackingDebug = {
     getColumnMapping: () => COLUMN_MAPPING,
     getStatusMapping: () => STATUS_DISPLAY
 };
+window.AVAILABLE_COLUMNS = AVAILABLE_COLUMNS;
