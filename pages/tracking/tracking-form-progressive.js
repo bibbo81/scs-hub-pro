@@ -4174,112 +4174,86 @@ if (apiResponse.events && Array.isArray(apiResponse.events)) {
            } : {}),
            
            // SE NON È AWB, includi formData normalmente
-           ...(formData.trackingType !== 'awb' ? {
-               // Campi critici con fallback per container/bl
-               tracking_number: formData.trackingNumber,
-               tracking_type: formData.trackingType || 'container',
-               carrier: formData.carrier || formData.carrier_code || 'UNKNOWN',
-               carrier_code: formData.carrier_code || formData.carrier || 'UNKNOWN',
-               origin: formData.origin || formData.origin_port || '-',
-               origin_port: formData.origin_port || formData.origin || '-',
-               destination: formData.destination || formData.destination_port || '-',
-               destination_port: formData.destination_port || formData.destination || '-',
-               status: formData.status || 'registered',
-               current_status: formData.current_status || formData.status || 'registered',
-               
-               // Altri campi standard
-               destination_country_code: extractCountryCode(formData.destination || formData.destination_port) || '-',
-               date_of_departure: formData.date_of_loading || formData.date_of_departure || '-',
-               departure: formatDateDDMMYYYY(formData.date_of_loading || formData.date_of_departure || formData.departure_date),
-               container_count:  apiResponse?.container_count || 
-                apiResponse?.mappedFields?.container_count || 
-                formData.container_count || 
-                1,  // Default numerico (non stringa)
-               reference: formData.reference || '-',
-               booking: apiResponse?.booking || apiResponse?.bookingNumber || '-',
-               ts_count: apiResponse?.ts_count || 
-         apiResponse?.mappedFields?.ts_count || 
-         apiResponse?.route?.ts_count || 
-         formData.ts_count || 
-         0,
-               
-               // ====== TRANSIT TIME CONTAINER - FIX BASATO SU DATI SHIPSGO ======
-transit_time: (() => {
-    // 1. Prima controlla se l'API ha già calcolato il transit_time
-    if (apiResponse?.transit_time && typeof apiResponse.transit_time === 'number') {
-        console.log('✅ Transit time diretto da API:', apiResponse.transit_time);
-        return apiResponse.transit_time;
-    }
+...(formData.trackingType !== 'awb' ? {
+    // Campi critici con fallback per container/bl
+    tracking_number: formData.trackingNumber,
+    tracking_type: formData.trackingType || 'container',
     
-    // 2. Controlla nel container info (ShipsGo v1.2 restituisce questi campi)
-    if (apiResponse?.mappedFields?.transit_time) {
-        console.log('✅ Transit time da mappedFields:', apiResponse.mappedFields.transit_time);
-        return apiResponse.mappedFields.transit_time;
-    }
+    // CARRIER - FIX DEFINITIVO: Prova tutti i possibili campi
+    carrier: formData.carrier || formData.carrier_code || formData.mappedFields?.carrier_code || 'UNKNOWN',
+    carrier_code: formData.carrier_code || formData.carrier || formData.mappedFields?.carrier_code || 'UNKNOWN',
+    carrier_name: formData.carrier_name || formData.mappedFields?.carrier_name || formData.metadata?.mapped?.carrier_name || formData.carrier || 'UNKNOWN',
     
-    // 3. Calcola dalle date disponibili nell'API response
-    // ShipsGo fornisce: date_of_loading, eta, ata
-    const loadingDate = apiResponse?.date_of_loading || 
-                       apiResponse?.mappedFields?.date_of_loading ||
-                       formData.date_of_loading;
-                       
-    const arrivalDate = apiResponse?.eta || 
-                       apiResponse?.ata ||
-                       apiResponse?.mappedFields?.eta ||
-                       apiResponse?.mappedFields?.ata ||
-                       formData.eta ||
-                       formData.ata;
+    // PORTS
+    origin: formData.origin || formData.origin_port || formData.mappedFields?.origin_port || '-',
+    origin_port: formData.origin_port || formData.origin || formData.mappedFields?.origin_port || '-',
+    destination: formData.destination || formData.destination_port || formData.mappedFields?.destination_port || '-',
+    destination_port: formData.destination_port || formData.destination || formData.mappedFields?.destination_port || '-',
     
-    if (loadingDate && arrivalDate) {
-        const depDate = new Date(loadingDate);
-        const arrDate = new Date(arrivalDate);
-        
-        if (!isNaN(depDate.getTime()) && !isNaN(arrDate.getTime())) {
-            const diffTime = Math.abs(arrDate - depDate);
-            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-            console.log('✅ Transit time calcolato:', diffDays, 'giorni');
-            return diffDays;
-        }
-    }
+    // STATUS - FIX: Mappa lo status da ShipsGo
+    status: (() => {
+        const rawStatus = formData.status || formData.current_status || 'registered';
+        // Mappa stati ShipsGo a stati nostri
+        const statusMap = {
+            'SAILING': 'in_transit',
+            'IN TRANSIT': 'in_transit',
+            'ARRIVED': 'arrived',
+            'DELIVERED': 'delivered',
+            'REGISTERED': 'registered'
+        };
+        return statusMap[rawStatus.toUpperCase()] || rawStatus.toLowerCase();
+    })(),
+    current_status: (() => {
+        const rawStatus = formData.status || formData.current_status || 'registered';
+        const statusMap = {
+            'SAILING': 'in_transit',
+            'IN TRANSIT': 'in_transit',
+            'ARRIVED': 'arrived',
+            'DELIVERED': 'delivered',
+            'REGISTERED': 'registered'
+        };
+        return statusMap[rawStatus.toUpperCase()] || rawStatus.toLowerCase();
+    })(),
     
-    // 4. Ultima risorsa: calcola dagli eventi
-    if (apiResponse?.events && apiResponse.events.length > 0) {
-        // Trova "loaded on vessel" (partenza)
-        const loadedEvent = apiResponse.events.find(e => 
-            e.description?.toLowerCase().includes('loaded on vessel')
-        );
-        
-        // Trova "discharged from vessel" o ultimo evento (arrivo)
-        const dischargedEvent = apiResponse.events.find(e => 
-            e.description?.toLowerCase().includes('discharged')
-        ) || apiResponse.events[apiResponse.events.length - 1];
-        
-        if (loadedEvent?.date && dischargedEvent?.date) {
-            const depDate = new Date(loadedEvent.date);
-            const arrDate = new Date(dischargedEvent.date);
-            
-            if (!isNaN(depDate.getTime()) && !isNaN(arrDate.getTime())) {
-                const diffTime = Math.abs(arrDate - depDate);
-                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                console.log('✅ Transit time calcolato da eventi:', diffDays, 'giorni');
-                return diffDays;
-            }
-        }
-    }
+    // DATES - FIX: Estrai date corrette da Ocean v2
+    date_of_departure: formData.date_of_departure || formData.date_of_loading || formData.departure_date || '-',
+    departure: formatDateDDMMYYYY(formData.date_of_loading || formData.date_of_departure || formData.departure_date),
+    eta: formData.eta || formData.metadata?.raw?.shipment?.route?.port_of_discharge?.date_of_discharge || null,
+    date_of_loading: formData.date_of_loading || formData.metadata?.raw?.shipment?.route?.port_of_loading?.date_of_loading || '-',
     
-    // Se non riusciamo a calcolarlo, ritorna null (mostrerà "-" nella tabella)
-    console.log('⚠️ Impossibile calcolare transit time');
-    return null;
-})(), 
-
-               // Metadata e altri campi
-               metadata: formData.metadata || {},
-               events: formData.events || [],
-               vessel: formData.vessel || null,
-               route: formData.route || null,
-               lastUpdate: formData.lastUpdate || new Date().toISOString(),
-               dataSource: formData.metadata?.source || 'manual'
-           } : {}),
+    // VESSEL INFO - FIX: Estrai da movements
+    vessel_name: (() => {
+        if (formData.vessel_name && formData.vessel_name !== '-') return formData.vessel_name;
+        // Cerca l'ultima nave dai movements
+        const movements = formData.metadata?.raw?.shipment?.containers?.[0]?.movements || [];
+        const lastVessel = movements.reverse().find(m => m.vessel?.name);
+        return lastVessel?.vessel?.name || '-';
+    })(),
+    vessel_imo: formData.vessel_imo || '-',
+    voyage_number: (() => {
+        if (formData.voyage_number && formData.voyage_number !== '-') return formData.voyage_number;
+        const movements = formData.metadata?.raw?.shipment?.containers?.[0]?.movements || [];
+        const lastVoyage = movements.reverse().find(m => m.voyage);
+        return lastVoyage?.voyage || '-';
+    })(),
+    
+    // ALTRI CAMPI
+    destination_country_code: extractCountryCode(formData.destination || formData.destination_port) || '-',
+    container_count: formData.container_count || formData.mappedFields?.container_count || 1,
+    reference: formData.reference || '-',
+    booking: formData.booking || apiResponse?.booking || apiResponse?.bookingNumber || '-',
+    ts_count: formData.ts_count || formData.metadata?.raw?.shipment?.route?.ts_count || 0,
+    transit_time: formData.transit_time || formData.metadata?.raw?.shipment?.route?.transit_time || null,
+    co2_emission: formData.metadata?.raw?.shipment?.route?.co2_emission || '-',
+    
+    // Metadata e altri campi
+    metadata: formData.metadata || {},
+    events: formData.events || [],
+    vessel: formData.vessel || null,
+    route: formData.route || null,
+    lastUpdate: formData.lastUpdate || new Date().toISOString(),
+    dataSource: formData.metadata?.source || 'manual'
+} : {}),
            
            // Campi comuni sempre presenti
            created_at: formatDateTime(new Date().toISOString()),
