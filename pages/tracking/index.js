@@ -49,56 +49,105 @@ const STATUS_DISPLAY = {
     'pending': { label: 'In attesa', class: 'warning', icon: 'fa-clock' }
 };
 
-// Available columns configuration - TUTTE LE COLONNE
+// Available columns configuration - LISTA COMPLETA
 const AVAILABLE_COLUMNS = [
     // Colonne Base
     { key: 'tracking_number', label: 'Tracking Number', required: true, sortable: true },
     { key: 'tracking_type', label: 'Tipo', sortable: true },
     { key: 'current_status', label: 'Stato', sortable: true },
+    { key: 'status', label: 'Status (raw)', sortable: true },
+    
+    // Carrier - TUTTE LE VARIANTI
+    { key: 'carrier', label: 'Carrier', sortable: true },
     { key: 'carrier_code', label: 'Carrier Code', sortable: true },
-    { key: 'carrier_name', label: 'Carrier', sortable: true },
-    { key: 'reference_number', label: 'Riferimento', sortable: true },
-    { key: 'booking', label: 'Booking', sortable: true },
-    
-    // Colonne UNIFICATE Origine/Destinazione
-    { key: 'origin_port', label: 'Origine', sortable: true }, // Unifica POL/Origin Name
-    { key: 'destination_port', label: 'Destinazione', sortable: true }, // Unifica POD/Destination Name
-    
-    // Colonne Paese (utili per filtri)
-    { key: 'origin_country', label: 'Paese Origine', sortable: true },
-    { key: 'destination_country', label: 'Paese Destinazione', sortable: true },
-    
-    // Colonne Container/AWB
-    { key: 'container_number', label: 'Container', sortable: true },
-    { key: 'container_size', label: 'Dimensione', sortable: true },
-    { key: 'container_count', label: 'Container Count', sortable: true },
-    { key: 'awb_number', label: 'AWB Number', sortable: true },
-    
-    // Colonne Date OTTIMIZZATE
-    { key: 'date_of_departure', label: 'Data Partenza', sortable: true }, // Unifica Loading/Departure
-    { key: 'eta', label: 'ETA/Data Arrivo', sortable: true }, // Unifica Discharge/Arrival
-    { key: 'last_update', label: 'Ultimo Aggiornamento', sortable: true },
-    
-    // Colonne Vessel/Flight
-    { key: 'vessel_name', label: 'Nave/Volo', sortable: true },
-    { key: 'voyage_number', label: 'Viaggio', sortable: true },
+    { key: 'carrier_name', label: 'Carrier Name', sortable: true },
     { key: 'airline', label: 'Airline', sortable: true },
     
-    // Colonne Eventi
+    // Origine - TUTTE LE VARIANTI
+    { key: 'origin', label: 'Origine', sortable: true },
+    { key: 'origin_port', label: 'Porto/Aeroporto Origine', sortable: true },
+    { key: 'origin_name', label: 'Nome Origine', sortable: true },
+    { key: 'origin_country', label: 'Paese Origine', sortable: true },
+    { key: 'origin_country_code', label: 'Codice Paese Origine', sortable: true },
+    { key: 'port_of_loading', label: 'Port of Loading', sortable: true },
+    
+    // Destinazione - TUTTE LE VARIANTI
+    { key: 'destination', label: 'Destinazione', sortable: true },
+    { key: 'destination_port', label: 'Porto/Aeroporto Destinazione', sortable: true },
+    { key: 'destination_name', label: 'Nome Destinazione', sortable: true },
+    { key: 'destination_country', label: 'Paese Destinazione', sortable: true },
+    { key: 'destination_country_code', label: 'Codice Paese Destinazione', sortable: true },
+    { key: 'port_of_discharge', label: 'Port of Discharge', sortable: true },
+    
+    // Date - TUTTE LE VARIANTI
+    { key: 'date_of_loading', label: 'Data Carico', sortable: true },
+    { key: 'date_of_departure', label: 'Data Partenza', sortable: true },
+    { key: 'departure', label: 'Partenza', sortable: true },
+    { key: 'departure_date', label: 'Departure Date', sortable: true },
+    { key: 'eta', label: 'ETA', sortable: true },
+    { key: 'ata', label: 'ATA', sortable: true },
+    { key: 'date_of_discharge', label: 'Data Scarico', sortable: true },
+    { key: 'date_of_arrival', label: 'Data Arrivo', sortable: true },
+    { key: 'first_eta', label: 'Prima ETA', sortable: true },
+    
+    // Vessel/Flight
+    { key: 'vessel_name', label: 'Nome Nave', sortable: true },
+    { key: 'vessel_imo', label: 'IMO Nave', sortable: true },
+    { key: 'vessel', label: 'Vessel (object)', sortable: false },
+    { key: 'voyage_number', label: 'Numero Viaggio', sortable: true },
+    { key: 'flight_number', label: 'Numero Volo', sortable: true },
+    
+    // Container/AWB Details
+    { key: 'container_number', label: 'Numero Container', sortable: true },
+    { key: 'container_size', label: 'Dimensione Container', sortable: true },
+    { key: 'container_type', label: 'Tipo Container', sortable: true },
+    { key: 'container_count', label: 'Container Count', sortable: true },
+    { key: 'awb_number', label: 'AWB Number', sortable: true },
+    { key: 'pieces', label: 'Colli', sortable: true },
+    { key: 'weight', label: 'Peso', sortable: true },
+    { key: 'volume', label: 'Volume', sortable: true },
+    { key: 'commodity', label: 'Merce', sortable: true },
+    
+    // Riferimenti
+    { key: 'reference', label: 'Reference', sortable: true },
+    { key: 'reference_number', label: 'Numero Riferimento', sortable: true },
+    { key: 'booking', label: 'Booking', sortable: true },
+    { key: 'booking_number', label: 'Booking Number', sortable: true },
+    { key: 'bl_number', label: 'Bill of Lading', sortable: true },
+    
+    // Eventi
     { key: 'last_event_location', label: 'Ultima Posizione', sortable: true },
     { key: 'last_event_description', label: 'Ultimo Evento', sortable: true },
+    { key: 'last_event_date', label: 'Data Ultimo Evento', sortable: true },
+    { key: 'ultima_posizione', label: 'Ultima Posizione (it)', sortable: true },
     
-    // Colonne Metriche
+    // Metriche
     { key: 'transit_time', label: 'Tempo Transito', sortable: true },
     { key: 'ts_count', label: 'TS Count', sortable: true },
     { key: 'co2_emission', label: 'CO₂ Emission', sortable: true },
+    { key: 'transit_percentage', label: 'Transit %', sortable: true },
     
-    // Altre
+    // Metadata
+    { key: 'shipsgo_id', label: 'ShipsGo ID', sortable: true },
+    { key: 'ocean_id', label: 'Ocean ID', sortable: true },
+    { key: 'created_at_shipsgo', label: 'Created at ShipsGo', sortable: true },
+    { key: 'checked_at', label: 'Checked At', sortable: true },
+    
+    // Extra
     { key: 'tags', label: 'Tags', sortable: true },
-    { key: 'created_at', label: 'Data Creazione', sortable: true }
+    { key: 'notes', label: 'Note', sortable: false },
+    { key: 'live_map_url', label: 'Live Map', sortable: false },
+    { key: 'dataSource', label: 'Data Source', sortable: true },
+    { key: 'import_source', label: 'Import Source', sortable: true },
+    
+    // Timestamps
+    { key: 'created_at', label: 'Data Creazione', sortable: true },
+    { key: 'updated_at', label: 'Data Aggiornamento', sortable: true },
+    { key: 'last_update', label: 'Ultimo Aggiornamento', sortable: true },
+    { key: 'createdAt', label: 'Created At', sortable: true },
+    { key: 'updatedAt', label: 'Updated At', sortable: true }
 ];
 
-// Default visible columns
 const DEFAULT_VISIBLE_COLUMNS = [
     'tracking_number',
     'tracking_type', 
@@ -106,10 +155,16 @@ const DEFAULT_VISIBLE_COLUMNS = [
     'carrier_name',
     'origin_port',
     'destination_port',
+    'vessel_name',          // Aggiungi
+    'voyage_number',        // Aggiungi
     'date_of_departure',
     'eta',
-    'reference_number',    // AGGIUNGI QUESTA
-    'co2_emission',        // AGGIUNGI QUESTA
+    'reference_number',
+    'booking',
+    'container_size',       // Aggiungi
+    'last_event_location',  // Aggiungi
+    'transit_time',         // Aggiungi
+    'co2_emission',
     'last_update'
 ];
 
@@ -147,23 +202,36 @@ const TABLE_COLUMNS = [
         }
     },
     { 
-        key: 'current_status', 
-        label: 'STATO', 
-        sortable: true, 
-        formatter: formatStatus 
-    },
+    key: 'current_status', 
+    label: 'STATO', 
+    sortable: true, 
+    formatter: (value, row) => {
+        // Prova current_status o status
+        const status = value || row.current_status || row.status || 'pending';
+        return formatStatus(status);
+    }
+},
     { 
-        key: 'carrier_name', 
-        label: 'CARRIER', 
-        sortable: true,
-        formatter: (value, row) => {
-            // Per AWB usa airline se disponibile
-            if ((row.tracking_type === 'awb' || row.tracking_type === 'air_waybill') && row.airline) {
-                return row.airline;
-            }
-            return value || row.carrier_code || '-';
+    key: 'carrier_name', 
+    label: 'CARRIER', 
+    sortable: true,
+    formatter: (value, row) => {
+        // Prova tutti i possibili campi carrier
+        const carrier = value || 
+                       row.carrier_name || 
+                       row.carrier || 
+                       row.carrier_code || 
+                       row.metadata?.mapped?.carrier_name ||
+                       '-';
+        
+        // Per AWB usa airline se disponibile
+        if ((row.tracking_type === 'awb' || row.tracking_type === 'air_waybill') && row.airline) {
+            return row.airline;
         }
-    },
+        
+        return carrier;
+    }
+},
     { 
         key: 'origin_port', 
         label: 'ORIGINE', 

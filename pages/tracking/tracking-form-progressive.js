@@ -4173,85 +4173,154 @@ if (apiResponse.events && Array.isArray(apiResponse.events)) {
                route: formData.route || null
            } : {}),
            
-           // SE NON È AWB, includi formData normalmente
+          // SE NON È AWB, includi formData normalmente
 ...(formData.trackingType !== 'awb' ? {
     // Campi critici con fallback per container/bl
     tracking_number: formData.trackingNumber,
     tracking_type: formData.trackingType || 'container',
     
-    // CARRIER - FIX DEFINITIVO: Prova tutti i possibili campi
+    // CARRIER - COMPLETO
     carrier: formData.carrier || formData.carrier_code || formData.mappedFields?.carrier_code || 'UNKNOWN',
     carrier_code: formData.carrier_code || formData.carrier || formData.mappedFields?.carrier_code || 'UNKNOWN',
     carrier_name: formData.carrier_name || formData.mappedFields?.carrier_name || formData.metadata?.mapped?.carrier_name || formData.carrier || 'UNKNOWN',
     
-    // PORTS
+    // ORIGIN - COMPLETO
     origin: formData.origin || formData.origin_port || formData.mappedFields?.origin_port || '-',
     origin_port: formData.origin_port || formData.origin || formData.mappedFields?.origin_port || '-',
+    origin_country: formData.origin_country || formData.metadata?.mapped?.origin_country || formData.metadata?.raw?.shipment?.route?.port_of_loading?.location?.country?.name || '-',
+    origin_country_code: formData.origin_country_code || formData.metadata?.raw?.shipment?.route?.port_of_loading?.location?.country?.code || extractCountryCode(formData.origin_port) || '-',
+    
+    // DESTINATION - COMPLETO
     destination: formData.destination || formData.destination_port || formData.mappedFields?.destination_port || '-',
     destination_port: formData.destination_port || formData.destination || formData.mappedFields?.destination_port || '-',
+    destination_country: formData.destination_country || formData.metadata?.mapped?.destination_country || formData.metadata?.raw?.shipment?.route?.port_of_discharge?.location?.country?.name || '-',
+    destination_country_code: formData.destination_country_code || formData.metadata?.raw?.shipment?.route?.port_of_discharge?.location?.country?.code || extractCountryCode(formData.destination_port) || '-',
     
-    // STATUS - FIX: Mappa lo status da ShipsGo
+    // STATUS - MAPPING COMPLETO (come prima)
     status: (() => {
-        const rawStatus = formData.status || formData.current_status || 'registered';
-        // Mappa stati ShipsGo a stati nostri
+        const rawStatus = (formData.status || formData.current_status || formData.metadata?.raw?.shipment?.status || 'registered').toLowerCase();
+        
         const statusMap = {
-            'SAILING': 'in_transit',
-            'IN TRANSIT': 'in_transit',
-            'ARRIVED': 'arrived',
-            'DELIVERED': 'delivered',
-            'REGISTERED': 'registered'
+            // MARE - Stati ShipsGo Ocean
+            'sailing': 'in_transit',
+            'in transit': 'in_transit',
+            'in_transit': 'in_transit',
+            'arrived': 'arrived',
+            'delivered': 'delivered',
+            'discharged': 'arrived',
+            'loaded': 'in_transit',
+            'departed': 'in_transit',
+            'gate out': 'delivered',
+            'gate_out': 'delivered',
+            'empty': 'delivered',
+            'empty returned': 'delivered',
+            // ... resto del mapping ...
+            'registered': 'registered',
+            'pending': 'registered',
+            'booked': 'registered'
         };
-        return statusMap[rawStatus.toUpperCase()] || rawStatus.toLowerCase();
+        
+        return statusMap[rawStatus] || rawStatus;
     })(),
     current_status: (() => {
-        const rawStatus = formData.status || formData.current_status || 'registered';
+        const rawStatus = (formData.status || formData.current_status || formData.metadata?.raw?.shipment?.status || 'registered').toLowerCase();
+        
         const statusMap = {
-            'SAILING': 'in_transit',
-            'IN TRANSIT': 'in_transit',
-            'ARRIVED': 'arrived',
-            'DELIVERED': 'delivered',
-            'REGISTERED': 'registered'
+            'sailing': 'in_transit',
+            'in transit': 'in_transit',
+            'in_transit': 'in_transit',
+            'arrived': 'arrived',
+            'delivered': 'delivered',
+            'discharged': 'arrived',
+            'registered': 'registered'
         };
-        return statusMap[rawStatus.toUpperCase()] || rawStatus.toLowerCase();
+        
+        return statusMap[rawStatus] || rawStatus;
     })(),
     
-    // DATES - FIX: Estrai date corrette da Ocean v2
-    date_of_departure: formData.date_of_departure || formData.date_of_loading || formData.departure_date || '-',
-    departure: formatDateDDMMYYYY(formData.date_of_loading || formData.date_of_departure || formData.departure_date),
-    eta: formData.eta || formData.metadata?.raw?.shipment?.route?.port_of_discharge?.date_of_discharge || null,
+    // DATES - COMPLETO
     date_of_loading: formData.date_of_loading || formData.metadata?.raw?.shipment?.route?.port_of_loading?.date_of_loading || '-',
+    date_of_departure: formData.date_of_departure || formData.date_of_loading || formData.metadata?.raw?.shipment?.route?.port_of_loading?.date_of_loading || '-',
+    departure: formatDateDDMMYYYY(formData.date_of_loading || formData.date_of_departure || formData.metadata?.raw?.shipment?.route?.port_of_loading?.date_of_loading),
+    eta: formData.eta || formData.metadata?.raw?.shipment?.route?.port_of_discharge?.date_of_discharge || null,
+    ata: formData.ata || formData.metadata?.raw?.shipment?.containers?.[0]?.movements?.find(m => m.event === 'DISC')?.timestamp || '-',
+    date_of_discharge: formData.date_of_discharge || formData.metadata?.raw?.shipment?.route?.port_of_discharge?.date_of_discharge || '-',
+    date_of_arrival: formData.date_of_arrival || formData.metadata?.raw?.shipment?.route?.port_of_discharge?.date_of_discharge || '-',
     
-    // VESSEL INFO - FIX: Estrai da movements
+    // VESSEL INFO - COMPLETO
     vessel_name: (() => {
         if (formData.vessel_name && formData.vessel_name !== '-') return formData.vessel_name;
-        // Cerca l'ultima nave dai movements
         const movements = formData.metadata?.raw?.shipment?.containers?.[0]?.movements || [];
-        const lastVessel = movements.reverse().find(m => m.vessel?.name);
+        const lastVessel = [...movements].reverse().find(m => m.vessel?.name);
         return lastVessel?.vessel?.name || '-';
     })(),
-    vessel_imo: formData.vessel_imo || '-',
+    vessel_imo: (() => {
+        if (formData.vessel_imo && formData.vessel_imo !== '-') return formData.vessel_imo;
+        const movements = formData.metadata?.raw?.shipment?.containers?.[0]?.movements || [];
+        const lastVessel = [...movements].reverse().find(m => m.vessel?.imo);
+        return lastVessel?.vessel?.imo || '-';
+    })(),
     voyage_number: (() => {
         if (formData.voyage_number && formData.voyage_number !== '-') return formData.voyage_number;
         const movements = formData.metadata?.raw?.shipment?.containers?.[0]?.movements || [];
-        const lastVoyage = movements.reverse().find(m => m.voyage);
+        const lastVoyage = [...movements].reverse().find(m => m.voyage);
         return lastVoyage?.voyage || '-';
     })(),
+    flight_number: '-', // Solo per AWB
+    airline: '-', // Solo per AWB
     
-    // ALTRI CAMPI
-    destination_country_code: extractCountryCode(formData.destination || formData.destination_port) || '-',
-    container_count: formData.container_count || formData.mappedFields?.container_count || 1,
-    reference: formData.reference || '-',
-    booking: formData.booking || apiResponse?.booking || apiResponse?.bookingNumber || '-',
-    ts_count: formData.ts_count || formData.metadata?.raw?.shipment?.route?.ts_count || 0,
+    // CONTAINER DETAILS - COMPLETO
+    container_count: formData.container_count || formData.mappedFields?.container_count || formData.metadata?.raw?.shipment?.container_count || 1,
+    container_size: formData.container_size || formData.metadata?.raw?.shipment?.containers?.[0]?.size || '-',
+    container_type: formData.container_type || formData.metadata?.raw?.shipment?.containers?.[0]?.type || '-',
+    pieces: '-', // Solo per AWB/Parcel
+    weight: '-', // Solo per AWB/Parcel
+    
+    // ALTRI CAMPI - COMPLETO
+    reference_number: formData.reference || formData.reference_number || '-',
+    booking: formData.booking || formData.metadata?.raw?.shipment?.booking_number || '-',
+    bl_number: formData.bl_number || '-',
     transit_time: formData.transit_time || formData.metadata?.raw?.shipment?.route?.transit_time || null,
-    co2_emission: formData.metadata?.raw?.shipment?.route?.co2_emission || '-',
+    ts_count: formData.ts_count || formData.metadata?.raw?.shipment?.route?.ts_count || 0,
+    co2_emission: formData.co2_emission || formData.metadata?.raw?.shipment?.route?.co2_emission || '-',
+    tags: formData.tags || (formData.metadata?.raw?.shipment?.tags?.length > 0 ? formData.metadata.raw.shipment.tags.join(',') : '-'),
+    
+    // EVENTI - COMPLETO
+    last_event_location: (() => {
+        const movements = formData.metadata?.raw?.shipment?.containers?.[0]?.movements || [];
+        if (movements.length > 0) {
+            const lastMovement = movements[movements.length - 1];
+            return lastMovement.location?.name || '-';
+        }
+        return '-';
+    })(),
+    last_event_description: (() => {
+        const movements = formData.metadata?.raw?.shipment?.containers?.[0]?.movements || [];
+        if (movements.length > 0) {
+            const lastMovement = movements[movements.length - 1];
+            return lastMovement.event || '-';
+        }
+        return '-';
+    })(),
+    last_event_date: (() => {
+        const movements = formData.metadata?.raw?.shipment?.containers?.[0]?.movements || [];
+        if (movements.length > 0) {
+            const lastMovement = movements[movements.length - 1];
+            return formatDateDDMMYYYY(lastMovement.timestamp);
+        }
+        return '-';
+    })(),
+    
+    // TIMESTAMPS
+    last_update: formData.lastUpdate || new Date().toISOString(),
+    created_at: formData.created_at || new Date().toISOString(),
+    updated_at: formData.updated_at || new Date().toISOString(),
     
     // Metadata e altri campi
     metadata: formData.metadata || {},
     events: formData.events || [],
     vessel: formData.vessel || null,
     route: formData.route || null,
-    lastUpdate: formData.lastUpdate || new Date().toISOString(),
     dataSource: formData.metadata?.source || 'manual'
 } : {}),
            
