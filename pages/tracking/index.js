@@ -588,7 +588,24 @@ async function loadTrackings() {
         if (window.supabaseTrackingService) {
             const data = await window.supabaseTrackingService.getAllTrackings();
             trackings = data || [];
-            
+            trackings = trackings.map(t => {
+    if (t.metadata?.source === 'shipsgo_v2_ocean') {
+        return {
+            ...t,
+            carrier_name: t.carrier_name || t.metadata?.mapped?.carrier_name || t.carrier || '-',
+            vessel_name: t.vessel_name || t.vessel_info?.name || t.original_data?.vessel_name || '-',
+            vessel_imo: t.vessel_imo || t.vessel_info?.imo || '-',
+            voyage_number: t.voyage_number || t.vessel_info?.voyage || t.original_data?.voyage_number || '-',
+            container_size: t.container_size || t.metadata?.raw?.shipment?.containers?.[0]?.size || '-',
+            container_type: t.container_type || t.metadata?.raw?.shipment?.containers?.[0]?.type || '-',
+            date_of_loading: t.date_of_loading || 
+                            t.metadata?.raw?.shipment?.route?.port_of_loading?.date_of_loading || 
+                            t.metadata?.raw?.shipment?.containers?.[0]?.movements?.find(m => m.event === 'LOAD')?.timestamp || 
+                            '-'
+        };
+    }
+    return t;
+});
             // Map data to ensure compatibility
             trackings = trackings.map(mapTrackingData);
         } else {
