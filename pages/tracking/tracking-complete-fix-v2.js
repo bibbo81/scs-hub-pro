@@ -347,30 +347,56 @@
                      shipmentData.route.destination?.eta;
     }
     
-    // Extract vessel info
-    let vesselInfo = null;
-    if (shipmentData.vessel) {
-        vesselInfo = {
-            name: shipmentData.vessel.name || shipmentData.vessel_name,
-            imo: shipmentData.vessel.imo || shipmentData.vessel_imo,
-            voyage: shipmentData.voyage || shipmentData.voyage_number
-        };
+    // Extract vessel info - FIX: prendi l'ultima nave dai movements
+let vesselInfo = null;
+let lastVoyage = null;
+if (shipmentData.containers && shipmentData.containers[0]?.movements) {
+    const movements = shipmentData.containers[0].movements;
+    // Trova l'ultimo movimento con vessel
+    for (let i = movements.length - 1; i >= 0; i--) {
+        if (movements[i].vessel?.name) {
+            vesselInfo = {
+                name: movements[i].vessel.name,
+                imo: movements[i].vessel.imo,
+                voyage: movements[i].voyage
+            };
+            lastVoyage = movements[i].voyage;
+            break;
+        }
     }
-    
-    // Normalize status - FIX COMPLETO
-    const status = (() => {
-        const rawStatus = (shipmentData.status || 'registered').toUpperCase();
-        const statusMap = {
-            'SAILING': 'in_transit',
-            'IN TRANSIT': 'in_transit',
-            'ARRIVED': 'arrived',
-            'DELIVERED': 'delivered',
-            'DISCHARGED': 'arrived',
-            'REGISTERED': 'registered',
-            'PENDING': 'registered'
-        };
-        return statusMap[rawStatus] || 'registered';
-    })();
+}
+
+// Extract container details
+let containerSize = '-';
+let containerType = '-';
+if (shipmentData.containers && shipmentData.containers[0]) {
+    containerSize = shipmentData.containers[0].size || '-';
+    containerType = shipmentData.containers[0].type || '-';
+}
+
+// Extract date of loading from movements
+let actualLoadingDate = null;
+if (shipmentData.containers && shipmentData.containers[0]?.movements) {
+    const loadEvent = shipmentData.containers[0].movements.find(m => m.event === 'LOAD');
+    if (loadEvent) {
+        actualLoadingDate = loadEvent.timestamp;
+    }
+}
+
+// Normalize status - FIX COMPLETO
+const status = (() => {
+    const rawStatus = (shipmentData.status || 'registered').toUpperCase();
+    const statusMap = {
+        'SAILING': 'in_transit',
+        'IN TRANSIT': 'in_transit',
+        'ARRIVED': 'arrived',
+        'DELIVERED': 'delivered',
+        'DISCHARGED': 'arrived',
+        'REGISTERED': 'registered',
+        'PENDING': 'registered'
+    };
+    return statusMap[rawStatus] || 'registered';
+})();
     
     // Build normalized response
     const normalized = {
