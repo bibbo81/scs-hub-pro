@@ -402,7 +402,7 @@ class CompleteModalSystem {
         modal.id = modalId;
         modal.style.zIndex = this.zIndexCounter++;
         modal.innerHTML = `
-            <div class="sol-modal-content" style="max-width: ${maxWidth}">
+                <div class="sol-modal-content size-${config.size}">
                 ${config.title || !config.hideClose ? `
                     <div class="sol-modal-header">
                         <h2 class="sol-modal-title">${config.title || ''}</h2>

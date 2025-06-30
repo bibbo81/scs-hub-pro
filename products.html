@@ -999,8 +999,30 @@
                 margin-bottom: 0.5rem;
             }
         }
-    </style>
+        /* ===== FIX MODAL FULLSCREEN ===== */
+.sol-modal-content {
+    max-width: var(--sol-modal-width, 600px) !important;
+}
 
-    
+.sol-modal-content.size-fullscreen {
+    --sol-modal-width: 95vw;
+}
+
+.sol-modal-content.size-xl {
+    --sol-modal-width: 1000px;
+}
+
+.sol-modal-content.size-lg {
+    --sol-modal-width: 800px;
+}
+
+.sol-modal-content.size-md {
+    --sol-modal-width: 600px;
+}
+
+.sol-modal-content.size-sm {
+    --sol-modal-width: 400px;
+}
+    </style>
 </body>
 </html>
