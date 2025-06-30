@@ -3,6 +3,7 @@
 
 // Import organization service
 import organizationService from '/core/services/organization-service.js';
+import { importWizard } from '/core/import-wizard.js';
 
 // ===== PRODUCT INTELLIGENCE CORE =====
 
@@ -931,44 +932,51 @@ async init() {
         return true;
     }
     
-    showImportModal() {
-        if (!window.ModalSystem) {
-            console.error('Modal system not available');
-            return;
-        }
-        
-        window.ModalSystem.show({
-            title: 'Import Products',
-            content: `
-                <div class="import-form">
-                    <p>Import products from CSV file. Required columns: sku, name, category, weight, length, width, height, value, baseCost, targetMargin, shippingBudget</p>
-                    <div class="sol-form-group">
-                        <label class="sol-form-label">Select CSV File</label>
-                        <input type="file" class="sol-form-input" id="csvFile" accept=".csv" />
-                    </div>
-                    <div class="sol-form-group">
-                        <label class="sol-form-label" style="display: flex; align-items: center; gap: 0.5rem;">
-                            <input type="checkbox" id="overwriteExisting" />
-                            Overwrite existing products with same SKU
-                        </label>
-                    </div>
-                </div>
-            `,
-            size: 'md',
-            actions: [
-                {
-                    label: 'Cancel',
-                    class: 'sol-btn-secondary',
-                    handler: () => true
-                },
-                {
-                    label: 'Import Products',
-                    class: 'sol-btn-primary',
-                    handler: () => this.executeImport()
-                }
+    async showImportModal() {
+    console.log('[ProductIntelligence] Initializing import wizard for products...');
+    if (!window.importWizard && !importWizard) {
+        this.showStatus('Import wizard module not available.', 'error');
+        return;
+    }
+
+    const wizard = window.importWizard || importWizard;
+
+    try {
+        // Configura il wizard per l'entità 'products'
+        await wizard.init({
+            entity: 'products',
+            endpoint: '/api/v1/products/import', // Sostituisci con il tuo vero endpoint
+            targetFields: [
+                { name: 'sku', label: 'SKU', required: true, type: 'text' },
+                { name: 'name', label: 'Product Name', required: true, type: 'text' },
+                { name: 'description', label: 'Description', type: 'text' },
+                { name: 'category', label: 'Category', required: true, type: 'text' },
+                { name: 'specifications.weight', label: 'Weight (kg)', type: 'number' },
+                { name: 'specifications.dimensions.length', label: 'Length (cm)', type: 'number' },
+                { name: 'specifications.dimensions.width', label: 'Width (cm)', type: 'number' },
+                { name: 'specifications.dimensions.height', label: 'Height (cm)', type: 'number' },
+                { name: 'specifications.value', label: 'Unit Value (USD)', type: 'currency' },
+                { name: 'costTracking.baseCost', label: 'Base Cost (USD)', type: 'currency' },
+                { name: 'costTracking.targetMargin', label: 'Target Margin (%)', type: 'percentage' }
             ]
         });
+
+        // Mostra il wizard
+        wizard.show();
+
+        // Ascolta l'evento di completamento per aggiornare i dati
+        wizard.events.addEventListener('importComplete', async () => {
+            this.showStatus('Import successful! Refreshing data...', 'success');
+            await this.loadData();
+            this.renderProducts();
+            this.renderIntelligenceStats();
+        }, { once: true });
+
+    } catch (error) {
+        console.error('Failed to initialize import wizard:', error);
+        this.showStatus(`Error: ${error.message}`, 'error');
     }
+}
     
     executeImport() {
         const fileInput = document.getElementById('csvFile');

@@ -141,14 +141,13 @@
                 <div class="sol-card-header">
                     <h3 class="sol-card-title">Product Management</h3>
                     <div class="sol-card-filters">
-                        <<div class="view-toggle-buttons">
-    <button class="sol-btn sol-btn-glass active" id="viewGridBtn" onclick="window.productIntelligenceSystem.toggleViewMode('grid')">
-        <i class="fas fa-th"></i> Grid
-    </button>
-    <button class="sol-btn sol-btn-glass" id="viewListBtn" onclick="window.productIntelligenceSystem.toggleViewMode('list')">
-        <i class="fas fa-list"></i> List
-    </button>
-</div>
+                        <div class="view-toggle-buttons">
+                            <button class="sol-btn sol-btn-glass active" id="viewGridBtn" onclick="toggleViewMode('grid')">
+                                <i class="fas fa-th"></i> Grid
+                            </button>
+                            <button class="sol-btn sol-btn-glass" id="viewListBtn" onclick="toggleViewMode('list')">
+                                <i class="fas fa-list"></i> List
+                            </button>
                         </div>
                         <select class="sol-select" id="categoryFilter">
                             <option value="">All Categories</option>
@@ -168,7 +167,7 @@
                             <input type="text" class="sol-search" id="productSearch" placeholder="Search products...">
                             <i class="fas fa-search sol-search-icon"></i>
                         </div>
-<button class="sol-btn sol-btn-glass advanced-filters-btn" onclick="window.productIntelligenceSystem.showAdvancedFilters()">
+                        <button class="sol-btn sol-btn-glass advanced-filters-btn" onclick="showAdvancedFilters()">
                             <i class="fas fa-filter"></i> Advanced Filters
                             <span class="filter-badge" id="activeFiltersCount" style="display: none;">0</span>
                         </button>
@@ -999,6 +998,547 @@
         }
     </style>
 
-    
+    <!-- Products JavaScript -->
+    <script>
+        // Current view mode
+        let currentViewMode = 'grid';
+
+        // Sample product data for demonstration
+        const sampleProducts = [
+            {
+                id: 1,
+                name: "iPhone 15 Pro",
+                sku: "IPH15P-256",
+                category: "electronics",
+                shippingCost: 25.50,
+                costTrend: "increasing",
+                trendPercentage: 8.5,
+                monthlyVolume: 500,
+                profitImpact: -2500
+            },
+            {
+                id: 2,
+                name: "Wireless Headphones",
+                sku: "WH-BT500",
+                category: "electronics",
+                shippingCost: 12.30,
+                costTrend: "stable",
+                trendPercentage: 0.5,
+                monthlyVolume: 750,
+                profitImpact: 150
+            },
+            {
+                id: 3,
+                name: "Cotton T-Shirt",
+                sku: "CTN-TS-M",
+                category: "apparel",
+                shippingCost: 8.75,
+                costTrend: "decreasing",
+                trendPercentage: -3.2,
+                monthlyVolume: 1200,
+                profitImpact: 1200
+            },
+            {
+                id: 4,
+                name: "Garden Hose 50ft",
+                sku: "GH-50-BLK",
+                category: "home",
+                shippingCost: 18.90,
+                costTrend: "increasing",
+                trendPercentage: 12.3,
+                monthlyVolume: 200,
+                profitImpact: -980
+            },
+            {
+                id: 5,
+                name: "Car Phone Mount",
+                sku: "CPM-ADJ-001",
+                category: "automotive",
+                shippingCost: 6.25,
+                costTrend: "stable",
+                trendPercentage: 1.1,
+                monthlyVolume: 300,
+                profitImpact: 75
+            }
+        ];
+
+        // Toggle view mode between grid and list
+        function toggleViewMode(mode) {
+            if (window.productIntelligenceSystem) {
+                window.productIntelligenceSystem.viewMode = mode;
+                window.productIntelligenceSystem.renderProducts();
+                
+                // Update button states
+                const gridBtn = document.getElementById('viewGridBtn');
+                const listBtn = document.getElementById('viewListBtn');
+                
+                if (gridBtn && listBtn) {
+                    if (mode === 'grid') {
+                        gridBtn.classList.add('active');
+                        listBtn.classList.remove('active');
+                    } else {
+                        gridBtn.classList.remove('active');
+                        listBtn.classList.add('active');
+                    }
+                }
+            } else {
+                currentViewMode = mode;
+                
+                const gridView = document.getElementById('productsGrid');
+                const listView = document.getElementById('productsList');
+                const gridBtn = document.getElementById('viewGridBtn');
+                const listBtn = document.getElementById('viewListBtn');
+
+                if (mode === 'grid') {
+                    if (gridView) gridView.style.display = 'grid';
+                    if (listView) listView.style.display = 'none';
+                    if (gridBtn) gridBtn.classList.add('active');
+                    if (listBtn) listBtn.classList.remove('active');
+                } else {
+                    if (gridView) gridView.style.display = 'none';
+                    if (listView) listView.style.display = 'block';
+                    if (gridBtn) gridBtn.classList.remove('active');
+                    if (listBtn) listBtn.classList.add('active');
+                }
+
+                // Re-render products in the new view
+                renderProducts();
+            }
+        }
+
+        // Render products based on current view mode
+        function renderProducts() {
+            if (currentViewMode === 'grid') {
+                renderGridView();
+            } else {
+                renderListView();
+            }
+        }
+
+        // Render grid view
+        function renderGridView() {
+            const container = document.getElementById('productsGrid');
+            container.innerHTML = sampleProducts.map(product => `
+                <div class="product-intelligence-card">
+                    <div class="intelligence-badge ${getIntelligenceBadgeClass(product)}">
+                        ${getIntelligenceBadgeText(product)}
+                    </div>
+                    <div class="product-card-header">
+                        <div class="product-info">
+                            <div class="product-sku">${product.sku}</div>
+                            <h3 class="product-name">${product.name}</h3>
+                            <p class="product-category">${product.category}</p>
+                        </div>
+                        <div class="cost-indicator">
+                            <span class="cost-value">$${product.shippingCost.toFixed(2)}</span>
+                            <div class="cost-trend ${product.costTrend}">
+                                <i class="fas fa-${getTrendIcon(product.costTrend)}"></i>
+                                ${product.trendPercentage > 0 ? '+' : ''}${product.trendPercentage}%
+                            </div>
+                        </div>
+                    </div>
+                    <div class="product-metrics">
+                        <div class="metric-item">
+                            <span class="metric-label">Monthly Volume</span>
+                            <span class="metric-value">${product.monthlyVolume}</span>
+                        </div>
+                        <div class="metric-item">
+                            <span class="metric-label">Cost Trend</span>
+                            <span class="metric-value">${product.costTrend}</span>
+                        </div>
+                        <div class="metric-item">
+                            <span class="metric-label">Impact</span>
+                            <span class="metric-value ${product.profitImpact >= 0 ? 'positive' : 'negative'}">
+                                $${Math.abs(product.profitImpact)}
+                            </span>
+                        </div>
+                    </div>
+                    <div class="product-actions">
+                        <button class="sol-btn sol-btn-glass">
+                            <i class="fas fa-chart-line"></i> View Analytics
+                        </button>
+                        <button class="sol-btn sol-btn-glass">
+                            <i class="fas fa-edit"></i> Edit
+                        </button>
+                        <button class="sol-btn sol-btn-glass">
+                            <i class="fas fa-route"></i> Routes
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Render list view
+        function renderListView() {
+            const tbody = document.getElementById('productsListBody');
+            tbody.innerHTML = sampleProducts.map(product => `
+                <tr>
+                    <td>
+                        <div class="product-name-cell">
+                            <strong>${product.name}</strong>
+                            <small class="text-muted">${product.sku}</small>
+                        </div>
+                    </td>
+                    <td>
+                        <code style="background: var(--sol-gray-100); padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.75rem;">
+                            ${product.sku}
+                        </code>
+                    </td>
+                    <td>
+                        <span class="category-badge category-${product.category}">
+                            ${product.category}
+                        </span>
+                    </td>
+                    <td class="text-right">
+                        <strong>$${product.shippingCost.toFixed(2)}</strong>
+                    </td>
+                    <td class="text-right">
+                        <span class="cost-trend-cell ${product.costTrend}">
+                            <i class="fas fa-${getTrendIcon(product.costTrend)}"></i>
+                            ${product.trendPercentage > 0 ? '+' : ''}${product.trendPercentage}%
+                        </span>
+                    </td>
+                    <td class="text-right">
+                        ${product.monthlyVolume.toLocaleString()} units
+                    </td>
+                    <td class="text-right">
+                        <span class="profit-impact ${product.profitImpact >= 0 ? 'positive' : 'negative'}">
+                            ${product.profitImpact >= 0 ? '+' : ''}$${product.profitImpact.toLocaleString()}
+                        </span>
+                    </td>
+                    <td class="text-right">
+                        <div class="table-actions">
+                            <button class="sol-btn sol-btn-glass" style="padding: 0.25rem 0.5rem; font-size: 0.75rem;">
+                                <i class="fas fa-chart-line"></i>
+                            </button>
+                            <button class="sol-btn sol-btn-glass" style="padding: 0.25rem 0.5rem; font-size: 0.75rem;">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="sol-btn sol-btn-glass" style="padding: 0.25rem 0.5rem; font-size: 0.75rem;">
+                                <i class="fas fa-route"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        // Show advanced filters function
+        function showAdvancedFilters() {
+            console.log('[Products] Showing advanced filters modal...');
+            
+            // Check if ProductIntelligenceSystem is available and call its method
+            if (window.productIntelligenceSystem && typeof window.productIntelligenceSystem.showAdvancedFilters === 'function') {
+                window.productIntelligenceSystem.showAdvancedFilters();
+            } else if (window.ModalSystem) {
+                // Fallback implementation if system method not available
+                window.ModalSystem.show({
+                    title: 'Advanced Filters',
+                    content: `
+                        <div class="advanced-filters-form">
+                            <div class="sol-form-grid">
+                                <div class="sol-form-group">
+                                    <label class="sol-form-label">Min Shipping Cost ($)</label>
+                                    <input type="number" class="sol-form-input" id="filterMinCost" 
+                                           placeholder="0.00" step="0.01" min="0">
+                                </div>
+                                
+                                <div class="sol-form-group">
+                                    <label class="sol-form-label">Max Shipping Cost ($)</label>
+                                    <input type="number" class="sol-form-input" id="filterMaxCost" 
+                                           placeholder="100.00" step="0.01" min="0">
+                                </div>
+                                
+                                <div class="sol-form-group">
+                                    <label class="sol-form-label">Min Units Shipped</label>
+                                    <input type="number" class="sol-form-input" id="filterMinUnits" 
+                                           placeholder="0" min="0">
+                                </div>
+                                
+                                <div class="sol-form-group">
+                                    <label class="sol-form-label">Profit Impact</label>
+                                    <select class="sol-form-select" id="filterProfitImpact">
+                                        <option value="all">All</option>
+                                        <option value="positive">Positive Only</option>
+                                        <option value="negative">Negative Only</option>
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <div class="filter-info" style="background: var(--sol-info-light); padding: 0.75rem 1rem; border-radius: var(--sol-radius-md); margin-top: 1rem;">
+                                <p style="margin: 0; font-size: 0.875rem; color: var(--sol-info-dark);">
+                                    <i class="fas fa-info-circle"></i> Filters are applied in combination with the main filters above.
+                                </p>
+                            </div>
+                        </div>
+                    `,
+                    size: 'md',
+                    buttons: [
+                        {
+                            text: 'Clear All',
+                            class: 'sol-btn-glass',
+                            onclick: () => {
+                                if (window.productIntelligenceSystem) {
+                                    window.productIntelligenceSystem.clearFilters();
+                                }
+                                window.ModalSystem.close();
+                            }
+                        },
+                        {
+                            text: 'Apply Filters',
+                            class: 'sol-btn-primary',
+                            onclick: () => {
+                                // Apply filters logic
+                                const minCost = parseFloat(document.getElementById('filterMinCost')?.value) || null;
+                                const maxCost = parseFloat(document.getElementById('filterMaxCost')?.value) || null;
+                                const minUnits = parseInt(document.getElementById('filterMinUnits')?.value) || null;
+                                const profitImpact = document.getElementById('filterProfitImpact')?.value || 'all';
+                                
+                                if (window.productIntelligenceSystem) {
+                                    window.productIntelligenceSystem.activeFilters.minShippingCost = minCost;
+                                    window.productIntelligenceSystem.activeFilters.maxShippingCost = maxCost;
+                                    window.productIntelligenceSystem.activeFilters.minUnits = minUnits;
+                                    window.productIntelligenceSystem.activeFilters.profitImpact = profitImpact;
+                                    
+                                    window.productIntelligenceSystem.renderProducts();
+                                    window.productIntelligenceSystem.updateFilterBadge();
+                                }
+                                
+                                window.ModalSystem.close();
+                            }
+                        }
+                    ]
+                });
+            } else {
+                showStatus('Modal system not available', 'error');
+            }
+        }
+
+        // Update active filters count
+        function updateActiveFiltersCount() {
+            const badge = document.getElementById('activeFiltersCount');
+            let activeCount = 0;
+            
+            // Count active filters
+            const categoryFilter = document.getElementById('categoryFilter');
+            const costTrendFilter = document.getElementById('costTrendFilter');
+            const searchInput = document.getElementById('productSearch');
+            
+            if (categoryFilter && categoryFilter.value) activeCount++;
+            if (costTrendFilter && costTrendFilter.value) activeCount++;
+            if (searchInput && searchInput.value.trim()) activeCount++;
+            
+            if (activeCount > 0) {
+                badge.textContent = activeCount;
+                badge.style.display = 'flex';
+            } else {
+                badge.style.display = 'none';
+            }
+        }
+
+        // Helper functions
+        function getTrendIcon(trend) {
+            switch (trend) {
+                case 'increasing': return 'arrow-up';
+                case 'decreasing': return 'arrow-down';
+                default: return 'minus';
+            }
+        }
+
+        function getIntelligenceBadgeClass(product) {
+            if (Math.abs(product.profitImpact) > 2000) return 'high-impact';
+            if (product.costTrend === 'decreasing') return 'optimized';
+            return '';
+        }
+
+        function getIntelligenceBadgeText(product) {
+            if (Math.abs(product.profitImpact) > 2000) return 'High Impact';
+            if (product.costTrend === 'decreasing') return 'Optimized';
+            return 'Tracked';
+        }
+
+        // Initialize Products Page
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('[Products] Initializing Product Intelligence System...');
+            
+            // Initialize header component
+            initializeHeader();
+            
+            // Initialize tabs
+            initializeTabs();
+            
+            // Initialize Phase 2 architecture
+            initializePhase2();
+            
+            // Wait for auth and load data
+            waitForAuthAndLoad();
+        });
+
+        // Initialize header component
+        async function initializeHeader() {
+            try {
+                if (window.headerComponent) {
+                    await window.headerComponent.init();
+                    console.log('[Products] Header component initialized');
+                }
+            } catch (error) {
+                console.error('[Products] Header initialization error:', error);
+            }
+        }
+
+        // Tab Navigation (SOLARIUM STYLE - same as settings.html)
+        function initializeTabs() {
+            const tabs = document.querySelectorAll('.sol-tab');
+            const contents = document.querySelectorAll('.sol-tab-content');
+            
+            tabs.forEach(tab => {
+                tab.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    const targetSection = tab.dataset.section;
+                    
+                    // Update tabs
+                    tabs.forEach(t => t.classList.remove('active'));
+                    tab.classList.add('active');
+                    
+                    // Update content
+                    contents.forEach(content => {
+                        content.classList.remove('active');
+                        if (content.id === targetSection) {
+                            content.classList.add('active');
+                        }
+                    });
+                    
+                    // Update URL
+                    history.pushState(null, '', `#${targetSection}`);
+                    
+                    // Load section specific data
+                    loadSectionData(targetSection);
+                });
+            });
+            
+            // Handle direct URL access
+            const hash = window.location.hash.slice(1);
+            if (hash) {
+                const tab = document.querySelector(`[data-section="${hash}"]`);
+                if (tab) tab.click();
+            }
+        }
+
+        // Initialize Phase 2 Architecture
+        function initializePhase2() {
+            if (window.Phase2Architecture) {
+                window.productIntelligence = window.Phase2Architecture.initialize();
+                console.log('[Products] Phase 2 Architecture initialized');
+            } else {
+                console.error('[Products] Phase 2 Architecture not available');
+            }
+        }
+
+        // Wait for auth and load data
+        function waitForAuthAndLoad() {
+            let retries = 0;
+            const checkAuth = setInterval(() => {
+                retries++;
+                
+                if (window.auth && window.auth.isAuthenticated()) {
+                    clearInterval(checkAuth);
+                    console.log('[Products] Auth ready, loading data...');
+                    loadAllData();
+                } else if (retries >= 20) {
+                    clearInterval(checkAuth);
+                    console.log('[Products] Auth timeout, loading anyway...');
+                    loadAllData();
+                }
+            }, 500);
+        }
+
+        // Load all product intelligence data - FIXED VERSION
+        async function loadAllData() {
+            try {
+                // Wait for product intelligence system to be ready
+                if (window.productIntelligenceSystem) {
+                    console.log('[Products] Product Intelligence System ready');
+                    // FIXED: Added the missing init() call
+                    await window.productIntelligenceSystem.init();
+                } else {
+                    console.log('[Products] Waiting for Product Intelligence System...');
+                }
+                
+                // Render initial products
+                renderProducts();
+                
+                // Setup filter listeners
+                setupFilterListeners();
+                
+                console.log('[Products] All data loaded successfully');
+            } catch (error) {
+                console.error('[Products] Error loading data:', error);
+                showStatus('Error loading product data', 'error');
+                
+                // Fallback: still render sample data
+                renderProducts();
+            }
+        }
+
+        // Load section specific data
+        function loadSectionData(section) {
+            console.log('[Products] Loading section:', section);
+            
+            // Wait for charts system to be ready
+            setTimeout(() => {
+                if (window.productAnalyticsCharts) {
+                    switch (section) {
+                        case 'cost-analytics':
+                            window.productAnalyticsCharts.renderCostAnalyticsCharts();
+                            break;
+                        case 'route-intelligence':
+                            window.productAnalyticsCharts.renderRouteIntelligence();
+                            break;
+                        case 'profit-impact':
+                            window.productAnalyticsCharts.renderProfitImpactCharts();
+                            break;
+                        case 'recommendations':
+                            window.productAnalyticsCharts.renderRecommendations();
+                            break;
+                        default:
+                            // Products section is handled by ProductIntelligenceSystem
+                            break;
+                    }
+                } else {
+                    console.log('[Products] Charts system not ready yet');
+                }
+            }, 100);
+        }
+
+        // Setup filter listeners
+        function setupFilterListeners() {
+            const categoryFilter = document.getElementById('categoryFilter');
+            const costTrendFilter = document.getElementById('costTrendFilter');
+            const searchInput = document.getElementById('productSearch');
+            
+            if (categoryFilter) {
+                categoryFilter.addEventListener('change', updateActiveFiltersCount);
+            }
+            
+            if (costTrendFilter) {
+                costTrendFilter.addEventListener('change', updateActiveFiltersCount);
+            }
+            
+            if (searchInput) {
+                searchInput.addEventListener('input', updateActiveFiltersCount);
+            }
+        }
+
+        // Show status message (SAME as settings.html)
+        function showStatus(message, type = 'info', duration = 3000) {
+            if (window.NotificationSystem) {
+                window.NotificationSystem.show(message, type, duration);
+            } else {
+                console.log(`[Products] ${type}: ${message}`);
+            }
+        }
+
+        console.log('[Products] Product Intelligence System script loaded');
+    </script>
 </body>
 </html>
