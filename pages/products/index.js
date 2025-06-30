@@ -37,15 +37,26 @@ class ProductIntelligenceSystem {
 async init() {
     console.log('[ProductIntelligence] Initializing system...');
     try {
-        await this.loadOrganizationId();
+        // Assicurati che il service sia inizializzato prima di usarlo
+        if (window.organizationService && !window.organizationService.initialized) {
+            await window.organizationService.init();
+        }
+
+        // Usa il service corretto per ottenere l'ID dell'organizzazione
+        this.organizationId = window.organizationService.getCurrentOrgId();
+
+        if (!this.organizationId) {
+            console.warn('[ProductIntelligence] Organization ID not found.');
+            this.showStatus('Organization data not available. Cannot load products.', 'warning');
+            return; // Interrompe l'esecuzione se non c'è un'organizzazione
+        }
+
         console.log(`[ProductIntelligence] Using organization: ${this.organizationId}`);
 
         await this.loadData();
         await this.generateAnalytics();
 
-        // ✅ AGGIUNGI LA CHIAMATA QUI
         this.initializeEventHandlers(); 
-
         this.renderAll();
 
     } catch (error) {
