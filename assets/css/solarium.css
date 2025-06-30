@@ -1486,11 +1486,11 @@ select.form-control {
 }
 
 /* Import Wizard Styles */
-import-wizard {
+.import-wizard {
     min-height: 600px;
-    /* ▼▼ AGGIUNGI QUESTE DUE RIGHE ▼▼ */
-    max-width: 1400px; /* Imposta una larghezza maggiore (puoi cambiarla se vuoi) */
-    margin: 0 auto;    /* Centra il wizard all'interno del modale */
+    width: 100%;           /* <-- Aggiunta FONDAMENTALE per forzare l'espansione */
+    max-width: 1400px;       /* <-- Manteniamo il limite massimo di larghezza */
+    margin: 0 auto;
 }
 
 .wizard-steps {
@@ -1586,17 +1586,15 @@ import-wizard {
 
 /* Mapping Container */
 mapping-container {
-    display: flex;
+    display: grid;
+    grid-template-columns: 1fr 100px 1fr;
     gap: 2rem;
-    align-items: stretch;
     min-height: 400px;
     margin: 2rem 0;
 }
 
 .source-columns,
 .target-fields {
-    flex: 1;
-    min-width: 0;
     background: var(--sol-gray-50);
     border-radius: var(--sol-radius-lg);
     padding: 1.5rem;
