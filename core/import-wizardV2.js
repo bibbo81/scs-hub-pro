@@ -1,7 +1,7 @@
 // public/core/import-wizard.js
 import { notificationSystem } from './notification-system.js';
 import { modalSystem } from './modal-system.js';
-import apiClient from './api-client.js';
+import { apiClient } from './api-client.js';
 
 /**
  * Import Wizard System - Sistema universale per import CSV/Excel con mapping dinamico
