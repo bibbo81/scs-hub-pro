@@ -36,29 +36,22 @@ class ProductIntelligenceSystem {
 
 async init() {
     console.log('[ProductIntelligence] Initializing system...');
-    
-    // CRITICAL: Inizializza organization service
-    await organizationService.init();
-    this.organizationId = organizationService.getCurrentOrgId();
-    
-    if (!this.organizationId) {
-        console.error('[ProductIntelligence] No organization found!');
-        this.showStatus('Nessuna organizzazione selezionata', 'error');
-        return;
+    try {
+        await this.loadOrganizationId();
+        console.log(`[ProductIntelligence] Using organization: ${this.organizationId}`);
+
+        await this.loadData();
+        await this.generateAnalytics();
+
+        // ✅ AGGIUNGI LA CHIAMATA QUI
+        this.initializeEventHandlers(); 
+
+        this.renderAll();
+
+    } catch (error) {
+        console.error('[ProductIntelligence] Initialization failed:', error);
+        this.showStatus('System initialization failed. See console for details.', 'error');
     }
-    
-    console.log('[ProductIntelligence] Using organization:', this.organizationId);
-    
-    // Load existing data
-    await this.loadData();
-    
-    // Generate analytics
-    await this.generateAnalytics();
-    
-    // Initialize UI
-    this.initializeUI();
-    
-    console.log('[ProductIntelligence] System initialized');
 }  // ⬅️ LA PARENTESI DEVE ESSERE QUI
     
     async loadData() {
@@ -460,7 +453,7 @@ async init() {
     initializeUI() {
         this.renderIntelligenceStats();
         this.renderProducts();
-        this.initializeEventHandlers();
+        // this.initializeEventHandlers(); 
     }
     
     renderIntelligenceStats() {
