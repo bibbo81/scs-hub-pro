@@ -50,13 +50,13 @@ class ImportWizard {
         const modalContent = this.renderWizard();
         
         const modal = modalSystem.show({
-            title: `Import ${this.config.entity.charAt(0).toUpperCase() + this.config.entity.slice(1)}`,
-            content: modalContent,
-            size: 'xl',
-            showClose: true,
-            showFooter: false,
-            onClose: () => this.reset()
-        });
+    title: `Import ${this.config.entity.charAt(0).toUpperCase() + this.config.entity.slice(1)}`,
+    content: modalContent,
+    size: 'fullscreen', //  <-- Modifica questa riga
+    showClose: true,
+    showFooter: false,
+    onClose: () => this.reset()
+});
 
         this.modal = modal;
         this.attachEventListeners();
