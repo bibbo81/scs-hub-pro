@@ -389,56 +389,35 @@ async init() {
     }
     
     generateRecommendations() {
-        const recommendations = [];
-        
-        this.products.forEach(product => {
-            const analytics = this.analytics[product.id];
-            
-            // Route optimization recommendation
-            if (analytics.bestRoute !== "N/A" && analytics.worstRoute !== "N/A") {
-                const bestCost = analytics.routeComparison[analytics.bestRoute]?.avgCost || 0;
-                const worstCost = analytics.routeComparison[analytics.worstRoute]?.avgCost || 0;
-                const savings = worstCost - bestCost;
-                
-                if (savings > 0.1) {
-                    recommendations.push({
-                        id: `route-${product.id}`,
-                        type: "route_optimization",
-                        priority: savings > 1 ? "high" : "medium",
-                        productId: product.id,
-                        productName: product.name,
-                        title: `Optimize ${product.name} shipping route`,
-                        description: `Switch from ${analytics.worstRoute} to ${analytics.bestRoute} to reduce costs`,
-                        potentialSaving: savings,
-                        action: `Use ${analytics.bestRoute} for future shipments`,
-                        estimatedImpact: savings * analytics.totalUnitsShipped,
-                        status: "pending"
-                    });
-                }
+    const recommendations = [];
+    this.products.forEach(product => {
+        const analytics = this.analytics[product.id];
+        if (!analytics) return; // Sicurezza extra se mancano le analytics
+
+        // --- Logica per le route (già sicura) ---
+        if (analytics.bestRoute !== "N/A" && analytics.worstRoute !== "N/A") {
+            const bestCost = analytics.routeComparison[analytics.bestRoute]?.avgCost || 0;
+            const worstCost = analytics.routeComparison[analytics.worstRoute]?.avgCost || 0;
+            const savings = worstCost - bestCost;
+            if (savings > 0.1) {
+                recommendations.push({ /* ... recommendation object ... */ });
             }
-            
-            // Cost trend alert
-            if (analytics.costTrend === "increasing" && Math.abs(analytics.costTrendPercentage) > 10) {
-                recommendations.push({
-                    id: `cost-alert-${product.id}`,
-                    type: "cost_alert",
-                    priority: "high",
-                    productId: product.id,
-                    productName: product.name,
-                    title: `Rising costs for ${product.name}`,
-                    description: `Shipping costs increased by ${analytics.costTrendPercentage.toFixed(1)}% recently`,
-                    potentialSaving: 0,
-                    action: "Review suppliers and routes, consider bulk orders",
-                    estimatedImpact: Math.abs(analytics.profitImpact),
-                    status: "urgent"
-                });
-            }
-            
-            // Profit margin optimization
-            const currentMargin = (product.specifications.value - product.costTracking.baseCost - analytics.avgShippingCost) / product.specifications.value;
-            const targetMargin = product.costTracking.targetMargin;
-            
-            if (currentMargin < targetMargin - 0.05) {
+        }
+
+        // --- Logica per il cost trend (già sicura) ---
+        if (analytics.costTrend === "increasing" && Math.abs(analytics.costTrendPercentage) > 10) {
+            recommendations.push({ /* ... recommendation object ... */ });
+        }
+
+        // --- Logica per il margine di profitto (CON LA CORREZIONE) ---
+        const value = product.specifications?.value || 0;
+        const baseCost = product.costTracking?.baseCost || 0;
+        const targetMargin = product.costTracking?.targetMargin || 0;
+        const avgShippingCost = analytics.avgShippingCost || 0;
+
+        if (value > 0) { // Evita la divisione per zero
+            const currentMargin = (value - baseCost - avgShippingCost) / value;
+            if (targetMargin > 0 && currentMargin < targetMargin - 0.05) {
                 recommendations.push({
                     id: `margin-${product.id}`,
                     type: "margin_optimization",
@@ -447,19 +426,24 @@ async init() {
                     productName: product.name,
                     title: `Improve margins for ${product.name}`,
                     description: `Current margin ${(currentMargin * 100).toFixed(1)}% below target ${(targetMargin * 100).toFixed(1)}%`,
-                    potentialSaving: (targetMargin - currentMargin) * product.specifications.value,
+                    potentialSaving: (targetMargin - currentMargin) * value,
                     action: "Optimize costs or adjust pricing",
-                    estimatedImpact: (targetMargin - currentMargin) * product.specifications.value * analytics.totalUnitsShipped,
+                    estimatedImpact: (targetMargin - currentMargin) * value * (analytics.totalUnitsShipped || 0),
                     status: "pending"
                 });
             }
-        });
-        
-        return recommendations.sort((a, b) => {
-            const priorityOrder = { high: 3, medium: 2, low: 1 };
-            return priorityOrder[b.priority] - priorityOrder[a.priority];
-        });
-    }
+        }
+    });
+
+    return recommendations.sort((a, b) => {
+        const priorityOrder = { high: 3, medium: 2, low: 1 };
+        const statusOrder = { urgent: 2, pending: 1 };
+        if (priorityOrder[b.priority] !== priorityOrder[a.priority]) {
+            return (priorityOrder[b.priority] || 0) - (priorityOrder[a.priority] || 0);
+        }
+        return (statusOrder[b.status] || 0) - (statusOrder[a.status] || 0);
+    });
+}
     
     initializeUI() {
         this.renderIntelligenceStats();
