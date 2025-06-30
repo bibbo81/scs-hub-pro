@@ -1486,8 +1486,11 @@ select.form-control {
 }
 
 /* Import Wizard Styles */
-.import-wizard {
+import-wizard {
     min-height: 600px;
+    /* ▼▼ AGGIUNGI QUESTE DUE RIGHE ▼▼ */
+    max-width: 1400px; /* Imposta una larghezza maggiore (puoi cambiarla se vuoi) */
+    margin: 0 auto;    /* Centra il wizard all'interno del modale */
 }
 
 .wizard-steps {
