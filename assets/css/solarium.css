@@ -1585,16 +1585,18 @@ import-wizard {
 }
 
 /* Mapping Container */
-.mapping-container {
-    display: grid;
-    grid-template-columns: 1fr 100px 1fr;
+mapping-container {
+    display: flex;
     gap: 2rem;
+    align-items: stretch;
     min-height: 400px;
     margin: 2rem 0;
 }
 
 .source-columns,
 .target-fields {
+    flex: 1;
+    min-width: 0;
     background: var(--sol-gray-50);
     border-radius: var(--sol-radius-lg);
     padding: 1.5rem;
