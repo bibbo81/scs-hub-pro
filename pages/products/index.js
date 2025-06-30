@@ -1694,8 +1694,19 @@ async init() {
 
 window.productIntelligenceSystem = new ProductIntelligenceSystem();
 
+// ===== GLOBAL FUNCTIONS & INITIALIZATION =====
+// Assicurati che l'import sia presente in cima al file
+import { importWizard } from '/core/import-wizard.js';
+
 // Initialize when DOM is ready
 document.addEventListener('DOMContentLoaded', () => {
+
+    // Crea le istanze globali QUI, dopo che tutti i moduli sono stati caricati
+    window.productIntelligenceSystem = new ProductIntelligenceSystem();
+
+    // ✅ LA MODIFICA CHIAVE È QUESTA: RENDE IL WIZARD ACCESSIBILE DALL'HTML
+    window.importWizard = importWizard;
+
     // Wait a moment for other systems to initialize
     setTimeout(() => {
         window.productIntelligenceSystem.init();
