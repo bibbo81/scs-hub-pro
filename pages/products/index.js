@@ -37,27 +37,29 @@ class ProductIntelligenceSystem {
 async init() {
     console.log('[ProductIntelligence] Initializing system...');
     try {
-        // Assicurati che il service sia inizializzato prima di usarlo
+        // 1. Inizializza i servizi e ottieni l'ID dell'organizzazione
         if (window.organizationService && !window.organizationService.initialized) {
             await window.organizationService.init();
         }
-
-        // Usa il service corretto per ottenere l'ID dell'organizzazione
         this.organizationId = window.organizationService.getCurrentOrgId();
 
         if (!this.organizationId) {
-            console.warn('[ProductIntelligence] Organization ID not found.');
             this.showStatus('Organization data not available. Cannot load products.', 'warning');
             return; // Interrompe l'esecuzione se non c'è un'organizzazione
         }
-
         console.log(`[ProductIntelligence] Using organization: ${this.organizationId}`);
 
+        // 2. Carica i dati e genera le analytics
         await this.loadData();
         await this.generateAnalytics();
 
+        // 3. Associa le funzioni ai bottoni (ora che il DOM è pronto)
         this.initializeEventHandlers(); 
-        this.renderAll();
+
+        // 4. Esegui le funzioni di rendering specifiche
+        this.renderIntelligenceStats();
+        this.renderProducts();
+        this.updateFilterBadge();
 
     } catch (error) {
         console.error('[ProductIntelligence] Initialization failed:', error);

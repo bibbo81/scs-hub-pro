@@ -782,5 +782,9 @@
 })();
 
 // ===== ES6 EXPORT FOR MODULES =====
+let modalSystemExport = {};
+if (typeof window !== 'undefined' && window.ModalSystem) {
+    modalSystemExport = window.ModalSystem;
+}
 
-export default window.modalSystem;
+export default modalSystemExport;
