@@ -1486,11 +1486,11 @@ select.form-control {
 }
 
 /* Import Wizard Styles */
-.import-wizard {
+import-wizard {
     min-height: 600px;
-    width: 100%;           /* <-- Aggiunta FONDAMENTALE per forzare l'espansione */
-    max-width: 1400px;       /* <-- Manteniamo il limite massimo di larghezza */
-    margin: 0 auto;
+    /* ▼▼ AGGIUNGI QUESTE DUE RIGHE ▼▼ */
+    max-width: 1400px; /* Imposta una larghezza maggiore (puoi cambiarla se vuoi) */
+    margin: 0 auto;    /* Centra il wizard all'interno del modale */
 }
 
 .wizard-steps {
@@ -1585,7 +1585,7 @@ select.form-control {
 }
 
 /* Mapping Container */
-mapping-container {
+.mapping-container {
     display: grid;
     grid-template-columns: 1fr 100px 1fr;
     gap: 2rem;
