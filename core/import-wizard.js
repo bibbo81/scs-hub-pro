@@ -366,7 +366,7 @@ class ImportWizard {
                     );
 
                     // Chiama API per parsing Excel
-                    const response = await apiClient.post('/parse-excel', {
+                    const response = await apiClient.post('parse-excel', {
                         file: base64,
                         filename: file.name
                     });
