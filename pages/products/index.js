@@ -1695,23 +1695,20 @@ async init() {
 window.productIntelligenceSystem = new ProductIntelligenceSystem();
 
 // ===== GLOBAL FUNCTIONS & INITIALIZATION =====
-// Assicurati che l'import sia presente in cima al file
-import { importWizard } from '/core/import-wizard.js';
-
 // Initialize when DOM is ready
 document.addEventListener('DOMContentLoaded', () => {
 
-    // Crea le istanze globali QUI, dopo che tutti i moduli sono stati caricati
-    window.productIntelligenceSystem = new ProductIntelligenceSystem();
+    // 1. Creiamo UNA SOLA istanza del nostro sistema principale.
+    const productSystem = new ProductIntelligenceSystem();
 
-    // ✅ LA MODIFICA CHIAVE È QUESTA: RENDE IL WIZARD ACCESSIBILE DALL'HTML
-    window.importWizard = importWizard;
+    // 2. Rendiamo le istanze disponibili a livello globale per l'HTML.
+    window.productIntelligenceSystem = productSystem;
+    window.importWizard = importWizard; // Usa l'istanza importata in cima al file.
 
-    // Wait a moment for other systems to initialize
-    setTimeout(() => {
-        window.productIntelligenceSystem.init();
-    }, 1000);
+    // 3. Avviamo il sistema principale. Non serve più il setTimeout.
+    productSystem.init();
 });
+
 
 // Global functions for product actions
 window.viewProductDetails = function(productId) {
