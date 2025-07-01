@@ -415,46 +415,78 @@ class ImportWizard {
     }
 
     executeImport = async () => {
-        const importMode = this.modal.querySelector('#importMode').value;
-        const progressBar = this.modal.querySelector('#importProgress');
-        const statusEl = this.modal.querySelector('#importStatus');
-        const logEl = this.modal.querySelector('#importLog');
-        progressBar.style.width = '0%';
-        logEl.innerHTML = '';
-        try {
-            const importData = this.prepareImportData();
-            const batchSize = 100;
-            const totalBatches = Math.ceil(importData.length / batchSize);
-            let processed = 0;
-            for (let i = 0; i < totalBatches; i++) {
-                const batch = importData.slice(i * batchSize, (i + 1) * batchSize);
-                statusEl.textContent = `Processing batch ${i + 1} of ${totalBatches}...`;
-                const response = await apiClient.post(this.config.endpoint, {
-                    entity: this.config.entity,
-                    data: batch,
-                    mode: importMode,
-                    mappings: this.mappings,
-                    options: { skipDuplicates: importMode === 'append', updateExisting: importMode === 'update', deleteOthers: importMode === 'sync' }
-                });
-                processed += batch.length;
-                const progress = (processed / importData.length) * 100;
-                progressBar.style.width = `${progress}%`;
-                this.logImportResult(response, i + 1, logEl);
-            }
-            statusEl.textContent = 'Import completed successfully!';
-            statusEl.classList.add('text-success');
-            this.events.dispatchEvent(new CustomEvent('importComplete', { detail: { entity: this.config.entity, totalRecords: importData.length, mode: importMode } }));
-            setTimeout(() => {
-                this.modal.close();
-                notificationSystem.show('Import completed successfully!', 'success');
-            }, 2000);
-        } catch (error) {
-            console.error('Import error:', error);
-            statusEl.textContent = `Import failed: ${error.message}`;
-            statusEl.classList.add('text-danger');
-            logEl.innerHTML += `<div class="log-entry log-error"><i class="icon-x-circle"></i>Error: ${error.message}</div>`;
+    const importMode = this.modal.querySelector('#importMode').value;
+    const progressBar = this.modal.querySelector('#importProgress');
+    const statusEl = this.modal.querySelector('#importStatus');
+    const logEl = this.modal.querySelector('#importLog');
+
+    progressBar.style.width = '0%';
+    logEl.innerHTML = '';
+
+    try {
+        const importData = this.prepareImportData();
+
+        if (importMode !== 'append') {
+            throw new Error(`Import mode '${importMode}' is not supported for this operation.`);
         }
+
+        const batchSize = 100;
+        const totalBatches = Math.ceil(importData.length / batchSize);
+        let processed = 0;
+
+        statusEl.textContent = 'Starting import...';
+
+        for (let i = 0; i < totalBatches; i++) {
+            const batch = importData.slice(i * batchSize, (i + 1) * batchSize);
+
+            statusEl.textContent = `Processing batch ${i + 1} of ${totalBatches}...`;
+
+            // Chiamata diretta a Supabase
+            const { data, error } = await supabase
+                .from('products') // Assicurati che 'products' sia il nome corretto della tabella
+                .insert(batch);
+
+            if (error) {
+                console.error('Supabase insert error:', error);
+                throw new Error(`Supabase error: ${error.message}`);
+            }
+
+            processed += batch.length;
+            const progress = (processed / importData.length) * 100;
+            progressBar.style.width = `${progress}%`;
+
+            this.logImportResult({ result: { imported: batch.length, errors: 0 } }, i + 1, logEl);
+        }
+
+        statusEl.textContent = 'Import completed successfully!';
+        statusEl.classList.add('text-success');
+
+        this.events.dispatchEvent(new CustomEvent('importComplete', {
+            detail: { 
+                entity: this.config.entity,
+                totalRecords: importData.length,
+                mode: importMode
+            }
+        }));
+
+        setTimeout(() => {
+            this.modal.close();
+            notificationSystem.show('Import completed successfully!', 'success');
+        }, 2000);
+
+    } catch (error) {
+        console.error('Import error:', error);
+        statusEl.textContent = `Import failed: ${error.message}`;
+        statusEl.classList.add('text-danger');
+
+        logEl.innerHTML += `
+            <div class="log-entry log-error">
+                <i class="icon-x-circle"></i>
+                Error: ${error.message}
+            </div>
+        `;
     }
+}
 
     prepareImportData = () => {
         return this.parsedData.map(row => {
