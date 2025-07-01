@@ -489,31 +489,60 @@ class ImportWizard {
 }
 
     prepareImportData = () => {
-        return this.parsedData.map(row => {
-            const importRow = {};
-            Object.entries(this.mappings).forEach(([column, fieldName]) => {
-                let value = row[column];
-                const fieldDef = this.targetFields.find(f => f.name === fieldName);
-                if (fieldDef && value) {
-                    switch (fieldDef.type) {
-                        case 'number': value = parseFloat(value) || 0; break;
-                        case 'currency': value = parseFloat(value.replace(/[^0-9.-]/g, '')) || 0; break;
-                        case 'percentage': value = parseFloat(value.replace('%', '')) || 0; break;
-                        case 'date': value = this.formatDate(value); break;
-                    }
+    return this.parsedData.map(row => {
+        const importRow = {};
+
+        // Mappa le colonne configurate dall'utente
+        Object.entries(this.mappings).forEach(([sourceColumn, originalFieldName]) => {
+            const fieldElement = this.modal.querySelector(`[data-field-name="${originalFieldName}"]`);
+            if (!fieldElement) return;
+
+            // Legge i valori finali dall'interfaccia di modifica
+            const finalNameInput = fieldElement.querySelector('.field-editor-name');
+            const finalTypeSelect = fieldElement.querySelector('.field-editor-type');
+
+            const finalName = finalNameInput ? finalNameInput.value : originalFieldName;
+            const finalType = finalTypeSelect ? finalTypeSelect.value : this.targetFields.find(f => f.name === originalFieldName)?.type || 'text';
+
+            let value = row[sourceColumn];
+
+            // Esegue la conversione del tipo basandosi sulla scelta dell'utente
+            if (value !== null && value !== undefined) {
+                switch (finalType) {
+                    case 'number':
+                        value = parseFloat(value) || null; // Restituisce null se non è un numero valido
+                        break;
+                    case 'currency':
+                        value = parseFloat(String(value).replace(/[^0-9.-]/g, '')) || null;
+                        break;
+                    case 'percentage':
+                        value = parseFloat(String(value).replace('%', '')) || null;
+                        break;
+                    case 'date':
+                        value = this.formatDate(value); // Usa la tua funzione esistente
+                        break;
+                    case 'boolean':
+                        value = ['true', '1', 'yes', 'si'].includes(String(value).toLowerCase());
+                        break;
+                    // Il tipo 'text' non necessita di conversioni
                 }
-                importRow[fieldName] = value;
-            });
-            if (this.modal.querySelector('#allowCustomFields')?.checked) {
-                Object.keys(row).forEach(column => {
-                    if (!this.mappings[column]) {
-                        importRow[`custom_${this.sanitizeFieldName(column)}`] = row[column];
-                    }
-                });
             }
-            return importRow;
+
+            importRow[finalName] = value;
         });
-    }
+
+        // Aggiunge i campi non mappati come custom fields, se l'opzione è attiva
+        if (this.modal.querySelector('#allowCustomFields')?.checked) {
+            Object.keys(row).forEach(column => {
+                if (!Object.keys(this.mappings).includes(column)) {
+                    importRow[`custom_${this.sanitizeFieldName(column)}`] = row[column];
+                }
+            });
+        }
+
+        return importRow;
+    });
+}
 
     formatDate = (dateStr) => {
         if (!dateStr) return null;
