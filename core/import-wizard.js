@@ -10,55 +10,49 @@ import apiClient from './api-client.js';
 class ImportWizard {
     constructor() {
         this.currentFile = null;
-    this.parsedData = [];
-    this.headers = [];
-    this.mappings = {};
-    this.templates = this.loadTemplates();
-    this.targetFields = [];
-    this.importMode = 'append'; // append, update, sync
-    this.validationRules = {};
-    this.previewLimit = 10;
-    
-    // Eventi custom
-    this.events = new EventTarget();
+        this.parsedData = [];
+        this.headers = [];
+        this.mappings = {};
+        this.templates = this.loadTemplates();
+        this.targetFields = [];
+        this.importMode = 'append'; // append, update, sync
+        this.validationRules = {};
+        this.previewLimit = 10;
+        
+        this.events = new EventTarget();
     }
 
     /**
      * Inizializza il wizard per un tipo di entità specifico
      */
-    async init(config) {
+    init = async (config) => {
         this.config = {
-            entity: 'shipments', // shipments, products, containers, etc.
+            entity: 'shipments',
             endpoint: '/api/import',
             targetFields: [],
             validationRules: {},
             allowCustomFields: true,
             ...config
         };
-
-        // Carica i campi target per l'entità
         this.targetFields = await this.loadTargetFields(this.config.entity);
         this.validationRules = this.config.validationRules;
-
         return this;
     }
 
     /**
      * Mostra il wizard modale
      */
-    async show() {
+    show = async () => {
         const modalContent = this.renderWizard();
-        
         const modal = modalSystem.show({
-    title: `Import ${this.config.entity.charAt(0).toUpperCase() + this.config.entity.slice(1)}`,
-    content: modalContent,
-    size: 'fullscreen', //  <-- Modifica questa riga
-    showClose: true,
-    showFooter: false,
-    onClose: () => this.reset()
-});
-
-        this.modal = modal;
+            title: `Import ${this.config.entity.charAt(0).toUpperCase() + this.config.entity.slice(1)}`,
+            content: modalContent,
+            size: 'fullscreen',
+            showClose: true,
+            showFooter: false,
+            onClose: () => this.reset()
+        });
+        this.modal = modal.element;
         this.attachEventListeners();
     }
 
@@ -66,160 +60,56 @@ class ImportWizard {
      * Renderizza il wizard completo
      */
     renderWizard() {
+        // Il tuo lungo blocco HTML qui... (lasciato invariato)
         return `
             <div class="import-wizard" data-step="upload">
-                <!-- Progress Steps -->
                 <div class="wizard-steps">
-                    <div class="step active" data-step-indicator="upload">
-                        <div class="step-number">1</div>
-                        <div class="step-label">Upload File</div>
-                    </div>
-                    <div class="step" data-step-indicator="mapping">
-                        <div class="step-number">2</div>
-                        <div class="step-label">Map Columns</div>
-                    </div>
-                    <div class="step" data-step-indicator="preview">
-                        <div class="step-number">3</div>
-                        <div class="step-label">Preview & Validate</div>
-                    </div>
-                    <div class="step" data-step-indicator="import">
-                        <div class="step-number">4</div>
-                        <div class="step-label">Import</div>
-                    </div>
+                    <div class="step active" data-step-indicator="upload"><div class="step-number">1</div><div class="step-label">Upload File</div></div>
+                    <div class="step" data-step-indicator="mapping"><div class="step-number">2</div><div class="step-label">Map Columns</div></div>
+                    <div class="step" data-step-indicator="preview"><div class="step-number">3</div><div class="step-label">Preview & Validate</div></div>
+                    <div class="step" data-step-indicator="import"><div class="step-number">4</div><div class="step-label">Import</div></div>
                 </div>
-
-                <!-- Step 1: Upload -->
                 <div class="wizard-content" data-step-content="upload">
                     <div class="upload-area" id="uploadArea">
-                        <svg class="upload-icon" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                            <polyline points="7 10 12 15 17 10"></polyline>
-                            <line x1="12" y1="15" x2="12" y2="3"></line>
-                        </svg>
-                        <h3>Drag & Drop your file here</h3>
-                        <p>or click to browse</p>
-                        <p class="file-types">Supported: CSV, Excel (.xlsx, .xls)</p>
+                        <svg class="upload-icon" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                        <h3>Drag & Drop your file here</h3><p>or click to browse</p><p class="file-types">Supported: CSV, Excel (.xlsx, .xls)</p>
                         <input type="file" id="fileInput" accept=".csv,.xlsx,.xls" style="display: none;">
                     </div>
-
-                    <!-- Templates -->
-                    <div class="templates-section" style="display: none;">
-                        <h4>Or use a saved template:</h4>
-                        <div class="templates-grid" id="templatesGrid">
-                            <!-- Templates will be rendered here -->
-                        </div>
-                    </div>
+                    <div class="templates-section" style="display: none;"><h4>Or use a saved template:</h4><div class="templates-grid" id="templatesGrid"></div></div>
                 </div>
-
-                <!-- Step 2: Mapping -->
                 <div class="wizard-content" data-step-content="mapping" style="display: none;">
-                    <div class="mapping-header">
-                        <h3>Map your columns to system fields</h3>
+                    <div class="mapping-header"><h3>Map your columns to system fields</h3>
                         <div class="mapping-actions">
-                            <button class="btn btn-secondary" onclick="importWizard.autoMap()">
-                                <i class="icon-magic"></i> Auto-map
-                            </button>
-                            <button class="btn btn-secondary" onclick="importWizard.saveTemplate()">
-                                <i class="icon-save"></i> Save as template
-                            </button>
+                            <button class="btn btn-secondary" onclick="importWizard.autoMap()"><i class="icon-magic"></i> Auto-map</button>
+                            <button class="btn btn-secondary" onclick="importWizard.saveTemplate()"><i class="icon-save"></i> Save as template</button>
                         </div>
                     </div>
-
                     <div class="mapping-container">
-                        <div class="source-columns">
-                            <h4>Your File Columns</h4>
-                            <div id="sourceColumns" class="columns-list">
-                                <!-- Source columns will be rendered here -->
-                            </div>
-                        </div>
-
-                        <div class="mapping-arrows">
-                            <!-- Visual connection lines will be drawn here -->
-                            <svg id="mappingLines" width="100" height="100%"></svg>
-                        </div>
-
-                        <div class="target-fields">
-                            <h4>System Fields</h4>
-                            <div id="targetFields" class="fields-list">
-                                <!-- Target fields will be rendered here -->
-                            </div>
-                        </div>
+                        <div class="source-columns"><h4>Your File Columns</h4><div id="sourceColumns" class="columns-list"></div></div>
+                        <div class="mapping-arrows"><svg id="mappingLines" width="100" height="100%"></svg></div>
+                        <div class="target-fields"><h4>System Fields</h4><div id="targetFields" class="fields-list"></div></div>
                     </div>
-
-                    <div class="mapping-options">
-                        <label>
-                            <input type="checkbox" id="allowCustomFields" checked>
-                            Allow custom fields for unmapped columns
-                        </label>
-                    </div>
+                    <div class="mapping-options"><label><input type="checkbox" id="allowCustomFields" checked> Allow custom fields for unmapped columns</label></div>
                 </div>
-
-                <!-- Step 3: Preview -->
                 <div class="wizard-content" data-step-content="preview" style="display: none;">
-                    <div class="preview-header">
-                        <h3>Preview & Validate</h3>
-                        <div class="import-options">
-                            <label>Import Mode:</label>
-                            <select id="importMode" class="form-control">
-                                <option value="append">Append new records</option>
-                                <option value="update">Update existing records</option>
-                                <option value="sync">Full sync (replace all)</option>
-                            </select>
-                        </div>
+                    <div class="preview-header"><h3>Preview & Validate</h3>
+                        <div class="import-options"><label>Import Mode:</label><select id="importMode" class="form-control"><option value="append">Append new records</option><option value="update">Update existing records</option><option value="sync">Full sync (replace all)</option></select></div>
                     </div>
-
-                    <div class="validation-summary" id="validationSummary">
-                        <!-- Validation results will be shown here -->
-                    </div>
-
-                    <div class="preview-table-container">
-                        <table class="preview-table" id="previewTable">
-                            <!-- Preview data will be rendered here -->
-                        </table>
-                    </div>
-
+                    <div class="validation-summary" id="validationSummary"></div>
+                    <div class="preview-table-container"><table class="preview-table" id="previewTable"></table></div>
                     <div class="preview-stats">
-                        <div class="stat">
-                            <span class="stat-label">Total Records:</span>
-                            <span class="stat-value" id="totalRecords">0</span>
-                        </div>
-                        <div class="stat">
-                            <span class="stat-label">Valid:</span>
-                            <span class="stat-value text-success" id="validRecords">0</span>
-                        </div>
-                        <div class="stat">
-                            <span class="stat-label">Warnings:</span>
-                            <span class="stat-value text-warning" id="warningRecords">0</span>
-                        </div>
-                        <div class="stat">
-                            <span class="stat-label">Errors:</span>
-                            <span class="stat-value text-danger" id="errorRecords">0</span>
-                        </div>
+                        <div class="stat"><span class="stat-label">Total Records:</span><span class="stat-value" id="totalRecords">0</span></div>
+                        <div class="stat"><span class="stat-label">Valid:</span><span class="stat-value text-success" id="validRecords">0</span></div>
+                        <div class="stat"><span class="stat-label">Warnings:</span><span class="stat-value text-warning" id="warningRecords">0</span></div>
+                        <div class="stat"><span class="stat-label">Errors:</span><span class="stat-value text-danger" id="errorRecords">0</span></div>
                     </div>
                 </div>
-
-                <!-- Step 4: Import Progress -->
                 <div class="wizard-content" data-step-content="import" style="display: none;">
-                    <div class="import-progress">
-                        <h3>Importing data...</h3>
-                        <div class="progress-bar-container">
-                            <div class="progress-bar" id="importProgress"></div>
-                        </div>
-                        <div class="import-status" id="importStatus">Preparing import...</div>
-                        <div class="import-log" id="importLog">
-                            <!-- Import log entries will appear here -->
-                        </div>
-                    </div>
+                    <div class="import-progress"><h3>Importing data...</h3><div class="progress-bar-container"><div class="progress-bar" id="importProgress"></div></div><div class="import-status" id="importStatus">Preparing import...</div><div class="import-log" id="importLog"></div></div>
                 </div>
-
-                <!-- Navigation -->
                 <div class="wizard-navigation">
-                    <button class="btn btn-secondary" id="prevBtn" onclick="importWizard.previousStep()" style="display: none;">
-                        Previous
-                    </button>
-                    <button class="btn btn-primary" id="nextBtn" onclick="importWizard.nextStep()">
-                        Next
-                    </button>
+                    <button class="btn btn-secondary" id="prevBtn" onclick="importWizard.previousStep()" style="display: none;">Previous</button>
+                    <button class="btn btn-primary" id="nextBtn" onclick="importWizard.nextStep()">Next</button>
                 </div>
             </div>
         `;
@@ -278,13 +168,8 @@ class ImportWizard {
      */
         handleFileUpload = async (file) => {
         this.currentFile = file;
-        
         try {
-        console.log('Ispezionando this:', this);
-            // Mostra loading
             notificationSystem.show('Parsing file...', 'info');
-            
-            // Parse del file
             if (file.name.endsWith('.csv')) {
                 await this.parseCSV(file);
             } else if (file.name.match(/\.xlsx?$/)) {
@@ -292,16 +177,10 @@ class ImportWizard {
             } else {
                 throw new Error('Unsupported file format');
             }
-
-            // Mostra colonne nel mapping
             this.renderSourceColumns();
             this.renderTargetFields();
-            
-            // Tenta auto-mapping
             this.autoMap();
-            
             notificationSystem.show('File parsed successfully', 'success');
-            
         } catch (error) {
             notificationSystem.show(`Error parsing file: ${error.message}`, 'error');
             console.error('File upload error:', error);
