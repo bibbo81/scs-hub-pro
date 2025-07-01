@@ -21,23 +21,6 @@ class ImportWizard {
     
     // Eventi custom
     this.events = new EventTarget();
-
-    // ================================================================
-    // ▼▼ AGGIUNGI QUESTO BLOCCO PER RISOLVERE L'ERRORE ▼▼
-    // ================================================================
-    // Lega il contesto 'this' a tutti i metodi usati come handler
-    this.handleFileUpload = this.handleFileUpload.bind(this);
-    this.handleDrop = this.handleDrop.bind(this);
-    this.handleDragStart = this.handleDragStart.bind(this);
-    this.handleDragEnd = this.handleDragEnd.bind(this);
-    this.handleDragOver = this.handleDragOver.bind(this);
-    this.handleDragLeave = this.handleDragLeave.bind(this);
-    this.nextStep = this.nextStep.bind(this);
-    this.previousStep = this.previousStep.bind(this);
-    this.autoMap = this.autoMap.bind(this);
-    this.saveTemplate = this.saveTemplate.bind(this);
-    this.applyTemplate = this.applyTemplate.bind(this);
-    this.toggleFieldEditor = this.toggleFieldEditor.bind(this); // Aggiunto anche questo per sicurezza
     }
 
     /**
@@ -293,7 +276,7 @@ class ImportWizard {
     /**
      * Gestisce il caricamento del file
      */
-    async handleFileUpload(file) {
+        handleFileUpload = async (file) => {
         this.currentFile = file;
         
         try {
@@ -436,7 +419,7 @@ class ImportWizard {
     /**
      * Auto-mapping intelligente
      */
-    autoMap() {
+    autoMap = () => {
         this.mappings = {};
         
         // Mapping rules per similitudine
@@ -537,7 +520,7 @@ class ImportWizard {
     `;
 }
 
-toggleFieldEditor(buttonElement) {
+toggleFieldEditor = (buttonElement) => {
     const targetField = buttonElement.closest('.target-field');
     if (!targetField) return;
 
@@ -584,27 +567,27 @@ toggleFieldEditor(buttonElement) {
     /**
      * Handlers Drag & Drop
      */
-    handleDragStart(e) {
+    handleDragStart = (e) => {
         e.dataTransfer.effectAllowed = 'copy';
         e.dataTransfer.setData('column', e.target.dataset.column);
         e.target.classList.add('dragging');
     }
 
-    handleDragEnd(e) {
+    handleDragEnd = (e) => {
         e.target.classList.remove('dragging');
     }
 
-    handleDragOver(e) {
+    handleDragOver = (e) => {
         e.preventDefault();
         e.dataTransfer.dropEffect = 'copy';
         e.currentTarget.classList.add('drag-over');
     }
 
-    handleDragLeave(e) {
+    handleDragLeave = (e) => {
         e.currentTarget.classList.remove('drag-over');
     }
 
-    handleDrop(e) {
+    handleDrop = (e) => {
         e.preventDefault();
         e.currentTarget.classList.remove('drag-over');
         
@@ -1072,7 +1055,7 @@ toggleFieldEditor(buttonElement) {
     /**
      * Salva template mapping
      */
-    saveTemplate() {
+    saveTemplate = () => {
         const templateName = prompt('Enter template name:');
         if (!templateName) return;
         
@@ -1107,7 +1090,7 @@ toggleFieldEditor(buttonElement) {
     /**
      * Applica template
      */
-    applyTemplate(template) {
+    applyTemplate = (template) => {
         this.mappings = template.mappings;
         this.updateMappingUI();
         notificationSystem.show(`Applied template: ${template.name}`, 'info');
@@ -1119,7 +1102,7 @@ toggleFieldEditor(buttonElement) {
     currentStep = 0;
     steps = ['upload', 'mapping', 'preview', 'import'];
 
-    nextStep() {
+    nextStep = () => {
         if (this.validateCurrentStep()) {
             this.currentStep++;
             this.showStep(this.steps[this.currentStep]);
@@ -1133,7 +1116,7 @@ toggleFieldEditor(buttonElement) {
         }
     }
 
-    previousStep() {
+    previousStep = () => {
         if (this.currentStep > 0) {
             this.currentStep--;
             this.showStep(this.steps[this.currentStep]);
