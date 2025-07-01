@@ -1026,12 +1026,12 @@
     </style>
     <script type="module">
     import { importWizard } from '/core/import-wizard.js';
-    import { supabase } from './core/services/supabase-client.js';
+    import { supabase } from '/core/services/supabase-client.js'; // 1. Importa supabase con il percorso corretto
 
-    // Inietta il client Supabase nel wizard per risolvere le dipendenze
+    // 2. Inietta il client nel wizard per risolvere le dipendenze
     importWizard.setSupabaseClient(supabase);
 
-    // Collega il pulsante alla funzione show() del wizard
+    // 3. Collega il pulsante come prima
     const importBtn = document.getElementById('importProductsBtn');
     if (importBtn) {
         importBtn.addEventListener('click', async () => {
