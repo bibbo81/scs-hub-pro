@@ -10,17 +10,34 @@ import apiClient from './api-client.js';
 class ImportWizard {
     constructor() {
         this.currentFile = null;
-        this.parsedData = [];
-        this.headers = [];
-        this.mappings = {};
-        this.templates = this.loadTemplates();
-        this.targetFields = [];
-        this.importMode = 'append'; // append, update, sync
-        this.validationRules = {};
-        this.previewLimit = 10;
-        
-        // Eventi custom
-        this.events = new EventTarget();
+    this.parsedData = [];
+    this.headers = [];
+    this.mappings = {};
+    this.templates = this.loadTemplates();
+    this.targetFields = [];
+    this.importMode = 'append'; // append, update, sync
+    this.validationRules = {};
+    this.previewLimit = 10;
+    
+    // Eventi custom
+    this.events = new EventTarget();
+
+    // ================================================================
+    // ▼▼ AGGIUNGI QUESTO BLOCCO PER RISOLVERE L'ERRORE ▼▼
+    // ================================================================
+    // Lega il contesto 'this' a tutti i metodi usati come handler
+    this.handleFileUpload = this.handleFileUpload.bind(this);
+    this.handleDrop = this.handleDrop.bind(this);
+    this.handleDragStart = this.handleDragStart.bind(this);
+    this.handleDragEnd = this.handleDragEnd.bind(this);
+    this.handleDragOver = this.handleDragOver.bind(this);
+    this.handleDragLeave = this.handleDragLeave.bind(this);
+    this.nextStep = this.nextStep.bind(this);
+    this.previousStep = this.previousStep.bind(this);
+    this.autoMap = this.autoMap.bind(this);
+    this.saveTemplate = this.saveTemplate.bind(this);
+    this.applyTemplate = this.applyTemplate.bind(this);
+    this.toggleFieldEditor = this.toggleFieldEditor.bind(this); // Aggiunto anche questo per sicurezza
     }
 
     /**
