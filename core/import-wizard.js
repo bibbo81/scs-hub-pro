@@ -158,21 +158,55 @@ class ImportWizard {
     }
 
     autoMap = () => {
-        this.mappings = {};
-        const mappingRules = { 'rif_spedizione': ['rif', 'spedizione', 'reference', 'shipment', 'tracking'], 'n_oda': ['oda', 'order', 'ordine', 'po'], 'cod_art': ['cod', 'codice', 'articolo', 'product', 'sku', 'code'], 'descrizione': ['descrizione', 'description', 'desc', 'nome'], 'fornitore': ['fornitore', 'supplier', 'vendor', 'fornitore'], 'qty': ['qty', 'quantity', 'quantità', 'pezzi', 'amount'], 'data_partenza': ['partenza', 'departure', 'etd', 'data partenza'], 'data_arrivo_effettiva': ['arrivo', 'arrival', 'eta', 'consegna'], 'costo_trasporto': ['costo', 'cost', 'trasporto', 'shipping'], 'stato': ['stato', 'status', 'state'], 'tipo': ['tipo', 'type'], 'note': ['note', 'notes', 'commenti', 'comments'] };
-        this.headers.forEach(header => {
-            const headerLower = header.toLowerCase();
-            for (const [field, patterns] of Object.entries(mappingRules)) {
-                if (patterns.some(pattern => headerLower.includes(pattern))) {
-                    if (this.targetFields.find(f => f.name === field)) {
-                        this.mappings[header] = field;
-                        break;
-                    }
+    this.mappings = {};
+
+    // Scegli mappingRules in base all'entità
+    let mappingRules;
+    if (this.config.entity === 'products') {
+        mappingRules = {
+            'sku': ['cod', 'codice', 'cod_art', 'sku', 'code', 'prodotto', 'id prodotto'],
+            'name': ['descrizione', 'nome', 'product name', 'denominazione', 'descrizione prodotto'],
+            'category': ['categoria', 'famiglia', 'gruppo', 'category'],
+            'unit_price': ['prezzo', 'prezzo me', 'prezzo medio', 'unit price', 'costo unitario', 'valore'],
+            'ean': ['ean', 'barcode', 'codice a barre'],
+            'note': ['note', 'osservazioni', 'commenti'],
+            'quantity': ['q.mag.', 'qta', 'quantità', 'qta magazzino', 'giacenza'],
+            'min_quantity': ['q.min.', 'min', 'quantità minima'],
+            'max_quantity': ['q.max.', 'max', 'quantità massima'],
+            // aggiungi altri mapping secondo necessità
+        };
+    } else {
+        // Default: mapping per tracking/spedizioni
+        mappingRules = {
+            'rif_spedizione': ['rif', 'spedizione', 'reference', 'shipment', 'tracking'],
+            'n_oda': ['oda', 'order', 'ordine', 'po'],
+            'cod_art': ['cod', 'codice', 'articolo', 'product', 'sku', 'code'],
+            'descrizione': ['descrizione', 'description', 'desc', 'nome'],
+            'fornitore': ['fornitore', 'supplier', 'vendor', 'fornitore'],
+            'qty': ['qty', 'quantity', 'quantità', 'pezzi', 'amount'],
+            'data_partenza': ['partenza', 'departure', 'etd', 'data partenza'],
+            'data_arrivo_effettiva': ['arrivo', 'arrival', 'eta', 'consegna'],
+            'costo_trasporto': ['costo', 'cost', 'trasporto', 'shipping'],
+            'stato': ['stato', 'status', 'state'],
+            'tipo': ['tipo', 'type'],
+            'note': ['note', 'notes', 'commenti', 'comments']
+        };
+    }
+
+    this.headers.forEach(header => {
+        const headerLower = header.toLowerCase();
+        for (const [field, patterns] of Object.entries(mappingRules)) {
+            if (patterns.some(pattern => headerLower.includes(pattern))) {
+                if (this.targetFields.find(f => f.name === field)) {
+                    this.mappings[header] = field;
+                    break;
                 }
             }
-        });
-        this.updateMappingUI();
-    }
+        }
+    });
+    this.updateMappingUI();
+}
+
 
     renderSourceColumns = () => {
         const container = this.modal.querySelector('#sourceColumns');

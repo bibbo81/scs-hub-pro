@@ -935,22 +935,43 @@ async init() {
     try {
         // Configura il wizard per l'entità 'products'
         await wizard.init({
-            entity: 'products',
-            endpoint: '/api/v1/products/import', // Sostituisci con il tuo vero endpoint
-            targetFields: [
-                { name: 'sku', label: 'SKU', required: true, type: 'text' },
-                { name: 'name', label: 'Product Name', required: true, type: 'text' },
-                { name: 'description', label: 'Description', type: 'text' },
-                { name: 'category', label: 'Category', required: true, type: 'text' },
-                { name: 'specifications.weight', label: 'Weight (kg)', type: 'number' },
-                { name: 'specifications.dimensions.length', label: 'Length (cm)', type: 'number' },
-                { name: 'specifications.dimensions.width', label: 'Width (cm)', type: 'number' },
-                { name: 'specifications.dimensions.height', label: 'Height (cm)', type: 'number' },
-                { name: 'specifications.value', label: 'Unit Value (USD)', type: 'currency' },
-                { name: 'costTracking.baseCost', label: 'Base Cost (USD)', type: 'currency' },
-                { name: 'costTracking.targetMargin', label: 'Target Margin (%)', type: 'percentage' }
-            ]
-        });
+    entity: 'products',
+    targetFields: [
+        // Campi principali
+        { name: 'sku', label: 'Codice Articolo (SKU)', required: true, type: 'text' },
+        { name: 'name', label: 'Nome Prodotto / Description', required: true, type: 'text' },
+        { name: 'description', label: 'Descrizione Dettagliata', type: 'text' },
+        { name: 'category', label: 'Categoria / Category', required: true, type: 'text' },
+        { name: 'ean', label: 'EAN / Codice a Barre', type: 'text' },
+        { name: 'note', label: 'Note / Osservazioni', type: 'text' },
+
+        // Quantità e magazzino
+        { name: 'quantity', label: 'Quantità Magazzino', type: 'number' },
+        { name: 'min_quantity', label: 'Quantità Minima', type: 'number' },
+        { name: 'max_quantity', label: 'Quantità Massima', type: 'number' },
+
+        // Prezzi e costi
+        { name: 'unit_price', label: 'Prezzo Unitario', type: 'currency' },
+        { name: 'specifications.value', label: 'Valore Unitario (USD)', type: 'currency' },
+        { name: 'costTracking.baseCost', label: 'Costo Base (USD)', type: 'currency' },
+        { name: 'costTracking.targetMargin', label: 'Margine Target (%)', type: 'percentage' },
+
+        // Peso e dimensioni
+        { name: 'weight_kg', label: 'Peso (kg)', type: 'number' },
+        { name: 'specifications.weight', label: 'Peso Specifiche (kg)', type: 'number' },
+        { name: 'dimensions_cm', label: 'Dimensioni (cm)', type: 'jsonb' },
+        { name: 'specifications.dimensions.length', label: 'Lunghezza (cm)', type: 'number' },
+        { name: 'specifications.dimensions.width', label: 'Larghezza (cm)', type: 'number' },
+        { name: 'specifications.dimensions.height', label: 'Altezza (cm)', type: 'number' },
+
+        // Altri campi utili
+        { name: 'hs_code', label: 'Codice Doganale (HS)', type: 'text' },
+        { name: 'origin_country', label: 'Paese di Origine', type: 'text' },
+        { name: 'active', label: 'Attivo', type: 'boolean' },
+        { name: 'metadata', label: 'Campi Custom (metadata)', type: 'jsonb' }
+    ]
+});
+
 
         // Mostra il wizard
         wizard.show();
