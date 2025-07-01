@@ -935,7 +935,7 @@ async init() {
         // Configura il wizard per l'entità 'products'
         await wizard.init({
             entity: 'products',
-            endpoint: '/api/v1/products/import', // Sostituisci con il tuo vero endpoint
+            endpoint: 'api/v1/products/import', // Sostituisci con il tuo vero endpoint
             targetFields: [
                 { name: 'sku', label: 'SKU', required: true, type: 'text' },
                 { name: 'name', label: 'Product Name', required: true, type: 'text' },
