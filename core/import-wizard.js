@@ -297,6 +297,7 @@ class ImportWizard {
         this.currentFile = file;
         
         try {
+        console.log('Ispezionando this:', this);
             // Mostra loading
             notificationSystem.show('Parsing file...', 'info');
             
