@@ -938,12 +938,12 @@ async init() {
     entity: 'products',
     targetFields: [
         // Campi principali
-        { name: 'product_code', label: 'Product Code', required: true, type: 'text' },
-        { name: 'description', label: 'Description', required: true, type: 'text' },
-        { name: 'description', label: 'Descrizione Dettagliata', type: 'text' },
-        { name: 'category', label: 'Categoria / Category', required: true, type: 'text' },
+        { name: 'sku', label: 'Codice Articolo (SKU)', required: true, type: 'text' },
+        { name: 'name', label: 'Nome Prodotto / Description', required: true, type: 'text' },
+        { name: 'description', label: 'Descrizione', type: 'text' },
+        { name: 'category', label: 'Categoria', type: 'text' },
         { name: 'ean', label: 'EAN / Codice a Barre', type: 'text' },
-        { name: 'note', label: 'Note / Osservazioni', type: 'text' },
+        { name: 'note', label: 'Note', type: 'text' },
 
         // Quantità e magazzino
         { name: 'quantity', label: 'Quantità Magazzino', type: 'number' },
