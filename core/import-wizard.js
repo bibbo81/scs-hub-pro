@@ -2,7 +2,6 @@
 import notificationSystem from './notification-system.js';
 import modalSystem from './modal-system.js';
 import apiClient from './api-client.js';
-import { supabase } from './supabase-client.js';
 
 class ImportWizard {
     constructor() {
@@ -18,8 +17,12 @@ class ImportWizard {
         this.currentStep = 0;
         this.steps = ['upload', 'mapping', 'preview', 'import'];
         this.events = new EventTarget();
-    }
+        this.supabase = null; 
 
+    }
+        setSupabaseClient = (client) => {
+        this.supabase = client;
+    }
     init = async (config) => {
         this.config = {
             entity: 'shipments',
@@ -443,9 +446,9 @@ class ImportWizard {
             statusEl.textContent = `Processing batch ${i + 1} of ${totalBatches}...`;
 
             // Chiamata diretta a Supabase
-            const { data, error } = await supabase
-                .from('products') // Assicurati che 'products' sia il nome corretto della tabella
-                .insert(batch);
+            const { data, error } = await this.supabase
+            .from('products')
+            .insert(batch);
 
             if (error) {
                 console.error('Supabase insert error:', error);

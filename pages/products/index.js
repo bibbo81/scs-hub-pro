@@ -4,6 +4,9 @@
 // Import organization service
 import organizationService from '/core/services/organization-service.js';
 import { importWizard } from '/core/import-wizard.js';
+import { supabase } from './supabase-client.js';
+
+importWizard.setSupabaseClient(supabase);
 
 // ===== PRODUCT INTELLIGENCE CORE =====
 
