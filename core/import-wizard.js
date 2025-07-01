@@ -411,26 +411,6 @@ toggleFieldEditor = (buttonElement) => {
 }
 
     /**
-     * Renderizza singolo campo target
-     */
-    renderTargetField(field) {
-        const mapped = Object.entries(this.mappings).find(([col, f]) => f === field.name);
-        
-        return `
-            <div class="target-field ${mapped ? 'mapped' : ''} ${field.required ? 'required' : ''}" 
-                 data-field="${field.name}">
-                <div class="field-info">
-                    <span class="field-label">${field.label}</span>
-                    <span class="field-type">${field.type}</span>
-                </div>
-                <div class="field-mapping">
-                    ${mapped ? `<span class="mapped-column">${mapped[0]}</span>` : '<span class="unmapped">Not mapped</span>'}
-                </div>
-            </div>
-        `;
-    }
-
-    /**
      * Ottieni sample data per colonna
      */
     getColumnSample(column) {
@@ -1060,35 +1040,37 @@ toggleFieldEditor = (buttonElement) => {
     /**
      * Attach event listeners
      */
-    attachEventListeners() {
-        // File upload
-        const uploadArea = document.getElementById('uploadArea');
-        const fileInput = document.getElementById('fileInput');
-        
+    attachEventListeners = () => {
+    const uploadArea = this.modal.querySelector('#uploadArea');
+    const fileInput = this.modal.querySelector('#fileInput');
+    const nextBtn = this.modal.querySelector('#nextBtn');
+    const prevBtn = this.modal.querySelector('#prevBtn');
+    const autoMapBtn = this.modal.querySelector('#autoMapBtn');
+    const saveTemplateBtn = this.modal.querySelector('#saveTemplateBtn');
+
+    if (uploadArea && fileInput) {
         uploadArea.addEventListener('click', () => fileInput.click());
-        uploadArea.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            uploadArea.classList.add('drag-over');
-        });
-        uploadArea.addEventListener('dragleave', () => {
-            uploadArea.classList.remove('drag-over');
-        });
+        uploadArea.addEventListener('dragover', (e) => { e.preventDefault(); uploadArea.classList.add('drag-over'); });
+        uploadArea.addEventListener('dragleave', () => { uploadArea.classList.remove('drag-over'); });
         uploadArea.addEventListener('drop', (e) => {
             e.preventDefault();
             uploadArea.classList.remove('drag-over');
-            
             const file = e.dataTransfer.files[0];
             if (file) this.handleFileUpload(file);
         });
-        
         fileInput.addEventListener('change', (e) => {
             const file = e.target.files[0];
             if (file) this.handleFileUpload(file);
         });
-
-        // Template selection
-        this.renderTemplates();
     }
+
+    if (nextBtn) nextBtn.addEventListener('click', this.nextStep);
+    if (prevBtn) prevBtn.addEventListener('click', this.previousStep);
+    if (autoMapBtn) autoMapBtn.addEventListener('click', this.autoMap);
+    if (saveTemplateBtn) saveTemplateBtn.addEventListener('click', this.saveTemplate);
+
+    this.renderTemplates();
+}
 
     /**
      * Renderizza templates disponibili
