@@ -2,7 +2,6 @@
 // Phase 2: Revolutionary Business Intelligence Platform
 
 // Import organization service
-import supabaseProductsService from '/core/services/supabase-products-service.js';
 import organizationService from '/core/services/organization-service.js';
 import { importWizard } from '/core/import-wizard.js';
 
@@ -956,36 +955,12 @@ async init() {
         wizard.show();
 
         // Ascolta l'evento di completamento per aggiornare i dati
-        wizard.events.addEventListener('importComplete', async (event) => {
-    const importedProducts = event.detail.importedData || [];
-    const orgId = organizationService.getCurrentOrgId();
-
-    if (!orgId) {
-        this.showStatus('Nessuna organizzazione attiva. Seleziona un\'organizzazione prima di importare.', 'error');
-        return;
-    }
-
-    if (importedProducts.length > 0) {
-        const productsWithOrg = importedProducts.map(prod => ({
-            ...prod,
-            organization_id: orgId
-        }));
-
-        try {
-            await supabaseProductsService.upsertProducts(productsWithOrg, orgId);
-            this.showStatus('Importazione completata con successo!', 'success');
-        } catch (error) {
-            this.showStatus('Errore durante l\'importazione: ' + error.message, 'error');
-        }
-    } else {
-        this.showStatus('Nessun prodotto importato.', 'warning');
-    }
-
-    await this.loadData();
-    this.renderProducts();
-    this.renderIntelligenceStats();
-}, { once: true });
-
+        wizard.events.addEventListener('importComplete', async () => {
+            this.showStatus('Import successful! Refreshing data...', 'success');
+            await this.loadData();
+            this.renderProducts();
+            this.renderIntelligenceStats();
+        }, { once: true });
 
     } catch (error) {
         console.error('Failed to initialize import wizard:', error);
