@@ -1,7 +1,7 @@
 // public/core/import-wizard.js
-import { notificationSystem } from './notification-system.js';
-import { modalSystem } from './modal-system.js';
-import { apiClient } from './api-client.js';
+import notificationSystem from './notification-system.js';
+import modalSystem from './modal-system.js';
+import apiClient from './api-client.js';
 
 /**
  * Import Wizard System - Sistema universale per import CSV/Excel con mapping dinamico
@@ -50,13 +50,13 @@ class ImportWizard {
         const modalContent = this.renderWizard();
         
         const modal = modalSystem.show({
-            title: `Import ${this.config.entity.charAt(0).toUpperCase() + this.config.entity.slice(1)}`,
-            content: modalContent,
-            size: 'xl',
-            showClose: true,
-            showFooter: false,
-            onClose: () => this.reset()
-        });
+    title: `Import ${this.config.entity.charAt(0).toUpperCase() + this.config.entity.slice(1)}`,
+    content: modalContent,
+    size: 'fullscreen', //  <-- Modifica questa riga
+    showClose: true,
+    showFooter: false,
+    onClose: () => this.reset()
+});
 
         this.modal = modal;
         this.attachEventListeners();
@@ -366,7 +366,7 @@ class ImportWizard {
                     );
 
                     // Chiama API per parsing Excel
-                    const response = await apiClient.post('/parse-excel', {
+                    const response = await apiClient.post('parse-excel', {
                         file: base64,
                         filename: file.name
                     });

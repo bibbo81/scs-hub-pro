@@ -481,31 +481,54 @@ class ImportWizard {
     /**
      * Renderizza campi target
      */
-    renderTargetFields() {
-        const container = document.getElementById('targetFields');
-        
-        // Campi obbligatori
-        const requiredFields = this.targetFields.filter(f => f.required);
-        const optionalFields = this.targetFields.filter(f => !f.required);
-
-        container.innerHTML = `
-            <div class="fields-section">
-                <h5>Required Fields</h5>
-                ${requiredFields.map(field => this.renderTargetField(field)).join('')}
+    renderTargetField(field) {
+    const mapped = Object.entries(this.mappings).find(([col, f]) => f === field.name);
+    const dataTypes = ['text', 'number', 'date', 'boolean', 'currency', 'percentage'];
+    
+    return `
+        <div class="target-field ${mapped ? 'mapped' : ''} ${field.required ? 'required' : ''}" 
+             data-field-name="${field.name}">
+            
+            <div class="field-info">
+                <span class="field-label">${field.label}</span>
+                <span class="field-type">${field.type}</span>
+                <button class="edit-field-btn" onclick="importWizard.toggleFieldEditor(this)">&#9998;</button>
             </div>
-            <div class="fields-section">
-                <h5>Optional Fields</h5>
-                ${optionalFields.map(field => this.renderTargetField(field)).join('')}
-            </div>
-        `;
 
-        // Aggiungi drop zones
-        container.querySelectorAll('.target-field').forEach(field => {
-            field.addEventListener('dragover', this.handleDragOver.bind(this));
-            field.addEventListener('drop', this.handleDrop.bind(this));
-            field.addEventListener('dragleave', this.handleDragLeave.bind(this));
-        });
+            <div class="field-mapping">
+                ${mapped ? `<span class="mapped-column">${mapped[0]}</span>` : '<span class="unmapped">Not mapped</span>'}
+            </div>
+
+            <div class="field-editor" style="display: none;">
+                <div class="form-group">
+                    <label>Field Name (in Database)</label>
+                    <input type="text" class="field-editor-name" value="${field.name}">
+                </div>
+                <div class="form-group">
+                    <label>Data Type</label>
+                    <select class="field-editor-type">
+                        ${dataTypes.map(type => `
+                            <option value="${type}" ${type === field.type ? 'selected' : ''}>
+                                ${type.charAt(0).toUpperCase() + type.slice(1)}
+                            </option>
+                        `).join('')}
+                    </select>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+toggleFieldEditor(buttonElement) {
+    const targetField = buttonElement.closest('.target-field');
+    if (!targetField) return;
+
+    const editor = targetField.querySelector('.field-editor');
+    if (editor) {
+        const isVisible = editor.style.display === 'block';
+        editor.style.display = isVisible ? 'none' : 'block';
     }
+}
 
     /**
      * Renderizza singolo campo target

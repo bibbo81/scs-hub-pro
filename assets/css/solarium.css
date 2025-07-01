@@ -4016,3 +4016,77 @@ body.authenticated [data-anon-only] {
         border-color: rgba(0, 122, 255, 0.4);
     }
 }
+/* =================================================================== */
+/* ============ STILI PER CUSTOMIZZAZIONE CAMPI IMPORT ============= */
+/* =================================================================== */
+
+.target-field .field-info {
+    display: flex;
+    align-items: center;
+    width: 100%;
+}
+
+.edit-field-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 14px;
+    color: #8e8e93; /* Grigio neutro per l'icona */
+    padding: 5px;
+    margin-left: auto; /* Spinge l'icona tutta a destra */
+    transition: all 0.2s ease;
+    border-radius: 4px;
+}
+
+.edit-field-btn:hover {
+    background-color: #e5e5e7;
+    color: #1d1d1f;
+}
+
+.field-editor {
+    margin-top: 1rem;
+    padding: 1rem;
+    background-color: var(--sol-gray-50, #f8f9fa); /* Usa la variabile CSS se esiste, altrimenti un fallback */
+    border-radius: var(--sol-radius-lg, 12px);
+    border: 1px solid #e5e5e7;
+    animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-5px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.field-editor .form-group {
+    margin-bottom: 0.75rem;
+}
+
+.field-editor .form-group:last-child {
+    margin-bottom: 0;
+}
+
+.field-editor label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    margin-bottom: 6px;
+    color: #333;
+}
+
+.field-editor-input,
+.field-editor-select {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #c7c7cc;
+    border-radius: 6px;
+    font-size: 14px;
+    box-sizing: border-box; /* Assicura che il padding non aumenti la larghezza */
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.field-editor-input:focus,
+.field-editor-select:focus {
+    outline: none;
+    border-color: #007AFF;
+    box-shadow: 0 0 0 2px rgba(0, 122, 255, 0.2);
+}
