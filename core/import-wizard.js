@@ -163,8 +163,7 @@ class ImportWizard {
     }
 
   autoMap = () => {
-    this.mappings = {};
-    // Mapping: header file → NOMI INGLESI DELLA TABELLA (Supabase)
+    // NON azzerare this.mappings: preserva le mappature manuali già fatte!
     const mappingRules = {
         'sku': ['cod', 'codice', 'cod_art', 'sku'],
         'ean': ['ean'],
@@ -172,14 +171,15 @@ class ImportWizard {
         'category': ['categoria', 'category'],
         'unit_price': ['prezzo', 'prezzo medio', 'valore', 'unit price', 'price'],
         'metadata': ['note', 'notes', 'osservazioni'],
-        // aggiungi altri pattern se vuoi
     };
 
     this.headers.forEach(header => {
+        // Se il campo è già mappato manualmente, NON lo toccare!
+        if (this.mappings[header]) return;
         const headerLower = header.toLowerCase().trim();
         for (const [field, patterns] of Object.entries(mappingRules)) {
             if (patterns.some(pattern => headerLower === pattern || headerLower.includes(pattern))) {
-                // Evita doppia mappatura su campi univoci (es: solo un campo per sku, ean, name, category)
+                // Evita doppia mappatura su campi chiave
                 if (
                     ['sku', 'ean', 'name', 'category', 'unit_price'].includes(field) &&
                     Object.values(this.mappings).includes(field)
