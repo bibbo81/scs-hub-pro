@@ -823,6 +823,32 @@ if (saveTemplateBtn) saveTemplateBtn.addEventListener('click', this.saveTemplate
 
 this.renderTemplates();
     }
+    
+gotoStep = (stepIndex) => {
+    const previousStep = this.currentStep;
+    this.currentStep = stepIndex;
+
+    // Nascondi tutti gli step
+    this.modal.querySelectorAll('.wizard-content').forEach(step => {
+        step.style.display = 'none';
+    });
+
+    // Rendi attivo solo quello corrente
+    const currentStepKey = this.steps[this.currentStep];
+    const content = this.modal.querySelector(`[data-step-content="${currentStepKey}"]`);
+    if (content) content.style.display = 'block';
+
+    // Aggiorna visual indicatori
+    this.modal.querySelectorAll('.wizard-steps .step').forEach((stepEl, idx) => {
+        stepEl.classList.toggle('active', idx === this.currentStep);
+    });
+
+    // Cambia testo bottone se ultimo step
+    const nextBtn = this.modal.querySelector('#nextBtn');
+    if (nextBtn) {
+        nextBtn.innerText = (this.currentStep === this.steps.length - 1) ? 'Start Import' : 'Next';
+    }
+};
 
     renderTemplates = () => {
         const templates = this.templates.filter(t => t.entity === this.config.entity);
