@@ -166,17 +166,24 @@ class ImportWizard {
     this.mappings = {};
     // Mapping: header file → NOMI INGLESI DELLA TABELLA (Supabase)
     const mappingRules = {
-        'sku': ['cod', 'ean', 'cod_art', 'codice', 'sku'],
+        'sku': ['cod', 'codice', 'cod_art', 'sku'],
+        'ean': ['ean'],
         'name': ['descrizione', 'desc', 'nome prodotto', 'description'],
         'category': ['categoria', 'category'],
         'unit_price': ['prezzo', 'prezzo medio', 'valore', 'unit price', 'price'],
         'metadata': ['note', 'notes', 'osservazioni'],
+        // aggiungi altri pattern se vuoi
     };
+
     this.headers.forEach(header => {
         const headerLower = header.toLowerCase().trim();
         for (const [field, patterns] of Object.entries(mappingRules)) {
             if (patterns.some(pattern => headerLower === pattern || headerLower.includes(pattern))) {
-                // SOLO nomi inglesi della tabella!
+                // Evita doppia mappatura su campi univoci (es: solo un campo per sku, ean, name, category)
+                if (
+                    ['sku', 'ean', 'name', 'category', 'unit_price'].includes(field) &&
+                    Object.values(this.mappings).includes(field)
+                ) continue;
                 this.mappings[header] = field;
                 break;
             }
@@ -184,7 +191,6 @@ class ImportWizard {
     });
     this.updateMappingUI();
 }
-
 
 getColumnMappings = () => {
     // Restituisce la mappatura effettiva tra le colonne del file e i campi target scelti dall’utente
@@ -360,32 +366,33 @@ getColumnMappings = () => {
     }
 
     validateRow = (row, index) => {
-        const errors = [];
-        const warnings = [];
-        this.targetFields.filter(f => f.required).forEach(field => {
-            const mappedColumn = Object.entries(this.mappings).find(([col, f]) => f === field.name)?.[0];
-            if (!mappedColumn || !row[mappedColumn]) {
-                errors.push(`Missing required field: ${field.label}`);
-            }
-        });
-        Object.entries(this.mappings).forEach(([column, fieldName]) => {
-            const field = this.targetFields.find(f => f.name === fieldName);
-            const value = row[column];
-            if (field && value) {
-                switch (field.type) {
-                    case 'number': if (isNaN(parseFloat(value))) { warnings.push(`Invalid number in ${field.label}: ${value}`); } break;
-                    case 'date': if (!this.isValidDate(value)) { warnings.push(`Invalid date in ${field.label}: ${value}`); } break;
-                    case 'currency': if (isNaN(parseFloat(value.replace(/[^0-9.-]/g, '')))) { warnings.push(`Invalid currency in ${field.label}: ${value}`); } break;
-                }
-            }
-        });
-        if (this.config.customValidation) {
-            const customResults = this.config.customValidation(row, this.mappings);
-            errors.push(...(customResults.errors || []));
-            warnings.push(...(customResults.warnings || []));
+    const errors = [];
+    const warnings = [];
+    this.targetFields.filter(f => f.required).forEach(field => {
+        const mappedColumn = Object.entries(this.mappings).find(([col, f]) => f === field.name)?.[0];
+        if (!mappedColumn || !row[mappedColumn]) {
+            errors.push(`Missing required field: ${field.label}`);
         }
-        return { errors, warnings };
+    });
+    Object.entries(this.mappings).forEach(([column, fieldName]) => {
+        const field = this.targetFields.find(f => f.name === fieldName);
+        const value = row[column];
+        if (field && value) {
+            switch (field.type) {
+                case 'number': if (isNaN(parseFloat(value))) { warnings.push(`Invalid number in ${field.label}: ${value}`); } break;
+                case 'date': if (!this.isValidDate(value)) { warnings.push(`Invalid date in ${field.label}: ${value}`); } break;
+                case 'currency': if (isNaN(parseFloat(value.replace(/[^0-9.-]/g, '')))) { warnings.push(`Invalid currency in ${field.label}: ${value}`); } break;
+            }
+        }
+    });
+    if (this.config.customValidation) {
+        const customResults = this.config.customValidation(row, this.mappings);
+        errors.push(...(customResults.errors || []));
+        warnings.push(...(customResults.warnings || []));
     }
+    return { errors, warnings };
+}
+
 
     isValidDate = (dateString) => {
         const date = new Date(dateString);
