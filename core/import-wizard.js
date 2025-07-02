@@ -164,21 +164,28 @@ class ImportWizard {
 
   autoMap = () => {
     this.mappings = {};
-    // Mapping ITA → ENG
+    // Mapping ITA → ENG (usato anche per l'import vero e proprio)
     const mappingRules = {
-        'sku': ['cod', 'codice', 'articolo', 'product', 'sku', 'cod_art'],
-        'name': ['nome prodotto', 'descrizione', 'description', 'name'],
+        'sku': ['cod_art', 'codice', 'sku', 'product code', 'code'],
+        'name': ['descrizione', 'nome prodotto', 'name', 'description'],
         'category': ['categoria', 'category'],
-        'unit_of_measure': ['um', 'unità', 'unit of measure'],
-        'weight_kg': ['peso', 'weight', 'peso_kg'],
-        'volume_m3': ['volume', 'volume_m3'],
-        'unit_value': ['valore', 'prezzo', 'value', 'price', 'valore_unitario'],
+        'weight_kg': ['peso', 'peso_kg', 'weight', 'weight_kg'],
+        'dimensions_cm': ['dimensioni', 'volume', 'dimensions', 'volume_cm', 'dimensioni_cm'],
+        'unit_price': ['valore', 'prezzo', 'valore_unitario', 'unit price', 'price'],
+        'origin_country': ['origine', 'paese_origine', 'origin', 'origin_country'],
+        'currency': ['valuta', 'currency'],
+        'hs_code': ['hs_code', 'codice doganale', 'customs code'],
+        'active': ['attivo', 'active'],
+        'description': ['descrizione estesa', 'description', 'desc'],
+        'metadata': ['note', 'metadata', 'notes'],
         // organization_id non va mappato da file, lo aggiungiamo noi
     };
+
     this.headers.forEach(header => {
         const headerLower = header.toLowerCase().trim();
         for (const [field, patterns] of Object.entries(mappingRules)) {
-            if (patterns.some(pattern => headerLower.includes(pattern))) {
+            if (patterns.some(pattern => headerLower === pattern || headerLower.includes(pattern))) {
+                // Solo se il campo esiste tra i targetFields
                 if (this.targetFields.find(f => f.name === field)) {
                     this.mappings[header] = field;
                     break;
@@ -186,8 +193,11 @@ class ImportWizard {
             }
         }
     });
+
+    // Aggiorna la UI mapping
     this.updateMappingUI();
 }
+
 
     renderSourceColumns = () => {
         const container = this.modal.querySelector('#sourceColumns');
