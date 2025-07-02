@@ -19,14 +19,15 @@ class ImportWizard {
         this.steps = ['upload', 'mapping', 'preview', 'import'];
         this.events = new EventTarget();
         this.supabase = null; 
-
     }
-        setSupabaseClient = (client) => {
+
+    setSupabaseClient = (client) => {
         this.supabase = client;
     }
+
     init = async (config) => {
         this.config = {
-            entity: 'shipments',
+            entity: 'products',
             endpoint: '/api/import',
             targetFields: [],
             validationRules: {},
@@ -67,13 +68,19 @@ class ImportWizard {
 
     loadTargetFields = async (entity) => {
         const fieldDefinitions = {
-            shipments: [ { name: 'rif_spedizione', label: 'Shipment Reference', required: true, type: 'text' }, { name: 'n_oda', label: 'Order Number', type: 'text' }, { name: 'anno', label: 'Year', type: 'number' }, { name: 'cod_art', label: 'Product Code', type: 'text' }, { name: 'descrizione', label: 'Description', type: 'text' }, { name: 'fornitore', label: 'Supplier', type: 'text' }, { name: 'qty', label: 'Quantity', type: 'number' }, { name: 'um', label: 'Unit', type: 'text' }, { name: 'tipo_spedizione', label: 'Shipment Type', type: 'text' }, { name: 'spedizioniere', label: 'Carrier', type: 'text' }, { name: 'stato_spedizione', label: 'Status', type: 'select' }, { name: 'data_partenza', label: 'Departure Date', type: 'date' }, { name: 'data_arrivo_effettiva', label: 'Arrival Date', type: 'date' }, { name: 'costo_trasporto', label: 'Transport Cost', type: 'currency' }, { name: 'percentuale_dazio', label: 'Duty %', type: 'percentage' } ],
-            products: [ { name: 'cod_art', label: 'Product Code', required: true, type: 'text' }, { name: 'descrizione', label: 'Description', required: true, type: 'text' }, { name: 'descrizione_estesa', label: 'Extended Description', type: 'text' }, { name: 'categoria', label: 'Category', type: 'text' }, { name: 'um', label: 'Unit of Measure', type: 'text' }, { name: 'peso_kg', label: 'Weight (kg)', type: 'number' }, { name: 'volume_m3', label: 'Volume (m³)', type: 'number' }, { name: 'valore_unitario', label: 'Unit Value', type: 'currency' } ],
-            containers: [ { name: 'container_number', label: 'Container Number', required: true, type: 'text' }, { name: 'bl_number', label: 'B/L Number', type: 'text' }, { name: 'carrier', label: 'Carrier', type: 'text' }, { name: 'status', label: 'Status', type: 'select' }, { name: 'pol', label: 'Port of Loading', type: 'text' }, { name: 'pod', label: 'Port of Discharge', type: 'text' }, { name: 'etd', label: 'ETD', type: 'date' }, { name: 'eta', label: 'ETA', type: 'date' } ]
+            products: [
+                { name: 'sku', label: 'SKU', required: true, type: 'text' },
+                { name: 'ean', label: 'EAN', type: 'text' },
+                { name: 'name', label: 'Product Name', required: true, type: 'text' },
+                { name: 'category', label: 'Category', required: true, type: 'text' },
+                { name: 'unit_price', label: 'Unit Price', type: 'currency' },
+                { name: 'metadata', label: 'Metadata', type: 'text' }
+            ],
+            // ...altri se vuoi
         };
         return fieldDefinitions[entity] || [];
     }
-    
+
     handleFileUpload = async (file) => {
         this.currentFile = file;
         try {
@@ -134,8 +141,8 @@ class ImportWizard {
                     this.parsedData = response.data;
                     resolve();
                 } catch (error) {
-                    this.headers = ['Product Code', 'Description', 'Quantity', 'Price'];
-                    this.parsedData = [{ 'Product Code': '12345678', 'Description': 'Sample Product', 'Quantity': '100', 'Price': '25.50' }];
+                    this.headers = ['SKU', 'Product Name', 'Category', 'Unit Price'];
+                    this.parsedData = [{ 'SKU': '12345678', 'Product Name': 'Sample Product', 'Category': 'Test', 'Unit Price': '25.50' }];
                     resolve();
                 }
             };
@@ -162,429 +169,181 @@ class ImportWizard {
         return values;
     }
 
-  autoMap = () => {
-    this.mappings = {};
-    const mappingRules = {
-        'sku': ['cod', 'codice', 'cod_art', 'sku'],
-        'ean': ['ean'],
-        'name': ['descrizione', 'desc', 'nome prodotto', 'description'],
-        'category': ['categoria', 'category'],
-        'unit_price': ['prezzo', 'prezzo medio', 'valore', 'unit price', 'price'],
-        'metadata': ['note', 'notes', 'osservazioni'],
-    };
-    this.headers.forEach(header => {
-        const headerLower = header.toLowerCase().trim();
-        for (const [field, patterns] of Object.entries(mappingRules)) {
-            if (patterns.some(pattern => headerLower === pattern || headerLower.includes(pattern))) {
-                // SOLO nomi inglesi della tabella!
-                this.mappings[header] = field;
-                break;
-            }
-        }
-    });
-    this.updateMappingUI();
-}
-
-
-getColumnMappings = () => {
-    // Lista dei nomi inglesi validi della tabella Supabase
-    const validTargets = [
-        'sku', 'ean', 'name', 'category', 'unit_price', 'metadata',
-        'organization_id', 'user_id', 'weight_kg', 'dimensions_cm',
-        'active', 'created_at', 'updated_at', 'id', 'origin_country', 'currency', 'hs_code'
-    ];
-    const mappings = {};
-    this.headers.forEach(header => {
-        // Leggi il valore scelto dall’utente nella UI (se esiste)
-        const select = this.modal?.querySelector(`[data-mapping-source="${header}"]`);
-        let value = '';
-        if (select && select.value) {
-            value = select.value.trim();
-        } else if (this.mappings && this.mappings[header]) {
-            value = this.mappings[header];
-        }
-        // Permetti solo nomi inglesi validi come target
-        if (validTargets.includes(value)) {
-            mappings[header] = value;
-        } else {
-            mappings[header] = ''; // non mappato o non valido
-        }
-    });
-    return mappings;
-}
-
-
-    renderSourceColumns = () => {
-        const container = this.modal.querySelector('#sourceColumns');
-        container.innerHTML = this.headers.map((header, index) => `
-            <div class="source-column" draggable="true" data-column="${header}" data-index="${index}">
-                <div class="column-header">${header}</div>
-                <div class="column-sample">${this.getColumnSample(header)}</div>
-            </div>
-        `).join('');
-        container.querySelectorAll('.source-column').forEach(col => {
-            col.addEventListener('dragstart', this.handleDragStart);
-            col.addEventListener('dragend', this.handleDragEnd);
-        });
-    }
-
-    renderTargetFields = () => {
-    const container = this.modal.querySelector('#targetFields');
-    const requiredFields = this.targetFields.filter(f => f.required && !f.hidden);
-    const optionalFields = this.targetFields.filter(f => !f.required && !f.hidden);
-    container.innerHTML = `
-        <div class="fields-section">
-            <h5>Required Fields</h5>
-            ${requiredFields.map(field => this.renderTargetField(field)).join('')}
-        </div>
-        <div class="fields-section">
-            <h5>Optional Fields</h5>
-            ${optionalFields.map(field => this.renderTargetField(field)).join('')}
-        </div>
-    `;
-        container.querySelectorAll('.target-field').forEach(field => {
-            field.addEventListener('dragover', this.handleDragOver);
-            field.addEventListener('drop', this.handleDrop);
-            field.addEventListener('dragleave', this.handleDragLeave);
-        });
-    }
-
-    renderTargetField = (field) => {
-        const mapped = Object.entries(this.mappings).find(([col, f]) => f === field.name);
-        const dataTypes = ['text', 'number', 'date', 'boolean', 'currency', 'percentage'];
-        return `
-            <div class="target-field ${mapped ? 'mapped' : ''} ${field.required ? 'required' : ''}" data-field-name="${field.name}">
-                <div class="field-info">
-                    <span class="field-label">${field.label}</span>
-                    <span class="field-type">${field.type}</span>
-                    <button class="edit-field-btn" onclick="importWizard.toggleFieldEditor(this)">&#9998;</button>
-                </div>
-                <div class="field-mapping">
-                    ${mapped ? `<span class="mapped-column">${mapped[0]}</span>` : '<span class="unmapped">Not mapped</span>'}
-                </div>
-                <div class="field-editor" style="display: none;">
-                    <div class="form-group"><label>Field Name (in Database)</label><input type="text" class="field-editor-name" value="${field.name}"></div>
-                    <div class="form-group"><label>Data Type</label><select class="field-editor-type">${dataTypes.map(type => `<option value="${type}" ${type === field.type ? 'selected' : ''}>${type.charAt(0).toUpperCase() + type.slice(1)}</option>`).join('')}</select></div>
-                </div>
-            </div>
-        `;
-    }
-
-    toggleFieldEditor = (buttonElement) => {
-        const targetField = buttonElement.closest('.target-field');
-        if (!targetField) return;
-        const editor = targetField.querySelector('.field-editor');
-        if (editor) {
-            const isVisible = editor.style.display === 'block';
-            editor.style.display = isVisible ? 'none' : 'block';
-        }
-    }
-
-    getColumnSample = (column) => {
-        const samples = this.parsedData.slice(0, 3).map(row => row[column]).filter(val => val).join(', ');
-        return samples || 'No data';
-    }
-
-    handleDragStart = (e) => {
-        e.dataTransfer.effectAllowed = 'copy';
-        e.dataTransfer.setData('text/plain', e.target.dataset.column);
-        e.target.classList.add('dragging');
-    }
-
-    handleDragEnd = (e) => {
-        e.target.classList.remove('dragging');
-    }
-
-    handleDragOver = (e) => {
-        e.preventDefault();
-        e.dataTransfer.dropEffect = 'copy';
-        e.currentTarget.classList.add('drag-over');
-    }
-
-    handleDragLeave = (e) => {
-        e.currentTarget.classList.remove('drag-over');
-    }
-
-    handleDrop = (e) => {
-        e.preventDefault();
-        e.currentTarget.classList.remove('drag-over');
-        const column = e.dataTransfer.getData('text/plain');
-        const field = e.currentTarget.dataset.fieldName; 
-        Object.keys(this.mappings).forEach(col => {
-            if (this.mappings[col] === field) {
-                delete this.mappings[col];
+    autoMap = () => {
+        // NON azzerare this.mappings: preserva le mappature manuali già fatte!
+        const mappingRules = {
+            'sku': ['cod', 'codice', 'cod_art', 'sku'],
+            'ean': ['ean'],
+            'name': ['descrizione', 'desc', 'nome prodotto', 'description'],
+            'category': ['categoria', 'category'],
+            'unit_price': ['prezzo', 'prezzo medio', 'valore', 'unit price', 'price'],
+            'metadata': ['note', 'notes', 'osservazioni'],
+        };
+        this.headers.forEach(header => {
+            if (this.mappings[header]) return; // NON sovrascrivere mappature manuali
+            const headerLower = header.toLowerCase().trim();
+            for (const [field, patterns] of Object.entries(mappingRules)) {
+                if (patterns.some(pattern => headerLower === pattern || headerLower.includes(pattern))) {
+                    // Evita doppia mappatura su campi chiave
+                    if (
+                        ['sku', 'ean', 'name', 'category', 'unit_price'].includes(field) &&
+                        Object.values(this.mappings).includes(field)
+                    ) continue;
+                    this.mappings[header] = field;
+                    break;
+                }
             }
         });
-        this.mappings[column] = field;
         this.updateMappingUI();
     }
 
-    updateMappingUI = () => {
-        this.modal.querySelectorAll('.source-column').forEach(col => {
-            const column = col.dataset.column;
-            col.classList.toggle('mapped', !!this.mappings[column]);
-        });
-        this.renderTargetFields();
-        this.drawMappingLines();
-    }
-
-    drawMappingLines = () => {
-        const svg = this.modal.querySelector('#mappingLines');
-        if (!svg) return;
-        svg.innerHTML = '';
-        Object.entries(this.mappings).forEach(([column, field]) => {
-            const sourceEl = this.modal.querySelector(`[data-column="${column}"]`);
-            const targetEl = this.modal.querySelector(`[data-field-name="${field}"]`);
-            if (sourceEl && targetEl) {
-                const sourceBounds = sourceEl.getBoundingClientRect();
-                const targetBounds = targetEl.getBoundingClientRect();
-                const svgBounds = svg.getBoundingClientRect();
-                const x1 = sourceBounds.right - svgBounds.left;
-                const y1 = sourceBounds.top + sourceBounds.height / 2 - svgBounds.top;
-                const x2 = targetBounds.left - svgBounds.left;
-                const y2 = targetBounds.top + targetBounds.height / 2 - svgBounds.top;
-                const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-                const d = `M ${x1} ${y1} C ${x1 + 50} ${y1}, ${x2 - 50} ${y2}, ${x2} ${y2}`;
-                path.setAttribute('d', d);
-                path.setAttribute('stroke', '#10b981');
-                path.setAttribute('stroke-width', '2');
-                path.setAttribute('fill', 'none');
-                svg.appendChild(path);
+    getColumnMappings = () => {
+        // Lista dei nomi inglesi validi della tabella Supabase
+        const validTargets = [
+            'sku', 'ean', 'name', 'category', 'unit_price', 'metadata',
+            'organization_id', 'user_id', 'weight_kg', 'dimensions_cm',
+            'active', 'created_at', 'updated_at', 'id', 'origin_country', 'currency', 'hs_code'
+        ];
+        const mappings = {};
+        this.headers.forEach(header => {
+            const select = this.modal?.querySelector(`[data-mapping-source="${header}"]`);
+            let value = '';
+            if (select && select.value) {
+                value = select.value.trim();
+            } else if (this.mappings && this.mappings[header]) {
+                value = this.mappings[header];
             }
-        });
-    }
-
-    validateData = () => {
-        const results = { valid: 0, warnings: 0, errors: 0, details: [] };
-        this.parsedData.forEach((row, index) => {
-            const rowValidation = this.validateRow(row, index);
-            if (rowValidation.errors.length === 0 && rowValidation.warnings.length === 0) {
-                results.valid++;
+            // Permetti solo nomi inglesi validi come target
+            if (validTargets.includes(value)) {
+                mappings[header] = value;
             } else {
-                if (rowValidation.errors.length > 0) results.errors++;
-                if (rowValidation.warnings.length > 0) results.warnings++;
-                results.details.push({ row: index + 1, ...rowValidation });
+                mappings[header] = ''; // non mappato o non valido
             }
         });
-        return results;
+        return mappings;
     }
 
-    validateRow = (row, index) => {
-    const errors = [];
-    const warnings = [];
-    this.targetFields.filter(f => f.required).forEach(field => {
-        const mappedColumn = Object.entries(this.mappings).find(([col, f]) => f === field.name)?.[0];
-        if (!mappedColumn || !row[mappedColumn]) {
-            errors.push(`Missing required field: ${field.label}`);
-        }
-    });
-    Object.entries(this.mappings).forEach(([column, fieldName]) => {
-        const field = this.targetFields.find(f => f.name === fieldName);
-        const value = row[column];
-        if (field && value) {
-            switch (field.type) {
-                case 'number': if (isNaN(parseFloat(value))) { warnings.push(`Invalid number in ${field.label}: ${value}`); } break;
-                case 'date': if (!this.isValidDate(value)) { warnings.push(`Invalid date in ${field.label}: ${value}`); } break;
-                case 'currency': if (isNaN(parseFloat(value.replace(/[^0-9.-]/g, '')))) { warnings.push(`Invalid currency in ${field.label}: ${value}`); } break;
-            }
-        }
-    });
-    if (this.config.customValidation) {
-        const customResults = this.config.customValidation(row, this.mappings);
-        errors.push(...(customResults.errors || []));
-        warnings.push(...(customResults.warnings || []));
-    }
-    return { errors, warnings };
-}
-
-
-    isValidDate = (dateString) => {
-        const date = new Date(dateString);
-        return date instanceof Date && !isNaN(date);
-    }
-
-    showPreview = () => {
-        const validation = this.validateData();
-        this.modal.querySelector('#validationSummary').innerHTML = this.renderValidationSummary(validation);
-        this.modal.querySelector('#totalRecords').textContent = this.parsedData.length;
-        this.modal.querySelector('#validRecords').textContent = validation.valid;
-        this.modal.querySelector('#warningRecords').textContent = validation.warnings;
-        this.modal.querySelector('#errorRecords').textContent = validation.errors;
-        this.renderPreviewTable();
-    }
-
-    renderValidationSummary = (validation) => {
-        if (validation.errors === 0 && validation.warnings === 0) return `<div class="alert alert-success"><i class="icon-check-circle"></i>All data is valid and ready to import!</div>`;
-        let html = '';
-        if (validation.errors > 0) html += `<div class="alert alert-danger"><i class="icon-alert-circle"></i>Found ${validation.errors} errors that must be fixed before import</div>`;
-        if (validation.warnings > 0) html += `<div class="alert alert-warning"><i class="icon-alert-triangle"></i>Found ${validation.warnings} warnings - data can be imported but may need review</div>`;
-        if (validation.details.length > 0) {
-            html += '<div class="validation-details">';
-            validation.details.slice(0, 5).forEach(detail => {
-                html += `<div class="validation-detail"><strong>Row ${detail.row}:</strong> ${detail.errors.map(e => `<span class="text-danger">${e}</span>`).join(', ')} ${detail.warnings.map(w => `<span class="text-warning">${w}</span>`).join(', ')}</div>`;
-            });
-            if (validation.details.length > 5) html += `<div class="text-muted">...and ${validation.details.length - 5} more issues</div>`;
-            html += '</div>';
-        }
-        return html;
-    }
-
-    renderPreviewTable = () => {
-        const table = this.modal.querySelector('#previewTable');
-        const mappedColumns = Object.entries(this.mappings);
-        let html = '<thead><tr>';
-        mappedColumns.forEach(([column, field]) => {
-            const fieldDef = this.targetFields.find(f => f.name === field);
-            html += `<th>${fieldDef ? fieldDef.label : field}<br><small class="text-muted">${column}</small></th>`;
-        });
-        html += '</tr></thead><tbody>';
-        this.parsedData.slice(0, this.previewLimit).forEach((row, index) => {
-            const validation = this.validateRow(row, index);
-            const hasErrors = validation.errors.length > 0;
-            const hasWarnings = validation.warnings.length > 0;
-            html += `<tr class="${hasErrors ? 'table-danger' : hasWarnings ? 'table-warning' : ''}">`;
-            mappedColumns.forEach(([column, field]) => {
-                html += `<td>${row[column] || '<em>empty</em>'}</td>`;
-            });
-            html += '</tr>';
-        });
-        html += '</tbody>';
-        if (this.parsedData.length > this.previewLimit) {
-            html += `<tfoot><tr><td colspan="${mappedColumns.length}" class="text-center text-muted">Showing ${this.previewLimit} of ${this.parsedData.length} records</td></tr></tfoot>`;
-        }
-        table.innerHTML = html;
-    }
+    // ...tutte le altre funzioni di rendering, drag&drop, validazione, template, ecc...
+    // (le puoi lasciare come sono nel tuo file attuale)
 
     executeImport = async () => {
-    const importMode = this.modal.querySelector('#importMode').value;
-    const progressBar = this.modal.querySelector('#importProgress');
-    const statusEl = this.modal.querySelector('#importStatus');
-    const logEl = this.modal.querySelector('#importLog');
+        const importMode = this.modal.querySelector('#importMode').value;
+        const progressBar = this.modal.querySelector('#importProgress');
+        const statusEl = this.modal.querySelector('#importStatus');
+        const logEl = this.modal.querySelector('#importLog');
 
-    progressBar.style.width = '0%';
-    logEl.innerHTML = '';
+        progressBar.style.width = '0%';
+        logEl.innerHTML = '';
 
-    try {
-        // 1. Recupera organization_id corrente
-        const orgId = window.organizationService?.getCurrentOrgId?.() || null;
-        if (!orgId) {
-            throw new Error('Organization non selezionata! Impossibile importare.');
-        }
-// PATCH: aggiungi questa riga!
-    const columnMappings = this.getColumnMappings();
-        // 2. Prepara i dati da importare con mapping flessibile
-        const requiredFields = ['sku', 'name', 'category', 'organization_id'];
-        const importData = this.parsedData.map(row => {
-    const mapped = { organization_id: orgId };
-    const metadata = {};
+        try {
+            // 1. Recupera organization_id corrente
+            const orgId = window.organizationService?.getCurrentOrgId?.() || null;
+            if (!orgId) {
+                throw new Error('Organization non selezionata! Impossibile importare.');
+            }
+            const columnMappings = this.getColumnMappings();
+            const requiredFields = ['sku', 'name', 'category', 'organization_id'];
+            const importData = this.parsedData.map(row => {
+                const mapped = { organization_id: orgId };
+                const metadata = {};
+                for (const [sourceHeader, targetField] of Object.entries(columnMappings)) {
+                    if (targetField && targetField !== 'metadata') {
+                        mapped[targetField] = row[sourceHeader];
+                    }
+                }
+                for (const [header, value] of Object.entries(row)) {
+                    if (
+                        !Object.keys(columnMappings).includes(header) ||
+                        columnMappings[header] === 'metadata' ||
+                        !columnMappings[header]
+                    ) {
+                        metadata[header] = value;
+                    }
+                }
+                if (Object.keys(metadata).length > 0) {
+                    mapped.metadata = JSON.stringify(metadata);
+                }
+                return mapped;
+            });
 
-    // Applica la mappatura scelta dall’utente (this.mappings)
-    for (const [sourceHeader, targetField] of Object.entries(columnMappings)) {
-    if (targetField && targetField !== 'metadata') {
-        mapped[targetField] = row[sourceHeader];
-    }
-}
+            // Log per debug
+            console.log('Headers:', this.headers);
+            console.log('Mappings effettivi:', columnMappings);
+            console.log('Primo record raw:', this.parsedData[0]);
+            console.log('Primo record mappato:', importData[0]);
 
-// Tutti i campi non mappati (o mappati su "metadata") finiscono in metadata
-for (const [header, value] of Object.entries(row)) {
-    if (
-        !Object.keys(columnMappings).includes(header) ||
-        columnMappings[header] === 'metadata' ||
-        !columnMappings[header]
-    ) {
-        metadata[header] = value;
-    }
-}
-
-    if (Object.keys(metadata).length > 0) {
-        mapped.metadata = JSON.stringify(metadata);
-    }
-
-    return mapped;
-});
-
-
-        // Log per debug
-        console.log('Headers:', this.headers);
-        console.log('Mappings effettivi:', columnMappings);
-        console.log('Primo record raw:', this.parsedData[0]);
-        console.log('Primo record mappato:', importData[0]);
-
-
-        // 3. Verifica che ci siano record e che i campi obbligatori siano presenti
-        if (!importData.length) {
-            throw new Error('Nessun record da importare!');
-        }
-        const missing = requiredFields.filter(f => importData[0][f] === undefined || importData[0][f] === null || importData[0][f] === '');
-        console.log('Campi obbligatori mancanti:', missing);
-        if (missing.length) {
-        throw new Error('Mancano campi obbligatori: ' + missing.join(', '));
-        }
-
-        if (importMode !== 'append') {
-            throw new Error(`Import mode '${importMode}' is not supported for this operation.`);
-        }
-
-        const batchSize = 100;
-        const totalBatches = Math.ceil(importData.length / batchSize);
-        let processed = 0;
-
-        statusEl.textContent = 'Starting import...';
-
-        for (let i = 0; i < totalBatches; i++) {
-            const batch = importData.slice(i * batchSize, (i + 1) * batchSize);
-
-            // DEBUG: Controlla i dati che mandi a Supabase
-            console.log('Batch to insert:', batch);
-
-            statusEl.textContent = `Processing batch ${i + 1} of ${totalBatches}...`;
-
-            // Chiamata diretta a Supabase
-            const { data, error } = await this.supabase
-                .from('products')
-                .insert(batch);
-
-            if (error) {
-                console.error('Supabase insert error:', error);
-                throw new Error(`Supabase error: ${error.message}`);
+            if (!importData.length) {
+                throw new Error('Nessun record da importare!');
+            }
+            const missing = requiredFields.filter(f => importData[0][f] === undefined || importData[0][f] === null || importData[0][f] === '');
+            console.log('Campi obbligatori mancanti:', missing);
+            if (missing.length) {
+                throw new Error('Mancano campi obbligatori: ' + missing.join(', '));
             }
 
-            processed += batch.length;
-            const progress = (processed / importData.length) * 100;
-            progressBar.style.width = `${progress}%`;
-
-            this.logImportResult({ result: { imported: batch.length, errors: 0 } }, i + 1, logEl);
-        }
-
-        statusEl.textContent = 'Import completed successfully!';
-        statusEl.classList.add('text-success');
-
-        this.events.dispatchEvent(new CustomEvent('importComplete', {
-            detail: { 
-                entity: this.config.entity,
-                totalRecords: importData.length,
-                mode: importMode
+            if (importMode !== 'append') {
+                throw new Error(`Import mode '${importMode}' is not supported for this operation.`);
             }
-        }));
 
-        setTimeout(() => {
-            this.modal.close();
-            notificationSystem.show('Import completed successfully!', 'success');
-        }, 2000);
+            const batchSize = 100;
+            const totalBatches = Math.ceil(importData.length / batchSize);
+            let processed = 0;
 
-    } catch (error) {
-        console.error('Import error:', error);
-        statusEl.textContent = `Import failed: ${error.message}`;
-        statusEl.classList.add('text-danger');
+            statusEl.textContent = 'Starting import...';
 
-        logEl.innerHTML += `
-            <div class="log-entry log-error">
-                <i class="icon-x-circle"></i>
-                Error: ${error.message}
-            </div>
-        `;
+            for (let i = 0; i < totalBatches; i++) {
+                const batch = importData.slice(i * batchSize, (i + 1) * batchSize);
+
+                // DEBUG: Controlla i dati che mandi a Supabase
+                console.log('Batch to insert:', batch);
+
+                statusEl.textContent = `Processing batch ${i + 1} of ${totalBatches}...`;
+
+                const { data, error } = await this.supabase
+                    .from('products')
+                    .insert(batch);
+
+                if (error) {
+                    console.error('Supabase insert error:', error);
+                    throw new Error(`Supabase error: ${error.message}`);
+                }
+
+                processed += batch.length;
+                const progress = (processed / importData.length) * 100;
+                progressBar.style.width = `${progress}%`;
+
+                this.logImportResult({ result: { imported: batch.length, errors: 0 } }, i + 1, logEl);
+            }
+
+            statusEl.textContent = 'Import completed successfully!';
+            statusEl.classList.add('text-success');
+
+            this.events.dispatchEvent(new CustomEvent('importComplete', {
+                detail: { 
+                    entity: this.config.entity,
+                    totalRecords: importData.length,
+                    mode: importMode
+                }
+            }));
+
+            setTimeout(() => {
+                this.modal.close();
+                notificationSystem.show('Import completed successfully!', 'success');
+            }, 2000);
+
+        } catch (error) {
+            console.error('Import error:', error);
+            statusEl.textContent = `Import failed: ${error.message}`;
+            statusEl.classList.add('text-danger');
+
+            logEl.innerHTML += `
+                <div class="log-entry log-error">
+                    <i class="icon-x-circle"></i>
+                    Error: ${error.message}
+                </div>
+            `;
+        }
     }
-}
 
 
 getFinalMappings = () => {
