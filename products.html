@@ -1026,7 +1026,7 @@
     </style>
     <script type="module">
     import { importWizard } from '/core/import-wizard.js';
-    import { supabase } from '/core/services/supabase-client.js'; // 1. Importa supabase con il percorso corretto
+    import { supabase } from './core/Services/supabase-client.js';
 
     // 2. Inietta il client nel wizard per risolvere le dipendenze
     importWizard.setSupabaseClient(supabase);
