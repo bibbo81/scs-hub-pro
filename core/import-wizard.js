@@ -503,50 +503,61 @@ class ImportWizard {
     }
 }
 
+getFinalMappings = () => {
+        const finalMappings = {};
+        this.targetFields.forEach(originalField => {
+            const fieldElement = this.modal.querySelector(`[data-field-name="${originalField.name}"]`);
+            if (fieldElement) {
+                const nameInput = fieldElement.querySelector('.field-editor-name');
+                const typeSelect = fieldElement.querySelector('.field-editor-type');
+                finalMappings[originalField.name] = {
+                    name: nameInput ? nameInput.value : originalField.name,
+                    type: typeSelect ? typeSelect.value : originalField.type
+                };
+            }
+        });
+        return finalMappings;
+    }
     prepareImportData = () => {
     return this.parsedData.map(row => {
         const importRow = {};
+        const finalMappings = this.getFinalMappings();
 
-        // Mappa le colonne configurate dall'utente
+        // Mappa le colonne usando i nomi e i tipi finali scelti dall'utente
         Object.entries(this.mappings).forEach(([sourceColumn, originalFieldName]) => {
-            const fieldElement = this.modal.querySelector(`[data-field-name="${originalFieldName}"]`);
-            if (!fieldElement) return;
+            const finalMapping = finalMappings[originalFieldName];
+            if (!finalMapping) return;
 
-            // Legge i valori finali dall'interfaccia di modifica
-            const finalNameInput = fieldElement.querySelector('.field-editor-name');
-            const finalTypeSelect = fieldElement.querySelector('.field-editor-type');
-
-            const finalName = finalNameInput ? finalNameInput.value : originalFieldName;
-            const finalType = finalTypeSelect ? finalTypeSelect.value : this.targetFields.find(f => f.name === originalFieldName)?.type || 'text';
-
+            const finalName = finalMapping.name;
+            const finalType = finalMapping.type;
             let value = row[sourceColumn];
 
-            // Esegue la conversione del tipo basandosi sulla scelta dell'utente
-            if (value !== null && value !== undefined) {
+            if (value !== null && value !== undefined && value !== '') {
                 switch (finalType) {
                     case 'number':
-                        value = parseFloat(value) || null; // Restituisce null se non è un numero valido
+                        value = parseFloat(String(value).replace(',', '.')) || null;
                         break;
                     case 'currency':
-                        value = parseFloat(String(value).replace(/[^0-9.-]/g, '')) || null;
+                        value = parseFloat(String(value).replace(/[^0-9.,-]/g, '').replace(',', '.')) || null;
                         break;
                     case 'percentage':
-                        value = parseFloat(String(value).replace('%', '')) || null;
+                        value = parseFloat(String(value).replace('%', '').replace(',', '.')) || null;
                         break;
                     case 'date':
-                        value = this.formatDate(value); // Usa la tua funzione esistente
+                        value = this.formatDate(value);
                         break;
                     case 'boolean':
                         value = ['true', '1', 'yes', 'si'].includes(String(value).toLowerCase());
                         break;
-                    // Il tipo 'text' non necessita di conversioni
                 }
+            } else {
+                value = null; // Imposta a null i valori vuoti
             }
 
             importRow[finalName] = value;
         });
 
-        // Aggiunge i campi non mappati come custom fields, se l'opzione è attiva
+        // Logica per i campi custom
         if (this.modal.querySelector('#allowCustomFields')?.checked) {
             Object.keys(row).forEach(column => {
                 if (!Object.keys(this.mappings).includes(column)) {
