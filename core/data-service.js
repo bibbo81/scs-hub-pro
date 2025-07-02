@@ -1,5 +1,5 @@
 // public/core/data-service.js
-import { apiClient } from './api-client.js';
+import { apiClient } from '/core/api-client.js';
 
 /**
  * Data Service - Servizio centralizzato per gestione dati

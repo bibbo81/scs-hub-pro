@@ -1,6 +1,6 @@
 // core/components/api-key-manager.js
-import userSettingsService from '../services/user-settings-service.js';
-import notificationSystem from '../notification-system.js';
+import userSettingsService from 'core/services/user-settings-service.js';
+import notificationSystem from 'core/notification-system.js';
 
 export class ApiKeyManager {
     async showApiKeyModal() {

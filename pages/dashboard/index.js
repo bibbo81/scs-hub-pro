@@ -1,6 +1,6 @@
 // public/pages/dashboard/index.js
-import { dataService } from '../../core/data-service.js';
-import { notificationSystem } from '../../core/notification-system.js';
+import { dataService } from '/core/data-service.js';
+import { notificationSystem } from '/core/notification-system.js';
 
 /**
  * Dashboard Page Controller
