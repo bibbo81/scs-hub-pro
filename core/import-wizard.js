@@ -198,6 +198,23 @@ class ImportWizard {
     this.updateMappingUI();
 }
 
+getColumnMappings = () => {
+    // Restituisce la mappatura effettiva tra le colonne del file e i campi target scelti dall’utente
+    // Usa la mappatura manuale se presente, altrimenti quella automatica
+    const mappings = {};
+    this.headers.forEach(header => {
+        // Se hai una select/dropdown per ogni colonna, puoi leggerla qui (adatta il selettore se serve)
+        const select = this.modal?.querySelector(`[data-mapping-source="${header}"]`);
+        if (select && select.value) {
+            mappings[header] = select.value;
+        } else if (this.mappings && this.mappings[header]) {
+            mappings[header] = this.mappings[header];
+        } else {
+            mappings[header] = ''; // non mappato
+        }
+    });
+    return mappings;
+}
 
     renderSourceColumns = () => {
         const container = this.modal.querySelector('#sourceColumns');
@@ -455,53 +472,49 @@ class ImportWizard {
             throw new Error('Organization non selezionata! Impossibile importare.');
         }
 
-        // 2. Mapping ITA → ENG
-        const columnMap = {
-            'cod_art': 'sku',
-            'codice': 'sku',
-            'sku': 'sku',
-            'descrizione': 'name',
-            'nome prodotto': 'name',
-            'description': 'name',
-            'category': 'category',
-            'categoria': 'category',
-            'peso': 'weight_kg',
-            'peso_kg': 'weight_kg',
-            'volume': 'dimensions_cm', // Se hai dimensioni separate, gestiscile sotto
-            'valore': 'unit_price',
-            'prezzo': 'unit_price',
-            'valore_unitario': 'unit_price',
-            'origine': 'origin_country',
-            'paese_origine': 'origin_country',
-            'valuta': 'currency',
-            'hs_code': 'hs_code',
-            'attivo': 'active',
-            'note': 'metadata',
-        };
-
-        // 3. Prepara i dati da importare
+        // 2. Prepara i dati da importare con mapping flessibile
+        const requiredFields = ['sku', 'name', 'category', 'organization_id'];
         const importData = this.parsedData.map(row => {
-            const mapped = {
-                organization_id: orgId
-            };
-            for (const [header, value] of Object.entries(row)) {
-                const headerLower = header.toLowerCase().trim();
-                const supabaseField = columnMap[headerLower];
-                if (supabaseField) {
-                    mapped[supabaseField] = value;
-                }
-            }
-            // Esempio: se hai colonne separate per dimensioni, puoi unirle qui
-            // mapped.dimensions_cm = `${row['lunghezza']}x${row['larghezza']}x${row['altezza']}`;
-            return mapped;
-        });
+    const mapped = { organization_id: orgId };
+    const metadata = {};
 
-        // 4. Verifica che ci siano record e che i campi obbligatori siano presenti
+    // Applica la mappatura scelta dall’utente (this.mappings)
+    for (const [sourceHeader, targetField] of Object.entries(this.mappings)) {
+        if (targetField && targetField !== 'metadata') {
+            mapped[targetField] = row[sourceHeader];
+        }
+    }
+
+    // Tutti i campi non mappati (o mappati su "metadata") finiscono in metadata
+    for (const [header, value] of Object.entries(row)) {
+        if (
+            !Object.keys(this.mappings).includes(header) ||
+            this.mappings[header] === 'metadata' ||
+            !this.mappings[header]
+        ) {
+            metadata[header] = value;
+        }
+    }
+    if (Object.keys(metadata).length > 0) {
+        mapped.metadata = JSON.stringify(metadata);
+    }
+
+    return mapped;
+});
+
+
+        // Log per debug
+        console.log('Headers:', this.headers);
+        console.log('Primo record raw:', this.parsedData[0]);
+        console.log('Primo record mappato:', importData[0]);
+
+        // 3. Verifica che ci siano record e che i campi obbligatori siano presenti
         if (!importData.length) {
             throw new Error('Nessun record da importare!');
         }
-        if (!importData[0].sku || !importData[0].name || !importData[0].category) {
-            throw new Error('Mancano campi obbligatori: SKU, Nome, Categoria');
+        const missing = requiredFields.filter(f => !importData[0][f]);
+        if (missing.length) {
+            throw new Error('Mancano campi obbligatori: ' + missing.join(', '));
         }
 
         if (importMode !== 'append') {
@@ -568,7 +581,6 @@ class ImportWizard {
         `;
     }
 }
-
 
 
 getFinalMappings = () => {
