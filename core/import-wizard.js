@@ -458,7 +458,8 @@ getColumnMappings = () => {
         if (!orgId) {
             throw new Error('Organization non selezionata! Impossibile importare.');
         }
-
+// PATCH: aggiungi questa riga!
+    const columnMappings = this.getColumnMappings();
         // 2. Prepara i dati da importare con mapping flessibile
         const requiredFields = ['sku', 'name', 'category', 'organization_id'];
         const importData = this.parsedData.map(row => {
