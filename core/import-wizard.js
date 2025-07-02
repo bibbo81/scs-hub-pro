@@ -164,39 +164,28 @@ class ImportWizard {
 
   autoMap = () => {
     this.mappings = {};
-    // Mapping ITA → ENG (usato anche per l'import vero e proprio)
+    // Mapping ITA/ENG + header reali usati nei tuoi file
     const mappingRules = {
-        'sku': ['cod_art', 'codice', 'sku', 'product code', 'code'],
-        'name': ['descrizione', 'nome prodotto', 'name', 'description'],
+        'sku': ['cod', 'cod_art', 'codice', 'sku', 'product code', 'code', 'ean'],
+        'name': ['descrizione', 'nome prodotto', 'name', 'description', 'desc'],
         'category': ['categoria', 'category'],
-        'weight_kg': ['peso', 'peso_kg', 'weight', 'weight_kg'],
-        'dimensions_cm': ['dimensioni', 'volume', 'dimensions', 'volume_cm', 'dimensioni_cm'],
-        'unit_price': ['valore', 'prezzo', 'valore_unitario', 'unit price', 'price'],
-        'origin_country': ['origine', 'paese_origine', 'origin', 'origin_country'],
-        'currency': ['valuta', 'currency'],
-        'hs_code': ['hs_code', 'codice doganale', 'customs code'],
-        'active': ['attivo', 'active'],
-        'description': ['descrizione estesa', 'description', 'desc'],
-        'metadata': ['note', 'metadata', 'notes'],
-        // organization_id non va mappato da file, lo aggiungiamo noi
+        'unit_price': ['prezzo', 'valore', 'unit price', 'prezzo me stato', 'price'],
+        'metadata': ['note', 'notes', 'osservazioni'],
+        // aggiungi altri pattern se vuoi
     };
-
     this.headers.forEach(header => {
         const headerLower = header.toLowerCase().trim();
         for (const [field, patterns] of Object.entries(mappingRules)) {
             if (patterns.some(pattern => headerLower === pattern || headerLower.includes(pattern))) {
-                // Solo se il campo esiste tra i targetFields
-                if (this.targetFields.find(f => f.name === field)) {
-                    this.mappings[header] = field;
-                    break;
-                }
+                this.mappings[header] = field;
+                break;
             }
         }
     });
-
     // Aggiorna la UI mapping
     this.updateMappingUI();
 }
+
 
 getColumnMappings = () => {
     // Restituisce la mappatura effettiva tra le colonne del file e i campi target scelti dall’utente
@@ -505,8 +494,10 @@ getColumnMappings = () => {
 
         // Log per debug
         console.log('Headers:', this.headers);
+        console.log('Mappings effettivi:', columnMappings);
         console.log('Primo record raw:', this.parsedData[0]);
         console.log('Primo record mappato:', importData[0]);
+
 
         // 3. Verifica che ci siano record e che i campi obbligatori siano presenti
         if (!importData.length) {
