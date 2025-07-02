@@ -886,41 +886,47 @@ startImport = async () => {
         const mappings = this.getColumnMappings();
 
         const records = this.parsedData.map(row => {
-            const newRecord = {};
-            for (const [colName, fieldName] of Object.entries(mappings)) {
-                if (fieldName) newRecord[fieldName] = row[colName];
-            }
+    const newRecord = {};
 
-            // 🔧 Fix tipologie dati
-            if (newRecord.unit_price) {
-                newRecord.unit_price = parseFloat(newRecord.unit_price);
-            }
+    // Applica mapping delle colonne
+    for (const [colName, fieldName] of Object.entries(mappings)) {
+        if (fieldName) newRecord[fieldName] = row[colName];
+    }
 
-            if (newRecord.metadata && typeof newRecord.metadata === 'string') {
-                try {
-                    newRecord.metadata = JSON.parse(newRecord.metadata);
-                } catch (e) {
-                    console.warn('Invalid JSON in metadata, fallback to null:', newRecord.metadata);
-                    newRecord.metadata = null;
-                }
-            }
+    // Fix tipo numerico per unit_price
+    if (newRecord.unit_price) newRecord.unit_price = parseFloat(newRecord.unit_price);
 
-            // 🏷️ Multi-tenant: inietta organization_id
-            newRecord.organization_id = orgId;
+    // Fix tipo JSON per metadata
+    if (newRecord.metadata && typeof newRecord.metadata === 'string') {
+        try {
+            newRecord.metadata = JSON.parse(newRecord.metadata);
+        } catch {
+            newRecord.metadata = null;
+        }
+    }
 
-            return newRecord;
-        });
+    // 🔹 Genera ID univoco
+    newRecord.id = crypto.randomUUID();
+
+    // 🔹 Altri campi obbligatori
+    newRecord.organization_id = orgId;
+    newRecord.user_id = userId;
+
+    return newRecord;
+});
+
 
         if (records.length === 0) {
             notificationSystem.show("No records to import.", "warning");
             return;
         }
 
-        console.log("🧪 Importing records:", records); // 🔍 Debug
+        console.log("🧪 First record to import:", records[0]); // 🔍 Debug
+        console.log("🧩 Column mappings:", mappings);
 
         document.getElementById('importStatus').innerText = `Importing ${records.length} records...`;
 
-        const { data, error } = await this.supabase.from('products').insert(records);
+        const { data, error } = await this.supabase.from('products').insert(records.slice(0, 1));
 
         if (error) {
             console.error("❌ Supabase insert error", error);
