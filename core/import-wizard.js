@@ -823,7 +823,7 @@ if (saveTemplateBtn) saveTemplateBtn.addEventListener('click', this.saveTemplate
 
 this.renderTemplates();
     }
-    
+
 gotoStep = (stepIndex) => {
     const previousStep = this.currentStep;
     this.currentStep = stepIndex;
@@ -875,7 +875,7 @@ gotoStep = (stepIndex) => {
         this.mappings = {};
         this.currentStep = 0;
     }
-    startImport = async () => {
+startImport = async () => {
     try {
         const orgId = window.organizationService?.getCurrentOrgId();
         if (!orgId) {
@@ -890,7 +890,24 @@ gotoStep = (stepIndex) => {
             for (const [colName, fieldName] of Object.entries(mappings)) {
                 if (fieldName) newRecord[fieldName] = row[colName];
             }
+
+            // 🔧 Fix tipologie dati
+            if (newRecord.unit_price) {
+                newRecord.unit_price = parseFloat(newRecord.unit_price);
+            }
+
+            if (newRecord.metadata && typeof newRecord.metadata === 'string') {
+                try {
+                    newRecord.metadata = JSON.parse(newRecord.metadata);
+                } catch (e) {
+                    console.warn('Invalid JSON in metadata, fallback to null:', newRecord.metadata);
+                    newRecord.metadata = null;
+                }
+            }
+
+            // 🏷️ Multi-tenant: inietta organization_id
             newRecord.organization_id = orgId;
+
             return newRecord;
         });
 
@@ -899,12 +916,14 @@ gotoStep = (stepIndex) => {
             return;
         }
 
+        console.log("🧪 Importing records:", records); // 🔍 Debug
+
         document.getElementById('importStatus').innerText = `Importing ${records.length} records...`;
 
         const { data, error } = await this.supabase.from('products').insert(records);
 
         if (error) {
-            console.error("Supabase insert error", error);
+            console.error("❌ Supabase insert error", error);
             notificationSystem.show(`Import failed: ${error.message}`, 'error');
             return;
         }
