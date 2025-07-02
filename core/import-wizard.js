@@ -164,16 +164,16 @@ class ImportWizard {
 
   autoMap = () => {
     this.mappings = {};
+    // Mapping ITA → ENG
     const mappingRules = {
-        // DB Column (EN) -> Possible File Columns (IT/EN)
-        'sku': ['cod', 'codice', 'articolo', 'product', 'sku'],
-        'name': ['nome prodotto', 'descrizione', 'description'],
+        'sku': ['cod', 'codice', 'articolo', 'product', 'sku', 'cod_art'],
+        'name': ['nome prodotto', 'descrizione', 'description', 'name'],
         'category': ['categoria', 'category'],
-        'unit_of_measure': ['um', 'unità'],
-        'weight_kg': ['peso', 'weight'],
-        'volume_m3': ['volume'],
-        'unit_value': ['valore', 'prezzo', 'value', 'price'],
-        'status': ['stato', 'status']
+        'unit_of_measure': ['um', 'unità', 'unit of measure'],
+        'weight_kg': ['peso', 'weight', 'peso_kg'],
+        'volume_m3': ['volume', 'volume_m3'],
+        'unit_value': ['valore', 'prezzo', 'value', 'price', 'valore_unitario'],
+        // organization_id non va mappato da file, lo aggiungiamo noi
     };
     this.headers.forEach(header => {
         const headerLower = header.toLowerCase().trim();
@@ -204,19 +204,19 @@ class ImportWizard {
     }
 
     renderTargetFields = () => {
-        const container = this.modal.querySelector('#targetFields');
-        const requiredFields = this.targetFields.filter(f => f.required);
-        const optionalFields = this.targetFields.filter(f => !f.required);
-        container.innerHTML = `
-            <div class="fields-section">
-                <h5>Required Fields</h5>
-                ${requiredFields.map(field => this.renderTargetField(field)).join('')}
-            </div>
-            <div class="fields-section">
-                <h5>Optional Fields</h5>
-                ${optionalFields.map(field => this.renderTargetField(field)).join('')}
-            </div>
-        `;
+    const container = this.modal.querySelector('#targetFields');
+    const requiredFields = this.targetFields.filter(f => f.required && !f.hidden);
+    const optionalFields = this.targetFields.filter(f => !f.required && !f.hidden);
+    container.innerHTML = `
+        <div class="fields-section">
+            <h5>Required Fields</h5>
+            ${requiredFields.map(field => this.renderTargetField(field)).join('')}
+        </div>
+        <div class="fields-section">
+            <h5>Optional Fields</h5>
+            ${optionalFields.map(field => this.renderTargetField(field)).join('')}
+        </div>
+    `;
         container.querySelectorAll('.target-field').forEach(field => {
             field.addEventListener('dragover', this.handleDragOver);
             field.addEventListener('drop', this.handleDrop);
@@ -439,7 +439,30 @@ class ImportWizard {
     logEl.innerHTML = '';
 
     try {
-        const importData = this.prepareImportData();
+        // 1. Recupera organization_id corrente
+        const orgId = window.organizationService?.getCurrentOrgId?.() || null;
+        if (!orgId) {
+            throw new Error('Organization non selezionata! Impossibile importare.');
+        }
+
+        // 2. Prepara i dati da importare con mapping e aggiunta organization_id
+        const importData = this.parsedData.map(row => {
+            const mapped = {};
+            for (const [source, target] of Object.entries(this.mappings)) {
+                mapped[target] = row[source];
+            }
+            mapped.organization_id = orgId;
+            return mapped;
+        });
+
+        // 3. Verifica che ci siano record e che i campi obbligatori siano presenti
+        if (!importData.length) {
+            throw new Error('Nessun record da importare!');
+        }
+        const missingRequired = this.targetFields.filter(f => f.required && !importData[0][f.name]);
+        if (missingRequired.length) {
+            throw new Error('Mancano campi obbligatori: ' + missingRequired.map(f => f.label).join(', '));
+        }
 
         if (importMode !== 'append') {
             throw new Error(`Import mode '${importMode}' is not supported for this operation.`);
@@ -458,8 +481,8 @@ class ImportWizard {
 
             // Chiamata diretta a Supabase
             const { data, error } = await this.supabase
-            .from('products')
-            .insert(batch);
+                .from('products')
+                .insert(batch);
 
             if (error) {
                 console.error('Supabase insert error:', error);
@@ -502,6 +525,7 @@ class ImportWizard {
         `;
     }
 }
+
 
 getFinalMappings = () => {
         const finalMappings = {};

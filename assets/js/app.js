@@ -366,18 +366,18 @@ if (page === 'products') {
             importBtn.addEventListener('click', async () => {
                 // Inizializza il wizard con la configurazione CORRETTA (nomi in inglese)
                 await importWizard.init({
-                    entity: 'products',
-                    targetFields: [
-                        { name: 'sku', label: 'SKU (Codice)', required: true, type: 'text' },
-                        { name: 'name', label: 'Nome Prodotto', required: true, type: 'text' },
-                        { name: 'description', label: 'Descrizione', type: 'text' },
-                        { name: 'category', label: 'Categoria', required: true, type: 'text' },
-                        { name: 'unit_of_measure', label: 'Unità di Misura', type: 'text' },
-                        { name: 'weight_kg', label: 'Peso (kg)', type: 'number' },
-                        { name: 'volume_m3', label: 'Volume (m³)', type: 'number' },
-                        { name: 'unit_value', label: 'Valore Unitario', type: 'currency' }
-                    ]
-                });
+    entity: 'products',
+    targetFields: [
+        { name: 'sku', label: 'SKU (Codice)', required: true, type: 'text' },
+        { name: 'name', label: 'Nome Prodotto', required: true, type: 'text' },
+        { name: 'category', label: 'Categoria', required: true, type: 'text' },
+        { name: 'unit_of_measure', label: 'Unità di Misura', type: 'text' },
+        { name: 'weight_kg', label: 'Peso (kg)', type: 'number' },
+        { name: 'volume_m3', label: 'Volume (m³)', type: 'number' },
+        { name: 'unit_value', label: 'Valore Unitario', type: 'currency' },
+        { name: 'organization_id', label: 'Organization', required: true, type: 'text', hidden: true }
+    ]
+});
                 importWizard.show();
             });
         }
