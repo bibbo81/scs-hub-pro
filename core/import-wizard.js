@@ -161,22 +161,32 @@ class ImportWizard {
         return values;
     }
 
-    autoMap = () => {
-        this.mappings = {};
-        const mappingRules = { 'rif_spedizione': ['rif', 'spedizione', 'reference', 'shipment', 'tracking'], 'n_oda': ['oda', 'order', 'ordine', 'po'], 'cod_art': ['cod', 'codice', 'articolo', 'product', 'sku', 'code'], 'descrizione': ['descrizione', 'description', 'desc', 'nome'], 'fornitore': ['fornitore', 'supplier', 'vendor', 'fornitore'], 'qty': ['qty', 'quantity', 'quantità', 'pezzi', 'amount'], 'data_partenza': ['partenza', 'departure', 'etd', 'data partenza'], 'data_arrivo_effettiva': ['arrivo', 'arrival', 'eta', 'consegna'], 'costo_trasporto': ['costo', 'cost', 'trasporto', 'shipping'], 'stato': ['stato', 'status', 'state'], 'tipo': ['tipo', 'type'], 'note': ['note', 'notes', 'commenti', 'comments'] };
-        this.headers.forEach(header => {
-            const headerLower = header.toLowerCase();
-            for (const [field, patterns] of Object.entries(mappingRules)) {
-                if (patterns.some(pattern => headerLower.includes(pattern))) {
-                    if (this.targetFields.find(f => f.name === field)) {
-                        this.mappings[header] = field;
-                        break;
-                    }
+  autoMap = () => {
+    this.mappings = {};
+    const mappingRules = {
+        // DB Column (EN) -> Possible File Columns (IT/EN)
+        'sku': ['cod', 'codice', 'articolo', 'product', 'sku'],
+        'name': ['nome prodotto', 'descrizione', 'description'],
+        'category': ['categoria', 'category'],
+        'unit_of_measure': ['um', 'unità'],
+        'weight_kg': ['peso', 'weight'],
+        'volume_m3': ['volume'],
+        'unit_value': ['valore', 'prezzo', 'value', 'price'],
+        'status': ['stato', 'status']
+    };
+    this.headers.forEach(header => {
+        const headerLower = header.toLowerCase().trim();
+        for (const [field, patterns] of Object.entries(mappingRules)) {
+            if (patterns.some(pattern => headerLower.includes(pattern))) {
+                if (this.targetFields.find(f => f.name === field)) {
+                    this.mappings[header] = field;
+                    break;
                 }
             }
-        });
-        this.updateMappingUI();
-    }
+        }
+    });
+    this.updateMappingUI();
+}
 
     renderSourceColumns = () => {
         const container = this.modal.querySelector('#sourceColumns');

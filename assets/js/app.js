@@ -349,3 +349,39 @@ if (document.readyState === 'loading') {
         setTimeout(() => app.init(), 100);
     }
 }
+
+const page = document.body.dataset.page;
+if (page === 'products') {
+    try {
+        // Importa tutto il necessario
+        const { importWizard } = await import('./core/import-wizard.js');
+        const { supabase } = await import('./core/services/supabase-client.js'); // Percorso corretto
+
+        // Inietta il client Supabase nel wizard
+        importWizard.setSupabaseClient(supabase);
+
+        // Trova il pulsante di import
+        const importBtn = document.getElementById('importProductsBtn');
+        if (importBtn) {
+            importBtn.addEventListener('click', async () => {
+                // Inizializza il wizard con la configurazione CORRETTA (nomi in inglese)
+                await importWizard.init({
+                    entity: 'products',
+                    targetFields: [
+                        { name: 'sku', label: 'SKU (Codice)', required: true, type: 'text' },
+                        { name: 'name', label: 'Nome Prodotto', required: true, type: 'text' },
+                        { name: 'description', label: 'Descrizione', type: 'text' },
+                        { name: 'category', label: 'Categoria', required: true, type: 'text' },
+                        { name: 'unit_of_measure', label: 'Unità di Misura', type: 'text' },
+                        { name: 'weight_kg', label: 'Peso (kg)', type: 'number' },
+                        { name: 'volume_m3', label: 'Volume (m³)', type: 'number' },
+                        { name: 'unit_value', label: 'Valore Unitario', type: 'currency' }
+                    ]
+                });
+                importWizard.show();
+            });
+        }
+    } catch (e) {
+        console.error("Errore durante l'inizializzazione del wizard di importazione:", e);
+    }
+}

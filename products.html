@@ -1024,21 +1024,5 @@
     --sol-modal-width: 400px;
 }
     </style>
-    <script type="module">
-    import { importWizard } from '/core/import-wizard.js';
-    import { supabase } from './core/Services/supabase-client.js';
-
-    // 2. Inietta il client nel wizard per risolvere le dipendenze
-    importWizard.setSupabaseClient(supabase);
-
-    // 3. Collega il pulsante come prima
-    const importBtn = document.getElementById('importProductsBtn');
-    if (importBtn) {
-        importBtn.addEventListener('click', async () => {
-            await importWizard.init({ entity: 'products' });
-            importWizard.show();
-        });
-    }
-</script>
 </body>
 </html>
