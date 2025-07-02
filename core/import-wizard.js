@@ -445,23 +445,53 @@ class ImportWizard {
             throw new Error('Organization non selezionata! Impossibile importare.');
         }
 
-        // 2. Prepara i dati da importare con mapping e aggiunta organization_id
+        // 2. Mapping ITA → ENG
+        const columnMap = {
+            'cod_art': 'sku',
+            'codice': 'sku',
+            'sku': 'sku',
+            'descrizione': 'name',
+            'nome prodotto': 'name',
+            'description': 'name',
+            'category': 'category',
+            'categoria': 'category',
+            'peso': 'weight_kg',
+            'peso_kg': 'weight_kg',
+            'volume': 'dimensions_cm', // Se hai dimensioni separate, gestiscile sotto
+            'valore': 'unit_price',
+            'prezzo': 'unit_price',
+            'valore_unitario': 'unit_price',
+            'origine': 'origin_country',
+            'paese_origine': 'origin_country',
+            'valuta': 'currency',
+            'hs_code': 'hs_code',
+            'attivo': 'active',
+            'note': 'metadata',
+        };
+
+        // 3. Prepara i dati da importare
         const importData = this.parsedData.map(row => {
-            const mapped = {};
-            for (const [source, target] of Object.entries(this.mappings)) {
-                mapped[target] = row[source];
+            const mapped = {
+                organization_id: orgId
+            };
+            for (const [header, value] of Object.entries(row)) {
+                const headerLower = header.toLowerCase().trim();
+                const supabaseField = columnMap[headerLower];
+                if (supabaseField) {
+                    mapped[supabaseField] = value;
+                }
             }
-            mapped.organization_id = orgId;
+            // Esempio: se hai colonne separate per dimensioni, puoi unirle qui
+            // mapped.dimensions_cm = `${row['lunghezza']}x${row['larghezza']}x${row['altezza']}`;
             return mapped;
         });
 
-        // 3. Verifica che ci siano record e che i campi obbligatori siano presenti
+        // 4. Verifica che ci siano record e che i campi obbligatori siano presenti
         if (!importData.length) {
             throw new Error('Nessun record da importare!');
         }
-        const missingRequired = this.targetFields.filter(f => f.required && !importData[0][f.name]);
-        if (missingRequired.length) {
-            throw new Error('Mancano campi obbligatori: ' + missingRequired.map(f => f.label).join(', '));
+        if (!importData[0].sku || !importData[0].name || !importData[0].category) {
+            throw new Error('Mancano campi obbligatori: SKU, Nome, Categoria');
         }
 
         if (importMode !== 'append') {
@@ -476,6 +506,9 @@ class ImportWizard {
 
         for (let i = 0; i < totalBatches; i++) {
             const batch = importData.slice(i * batchSize, (i + 1) * batchSize);
+
+            // DEBUG: Controlla i dati che mandi a Supabase
+            console.log('Batch to insert:', batch);
 
             statusEl.textContent = `Processing batch ${i + 1} of ${totalBatches}...`;
 
@@ -525,6 +558,7 @@ class ImportWizard {
         `;
     }
 }
+
 
 
 getFinalMappings = () => {
