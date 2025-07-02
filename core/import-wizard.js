@@ -187,22 +187,32 @@ class ImportWizard {
 
 
 getColumnMappings = () => {
-    // Restituisce la mappatura effettiva tra le colonne del file e i campi target scelti dall’utente
-    // Usa la mappatura manuale se presente, altrimenti quella automatica
+    // Lista dei nomi inglesi validi della tabella Supabase
+    const validTargets = [
+        'sku', 'ean', 'name', 'category', 'unit_price', 'metadata',
+        'organization_id', 'user_id', 'weight_kg', 'dimensions_cm',
+        'active', 'created_at', 'updated_at', 'id', 'origin_country', 'currency', 'hs_code'
+    ];
     const mappings = {};
     this.headers.forEach(header => {
-        // Se hai una select/dropdown per ogni colonna, puoi leggerla qui (adatta il selettore se serve)
+        // Leggi il valore scelto dall’utente nella UI (se esiste)
         const select = this.modal?.querySelector(`[data-mapping-source="${header}"]`);
+        let value = '';
         if (select && select.value) {
-            mappings[header] = select.value;
+            value = select.value.trim();
         } else if (this.mappings && this.mappings[header]) {
-            mappings[header] = this.mappings[header];
+            value = this.mappings[header];
+        }
+        // Permetti solo nomi inglesi validi come target
+        if (validTargets.includes(value)) {
+            mappings[header] = value;
         } else {
-            mappings[header] = ''; // non mappato
+            mappings[header] = ''; // non mappato o non valido
         }
     });
     return mappings;
 }
+
 
     renderSourceColumns = () => {
         const container = this.modal.querySelector('#sourceColumns');
