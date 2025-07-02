@@ -505,9 +505,10 @@ for (const [header, value] of Object.entries(row)) {
         if (!importData.length) {
             throw new Error('Nessun record da importare!');
         }
-        const missing = requiredFields.filter(f => !importData[0][f]);
+        const missing = requiredFields.filter(f => importData[0][f] === undefined || importData[0][f] === null || importData[0][f] === '');
+        console.log('Campi obbligatori mancanti:', missing);
         if (missing.length) {
-            throw new Error('Mancano campi obbligatori: ' + missing.join(', '));
+        throw new Error('Mancano campi obbligatori: ' + missing.join(', '));
         }
 
         if (importMode !== 'append') {
