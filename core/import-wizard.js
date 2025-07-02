@@ -475,22 +475,23 @@ getColumnMappings = () => {
     const metadata = {};
 
     // Applica la mappatura scelta dall’utente (this.mappings)
-    for (const [sourceHeader, targetField] of Object.entries(this.mappings)) {
-        if (targetField && targetField !== 'metadata') {
-            mapped[targetField] = row[sourceHeader];
-        }
+    for (const [sourceHeader, targetField] of Object.entries(columnMappings)) {
+    if (targetField && targetField !== 'metadata') {
+        mapped[targetField] = row[sourceHeader];
     }
+}
 
-    // Tutti i campi non mappati (o mappati su "metadata") finiscono in metadata
-    for (const [header, value] of Object.entries(row)) {
-        if (
-            !Object.keys(this.mappings).includes(header) ||
-            this.mappings[header] === 'metadata' ||
-            !this.mappings[header]
-        ) {
-            metadata[header] = value;
-        }
+// Tutti i campi non mappati (o mappati su "metadata") finiscono in metadata
+for (const [header, value] of Object.entries(row)) {
+    if (
+        !Object.keys(columnMappings).includes(header) ||
+        columnMappings[header] === 'metadata' ||
+        !columnMappings[header]
+    ) {
+        metadata[header] = value;
     }
+}
+
     if (Object.keys(metadata).length > 0) {
         mapped.metadata = JSON.stringify(metadata);
     }
