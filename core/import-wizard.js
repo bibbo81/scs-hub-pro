@@ -163,7 +163,7 @@ class ImportWizard {
     }
 
   autoMap = () => {
-    // NON azzerare this.mappings: preserva le mappature manuali già fatte!
+    this.mappings = {};
     const mappingRules = {
         'sku': ['cod', 'codice', 'cod_art', 'sku'],
         'ean': ['ean'],
@@ -172,18 +172,11 @@ class ImportWizard {
         'unit_price': ['prezzo', 'prezzo medio', 'valore', 'unit price', 'price'],
         'metadata': ['note', 'notes', 'osservazioni'],
     };
-
     this.headers.forEach(header => {
-        // Se il campo è già mappato manualmente, NON lo toccare!
-        if (this.mappings[header]) return;
         const headerLower = header.toLowerCase().trim();
         for (const [field, patterns] of Object.entries(mappingRules)) {
             if (patterns.some(pattern => headerLower === pattern || headerLower.includes(pattern))) {
-                // Evita doppia mappatura su campi chiave
-                if (
-                    ['sku', 'ean', 'name', 'category', 'unit_price'].includes(field) &&
-                    Object.values(this.mappings).includes(field)
-                ) continue;
+                // SOLO nomi inglesi della tabella!
                 this.mappings[header] = field;
                 break;
             }
@@ -191,6 +184,7 @@ class ImportWizard {
     });
     this.updateMappingUI();
 }
+
 
 getColumnMappings = () => {
     // Restituisce la mappatura effettiva tra le colonne del file e i campi target scelti dall’utente
