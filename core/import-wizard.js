@@ -164,28 +164,26 @@ class ImportWizard {
 
   autoMap = () => {
     this.mappings = {};
-    // Mapping ITA/ENG + header reali usati nei tuoi file
+    // Mapping ITA/ENG + header reali → nomi tabella Supabase
     const mappingRules = {
-        'sku': ['cod', 'cod_art', 'codice', 'sku', 'product code', 'code', 'ean'],
-        'name': ['descrizione', 'nome prodotto', 'name', 'description', 'desc'],
+        'sku': ['cod', 'cod_art', 'codice', 'sku', 'ean'],
+        'name': ['descrizione', 'desc', 'nome prodotto', 'description'],
         'category': ['categoria', 'category'],
-        'unit_price': ['prezzo', 'valore', 'unit price', 'prezzo me stato', 'price'],
+        'unit_price': ['prezzo', 'prezzo medio', 'valore', 'unit price', 'price'],
         'metadata': ['note', 'notes', 'osservazioni'],
-        // aggiungi altri pattern se vuoi
+        // altri se vuoi
     };
     this.headers.forEach(header => {
         const headerLower = header.toLowerCase().trim();
         for (const [field, patterns] of Object.entries(mappingRules)) {
             if (patterns.some(pattern => headerLower === pattern || headerLower.includes(pattern))) {
-                this.mappings[header] = field;
+                this.mappings[header] = field; // <-- qui: SEMPRE il nome inglese della tabella!
                 break;
             }
         }
     });
-    // Aggiorna la UI mapping
     this.updateMappingUI();
 }
-
 
 getColumnMappings = () => {
     // Restituisce la mappatura effettiva tra le colonne del file e i campi target scelti dall’utente
