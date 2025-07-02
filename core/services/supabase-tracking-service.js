@@ -1,5 +1,5 @@
 // core/services/supabase-tracking-service.js
-import { supabase } from './supabase-client.js';
+import { supabase } from '/core/services/supabase-client.js';
 
 class SupabaseTrackingService {
     constructor() {

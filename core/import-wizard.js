@@ -1,8 +1,8 @@
 // public/core/import-wizard.js
-import notificationSystem from './notification-system.js';
-import modalSystem from './modal-system.js';
-import apiClient from './api-client.js';
-import { supabase } from './core/services/supabase-client.js';
+import notificationSystem from '/core/notification-system.js';
+import modalSystem from '/core/modal-system.js';
+import apiClient from '/core/api-client.js';
+import { supabase } from '/core/services/supabase-client.js';
 
 class ImportWizard {
     constructor() {

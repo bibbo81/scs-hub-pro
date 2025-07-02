@@ -1,10 +1,10 @@
 // core/services/tracking-service.js - VERSIONE CON CROSS-BROWSER SYNC FIX
 // Service layer con sincronizzazione corretta da Supabase
 
-import supabaseTrackingService from './supabase-tracking-service.js';
-import userSettingsService from './user-settings-service.js';
-import organizationApiKeysService from './organization-api-keys-service.js';
-import { supabase } from './supabase-client.js';
+import supabaseTrackingService from '/core/services/supabase-tracking-service.js';
+import userSettingsService from '/core/services/user-settings-service.js';
+import organizationApiKeysService from '/core/services/organization-api-keys-service.js';
+import { supabase } from '/core/services/supabase-client.js';
 
 class TrackingService {
     constructor() {

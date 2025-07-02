@@ -1,6 +1,6 @@
 // core/services/organization-api-keys-service.js
-import { supabase, requireAuth } from './supabase-client.js';
-import userSettingsService from './user-settings-service.js';
+import { supabase, requireAuth } from 'core/services/supabase-client.js';
+import userSettingsService from '/core/services/user-settings-service.js';
 
 class OrganizationApiKeysService {
     constructor() {

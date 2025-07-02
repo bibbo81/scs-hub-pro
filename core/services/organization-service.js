@@ -1,4 +1,4 @@
-import { supabase } from './supabase-client.js';
+import { supabase } from '/core/services/supabase-client.js';
 
 class OrganizationService {
     constructor() {

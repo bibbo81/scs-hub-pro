@@ -1,5 +1,5 @@
 // core/services/user-settings-service.js - FIX DEFINITIVO PER MODALITÀ DEMO
-import { supabase, requireAuth } from './supabase-client.js';
+import { supabase, requireAuth } from '/core/services/supabase-client.js';
 
 class UserSettingsService {
     constructor() {

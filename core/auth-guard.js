@@ -1,5 +1,5 @@
 // core/auth-guard.js - Middleware per proteggere le pagine
-import { supabase } from './services/supabase-client.js';
+import { supabase } from '/core/services/supabase-client.js';
 
 class AuthGuard {
     constructor() {

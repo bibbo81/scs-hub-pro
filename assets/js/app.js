@@ -354,8 +354,8 @@ const page = document.body.dataset.page;
 if (page === 'products') {
     try {
         // Importa tutto il necessario
-        const { importWizard } = await import('./core/import-wizard.js');
-        const { supabase } = await import('./core/services/supabase-client.js'); // Percorso corretto
+        const { importWizard } = await import('/core/import-wizard.js');
+        const { supabase } = await import('/core/services/supabase-client.js'); // Percorso corretto
 
         // Inietta il client Supabase nel wizard
         importWizard.setSupabaseClient(supabase);
