@@ -93,7 +93,10 @@ class ImportWizard {
             notificationSystem.show(`Error parsing file: ${error.message}`, 'error');
             console.error('File upload error:', error);
         }
+    console.log("📌 Mappings:", this.mappings);
+
     }
+    
 
     parseCSV = (file) => {
         return new Promise((resolve, reject) => {
@@ -182,7 +185,7 @@ class ImportWizard {
             if (patterns.some(p => normHeader.includes(normalize(p)))) {
                 this.mappings[header] = field;
 
-                // ✅ Aggiorna anche il select nella UI
+                // Aggiorna anche la UI
                 const select = this.modal.querySelector(`select[data-header="${header}"]`);
                 if (select) {
                     select.value = field;
@@ -194,9 +197,11 @@ class ImportWizard {
         }
     });
 
-    notificationSystem.show("🔁 AutoMap completato con successo", "info");
-    console.log("🧠 AutoMap:", this.mappings);
+    // ✅ Log corretto dopo l'automapping
+    console.log("📌 Mappings:", this.mappings);
+    notificationSystem.show("🔄 AutoMap completato", "info");
 };
+
 
 
 
@@ -952,6 +957,8 @@ startImport = async () => {
         // 🔍 Debug: stampa il primo record
         console.log("🧪 First record to import:", records[0]);
         console.log("📦 Full record payload:", JSON.stringify(records.slice(0, 3), null, 2));
+        console.log("🧪 Mapping applicato:", mappings);
+        console.log("🧪 Prima riga grezza:", this.parsedData[0]);
 
         // Mostra stato
         document.getElementById('importStatus').innerText = `Importing ${records.length} records...`;
