@@ -912,6 +912,7 @@ startImport = async () => {
         }
 
         const mappings = this.getColumnMappings();
+        console.log("🧭 Mapping attivo prima dell'import:", mappings);
 
         const records = this.parsedData.map(row => {
             const newRecord = {};
