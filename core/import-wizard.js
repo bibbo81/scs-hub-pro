@@ -164,26 +164,40 @@ class ImportWizard {
 
   autoMap = () => {
     this.mappings = {};
+
+    const normalize = str => str.toLowerCase().trim().replace(/[^a-z0-9]/g, '');
+
     const mappingRules = {
         'sku': ['cod', 'codice', 'cod_art', 'sku'],
         'ean': ['ean'],
         'name': ['descrizione', 'desc', 'nome prodotto', 'description'],
         'category': ['categoria', 'category'],
         'unit_price': ['prezzo', 'prezzo medio', 'valore', 'unit price', 'price'],
-        'metadata': ['note', 'notes', 'osservazioni'],
+        'metadata': ['note', 'notes', 'osservazioni']
     };
+
     this.headers.forEach(header => {
-        const headerLower = header.toLowerCase().trim();
+        const normHeader = normalize(header);
         for (const [field, patterns] of Object.entries(mappingRules)) {
-            if (patterns.some(pattern => headerLower === pattern || headerLower.includes(pattern))) {
-                // SOLO nomi inglesi della tabella!
+            if (patterns.some(p => normHeader.includes(normalize(p)))) {
                 this.mappings[header] = field;
+
+                // ✅ Aggiorna anche il select nella UI
+                const select = this.modal.querySelector(`select[data-header="${header}"]`);
+                if (select) {
+                    select.value = field;
+                    select.dispatchEvent(new Event('change'));
+                }
+
                 break;
             }
         }
     });
-    this.updateMappingUI();
-}
+
+    notificationSystem.show("🔁 AutoMap completato con successo", "info");
+    console.log("🧠 AutoMap:", this.mappings);
+};
+
 
 
 getColumnMappings = () => {
