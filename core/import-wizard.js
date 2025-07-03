@@ -126,15 +126,18 @@ class ImportWizard {
       throw new Error('Unsupported file format');
     }
 
+    // ✅ Mostra step MAPPING
     this.showStep('mapping');
 
+    // ✅ Ora aspetta il DOM visibile
     setTimeout(() => {
       this.renderSourceColumns();
       this.renderTargetFields();
       this.autoMap();
-    }, 50);
+    }, 100);
 
     notificationSystem.show('File parsed successfully', 'success');
+
   } catch (error) {
     notificationSystem.show(`Error parsing file: ${error.message}`, 'error');
     console.error('File upload error:', error);
