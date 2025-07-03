@@ -173,9 +173,6 @@ class ImportWizard {
   `;
 };
 
-
-
-
     loadTargetFields = async (entity) => {
         const fieldDefinitions = {
             shipments: [ { name: 'rif_spedizione', label: 'Shipment Reference', required: true, type: 'text' }, { name: 'n_oda', label: 'Order Number', type: 'text' }, { name: 'anno', label: 'Year', type: 'number' }, { name: 'cod_art', label: 'Product Code', type: 'text' }, { name: 'descrizione', label: 'Description', type: 'text' }, { name: 'fornitore', label: 'Supplier', type: 'text' }, { name: 'qty', label: 'Quantity', type: 'number' }, { name: 'um', label: 'Unit', type: 'text' }, { name: 'tipo_spedizione', label: 'Shipment Type', type: 'text' }, { name: 'spedizioniere', label: 'Carrier', type: 'text' }, { name: 'stato_spedizione', label: 'Status', type: 'select' }, { name: 'data_partenza', label: 'Departure Date', type: 'date' }, { name: 'data_arrivo_effettiva', label: 'Arrival Date', type: 'date' }, { name: 'costo_trasporto', label: 'Transport Cost', type: 'currency' }, { name: 'percentuale_dazio', label: 'Duty %', type: 'percentage' } ],
@@ -186,29 +183,33 @@ class ImportWizard {
     }
     
     handleFileUpload = async (file) => {
-        this.currentFile = file;
-        try {
-            notificationSystem.show('Parsing file...', 'info');
-            if (file.name.endsWith('.csv')) {
-                await this.parseCSV(file);
-            } else if (file.name.match(/\.xlsx?$/)) {
-                await this.parseExcel(file);
-            } else {
-                throw new Error('Unsupported file format');
-            }
-            this.renderSourceColumns();
-            this.renderTargetFields();
-            this.autoMap();
-            notificationSystem.show('File parsed successfully', 'success');
-        } catch (error) {
-            notificationSystem.show(`Error parsing file: ${error.message}`, 'error');
-            console.error('File upload error:', error);
-        }
-    console.log("📌 Mappings:", this.mappings);
-
+  this.currentFile = file;
+  try {
+    notificationSystem.show('Parsing file...', 'info');
+    if (file.name.endsWith('.csv')) {
+      await this.parseCSV(file);
+    } else if (file.name.match(/\.xlsx?$/)) {
+      await this.parseExcel(file);
+    } else {
+      throw new Error('Unsupported file format');
     }
-    
 
+    // ✅ Appena il file è caricato, passa subito allo step mapping:
+    this.showStep('mapping');
+
+    // ✅ Esegui rendering ora che gli elementi sono visibili:
+    this.renderSourceColumns();
+    this.renderTargetFields();
+    this.autoMap();
+
+    notificationSystem.show('File parsed successfully', 'success');
+  } catch (error) {
+    notificationSystem.show(`Error parsing file: ${error.message}`, 'error');
+    console.error('File upload error:', error);
+  }
+  console.log("📌 Mappings:", this.mappings);
+};
+    
     parseCSV = (file) => {
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
@@ -393,18 +394,23 @@ getColumnMappings = () => {
 
 
     renderSourceColumns = () => {
-        const container = this.modal.querySelector('#sourceColumns');
-        container.innerHTML = this.headers.map((header, index) => `
-            <div class="source-column" draggable="true" data-column="${header}" data-index="${index}">
-                <div class="column-header">${header}</div>
-                <div class="column-sample">${this.getColumnSample(header)}</div>
-            </div>
-        `).join('');
-        container.querySelectorAll('.source-column').forEach(col => {
-            col.addEventListener('dragstart', this.handleDragStart);
-            col.addEventListener('dragend', this.handleDragEnd);
-        });
-    }
+  const container = this.modal.querySelector('#sourceColumns');
+  if (!container) {
+    console.error('❌ sourceColumns non trovato! Sei nello step MAPPING?');
+    return;
+  }
+  container.innerHTML = this.headers.map((header, index) => `
+    <div class="source-column" draggable="true" data-column="${header}" data-index="${index}">
+      <div class="column-header">${header}</div>
+      <div class="column-sample">${this.getColumnSample(header)}</div>
+    </div>
+  `).join('');
+
+  container.querySelectorAll('.source-column').forEach(col => {
+    col.addEventListener('dragstart', this.handleDragStart);
+    col.addEventListener('dragend', this.handleDragEnd);
+  });
+};
 
     renderTargetFields = () => {
     const container = this.modal.querySelector('#mappingContainer');
