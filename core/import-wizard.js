@@ -184,8 +184,10 @@ class ImportWizard {
     
     handleFileUpload = async (file) => {
   this.currentFile = file;
+
   try {
     notificationSystem.show('Parsing file...', 'info');
+
     if (file.name.endsWith('.csv')) {
       await this.parseCSV(file);
     } else if (file.name.match(/\.xlsx?$/)) {
@@ -194,21 +196,24 @@ class ImportWizard {
       throw new Error('Unsupported file format');
     }
 
-    // ✅ Appena il file è caricato, passa subito allo step mapping:
+    // ✅ Vai subito allo STEP MAPPING (così #sourceColumns esiste!)
     this.showStep('mapping');
 
-    // ✅ Esegui rendering ora che gli elementi sono visibili:
-    this.renderSourceColumns();
-    this.renderTargetFields();
-    this.autoMap();
+    // ✅ Ora puoi renderizzare
+    setTimeout(() => {
+      this.renderSourceColumns();
+      this.renderTargetFields();
+      this.autoMap();
+    }, 50);
 
     notificationSystem.show('File parsed successfully', 'success');
+
   } catch (error) {
     notificationSystem.show(`Error parsing file: ${error.message}`, 'error');
     console.error('File upload error:', error);
   }
-  console.log("📌 Mappings:", this.mappings);
 };
+
     
     parseCSV = (file) => {
     return new Promise((resolve, reject) => {
