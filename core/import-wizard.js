@@ -392,9 +392,15 @@ getColumnMappings = () => {
     }
 
     renderTargetFields = () => {
-    const container = this.modal.querySelector('#targetFields');
+    const container = this.modal.querySelector('#mappingContainer');
+    if (!container) {
+        console.error('❌ mappingContainer non trovato!');
+        return;
+    }
+
     const requiredFields = this.targetFields.filter(f => f.required && !f.hidden);
     const optionalFields = this.targetFields.filter(f => !f.required && !f.hidden);
+
     container.innerHTML = `
         <div class="fields-section">
             <h5>Required Fields</h5>
@@ -405,12 +411,14 @@ getColumnMappings = () => {
             ${optionalFields.map(field => this.renderTargetField(field)).join('')}
         </div>
     `;
-        container.querySelectorAll('.target-field').forEach(field => {
-            field.addEventListener('dragover', this.handleDragOver);
-            field.addEventListener('drop', this.handleDrop);
-            field.addEventListener('dragleave', this.handleDragLeave);
-        });
-    }
+
+    container.querySelectorAll('.target-field').forEach(field => {
+        field.addEventListener('dragover', this.handleDragOver);
+        field.addEventListener('drop', this.handleDrop);
+        field.addEventListener('dragleave', this.handleDragLeave);
+    });
+};
+
 
     renderTargetField = (field) => {
         const mapped = Object.entries(this.mappings).find(([col, f]) => f === field.name);
