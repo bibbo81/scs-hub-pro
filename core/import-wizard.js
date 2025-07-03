@@ -112,13 +112,46 @@ renderWizard = () => {
 };
 
     loadTargetFields = async (entity) => {
-        const fieldDefinitions = {
-            shipments: [ { name: 'rif_spedizione', label: 'Shipment Reference', required: true, type: 'text' }, { name: 'n_oda', label: 'Order Number', type: 'text' }, { name: 'anno', label: 'Year', type: 'number' }, { name: 'cod_art', label: 'Product Code', type: 'text' }, { name: 'descrizione', label: 'Description', type: 'text' }, { name: 'fornitore', label: 'Supplier', type: 'text' }, { name: 'qty', label: 'Quantity', type: 'number' }, { name: 'um', label: 'Unit', type: 'text' }, { name: 'tipo_spedizione', label: 'Shipment Type', type: 'text' }, { name: 'spedizioniere', label: 'Carrier', type: 'text' }, { name: 'stato_spedizione', label: 'Status', type: 'select' }, { name: 'data_partenza', label: 'Departure Date', type: 'date' }, { name: 'data_arrivo_effettiva', label: 'Arrival Date', type: 'date' }, { name: 'costo_trasporto', label: 'Transport Cost', type: 'currency' }, { name: 'percentuale_dazio', label: 'Duty %', type: 'percentage' } ],
-            products: [ { name: 'cod_art', label: 'Product Code', required: true, type: 'text' }, { name: 'descrizione', label: 'Description', required: true, type: 'text' }, { name: 'descrizione_estesa', label: 'Extended Description', type: 'text' }, { name: 'categoria', label: 'Category', type: 'text' }, { name: 'um', label: 'Unit of Measure', type: 'text' }, { name: 'peso_kg', label: 'Weight (kg)', type: 'number' }, { name: 'volume_m3', label: 'Volume (m³)', type: 'number' }, { name: 'valore_unitario', label: 'Unit Value', type: 'currency' } ],
-            containers: [ { name: 'container_number', label: 'Container Number', required: true, type: 'text' }, { name: 'bl_number', label: 'B/L Number', type: 'text' }, { name: 'carrier', label: 'Carrier', type: 'text' }, { name: 'status', label: 'Status', type: 'select' }, { name: 'pol', label: 'Port of Loading', type: 'text' }, { name: 'pod', label: 'Port of Discharge', type: 'text' }, { name: 'etd', label: 'ETD', type: 'date' }, { name: 'eta', label: 'ETA', type: 'date' } ]
-        };
-        return fieldDefinitions[entity] || [];
-    }
+    const fieldDefinitions = {
+        shipments: [
+            { name: 'rif_spedizione', label: 'Shipment Reference', required: true, type: 'text' },
+            { name: 'n_oda', label: 'Order Number', type: 'text' },
+            { name: 'anno', label: 'Year', type: 'number' },
+            { name: 'cod_art', label: 'Product Code', type: 'text' },
+            { name: 'descrizione', label: 'Description', type: 'text' },
+            { name: 'fornitore', label: 'Supplier', type: 'text' },
+            { name: 'qty', label: 'Quantity', type: 'number' },
+            { name: 'um', label: 'Unit', type: 'text' },
+            { name: 'tipo_spedizione', label: 'Shipment Type', type: 'text' },
+            { name: 'spedizioniere', label: 'Carrier', type: 'text' },
+            { name: 'stato_spedizione', label: 'Status', type: 'select' },
+            { name: 'data_partenza', label: 'Departure Date', type: 'date' },
+            { name: 'data_arrivo_effettiva', label: 'Arrival Date', type: 'date' },
+            { name: 'costo_trasporto', label: 'Transport Cost', type: 'currency' },
+            { name: 'percentuale_dazio', label: 'Duty %', type: 'percentage' }
+        ],
+        products: [
+            { name: 'sku', label: 'Codice', required: true, type: 'text' },
+            { name: 'description', label: 'Descrizione', required: true, type: 'text' },
+            { name: 'other_description', label: 'Descrizione Alternativa', type: 'text' },
+            { name: 'category', label: 'Categoria', type: 'text' },
+            { name: 'ean', label: 'EAN', type: 'text' },
+            { name: 'unit_price', label: 'Prezzo unitario', type: 'currency' },
+            { name: 'metadata', label: 'Note/Metadata', type: 'text' }
+        ],
+        containers: [
+            { name: 'container_number', label: 'Container Number', required: true, type: 'text' },
+            { name: 'bl_number', label: 'B/L Number', type: 'text' },
+            { name: 'carrier', label: 'Carrier', type: 'text' },
+            { name: 'status', label: 'Status', type: 'select' },
+            { name: 'pol', label: 'Port of Loading', type: 'text' },
+            { name: 'pod', label: 'Port of Discharge', type: 'text' },
+            { name: 'etd', label: 'ETD', type: 'date' },
+            { name: 'eta', label: 'ETA', type: 'date' }
+        ]
+    };
+    return fieldDefinitions[entity] || [];
+};
     
     handleFileUpload = async (file) => {
   this.currentFile = file;
@@ -267,7 +300,8 @@ renderWizard = () => {
     const mappingRules = {
         'sku': ['cod', 'codice', 'cod_art'],
         'ean': ['ean', 'bar code'],
-        'name': ['descrizione', 'desc', 'nome prodotto'],
+        'description': ['descrizione', 'desc', 'nome prodotto'],
+        'other_description': ['descrizione estesa', 'desc estesa', 'altro', 'other description'],
         'category': ['categoria'],
         'unit_price': ['prezzo', 'prezzo medio', 'valore', 'price'],
         'metadata': ['note', 'osservazioni']
@@ -285,7 +319,6 @@ renderWizard = () => {
                     select.value = field;
                     select.dispatchEvent(new Event('change'));
                 }
-
                 break;
             }
         }
@@ -294,10 +327,6 @@ renderWizard = () => {
     console.log("📌 AutoMap Result:", this.mappings);
     notificationSystem.show("✅ Mappatura automatica completata", "info");
 };
-
-
-
-
 
 getColumnMappings = () => {
     // Lista dei campi validi (in inglese) della tabella Supabase
@@ -967,7 +996,7 @@ gotoStep = (stepIndex) => {
         this.mappings = {};
         this.currentStep = 0;
     }
-    
+
 startImport = async () => {
   try {
     const orgId = window.organizationService?.getCurrentOrgId();
@@ -985,15 +1014,16 @@ startImport = async () => {
 
     const mappings = this.getColumnMappings();
     const records = this.parsedData.map(row => {
-      const newRecord = {};
-      for (const [colName, fieldName] of Object.entries(mappings)) {
+    const newRecord = {};
+    for (const [colName, fieldName] of Object.entries(mappings)) {
+        // Non girare "id", solo campi effettivi
         if (fieldName && fieldName !== "id") newRecord[fieldName] = row[colName];
-      }
-      newRecord.user_id = userId;
-      newRecord.organization_id = orgId;
-      // NON generare/girare newRecord.id!
-      return newRecord;
-    }).filter(r => r.sku && r.name); // scarta i record senza sku o name
+    }
+    newRecord.user_id = userId;
+    newRecord.organization_id = orgId;
+    return newRecord;
+    }).filter(r => r.sku && r.description); // scarta i record senza sku o description
+
 
     if (records.length === 0) {
       notificationSystem.show("No valid records to import.", "warning");
