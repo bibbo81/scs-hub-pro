@@ -57,6 +57,7 @@ class ImportWizard {
 renderWizard = () => {
   return `
     <div class="import-wizard" data-step="upload">
+
       <!-- STEP 1: UPLOAD -->
       <div class="wizard-content" data-step-content="upload">
         <div class="upload-area" id="uploadArea">
@@ -75,6 +76,7 @@ renderWizard = () => {
             <button id="saveTemplateBtn" class="btn btn-secondary">Save as template</button>
           </div>
         </div>
+
         <div id="mappingContainer" class="mapping-container">
           <div class="source-columns">
             <h4>Your File Columns</h4>
@@ -89,6 +91,18 @@ renderWizard = () => {
           </div>
         </div>
       </div>
+
+      <!-- STEP 3: IMPORT -->
+      <div class="wizard-content" data-step-content="import" style="display: none;">
+        <h3>Import in corso...</h3>
+        <div id="importStatus" class="import-status"></div>
+        <div id="importProgressBar" class="progress-bar" style="margin-top: 10px; height: 8px; background: #f0f0f0;">
+          <div id="importProgress" style="height: 100%; width: 0; background: #1abc9c;"></div>
+        </div>
+        <div id="importLog" class="import-log"></div>
+      </div>
+
+      <!-- NAVIGATION -->
       <div class="wizard-navigation">
         <button class="btn btn-secondary" id="prevBtn">Previous</button>
         <button class="btn btn-primary" id="nextBtn">Next</button>
@@ -805,27 +819,36 @@ getFinalMappings = () => {
         }
     }
 
-    showStep = (step) => {
-        if (!this.modal) return;
-        this.modal.querySelectorAll('.wizard-content').forEach(content => {
-            content.style.display = 'none';
-        });
-        this.modal.querySelector(`[data-step-content="${step}"]`).style.display = 'block';
-        this.modal.querySelectorAll('.step').forEach((stepEl, index) => {
-            stepEl.classList.toggle('active', index <= this.currentStep);
-            stepEl.classList.toggle('completed', index < this.currentStep);
-        });
-        const prevBtn = this.modal.querySelector('#prevBtn');
-        const nextBtn = this.modal.querySelector('#nextBtn');
-        if (prevBtn) prevBtn.style.display = this.currentStep === 0 ? 'none' : 'inline-block';
-        if (nextBtn) {
-            nextBtn.textContent = this.currentStep >= this.steps.indexOf('preview') ? 'Import' : 'Next';
-            nextBtn.style.display = 'inline-block';
-            if (step === 'import') {
-                nextBtn.style.display = 'none';
-            }
-        }
+showStep = (step) => {
+  if (!this.modal) return;
+
+  // Nascondi tutti gli step
+  this.modal.querySelectorAll('.wizard-content').forEach(content => {
+    content.style.display = 'none';
+  });
+
+  // Mostra lo step corrente
+  const currentContent = this.modal.querySelector(`[data-step-content="${step}"]`);
+  if (currentContent) currentContent.style.display = 'block';
+
+  // Aggiorna step indicatori (se hai una barra di step)
+  this.modal.querySelectorAll('.step').forEach((stepEl, index) => {
+    stepEl.classList.toggle('active', index <= this.currentStep);
+    stepEl.classList.toggle('completed', index < this.currentStep);
+  });
+
+  // Bottoni prev/next
+  const prevBtn = this.modal.querySelector('#prevBtn');
+  const nextBtn = this.modal.querySelector('#nextBtn');
+  if (prevBtn) prevBtn.style.display = this.currentStep === 0 ? 'none' : 'inline-block';
+  if (nextBtn) {
+    nextBtn.textContent = this.currentStep >= this.steps.indexOf('preview') ? 'Import' : 'Next';
+    nextBtn.style.display = 'inline-block';
+    if (step === 'import') {
+      nextBtn.style.display = 'none';
     }
+  }
+};
 
     validateCurrentStep = () => {
         switch (this.steps[this.currentStep]) {
@@ -944,6 +967,7 @@ gotoStep = (stepIndex) => {
         this.mappings = {};
         this.currentStep = 0;
     }
+    
 startImport = async () => {
   try {
     const orgId = window.organizationService?.getCurrentOrgId();
@@ -951,12 +975,14 @@ startImport = async () => {
       notificationSystem.show("Missing organization context. Cannot proceed with import.", "error");
       return;
     }
+
     const user = await this.supabase.auth.getUser();
     const userId = user?.data?.user?.id;
     if (!userId) {
       notificationSystem.show("User not authenticated", "error");
       return;
     }
+
     const mappings = this.getColumnMappings();
     const records = this.parsedData.map(row => {
       const newRecord = {};
@@ -973,21 +999,31 @@ startImport = async () => {
       notificationSystem.show("No valid records to import.", "warning");
       return;
     }
+
     // Debug: stampa batch
     console.log("🧪 First record to import:", records[0]);
-    // Mostra stato
-    document.getElementById('importStatus').innerText = `Importing ${records.length} records...`;
+
+    // Mostra stato solo se il div esiste
+    const statusEl = document.getElementById('importStatus');
+    if (statusEl) statusEl.innerText = `Importing ${records.length} records...`;
+
     const { data, error } = await this.supabase.from('products').insert(records);
+
     if (error) {
       console.error("❌ Supabase insert error", error);
       notificationSystem.show(`Import failed: ${error.message}`, 'error');
+      if (statusEl) statusEl.innerText = `Import error: ${error.message}`;
       return;
     }
+
     notificationSystem.show(`✅ Import successful: ${records.length} records`, 'success');
-    document.getElementById('importStatus').innerText = `Successfully imported ${records.length} records`;
+    if (statusEl) statusEl.innerText = `Successfully imported ${records.length} records`;
+
   } catch (err) {
     console.error('Import error:', err);
     notificationSystem.show('Unexpected error during import', 'error');
+    const statusEl = document.getElementById('importStatus');
+    if (statusEl) statusEl.innerText = 'Unexpected error during import';
   }
 };
 
