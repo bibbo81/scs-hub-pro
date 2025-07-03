@@ -133,48 +133,29 @@ showStatus(message, type = 'info', duration = 3000) {
         this.recommendations = this.generateRecommendations();
     }
 
-    async showImportModal() {
+ showImportModal = async () => {
     console.log('[ProductIntelligence] Initializing import wizard for products...');
-    if (!window.importWizard && !importWizard) {
+    if (!window.importWizard) {
         this.showStatus('Import wizard module not available.', 'error');
         return;
     }
+    // Passa il Supabase client all’importWizard
+    window.importWizard.setSupabaseClient(window.supabase);
+    await window.importWizard.init({
+        entity: 'products',
+        allowCustomFields: true,
+        validationRules: {}, // puoi aggiungere validazioni custom qui
+    });
+    window.importWizard.show();
 
-    const wizard = window.importWizard || importWizard;
+    window.importWizard.events.addEventListener('importComplete', async () => {
+        this.showStatus('Import successful! Refreshing data...', 'success');
+        await this.loadData();
+        this.renderProducts();
+        this.renderIntelligenceStats && this.renderIntelligenceStats();
+    }, { once: true });
+};
 
-    try {
-        await wizard.init({
-            entity: 'products',
-            endpoint: 'api/v1/products/import', // puoi sostituire con il tuo endpoint reale
-            targetFields: [
-                { name: 'sku', label: 'SKU', required: true, type: 'text' },
-                { name: 'name', label: 'Product Name', required: true, type: 'text' },
-                { name: 'description', label: 'Description', type: 'text' },
-                { name: 'category', label: 'Category', required: true, type: 'text' },
-                { name: 'specifications.weight', label: 'Weight (kg)', type: 'number' },
-                { name: 'specifications.dimensions.length', label: 'Length (cm)', type: 'number' },
-                { name: 'specifications.dimensions.width', label: 'Width (cm)', type: 'number' },
-                { name: 'specifications.dimensions.height', label: 'Height (cm)', type: 'number' },
-                { name: 'specifications.value', label: 'Unit Value (USD)', type: 'currency' },
-                { name: 'costTracking.baseCost', label: 'Base Cost (USD)', type: 'currency' },
-                { name: 'costTracking.targetMargin', label: 'Target Margin (%)', type: 'percentage' }
-            ]
-        });
-
-        wizard.show();
-
-        wizard.events.addEventListener('importComplete', async () => {
-            this.showStatus('Import successful! Refreshing data...', 'success');
-            await this.loadData();
-            this.renderProducts();
-            this.renderIntelligenceStats();
-        }, { once: true });
-
-    } catch (error) {
-        console.error('Failed to initialize import wizard:', error);
-        this.showStatus(`Error: ${error.message}`, 'error');
-    }
-}
 
     calculateProductAnalytics(product) {
         // Margine attuale vs target (senza tracking)
@@ -1022,6 +1003,16 @@ window.deleteProduct = function(productId) {
         }
         return;
     }
+    // PATCH: Bottone import prodotti
+const importBtn = document.getElementById('importBtn');
+if (importBtn) {
+    importBtn.onclick = () => {
+        if (window.productIntelligenceSystem && window.productIntelligenceSystem.showImportModal) {
+            window.productIntelligenceSystem.showImportModal();
+        }
+    };
+}
+
     window.ModalSystem.confirm({
         title: 'Delete Product',
         message: 'Are you sure you want to delete this product? This action cannot be undone.',

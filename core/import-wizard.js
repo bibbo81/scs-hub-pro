@@ -51,15 +51,26 @@ class ImportWizard {
 
   this.modal = modal.element;
   this.attachEventListeners();
-  this.showStep('upload'); // 🚀 Avvia step Upload visibile!
+  this.showStep('strategy'); // 🚀 Step iniziale: strategia!
 };
 
 renderWizard = () => {
   return `
-    <div class="import-wizard" data-step="upload">
+    <div class="import-wizard" data-step="strategy">
+      <!-- STEP 0: STRATEGY -->
+      <div class="wizard-content" data-step-content="strategy">
+        <h3>Import strategy</h3>
+        <p>Choose how you want to import your data:</p>
+        <div style="margin-bottom:1.5em;">
+          <label><input type="radio" name="importStrategy" value="append" checked> <b>Append</b> <span style="color:#888;">Add new records to existing ones</span></label><br>
+          <label><input type="radio" name="importStrategy" value="replace"> <b>Replace All</b> <span style="color:#888;">Delete ALL and import only new ones</span></label><br>
+          <label><input type="radio" name="importStrategy" value="update"> <b>Update</b> <span style="color:#888;">Update if code already exists, else create new</span></label>
+        </div>
+        <div id="importFileSummary" style="margin-bottom:2em;color:#7a7a7a;"></div>
+      </div>
 
       <!-- STEP 1: UPLOAD -->
-      <div class="wizard-content" data-step-content="upload">
+      <div class="wizard-content" data-step-content="upload" style="display:none;">
         <div class="upload-area" id="uploadArea">
           <h3>Drag & Drop your file here</h3>
           <p>or click to browse</p>
@@ -904,45 +915,80 @@ showStep = (step) => {
         return true;
     }
 
-    attachEventListeners = () => {
-        const uploadArea = this.modal.querySelector('#uploadArea');
-        const fileInput = this.modal.querySelector('#fileInput');
-        const nextBtn = this.modal.querySelector('#nextBtn');
-        const prevBtn = this.modal.querySelector('#prevBtn');
-        const autoMapBtn = this.modal.querySelector('#autoMapBtn');
-        const saveTemplateBtn = this.modal.querySelector('#saveTemplateBtn');
-        
-        if (uploadArea && fileInput) {
-            uploadArea.addEventListener('click', () => fileInput.click());
-            uploadArea.addEventListener('dragover', (e) => { e.preventDefault(); uploadArea.classList.add('drag-over'); });
-            uploadArea.addEventListener('dragleave', () => { uploadArea.classList.remove('drag-over'); });
-            uploadArea.addEventListener('drop', (e) => {
-                e.preventDefault();
-                uploadArea.classList.remove('drag-over');
-                const file = e.dataTransfer.files[0];
-                if (file) this.handleFileUpload(file);
-            });
-            fileInput.addEventListener('change', (e) => {
-                const file = e.target.files[0];
-                if (file) this.handleFileUpload(file);
-            });
-        }
-        
-       if (nextBtn) {
-        nextBtn.addEventListener('click', () => {
-        if (this.currentStep < this.steps.length - 1) {
-            this.gotoStep(this.currentStep + 1);
-        } else {
-            this.startImport(); // ✅ Avvia l'import solo alla fine
-        }
-    });
-}
-if (prevBtn) prevBtn.addEventListener('click', this.previousStep);
-if (autoMapBtn) autoMapBtn.addEventListener('click', this.autoMap);
-if (saveTemplateBtn) saveTemplateBtn.addEventListener('click', this.saveTemplate);
+aattachEventListeners = () => {
+    const uploadArea = this.modal.querySelector('#uploadArea');
+    const fileInput = this.modal.querySelector('#fileInput');
+    const nextBtn = this.modal.querySelector('#nextBtn');
+    const prevBtn = this.modal.querySelector('#prevBtn');
+    const autoMapBtn = this.modal.querySelector('#autoMapBtn');
+    const saveTemplateBtn = this.modal.querySelector('#saveTemplateBtn');
 
-this.renderTemplates();
+    // STEP STRATEGY: radio buttons
+    const importStrategyRadios = this.modal.querySelectorAll('input[name="importStrategy"]');
+    if (importStrategyRadios && importStrategyRadios.length) {
+        importStrategyRadios.forEach(radio => {
+            radio.addEventListener('change', (e) => {
+                this.importStrategy = e.target.value;
+            });
+        });
     }
+
+    // File summary per strategia
+    const fileSummary = this.modal.querySelector('#importFileSummary');
+    if (fileInput) {
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file && fileSummary) {
+                fileSummary.innerHTML = `<b>Selected file:</b> ${file.name}`;
+            }
+            if (file) this.handleFileUpload(file);
+        });
+    }
+
+    if (uploadArea && fileInput) {
+        uploadArea.addEventListener('click', () => fileInput.click());
+        uploadArea.addEventListener('dragover', (e) => { e.preventDefault(); uploadArea.classList.add('drag-over'); });
+        uploadArea.addEventListener('dragleave', () => { uploadArea.classList.remove('drag-over'); });
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('drag-over');
+            const file = e.dataTransfer.files[0];
+            if (file) {
+                if (fileSummary) fileSummary.innerHTML = `<b>Selected file:</b> ${file.name}`;
+                this.handleFileUpload(file);
+            }
+        });
+    }
+
+    // NAVIGATION tra step
+    if (nextBtn) {
+        nextBtn.addEventListener('click', () => {
+            const step = this.getCurrentStep();
+            if (step === 'strategy') {
+                this.showStep('upload');
+            } else if (step === 'upload') {
+                this.showStep('mapping');
+            } else if (step === 'mapping') {
+                this.showStep('import');
+                this.startImport(); // Avvia l'import qui o dopo conferma utente!
+            }
+        });
+    }
+    if (prevBtn) {
+        prevBtn.addEventListener('click', () => {
+            const step = this.getCurrentStep();
+            if (step === 'upload') this.showStep('strategy');
+            else if (step === 'mapping') this.showStep('upload');
+            else if (step === 'import') this.showStep('mapping');
+        });
+    }
+
+    if (autoMapBtn) autoMapBtn.addEventListener('click', this.autoMap);
+    if (saveTemplateBtn) saveTemplateBtn.addEventListener('click', this.saveTemplate);
+
+    // Template
+    this.renderTemplates && this.renderTemplates();
+};
 
 gotoStep = (stepIndex) => {
     const previousStep = this.currentStep;
@@ -1118,7 +1164,13 @@ container.querySelectorAll('select[data-header]').forEach(select => {
     console.log('🧩 UI mapping generata per headers:', this.headers);
 };
 
+getCurrentStep = () => {
+    const visible = Array.from(this.modal.querySelectorAll('.wizard-content')).find(content => content.style.display !== 'none');
+    return visible ? visible.getAttribute('data-step-content') : this.steps[this.currentStep];
+};
 
 }
 
-export const importWizard = new ImportWizard();
+const importWizard = new ImportWizard();
+window.importWizard = importWizard;
+export default importWizard;
