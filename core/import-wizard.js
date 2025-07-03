@@ -113,35 +113,37 @@ class ImportWizard {
     }
     
     handleFileUpload = async (file) => {
-  this.currentFile = file;
+    this.currentFile = file;
 
-  try {
-    notificationSystem.show('Parsing file...', 'info');
+    try {
+        notificationSystem.show('Parsing file...', 'info');
 
-    if (file.name.endsWith('.csv')) {
-      await this.parseCSV(file);
-    } else if (file.name.match(/\.xlsx?$/)) {
-      await this.parseExcel(file);
-    } else {
-      throw new Error('Unsupported file format');
+        if (file.name.endsWith('.csv')) {
+            await this.parseCSV(file);
+        } else if (file.name.match(/\.xlsx?$/)) {
+            await this.parseExcel(file);
+        } else {
+            throw new Error('Unsupported file format');
+        }
+
+        // Mostra lo step "mapping" prima di generare i contenuti
+        this.showStep('mapping');
+
+        // Usa requestAnimationFrame + setTimeout per garantire che il DOM sia aggiornato
+        requestAnimationFrame(() => {
+            setTimeout(() => {
+                this.renderSourceColumns();
+                this.renderTargetFields();
+                this.autoMap();
+            }, 100);
+        });
+
+        notificationSystem.show('File parsed successfully', 'success');
+
+    } catch (error) {
+        notificationSystem.show(`Error parsing file: ${error.message}`, 'error');
+        console.error('File upload error:', error);
     }
-
-    // ✅ Mostra step MAPPING
-    this.showStep('mapping');
-
-    // ✅ Ora aspetta il DOM visibile
-    setTimeout(() => {
-      this.renderSourceColumns();
-      this.renderTargetFields();
-      this.autoMap();
-    }, 100);
-
-    notificationSystem.show('File parsed successfully', 'success');
-
-  } catch (error) {
-    notificationSystem.show(`Error parsing file: ${error.message}`, 'error');
-    console.error('File upload error:', error);
-  }
 };
     
     parseCSV = (file) => {
@@ -955,14 +957,12 @@ gotoStep = (stepIndex) => {
     }
 startImport = async () => {
     try {
-        // Recupera organization_id
         const orgId = window.organizationService?.getCurrentOrgId();
         if (!orgId) {
             notificationSystem.show("Missing organization context. Cannot proceed with import.", "error");
             return;
         }
 
-        // Recupera user_id da Supabase Auth
         const user = await this.supabase.auth.getUser();
         const userId = user?.data?.user?.id;
         if (!userId) {
@@ -971,17 +971,14 @@ startImport = async () => {
         }
 
         const mappings = this.getColumnMappings();
-        console.log("🧭 Mapping attivo prima dell'import:", mappings);
 
         const records = this.parsedData.map(row => {
             const newRecord = {};
 
-            // Applica mapping delle colonne
             for (const [colName, fieldName] of Object.entries(mappings)) {
                 if (fieldName) newRecord[fieldName] = row[colName];
             }
 
-            // Conversione tipi
             if (newRecord.unit_price) {
                 newRecord.unit_price = parseFloat(newRecord.unit_price);
             }
@@ -990,57 +987,45 @@ startImport = async () => {
                 try {
                     newRecord.metadata = JSON.parse(newRecord.metadata);
                 } catch {
-                    console.warn('Invalid JSON in metadata, fallback to null:', newRecord.metadata);
                     newRecord.metadata = null;
                 }
             }
 
-            // Campi obbligatori
             newRecord.id = crypto.randomUUID();
             newRecord.user_id = userId;
             newRecord.organization_id = orgId;
 
-            // 🚨 Scarta record incompleti
-            if (!newRecord.sku || !newRecord.name) {
-                console.warn("❌ Record scartato per mancanza di SKU o NAME:", newRecord);
-                return null;
-            }
+            if (!newRecord.sku || !newRecord.name) return null;
 
             return newRecord;
-        }).filter(r => r !== null); // Elimina i null (scartati)
+        }).filter(r => r !== null);
 
         if (records.length === 0) {
             notificationSystem.show("No valid records to import.", "warning");
             return;
         }
 
-        // 🔍 Debug: stampa il primo record
-        console.log("🧪 First record to import:", records[0]);
-        console.log("📦 Full record payload:", JSON.stringify(records.slice(0, 3), null, 2));
-        console.log("🧪 Mapping applicato:", mappings);
-        console.log("🧪 Prima riga grezza:", this.parsedData[0]);
+        const statusEl = document.getElementById('importStatus');
+        if (statusEl) {
+            statusEl.innerText = `Importing ${records.length} records...`;
+        }
 
-        // Mostra stato
-        document.getElementById('importStatus').innerText = `Importing ${records.length} records...`;
-
-        // Invio a Supabase
         const { data, error } = await this.supabase.from('products').insert(records);
 
         if (error) {
-            console.error("❌ Supabase insert error", error);
             notificationSystem.show(`Import failed: ${error.message}`, 'error');
             return;
         }
 
         notificationSystem.show(`✅ Import successful: ${records.length} records`, 'success');
-        document.getElementById('importStatus').innerText = `Successfully imported ${records.length} records`;
+        if (statusEl) {
+            statusEl.innerText = `Successfully imported ${records.length} records`;
+        }
 
     } catch (err) {
-        console.error('Import error:', err);
         notificationSystem.show('Unexpected error during import', 'error');
+        console.error('Import error:', err);
     }
-
-    
 };
 
 renderMappingUI = () => {
