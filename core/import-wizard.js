@@ -144,26 +144,44 @@ class ImportWizard {
             };
             reader.onerror = () => reject(new Error('Failed to read file'));
             reader.readAsArrayBuffer(file);
+        
         });
     }
 
     parseCSVLine = (line) => {
-        const values = [];
-        let current = '';
-        let inQuotes = false;
-        for (let i = 0; i < line.length; i++) {
-            const char = line[i];
-            if (char === '"') inQuotes = !inQuotes;
-            else if (char === ',' && !inQuotes) {
-                values.push(current.trim());
-                current = '';
+    const values = [];
+    let current = '';
+    let inQuotes = false;
+    let quoteChar = '"';
+
+    // Rileva separatore probabile
+    const separator = line.includes(';') ? ';' :
+                      line.includes('\t') ? '\t' : ',';
+
+    for (let i = 0; i < line.length; i++) {
+        const char = line[i];
+        const nextChar = line[i + 1];
+
+        if (char === quoteChar) {
+            if (inQuotes && nextChar === quoteChar) {
+                // Escaped quote ("")
+                current += quoteChar;
+                i++; // salta una
             } else {
-                current += char;
+                inQuotes = !inQuotes;
             }
+        } else if (char === separator && !inQuotes) {
+            values.push(current.trim());
+            current = '';
+        } else {
+            current += char;
         }
-        values.push(current.trim());
-        return values;
     }
+
+    values.push(current.trim());
+    return values;
+};
+
 
   autoMap = () => {
     this.mappings = {};
@@ -171,12 +189,12 @@ class ImportWizard {
     const normalize = str => str.toLowerCase().trim().replace(/[^a-z0-9]/g, '');
 
     const mappingRules = {
-        'sku': ['cod', 'codice', 'cod_art', 'sku'],
-        'ean': ['ean'],
-        'name': ['descrizione', 'desc', 'nome prodotto', 'description'],
-        'category': ['categoria', 'category'],
-        'unit_price': ['prezzo', 'prezzo medio', 'valore', 'unit price', 'price'],
-        'metadata': ['note', 'notes', 'osservazioni']
+        'sku': ['cod', 'codice', 'cod_art'],
+        'ean': ['ean', 'bar code'],
+        'name': ['descrizione', 'desc', 'nome prodotto'],
+        'category': ['categoria'],
+        'unit_price': ['prezzo', 'prezzo medio', 'valore', 'price'],
+        'metadata': ['note', 'osservazioni']
     };
 
     this.headers.forEach(header => {
@@ -185,7 +203,7 @@ class ImportWizard {
             if (patterns.some(p => normHeader.includes(normalize(p)))) {
                 this.mappings[header] = field;
 
-                // Aggiorna anche la UI
+                // Imposta il valore nel <select>
                 const select = this.modal.querySelector(`select[data-header="${header}"]`);
                 if (select) {
                     select.value = field;
@@ -197,40 +215,48 @@ class ImportWizard {
         }
     });
 
-    // ✅ Log corretto dopo l'automapping
-    console.log("📌 Mappings:", this.mappings);
-    notificationSystem.show("🔄 AutoMap completato", "info");
+    console.log("📌 AutoMap Result:", this.mappings);
+    notificationSystem.show("✅ Mappatura automatica completata", "info");
 };
 
 
 
 
+
 getColumnMappings = () => {
-    // Lista dei nomi inglesi validi della tabella Supabase
+    // Lista dei campi validi (in inglese) della tabella Supabase
     const validTargets = [
         'sku', 'ean', 'name', 'category', 'unit_price', 'metadata',
         'organization_id', 'user_id', 'weight_kg', 'dimensions_cm',
-        'active', 'created_at', 'updated_at', 'id', 'origin_country', 'currency', 'hs_code'
+        'active', 'created_at', 'updated_at', 'id',
+        'origin_country', 'currency', 'hs_code'
     ];
+
     const mappings = {};
+
     this.headers.forEach(header => {
-        // Leggi il valore scelto dall’utente nella UI (se esiste)
-        const select = this.modal?.querySelector(`[data-mapping-source="${header}"]`);
+        // Cerca il <select> associato alla colonna CSV
+        const select = this.modal?.querySelector(`select[data-header="${header}"]`);
         let value = '';
+
         if (select && select.value) {
             value = select.value.trim();
         } else if (this.mappings && this.mappings[header]) {
             value = this.mappings[header];
         }
-        // Permetti solo nomi inglesi validi come target
+
+        // Solo se il valore scelto è valido
         if (validTargets.includes(value)) {
             mappings[header] = value;
         } else {
-            mappings[header] = ''; // non mappato o non valido
+            mappings[header] = ''; // campo non mappato o non valido
         }
     });
+
+    console.log("✅ Mappatura finale:", mappings);
     return mappings;
-}
+};
+
 
 
     renderSourceColumns = () => {
@@ -980,7 +1006,45 @@ startImport = async () => {
         console.error('Import error:', err);
         notificationSystem.show('Unexpected error during import', 'error');
     }
+
+    
 };
+
+renderMappingUI = () => {
+        const container = this.modal.querySelector('#columnMappingContainer');
+        container.innerHTML = ''; // reset UI
+
+        const validFields = [
+            '', 'sku', 'ean', 'name', 'category', 'unit_price',
+            'metadata', 'description', 'origin_country',
+            'currency', 'hs_code', 'weight_kg', 'dimensions_cm'
+        ];
+
+        this.headers.forEach(header => {
+            const row = document.createElement('div');
+            row.classList.add('column-map-row');
+            row.dataset.header = header;
+
+            const label = document.createElement('label');
+            label.innerText = header;
+
+            const select = document.createElement('select');
+            select.setAttribute('data-header', header);
+
+            validFields.forEach(field => {
+                const option = document.createElement('option');
+                option.value = field;
+                option.innerText = field || '--';
+                select.appendChild(option);
+            });
+
+            row.appendChild(label);
+            row.appendChild(select);
+            container.appendChild(row);
+        });
+
+        console.log("🧩 Mapping UI built with headers:", this.headers);
+    };
 
 }
 
