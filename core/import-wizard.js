@@ -131,14 +131,14 @@ renderWizard = () => {
             { name: 'percentuale_dazio', label: 'Duty %', type: 'percentage' }
         ],
         products: [
-            { name: 'sku', label: 'Codice', required: true, type: 'text' },
-            { name: 'description', label: 'Descrizione', required: true, type: 'text' },
-            { name: 'other_description', label: 'Descrizione Alternativa', type: 'text' },
-            { name: 'category', label: 'Categoria', type: 'text' },
-            { name: 'ean', label: 'EAN', type: 'text' },
-            { name: 'unit_price', label: 'Prezzo unitario', type: 'currency' },
-            { name: 'metadata', label: 'Note/Metadata', type: 'text' }
-        ],
+            { name: 'sku', label: 'Product Code', required: true, type: 'text' },
+        { name: 'description', label: 'Description', required: true, type: 'text' },
+        { name: 'other_description', label: 'Extended Description', type: 'text' },
+        { name: 'category', label: 'Category', type: 'text' },
+        { name: 'ean', label: 'EAN', type: 'text' }, // opzionale
+        { name: 'unit_price', label: 'Unit Price', type: 'currency' },
+        { name: 'metadata', label: 'Metadata', type: 'text' }
+    ];
         containers: [
             { name: 'container_number', label: 'Container Number', required: true, type: 'text' },
             { name: 'bl_number', label: 'B/L Number', type: 'text' },
@@ -292,19 +292,19 @@ renderWizard = () => {
     return values;
 };
 
-  autoMap = () => {
+ autoMap = () => {
     this.mappings = {};
 
     const normalize = str => str.toLowerCase().trim().replace(/[^a-z0-9]/g, '');
 
     const mappingRules = {
         'sku': ['cod', 'codice', 'cod_art'],
-        'ean': ['ean', 'bar code'],
+        'ean': ['ean', 'barcode', 'bar code'],
         'description': ['descrizione', 'desc', 'nome prodotto'],
-        'other_description': ['descrizione estesa', 'desc estesa', 'altro', 'other description'],
+        'other_description': ['descrizione estesa', 'descrizione_2', 'dettagli', 'extended description'],
         'category': ['categoria'],
         'unit_price': ['prezzo', 'prezzo medio', 'valore', 'price'],
-        'metadata': ['note', 'osservazioni']
+        'metadata': ['note', 'osservazioni', 'metadata']
     };
 
     this.headers.forEach(header => {
@@ -312,7 +312,6 @@ renderWizard = () => {
         for (const [field, patterns] of Object.entries(mappingRules)) {
             if (patterns.some(p => normHeader.includes(normalize(p)))) {
                 this.mappings[header] = field;
-
                 // Imposta il valore nel <select>
                 const select = this.modal.querySelector(`select[data-header="${header}"]`);
                 if (select) {
@@ -996,65 +995,51 @@ gotoStep = (stepIndex) => {
         this.mappings = {};
         this.currentStep = 0;
     }
-
+    
 startImport = async () => {
-  try {
-    const orgId = window.organizationService?.getCurrentOrgId();
-    if (!orgId) {
-      notificationSystem.show("Missing organization context. Cannot proceed with import.", "error");
-      return;
+    try {
+        const orgId = window.organizationService?.getCurrentOrgId();
+        if (!orgId) {
+            notificationSystem.show("Missing organization context. Cannot proceed with import.", "error");
+            return;
+        }
+        const user = await this.supabase.auth.getUser();
+        const userId = user?.data?.user?.id;
+        if (!userId) {
+            notificationSystem.show("User not authenticated", "error");
+            return;
+        }
+        // Assicurati che mappings sia pronto (autoMap già chiamato)
+        const records = this.parsedData.map(row => {
+            const newRecord = {};
+            for (const [colName, fieldName] of Object.entries(this.mappings)) {
+                if (fieldName && fieldName !== "id") newRecord[fieldName] = row[colName];
+            }
+            newRecord.user_id = userId;
+            newRecord.organization_id = orgId;
+            return newRecord;
+        }).filter(r => r.sku && r.description);
+
+        if (records.length === 0) {
+            notificationSystem.show("No valid records to import.", "warning");
+            return;
+        }
+        console.log("🧪 First record to import:", records[0]);
+        document.getElementById('importStatus').innerText = `Importing ${records.length} records...`;
+
+        const { data, error } = await this.supabase.from('products').insert(records);
+
+        if (error) {
+            console.error("❌ Supabase insert error", error);
+            notificationSystem.show(`Import failed: ${error.message}`, 'error');
+            return;
+        }
+        notificationSystem.show(`✅ Import successful: ${records.length} records`, 'success');
+        document.getElementById('importStatus').innerText = `Successfully imported ${records.length} records`;
+    } catch (err) {
+        console.error('Import error:', err);
+        notificationSystem.show('Unexpected error during import', 'error');
     }
-
-    const user = await this.supabase.auth.getUser();
-    const userId = user?.data?.user?.id;
-    if (!userId) {
-      notificationSystem.show("User not authenticated", "error");
-      return;
-    }
-
-    const mappings = this.getColumnMappings();
-    const records = this.parsedData.map(row => {
-    const newRecord = {};
-    for (const [colName, fieldName] of Object.entries(mappings)) {
-        // Non girare "id", solo campi effettivi
-        if (fieldName && fieldName !== "id") newRecord[fieldName] = row[colName];
-    }
-    newRecord.user_id = userId;
-    newRecord.organization_id = orgId;
-    return newRecord;
-    }).filter(r => r.sku && r.description); // scarta i record senza sku o description
-
-
-    if (records.length === 0) {
-      notificationSystem.show("No valid records to import.", "warning");
-      return;
-    }
-
-    // Debug: stampa batch
-    console.log("🧪 First record to import:", records[0]);
-
-    // Mostra stato solo se il div esiste
-    const statusEl = document.getElementById('importStatus');
-    if (statusEl) statusEl.innerText = `Importing ${records.length} records...`;
-
-    const { data, error } = await this.supabase.from('products').insert(records);
-
-    if (error) {
-      console.error("❌ Supabase insert error", error);
-      notificationSystem.show(`Import failed: ${error.message}`, 'error');
-      if (statusEl) statusEl.innerText = `Import error: ${error.message}`;
-      return;
-    }
-
-    notificationSystem.show(`✅ Import successful: ${records.length} records`, 'success');
-    if (statusEl) statusEl.innerText = `Successfully imported ${records.length} records`;
-
-  } catch (err) {
-    console.error('Import error:', err);
-    notificationSystem.show('Unexpected error during import', 'error');
-    const statusEl = document.getElementById('importStatus');
-    if (statusEl) statusEl.innerText = 'Unexpected error during import';
-  }
 };
 
 renderMappingUI = () => {
