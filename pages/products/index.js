@@ -1083,8 +1083,48 @@ window.viewProductDetails = function(productId) {
 
 // Le altre funzioni RESTANO UGUALI!
 window.editProduct = function(productId) {
-    window.productIntelligenceSystem.showEditProductModal(productId);
+    const product = window.productIntelligenceSystem.products.find(p => p.id === productId);
+
+    if (!product) {
+        window.productIntelligenceSystem.showStatus('Product not found', 'error');
+        return;
+    }
+
+    if (!window.ModalSystem) {
+        window.productIntelligenceSystem.showStatus('Modal system not available', 'error');
+        return;
+    }
+
+    // PATCH: Gestione fallback su specifiche e costTracking vuoti
+    const fallbackSpecs = {
+        weight: 0, dimensions: { length: 0, width: 0, height: 0 },
+        value: 0, hsCode: '', fragile: false, hazardous: false
+    };
+    const fallbackCost = {
+        baseCost: 0, targetMargin: 0.30, shippingBudget: 0, currencyCode: 'USD'
+    };
+    if (!product.specifications) product.specifications = { ...fallbackSpecs };
+    if (!product.costTracking) product.costTracking = { ...fallbackCost };
+
+    window.ModalSystem.show({
+        title: 'Edit Product',
+        content: window.productIntelligenceSystem.getProductFormHTML(product),
+        size: 'lg',
+        actions: [
+            {
+                label: 'Cancel',
+                class: 'sol-btn-secondary',
+                handler: () => true
+            },
+            {
+                label: 'Update Product',
+                class: 'sol-btn-primary',
+                handler: () => window.productIntelligenceSystem.updateProduct(productId)
+            }
+        ]
+    });
 };
+
 window.showProductMenu = function(productId, event) {
     window.productIntelligenceSystem.showProductMenu(productId, event);
 };
