@@ -120,11 +120,16 @@ renderWizard = () => {
 
     this.showStep('mapping');
     // Usa setTimeout + requestAnimationFrame per garantire il DOM
-    setTimeout(() => {
-      this.renderSourceColumns();
-      this.renderTargetFields();
-      this.autoMap();
-    }, 100);
+   setTimeout(() => {
+    if (!this.targetFields || !Array.isArray(this.targetFields) || this.targetFields.length === 0) {
+        console.error('❌ targetFields non inizializzato!');
+        return;
+    }
+    this.renderSourceColumns();
+    this.renderTargetFields();
+    this.autoMap();
+}, 100);
+
 
     notificationSystem.show('File parsed successfully', 'success');
   } catch (error) {
@@ -314,11 +319,14 @@ getColumnMappings = () => {
     return mappings;
 };
 
-
-    renderSourceColumns = () => {
-  const container = this.modal.querySelector('#sourceColumns');
+renderSourceColumns = () => {
+  const container = this.modal?.querySelector('#sourceColumns');
   if (!container) {
     console.error('❌ sourceColumns non trovato! Sei nello step MAPPING?');
+    return;
+  }
+  if (!this.headers || !Array.isArray(this.headers) || this.headers.length === 0) {
+    console.error('❌ headers non inizializzati!');
     return;
   }
   container.innerHTML = this.headers.map((header, index) => `
@@ -327,7 +335,6 @@ getColumnMappings = () => {
       <div class="column-sample">${this.getColumnSample(header)}</div>
     </div>
   `).join('');
-
   container.querySelectorAll('.source-column').forEach(col => {
     col.addEventListener('dragstart', this.handleDragStart);
     col.addEventListener('dragend', this.handleDragEnd);
@@ -335,9 +342,13 @@ getColumnMappings = () => {
 };
 
     renderTargetFields = () => {
-  const container = this.modal.querySelector('#targetFields');
+  const container = this.modal?.querySelector('#targetFields');
   if (!container) {
     console.error('❌ targetFields non trovato! Sei nello step MAPPING?');
+    return;
+  }
+  if (!this.targetFields || !Array.isArray(this.targetFields)) {
+    console.error('❌ this.targetFields non inizializzato!');
     return;
   }
   const requiredFields = this.targetFields.filter(f => f.required && !f.hidden);
@@ -353,7 +364,6 @@ getColumnMappings = () => {
       ${optionalFields.map(field => this.renderTargetField(field)).join('')}
     </div>
   `;
-
   container.querySelectorAll('.target-field').forEach(field => {
     field.addEventListener('dragover', this.handleDragOver);
     field.addEventListener('drop', this.handleDrop);
