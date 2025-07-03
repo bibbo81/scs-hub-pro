@@ -62,19 +62,9 @@ class ImportWizard {
       <!-- STEP 1: UPLOAD -->
       <div class="wizard-content" data-step-content="upload">
         <div class="upload-area" id="uploadArea">
-          <svg class="upload-icon" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-            <polyline points="7 10 12 15 17 10"></polyline>
-            <line x1="12" y1="15" x2="12" y2="3"></line>
-          </svg>
           <h3>Drag & Drop your file here</h3>
           <p>or click to browse</p>
-          <p class="file-types">Supported: CSV, Excel (.xlsx, .xls)</p>
           <input type="file" id="fileInput" accept=".csv,.xlsx,.xls" style="display: none;">
-        </div>
-        <div class="templates-section" style="display: none;">
-          <h4>Or use a saved template:</h4>
-          <div class="templates-grid" id="templatesGrid"></div>
         </div>
       </div>
 
@@ -83,84 +73,23 @@ class ImportWizard {
         <div class="mapping-header">
           <h3>Map your columns to system fields</h3>
           <div class="mapping-actions">
-            <button id="autoMapBtn" class="btn btn-secondary">
-              <i class="icon-magic"></i> Auto-map
-            </button>
-            <button id="saveTemplateBtn" class="btn btn-secondary">
-              <i class="icon-save"></i> Save as template
-            </button>
+            <button id="autoMapBtn" class="btn btn-secondary">Auto-map</button>
+            <button id="saveTemplateBtn" class="btn btn-secondary">Save as template</button>
           </div>
         </div>
 
-  <div id="mappingContainer" class="mapping-container">
-    <div class="source-columns">
-      <h4>Your File Columns</h4>
-      <div id="sourceColumns" class="columns-list"></div>
-    </div>
-          <div class="mapping-arrows">
-            <svg id="mappingLines" width="100" height="100%"></svg>
+        <div id="mappingContainer" class="mapping-container">
+          <div class="source-columns">
+            <h4>Your File Columns</h4>
+            <div id="sourceColumns" class="columns-list"></div>
           </div>
-
+          <div class="mapping-arrows">
+            <svg id="mappingLines" width="100%" height="100%"></svg>
+          </div>
           <div class="target-fields">
             <h4>System Fields</h4>
             <div id="targetFields" class="fields-list"></div>
           </div>
-        </div>
-
-        <div class="mapping-options">
-          <label>
-            <input type="checkbox" id="allowCustomFields" checked>
-            Allow custom fields for unmapped columns
-          </label>
-        </div>
-      </div>
-
-      <!-- STEP 3: PREVIEW -->
-      <div class="wizard-content" data-step-content="preview" style="display: none;">
-        <div class="preview-header">
-          <h3>Preview & Validate</h3>
-          <div class="import-options">
-            <label>Import Mode:</label>
-            <select id="importMode" class="form-control">
-              <option value="append">Append new records</option>
-              <option value="update">Update existing records</option>
-              <option value="sync">Full sync (replace all)</option>
-            </select>
-          </div>
-        </div>
-        <div class="validation-summary" id="validationSummary"></div>
-        <div class="preview-table-container">
-          <table class="preview-table" id="previewTable"></table>
-        </div>
-        <div class="preview-stats">
-          <div class="stat">
-            <span class="stat-label">Total Records:</span>
-            <span class="stat-value" id="totalRecords">0</span>
-          </div>
-          <div class="stat">
-            <span class="stat-label">Valid:</span>
-            <span class="stat-value text-success" id="validRecords">0</span>
-          </div>
-          <div class="stat">
-            <span class="stat-label">Warnings:</span>
-            <span class="stat-value text-warning" id="warningRecords">0</span>
-          </div>
-          <div class="stat">
-            <span class="stat-label">Errors:</span>
-            <span class="stat-value text-danger" id="errorRecords">0</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- STEP 4: IMPORT -->
-      <div class="wizard-content" data-step-content="import" style="display: none;">
-        <div class="import-progress">
-          <h3>Importing data...</h3>
-          <div class="progress-bar-container">
-            <div class="progress-bar" id="importProgress"></div>
-          </div>
-          <div class="import-status" id="importStatus">Preparing import...</div>
-          <div class="import-log" id="importLog"></div>
         </div>
       </div>
 
@@ -172,6 +101,7 @@ class ImportWizard {
     </div>
   `;
 };
+
 
     loadTargetFields = async (entity) => {
         const fieldDefinitions = {
@@ -196,10 +126,8 @@ class ImportWizard {
       throw new Error('Unsupported file format');
     }
 
-    // 👇 Vai allo step giusto!
     this.showStep('mapping');
 
-    // ✅ Aspetta DOM pronto
     setTimeout(() => {
       this.renderSourceColumns();
       this.renderTargetFields();
@@ -207,14 +135,11 @@ class ImportWizard {
     }, 50);
 
     notificationSystem.show('File parsed successfully', 'success');
-
   } catch (error) {
     notificationSystem.show(`Error parsing file: ${error.message}`, 'error');
     console.error('File upload error:', error);
   }
 };
-
-
     
     parseCSV = (file) => {
     return new Promise((resolve, reject) => {
@@ -404,7 +329,7 @@ getColumnMappings = () => {
 
   if (!container) {
     console.error('❌ sourceColumns non trovato! Sei nello step MAPPING?');
-    return; // 🛑 Evita di proseguire se manca
+    return;
   }
 
   container.innerHTML = this.headers.map((header, index) => `
@@ -418,37 +343,39 @@ getColumnMappings = () => {
     col.addEventListener('dragstart', this.handleDragStart);
     col.addEventListener('dragend', this.handleDragEnd);
   });
-};
 
+  console.log('✅ renderSourceColumns OK: columns rendered', this.headers);
+};
 
     renderTargetFields = () => {
-    const container = this.modal.querySelector('#mappingContainer');
-    if (!container) {
-        console.error('❌ mappingContainer non trovato!');
-        return;
-    }
+  const container = this.modal.querySelector('#targetFields');
+  if (!container) {
+    console.error('❌ targetFields non trovato! Sei nello step MAPPING?');
+    return;
+  }
 
-    const requiredFields = this.targetFields.filter(f => f.required && !f.hidden);
-    const optionalFields = this.targetFields.filter(f => !f.required && !f.hidden);
+  const requiredFields = this.targetFields.filter(f => f.required && !f.hidden);
+  const optionalFields = this.targetFields.filter(f => !f.required && !f.hidden);
 
-    container.innerHTML = `
-        <div class="fields-section">
-            <h5>Required Fields</h5>
-            ${requiredFields.map(field => this.renderTargetField(field)).join('')}
-        </div>
-        <div class="fields-section">
-            <h5>Optional Fields</h5>
-            ${optionalFields.map(field => this.renderTargetField(field)).join('')}
-        </div>
-    `;
+  container.innerHTML = `
+    <div class="fields-section">
+      <h5>Required Fields</h5>
+      ${requiredFields.map(field => this.renderTargetField(field)).join('')}
+    </div>
+    <div class="fields-section">
+      <h5>Optional Fields</h5>
+      ${optionalFields.map(field => this.renderTargetField(field)).join('')}
+    </div>
+  `;
 
-    container.querySelectorAll('.target-field').forEach(field => {
-        field.addEventListener('dragover', this.handleDragOver);
-        field.addEventListener('drop', this.handleDrop);
-        field.addEventListener('dragleave', this.handleDragLeave);
-    });
+  container.querySelectorAll('.target-field').forEach(field => {
+    field.addEventListener('dragover', this.handleDragOver);
+    field.addEventListener('drop', this.handleDrop);
+    field.addEventListener('dragleave', this.handleDragLeave);
+  });
+
+  console.log('✅ renderTargetFields OK: fields rendered', this.targetFields);
 };
-
 
     renderTargetField = (field) => {
         const mapped = Object.entries(this.mappings).find(([col, f]) => f === field.name);
