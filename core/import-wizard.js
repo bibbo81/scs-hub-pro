@@ -58,6 +58,14 @@ renderWizard = () => {
   return `
     <div class="import-wizard" data-step="upload">
 
+      <!-- STEP INDICATORS -->
+      <div class="wizard-steps">
+        <div class="step active" data-step-indicator="upload">Upload File</div>
+        <div class="step" data-step-indicator="mapping">Map Columns</div>
+        <div class="step" data-step-indicator="preview">Preview & Validate</div>
+        <div class="step" data-step-indicator="import">Import</div>
+      </div>
+
       <!-- STEP 1: UPLOAD -->
       <div class="wizard-content" data-step-content="upload">
         <div class="upload-area" id="uploadArea">
@@ -76,7 +84,6 @@ renderWizard = () => {
             <button id="saveTemplateBtn" class="btn btn-secondary">Save as template</button>
           </div>
         </div>
-
         <div id="mappingContainer" class="mapping-container">
           <div class="source-columns">
             <h4>Your File Columns</h4>
@@ -92,15 +99,37 @@ renderWizard = () => {
         </div>
       </div>
 
-      <!-- STEP 3: IMPORT -->
+      <!-- STEP 3: PREVIEW -->
+      <div class="wizard-content" data-step-content="preview" style="display: none;">
+        <div class="preview-header">
+          <h3>Preview & Validate</h3>
+          <select id="importMode">
+            <option value="append">Append</option>
+            <option value="update">Update</option>
+            <option value="sync">Sync</option>
+          </select>
+        </div>
+        <div id="validationSummary"></div>
+        <table id="previewTable"></table>
+        <div class="preview-stats">
+          <span>Total: <span id="totalRecords">0</span></span>
+          <span>Valid: <span id="validRecords">0</span></span>
+          <span>Warnings: <span id="warningRecords">0</span></span>
+          <span>Errors: <span id="errorRecords">0</span></span>
+        </div>
+      </div>
+
+      <!-- STEP 4: IMPORT -->
       <div class="wizard-content" data-step-content="import" style="display: none;">
-        <div id="importStatus" class="import-status"></div>
+        <div id="importProgress"></div>
+        <div id="importStatus">Preparing import...</div>
+        <div id="importLog"></div>
       </div>
 
       <!-- NAVIGATION -->
       <div class="wizard-navigation">
-        <button class="btn btn-secondary" id="prevBtn">Previous</button>
-        <button class="btn btn-primary" id="nextBtn">Next</button>
+        <button id="prevBtn">Previous</button>
+        <button id="nextBtn">Next</button>
       </div>
     </div>
   `;
@@ -129,16 +158,16 @@ renderWizard = () => {
             throw new Error('Unsupported file format');
         }
 
-        // Mostra lo step "mapping" prima di generare i contenuti
+        // 👇 Prima, mostra chiaramente lo step mapping
         this.showStep('mapping');
 
-        // Usa requestAnimationFrame + setTimeout per garantire che il DOM sia aggiornato
+        // 🚦 Assicurati DOM aggiornato prima di generare contenuti
         requestAnimationFrame(() => {
             setTimeout(() => {
                 this.renderSourceColumns();
                 this.renderTargetFields();
                 this.autoMap();
-            }, 100);
+            }, 100); // Tempo di sicurezza aggiuntivo per render
         });
 
         notificationSystem.show('File parsed successfully', 'success');
