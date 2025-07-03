@@ -30,6 +30,55 @@ class ProductIntelligenceSystem {
         this.loadData = this.loadData.bind(this);
         this.generateAnalytics = this.generateAnalytics.bind(this);
     }
+initializeEventHandlers() {
+    // Bottone: aggiungi prodotto
+    const addProductBtn = document.getElementById('addProductBtn');
+    if (addProductBtn) {
+        addProductBtn.onclick = () => this.showAddProductModal();
+    }
+
+    // Bottone: esporta analytics
+    const exportBtn = document.getElementById('exportAnalyticsBtn');
+    if (exportBtn) {
+        exportBtn.onclick = () => this.exportAnalytics();
+    }
+
+    // Bottone: importa prodotti (se presente)
+    const importBtn = document.getElementById('importProductsBtn');
+    if (importBtn) {
+        importBtn.onclick = () => this.showImportModal();
+    }
+
+    // Ricerca e filtri base
+    const searchInput = document.getElementById('productSearch');
+    if (searchInput) {
+        searchInput.addEventListener('input', (e) => this.filterProducts());
+    }
+
+    const categoryFilter = document.getElementById('categoryFilter');
+    if (categoryFilter) {
+        categoryFilter.addEventListener('change', () => this.filterProducts());
+    }
+
+    const costTrendFilter = document.getElementById('costTrendFilter');
+    if (costTrendFilter) {
+        costTrendFilter.addEventListener('change', () => this.filterProducts());
+    }
+
+    // Bottone: vista griglia/lista (se presente)
+    const gridBtn = document.getElementById('viewGridBtn');
+    const listBtn = document.getElementById('viewListBtn');
+    if (gridBtn) gridBtn.onclick = () => this.toggleViewMode();
+    if (listBtn) listBtn.onclick = () => this.toggleViewMode();
+}
+
+showStatus(message, type = 'info', duration = 3000) {
+    if (window.NotificationSystem) {
+        window.NotificationSystem.show(message, type, duration);
+    } else {
+        console.log(`[ProductIntelligence] ${type}: ${message}`);
+    }
+}
 
     async init() {
         console.log('[ProductIntelligence] Initializing system...');
