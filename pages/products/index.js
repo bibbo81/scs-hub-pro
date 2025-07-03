@@ -400,60 +400,135 @@ showStatus(message, type = 'info', duration = 3000) {
         `;
     }).join('');
 }
-
     renderProductsList() {
-        const products = this.getFilteredAndSortedProducts();
-        if (products.length === 0) {
-            return `<div class="empty-state"><i class="fas fa-search fa-3x text-muted"></i>
+    const products = this.getFilteredAndSortedProducts();
+
+    if (products.length === 0) {
+        return `
+            <div class="empty-state">
+                <i class="fas fa-search fa-3x text-muted"></i>
                 <h3>No products found</h3>
-                <button class="sol-btn sol-btn-primary" onclick="window.productIntelligenceSystem.clearFilters()">Clear Filters</button></div>`;
-        }
-        const tableHTML = `
-            <div class="products-list-table">
-                <table class="sol-table">
-                    <thead>
-                        <tr>
-                            <th class="sortable" onclick="window.productIntelligenceSystem.sortProducts('sku')">SKU ${this.getSortIcon('sku')}</th>
-                            <th class="sortable" onclick="window.productIntelligenceSystem.sortProducts('name')">Product Name ${this.getSortIcon('name')}</th>
-                            <th class="sortable" onclick="window.productIntelligenceSystem.sortProducts('category')">Category ${this.getSortIcon('category')}</th>
-                            <th class="sortable" onclick="window.productIntelligenceSystem.sortProducts('margin')">Margin ${this.getSortIcon('margin')}</th>
-                            <th>Status</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${products.map(product => this.renderProductRow(product)).join('')}
-                    </tbody>
-                </table>
+                <p>Try adjusting your filters or search criteria</p>
+                <button class="sol-btn sol-btn-primary" onclick="window.productIntelligenceSystem.clearFilters()">
+                    Clear Filters
+                </button>
             </div>
         `;
-        return tableHTML;
     }
 
-    renderProductRow(product) {
-        const analytics = this.analytics[product.id] || {};
-        let statusBadge = analytics.status === 'ok' ? 'OPTIMIZED' : 'TRACKED';
-        let statusClass = analytics.status === 'ok' ? 'sol-badge-success' : 'sol-badge-secondary';
-        if (analytics.status === 'alert') { statusBadge = 'LOW MARGIN'; statusClass = 'sol-badge-danger'; }
-        return `
-            <tr data-product-id="${product.id}">
-                <td class="font-mono">${product.sku}</td>
-                <td><div class="product-name-cell"><strong>${product.name}</strong>
-                    ${product.description ? `<small class="text-muted">${product.description.substring(0, 50)}...</small>` : ''}
-                </div></td>
-                <td><span class="category-badge category-${product.category}">${product.category}</span></td>
-                <td><strong>${((analytics.currentMargin || 0) * 100).toFixed(1)}%</strong></td>
-                <td><span class="sol-badge ${statusClass}">${statusBadge}</span></td>
-                <td>
-                    <div class="table-actions">
-                        <button class="sol-btn sol-btn-sm sol-btn-glass" onclick="viewProductDetails('${product.id}')" title="View Analytics"><i class="fas fa-chart-area"></i></button>
-                        <button class="sol-btn sol-btn-sm sol-btn-glass" onclick="editProduct('${product.id}')" title="Edit Product"><i class="fas fa-edit"></i></button>
-                        <button class="sol-btn sol-btn-sm sol-btn-glass" onclick="showProductMenu('${product.id}', event)" title="More Options"><i class="fas fa-ellipsis-v"></i></button>
-                    </div>
-                </td>
-            </tr>
-        `;
+    const tableHTML = `
+        <div class="products-list-table">
+            <table class="sol-table">
+                <thead>
+                    <tr>
+                        <th class="sortable" onclick="window.productIntelligenceSystem.sortProducts('sku')">
+                            SKU ${this.getSortIcon('sku')}
+                        </th>
+                        <th class="sortable" onclick="window.productIntelligenceSystem.sortProducts('name')">
+                            Product Name ${this.getSortIcon('name')}
+                        </th>
+                        <th class="sortable" onclick="window.productIntelligenceSystem.sortProducts('category')">
+                            Category ${this.getSortIcon('category')}
+                        </th>
+                        <th class="sortable" onclick="window.productIntelligenceSystem.sortProducts('shippingCost')">
+                            Avg Shipping Cost ${this.getSortIcon('shippingCost')}
+                        </th>
+                        <th class="sortable" onclick="window.productIntelligenceSystem.sortProducts('costTrend')">
+                            Cost Trend ${this.getSortIcon('costTrend')}
+                        </th>
+                        <th class="sortable" onclick="window.productIntelligenceSystem.sortProducts('unitsShipped')">
+                            Units Shipped ${this.getSortIcon('unitsShipped')}
+                        </th>
+                        <th class="sortable" onclick="window.productIntelligenceSystem.sortProducts('profitImpact')">
+                            Profit Impact ${this.getSortIcon('profitImpact')}
+                        </th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${products.map(product => this.renderProductRow(product)).join('')}
+                </tbody>
+            </table>
+        </div>
+    `;
+
+    return tableHTML;
+}
+   renderProductRow(product) {
+    const safe = (v, fallback = '') => v !== undefined && v !== null ? v : fallback;
+    const analytics = this.analytics?.[product.id] || this.getEmptyAnalytics();
+    const costTrendIcon = analytics.costTrend === 'increasing' ? 'fa-arrow-up' : 
+                         analytics.costTrend === 'decreasing' ? 'fa-arrow-down' : 'fa-minus';
+    const costTrendClass = analytics.costTrend === 'increasing' ? 'negative' : 
+                          analytics.costTrend === 'decreasing' ? 'positive' : 'stable';
+
+    let statusBadge = 'TRACKED';
+    let statusClass = 'sol-badge-secondary';
+    if (Math.abs(safe(analytics.profitImpact, 0)) > 10000) {
+        statusBadge = 'HIGH IMPACT';
+        statusClass = 'sol-badge-danger';
+    } else if (safe(analytics.performance?.costEfficiency, 0) > 85) {
+        statusBadge = 'OPTIMIZED';
+        statusClass = 'sol-badge-success';
     }
+
+    return `
+        <tr data-product-id="${safe(product.id)}">
+            <td class="font-mono">${safe(product.sku)}</td>
+            <td>
+                <div class="product-name-cell">
+                    <strong>${safe(product.name)}</strong>
+                    ${product.description ? `<small class="text-muted">${safe(product.description).substring(0, 50)}...</small>` : ''}
+                </div>
+            </td>
+            <td>
+                <span class="category-badge category-${safe(product.category)}">
+                    ${safe(product.category)}
+                </span>
+            </td>
+            <td>
+                <strong>${safe(analytics.avgShippingCost, 0).toFixed(2)}</strong>
+            </td>
+            <td>
+                <div class="cost-trend-cell ${costTrendClass}">
+                    <i class="fas ${costTrendIcon}"></i>
+                    ${Math.abs(safe(analytics.costTrendPercentage, 0)).toFixed(1)}%
+                </div>
+            </td>
+            <td class="text-right">
+                ${safe(analytics.totalUnitsShipped, 0).toLocaleString()}
+            </td>
+            <td>
+                <span class="profit-impact ${safe(analytics.profitImpact, 0) >= 0 ? 'positive' : 'negative'}">
+                    ${(safe(analytics.profitImpact, 0) >= 0 ? '+' : '') + (safe(analytics.profitImpact, 0) / 1000).toFixed(0)}K
+                </span>
+            </td>
+            <td>
+                <span class="sol-badge ${statusClass}">${statusBadge}</span>
+            </td>
+            <td>
+                <div class="table-actions">
+                    <button class="sol-btn sol-btn-sm sol-btn-glass" 
+                            onclick="viewProductDetails('${safe(product.id)}')" 
+                            title="View Analytics">
+                        <i class="fas fa-chart-area"></i>
+                    </button>
+                    <button class="sol-btn sol-btn-sm sol-btn-glass" 
+                            onclick="editProduct('${safe(product.id)}')"
+                            title="Edit Product">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    <button class="sol-btn sol-btn-sm sol-btn-glass" 
+                            onclick="showProductMenu('${safe(product.id)}', event)"
+                            title="More Options">
+                        <i class="fas fa-ellipsis-v"></i>
+                    </button>
+                </div>
+            </td>
+        </tr>
+    `;
+}
 
     // --- FORM ---
     getProductFormHTML(product = null) {
@@ -847,9 +922,166 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // Funzioni globali per bottoni
+
+// Sostituisci SOLO QUESTA funzione con la patch:
 window.viewProductDetails = function(productId) {
-    window.productIntelligenceSystem.showProductDetails(productId);
+    const safe = (v, fallback = '') => v !== undefined && v !== null ? v : fallback;
+
+    const product = window.productIntelligenceSystem.products.find(p => p.id === productId);
+    const analytics = window.productIntelligenceSystem.analytics?.[productId] || window.productIntelligenceSystem.getEmptyAnalytics();
+
+    if (!product) {
+        console.error('Product not found:', productId);
+        return;
+    }
+
+    if (!window.ModalSystem) {
+        console.error('Modal system not available');
+        return;
+    }
+
+    const specs = safe(product.specifications, {});
+    const costTracking = safe(product.costTracking, {});
+    const performance = safe(analytics.performance, {});
+
+    const content = `
+        <div class="product-details-modal">
+            <div class="product-header">
+                <h3>${safe(product.name)}</h3>
+                <span class="product-sku">${safe(product.sku)}</span>
+            </div>
+            <div class="analytics-grid">
+                <div class="analytics-section">
+                    <h4>Shipping Analytics</h4>
+                    <div class="metric-row">
+                        <span>Total Shipments:</span>
+                        <span>${safe(analytics.totalShipments, 0)}</span>
+                    </div>
+                    <div class="metric-row">
+                        <span>Units Shipped:</span>
+                        <span>${safe(analytics.totalUnitsShipped, 0).toLocaleString()}</span>
+                    </div>
+                    <div class="metric-row">
+                        <span>Avg Shipping Cost:</span>
+                        <span>${safe(analytics.avgShippingCost, 0).toFixed(2)}</span>
+                    </div>
+                    <div class="metric-row">
+                        <span>Cost Trend:</span>
+                        <span class="${safe(analytics.costTrend, 'stable')}">
+                            ${safe(analytics.costTrend, 'stable')} (${Math.abs(safe(analytics.costTrendPercentage, 0)).toFixed(1)}%)
+                        </span>
+                    </div>
+                </div>
+                <div class="analytics-section">
+                    <h4>Route Intelligence</h4>
+                    <div class="metric-row">
+                        <span>Best Route:</span>
+                        <span>${safe(analytics.bestRoute, 'N/A')}</span>
+                    </div>
+                    <div class="metric-row">
+                        <span>Worst Route:</span>
+                        <span>${safe(analytics.worstRoute, 'N/A')}</span>
+                    </div>
+                    <div class="metric-row">
+                        <span>Profit Impact:</span>
+                        <span class="${safe(analytics.profitImpact, 0) >= 0 ? 'positive' : 'negative'}">
+                            ${(safe(analytics.profitImpact, 0) >= 0 ? '+' : '') + (safe(analytics.profitImpact, 0) / 1000).toFixed(1)}K
+                        </span>
+                    </div>
+                </div>
+                <div class="analytics-section">
+                    <h4>Performance Metrics</h4>
+                    <div class="metric-row">
+                        <span>Cost Efficiency:</span>
+                        <span>${safe(performance.costEfficiency, 0).toFixed(0)}%</span>
+                    </div>
+                    <div class="metric-row">
+                        <span>Route Optimization:</span>
+                        <span>${safe(performance.routeOptimization, 0).toFixed(0)}%</span>
+                    </div>
+                    <div class="metric-row">
+                        <span>Seasonal Optimization:</span>
+                        <span>${safe(performance.seasonalOptimization, 0).toFixed(0)}%</span>
+                    </div>
+                </div>
+            </div>
+            <hr>
+            <div class="product-extra">
+                <h4>Product Specs</h4>
+                <div class="spec-row">
+                    <span>Category:</span>
+                    <span>${safe(product.category, 'N/A')}</span>
+                </div>
+                <div class="spec-row">
+                    <span>Value (USD):</span>
+                    <span>${safe(specs.value, 0)}</span>
+                </div>
+                <div class="spec-row">
+                    <span>Weight (kg):</span>
+                    <span>${safe(specs.weight, 0)}</span>
+                </div>
+                <div class="spec-row">
+                    <span>Dimensions (cm):</span>
+                    <span>${safe(specs.dimensions?.length, 0)} x ${safe(specs.dimensions?.width, 0)} x ${safe(specs.dimensions?.height, 0)}</span>
+                </div>
+                <div class="spec-row">
+                    <span>HS Code:</span>
+                    <span>${safe(specs.hsCode, '-')}</span>
+                </div>
+                <div class="spec-row">
+                    <span>Fragile:</span>
+                    <span>${specs.fragile ? 'Yes' : 'No'}</span>
+                </div>
+                <div class="spec-row">
+                    <span>Hazardous:</span>
+                    <span>${specs.hazardous ? 'Yes' : 'No'}</span>
+                </div>
+            </div>
+        </div>
+        <style>
+            .product-details-modal { padding: 1rem 0; }
+            .product-header { text-align: center; margin-bottom: 2rem; padding-bottom: 1rem; border-bottom: 1px solid var(--sol-gray-200); }
+            .product-header h3 { margin: 0 0 0.5rem; color: var(--sol-gray-900); }
+            .product-sku { background: var(--sol-primary-light); color: var(--sol-primary-dark); padding: 0.25rem 0.75rem; border-radius: var(--sol-radius-sm); font-family: var(--sol-font-mono); font-size: 0.875rem; }
+            .analytics-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 2rem; }
+            .analytics-section h4 { margin: 0 0 1rem; color: var(--sol-gray-800); font-size: 1.125rem; border-bottom: 2px solid var(--sol-primary); padding-bottom: 0.5rem; }
+            .metric-row { display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 0; border-bottom: 1px solid var(--sol-gray-100); }
+            .metric-row:last-child { border-bottom: none; }
+            .metric-row span:first-child { color: var(--sol-gray-600); font-weight: 500; }
+            .metric-row span:last-child { font-weight: 600; color: var(--sol-gray-900); }
+            .positive { color: var(--sol-success) !important; }
+            .negative { color: var(--sol-danger) !important; }
+            .increasing { color: var(--sol-danger) !important; }
+            .decreasing { color: var(--sol-success) !important; }
+            .stable { color: var(--sol-gray-600) !important; }
+            .spec-row { display: flex; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px solid var(--sol-gray-100); }
+            .spec-row:last-child { border-bottom: none; }
+        </style>
+    `;
+
+    window.ModalSystem.show({
+        title: 'Product Intelligence Details',
+        content: content,
+        size: 'lg',
+        actions: [
+            {
+                label: 'Close',
+                class: 'sol-btn-secondary',
+                handler: () => true
+            },
+            {
+                label: 'Edit Product',
+                class: 'sol-btn-primary',
+                handler: () => {
+                    editProduct(productId);
+                    return true;
+                }
+            }
+        ]
+    });
 };
+
+// Le altre funzioni RESTANO UGUALI!
 window.editProduct = function(productId) {
     window.productIntelligenceSystem.showEditProductModal(productId);
 };
