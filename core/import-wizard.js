@@ -130,15 +130,15 @@ renderWizard = () => {
             { name: 'costo_trasporto', label: 'Transport Cost', type: 'currency' },
             { name: 'percentuale_dazio', label: 'Duty %', type: 'percentage' }
         ],
-        products: [
+       products: [
             { name: 'sku', label: 'Product Code', required: true, type: 'text' },
-        { name: 'description', label: 'Description', required: true, type: 'text' },
-        { name: 'other_description', label: 'Extended Description', type: 'text' },
-        { name: 'category', label: 'Category', type: 'text' },
-        { name: 'ean', label: 'EAN', type: 'text' }, // opzionale
-        { name: 'unit_price', label: 'Unit Price', type: 'currency' },
-        { name: 'metadata', label: 'Metadata', type: 'text' }
-    ];
+            { name: 'description', label: 'Description', required: true, type: 'text' },
+            { name: 'other_description', label: 'Extended Description', type: 'text' },
+            { name: 'category', label: 'Category', type: 'text' },
+            { name: 'ean', label: 'EAN', type: 'text' }, // opzionale
+            { name: 'unit_price', label: 'Unit Price', type: 'currency' },
+            { name: 'metadata', label: 'Metadata', type: 'text' }
+        ],
         containers: [
             { name: 'container_number', label: 'Container Number', required: true, type: 'text' },
             { name: 'bl_number', label: 'B/L Number', type: 'text' },
@@ -995,7 +995,7 @@ gotoStep = (stepIndex) => {
         this.mappings = {};
         this.currentStep = 0;
     }
-    
+
 startImport = async () => {
     try {
         const orgId = window.organizationService?.getCurrentOrgId();
