@@ -877,56 +877,65 @@ gotoStep = (stepIndex) => {
     }
 startImport = async () => {
     try {
+        // Recupera organization_id dal servizio globale
         const orgId = window.organizationService?.getCurrentOrgId();
         if (!orgId) {
             notificationSystem.show("Missing organization context. Cannot proceed with import.", "error");
             return;
         }
 
+        // Recupera Supabase user ID (autenticazione)
+        const user = await this.supabase.auth.getUser();
+        const userId = user?.data?.user?.id;
+        if (!userId) {
+            notificationSystem.show("User not authenticated", "error");
+            return;
+        }
+
         const mappings = this.getColumnMappings();
 
         const records = this.parsedData.map(row => {
-    const newRecord = {};
+            const newRecord = {};
 
-    // Applica mapping delle colonne
-    for (const [colName, fieldName] of Object.entries(mappings)) {
-        if (fieldName) newRecord[fieldName] = row[colName];
-    }
+            // Applica i mappings colonna → campo
+            for (const [colName, fieldName] of Object.entries(mappings)) {
+                if (fieldName) newRecord[fieldName] = row[colName];
+            }
 
-    // Fix tipo numerico per unit_price
-    if (newRecord.unit_price) newRecord.unit_price = parseFloat(newRecord.unit_price);
+            // ✅ Correzione tipi
+            if (newRecord.unit_price) {
+                newRecord.unit_price = parseFloat(newRecord.unit_price);
+            }
 
-    // Fix tipo JSON per metadata
-    if (newRecord.metadata && typeof newRecord.metadata === 'string') {
-        try {
-            newRecord.metadata = JSON.parse(newRecord.metadata);
-        } catch {
-            newRecord.metadata = null;
-        }
-    }
+            if (newRecord.metadata && typeof newRecord.metadata === 'string') {
+                try {
+                    newRecord.metadata = JSON.parse(newRecord.metadata);
+                } catch {
+                    console.warn('Invalid JSON in metadata, fallback to null:', newRecord.metadata);
+                    newRecord.metadata = null;
+                }
+            }
 
-    // 🔹 Genera ID univoco
-    newRecord.id = crypto.randomUUID();
+            // ✅ Obbligatori per schema Supabase
+            newRecord.id = crypto.randomUUID();    // UUID univoco
+            newRecord.user_id = userId;            // Supabase Auth user
+            newRecord.organization_id = orgId;     // Organizzazione corrente
 
-    // 🔹 Altri campi obbligatori
-    newRecord.organization_id = orgId;
-    newRecord.user_id = userId;
-
-    return newRecord;
-});
-
+            return newRecord;
+        });
 
         if (records.length === 0) {
             notificationSystem.show("No records to import.", "warning");
             return;
         }
 
-        console.log("🧪 First record to import:", records[0]); // 🔍 Debug
-        console.log("🧩 Column mappings:", mappings);
+        console.log("🧪 First record to import:", records[0]); // Log per debug
 
+        // Notifica inizio import
         document.getElementById('importStatus').innerText = `Importing ${records.length} records...`;
 
-        const { data, error } = await this.supabase.from('products').insert(records.slice(0, 1));
+        // Esegui insert su Supabase
+        const { data, error } = await this.supabase.from('products').insert(records);
 
         if (error) {
             console.error("❌ Supabase insert error", error);
