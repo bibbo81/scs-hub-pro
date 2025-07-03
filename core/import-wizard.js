@@ -54,14 +54,28 @@ class ImportWizard {
 
     renderWizard = () => {
         return `
-            <div class="import-wizard" data-step="upload">
-                <div class="wizard-steps"><div class="step active" data-step-indicator="upload"><div class="step-number">1</div><div class="step-label">Upload File</div></div><div class="step" data-step-indicator="mapping"><div class="step-number">2</div><div class="step-label">Map Columns</div></div><div class="step" data-step-indicator="preview"><div class="step-number">3</div><div class="step-label">Preview & Validate</div></div><div class="step" data-step-indicator="import"><div class="step-number">4</div><div class="step-label">Import</div></div></div>
-                <div class="wizard-content" data-step-content="upload"><div class="upload-area" id="uploadArea"><svg class="upload-icon" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg><h3>Drag & Drop your file here</h3><p>or click to browse</p><p class="file-types">Supported: CSV, Excel (.xlsx, .xls)</p><input type="file" id="fileInput" accept=".csv,.xlsx,.xls" style="display: none;"></div><div class="templates-section" style="display: none;"><h4>Or use a saved template:</h4><div class="templates-grid" id="templatesGrid"></div></div></div>
-                <div class="wizard-content" data-step-content="mapping" style="display: none;"><div class="mapping-header"><h3>Map your columns to system fields</h3><div class="mapping-actions"><button id="autoMapBtn" class="btn btn-secondary"><i class="icon-magic"></i> Auto-map</button><button id="saveTemplateBtn" class="btn btn-secondary"><i class="icon-save"></i> Save as template</button></div></div><div class="mapping-container"><div class="source-columns"><h4>Your File Columns</h4><div id="sourceColumns" class="columns-list"></div></div><div class="mapping-arrows"><svg id="mappingLines" width="100" height="100%"></svg></div><div class="target-fields"><h4>System Fields</h4><div id="targetFields" class="fields-list"></div></div></div><div class="mapping-options"><label><input type="checkbox" id="allowCustomFields" checked> Allow custom fields for unmapped columns</label></div></div>
-                <div class="wizard-content" data-step-content="preview" style="display: none;"><div class="preview-header"><h3>Preview & Validate</h3><div class="import-options"><label>Import Mode:</label><select id="importMode" class="form-control"><option value="append">Append new records</option><option value="update">Update existing records</option><option value="sync">Full sync (replace all)</option></select></div></div><div class="validation-summary" id="validationSummary"></div><div class="preview-table-container"><table class="preview-table" id="previewTable"></table></div><div class="preview-stats"><div class="stat"><span class="stat-label">Total Records:</span><span class="stat-value" id="totalRecords">0</span></div><div class="stat"><span class="stat-label">Valid:</span><span class="stat-value text-success" id="validRecords">0</span></div><div class="stat"><span class="stat-label">Warnings:</span><span class="stat-value text-warning" id="warningRecords">0</span></div><div class="stat"><span class="stat-label">Errors:</span><span class="stat-value text-danger" id="errorRecords">0</span></div></div></div>
-                <div class="wizard-content" data-step-content="import" style="display: none;"><div class="import-progress"><h3>Importing data...</h3><div class="progress-bar-container"><div class="progress-bar" id="importProgress"></div></div><div class="import-status" id="importStatus">Preparing import...</div><div class="import-log" id="importLog"></div></div></div>
-                <div class="wizard-navigation"><button class="btn btn-secondary" id="prevBtn">Previous</button><button class="btn btn-primary" id="nextBtn">Next</button></div>
-            </div>
+            <div class="wizard-content" data-step-content="mapping" style="display: none;">
+    <div class="mapping-header">
+        <h3>Map your columns to system fields</h3>
+        <div class="mapping-actions">
+            <button id="autoMapBtn" class="btn btn-secondary">
+                <i class="icon-magic"></i> Auto-map
+            </button>
+            <button id="saveTemplateBtn" class="btn btn-secondary">
+                <i class="icon-save"></i> Save as template
+            </button>
+        </div>
+    </div>
+    <!-- Questo è l'unico contenitore dinamico per la tabella di mapping -->
+    <div id="mappingContainer"></div>
+    <div class="mapping-options">
+        <label>
+            <input type="checkbox" id="allowCustomFields" checked>
+            Allow custom fields for unmapped columns
+        </label>
+    </div>
+</div>
+
         `;
     }
 
@@ -527,132 +541,79 @@ getColumnMappings = () => {
     const progressBar = this.modal.querySelector('#importProgress');
     const statusEl = this.modal.querySelector('#importStatus');
     const logEl = this.modal.querySelector('#importLog');
-
     progressBar.style.width = '0%';
     logEl.innerHTML = '';
 
     try {
-        // 1. Recupera organization_id corrente
+        // 1. Organization e User ID
         const orgId = window.organizationService?.getCurrentOrgId?.() || null;
-        if (!orgId) {
-            throw new Error('Organization non selezionata! Impossibile importare.');
-        }
-// PATCH: aggiungi questa riga!
-    const columnMappings = this.getColumnMappings();
-        // 2. Prepara i dati da importare con mapping flessibile
-        const requiredFields = ['sku', 'name', 'category', 'organization_id'];
+        if (!orgId) throw new Error('Organization non selezionata!');
+        
+        const user = await this.supabase.auth.getUser();
+        const userId = user?.data?.user?.id;
+        if (!userId) throw new Error('Utente non autenticato su Supabase');
+
+        // 2. Mapping dinamico
+        const columnMappings = this.getColumnMappings();
+
+        // 3. Prepara dati per import dinamico
         const importData = this.parsedData.map(row => {
-    const mapped = { organization_id: orgId };
-    const metadata = {};
+            const mapped = { organization_id: orgId, user_id: userId };
+            const metadata = {};
 
-    // Applica la mappatura scelta dall’utente (this.mappings)
-    for (const [sourceHeader, targetField] of Object.entries(columnMappings)) {
-    if (targetField && targetField !== 'metadata') {
-        mapped[targetField] = row[sourceHeader];
-    }
-}
+            for (const [sourceHeader, targetField] of Object.entries(columnMappings)) {
+                if (targetField && targetField !== 'metadata') {
+                    mapped[targetField] = row[sourceHeader];
+                }
+            }
+            // Metti tutti i campi non mappati in metadata (anche quelli mappati su "metadata")
+            for (const [header, value] of Object.entries(row)) {
+                if (!Object.keys(columnMappings).includes(header) || columnMappings[header] === 'metadata' || !columnMappings[header]) {
+                    metadata[header] = value;
+                }
+            }
+            if (Object.keys(metadata).length > 0) mapped.metadata = JSON.stringify(metadata);
+            return mapped;
+        });
 
-// Tutti i campi non mappati (o mappati su "metadata") finiscono in metadata
-for (const [header, value] of Object.entries(row)) {
-    if (
-        !Object.keys(columnMappings).includes(header) ||
-        columnMappings[header] === 'metadata' ||
-        !columnMappings[header]
-    ) {
-        metadata[header] = value;
-    }
-}
-
-    if (Object.keys(metadata).length > 0) {
-        mapped.metadata = JSON.stringify(metadata);
-    }
-
-    return mapped;
-});
-
-
-        // Log per debug
-        console.log('Headers:', this.headers);
-        console.log('Mappings effettivi:', columnMappings);
-        console.log('Primo record raw:', this.parsedData[0]);
-        console.log('Primo record mappato:', importData[0]);
-
-
-        // 3. Verifica che ci siano record e che i campi obbligatori siano presenti
-        if (!importData.length) {
-            throw new Error('Nessun record da importare!');
-        }
+        // 4. Verifica almeno sku, name, category, organization_id (o altri obbligatori)
+        const requiredFields = ['sku', 'name', 'category', 'organization_id'];
         const missing = requiredFields.filter(f => importData[0][f] === undefined || importData[0][f] === null || importData[0][f] === '');
-        console.log('Campi obbligatori mancanti:', missing);
-        if (missing.length) {
-        throw new Error('Mancano campi obbligatori: ' + missing.join(', '));
-        }
+        if (missing.length) throw new Error('Mancano campi obbligatori: ' + missing.join(', '));
 
-        if (importMode !== 'append') {
-            throw new Error(`Import mode '${importMode}' is not supported for this operation.`);
-        }
-
+        // 5. Import a batch
         const batchSize = 100;
         const totalBatches = Math.ceil(importData.length / batchSize);
         let processed = 0;
-
         statusEl.textContent = 'Starting import...';
-
         for (let i = 0; i < totalBatches; i++) {
             const batch = importData.slice(i * batchSize, (i + 1) * batchSize);
-
-            // DEBUG: Controlla i dati che mandi a Supabase
-            console.log('Batch to insert:', batch);
-
-            statusEl.textContent = `Processing batch ${i + 1} of ${totalBatches}...`;
-
-            // Chiamata diretta a Supabase
-            const { data, error } = await this.supabase
-                .from('products')
-                .insert(batch);
-
+            const { data, error } = await this.supabase.from('products').insert(batch);
             if (error) {
                 console.error('Supabase insert error:', error);
                 throw new Error(`Supabase error: ${error.message}`);
             }
-
             processed += batch.length;
             const progress = (processed / importData.length) * 100;
             progressBar.style.width = `${progress}%`;
-
             this.logImportResult({ result: { imported: batch.length, errors: 0 } }, i + 1, logEl);
         }
-
         statusEl.textContent = 'Import completed successfully!';
         statusEl.classList.add('text-success');
-
         this.events.dispatchEvent(new CustomEvent('importComplete', {
-            detail: { 
-                entity: this.config.entity,
-                totalRecords: importData.length,
-                mode: importMode
-            }
+            detail: { entity: this.config.entity, totalRecords: importData.length, mode: importMode }
         }));
-
         setTimeout(() => {
             this.modal.close();
             notificationSystem.show('Import completed successfully!', 'success');
         }, 2000);
-
     } catch (error) {
         console.error('Import error:', error);
         statusEl.textContent = `Import failed: ${error.message}`;
         statusEl.classList.add('text-danger');
-
-        logEl.innerHTML += `
-            <div class="log-entry log-error">
-                <i class="icon-x-circle"></i>
-                Error: ${error.message}
-            </div>
-        `;
+        logEl.innerHTML += `<div class="log-entry log-error"><i class="icon-x-circle"></i>Error: ${error.message}</div>`;
     }
-}
-
+};
 
 getFinalMappings = () => {
         const finalMappings = {};
@@ -1033,40 +994,81 @@ startImport = async () => {
 };
 
 renderMappingUI = () => {
-        const container = this.modal.querySelector('#columnMappingContainer');
-        container.innerHTML = ''; // reset UI
+    // Trova il contenitore della mappatura nel modal
+    // Cambia se usi un altro ID, esempio: #mappingContainer oppure .columnMappingContainer
+    const container = this.modal.querySelector('#mappingContainer') || this.modal.querySelector('.columnMappingContainer');
+    if (!container) {
+        console.error('❌ mappingContainer non trovato nella modale!');
+        return;
+    }
 
-        const validFields = [
-            '', 'sku', 'ean', 'name', 'category', 'unit_price',
-            'metadata', 'description', 'origin_country',
-            'currency', 'hs_code', 'weight_kg', 'dimensions_cm'
-        ];
+    // Pulizia precedente
+    container.innerHTML = '';
 
-        this.headers.forEach(header => {
-            const row = document.createElement('div');
-            row.classList.add('column-map-row');
-            row.dataset.header = header;
+    // Lista campi target disponibili (aggiorna se vuoi altri)
+    const validFields = [
+        '', 'sku', 'ean', 'name', 'category', 'unit_price',
+        'metadata', 'description', 'origin_country',
+        'currency', 'hs_code', 'weight_kg', 'dimensions_cm',
+        'active', 'created_at', 'updated_at', 'id', 'user_id', 'organization_id'
+    ];
 
-            const label = document.createElement('label');
-            label.innerText = header;
+    // Genera la tabella/righe di mapping colonne
+    const table = document.createElement('table');
+    table.className = 'mapping-table';
+    const thead = document.createElement('thead');
+    const trHead = document.createElement('tr');
+    trHead.innerHTML = '<th>Colonna File</th><th>Mappa su Campo</th>';
+    thead.appendChild(trHead);
+    table.appendChild(thead);
 
-            const select = document.createElement('select');
-            select.setAttribute('data-header', header);
+    const tbody = document.createElement('tbody');
 
-            validFields.forEach(field => {
-                const option = document.createElement('option');
-                option.value = field;
-                option.innerText = field || '--';
-                select.appendChild(option);
-            });
+    this.headers.forEach(header => {
+        const tr = document.createElement('tr');
 
-            row.appendChild(label);
-            row.appendChild(select);
-            container.appendChild(row);
+        // Etichetta della colonna sorgente (file)
+        const tdLabel = document.createElement('td');
+        tdLabel.textContent = header;
+
+        // Select campo target
+        const tdSelect = document.createElement('td');
+        const select = document.createElement('select');
+        select.setAttribute('data-header', header);
+        select.className = 'form-select';
+
+        validFields.forEach(field => {
+            const option = document.createElement('option');
+            option.value = field;
+            option.textContent = field ? field : '--';
+            select.appendChild(option);
         });
 
-        console.log("🧩 Mapping UI built with headers:", this.headers);
-    };
+        // Eventuale valore predefinito dal mapping precedente
+        if (this.mappings && this.mappings[header]) {
+            select.value = this.mappings[header];
+        }
+
+        tdSelect.appendChild(select);
+
+        tr.appendChild(tdLabel);
+        tr.appendChild(tdSelect);
+        tbody.appendChild(tr);
+    });
+
+    table.appendChild(tbody);
+    container.appendChild(table);
+container.querySelectorAll('select[data-header]').forEach(select => {
+    select.addEventListener('change', (e) => {
+        this.mappings[select.getAttribute('data-header')] = select.value;
+        this.updateMappingUI();
+    });
+});
+
+    // Debug/log
+    console.log('🧩 UI mapping generata per headers:', this.headers);
+};
+
 
 }
 
