@@ -54,8 +54,7 @@ class ImportWizard {
   this.showStep('upload'); // 🚀 Avvia step Upload visibile!
 };
 
-
-    renderWizard = () => {
+renderWizard = () => {
   return `
     <div class="import-wizard" data-step="upload">
 
@@ -93,6 +92,11 @@ class ImportWizard {
         </div>
       </div>
 
+      <!-- STEP 3: IMPORT -->
+      <div class="wizard-content" data-step-content="import" style="display: none;">
+        <div id="importStatus" class="import-status"></div>
+      </div>
+
       <!-- NAVIGATION -->
       <div class="wizard-navigation">
         <button class="btn btn-secondary" id="prevBtn">Previous</button>
@@ -101,7 +105,6 @@ class ImportWizard {
     </div>
   `;
 };
-
 
     loadTargetFields = async (entity) => {
         const fieldDefinitions = {
