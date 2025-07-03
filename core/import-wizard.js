@@ -55,84 +55,63 @@ class ImportWizard {
 };
 
 renderWizard = () => {
-  return `
+    return `
     <div class="import-wizard" data-step="upload">
 
-      <!-- STEP INDICATORS -->
-      <div class="wizard-steps">
-        <div class="step active" data-step-indicator="upload">Upload File</div>
-        <div class="step" data-step-indicator="mapping">Map Columns</div>
-        <div class="step" data-step-indicator="preview">Preview & Validate</div>
-        <div class="step" data-step-indicator="import">Import</div>
-      </div>
-
-      <!-- STEP 1: UPLOAD -->
-      <div class="wizard-content" data-step-content="upload">
-        <div class="upload-area" id="uploadArea">
-          <h3>Drag & Drop your file here</h3>
-          <p>or click to browse</p>
-          <input type="file" id="fileInput" accept=".csv,.xlsx,.xls" style="display: none;">
+        <!-- STEP 1: UPLOAD -->
+        <div class="wizard-content" data-step-content="upload">
+            <div class="upload-area" id="uploadArea">
+                <h3>Drag & Drop your file here</h3>
+                <p>or click to browse</p>
+                <input type="file" id="fileInput" accept=".csv,.xlsx,.xls" style="display: none;">
+            </div>
         </div>
-      </div>
 
-      <!-- STEP 2: MAPPING -->
-      <div class="wizard-content" data-step-content="mapping" style="display: none;">
-        <div class="mapping-header">
-          <h3>Map your columns to system fields</h3>
-          <div class="mapping-actions">
-            <button id="autoMapBtn" class="btn btn-secondary">Auto-map</button>
-            <button id="saveTemplateBtn" class="btn btn-secondary">Save as template</button>
-          </div>
-        </div>
-        <div id="mappingContainer" class="mapping-container">
-          <div class="source-columns">
-            <h4>Your File Columns</h4>
-            <div id="sourceColumns" class="columns-list"></div>
-          </div>
-          <div class="mapping-arrows">
-            <svg id="mappingLines" width="100%" height="100%"></svg>
-          </div>
-          <div class="target-fields">
-            <h4>System Fields</h4>
-            <div id="targetFields" class="fields-list"></div>
-          </div>
-        </div>
-      </div>
+        <!-- STEP 2: MAPPING -->
+        <div class="wizard-content" data-step-content="mapping" style="display: none;">
+            <div class="mapping-header">
+                <h3>Map your columns to system fields</h3>
+                <div class="mapping-actions">
+                    <button id="autoMapBtn" class="btn btn-secondary">Auto-map</button>
+                    <button id="saveTemplateBtn" class="btn btn-secondary">Save as template</button>
+                </div>
+            </div>
 
-      <!-- STEP 3: PREVIEW -->
-      <div class="wizard-content" data-step-content="preview" style="display: none;">
-        <div class="preview-header">
-          <h3>Preview & Validate</h3>
-          <select id="importMode">
-            <option value="append">Append</option>
-            <option value="update">Update</option>
-            <option value="sync">Sync</option>
-          </select>
-        </div>
-        <div id="validationSummary"></div>
-        <table id="previewTable"></table>
-        <div class="preview-stats">
-          <span>Total: <span id="totalRecords">0</span></span>
-          <span>Valid: <span id="validRecords">0</span></span>
-          <span>Warnings: <span id="warningRecords">0</span></span>
-          <span>Errors: <span id="errorRecords">0</span></span>
-        </div>
-      </div>
+            <div id="mappingContainer" class="mapping-container">
+                <div class="source-columns">
+                    <h4>Your File Columns</h4>
+                    <div id="sourceColumns" class="columns-list"></div>
+                </div>
 
-      <!-- STEP 4: IMPORT -->
-      <div class="wizard-content" data-step-content="import" style="display: none;">
-        <div id="importProgress"></div>
-        <div id="importStatus">Preparing import...</div>
-        <div id="importLog"></div>
-      </div>
+                <div class="mapping-arrows">
+                    <svg id="mappingLines" width="100%" height="100%"></svg>
+                </div>
 
-      <!-- NAVIGATION -->
-      <div class="wizard-navigation">
-        <button id="prevBtn">Previous</button>
-        <button id="nextBtn">Next</button>
-      </div>
+                <div class="target-fields">
+                    <h4>System Fields</h4>
+                    <div id="targetFields" class="fields-list"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- STEP 3: PREVIEW -->
+        <div class="wizard-content" data-step-content="preview" style="display: none;">
+            <!-- preview content -->
+        </div>
+
+        <!-- STEP 4: IMPORT -->
+        <div class="wizard-content" data-step-content="import" style="display: none;">
+            <!-- import content -->
+        </div>
+
+        <!-- NAVIGATION -->
+        <div class="wizard-navigation">
+            <button class="btn btn-secondary" id="prevBtn">Previous</button>
+            <button class="btn btn-primary" id="nextBtn">Next</button>
+        </div>
+
     </div>
-  `;
+    `;
 };
 
     loadTargetFields = async (entity) => {
@@ -158,10 +137,10 @@ renderWizard = () => {
             throw new Error('Unsupported file format');
         }
 
-        // 👇 Prima, mostra chiaramente lo step mapping
+        // 👇 Mostra chiaramente lo step mapping PRIMA di renderizzare elementi
         this.showStep('mapping');
 
-        // 🚦 Assicurati DOM aggiornato prima di generare contenuti
+        // 🚦 Assicurati DOM aggiornato
         requestAnimationFrame(() => {
             setTimeout(() => {
                 this.renderSourceColumns();
