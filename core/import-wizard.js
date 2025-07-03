@@ -196,10 +196,10 @@ class ImportWizard {
       throw new Error('Unsupported file format');
     }
 
-    // ✅ Vai subito allo STEP MAPPING (così #sourceColumns esiste!)
+    // 👇 Vai allo step giusto!
     this.showStep('mapping');
 
-    // ✅ Ora puoi renderizzare
+    // ✅ Aspetta DOM pronto
     setTimeout(() => {
       this.renderSourceColumns();
       this.renderTargetFields();
@@ -213,6 +213,7 @@ class ImportWizard {
     console.error('File upload error:', error);
   }
 };
+
 
     
     parseCSV = (file) => {
@@ -400,10 +401,12 @@ getColumnMappings = () => {
 
     renderSourceColumns = () => {
   const container = this.modal.querySelector('#sourceColumns');
+
   if (!container) {
     console.error('❌ sourceColumns non trovato! Sei nello step MAPPING?');
-    return;
+    return; // 🛑 Evita di proseguire se manca
   }
+
   container.innerHTML = this.headers.map((header, index) => `
     <div class="source-column" draggable="true" data-column="${header}" data-index="${index}">
       <div class="column-header">${header}</div>
@@ -416,6 +419,7 @@ getColumnMappings = () => {
     col.addEventListener('dragend', this.handleDragEnd);
   });
 };
+
 
     renderTargetFields = () => {
     const container = this.modal.querySelector('#mappingContainer');
