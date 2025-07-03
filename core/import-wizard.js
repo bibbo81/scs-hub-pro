@@ -55,63 +55,46 @@ class ImportWizard {
 };
 
 renderWizard = () => {
-    return `
+  return `
     <div class="import-wizard" data-step="upload">
-
-        <!-- STEP 1: UPLOAD -->
-        <div class="wizard-content" data-step-content="upload">
-            <div class="upload-area" id="uploadArea">
-                <h3>Drag & Drop your file here</h3>
-                <p>or click to browse</p>
-                <input type="file" id="fileInput" accept=".csv,.xlsx,.xls" style="display: none;">
-            </div>
+      <!-- STEP 1: UPLOAD -->
+      <div class="wizard-content" data-step-content="upload">
+        <div class="upload-area" id="uploadArea">
+          <h3>Drag & Drop your file here</h3>
+          <p>or click to browse</p>
+          <input type="file" id="fileInput" accept=".csv,.xlsx,.xls" style="display: none;">
         </div>
+      </div>
 
-        <!-- STEP 2: MAPPING -->
-        <div class="wizard-content" data-step-content="mapping" style="display: none;">
-            <div class="mapping-header">
-                <h3>Map your columns to system fields</h3>
-                <div class="mapping-actions">
-                    <button id="autoMapBtn" class="btn btn-secondary">Auto-map</button>
-                    <button id="saveTemplateBtn" class="btn btn-secondary">Save as template</button>
-                </div>
-            </div>
-
-            <div id="mappingContainer" class="mapping-container">
-                <div class="source-columns">
-                    <h4>Your File Columns</h4>
-                    <div id="sourceColumns" class="columns-list"></div>
-                </div>
-
-                <div class="mapping-arrows">
-                    <svg id="mappingLines" width="100%" height="100%"></svg>
-                </div>
-
-                <div class="target-fields">
-                    <h4>System Fields</h4>
-                    <div id="targetFields" class="fields-list"></div>
-                </div>
-            </div>
+      <!-- STEP 2: MAPPING -->
+      <div class="wizard-content" data-step-content="mapping" style="display: none;">
+        <div class="mapping-header">
+          <h3>Map your columns to system fields</h3>
+          <div class="mapping-actions">
+            <button id="autoMapBtn" class="btn btn-secondary">Auto-map</button>
+            <button id="saveTemplateBtn" class="btn btn-secondary">Save as template</button>
+          </div>
         </div>
-
-        <!-- STEP 3: PREVIEW -->
-        <div class="wizard-content" data-step-content="preview" style="display: none;">
-            <!-- preview content -->
+        <div id="mappingContainer" class="mapping-container">
+          <div class="source-columns">
+            <h4>Your File Columns</h4>
+            <div id="sourceColumns" class="columns-list"></div>
+          </div>
+          <div class="mapping-arrows">
+            <svg id="mappingLines" width="100%" height="100%"></svg>
+          </div>
+          <div class="target-fields">
+            <h4>System Fields</h4>
+            <div id="targetFields" class="fields-list"></div>
+          </div>
         </div>
-
-        <!-- STEP 4: IMPORT -->
-        <div class="wizard-content" data-step-content="import" style="display: none;">
-            <!-- import content -->
-        </div>
-
-        <!-- NAVIGATION -->
-        <div class="wizard-navigation">
-            <button class="btn btn-secondary" id="prevBtn">Previous</button>
-            <button class="btn btn-primary" id="nextBtn">Next</button>
-        </div>
-
+      </div>
+      <div class="wizard-navigation">
+        <button class="btn btn-secondary" id="prevBtn">Previous</button>
+        <button class="btn btn-primary" id="nextBtn">Next</button>
+      </div>
     </div>
-    `;
+  `;
 };
 
     loadTargetFields = async (entity) => {
@@ -124,37 +107,30 @@ renderWizard = () => {
     }
     
     handleFileUpload = async (file) => {
-    this.currentFile = file;
-
-    try {
-        notificationSystem.show('Parsing file...', 'info');
-
-        if (file.name.endsWith('.csv')) {
-            await this.parseCSV(file);
-        } else if (file.name.match(/\.xlsx?$/)) {
-            await this.parseExcel(file);
-        } else {
-            throw new Error('Unsupported file format');
-        }
-
-        // 👇 Mostra chiaramente lo step mapping PRIMA di renderizzare elementi
-        this.showStep('mapping');
-
-        // 🚦 Assicurati DOM aggiornato
-        requestAnimationFrame(() => {
-            setTimeout(() => {
-                this.renderSourceColumns();
-                this.renderTargetFields();
-                this.autoMap();
-            }, 100); // Tempo di sicurezza aggiuntivo per render
-        });
-
-        notificationSystem.show('File parsed successfully', 'success');
-
-    } catch (error) {
-        notificationSystem.show(`Error parsing file: ${error.message}`, 'error');
-        console.error('File upload error:', error);
+  this.currentFile = file;
+  try {
+    notificationSystem.show('Parsing file...', 'info');
+    if (file.name.endsWith('.csv')) {
+      await this.parseCSV(file);
+    } else if (file.name.match(/\.xlsx?$/)) {
+      await this.parseExcel(file);
+    } else {
+      throw new Error('Unsupported file format');
     }
+
+    this.showStep('mapping');
+    // Usa setTimeout + requestAnimationFrame per garantire il DOM
+    setTimeout(() => {
+      this.renderSourceColumns();
+      this.renderTargetFields();
+      this.autoMap();
+    }, 100);
+
+    notificationSystem.show('File parsed successfully', 'success');
+  } catch (error) {
+    notificationSystem.show(`Error parsing file: ${error.message}`, 'error');
+    console.error('File upload error:', error);
+  }
 };
     
     parseCSV = (file) => {
@@ -339,15 +315,12 @@ getColumnMappings = () => {
 };
 
 
-
     renderSourceColumns = () => {
   const container = this.modal.querySelector('#sourceColumns');
-
   if (!container) {
     console.error('❌ sourceColumns non trovato! Sei nello step MAPPING?');
     return;
   }
-
   container.innerHTML = this.headers.map((header, index) => `
     <div class="source-column" draggable="true" data-column="${header}" data-index="${index}">
       <div class="column-header">${header}</div>
@@ -359,8 +332,6 @@ getColumnMappings = () => {
     col.addEventListener('dragstart', this.handleDragStart);
     col.addEventListener('dragend', this.handleDragEnd);
   });
-
-  console.log('✅ renderSourceColumns OK: columns rendered', this.headers);
 };
 
     renderTargetFields = () => {
@@ -369,7 +340,6 @@ getColumnMappings = () => {
     console.error('❌ targetFields non trovato! Sei nello step MAPPING?');
     return;
   }
-
   const requiredFields = this.targetFields.filter(f => f.required && !f.hidden);
   const optionalFields = this.targetFields.filter(f => !f.required && !f.hidden);
 
@@ -389,8 +359,6 @@ getColumnMappings = () => {
     field.addEventListener('drop', this.handleDrop);
     field.addEventListener('dragleave', this.handleDragLeave);
   });
-
-  console.log('✅ renderTargetFields OK: fields rendered', this.targetFields);
 };
 
     renderTargetField = (field) => {
@@ -967,76 +935,50 @@ gotoStep = (stepIndex) => {
         this.currentStep = 0;
     }
 startImport = async () => {
-    try {
-        const orgId = window.organizationService?.getCurrentOrgId();
-        if (!orgId) {
-            notificationSystem.show("Missing organization context. Cannot proceed with import.", "error");
-            return;
-        }
-
-        const user = await this.supabase.auth.getUser();
-        const userId = user?.data?.user?.id;
-        if (!userId) {
-            notificationSystem.show("User not authenticated", "error");
-            return;
-        }
-
-        const mappings = this.getColumnMappings();
-
-        const records = this.parsedData.map(row => {
-            const newRecord = {};
-
-            for (const [colName, fieldName] of Object.entries(mappings)) {
-                if (fieldName) newRecord[fieldName] = row[colName];
-            }
-
-            if (newRecord.unit_price) {
-                newRecord.unit_price = parseFloat(newRecord.unit_price);
-            }
-
-            if (newRecord.metadata && typeof newRecord.metadata === 'string') {
-                try {
-                    newRecord.metadata = JSON.parse(newRecord.metadata);
-                } catch {
-                    newRecord.metadata = null;
-                }
-            }
-
-            newRecord.id = crypto.randomUUID();
-            newRecord.user_id = userId;
-            newRecord.organization_id = orgId;
-
-            if (!newRecord.sku || !newRecord.name) return null;
-
-            return newRecord;
-        }).filter(r => r !== null);
-
-        if (records.length === 0) {
-            notificationSystem.show("No valid records to import.", "warning");
-            return;
-        }
-
-        const statusEl = document.getElementById('importStatus');
-        if (statusEl) {
-            statusEl.innerText = `Importing ${records.length} records...`;
-        }
-
-        const { data, error } = await this.supabase.from('products').insert(records);
-
-        if (error) {
-            notificationSystem.show(`Import failed: ${error.message}`, 'error');
-            return;
-        }
-
-        notificationSystem.show(`✅ Import successful: ${records.length} records`, 'success');
-        if (statusEl) {
-            statusEl.innerText = `Successfully imported ${records.length} records`;
-        }
-
-    } catch (err) {
-        notificationSystem.show('Unexpected error during import', 'error');
-        console.error('Import error:', err);
+  try {
+    const orgId = window.organizationService?.getCurrentOrgId();
+    if (!orgId) {
+      notificationSystem.show("Missing organization context. Cannot proceed with import.", "error");
+      return;
     }
+    const user = await this.supabase.auth.getUser();
+    const userId = user?.data?.user?.id;
+    if (!userId) {
+      notificationSystem.show("User not authenticated", "error");
+      return;
+    }
+    const mappings = this.getColumnMappings();
+    const records = this.parsedData.map(row => {
+      const newRecord = {};
+      for (const [colName, fieldName] of Object.entries(mappings)) {
+        if (fieldName && fieldName !== "id") newRecord[fieldName] = row[colName];
+      }
+      newRecord.user_id = userId;
+      newRecord.organization_id = orgId;
+      // NON generare/girare newRecord.id!
+      return newRecord;
+    }).filter(r => r.sku && r.name); // scarta i record senza sku o name
+
+    if (records.length === 0) {
+      notificationSystem.show("No valid records to import.", "warning");
+      return;
+    }
+    // Debug: stampa batch
+    console.log("🧪 First record to import:", records[0]);
+    // Mostra stato
+    document.getElementById('importStatus').innerText = `Importing ${records.length} records...`;
+    const { data, error } = await this.supabase.from('products').insert(records);
+    if (error) {
+      console.error("❌ Supabase insert error", error);
+      notificationSystem.show(`Import failed: ${error.message}`, 'error');
+      return;
+    }
+    notificationSystem.show(`✅ Import successful: ${records.length} records`, 'success');
+    document.getElementById('importStatus').innerText = `Successfully imported ${records.length} records`;
+  } catch (err) {
+    console.error('Import error:', err);
+    notificationSystem.show('Unexpected error during import', 'error');
+  }
 };
 
 renderMappingUI = () => {
