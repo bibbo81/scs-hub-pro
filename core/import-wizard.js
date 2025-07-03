@@ -92,12 +92,11 @@ class ImportWizard {
           </div>
         </div>
 
-        <div class="mapping-container">
-          <div class="source-columns">
-            <h4>Your File Columns</h4>
-            <div id="sourceColumns" class="columns-list"></div>
-          </div>
-
+  <div id="mappingContainer" class="mapping-container">
+    <div class="source-columns">
+      <h4>Your File Columns</h4>
+      <div id="sourceColumns" class="columns-list"></div>
+    </div>
           <div class="mapping-arrows">
             <svg id="mappingLines" width="100" height="100%"></svg>
           </div>
