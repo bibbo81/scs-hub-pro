@@ -9,27 +9,33 @@ importWizard.setSupabaseClient(supabase);
 
 class ProductIntelligenceSystem {
     constructor() {
-        this.products = [];
-        this.analytics = {};
-        this.recommendations = [];
-        this.organizationId = null;
-        this.viewMode = 'grid';
-        this.sortColumn = 'name';
-        this.sortDirection = 'asc';
-        this.activeFilters = {
-            category: '',
-            costTrend: '',
-            search: '',
-            minShippingCost: null,
-            maxShippingCost: null,
-            minUnits: null,
-            profitImpact: 'all'
-        };
-        // Bind methods
-        this.init = this.init.bind(this);
-        this.loadData = this.loadData.bind(this);
-        this.generateAnalytics = this.generateAnalytics.bind(this);
-    }
+    this.products = [];
+    this.analytics = {};
+    this.recommendations = [];
+    this.organizationId = null;
+    this.viewMode = 'grid';
+    this.sortColumn = 'name';
+    this.sortDirection = 'asc';
+    this.activeFilters = {
+        category: '',
+        costTrend: '',
+        search: '',
+        minShippingCost: null,
+        maxShippingCost: null,
+        minUnits: null,
+        profitImpact: 'all'
+    };
+    // Bind methods per non perdere il contesto this
+    this.init = this.init.bind(this);
+    this.loadData = this.loadData.bind(this);
+    this.generateAnalytics = this.generateAnalytics.bind(this);
+    this.showImportModal = this.showImportModal.bind(this);
+    this.showAddProductModal = this.showAddProductModal.bind(this);
+    this.showEditProductModal = this.showEditProductModal.bind(this);
+    this.showProductMenu = this.showProductMenu.bind(this);
+    this.showProductDetails = this.showProductDetails.bind(this);
+}
+
 initializeEventHandlers() {
     // Bottone: aggiungi prodotto
     const addProductBtn = document.getElementById('addProductBtn');
@@ -126,6 +132,49 @@ showStatus(message, type = 'info', duration = 3000) {
         });
         this.recommendations = this.generateRecommendations();
     }
+
+    async showImportModal() {
+    console.log('[ProductIntelligence] Initializing import wizard for products...');
+    if (!window.importWizard && !importWizard) {
+        this.showStatus('Import wizard module not available.', 'error');
+        return;
+    }
+
+    const wizard = window.importWizard || importWizard;
+
+    try {
+        await wizard.init({
+            entity: 'products',
+            endpoint: 'api/v1/products/import', // puoi sostituire con il tuo endpoint reale
+            targetFields: [
+                { name: 'sku', label: 'SKU', required: true, type: 'text' },
+                { name: 'name', label: 'Product Name', required: true, type: 'text' },
+                { name: 'description', label: 'Description', type: 'text' },
+                { name: 'category', label: 'Category', required: true, type: 'text' },
+                { name: 'specifications.weight', label: 'Weight (kg)', type: 'number' },
+                { name: 'specifications.dimensions.length', label: 'Length (cm)', type: 'number' },
+                { name: 'specifications.dimensions.width', label: 'Width (cm)', type: 'number' },
+                { name: 'specifications.dimensions.height', label: 'Height (cm)', type: 'number' },
+                { name: 'specifications.value', label: 'Unit Value (USD)', type: 'currency' },
+                { name: 'costTracking.baseCost', label: 'Base Cost (USD)', type: 'currency' },
+                { name: 'costTracking.targetMargin', label: 'Target Margin (%)', type: 'percentage' }
+            ]
+        });
+
+        wizard.show();
+
+        wizard.events.addEventListener('importComplete', async () => {
+            this.showStatus('Import successful! Refreshing data...', 'success');
+            await this.loadData();
+            this.renderProducts();
+            this.renderIntelligenceStats();
+        }, { once: true });
+
+    } catch (error) {
+        console.error('Failed to initialize import wizard:', error);
+        this.showStatus(`Error: ${error.message}`, 'error');
+    }
+}
 
     calculateProductAnalytics(product) {
         // Margine attuale vs target (senza tracking)
@@ -636,28 +685,28 @@ showStatus(message, type = 'info', duration = 3000) {
     // --- CRUD & MODALS ---
 
     showAddProductModal() {
-        if (!window.ModalSystem) {
-            console.error('Modal system not available');
-            return;
-        }
-        window.ModalSystem.show({
-            title: 'Add New Product',
-            content: this.getProductFormHTML(),
-            size: 'lg',
-            actions: [
-                {
-                    label: 'Cancel',
-                    class: 'sol-btn-secondary',
-                    handler: () => true
-                },
-                {
-                    label: 'Save Product',
-                    class: 'sol-btn-primary',
-                    handler: () => this.saveProduct()
-                }
-            ]
-        });
+    if (!window.ModalSystem) {
+        this.showStatus('Modal system not available', 'error');
+        return;
     }
+    window.ModalSystem.show({
+        title: 'Add New Product',
+        content: this.getProductFormHTML(),
+        size: 'lg',
+        actions: [
+            {
+                label: 'Cancel',
+                class: 'sol-btn-secondary',
+                handler: () => true
+            },
+            {
+                label: 'Save Product',
+                class: 'sol-btn-primary',
+                handler: () => this.saveProduct()
+            }
+        ]
+    });
+}
 
     saveProduct() {
         const form = document.getElementById('productForm');
@@ -794,101 +843,134 @@ showStatus(message, type = 'info', duration = 3000) {
     // MODALE ANALYTICS/DETAILS
     showProductDetails(productId) {
         const product = this.products.find(p => p.id === productId);
-        const analytics = this.analytics[productId] || {};
-        if (!product) return;
-        if (!window.ModalSystem) {
-            console.error('Modal system not available');
-            return;
-        }
-        window.ModalSystem.show({
-            title: 'Product Intelligence Details',
-            content: `
-                <div class="product-details-modal">
-                    <div class="product-header">
-                        <h3>${product.name}</h3>
-                        <span class="product-sku">${product.sku}</span>
-                    </div>
-                    <div class="analytics-grid">
-                        <div class="analytics-section">
-                            <h4>Profitability</h4>
-                            <div class="metric-row">
-                                <span>Unit Value:</span>
-                                <span>${product.specifications.value}</span>
-                            </div>
-                            <div class="metric-row">
-                                <span>Base Cost:</span>
-                                <span>${product.costTracking.baseCost}</span>
-                            </div>
-                            <div class="metric-row">
-                                <span>Shipping Budget:</span>
-                                <span>${product.costTracking.shippingBudget}</span>
-                            </div>
-                            <div class="metric-row">
-                                <span>Target Margin:</span>
-                                <span>${(product.costTracking.targetMargin * 100).toFixed(1)}%</span>
-                            </div>
-                            <div class="metric-row">
-                                <span>Current Margin:</span>
-                                <span>${((analytics.currentMargin || 0) * 100).toFixed(1)}%</span>
-                            </div>
+    const analytics = this.analytics[productId];
+
+    if (!product || !analytics) {
+        this.showStatus('Product not found', 'error');
+        return;
+    }
+    if (!window.ModalSystem) {
+        this.showStatus('Modal system not available', 'error');
+        return;
+    }
+         window.ModalSystem.show({
+        title: 'Product Intelligence Details',
+        content: `
+            <div class="product-details-modal">
+                <div class="product-header">
+                    <h3>${product.name}</h3>
+                    <span class="product-sku">${product.sku}</span>
+                </div>
+                <div class="analytics-grid">
+                    <div class="analytics-section">
+                        <h4>Shipping Analytics</h4>
+                        <div class="metric-row">
+                            <span>Total Shipments:</span>
+                            <span>${analytics.totalShipments}</span>
                         </div>
-                        <div class="analytics-section">
-                            <h4>Specifications</h4>
-                            <div class="metric-row">
-                                <span>Weight:</span>
-                                <span>${product.specifications.weight} kg</span>
-                            </div>
-                            <div class="metric-row">
-                                <span>Size:</span>
-                                <span>${product.specifications.dimensions.length} x ${product.specifications.dimensions.width} x ${product.specifications.dimensions.height} cm</span>
-                            </div>
-                            <div class="metric-row">
-                                <span>HS Code:</span>
-                                <span>${product.specifications.hsCode}</span>
-                            </div>
-                            <div class="metric-row">
-                                <span>Fragile:</span>
-                                <span>${product.specifications.fragile ? 'Yes' : 'No'}</span>
-                            </div>
-                            <div class="metric-row">
-                                <span>Hazardous:</span>
-                                <span>${product.specifications.hazardous ? 'Yes' : 'No'}</span>
-                            </div>
+                        <div class="metric-row">
+                            <span>Units Shipped:</span>
+                            <span>${analytics.totalUnitsShipped.toLocaleString()}</span>
+                        </div>
+                        <div class="metric-row">
+                            <span>Avg Shipping Cost:</span>
+                            <span>${analytics.avgShippingCost.toFixed(2)}</span>
+                        </div>
+                        <div class="metric-row">
+                            <span>Cost Trend:</span>
+                            <span class="${analytics.costTrend}">${analytics.costTrend} (${analytics.costTrendPercentage.toFixed(1)}%)</span>
+                        </div>
+                    </div>
+                    <div class="analytics-section">
+                        <h4>Route Intelligence</h4>
+                        <div class="metric-row">
+                            <span>Best Route:</span>
+                            <span>${analytics.bestRoute}</span>
+                        </div>
+                        <div class="metric-row">
+                            <span>Worst Route:</span>
+                            <span>${analytics.worstRoute}</span>
+                        </div>
+                        <div class="metric-row">
+                            <span>Profit Impact:</span>
+                            <span class="${analytics.profitImpact >= 0 ? 'positive' : 'negative'}">
+                                ${analytics.profitImpact >= 0 ? '+' : ''}${(analytics.profitImpact / 1000).toFixed(1)}K
+                            </span>
+                        </div>
+                    </div>
+                    <div class="analytics-section">
+                        <h4>Performance Metrics</h4>
+                        <div class="metric-row">
+                            <span>Cost Efficiency:</span>
+                            <span>${analytics.performance.costEfficiency.toFixed(0)}%</span>
+                        </div>
+                        <div class="metric-row">
+                            <span>Route Optimization:</span>
+                            <span>${analytics.performance.routeOptimization.toFixed(0)}%</span>
+                        </div>
+                        <div class="metric-row">
+                            <span>Seasonal Optimization:</span>
+                            <span>${analytics.performance.seasonalOptimization.toFixed(0)}%</span>
                         </div>
                     </div>
                 </div>
-            `,
-            size: 'lg',
-            actions: [
-                { label: 'Close', class: 'sol-btn-secondary', handler: () => true },
-                { label: 'Edit Product', class: 'sol-btn-primary', handler: () => { window.productIntelligenceSystem.showEditProductModal(productId); return true; } }
-            ]
-        });
-    }
+            </div>
+        `,
+        size: 'lg',
+        actions: [
+            {
+                label: 'Close',
+                class: 'sol-btn-secondary',
+                handler: () => true
+            },
+            {
+                label: 'Edit Product',
+                class: 'sol-btn-primary',
+                handler: () => {
+                    this.showEditProductModal(productId);
+                    return true;
+                }
+            }
+        ]
+    });
+}
 
     showEditProductModal(productId) {
-        const product = this.products.find(p => p.id === productId);
-        if (!product) return;
-        if (!window.ModalSystem) {
-            console.error('Modal system not available');
-            return;
-        }
-        window.ModalSystem.show({
-            title: 'Edit Product',
-            content: this.getProductFormHTML(product),
-            size: 'lg',
-            actions: [
-                { label: 'Cancel', class: 'sol-btn-secondary', handler: () => true },
-                { label: 'Update Product', class: 'sol-btn-primary', handler: () => this.updateProduct(productId) }
-            ]
-        });
+    const product = this.products.find(p => p.id === productId);
+    if (!product) {
+        this.showStatus('Product not found', 'error');
+        return;
     }
+    if (!window.ModalSystem) {
+        this.showStatus('Modal system not available', 'error');
+        return;
+    }
+
+    window.ModalSystem.show({
+        title: 'Edit Product',
+        content: this.getProductFormHTML(product),
+        size: 'lg',
+        actions: [
+            {
+                label: 'Cancel',
+                class: 'sol-btn-secondary',
+                handler: () => true
+            },
+            {
+                label: 'Update Product',
+                class: 'sol-btn-primary',
+                handler: () => this.updateProduct(productId)
+            }
+        ]
+    });
+}
 
     // CONTEXT MENU/BASIC EXPORT
     showProductMenu(productId, event) {
-        event.stopPropagation();
-        this.showStatus('Product menu - coming soon!', 'info');
-    }
+    event && event.stopPropagation && event.stopPropagation();
+    // Puoi customizzare con un context menu reale
+    this.showStatus('Product menu - coming soon!', 'info');
+}
 
     exportAnalytics() {
         // Export all analytics data as JSON
@@ -923,208 +1005,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Funzioni globali per bottoni
 
-// Sostituisci SOLO QUESTA funzione con la patch:
+// Funzioni globali per bottoni/modal prodotti
 window.viewProductDetails = function(productId) {
-    const safe = (v, fallback = '') => v !== undefined && v !== null ? v : fallback;
-
-    const product = window.productIntelligenceSystem.products.find(p => p.id === productId);
-    const analytics = window.productIntelligenceSystem.analytics?.[productId] || window.productIntelligenceSystem.getEmptyAnalytics();
-
-    if (!product) {
-        console.error('Product not found:', productId);
-        return;
-    }
-
-    if (!window.ModalSystem) {
-        console.error('Modal system not available');
-        return;
-    }
-
-    const specs = safe(product.specifications, {});
-    const costTracking = safe(product.costTracking, {});
-    const performance = safe(analytics.performance, {});
-
-    const content = `
-        <div class="product-details-modal">
-            <div class="product-header">
-                <h3>${safe(product.name)}</h3>
-                <span class="product-sku">${safe(product.sku)}</span>
-            </div>
-            <div class="analytics-grid">
-                <div class="analytics-section">
-                    <h4>Shipping Analytics</h4>
-                    <div class="metric-row">
-                        <span>Total Shipments:</span>
-                        <span>${safe(analytics.totalShipments, 0)}</span>
-                    </div>
-                    <div class="metric-row">
-                        <span>Units Shipped:</span>
-                        <span>${safe(analytics.totalUnitsShipped, 0).toLocaleString()}</span>
-                    </div>
-                    <div class="metric-row">
-                        <span>Avg Shipping Cost:</span>
-                        <span>${safe(analytics.avgShippingCost, 0).toFixed(2)}</span>
-                    </div>
-                    <div class="metric-row">
-                        <span>Cost Trend:</span>
-                        <span class="${safe(analytics.costTrend, 'stable')}">
-                            ${safe(analytics.costTrend, 'stable')} (${Math.abs(safe(analytics.costTrendPercentage, 0)).toFixed(1)}%)
-                        </span>
-                    </div>
-                </div>
-                <div class="analytics-section">
-                    <h4>Route Intelligence</h4>
-                    <div class="metric-row">
-                        <span>Best Route:</span>
-                        <span>${safe(analytics.bestRoute, 'N/A')}</span>
-                    </div>
-                    <div class="metric-row">
-                        <span>Worst Route:</span>
-                        <span>${safe(analytics.worstRoute, 'N/A')}</span>
-                    </div>
-                    <div class="metric-row">
-                        <span>Profit Impact:</span>
-                        <span class="${safe(analytics.profitImpact, 0) >= 0 ? 'positive' : 'negative'}">
-                            ${(safe(analytics.profitImpact, 0) >= 0 ? '+' : '') + (safe(analytics.profitImpact, 0) / 1000).toFixed(1)}K
-                        </span>
-                    </div>
-                </div>
-                <div class="analytics-section">
-                    <h4>Performance Metrics</h4>
-                    <div class="metric-row">
-                        <span>Cost Efficiency:</span>
-                        <span>${safe(performance.costEfficiency, 0).toFixed(0)}%</span>
-                    </div>
-                    <div class="metric-row">
-                        <span>Route Optimization:</span>
-                        <span>${safe(performance.routeOptimization, 0).toFixed(0)}%</span>
-                    </div>
-                    <div class="metric-row">
-                        <span>Seasonal Optimization:</span>
-                        <span>${safe(performance.seasonalOptimization, 0).toFixed(0)}%</span>
-                    </div>
-                </div>
-            </div>
-            <hr>
-            <div class="product-extra">
-                <h4>Product Specs</h4>
-                <div class="spec-row">
-                    <span>Category:</span>
-                    <span>${safe(product.category, 'N/A')}</span>
-                </div>
-                <div class="spec-row">
-                    <span>Value (USD):</span>
-                    <span>${safe(specs.value, 0)}</span>
-                </div>
-                <div class="spec-row">
-                    <span>Weight (kg):</span>
-                    <span>${safe(specs.weight, 0)}</span>
-                </div>
-                <div class="spec-row">
-                    <span>Dimensions (cm):</span>
-                    <span>${safe(specs.dimensions?.length, 0)} x ${safe(specs.dimensions?.width, 0)} x ${safe(specs.dimensions?.height, 0)}</span>
-                </div>
-                <div class="spec-row">
-                    <span>HS Code:</span>
-                    <span>${safe(specs.hsCode, '-')}</span>
-                </div>
-                <div class="spec-row">
-                    <span>Fragile:</span>
-                    <span>${specs.fragile ? 'Yes' : 'No'}</span>
-                </div>
-                <div class="spec-row">
-                    <span>Hazardous:</span>
-                    <span>${specs.hazardous ? 'Yes' : 'No'}</span>
-                </div>
-            </div>
-        </div>
-        <style>
-            .product-details-modal { padding: 1rem 0; }
-            .product-header { text-align: center; margin-bottom: 2rem; padding-bottom: 1rem; border-bottom: 1px solid var(--sol-gray-200); }
-            .product-header h3 { margin: 0 0 0.5rem; color: var(--sol-gray-900); }
-            .product-sku { background: var(--sol-primary-light); color: var(--sol-primary-dark); padding: 0.25rem 0.75rem; border-radius: var(--sol-radius-sm); font-family: var(--sol-font-mono); font-size: 0.875rem; }
-            .analytics-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 2rem; }
-            .analytics-section h4 { margin: 0 0 1rem; color: var(--sol-gray-800); font-size: 1.125rem; border-bottom: 2px solid var(--sol-primary); padding-bottom: 0.5rem; }
-            .metric-row { display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 0; border-bottom: 1px solid var(--sol-gray-100); }
-            .metric-row:last-child { border-bottom: none; }
-            .metric-row span:first-child { color: var(--sol-gray-600); font-weight: 500; }
-            .metric-row span:last-child { font-weight: 600; color: var(--sol-gray-900); }
-            .positive { color: var(--sol-success) !important; }
-            .negative { color: var(--sol-danger) !important; }
-            .increasing { color: var(--sol-danger) !important; }
-            .decreasing { color: var(--sol-success) !important; }
-            .stable { color: var(--sol-gray-600) !important; }
-            .spec-row { display: flex; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px solid var(--sol-gray-100); }
-            .spec-row:last-child { border-bottom: none; }
-        </style>
-    `;
-
-    window.ModalSystem.show({
-        title: 'Product Intelligence Details',
-        content: content,
-        size: 'lg',
-        actions: [
-            {
-                label: 'Close',
-                class: 'sol-btn-secondary',
-                handler: () => true
-            },
-            {
-                label: 'Edit Product',
-                class: 'sol-btn-primary',
-                handler: () => {
-                    editProduct(productId);
-                    return true;
-                }
-            }
-        ]
-    });
+    window.productIntelligenceSystem.showProductDetails(productId);
 };
-
-// Le altre funzioni RESTANO UGUALI!
 window.editProduct = function(productId) {
-    const product = window.productIntelligenceSystem.products.find(p => p.id === productId);
-
-    if (!product) {
-        window.productIntelligenceSystem.showStatus('Product not found', 'error');
-        return;
-    }
-
-    if (!window.ModalSystem) {
-        window.productIntelligenceSystem.showStatus('Modal system not available', 'error');
-        return;
-    }
-
-    // PATCH: Gestione fallback su specifiche e costTracking vuoti
-    const fallbackSpecs = {
-        weight: 0, dimensions: { length: 0, width: 0, height: 0 },
-        value: 0, hsCode: '', fragile: false, hazardous: false
-    };
-    const fallbackCost = {
-        baseCost: 0, targetMargin: 0.30, shippingBudget: 0, currencyCode: 'USD'
-    };
-    if (!product.specifications) product.specifications = { ...fallbackSpecs };
-    if (!product.costTracking) product.costTracking = { ...fallbackCost };
-
-    window.ModalSystem.show({
-        title: 'Edit Product',
-        content: window.productIntelligenceSystem.getProductFormHTML(product),
-        size: 'lg',
-        actions: [
-            {
-                label: 'Cancel',
-                class: 'sol-btn-secondary',
-                handler: () => true
-            },
-            {
-                label: 'Update Product',
-                class: 'sol-btn-primary',
-                handler: () => window.productIntelligenceSystem.updateProduct(productId)
-            }
-        ]
-    });
+    window.productIntelligenceSystem.showEditProductModal(productId);
 };
-
 window.showProductMenu = function(productId, event) {
     window.productIntelligenceSystem.showProductMenu(productId, event);
 };
