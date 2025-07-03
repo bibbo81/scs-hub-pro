@@ -99,54 +99,77 @@ class ImportWizard {
     
 
     parseCSV = (file) => {
-        return new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                try {
-                    const text = e.target.result;
-                    const lines = text.split('\n').filter(line => line.trim());
-                    if (lines.length < 2) throw new Error('File must contain headers and at least one data row');
-                    this.headers = this.parseCSVLine(lines[0]);
-                    this.parsedData = [];
-                    for (let i = 1; i < lines.length; i++) {
-                        const values = this.parseCSVLine(lines[i]);
-                        const row = {};
-                        this.headers.forEach((header, index) => {
-                            row[header] = values[index] || '';
-                        });
-                        this.parsedData.push(row);
-                    }
-                    resolve();
-                } catch (error) {
-                    reject(error);
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+            try {
+                const text = e.target.result;
+                const lines = text.split('\n').filter(line => line.trim());
+                if (lines.length < 2) throw new Error('File must contain headers and at least one data row');
+
+                this.headers = this.parseCSVLine(lines[0]);
+                this.parsedData = [];
+
+                for (let i = 1; i < lines.length; i++) {
+                    const values = this.parseCSVLine(lines[i]);
+                    const row = {};
+                    this.headers.forEach((header, index) => {
+                        row[header] = values[index] || '';
+                    });
+                    this.parsedData.push(row);
                 }
-            };
-            reader.onerror = () => reject(new Error('Failed to read file'));
-            reader.readAsText(file);
-        });
-    }
+
+                // ✅ Appena hai finito di popolare:
+                await this.renderMappingUI();
+                this.autoMap();
+
+                resolve();
+            } catch (error) {
+                reject(error);
+            }
+        };
+        reader.onerror = () => reject(new Error('Failed to read file'));
+        reader.readAsText(file);
+    });
+};
 
     parseExcel = async (file) => {
-        return new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onload = async (e) => {
-                try {
-                    const base64 = btoa(new Uint8Array(e.target.result).reduce((data, byte) => data + String.fromCharCode(byte), ''));
-                    const response = await apiClient.post('parse-excel', { file: base64, filename: file.name });
-                    this.headers = response.headers;
-                    this.parsedData = response.data;
-                    resolve();
-                } catch (error) {
-                    this.headers = ['Product Code', 'Description', 'Quantity', 'Price'];
-                    this.parsedData = [{ 'Product Code': '12345678', 'Description': 'Sample Product', 'Quantity': '100', 'Price': '25.50' }];
-                    resolve();
-                }
-            };
-            reader.onerror = () => reject(new Error('Failed to read file'));
-            reader.readAsArrayBuffer(file);
-        
-        });
-    }
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+            try {
+                const base64 = btoa(
+                    new Uint8Array(e.target.result).reduce(
+                        (data, byte) => data + String.fromCharCode(byte),
+                        ''
+                    )
+                );
+
+                const response = await apiClient.post('parse-excel', {
+                    file: base64,
+                    filename: file.name
+                });
+
+                this.headers = response.headers.map(h => h.trim());
+                this.parsedData = response.data;
+
+                // ✅ UI + AutoMap subito qui
+                await this.renderMappingUI();
+                this.autoMap();
+
+                resolve();
+            } catch (error) {
+                console.error("❌ parseExcel error:", error);
+
+                this.headers = [];
+                this.parsedData = [];
+
+                reject(error);
+            }
+        };
+        reader.readAsArrayBuffer(file);
+    });
+};
 
     parseCSVLine = (line) => {
     const values = [];
@@ -181,7 +204,6 @@ class ImportWizard {
     values.push(current.trim());
     return values;
 };
-
 
   autoMap = () => {
     this.mappings = {};
