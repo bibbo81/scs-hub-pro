@@ -53,112 +53,46 @@ class ImportWizard {
     }
 
     renderWizard = () => {
-    return `
-        <div class="import-wizard" data-step="upload">
-            <div class="wizard-steps">
-                <div class="step active" data-step-indicator="upload">
-                    <div class="step-number">1</div>
-                    <div class="step-label">Upload File</div>
-                </div>
-                <div class="step" data-step-indicator="mapping">
-                    <div class="step-number">2</div>
-                    <div class="step-label">Map Columns</div>
-                </div>
-                <div class="step" data-step-indicator="preview">
-                    <div class="step-number">3</div>
-                    <div class="step-label">Preview & Validate</div>
-                </div>
-                <div class="step" data-step-indicator="import">
-                    <div class="step-number">4</div>
-                    <div class="step-label">Import</div>
-                </div>
-            </div>
-
-            <!-- STEP 1: Upload -->
-            <div class="wizard-content" data-step-content="upload">
-                <div class="upload-area" id="uploadArea">
-                    <svg class="upload-icon" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                        <polyline points="7 10 12 15 17 10"></polyline>
-                        <line x1="12" y1="15" x2="12" y2="3"></line>
-                    </svg>
-                    <h3>Drag & Drop your file here</h3>
-                    <p>or click to browse</p>
-                    <p class="file-types">Supported: CSV, Excel (.xlsx, .xls)</p>
-                    <input type="file" id="fileInput" accept=".csv,.xlsx,.xls" style="display: none;">
-                </div>
-                <div class="templates-section" style="display: none;">
-                    <h4>Or use a saved template:</h4>
-                    <div class="templates-grid" id="templatesGrid"></div>
-                </div>
-            </div>
-
-            <!-- STEP 2: Mapping -->
-            <div class="wizard-content" data-step-content="mapping" style="display: none;">
-                <div class="mapping-header">
-                    <h3>Map your columns to system fields</h3>
-                    <div class="mapping-actions">
-                        <button id="autoMapBtn" class="btn btn-secondary">
-                            <i class="icon-magic"></i> Auto-map
-                        </button>
-                        <button id="saveTemplateBtn" class="btn btn-secondary">
-                            <i class="icon-save"></i> Save as template
-                        </button>
-                    </div>
-                </div>
-                <div id="mappingContainer"></div>
-                <div class="mapping-options">
-                    <label>
-                        <input type="checkbox" id="allowCustomFields" checked>
-                        Allow custom fields for unmapped columns
-                    </label>
-                </div>
-            </div>
-
-            <!-- STEP 3: Preview -->
-            <div class="wizard-content" data-step-content="preview" style="display: none;">
-                <div class="preview-header">
-                    <h3>Preview & Validate</h3>
-                    <div class="import-options">
-                        <label>Import Mode:</label>
-                        <select id="importMode" class="form-control">
-                            <option value="append">Append new records</option>
-                            <option value="update">Update existing records</option>
-                            <option value="sync">Full sync (replace all)</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="validation-summary" id="validationSummary"></div>
-                <div class="preview-table-container">
-                    <table class="preview-table" id="previewTable"></table>
-                </div>
-                <div class="preview-stats">
-                    <div class="stat"><span class="stat-label">Total Records:</span><span class="stat-value" id="totalRecords">0</span></div>
-                    <div class="stat"><span class="stat-label">Valid:</span><span class="stat-value text-success" id="validRecords">0</span></div>
-                    <div class="stat"><span class="stat-label">Warnings:</span><span class="stat-value text-warning" id="warningRecords">0</span></div>
-                    <div class="stat"><span class="stat-label">Errors:</span><span class="stat-value text-danger" id="errorRecords">0</span></div>
-                </div>
-            </div>
-
-            <!-- STEP 4: Import -->
-            <div class="wizard-content" data-step-content="import" style="display: none;">
-                <div class="import-progress">
-                    <h3>Importing data...</h3>
-                    <div class="progress-bar-container">
-                        <div class="progress-bar" id="importProgress"></div>
-                    </div>
-                    <div class="import-status" id="importStatus">Preparing import...</div>
-                    <div class="import-log" id="importLog"></div>
-                </div>
-            </div>
-
-            <div class="wizard-navigation">
-                <button class="btn btn-secondary" id="prevBtn">Previous</button>
-                <button class="btn btn-primary" id="nextBtn">Next</button>
-            </div>
+  return `
+    <div class="wizard-content" data-step-content="mapping" style="display: none;">
+      <div class="mapping-header">
+        <h3>Map your columns to system fields</h3>
+        <div class="mapping-actions">
+          <button id="autoMapBtn" class="btn btn-secondary">
+            <i class="icon-magic"></i> Auto-map
+          </button>
+          <button id="saveTemplateBtn" class="btn btn-secondary">
+            <i class="icon-save"></i> Save as template
+          </button>
         </div>
-    `;
+      </div>
+
+      <div class="mapping-container">
+        <div class="source-columns">
+          <h4>Your File Columns</h4>
+          <div id="sourceColumns" class="columns-list"></div>
+        </div>
+
+        <div class="mapping-arrows">
+          <svg id="mappingLines" width="100" height="100%"></svg>
+        </div>
+
+        <div class="target-fields">
+          <h4>System Fields</h4>
+          <div id="targetFields" class="fields-list"></div>
+        </div>
+      </div>
+
+      <div class="mapping-options">
+        <label>
+          <input type="checkbox" id="allowCustomFields" checked>
+          Allow custom fields for unmapped columns
+        </label>
+      </div>
+    </div>
+  `;
 };
+
 
 
     loadTargetFields = async (entity) => {
