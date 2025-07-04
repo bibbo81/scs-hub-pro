@@ -258,9 +258,9 @@ renderWizard = () => {
         console.error('❌ targetFields non inizializzato!');
         return;
     }
-    this.renderSourceColumns();
-    this.renderTargetFields();
-    this.autoMap();
+    // this.renderSourceColumns();
+    // this.renderTargetFields();
+    // this.autoMap();
 }, 100);
 
 
