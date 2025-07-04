@@ -24,6 +24,81 @@ class ImportWizard {
         setSupabaseClient = (client) => {
         this.supabase = client;
     }
+    attachEventListeners = () => {
+    const uploadArea = this.modal.querySelector('#uploadArea');
+    const fileInput = this.modal.querySelector('#fileInput');
+    const nextBtn = this.modal.querySelector('#nextBtn');
+    const prevBtn = this.modal.querySelector('#prevBtn');
+    const autoMapBtn = this.modal.querySelector('#autoMapBtn');
+    const saveTemplateBtn = this.modal.querySelector('#saveTemplateBtn');
+
+    // STEP STRATEGY: radio buttons
+    const importStrategyRadios = this.modal.querySelectorAll('input[name="importStrategy"]');
+    if (importStrategyRadios && importStrategyRadios.length) {
+        importStrategyRadios.forEach(radio => {
+            radio.addEventListener('change', (e) => {
+                this.importStrategy = e.target.value;
+            });
+        });
+    }
+
+    // File summary per strategia
+    const fileSummary = this.modal.querySelector('#importFileSummary');
+    if (fileInput) {
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file && fileSummary) {
+                fileSummary.innerHTML = `<b>Selected file:</b> ${file.name}`;
+            }
+            if (file) this.handleFileUpload(file);
+        });
+    }
+
+    if (uploadArea && fileInput) {
+        uploadArea.addEventListener('click', () => fileInput.click());
+        uploadArea.addEventListener('dragover', (e) => { e.preventDefault(); uploadArea.classList.add('drag-over'); });
+        uploadArea.addEventListener('dragleave', () => { uploadArea.classList.remove('drag-over'); });
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('drag-over');
+            const file = e.dataTransfer.files[0];
+            if (file) {
+                if (fileSummary) fileSummary.innerHTML = `<b>Selected file:</b> ${file.name}`;
+                this.handleFileUpload(file);
+            }
+        });
+    }
+
+    // NAVIGATION tra step
+    if (nextBtn) {
+        nextBtn.addEventListener('click', () => {
+            const step = this.getCurrentStep();
+            if (step === 'strategy') {
+                this.showStep('upload');
+            } else if (step === 'upload') {
+                this.showStep('mapping');
+            } else if (step === 'mapping') {
+                this.showStep('import');
+                this.startImport(); // Avvia l'import qui o dopo conferma utente!
+            }
+        });
+    }
+    if (prevBtn) {
+        prevBtn.addEventListener('click', () => {
+            const step = this.getCurrentStep();
+            if (step === 'upload') this.showStep('strategy');
+            else if (step === 'mapping') this.showStep('upload');
+            else if (step === 'import') this.showStep('mapping');
+        });
+    }
+
+    if (autoMapBtn) autoMapBtn.addEventListener('click', this.autoMap);
+    if (saveTemplateBtn) saveTemplateBtn.addEventListener('click', this.saveTemplate);
+
+    // Template
+    this.renderTemplates && this.renderTemplates();
+};
+
     init = async (config) => {
         this.config = {
             entity: 'shipments',
