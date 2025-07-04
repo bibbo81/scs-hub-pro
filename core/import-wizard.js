@@ -962,7 +962,18 @@ showStep = (step) => {
       nextBtn.style.display = 'none';
     }
   }
+
+  // --- PATCH: Render mapping columns SOLO nello step "mapping" ---
+  if (step === 'mapping') {
+    // Serve un piccolo timeout per essere sicuri che il DOM sia visibile
+    setTimeout(() => {
+      this.renderSourceColumns();
+      this.renderTargetFields();
+      // Solo se vuoi: this.autoMap();
+    }, 0);
+  }
 };
+
 
     validateCurrentStep = () => {
         switch (this.steps[this.currentStep]) {
