@@ -1171,4 +1171,7 @@ getCurrentStep = () => {
 
 }
 
-export const importWizard = new ImportWizard();
+const importWizard = new ImportWizard();
+window.importWizard = importWizard;
+export { importWizard };
+export default importWizard;

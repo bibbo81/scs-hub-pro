@@ -1004,14 +1004,12 @@ window.deleteProduct = function(productId) {
         return;
     }
     // PATCH: Bottone import prodotti
-const importBtn = document.getElementById('importBtn');
-if (importBtn) {
+    const importBtn = document.getElementById('importBtn');
+    if (importBtn) {
     importBtn.onclick = () => {
-        if (window.productIntelligenceSystem && window.productIntelligenceSystem.showImportModal) {
-            window.productIntelligenceSystem.showImportModal();
-        }
-    };
-}
+    importWizard.show({ entity: 'products' }); // O 'shipments', 'containers', ecc.
+        };
+    }
 
     window.ModalSystem.confirm({
         title: 'Delete Product',
