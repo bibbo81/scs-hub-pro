@@ -960,17 +960,18 @@ showStep = (step) => {
     }
   }
 
-  // PATCH: Render mapping columns SOLO nello step "mapping", DOPO che il DOM è pronto
+  // ---- PATCH! ----
+  // SOLO quando arrivi allo step "mapping", renderizza colonne/campi SOLO dopo che il DOM è pronto!
   if (step === 'mapping') {
     setTimeout(() => {
       requestAnimationFrame(() => {
+        // Ora i contenitori sono sicuramente presenti nel DOM!
         this.renderSourceColumns();
         this.renderTargetFields();
       });
     }, 0);
   }
 };
-
 
     validateCurrentStep = () => {
         switch (this.steps[this.currentStep]) {
