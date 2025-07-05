@@ -6,24 +6,26 @@ import { supabase } from '/core/services/supabase-client.js';
 
 class ImportWizard {
     constructor() {
-        this.currentFile = null;
-        this.parsedData = [];
-        this.headers = [];
-        this.mappings = {};
-        this.templates = this.loadTemplates();
-        this.targetFields = [];
-        this.importMode = 'append';
-        this.validationRules = {};
-        this.previewLimit = 10;
-        this.currentStep = 0;
-        this.steps = ['upload', 'mapping', 'preview', 'import'];
-        this.events = new EventTarget();
-        this.supabase = null; 
+    this.currentFile = null;
+    this.parsedData = [];
+    this.headers = [];
+    this.mappings = {};
+    this.templates = this.loadTemplates();
+    this.targetFields = [];
+    this.importMode = 'append';
+    this.validationRules = {};
+    this.previewLimit = 10;
+    this.currentStep = 0;
+    this.steps = ['upload', 'mapping', 'preview', 'import'];
+    this.events = new EventTarget();
+    // PATCH: fallback automatico
+    this.supabase = supabase; // Usa sempre quello importato
+    }
 
-    }
         setSupabaseClient = (client) => {
-        this.supabase = client;
+    this.supabase = client || supabase;
     }
+
     attachEventListeners = () => {
     const uploadArea = this.modal.querySelector('#uploadArea');
     const fileInput = this.modal.querySelector('#fileInput');
@@ -110,6 +112,9 @@ class ImportWizard {
         };
         this.targetFields = await this.loadTargetFields(this.config.entity);
         this.validationRules = this.config.validationRules;
+        if (!this.supabase) {
+        this.supabase = supabase;
+        }
         return this;
     }
 
@@ -290,8 +295,24 @@ renderWizard = () => {
                 }
 
                 // ✅ Appena hai finito di popolare:
-                await this.renderMappingUI();
-                this.autoMap();
+                const tryRenderMapping = () => {
+  if (
+    this.targetFields &&
+    Array.isArray(this.targetFields) &&
+    this.targetFields.length > 0 &&
+    this.headers &&
+    Array.isArray(this.headers) &&
+    this.headers.length > 0 &&
+    this.modal.querySelector('#mappingContainer')
+  ) {
+    this.renderMappingUI();
+    this.autoMap();
+  } else {
+    setTimeout(tryRenderMapping, 100);
+  }
+};
+setTimeout(tryRenderMapping, 0);
+
 
                 resolve();
             } catch (error) {
@@ -324,8 +345,24 @@ renderWizard = () => {
                 this.parsedData = response.data;
 
                 // ✅ UI + AutoMap subito qui
-                await this.renderMappingUI();
-                this.autoMap();
+                const tryRenderMapping = () => {
+  if (
+    this.targetFields &&
+    Array.isArray(this.targetFields) &&
+    this.targetFields.length > 0 &&
+    this.headers &&
+    Array.isArray(this.headers) &&
+    this.headers.length > 0 &&
+    this.modal.querySelector('#mappingContainer')
+  ) {
+    this.renderMappingUI();
+    this.autoMap();
+  } else {
+    setTimeout(tryRenderMapping, 100);
+  }
+};
+setTimeout(tryRenderMapping, 0);
+
 
                 resolve();
             } catch (error) {
@@ -445,13 +482,21 @@ getColumnMappings = () => {
 };
 
 renderSourceColumns = () => {
-  const container = this.modal?.querySelector('#sourceColumns');
-  if (!container) {
-    console.error('❌ sourceColumns non trovato! Sei nello step MAPPING?');
+    console.log('🟦 targetFields:', this.targetFields);
+    console.log('🟦 headers:', this.headers);
+if (!this.targetFields || !Array.isArray(this.targetFields) || this.targetFields.length === 0) {
+    console.error('❌ targetFields non inizializzato!');
     return;
   }
   if (!this.headers || !Array.isArray(this.headers) || this.headers.length === 0) {
     console.error('❌ headers non inizializzati!');
+    return;
+  }
+
+  // Controllo sul container DOM
+  const container = this.modal?.querySelector('#sourceColumns');
+  if (!container) {
+    console.error('❌ sourceColumns non trovato! Sei nello step MAPPING?');
     return;
   }
   container.innerHTML = this.headers.map((header, index) => `
@@ -467,13 +512,21 @@ renderSourceColumns = () => {
 };
 
     renderTargetFields = () => {
+    console.log('🟦 targetFields:', this.targetFields);
+    console.log('🟦 headers:', this.headers);
+  if (!this.targetFields || !Array.isArray(this.targetFields) || this.targetFields.length === 0) {
+    console.error('❌ targetFields non inizializzato!');
+    return;
+  }
+  if (!this.headers || !Array.isArray(this.headers) || this.headers.length === 0) {
+    console.error('❌ headers non inizializzati!');
+    return;
+  }
+
+  // Controllo sul container DOM
   const container = this.modal?.querySelector('#targetFields');
   if (!container) {
     console.error('❌ targetFields non trovato! Sei nello step MAPPING?');
-    return;
-  }
-  if (!this.targetFields || !Array.isArray(this.targetFields)) {
-    console.error('❌ this.targetFields non inizializzato!');
     return;
   }
   const requiredFields = this.targetFields.filter(f => f.required && !f.hidden);
@@ -715,7 +768,8 @@ renderSourceColumns = () => {
         const orgId = window.organizationService?.getCurrentOrgId?.() || null;
         if (!orgId) throw new Error('Organization non selezionata!');
         
-        const user = await this.supabase.auth.getUser();
+        const supa = this.supabase || supabase;
+        const user = await supa.auth.getUser();
         const userId = user?.data?.user?.id;
         if (!userId) throw new Error('Utente non autenticato su Supabase');
 
@@ -962,12 +1016,25 @@ showStep = (step) => {
 
   // === PATCH: Render mapping columns SOLO nello step "mapping" ===
   if (step === 'mapping') {
-    setTimeout(() => {
-      this.renderSourceColumns && this.renderSourceColumns();
-      this.renderTargetFields && this.renderTargetFields();
-      // (opzionale) this.autoMap();
-    }, 0);
-  }
+  const tryRenderMapping = () => {
+    if (
+      this.targetFields &&
+      Array.isArray(this.targetFields) &&
+      this.targetFields.length > 0 &&
+      this.headers &&
+      Array.isArray(this.headers) &&
+      this.headers.length > 0 &&
+      this.modal.querySelector('#sourceColumns') &&
+      this.modal.querySelector('#targetFields')
+    ) {
+      this.renderSourceColumns();
+      this.renderTargetFields();
+    } else {
+      setTimeout(tryRenderMapping, 100);
+    }
+  };
+  setTimeout(tryRenderMapping, 0);
+}
 };
 
 
@@ -1056,7 +1123,8 @@ startImport = async () => {
             notificationSystem.show("Missing organization context. Cannot proceed with import.", "error");
             return;
         }
-        const user = await this.supabase.auth.getUser();
+        const supa = this.supabase || supabase;
+        const user = await supa.auth.getUser();
         const userId = user?.data?.user?.id;
         if (!userId) {
             notificationSystem.show("User not authenticated", "error");
@@ -1096,6 +1164,8 @@ startImport = async () => {
 };
 
 renderMappingUI = () => {
+    console.log('🟦 targetFields:', this.targetFields);
+    console.log('🟦 headers:', this.headers);
     // Trova il contenitore della mappatura nel modal
     // Cambia se usi un altro ID, esempio: #mappingContainer oppure .columnMappingContainer
     const container = this.modal.querySelector('#mappingContainer') || this.modal.querySelector('.columnMappingContainer');
