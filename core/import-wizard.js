@@ -258,11 +258,8 @@ renderWizard = () => {
         console.error('❌ targetFields non inizializzato!');
         return;
     }
-    // this.renderSourceColumns();
-    // this.renderTargetFields();
-    // this.autoMap();
+    // Le render partono solo dentro showStep('mapping')!
 }, 100);
-
 
     notificationSystem.show('File parsed successfully', 'success');
   } catch (error) {
@@ -969,11 +966,10 @@ showStep = (step) => {
     setTimeout(() => {
       this.renderSourceColumns();
       this.renderTargetFields();
-      // Solo se vuoi: this.autoMap();
+      // Solo se vuoi: this.autoMap(); // decommenta se serve auto-mapping ad ogni accesso
     }, 0);
   }
 };
-
 
     validateCurrentStep = () => {
         switch (this.steps[this.currentStep]) {
