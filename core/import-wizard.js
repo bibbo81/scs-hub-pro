@@ -960,19 +960,16 @@ showStep = (step) => {
     }
   }
 
-  // --- PATCH CORRETTA: SOLO QUI! ---
+  // === PATCH: Render mapping columns SOLO nello step "mapping" ===
   if (step === 'mapping') {
     setTimeout(() => {
-        console.log("🟢 mapping step, #sourceColumns:", this.modal.querySelector('#sourceColumns'));
-    console.log("🟢 mapping step, #targetFields:", this.modal.querySelector('#targetFields'));
-      // Fai doppio check che i contenitori ora esistano nel DOM
-      if (this.modal.querySelector('#sourceColumns') && this.modal.querySelector('#targetFields')) {
-        this.renderSourceColumns();
-        this.renderTargetFields();
-      }
+      this.renderSourceColumns && this.renderSourceColumns();
+      this.renderTargetFields && this.renderTargetFields();
+      // (opzionale) this.autoMap();
     }, 0);
   }
 };
+
 
     validateCurrentStep = () => {
         switch (this.steps[this.currentStep]) {
