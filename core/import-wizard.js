@@ -960,15 +960,16 @@ showStep = (step) => {
     }
   }
 
-  // ---- PATCH! ----
-  // SOLO quando arrivi allo step "mapping", renderizza colonne/campi SOLO dopo che il DOM è pronto!
+  // --- PATCH CORRETTA: SOLO QUI! ---
   if (step === 'mapping') {
     setTimeout(() => {
-      requestAnimationFrame(() => {
-        // Ora i contenitori sono sicuramente presenti nel DOM!
+        console.log("🟢 mapping step, #sourceColumns:", this.modal.querySelector('#sourceColumns'));
+    console.log("🟢 mapping step, #targetFields:", this.modal.querySelector('#targetFields'));
+      // Fai doppio check che i contenitori ora esistano nel DOM
+      if (this.modal.querySelector('#sourceColumns') && this.modal.querySelector('#targetFields')) {
         this.renderSourceColumns();
         this.renderTargetFields();
-      });
+      }
     }, 0);
   }
 };
