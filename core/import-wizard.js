@@ -960,16 +960,17 @@ showStep = (step) => {
     }
   }
 
-  // --- PATCH: Render mapping columns SOLO nello step "mapping" ---
+  // PATCH: Render mapping columns SOLO nello step "mapping", DOPO che il DOM è pronto
   if (step === 'mapping') {
-    // Serve un piccolo timeout per essere sicuri che il DOM sia visibile
     setTimeout(() => {
-      this.renderSourceColumns();
-      this.renderTargetFields();
-      // Solo se vuoi: this.autoMap(); // decommenta se serve auto-mapping ad ogni accesso
+      requestAnimationFrame(() => {
+        this.renderSourceColumns();
+        this.renderTargetFields();
+      });
     }, 0);
   }
 };
+
 
     validateCurrentStep = () => {
         switch (this.steps[this.currentStep]) {
