@@ -972,7 +972,7 @@ export class HeaderComponent {
             this.notificationCount = data?.unread_count || 0;
             this.updateNotificationBadge();
         } catch (error) {
-            if (error.status === 404) {
+            if (error.status === 404 || error.status === 502) {
                 console.log('📣 Notifications API not available (development mode)');
                 this.renderNotifications([]);
                 this.notificationCount = 0;
