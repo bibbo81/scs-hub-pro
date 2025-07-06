@@ -1016,25 +1016,29 @@ showStep = (step) => {
 
   // === PATCH: Render mapping columns SOLO nello step "mapping" ===
   if (step === 'mapping') {
-  const tryRenderMapping = () => {
-    if (
-      this.targetFields &&
-      Array.isArray(this.targetFields) &&
-      this.targetFields.length > 0 &&
-      this.headers &&
-      Array.isArray(this.headers) &&
-      this.headers.length > 0 &&
-      this.modal.querySelector('#sourceColumns') &&
-      this.modal.querySelector('#targetFields')
-    ) {
-      this.renderSourceColumns();
-      this.renderTargetFields();
-    } else {
-      setTimeout(tryRenderMapping, 100);
-    }
-  };
-  setTimeout(tryRenderMapping, 0);
-}
+    const maxRetries = 20;
+    const retryDelay = 200;
+    const tryRenderMapping = (attempt = 0) => {
+      const sourceEl = this.modal.querySelector('#sourceColumns');
+      const targetEl = this.modal.querySelector('#targetFields');
+      if (
+        sourceEl &&
+        targetEl &&
+        Array.isArray(this.targetFields) &&
+        this.targetFields.length > 0 &&
+        Array.isArray(this.headers) &&
+        this.headers.length > 0
+      ) {
+        this.renderSourceColumns();
+        this.renderTargetFields();
+      } else if (attempt < maxRetries) {
+        setTimeout(() => tryRenderMapping(attempt + 1), retryDelay);
+      } else {
+        console.warn('Mapping UI not ready after', attempt, 'attempts');
+      }
+    };
+    setTimeout(() => tryRenderMapping(), retryDelay);
+  }
 };
 
 
