@@ -1,5 +1,11 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
+/**
+ * Questo modulo esporta un client Supabase condiviso.
+ * Il client viene assegnato a `window.supabase` per permetterne
+ * l'utilizzo da parte di altri script in tutta l'applicazione.
+ */
+
 // --- Configurazione Supabase ---
 const supabaseUrl = 'https://gnlrmnsdmpjzitsysowq.supabase.co';
 const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdubHJtbnNkbXBqeml0c3lzb3dxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk0NjMxMzQsImV4cCI6MjA2NTAzOTEzNH0.UoJJoDUoDXGbiWnKNN48qb9PVQWOW_X_MXqAfzTHSaA';
@@ -97,3 +103,6 @@ supabase.auth.onAuthStateChange((event, session) => {
         console.log('[Auth]', event);
     }
 });
+
+// Espone il client in maniera globale per gli script esterni
+window.supabase = supabase;
