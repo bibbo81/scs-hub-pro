@@ -1160,7 +1160,9 @@ startImport = async () => {
         console.log("🧪 First record to import:", records[0]);
         document.getElementById('importStatus').innerText = `Importing ${records.length} records...`;
 
-        const { data, error } = await supa.from('products').insert(records);
+        const { data, error } = await supa
+          .from('products')
+          .upsert(records, { onConflict: 'user_id,sku' });
 
         if (error) {
             console.error("❌ Supabase insert error", error);
