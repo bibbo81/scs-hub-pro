@@ -515,18 +515,18 @@ if (!this.targetFields || !Array.isArray(this.targetFields) || this.targetFields
     console.log('🟦 targetFields:', this.targetFields);
     console.log('🟦 headers:', this.headers);
   if (!this.targetFields || !Array.isArray(this.targetFields) || this.targetFields.length === 0) {
-    console.error('❌ targetFields non inizializzato!');
+    console.warn('❌ targetFields non inizializzato!');
     return;
   }
   if (!this.headers || !Array.isArray(this.headers) || this.headers.length === 0) {
-    console.error('❌ headers non inizializzati!');
+    console.warn('❌ headers non inizializzati!');
     return;
   }
 
   // Controllo sul container DOM
   const container = this.modal?.querySelector('#targetFields');
   if (!container) {
-    console.error('❌ targetFields non trovato! Sei nello step MAPPING?');
+    console.warn('❌ targetFields non trovato! Sei nello step MAPPING?');
     return;
   }
   const requiredFields = this.targetFields.filter(f => f.required && !f.hidden);
@@ -620,7 +620,9 @@ if (!this.targetFields || !Array.isArray(this.targetFields) || this.targetFields
     }
 
     updateMappingUI = () => {
-        this.modal.querySelectorAll('.source-column').forEach(col => {
+        if (!this.modal) return;
+        const sourceCols = this.modal.querySelectorAll('.source-column');
+        sourceCols.forEach(col => {
             const column = col.dataset.column;
             col.classList.toggle('mapped', !!this.mappings[column]);
         });
@@ -768,7 +770,12 @@ if (!this.targetFields || !Array.isArray(this.targetFields) || this.targetFields
         const orgId = window.organizationService?.getCurrentOrgId?.() || null;
         if (!orgId) throw new Error('Organization non selezionata!');
         
-        const supa = this.supabase || supabase;
+        let supa = this.supabase || supabase || window.supabase;
+        if (!supa || !supa.auth) {
+            console.error('Supabase client not initialized');
+            notificationSystem.show('Supabase client not initialized', 'error');
+            return;
+        }
         const user = await supa.auth.getUser();
         const userId = user?.data?.user?.id;
         if (!userId) throw new Error('Utente non autenticato su Supabase');
@@ -808,7 +815,7 @@ if (!this.targetFields || !Array.isArray(this.targetFields) || this.targetFields
         statusEl.textContent = 'Starting import...';
         for (let i = 0; i < totalBatches; i++) {
             const batch = importData.slice(i * batchSize, (i + 1) * batchSize);
-            const { data, error } = await this.supabase.from('products').insert(batch);
+            const { data, error } = await supa.from('products').insert(batch);
             if (error) {
                 console.error('Supabase insert error:', error);
                 throw new Error(`Supabase error: ${error.message}`);
@@ -1123,7 +1130,12 @@ startImport = async () => {
             notificationSystem.show("Missing organization context. Cannot proceed with import.", "error");
             return;
         }
-        const supa = this.supabase || supabase;
+        let supa = this.supabase || supabase || window.supabase;
+        if (!supa || !supa.auth) {
+            console.error('Supabase client not initialized');
+            throw new Error('Supabase client not initialized');
+        }
+        this.supabase = supa;
         const user = await supa.auth.getUser();
         const userId = user?.data?.user?.id;
         if (!userId) {
@@ -1148,7 +1160,7 @@ startImport = async () => {
         console.log("🧪 First record to import:", records[0]);
         document.getElementById('importStatus').innerText = `Importing ${records.length} records...`;
 
-        const { data, error } = await this.supabase.from('products').insert(records);
+        const { data, error } = await supa.from('products').insert(records);
 
         if (error) {
             console.error("❌ Supabase insert error", error);
