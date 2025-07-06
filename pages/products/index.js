@@ -953,7 +953,7 @@ showStatus(message, type = 'info', duration = 3000) {
     this.showStatus('Product menu - coming soon!', 'info');
 }
 
-    exportAnalytics() {
+  exportAnalytics() {
         // Export all analytics data as JSON
         const exportData = {
             exportDate: new Date().toISOString(),
@@ -972,6 +972,22 @@ showStatus(message, type = 'info', duration = 3000) {
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
         this.showStatus('Analytics exported successfully', 'success');
+    }
+
+    toggleViewMode() {
+        this.viewMode = this.viewMode === 'grid' ? 'list' : 'grid';
+        this.renderProducts();
+        const gridBtn = document.getElementById('viewGridBtn');
+        const listBtn = document.getElementById('viewListBtn');
+        if (gridBtn && listBtn) {
+            if (this.viewMode === 'grid') {
+                gridBtn.classList.add('active');
+                listBtn.classList.remove('active');
+            } else {
+                gridBtn.classList.remove('active');
+                listBtn.classList.add('active');
+            }
+        }
     }
 
 } // END CLASS
