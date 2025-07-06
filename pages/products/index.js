@@ -201,6 +201,25 @@ showStatus(message, type = 'info', duration = 3000) {
         return recommendations;
     }
 
+    getEmptyAnalytics() {
+        return {
+            totalShipments: 0,
+            totalUnitsShipped: 0,
+            avgShippingCost: 0,
+            costTrend: 'stable',
+            costTrendPercentage: 0,
+            bestRoute: 'N/A',
+            worstRoute: 'N/A',
+            routeComparison: {},
+            profitImpact: 0,
+            performance: {
+                costEfficiency: 0,
+                routeOptimization: 0,
+                seasonalOptimization: 0
+            }
+        };
+    }
+
     // --- FILTRI AVANZATI ---
     applyAdvancedFilters() {
         const minCost = parseFloat(document.getElementById('filterMinCost')?.value) || null;
@@ -297,6 +316,15 @@ showStatus(message, type = 'info', duration = 3000) {
             }
         });
         return filteredProducts;
+    }
+
+    getSortIcon(column) {
+        if (this.sortColumn !== column) {
+            return '<i class="fas fa-sort"></i>';
+        }
+        return this.sortDirection === 'asc'
+            ? '<i class="fas fa-sort-up"></i>'
+            : '<i class="fas fa-sort-down"></i>';
     }
     // --- RENDERING ---
     renderIntelligenceStats() {
