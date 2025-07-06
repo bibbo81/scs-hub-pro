@@ -143,6 +143,14 @@
                 <div class="sol-card-header">
                     <h3 class="sol-card-title">Product Management</h3>
                     <div class="sol-card-filters">
+                        <div class="view-toggle-buttons">
+                            <button class="sol-btn sol-btn-glass active" id="viewGridBtn">
+                                <i class="fas fa-th"></i> Grid
+                            </button>
+                            <button class="sol-btn sol-btn-glass" id="viewListBtn">
+                                <i class="fas fa-list"></i> List
+                            </button>
+                        </div>
                         <button class="sol-btn sol-btn-glass" id="columnSelectorBtn">
                             <i class="fas fa-columns"></i> Columns
                         </button>
@@ -647,8 +655,23 @@
         .product-menu button:hover {
             background: var(--sol-gray-100);
         }
-        
-        
+
+        /* View Toggle Buttons */
+        .view-toggle-buttons {
+          display: flex;
+          gap: 0.5rem;
+          margin-right: 1rem;
+        }
+
+        .view-toggle-buttons .sol-btn {
+          padding: 0.5rem 1rem;
+        }
+
+        .view-toggle-buttons .sol-btn.active {
+          background: var(--sol-primary);
+          color: white;
+        }
+
         /* Advanced Filters Button */
         .advanced-filters-btn {
             position: relative;
@@ -970,6 +993,11 @@
                 flex-direction: column;
                 gap: 1rem;
                 align-items: stretch;
+            }
+
+            .view-toggle-buttons {
+                margin-right: 0;
+                margin-bottom: 0.5rem;
             }
 
         }
