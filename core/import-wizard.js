@@ -815,7 +815,9 @@ if (!this.targetFields || !Array.isArray(this.targetFields) || this.targetFields
         statusEl.textContent = 'Starting import...';
         for (let i = 0; i < totalBatches; i++) {
             const batch = importData.slice(i * batchSize, (i + 1) * batchSize);
-            const { data, error } = await supa.from('products').insert(batch);
+            const { data, error } = await supa
+              .from('products')
+              .upsert(batch, { onConflict: 'user_id,sku' });
             if (error) {
                 console.error('Supabase insert error:', error);
                 throw new Error(`Supabase error: ${error.message}`);
@@ -1160,7 +1162,9 @@ startImport = async () => {
         console.log("🧪 First record to import:", records[0]);
         document.getElementById('importStatus').innerText = `Importing ${records.length} records...`;
 
-        const { data, error } = await supa.from('products').insert(records);
+        const { data, error } = await supa
+          .from('products')
+          .upsert(records, { onConflict: 'user_id,sku' });
 
         if (error) {
             console.error("❌ Supabase insert error", error);

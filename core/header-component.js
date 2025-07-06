@@ -972,8 +972,8 @@ export class HeaderComponent {
             this.notificationCount = data?.unread_count || 0;
             this.updateNotificationBadge();
         } catch (error) {
-            if (error.status === 404) {
-                console.log('📣 Notifications API not available (development mode)');
+            if (error.status === 404 || error.status >= 500) {
+                console.log('📣 Notifications service unavailable');
                 this.renderNotifications([]);
                 this.notificationCount = 0;
                 this.updateNotificationBadge();
