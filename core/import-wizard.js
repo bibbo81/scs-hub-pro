@@ -1123,7 +1123,17 @@ startImport = async () => {
             notificationSystem.show("Missing organization context. Cannot proceed with import.", "error");
             return;
         }
-        const supa = this.supabase || supabase;
+        const supa = this.supabase || window.supabase || supabase;
+        const supaSource = this.supabase
+            ? 'instance'
+            : window.supabase
+                ? 'window.supabase'
+                : 'default import';
+        console.log(`[ImportWizard] Using Supabase client from ${supaSource}`);
+        if (!supa || !supa.auth) {
+            notificationSystem.show('Supabase client not available', 'error');
+            return;
+        }
         const user = await supa.auth.getUser();
         const userId = user?.data?.user?.id;
         if (!userId) {
