@@ -620,6 +620,13 @@ if (!this.targetFields || !Array.isArray(this.targetFields) || this.targetFields
     }
 
     updateMappingUI = () => {
+        if (!this.modal) return;
+        const targetContainer = this.modal.querySelector('#targetFields');
+        if (!targetContainer) {
+            console.warn('targetFields container missing during updateMappingUI');
+            return;
+        }
+
         this.modal.querySelectorAll('.source-column').forEach(col => {
             const column = col.dataset.column;
             col.classList.toggle('mapped', !!this.mappings[column]);
@@ -1124,6 +1131,11 @@ startImport = async () => {
             return;
         }
         const supa = this.supabase || supabase;
+        if (!supa?.auth) {
+            console.error('Supabase client not available');
+            notificationSystem.show('Supabase client not initialized', 'error');
+            return;
+        }
         const user = await supa.auth.getUser();
         const userId = user?.data?.user?.id;
         if (!userId) {
