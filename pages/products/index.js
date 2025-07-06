@@ -15,9 +15,23 @@ class ProductIntelligenceSystem {
     this.analytics = {};
     this.recommendations = [];
     this.organizationId = null;
-    this.viewMode = 'grid';
+    this.viewMode = 'list';
     this.sortColumn = 'name';
     this.sortDirection = 'asc';
+    this.availableColumns = [
+      { key: 'sku', label: 'SKU' },
+      { key: 'name', label: 'Product Name' },
+      { key: 'category', label: 'Category' },
+      { key: 'shippingCost', label: 'Avg Shipping Cost' },
+      { key: 'costTrend', label: 'Cost Trend' },
+      { key: 'unitsShipped', label: 'Units Shipped' },
+      { key: 'profitImpact', label: 'Profit Impact' },
+      { key: 'status', label: 'Status' }
+    ];
+    const savedCols = localStorage.getItem('productVisibleColumns');
+    this.visibleColumns = savedCols
+      ? JSON.parse(savedCols)
+      : this.availableColumns.map(c => c.key);
     this.activeFilters = {
         category: '',
         costTrend: '',
@@ -73,11 +87,8 @@ initializeEventHandlers() {
         costTrendFilter.addEventListener('change', () => this.filterProducts());
     }
 
-    // Bottone: vista griglia/lista (se presente)
-    const gridBtn = document.getElementById('viewGridBtn');
-    const listBtn = document.getElementById('viewListBtn');
-    if (gridBtn) gridBtn.onclick = () => this.toggleViewMode();
-    if (listBtn) listBtn.onclick = () => this.toggleViewMode();
+    const columnBtn = document.getElementById('columnSelectorBtn');
+    if (columnBtn) columnBtn.onclick = () => this.showColumnSelector();
 }
 
 showStatus(message, type = 'info', duration = 3000) {
@@ -153,10 +164,11 @@ showStatus(message, type = 'info', duration = 3000) {
     window.importWizard.events.addEventListener('importComplete', async () => {
         this.showStatus('Import successful! Refreshing data...', 'success');
         await this.loadData();
+        await this.generateAnalytics();
         this.renderProducts();
         this.renderIntelligenceStats && this.renderIntelligenceStats();
     }, { once: true });
-};
+}; 
 
 
     calculateProductAnalytics(product) {
@@ -199,6 +211,25 @@ showStatus(message, type = 'info', duration = 3000) {
             }
         });
         return recommendations;
+    }
+
+    getEmptyAnalytics() {
+        return {
+            totalShipments: 0,
+            totalUnitsShipped: 0,
+            avgShippingCost: 0,
+            costTrend: 'stable',
+            costTrendPercentage: 0,
+            bestRoute: 'N/A',
+            worstRoute: 'N/A',
+            routeComparison: {},
+            profitImpact: 0,
+            performance: {
+                costEfficiency: 0,
+                routeOptimization: 0,
+                seasonalOptimization: 0
+            }
+        };
     }
 
     // --- FILTRI AVANZATI ---
@@ -298,6 +329,15 @@ showStatus(message, type = 'info', duration = 3000) {
         });
         return filteredProducts;
     }
+
+    getSortIcon(column) {
+        if (this.sortColumn !== column) {
+            return '<i class="fas fa-sort"></i>';
+        }
+        return this.sortDirection === 'asc'
+            ? '<i class="fas fa-sort-up"></i>'
+            : '<i class="fas fa-sort-down"></i>';
+    }
     // --- RENDERING ---
     renderIntelligenceStats() {
         const statsContainer = document.getElementById('intelligenceStats');
@@ -335,13 +375,8 @@ showStatus(message, type = 'info', duration = 3000) {
     renderProducts() {
         const productsGrid = document.getElementById('productsGrid');
         if (!productsGrid) return;
-        if (this.viewMode === 'grid') {
-            productsGrid.className = 'products-intelligence-grid';
-            productsGrid.innerHTML = this.renderProductsGrid();
-        } else {
-            productsGrid.className = 'products-intelligence-list';
-            productsGrid.innerHTML = this.renderProductsList();
-        }
+        productsGrid.className = 'products-intelligence-list';
+        productsGrid.innerHTML = this.renderProductsList();
     }
 
     renderProductsGrid() {
@@ -448,38 +483,39 @@ showStatus(message, type = 'info', duration = 3000) {
         `;
     }
 
+    const headerCells = this.availableColumns
+      .filter(col => this.visibleColumns.includes(col.key))
+      .map(col => {
+        switch (col.key) {
+          case 'sku':
+            return `<th class="sortable" onclick="window.productIntelligenceSystem.sortProducts('sku')">SKU ${this.getSortIcon('sku')}</th>`;
+          case 'name':
+            return `<th class="sortable" onclick="window.productIntelligenceSystem.sortProducts('name')">Product Name ${this.getSortIcon('name')}</th>`;
+          case 'category':
+            return `<th class="sortable" onclick="window.productIntelligenceSystem.sortProducts('category')">Category ${this.getSortIcon('category')}</th>`;
+          case 'shippingCost':
+            return `<th class="sortable" onclick="window.productIntelligenceSystem.sortProducts('shippingCost')">Avg Shipping Cost ${this.getSortIcon('shippingCost')}</th>`;
+          case 'costTrend':
+            return `<th class="sortable" onclick="window.productIntelligenceSystem.sortProducts('costTrend')">Cost Trend ${this.getSortIcon('costTrend')}</th>`;
+          case 'unitsShipped':
+            return `<th class="sortable" onclick="window.productIntelligenceSystem.sortProducts('unitsShipped')">Units Shipped ${this.getSortIcon('unitsShipped')}</th>`;
+          case 'profitImpact':
+            return `<th class="sortable" onclick="window.productIntelligenceSystem.sortProducts('profitImpact')">Profit Impact ${this.getSortIcon('profitImpact')}</th>`;
+          case 'status':
+            return '<th>Status</th>';
+          default:
+            return '';
+        }
+      }).join('');
+
     const tableHTML = `
         <div class="products-list-table">
             <table class="sol-table">
                 <thead>
-                    <tr>
-                        <th class="sortable" onclick="window.productIntelligenceSystem.sortProducts('sku')">
-                            SKU ${this.getSortIcon('sku')}
-                        </th>
-                        <th class="sortable" onclick="window.productIntelligenceSystem.sortProducts('name')">
-                            Product Name ${this.getSortIcon('name')}
-                        </th>
-                        <th class="sortable" onclick="window.productIntelligenceSystem.sortProducts('category')">
-                            Category ${this.getSortIcon('category')}
-                        </th>
-                        <th class="sortable" onclick="window.productIntelligenceSystem.sortProducts('shippingCost')">
-                            Avg Shipping Cost ${this.getSortIcon('shippingCost')}
-                        </th>
-                        <th class="sortable" onclick="window.productIntelligenceSystem.sortProducts('costTrend')">
-                            Cost Trend ${this.getSortIcon('costTrend')}
-                        </th>
-                        <th class="sortable" onclick="window.productIntelligenceSystem.sortProducts('unitsShipped')">
-                            Units Shipped ${this.getSortIcon('unitsShipped')}
-                        </th>
-                        <th class="sortable" onclick="window.productIntelligenceSystem.sortProducts('profitImpact')">
-                            Profit Impact ${this.getSortIcon('profitImpact')}
-                        </th>
-                        <th>Status</th>
-                        <th>Actions</th>
-                    </tr>
+                    <tr>${headerCells}<th>Actions</th></tr>
                 </thead>
                 <tbody>
-                    ${products.map(product => this.renderProductRow(product)).join('')}
+                    ${products.map(p => this.renderProductRow(p)).join('')}
                 </tbody>
             </table>
         </div>
@@ -505,67 +541,39 @@ showStatus(message, type = 'info', duration = 3000) {
         statusClass = 'sol-badge-success';
     }
 
-    return `
-        <tr data-product-id="${safe(product.id)}">
-            <td class="font-mono">${safe(product.sku)}</td>
-            <td>
-                <div class="product-name-cell">
-                    <strong>${safe(product.name)}</strong>
-                    ${product.description ? `<small class="text-muted">${safe(product.description).substring(0, 50)}...</small>` : ''}
-                </div>
-            </td>
-            <td>
-                <span class="category-badge category-${safe(product.category)}">
-                    ${safe(product.category)}
-                </span>
-            </td>
-            <td>
-                <strong>${safe(analytics.avgShippingCost, 0).toFixed(2)}</strong>
-            </td>
-            <td>
-                <div class="cost-trend-cell ${costTrendClass}">
-                    <i class="fas ${costTrendIcon}"></i>
-                    ${Math.abs(safe(analytics.costTrendPercentage, 0)).toFixed(1)}%
-                </div>
-            </td>
-            <td class="text-right">
-                ${safe(analytics.totalUnitsShipped, 0).toLocaleString()}
-            </td>
-            <td>
-                <span class="profit-impact ${safe(analytics.profitImpact, 0) >= 0 ? 'positive' : 'negative'}">
-                    ${(safe(analytics.profitImpact, 0) >= 0 ? '+' : '') + (safe(analytics.profitImpact, 0) / 1000).toFixed(0)}K
-                </span>
-            </td>
-            <td>
-                <span class="sol-badge ${statusClass}">${statusBadge}</span>
-            </td>
-            <td>
-                <div class="table-actions">
-                    <button class="sol-btn sol-btn-sm sol-btn-glass" 
-                            onclick="viewProductDetails('${safe(product.id)}')" 
-                            title="View Analytics">
-                        <i class="fas fa-chart-area"></i>
-                    </button>
-                    <button class="sol-btn sol-btn-sm sol-btn-glass" 
-                            onclick="editProduct('${safe(product.id)}')"
-                            title="Edit Product">
-                        <i class="fas fa-edit"></i>
-                    </button>
-                    <button class="sol-btn sol-btn-sm sol-btn-glass" 
-                            onclick="showProductMenu('${safe(product.id)}', event)"
-                            title="More Options">
-                        <i class="fas fa-ellipsis-v"></i>
-                    </button>
-                </div>
-            </td>
-        </tr>
-    `;
+    let cells = '';
+    if (this.visibleColumns.includes('sku')) {
+      cells += `<td class="font-mono">${safe(product.sku)}</td>`;
+    }
+    if (this.visibleColumns.includes('name')) {
+      cells += `<td><div class="product-name-cell"><strong>${safe(product.name)}</strong>${product.description ? `<small class="text-muted">${safe(product.description).substring(0,50)}...</small>` : ''}</div></td>`;
+    }
+    if (this.visibleColumns.includes('category')) {
+      cells += `<td><span class="category-badge category-${safe(product.category)}">${safe(product.category)}</span></td>`;
+    }
+    if (this.visibleColumns.includes('shippingCost')) {
+      cells += `<td><strong>${safe(analytics.avgShippingCost,0).toFixed(2)}</strong></td>`;
+    }
+    if (this.visibleColumns.includes('costTrend')) {
+      cells += `<td><div class="cost-trend-cell ${costTrendClass}"><i class="fas ${costTrendIcon}"></i>${Math.abs(safe(analytics.costTrendPercentage,0)).toFixed(1)}%</div></td>`;
+    }
+    if (this.visibleColumns.includes('unitsShipped')) {
+      cells += `<td class="text-right">${safe(analytics.totalUnitsShipped,0).toLocaleString()}</td>`;
+    }
+    if (this.visibleColumns.includes('profitImpact')) {
+      cells += `<td><span class="profit-impact ${safe(analytics.profitImpact,0)>=0?'positive':'negative'}">${(safe(analytics.profitImpact,0)>=0?'+':'')+(safe(analytics.profitImpact,0)/1000).toFixed(0)}K</span></td>`;
+    }
+    if (this.visibleColumns.includes('status')) {
+      cells += `<td><span class="sol-badge ${statusClass}">${statusBadge}</span></td>`;
+    }
+    cells += `<td><div class="table-actions"><button class="sol-btn sol-btn-sm sol-btn-glass" onclick="viewProductDetails('${safe(product.id)}')" title="View Analytics"><i class="fas fa-chart-area"></i></button><button class="sol-btn sol-btn-sm sol-btn-glass" onclick="editProduct('${safe(product.id)}')" title="Edit Product"><i class="fas fa-edit"></i></button><button class="sol-btn sol-btn-sm sol-btn-glass" onclick="showProductMenu('${safe(product.id)}', event)" title="More Options"><i class="fas fa-ellipsis-v"></i></button></div></td>`;
+
+    return `<tr data-product-id="${safe(product.id)}">${cells}</tr>`;
 }
 
     // --- FORM ---
-    getProductFormHTML(product = null) {
-        const isEdit = product !== null;
-        const data = product || {
+    getProductFormDefaults() {
+        return {
             sku: '',
             name: '',
             category: 'electronics',
@@ -585,6 +593,11 @@ showStatus(message, type = 'info', duration = 3000) {
                 currencyCode: 'USD'
             }
         };
+    }
+
+    getProductFormHTML(product = null) {
+        const isEdit = product !== null;
+        const data = product || this.getProductFormDefaults();
         return `
             <form id="productForm" class="sol-form">
                 <div class="sol-form-grid">
@@ -743,7 +756,7 @@ showStatus(message, type = 'info', duration = 3000) {
         return true;
     }
 
-    async addProduct(productData) {
+  async addProduct(productData) {
         productData.organization_id = this.organizationId;
         const { error } = await supabase.from('products').insert([productData]);
         if (error) {
@@ -753,10 +766,13 @@ showStatus(message, type = 'info', duration = 3000) {
         }
         this.showStatus('Prodotto aggiunto!', 'success');
         await this.loadData();
+        await this.generateAnalytics();
+        this.renderProducts();
+        this.renderIntelligenceStats();
         return true;
     }
 
-    async updateProduct(productId) {
+  async updateProduct(productId) {
         // Leggi i dati dal form modale
         const form = document.getElementById('productForm');
         if (!form || !form.checkValidity()) {
@@ -805,10 +821,13 @@ showStatus(message, type = 'info', duration = 3000) {
         }
         this.showStatus('Prodotto aggiornato!', 'success');
         await this.loadData();
+        await this.generateAnalytics();
+        this.renderProducts();
+        this.renderIntelligenceStats();
         return true;
     }
 
-    async deleteProduct(productId) {
+  async deleteProduct(productId) {
         const { error } = await supabase.from('products')
             .delete()
             .eq('id', productId)
@@ -820,18 +839,20 @@ showStatus(message, type = 'info', duration = 3000) {
         }
         this.showStatus('Prodotto eliminato!', 'success');
         await this.loadData();
+        await this.generateAnalytics();
+        this.renderProducts();
+        this.renderIntelligenceStats();
         return true;
     }
 
     // MODALE ANALYTICS/DETAILS
     showProductDetails(productId) {
         const product = this.products.find(p => p.id === productId);
-    const analytics = this.analytics[productId];
-
-    if (!product || !analytics) {
-        this.showStatus('Product not found', 'error');
-        return;
-    }
+        if (!product) {
+            this.showStatus('Product not found', 'error');
+            return;
+        }
+        const analytics = this.analytics[productId] || this.getEmptyAnalytics();
     if (!window.ModalSystem) {
         this.showStatus('Modal system not available', 'error');
         return;
@@ -929,9 +950,23 @@ showStatus(message, type = 'info', duration = 3000) {
         return;
     }
 
+    const defaults = this.getProductFormDefaults();
+    const merged = {
+      ...defaults,
+      ...product,
+      specifications: {
+        ...defaults.specifications,
+        ...(product.specifications || {})
+      },
+      costTracking: {
+        ...defaults.costTracking,
+        ...(product.costTracking || {})
+      }
+    };
+
     window.ModalSystem.show({
         title: 'Edit Product',
-        content: this.getProductFormHTML(product),
+        content: this.getProductFormHTML(merged),
         size: 'lg',
         actions: [
             {
@@ -950,12 +985,31 @@ showStatus(message, type = 'info', duration = 3000) {
 
     // CONTEXT MENU/BASIC EXPORT
     showProductMenu(productId, event) {
-    event && event.stopPropagation && event.stopPropagation();
-    // Puoi customizzare con un context menu reale
-    this.showStatus('Product menu - coming soon!', 'info');
-}
+        event && event.stopPropagation && event.stopPropagation();
+        const existing = document.getElementById('productContextMenu');
+        if (existing) existing.remove();
+        const menu = document.createElement('div');
+        menu.id = 'productContextMenu';
+        menu.className = 'product-menu';
+        menu.innerHTML = `
+            <button onclick="viewProductDetails('${productId}')"><i class='fas fa-chart-area'></i> Analytics</button>
+            <button onclick="editProduct('${productId}')"><i class='fas fa-edit'></i> Edit</button>
+            <button onclick="deleteProduct('${productId}')"><i class='fas fa-trash'></i> Delete</button>
+        `;
+        document.body.appendChild(menu);
+        const rect = event.currentTarget.getBoundingClientRect();
+        menu.style.top = rect.bottom + 'px';
+        menu.style.left = rect.left + 'px';
+        const hide = (e) => {
+            if (!menu.contains(e.target)) {
+                menu.remove();
+                document.removeEventListener('click', hide);
+            }
+        };
+        setTimeout(() => document.addEventListener('click', hide));
+    }
 
-    exportAnalytics() {
+  exportAnalytics() {
         // Export all analytics data as JSON
         const exportData = {
             exportDate: new Date().toISOString(),
@@ -974,6 +1028,49 @@ showStatus(message, type = 'info', duration = 3000) {
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
         this.showStatus('Analytics exported successfully', 'success');
+    }
+
+    showColumnSelector() {
+        if (!window.ModalSystem) return;
+        const content = `
+            <div id="columnSelector">
+                ${this.availableColumns.map(col => `
+                    <label style="display:block;margin-bottom:4px;">
+                        <input type="checkbox" value="${col.key}" ${this.visibleColumns.includes(col.key) ? 'checked' : ''}> ${col.label}
+                    </label>
+                `).join('')}
+            </div>
+        `;
+        window.ModalSystem.show({
+            title: 'Select Columns',
+            content,
+            size: 'sm',
+            actions: [
+                { label: 'Cancel', class: 'sol-btn-secondary', handler: () => true },
+                { label: 'Apply', class: 'sol-btn-primary', handler: () => {
+                    this.visibleColumns = Array.from(document.querySelectorAll('#columnSelector input:checked')).map(cb => cb.value);
+                    localStorage.setItem('productVisibleColumns', JSON.stringify(this.visibleColumns));
+                    this.renderProducts();
+                    return true;
+                } }
+            ]
+        });
+    }
+
+    toggleViewMode() {
+        this.viewMode = this.viewMode === 'grid' ? 'list' : 'grid';
+        this.renderProducts();
+        const gridBtn = document.getElementById('viewGridBtn');
+        const listBtn = document.getElementById('viewListBtn');
+        if (gridBtn && listBtn) {
+            if (this.viewMode === 'grid') {
+                gridBtn.classList.add('active');
+                listBtn.classList.remove('active');
+            } else {
+                gridBtn.classList.remove('active');
+                listBtn.classList.add('active');
+            }
+        }
     }
 
 } // END CLASS
