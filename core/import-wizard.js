@@ -526,7 +526,12 @@ if (!this.targetFields || !Array.isArray(this.targetFields) || this.targetFields
   // Controllo sul container DOM
   const container = this.modal?.querySelector('#targetFields');
   if (!container) {
-    console.error('❌ targetFields non trovato! Sei nello step MAPPING?');
+    // Wait until the mapping step is rendered before trying again
+    setTimeout(() => {
+      if (this.modal && this.modal.querySelector('#targetFields')) {
+        this.renderTargetFields();
+      }
+    }, 100);
     return;
   }
   const requiredFields = this.targetFields.filter(f => f.required && !f.hidden);
