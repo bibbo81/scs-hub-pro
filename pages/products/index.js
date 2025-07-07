@@ -120,37 +120,6 @@ function loadColumnPreferences() {
     }
 }
 
-// Sync headers imported via CSV with available and visible columns
-export const syncImportedColumns = (headers = [], options = {}) => {
-    if (!Array.isArray(headers) || headers.length === 0) return;
-
-    const saved = localStorage.getItem('productVisibleColumns');
-    const replace = options.replace === true;
-    let visibleOrder = saved ? JSON.parse(saved) : [...DEFAULT_VISIBLE_COLUMNS];
-
-    headers.forEach(header => {
-        if (!AVAILABLE_COLUMNS.find(c => c.key === header)) {
-            AVAILABLE_COLUMNS.push({ key: header, label: header, sortable: true });
-
-            if (replace || !saved) {
-                const newCol = { key: header, label: header, sortable: true, formatter: (v) => v || '-' };
-                const actionsIdx = TABLE_COLUMNS.findIndex(c => c.key === 'actions');
-                if (actionsIdx >= 0) {
-                    TABLE_COLUMNS.splice(actionsIdx, 0, newCol);
-                    visibleOrder.splice(actionsIdx, 0, header);
-                } else {
-                    TABLE_COLUMNS.push(newCol);
-                    visibleOrder.push(header);
-                }
-            }
-        }
-    });
-
-    if (replace || !saved) {
-        localStorage.setItem('productVisibleColumns', JSON.stringify(visibleOrder));
-    }
-};
-
 class ProductIntelligenceSystem {
     constructor() {
     this.products = [];
@@ -286,22 +255,32 @@ showStatus(message, type = 'info', duration = 3000) {
     });
     window.importWizard.show();
 
-    window.importWizard.events.addEventListener('importComplete', async (evt) => {
+    window.importWizard.events.addEventListener('importComplete', async () => {
         this.showStatus('Import successful! Refreshing data...', 'success');
 
+        // Add any new headers as optional columns
         try {
             const headers = Array.isArray(window.importWizard.headers)
                 ? window.importWizard.headers
                 : [];
+            if (window.AVAILABLE_COLUMNS && headers.length) {
+                headers.forEach(header => {
+                    if (!window.AVAILABLE_COLUMNS.find(c => c.key === header)) {
+                        window.AVAILABLE_COLUMNS.push({
+                            key: header,
+                            label: header,
+                            sortable: true
+                        });
+                    }
+                });
 
-            const mode = evt?.detail?.mode || window.importWizard.importMode;
-            syncImportedColumns(headers, { replace: mode === 'replace' || mode === 'sync' });
-
-            if (typeof window.refreshColumnEditor === 'function') {
-                window.refreshColumnEditor();
-            }
-            if (typeof window.updateTable === 'function') {
-                window.updateTable();
+                // Refresh column editor and update table if available
+                if (typeof window.refreshColumnEditor === 'function') {
+                    window.refreshColumnEditor();
+                }
+                if (typeof window.updateTable === 'function') {
+                    window.updateTable();
+                }
             }
         } catch (e) {
             console.error('Error updating columns from import:', e);
