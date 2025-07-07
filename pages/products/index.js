@@ -969,8 +969,46 @@ showStatus(message, type = 'info', duration = 3000) {
   // CONTEXT MENU/BASIC EXPORT
   showProductMenu(productId, event) {
   event && event.stopPropagation && event.stopPropagation();
-  // Puoi customizzare con un context menu reale
-  this.showStatus('Product menu - coming soon!', 'info');
+
+  const existing = document.getElementById('productMenu');
+  if (existing) existing.remove();
+
+  const menu = document.createElement('div');
+  menu.id = 'productMenu';
+  menu.className = 'sol-dropdown';
+  menu.innerHTML = `
+    <button class="sol-dropdown-item" data-action="view">View Details</button>
+    <button class="sol-dropdown-item" data-action="edit">Edit</button>
+    <div class="sol-dropdown-divider"></div>
+    <button class="sol-dropdown-item sol-text-danger" data-action="delete">Delete</button>
+  `;
+  document.body.appendChild(menu);
+
+  const rect = (event.currentTarget || event.target).getBoundingClientRect();
+  menu.style.left = `${rect.left}px`;
+  menu.style.top = `${rect.bottom}px`;
+  menu.style.display = 'block';
+
+  const hideMenu = (e) => {
+    if (!menu.contains(e.target)) {
+      menu.remove();
+      document.removeEventListener('click', hideMenu);
+    }
+  };
+  setTimeout(() => document.addEventListener('click', hideMenu));
+
+  menu.querySelector('[data-action="view"]').onclick = () => {
+    this.showProductDetails(productId);
+    menu.remove();
+  };
+  menu.querySelector('[data-action="edit"]').onclick = () => {
+    this.showEditProductModal(productId);
+    menu.remove();
+  };
+  menu.querySelector('[data-action="delete"]').onclick = () => {
+    window.deleteProduct(productId);
+    menu.remove();
+  };
 }
 
   exportAnalytics() {
