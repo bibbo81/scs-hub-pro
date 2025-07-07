@@ -4,6 +4,8 @@
 // Import organization service
 import organizationService from '/core/services/organization-service.js';
 import { importWizard } from '/core/import-wizard.js';
+import { supabase } from '/core/services/supabase-client.js';
+importWizard.setSupabaseClient(supabase);
 
 // ===== PRODUCT INTELLIGENCE CORE =====
 
@@ -1704,6 +1706,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // 2. Rendiamo le istanze disponibili a livello globale per l'HTML.
     window.productIntelligenceSystem = productSystem;
     window.importWizard = importWizard; // Usa l'istanza importata in cima al file.
+    importWizard.setSupabaseClient(supabase);
 
     // 3. Avviamo il sistema principale. Non serve più il setTimeout.
     productSystem.init();
