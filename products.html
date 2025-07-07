@@ -18,6 +18,8 @@
 
     <!-- Chart.js for Cost Analytics -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
+    <!-- SortableJS for draggable columns -->
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
     
     <!-- STESSO setup JavaScript ES6 modules -->
     <script type="module">
@@ -97,6 +99,10 @@
                 <button class="sol-btn sol-btn-glass" id="bulkCostUpdateBtn">
                     <i class="fas fa-calculator"></i>
                     <span>Update Costs</span>
+                </button>
+                <button class="sol-btn sol-btn-glass" onclick="showColumnEditor()">
+                    <i class="fas fa-columns"></i>
+                    <span>Columns</span>
                 </button>
                 <button class="sol-btn sol-btn-primary" id="addProductBtn">
                     <i class="fas fa-plus"></i>
@@ -184,27 +190,7 @@
             </div>
 
             <!-- Products List View -->
-            <div id="productsList" class="products-intelligence-list" style="display: none;">
-                <div class="products-list-table">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Product</th>
-                                <th>SKU</th>
-                                <th>Category</th>
-                                <th class="text-right">Shipping Cost</th>
-                                <th class="text-right">Cost Trend</th>
-                                <th class="text-right">Monthly Volume</th>
-                                <th class="text-right">Profit Impact</th>
-                                <th class="text-right">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody id="productsListBody">
-                            <!-- Populated by JS -->
-                        </tbody>
-                    </table>
-                </div>
-            </div>
+            <div id="productsList" class="products-intelligence-list" style="display: none;"></div>
         </div>
 
         <!-- COST ANALYTICS SECTION -->

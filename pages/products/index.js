@@ -4,9 +4,116 @@
 import organizationService from '/core/services/organization-service.js';
 import { importWizard } from '/core/import-wizard.js';
 import { supabase } from '/core/services/supabase-client.js';
+import TableManager from '/core/table-manager.js';
 window.supabase = supabase;
 importWizard.setSupabaseClient(supabase);
 console.log('[DEBUG] Supabase client in wizard:', window.importWizard.supabase);
+
+// Columns configuration for products list
+const AVAILABLE_COLUMNS = [
+    { key: 'sku', label: 'SKU', required: true, sortable: true },
+    { key: 'name', label: 'Product', required: true, sortable: true },
+    { key: 'category', label: 'Category', sortable: true },
+    { key: 'shippingCost', label: 'Shipping Cost', sortable: true },
+    { key: 'costTrend', label: 'Cost Trend', sortable: true },
+    { key: 'unitsShipped', label: 'Units Shipped', sortable: true },
+    { key: 'profitImpact', label: 'Profit Impact', sortable: true },
+    { key: 'status', label: 'Status', sortable: false },
+    { key: 'actions', label: 'Actions', sortable: false }
+];
+
+const DEFAULT_VISIBLE_COLUMNS = [
+    'sku',
+    'name',
+    'category',
+    'shippingCost',
+    'costTrend',
+    'unitsShipped',
+    'profitImpact',
+    'status',
+    'actions'
+];
+
+const TABLE_COLUMNS = [
+    {
+        key: 'sku',
+        label: 'SKU',
+        sortable: true,
+        formatter: (value) => `<span class="font-mono">${value}</span>`
+    },
+    {
+        key: 'name',
+        label: 'PRODUCT',
+        sortable: true,
+        formatter: (value, row) => {
+            const desc = row.description ? `<small class="text-muted">${row.description.substring(0,50)}...</small>` : '';
+            return `<div class="product-name-cell"><strong>${value}</strong> ${desc}</div>`;
+        }
+    },
+    {
+        key: 'category',
+        label: 'CATEGORY',
+        sortable: true,
+        formatter: (value) => `<span class="category-badge category-${value}">${value}</span>`
+    },
+    {
+        key: 'shippingCost',
+        label: 'SHIPPING COST',
+        sortable: true,
+        formatter: (value) => `<strong>${Number(value || 0).toFixed(2)}</strong>`
+    },
+    {
+        key: 'costTrend',
+        label: 'COST TREND',
+        sortable: true,
+        formatter: (value, row) => {
+            const icon = value === 'increasing' ? 'fa-arrow-up' : value === 'decreasing' ? 'fa-arrow-down' : 'fa-minus';
+            const cls = value === 'increasing' ? 'negative' : value === 'decreasing' ? 'positive' : 'stable';
+            const pct = Math.abs(row.costTrendPercentage || 0).toFixed(1);
+            return `<div class="cost-trend-cell ${cls}"><i class="fas ${icon}"></i> ${pct}%</div>`;
+        }
+    },
+    {
+        key: 'unitsShipped',
+        label: 'UNITS SHIPPED',
+        sortable: true,
+        formatter: (value) => value ? Number(value).toLocaleString() : '0'
+    },
+    {
+        key: 'profitImpact',
+        label: 'PROFIT IMPACT',
+        sortable: true,
+        formatter: (value) => {
+            const val = Number(value || 0);
+            const sign = val >= 0 ? '+' : '';
+            return `<span class="profit-impact ${val >= 0 ? 'positive' : 'negative'}">${sign}${(val/1000).toFixed(0)}K</span>`;
+        }
+    },
+    {
+        key: 'status',
+        label: 'STATUS',
+        sortable: false,
+        formatter: (value, row) => `<span class="sol-badge ${row.statusClass}">${value}</span>`
+    },
+    {
+        key: 'actions',
+        label: 'ACTIONS',
+        sortable: false,
+        formatter: (value, row) => `
+            <div class="table-actions">
+                <button class="sol-btn sol-btn-sm sol-btn-glass" onclick="viewProductDetails('${row.id}')" title="View Analytics">
+                    <i class="fas fa-chart-area"></i>
+                </button>
+                <button class="sol-btn sol-btn-sm sol-btn-glass" onclick="editProduct('${row.id}')" title="Edit Product">
+                    <i class="fas fa-edit"></i>
+                </button>
+                <button class="sol-btn sol-btn-sm sol-btn-glass" onclick="showProductMenu('${row.id}', event)" title="More Options">
+                    <i class="fas fa-ellipsis-v"></i>
+                </button>
+            </div>
+        `
+    }
+];
 
 class ProductIntelligenceSystem {
     constructor() {
@@ -17,6 +124,7 @@ class ProductIntelligenceSystem {
         this.viewMode = 'list';
     this.sortColumn = 'name';
     this.sortDirection = 'asc';
+    this.tableManager = null;
     this.activeFilters = {
         category: '',
         costTrend: '',
@@ -35,6 +143,31 @@ class ProductIntelligenceSystem {
     this.showEditProductModal = this.showEditProductModal.bind(this);
     this.showProductMenu = this.showProductMenu.bind(this);
     this.showProductDetails = this.showProductDetails.bind(this);
+}
+
+initTableManager() {
+    if (this.tableManager) return;
+    let columns = TABLE_COLUMNS;
+    const saved = localStorage.getItem('productsVisibleColumns');
+    if (saved) {
+        try {
+            const order = JSON.parse(saved);
+            columns = order.map(key => TABLE_COLUMNS.find(c => c.key === key) ||
+                { key, label: (AVAILABLE_COLUMNS.find(a => a.key === key) || {}).label || key, sortable: true, formatter: v => v || '-' });
+            const actionsCol = TABLE_COLUMNS.find(c => c.key === 'actions');
+            if (actionsCol && !columns.includes(actionsCol)) columns.push(actionsCol);
+        } catch (e) {
+            console.error('Error loading saved columns', e);
+        }
+    }
+    this.tableManager = new TableManager('productsList', {
+        columns,
+        enableColumnDrag: true,
+        enableColumnManager: true,
+        paginate: true,
+        pageSize: 20
+    });
+    window.productsTableManager = this.tableManager;
 }
 
 initializeEventHandlers() {
@@ -102,6 +235,7 @@ showStatus(message, type = 'info', duration = 3000) {
             console.log(`[ProductIntelligence] Using organization: ${this.organizationId}`);
             await this.loadData();
             await this.generateAnalytics();
+            this.initTableManager();
             this.initializeEventHandlers();
             this.renderIntelligenceStats();
             this.renderProducts();
@@ -198,6 +332,48 @@ showStatus(message, type = 'info', duration = 3000) {
 
     getAnalytics(productId) {
         return this.analytics?.[productId] || this.getEmptyAnalytics();
+    }
+
+    mapProductRow(product) {
+        const analytics = this.getAnalytics(product.id);
+
+        const costTrendIcon = analytics.costTrend === 'increasing'
+            ? 'fa-arrow-up'
+            : analytics.costTrend === 'decreasing'
+                ? 'fa-arrow-down'
+                : 'fa-minus';
+        const costTrendClass = analytics.costTrend === 'increasing'
+            ? 'negative'
+            : analytics.costTrend === 'decreasing'
+                ? 'positive'
+                : 'stable';
+
+        let status = 'TRACKED';
+        let statusClass = 'sol-badge-secondary';
+        if (Math.abs(analytics.profitImpact || 0) > 10000) {
+            status = 'HIGH IMPACT';
+            statusClass = 'sol-badge-danger';
+        } else if ((analytics.performance?.costEfficiency || 0) > 85) {
+            status = 'OPTIMIZED';
+            statusClass = 'sol-badge-success';
+        }
+
+        return {
+            id: product.id,
+            sku: product.sku,
+            name: product.name,
+            description: product.description,
+            category: product.category,
+            shippingCost: analytics.avgShippingCost || 0,
+            costTrend: analytics.costTrend,
+            costTrendPercentage: analytics.costTrendPercentage,
+            costTrendIcon,
+            costTrendClass,
+            unitsShipped: analytics.totalUnitsShipped,
+            profitImpact: analytics.profitImpact,
+            status,
+            statusClass
+        };
     }
 
     generateRecommendations() {
@@ -364,14 +540,21 @@ showStatus(message, type = 'info', duration = 3000) {
 
     // RENDERING PRINCIPALE
     renderProducts() {
-        const productsGrid = document.getElementById('productsGrid');
-        if (!productsGrid) return;
+        const grid = document.getElementById('productsGrid');
+        const list = document.getElementById('productsList');
+        if (!grid || !list) return;
         if (this.viewMode === 'grid') {
-            productsGrid.className = 'products-intelligence-grid';
-            productsGrid.innerHTML = this.renderProductsGrid();
+            grid.style.display = 'block';
+            list.style.display = 'none';
+            grid.className = 'products-intelligence-grid';
+            grid.innerHTML = this.renderProductsGrid();
         } else {
-            productsGrid.className = 'products-intelligence-list';
-            productsGrid.innerHTML = this.renderProductsList();
+            grid.style.display = 'none';
+            list.style.display = 'block';
+            const rows = this.getFilteredAndSortedProducts().map(p => this.mapProductRow(p));
+            if (this.tableManager) {
+                this.tableManager.setData(rows);
+            }
         }
     }
 
@@ -465,58 +648,11 @@ showStatus(message, type = 'info', duration = 3000) {
 }
     renderProductsList() {
     const products = this.getFilteredAndSortedProducts();
-
-    if (products.length === 0) {
-        return `
-            <div class="empty-state">
-                <i class="fas fa-search fa-3x text-muted"></i>
-                <h3>No products found</h3>
-                <p>Try adjusting your filters or search criteria</p>
-                <button class="sol-btn sol-btn-primary" onclick="window.productIntelligenceSystem.clearFilters()">
-                    Clear Filters
-                </button>
-            </div>
-        `;
+    const rows = products.map(p => this.mapProductRow(p));
+    if (this.tableManager) {
+        this.tableManager.setData(rows);
     }
-
-    const tableHTML = `
-        <div class="products-list-table">
-            <table class="sol-table">
-                <thead>
-                    <tr>
-                        <th class="sortable" onclick="window.productIntelligenceSystem.sortProducts('sku')">
-                            SKU ${this.getSortIcon('sku')}
-                        </th>
-                        <th class="sortable" onclick="window.productIntelligenceSystem.sortProducts('name')">
-                            Product Name ${this.getSortIcon('name')}
-                        </th>
-                        <th class="sortable" onclick="window.productIntelligenceSystem.sortProducts('category')">
-                            Category ${this.getSortIcon('category')}
-                        </th>
-                        <th class="sortable" onclick="window.productIntelligenceSystem.sortProducts('shippingCost')">
-                            Avg Shipping Cost ${this.getSortIcon('shippingCost')}
-                        </th>
-                        <th class="sortable" onclick="window.productIntelligenceSystem.sortProducts('costTrend')">
-                            Cost Trend ${this.getSortIcon('costTrend')}
-                        </th>
-                        <th class="sortable" onclick="window.productIntelligenceSystem.sortProducts('unitsShipped')">
-                            Units Shipped ${this.getSortIcon('unitsShipped')}
-                        </th>
-                        <th class="sortable" onclick="window.productIntelligenceSystem.sortProducts('profitImpact')">
-                            Profit Impact ${this.getSortIcon('profitImpact')}
-                        </th>
-                        <th>Status</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    ${products.map(product => this.renderProductRow(product)).join('')}
-                </tbody>
-            </table>
-        </div>
-    `;
-
-    return tableHTML;
+    return '';
 }
    renderProductRow(product) {
     const safe = (v, fallback = '') => v !== undefined && v !== null ? v : fallback;
@@ -1075,6 +1211,116 @@ window.deleteProduct = function(productId) {
         confirmClass: 'sol-btn-danger',
         onConfirm: () => window.productIntelligenceSystem.deleteProduct(productId)
     });
+};
+
+function showColumnEditor() {
+    if (!window.ModalSystem) return;
+
+    const currentVisible = window.productIntelligenceSystem?.tableManager?.options?.columns?.filter(c => !c.hidden).map(c => c.key) || DEFAULT_VISIBLE_COLUMNS;
+
+    const content = `
+        <div class="column-editor">
+            <div class="column-editor-header">
+                <p>Select the columns to display and drag to reorder</p>
+                <div class="column-actions">
+                    <button class="btn btn-sm btn-secondary" onclick="selectAllColumns()">Select All</button>
+                    <button class="btn btn-sm btn-secondary" onclick="resetDefaultColumns()">Reset Default</button>
+                </div>
+            </div>
+            <div class="column-list" id="columnEditorList">
+                ${AVAILABLE_COLUMNS.map(col => `
+                    <div class="column-item ${col.required ? 'required' : ''}" data-column="${col.key}" draggable="${!col.required}">
+                        <div class="column-drag-handle"><i class="fas fa-grip-vertical"></i></div>
+                        <label class="column-checkbox">
+                            <input type="checkbox" value="${col.key}" ${currentVisible.includes(col.key) ? 'checked' : ''} ${col.required ? 'disabled' : ''} onchange="updateColumnPreview()">
+                            <span class="column-label">${col.label}</span>
+                            ${col.required ? '<span class="badge badge-info ml-2">Required</span>' : ''}
+                        </label>
+                    </div>
+                `).join('')}
+            </div>
+            <div class="column-preview mt-3">
+                <small class="text-muted"><span id="selectedColumnsCount">${currentVisible.length}</span> columns selected</small>
+            </div>
+        </div>`;
+
+    window.ModalSystem.show({
+        title: 'Manage Columns',
+        content,
+        size: 'md',
+        buttons: [
+            {
+                text: 'Cancel',
+                className: 'btn-secondary',
+                action: () => window.ModalSystem.hide()
+            },
+            {
+                text: 'Apply',
+                className: 'btn-primary',
+                action: () => applyColumnChanges()
+            }
+        ]
+    });
+
+    setTimeout(() => {
+        const list = document.getElementById('columnEditorList');
+        if (list && window.Sortable) {
+            new Sortable(list, {
+                animation: 150,
+                handle: '.column-drag-handle',
+                filter: '.required',
+                onEnd: () => updateColumnPreview()
+            });
+        }
+    }, 100);
+}
+
+window.selectAllColumns = function() {
+    document.querySelectorAll('#columnEditorList input[type="checkbox"]:not(:disabled)').forEach(cb => cb.checked = true);
+    updateColumnPreview();
+};
+
+window.resetDefaultColumns = function() {
+    document.querySelectorAll('#columnEditorList input[type="checkbox"]').forEach(cb => {
+        cb.checked = DEFAULT_VISIBLE_COLUMNS.includes(cb.value) || cb.disabled;
+    });
+    updateColumnPreview();
+};
+
+window.updateColumnPreview = function() {
+    const checked = document.querySelectorAll('#columnEditorList input[type="checkbox"]:checked').length;
+    const counter = document.getElementById('selectedColumnsCount');
+    if (counter) counter.textContent = checked;
+};
+
+window.applyColumnChanges = function() {
+    const columnOrder = [];
+    document.querySelectorAll('#columnEditorList .column-item').forEach(item => {
+        const key = item.dataset.column;
+        const checked = item.querySelector('input[type="checkbox"]').checked;
+        if (checked) columnOrder.push(key);
+    });
+
+    const newColumns = columnOrder.map(key => {
+        const existing = TABLE_COLUMNS.find(c => c.key === key);
+        const base = AVAILABLE_COLUMNS.find(c => c.key === key) || {};
+        return existing || { key, label: base.label, sortable: base.sortable, formatter: (v) => v || '-' };
+    });
+
+    const actionsCol = TABLE_COLUMNS.find(c => c.key === 'actions');
+    if (actionsCol && !newColumns.includes(actionsCol)) newColumns.push(actionsCol);
+
+    TABLE_COLUMNS.length = 0;
+    TABLE_COLUMNS.push(...newColumns);
+    localStorage.setItem('productsVisibleColumns', JSON.stringify(columnOrder));
+
+    if (window.productIntelligenceSystem?.tableManager) {
+        window.productIntelligenceSystem.tableManager.options.columns = newColumns;
+        window.productIntelligenceSystem.renderProducts();
+    }
+
+    window.ModalSystem.hide();
+    window.NotificationSystem?.success('Columns updated');
 };
 
 console.log('[ProductIntelligence] Product Intelligence System module loaded successfully');
