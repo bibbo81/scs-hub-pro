@@ -983,12 +983,77 @@ showStatus(message, type = 'info', duration = 3000) {
     });
 }
 
-    // CONTEXT MENU/BASIC EXPORT
+    // Show a simple context menu for product actions
     showProductMenu(productId, event) {
-    event && event.stopPropagation && event.stopPropagation();
-    // Puoi customizzare con un context menu reale
-    this.showStatus('Product menu - coming soon!', 'info');
-}
+        event && event.preventDefault && event.preventDefault();
+        event && event.stopPropagation && event.stopPropagation();
+
+        // Remove any existing menu
+        const existing = document.getElementById('productContextMenu');
+        if (existing) existing.remove();
+
+        const actions = [
+            { label: 'View Details', handler: () => this.showProductDetails(productId) },
+            { label: 'Edit Product', handler: () => this.showEditProductModal(productId) },
+            { separator: true },
+            { label: 'Delete Product', handler: () => this.deleteProduct(productId), class: 'danger' }
+        ];
+
+        // Basic menu element
+        const menu = document.createElement('div');
+        menu.id = 'productContextMenu';
+        menu.className = 'sol-context-menu';
+
+        const list = document.createElement('ul');
+        menu.appendChild(list);
+
+        actions.forEach(item => {
+            if (item.separator) {
+                const sep = document.createElement('li');
+                sep.className = 'separator';
+                list.appendChild(sep);
+                return;
+            }
+            const li = document.createElement('li');
+            li.textContent = item.label;
+            if (item.class) li.classList.add(item.class);
+            li.onclick = () => {
+                item.handler();
+                hideMenu();
+            };
+            list.appendChild(li);
+        });
+
+        // Position menu
+        menu.style.position = 'absolute';
+        menu.style.top = `${event.clientY}px`;
+        menu.style.left = `${event.clientX}px`;
+        menu.style.zIndex = 1000;
+
+        document.body.appendChild(menu);
+
+        // Hide handler
+        function hideMenu() {
+            menu.remove();
+            document.removeEventListener('click', hideMenu);
+        }
+        setTimeout(() => document.addEventListener('click', hideMenu));
+
+        // Inject minimal styles if not present
+        if (!document.getElementById('productContextMenuStyle')) {
+            const style = document.createElement('style');
+            style.id = 'productContextMenuStyle';
+            style.textContent = `
+                .sol-context-menu { background: #fff; border: 1px solid #ccc; border-radius: 4px; box-shadow: 0 2px 6px rgba(0,0,0,0.15); }
+                .sol-context-menu ul { list-style: none; margin: 0; padding: 4px 0; }
+                .sol-context-menu li { padding: 6px 12px; cursor: pointer; font-size: 14px; }
+                .sol-context-menu li.separator { margin: 4px 0; border-top: 1px solid #eee; pointer-events: none; }
+                .sol-context-menu li.danger { color: #d9534f; }
+                .sol-context-menu li:hover { background: #f5f5f5; }
+            `;
+            document.head.appendChild(style);
+        }
+    }
 
   exportAnalytics() {
         // Export all analytics data as JSON
