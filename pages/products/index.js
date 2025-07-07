@@ -176,6 +176,29 @@ showStatus(message, type = 'info', duration = 3000) {
         };
     }
 
+    getEmptyAnalytics() {
+        return {
+            totalShipments: 0,
+            totalUnitsShipped: 0,
+            avgShippingCost: 0,
+            costTrend: "stable",
+            costTrendPercentage: 0,
+            bestRoute: "N/A",
+            worstRoute: "N/A",
+            routeComparison: {},
+            profitImpact: 0,
+            performance: {
+                costEfficiency: 0,
+                routeOptimization: 0,
+                seasonalOptimization: 0
+            }
+        };
+    }
+
+    getAnalytics(productId) {
+        return this.analytics?.[productId] || this.getEmptyAnalytics();
+    }
+
     generateRecommendations() {
         const recommendations = [];
         this.products.forEach(product => {
@@ -371,7 +394,7 @@ showStatus(message, type = 'info', duration = 3000) {
 
     return products.map(product => {
         // Fallback su oggetto vuoto per tutti i campi potenzialmente assenti
-        const analytics = this.analytics?.[product.id] || this.getEmptyAnalytics();
+        const analytics = this.getAnalytics(product.id);
         const costTrendIcon = analytics.costTrend === 'increasing' ? 'fa-arrow-up' : 
                             analytics.costTrend === 'decreasing' ? 'fa-arrow-down' : 'fa-minus';
         const costTrendClass = analytics.costTrend === 'increasing' ? 'negative' : 
@@ -496,7 +519,7 @@ showStatus(message, type = 'info', duration = 3000) {
 }
    renderProductRow(product) {
     const safe = (v, fallback = '') => v !== undefined && v !== null ? v : fallback;
-    const analytics = this.analytics?.[product.id] || this.getEmptyAnalytics();
+    const analytics = this.getAnalytics(product.id);
     const costTrendIcon = analytics.costTrend === 'increasing' ? 'fa-arrow-up' : 
                          analytics.costTrend === 'decreasing' ? 'fa-arrow-down' : 'fa-minus';
     const costTrendClass = analytics.costTrend === 'increasing' ? 'negative' : 
@@ -837,7 +860,7 @@ showStatus(message, type = 'info', duration = 3000) {
     // MODALE ANALYTICS/DETAILS
     showProductDetails(productId) {
         const product = this.products.find(p => p.id === productId);
-        const analytics = this.analytics[productId] || this.getEmptyAnalytics();
+        const analytics = this.getAnalytics(productId);
 
         if (!product) {
             this.showStatus('Product not found', 'error');
