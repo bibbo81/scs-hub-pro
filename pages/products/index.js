@@ -50,6 +50,8 @@ class ProductIntelligenceSystem {
   this.showProductDetails = this.showProductDetails.bind(this);
   this.showColumnSelector = this.showColumnSelector.bind(this);
   this.toggleViewMode = this.toggleViewMode.bind(this);
+  this.updateColumnsFromData = this.updateColumnsFromData.bind(this);
+  this.toLabel = this.toLabel.bind(this);
 }
 
 initializeEventHandlers() {
@@ -142,6 +144,7 @@ showStatus(message, type = 'info', duration = 3000) {
       return;
     }
     this.products = data || [];
+    this.updateColumnsFromData();
   }
   // Analytics basilare: calcola margini/profitto su dati prodotto
   async generateAnalytics() {
@@ -491,6 +494,7 @@ showStatus(message, type = 'info', duration = 3000) {
     }
 
     const headerCells = this.visibleColumns.map(key => {
+      const col = this.allColumns.find(c => c.key === key) || { label: this.toLabel(key) };
       switch (key) {
         case 'sku':
           return `<th class="sortable" onclick="window.productIntelligenceSystem.sortProducts('sku')">SKU ${this.getSortIcon('sku')}</th>`;
@@ -511,7 +515,7 @@ showStatus(message, type = 'info', duration = 3000) {
         case 'actions':
           return '<th>Actions</th>';
         default:
-          return '';
+          return `<th>${col.label}</th>`;
       }
     }).join('');
 
@@ -548,34 +552,30 @@ showStatus(message, type = 'info', duration = 3000) {
     statusClass = 'sol-badge-success';
   }
 
-  const cells = [];
-  if (this.visibleColumns.includes('sku')) {
-    cells.push(`<td class="font-mono">${safe(product.sku)}</td>`);
-  }
-  if (this.visibleColumns.includes('name')) {
-    cells.push(`<td><div class="product-name-cell"><strong>${safe(product.name)}</strong>${product.description ? `<small class="text-muted">${safe(product.description).substring(0, 50)}...</small>` : ''}</div></td>`);
-  }
-  if (this.visibleColumns.includes('category')) {
-    cells.push(`<td><span class="category-badge category-${safe(product.category)}">${safe(product.category)}</span></td>`);
-  }
-  if (this.visibleColumns.includes('shippingCost')) {
-    cells.push(`<td><strong>${safe(analytics.avgShippingCost, 0).toFixed(2)}</strong></td>`);
-  }
-  if (this.visibleColumns.includes('costTrend')) {
-    cells.push(`<td><div class="cost-trend-cell ${costTrendClass}"><i class="fas ${costTrendIcon}"></i>${Math.abs(safe(analytics.costTrendPercentage, 0)).toFixed(1)}%</div></td>`);
-  }
-  if (this.visibleColumns.includes('unitsShipped')) {
-    cells.push(`<td class="text-right">${safe(analytics.totalUnitsShipped, 0).toLocaleString()}</td>`);
-  }
-  if (this.visibleColumns.includes('profitImpact')) {
-    cells.push(`<td><span class="profit-impact ${safe(analytics.profitImpact, 0) >= 0 ? 'positive' : 'negative'}">${(safe(analytics.profitImpact, 0) >= 0 ? '+' : '') + (safe(analytics.profitImpact, 0) / 1000).toFixed(0)}K</span></td>`);
-  }
-  if (this.visibleColumns.includes('status')) {
-    cells.push(`<td><span class="sol-badge ${statusClass}">${statusBadge}</span></td>`);
-  }
-  if (this.visibleColumns.includes('actions')) {
-    cells.push(`<td><div class="table-actions"><button class="sol-btn sol-btn-sm sol-btn-glass" onclick="viewProductDetails('${safe(product.id)}')" title="View Analytics"><i class="fas fa-chart-area"></i></button><button class="sol-btn sol-btn-sm sol-btn-glass" onclick="editProduct('${safe(product.id)}')" title="Edit Product"><i class="fas fa-edit"></i></button><button class="sol-btn sol-btn-sm sol-btn-glass" onclick="showProductMenu('${safe(product.id)}', event)" title="More Options"><i class="fas fa-ellipsis-v"></i></button></div></td>`);
-  }
+  const cells = this.visibleColumns.map(key => {
+    switch (key) {
+      case 'sku':
+        return `<td class="font-mono">${safe(product.sku)}</td>`;
+      case 'name':
+        return `<td><div class="product-name-cell"><strong>${safe(product.name)}</strong>${product.description ? `<small class="text-muted">${safe(product.description).substring(0, 50)}...</small>` : ''}</div></td>`;
+      case 'category':
+        return `<td><span class="category-badge category-${safe(product.category)}">${safe(product.category)}</span></td>`;
+      case 'shippingCost':
+        return `<td><strong>${safe(analytics.avgShippingCost, 0).toFixed(2)}</strong></td>`;
+      case 'costTrend':
+        return `<td><div class="cost-trend-cell ${costTrendClass}"><i class="fas ${costTrendIcon}"></i>${Math.abs(safe(analytics.costTrendPercentage, 0)).toFixed(1)}%</div></td>`;
+      case 'unitsShipped':
+        return `<td class="text-right">${safe(analytics.totalUnitsShipped, 0).toLocaleString()}</td>`;
+      case 'profitImpact':
+        return `<td><span class="profit-impact ${safe(analytics.profitImpact, 0) >= 0 ? 'positive' : 'negative'}">${(safe(analytics.profitImpact, 0) >= 0 ? '+' : '') + (safe(analytics.profitImpact, 0) / 1000).toFixed(0)}K</span></td>`;
+      case 'status':
+        return `<td><span class="sol-badge ${statusClass}">${statusBadge}</span></td>`;
+      case 'actions':
+        return `<td><div class="table-actions"><button class="sol-btn sol-btn-sm sol-btn-glass" onclick="viewProductDetails('${safe(product.id)}')" title="View Analytics"><i class="fas fa-chart-area"></i></button><button class="sol-btn sol-btn-sm sol-btn-glass" onclick="editProduct('${safe(product.id)}')" title="Edit Product"><i class="fas fa-edit"></i></button><button class="sol-btn sol-btn-sm sol-btn-glass" onclick="showProductMenu('${safe(product.id)}', event)" title="More Options"><i class="fas fa-ellipsis-v"></i></button></div></td>`;
+      default:
+        return `<td>${safe(product[key])}</td>`;
+    }
+  });
   return `<tr data-product-id="${safe(product.id)}">${cells.join('')}</tr>`;
 }
 
@@ -1078,6 +1078,24 @@ showStatus(message, type = 'info', duration = 3000) {
 
   toggleViewMode() {
     // View mode is fixed to list; no toggle behavior
+  }
+
+  toLabel(key) {
+    return key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+  }
+
+  updateColumnsFromData() {
+    const exclude = ['id', 'created_at', 'updated_at', 'user_id', 'organization_id'];
+    const existing = new Set(this.allColumns.map(c => c.key));
+    this.products.forEach(p => {
+      Object.keys(p).forEach(k => {
+        if (!existing.has(k) && !exclude.includes(k)) {
+          existing.add(k);
+          this.allColumns.push({ key: k, label: this.toLabel(k) });
+          if (!this.visibleColumns.includes(k)) this.visibleColumns.push(k);
+        }
+      });
+    });
   }
 
 } // END CLASS
