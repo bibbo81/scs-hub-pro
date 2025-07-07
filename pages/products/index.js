@@ -255,31 +255,47 @@ showStatus(message, type = 'info', duration = 3000) {
     });
     window.importWizard.show();
 
-    window.importWizard.events.addEventListener('importComplete', async () => {
+    window.importWizard.events.addEventListener('importComplete', async (event) => {
         this.showStatus('Import successful! Refreshing data...', 'success');
 
-        // Add any new headers as optional columns
         try {
             const headers = Array.isArray(window.importWizard.headers)
                 ? window.importWizard.headers
                 : [];
-            if (window.AVAILABLE_COLUMNS && headers.length) {
+
+            if (headers.length && window.AVAILABLE_COLUMNS) {
                 headers.forEach(header => {
                     if (!window.AVAILABLE_COLUMNS.find(c => c.key === header)) {
-                        window.AVAILABLE_COLUMNS.push({
+                        window.AVAILABLE_COLUMNS.push({ key: header, label: header, sortable: true });
+                    }
+                    if (!window.TABLE_COLUMNS.find(c => c.key === header)) {
+                        const actionsIndex = window.TABLE_COLUMNS.findIndex(c => c.key === 'actions');
+                        const newCol = {
                             key: header,
                             label: header,
-                            sortable: true
-                        });
+                            sortable: true,
+                            formatter: (v) => v || ''
+                        };
+                        if (actionsIndex >= 0) {
+                            window.TABLE_COLUMNS.splice(actionsIndex, 0, newCol);
+                        } else {
+                            window.TABLE_COLUMNS.push(newCol);
+                        }
                     }
                 });
 
-                // Refresh column editor and update table if available
-                if (typeof window.refreshColumnEditor === 'function') {
-                    window.refreshColumnEditor();
+                const savedOrder = localStorage.getItem('productVisibleColumns');
+                if (!savedOrder || event?.detail?.mode === 'replace') {
+                    const newOrder = window.TABLE_COLUMNS.map(c => c.key);
+                    window.DEFAULT_VISIBLE_COLUMNS = newOrder;
+                    localStorage.setItem('productVisibleColumns', JSON.stringify(newOrder));
                 }
+
                 if (typeof window.updateTable === 'function') {
                     window.updateTable();
+                }
+                if (typeof window.refreshColumnEditor === 'function') {
+                    window.refreshColumnEditor();
                 }
             }
         } catch (e) {
