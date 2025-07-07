@@ -8,6 +8,7 @@ class ShipmentsRegistry {
         this.subscribers = [];
         this.storageKey = 'shipmentsRegistry';
         this.version = '2.0.0';
+        this.supabaseService = null;
         
         console.log('🏗️ ShipmentsRegistry constructor called');
     }
@@ -21,7 +22,7 @@ class ShipmentsRegistry {
         console.log('🚀 Initializing ShipmentsRegistry...');
         
         try {
-            // Load existing shipments from localStorage
+            // Load existing shipments from Supabase
             await this.loadShipments();
             
             // Set up event listeners
@@ -50,29 +51,15 @@ class ShipmentsRegistry {
     
     async loadShipments() {
         try {
-            const stored = localStorage.getItem(this.storageKey);
-            if (stored) {
-                const data = JSON.parse(stored);
-                
-                // Handle version migration if needed
-                if (data.version !== this.version) {
-                    console.log('🔄 Migrating shipments data...');
-                    this.shipments = this.migrateData(data.shipments || data);
-                } else {
-                    this.shipments = data.shipments || [];
-                }
-                
-                console.log(`📦 Loaded ${this.shipments.length} shipments from storage`);
-            } else {
-                console.log('📦 No existing shipments found, starting fresh');
-                this.shipments = [];
-            }
-            
-            // Validate and clean up data
+            await this.ensureSupabaseService();
+            const orgId = await this.getOrganizationId();
+            this.shipments = await this.supabaseService.getAllShipments(orgId);
+
             this.shipments = this.validateShipments(this.shipments);
-            
+
+            console.log(`📦 Loaded ${this.shipments.length} shipments from Supabase`);
             return true;
-            
+
         } catch (error) {
             console.error('❌ Error loading shipments:', error);
             this.shipments = [];
@@ -131,45 +118,14 @@ class ShipmentsRegistry {
     }
     
     setupEventListeners() {
-        // Listen for page unload to save data
-        window.addEventListener('beforeunload', () => {
-            this.saveShipments();
+        window.addEventListener('organizationChanged', async () => {
+            await this.reloadForOrganization();
         });
-        
-        // Auto-save every 30 seconds
-        setInterval(() => {
-            if (this.initialized) {
-                this.saveShipments();
-            }
-        }, 30000);
     }
     
     saveShipments() {
-        try {
-            const data = {
-                version: this.version,
-                shipments: this.shipments,
-                savedAt: new Date().toISOString()
-            };
-            
-            localStorage.setItem(this.storageKey, JSON.stringify(data));
-            console.log(`💾 Saved ${this.shipments.length} shipments to storage`);
-            
-            return true;
-            
-        } catch (error) {
-            console.error('❌ Error saving shipments:', error);
-            
-            // Try to save without version info as fallback
-            try {
-                localStorage.setItem(this.storageKey, JSON.stringify(this.shipments));
-                console.log('💾 Fallback save completed');
-                return true;
-            } catch (fallbackError) {
-                console.error('❌ Fallback save also failed:', fallbackError);
-                return false;
-            }
-        }
+        // Persistence handled by Supabase
+        return true;
     }
     
     // ===== SHIPMENT OPERATIONS =====
@@ -191,54 +147,58 @@ class ShipmentsRegistry {
             ...shipmentData
         };
         
-        this.shipments.push(shipment);
-        this.saveShipments();
-        
-        this.notifySubscribers('created', { shipment });
-        
-        console.log(`✅ Created shipment: ${shipment.shipmentNumber}`);
-        return shipment;
+        await this.ensureSupabaseService();
+        const orgId = await this.getOrganizationId();
+        const saved = await this.supabaseService.createShipment({
+            ...shipment,
+            organization_id: orgId
+        });
+
+        if (saved) {
+            this.shipments.push(saved);
+            this.notifySubscribers('created', { shipment: saved });
+            console.log(`✅ Created shipment: ${saved.shipmentNumber}`);
+        }
+        return saved;
     }
     
     async updateShipment(shipmentId, updates) {
+        await this.ensureSupabaseService();
         const index = this.shipments.findIndex(s => s.id === shipmentId);
-        
         if (index === -1) {
             throw new Error(`Shipment ${shipmentId} not found`);
         }
-        
+
         const oldShipment = { ...this.shipments[index] };
-        
-        this.shipments[index] = {
-            ...this.shipments[index],
-            ...updates,
-            updatedAt: new Date().toISOString()
-        };
-        
-        this.saveShipments();
-        
-        this.notifySubscribers('updated', { 
-            shipment: this.shipments[index], 
-            oldShipment 
-        });
-        
-        console.log(`✅ Updated shipment: ${this.shipments[index].shipmentNumber}`);
-        return this.shipments[index];
+
+        const updated = await this.supabaseService.updateShipment(shipmentId, updates);
+
+        if (updated) {
+            this.shipments[index] = updated;
+            this.notifySubscribers('updated', { shipment: updated, oldShipment });
+            console.log(`✅ Updated shipment: ${updated.shipmentNumber}`);
+        }
+
+        return updated;
     }
     
     async deleteShipment(shipmentId) {
+        await this.ensureSupabaseService();
         const index = this.shipments.findIndex(s => s.id === shipmentId);
-        
+
         if (index === -1) {
             throw new Error(`Shipment ${shipmentId} not found`);
         }
-        
-        const deletedShipment = this.shipments.splice(index, 1)[0];
-        this.saveShipments();
-        
-        this.notifySubscribers('deleted', { shipment: deletedShipment });
-        
-        console.log(`✅ Deleted shipment: ${deletedShipment.shipmentNumber}`);
+
+        const success = await this.supabaseService.deleteShipment(shipmentId);
+        let deletedShipment = null;
+
+        if (success) {
+            deletedShipment = this.shipments.splice(index, 1)[0];
+            this.notifySubscribers('deleted', { shipment: deletedShipment });
+            console.log(`✅ Deleted shipment: ${deletedShipment.shipmentNumber}`);
+        }
+
         return deletedShipment;
     }
     
@@ -598,6 +558,33 @@ class ShipmentsRegistry {
             financial: { currency: 'EUR' },
             compliance: { complianceScore: 0 }
         };
+    }
+
+    async ensureSupabaseService() {
+        if (!this.supabaseService) {
+            if (window.supabaseShipmentsService) {
+                this.supabaseService = window.supabaseShipmentsService;
+            } else {
+                const module = await import('/core/services/supabase-shipments-service.js');
+                this.supabaseService = module.default;
+                window.supabaseShipmentsService = this.supabaseService;
+            }
+        }
+    }
+
+    async getOrganizationId() {
+        if (window.organizationService) {
+            if (!window.organizationService.initialized) {
+                await window.organizationService.init();
+            }
+            return window.organizationService.getCurrentOrgId();
+        }
+        return null;
+    }
+
+    async reloadForOrganization() {
+        await this.loadShipments();
+        this.notifySubscribers('reloaded', { shipments: this.shipments });
     }
     
     // ===== SUBSCRIPTION SYSTEM =====
