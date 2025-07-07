@@ -27,6 +27,7 @@
     import notificationSystem from '/core/notification-system.js';
     import modalSystem from '/core/modal-system.js';
     import organizationService from '/core/services/organization-service.js';
+    import TableManager from '/core/table-manager.js';
     
     // Make organization service available globally
     window.organizationService = organizationService;
@@ -35,6 +36,18 @@
         window.headerComponent = headerComponent;
         window.NotificationSystem = notificationSystem;
         window.ModalSystem = modalSystem;
+        window.TableManager = TableManager;
+
+        window.registerTableManager = function(id, instance) {
+            if (!window.tableManagers) {
+                window.tableManagers = {};
+            }
+            window.tableManagers[id] = instance;
+        };
+
+        window.getTableManager = function(id) {
+            return window.tableManagers?.[id];
+        };
     </script>
     
     <!-- STESSI Legacy Scripts -->
@@ -43,6 +56,9 @@
     
     <!-- Phase 2 Architecture -->
     <script src="/phase2-architecture.js"></script>
+
+    <!-- SortableJS for column drag/drop -->
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
     
     <!-- Products page specific script -->
 <script type="module" src="/pages/products/index.js"></script>
@@ -172,25 +188,7 @@
 
             <!-- Products List View -->
             <div id="productsList" class="products-intelligence-list">
-                <div class="products-list-table">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Product</th>
-                                <th>SKU</th>
-                                <th>Category</th>
-                                <th class="text-right">Shipping Cost</th>
-                                <th class="text-right">Cost Trend</th>
-                                <th class="text-right">Monthly Volume</th>
-                                <th class="text-right">Profit Impact</th>
-                                <th class="text-right">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody id="productsListBody">
-                            <!-- Populated by JS -->
-                        </tbody>
-                    </table>
-                </div>
+                <div id="productsTableContainer"></div>
             </div>
         </div>
 
