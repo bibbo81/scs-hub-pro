@@ -979,7 +979,7 @@ showStatus(message, type = 'info', duration = 3000) {
 
   const menu = document.createElement('div');
   menu.id = 'productMenu';
-  menu.className = 'sol-dropdown';
+  menu.className = 'product-menu';
   menu.innerHTML = `
     <button class="sol-dropdown-item" data-action="view">View Details</button>
     <button class="sol-dropdown-item" data-action="edit">Edit</button>
