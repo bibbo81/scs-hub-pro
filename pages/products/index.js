@@ -145,6 +145,38 @@ showStatus(message, type = 'info', duration = 3000) {
 
     window.importWizard.events.addEventListener('importComplete', async () => {
         this.showStatus('Import successful! Refreshing data...', 'success');
+
+        // Add any new headers as optional columns
+        try {
+            const headers = Array.isArray(window.importWizard.headers)
+                ? window.importWizard.headers
+                : [];
+            if (window.AVAILABLE_COLUMNS && headers.length) {
+                headers.forEach(header => {
+                    if (!window.AVAILABLE_COLUMNS.find(c => c.key === header)) {
+                        window.AVAILABLE_COLUMNS.push({
+                            key: header,
+                            label: header,
+                            sortable: true
+                        });
+                    }
+                });
+
+                // Refresh column editor and table manager if available
+                if (typeof window.refreshColumnEditor === 'function') {
+                    window.refreshColumnEditor();
+                }
+                if (window.tableManager) {
+                    window.tableManager.options.columns = window.AVAILABLE_COLUMNS;
+                    if (typeof window.updateTable === 'function') {
+                        window.updateTable();
+                    }
+                }
+            }
+        } catch (e) {
+            console.error('Error updating columns from import:', e);
+        }
+
         await this.loadData();
         this.renderProducts();
         this.renderIntelligenceStats && this.renderIntelligenceStats();
