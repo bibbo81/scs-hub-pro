@@ -1947,8 +1947,8 @@ window.showProductMenu = function(productId, event) {
 
     const rect = (event.currentTarget || event.target).getBoundingClientRect();
     menu.style.left = `${rect.left}px`;
-    menu.style.right = 'auto';
     menu.style.top = `${rect.bottom}px`;
+    menu.style.right = 'auto';
     menu.style.display = 'block';
 
     const hideMenu = (e) => {
