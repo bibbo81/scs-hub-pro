@@ -957,7 +957,10 @@ showStatus(message, type = 'info', duration = 3000) {
       {
         label: 'Update Product',
         class: 'sol-btn-primary',
-        handler: () => this.updateProduct(productId)
+        handler: async () => {
+          const ok = await this.updateProduct(productId);
+          return ok;
+        }
       }
     ]
   });
