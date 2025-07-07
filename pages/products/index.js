@@ -4,9 +4,113 @@
 import organizationService from '/core/services/organization-service.js';
 import { importWizard } from '/core/import-wizard.js';
 import { supabase } from '/core/services/supabase-client.js';
+import TableManager from '/core/table-manager.js';
 window.supabase = supabase;
 importWizard.setSupabaseClient(supabase);
 console.log('[DEBUG] Supabase client in wizard:', window.importWizard.supabase);
+
+// Column configuration
+export const AVAILABLE_COLUMNS = [
+    { key: 'sku', label: 'SKU', sortable: true, required: true },
+    { key: 'name', label: 'Product Name', sortable: true, required: true },
+    { key: 'category', label: 'Category', sortable: true },
+    { key: 'avgShippingCost', label: 'Avg Shipping Cost', sortable: true },
+    { key: 'costTrend', label: 'Cost Trend', sortable: true },
+    { key: 'totalUnitsShipped', label: 'Units Shipped', sortable: true },
+    { key: 'profitImpact', label: 'Profit Impact', sortable: true },
+    { key: 'statusBadge', label: 'Status', sortable: false },
+    { key: 'actions', label: 'Actions', sortable: false }
+];
+
+export const DEFAULT_VISIBLE_COLUMNS = [
+    'sku', 'name', 'category', 'avgShippingCost', 'costTrend',
+    'totalUnitsShipped', 'profitImpact', 'statusBadge', 'actions'
+];
+
+export const TABLE_COLUMNS = [
+    {
+        key: 'sku',
+        label: 'SKU',
+        sortable: true,
+        formatter: (v) => `<span class="font-mono">${v || ''}</span>`
+    },
+    {
+        key: 'name',
+        label: 'PRODUCT NAME',
+        sortable: true,
+        formatter: (v, row) => {
+            const desc = row.description ? `<small class="text-muted">${row.description.substring(0,50)}...</small>` : '';
+            return `<div class="product-name-cell"><strong>${v || ''}</strong>${desc}</div>`;
+        }
+    },
+    {
+        key: 'category',
+        label: 'CATEGORY',
+        sortable: true,
+        formatter: (v) => `<span class="category-badge category-${v}">${v}</span>`
+    },
+    {
+        key: 'avgShippingCost',
+        label: 'SHIPPING COST',
+        sortable: true,
+        formatter: (v) => `<strong>${(v || 0).toFixed(2)}</strong>`
+    },
+    {
+        key: 'costTrend',
+        label: 'COST TREND',
+        sortable: true,
+        formatter: (v, row) => {
+            const icon = v === 'increasing' ? 'fa-arrow-up' : v === 'decreasing' ? 'fa-arrow-down' : 'fa-minus';
+            const cls = v === 'increasing' ? 'negative' : v === 'decreasing' ? 'positive' : 'stable';
+            const pct = Math.abs(row.costTrendPercentage || 0).toFixed(1);
+            return `<div class="cost-trend-cell ${cls}"><i class="fas ${icon}"></i> ${pct}%</div>`;
+        }
+    },
+    {
+        key: 'totalUnitsShipped',
+        label: 'UNITS SHIPPED',
+        sortable: true,
+        formatter: (v) => (v || 0).toLocaleString()
+    },
+    {
+        key: 'profitImpact',
+        label: 'PROFIT IMPACT',
+        sortable: true,
+        formatter: (v) => `<span class="profit-impact ${v >= 0 ? 'positive' : 'negative'}">${(v >= 0 ? '+' : '') + (v / 1000).toFixed(0)}K</span>`
+    },
+    {
+        key: 'statusBadge',
+        label: 'STATUS',
+        sortable: false,
+        formatter: (v, row) => `<span class="sol-badge ${row.statusClass}">${v}</span>`
+    },
+    {
+        key: 'actions',
+        label: 'ACTIONS',
+        sortable: false,
+        formatter: (v, row) => {
+            return `<div class="table-actions">` +
+                   `<button class="sol-btn sol-btn-sm sol-btn-glass" onclick="viewProductDetails('${row.id}')" title="View Analytics"><i class="fas fa-chart-area"></i></button>` +
+                   `<button class="sol-btn sol-btn-sm sol-btn-glass" onclick="editProduct('${row.id}')" title="Edit Product"><i class="fas fa-edit"></i></button>` +
+                   `<button class="sol-btn sol-btn-sm sol-btn-glass" onclick="showProductMenu('${row.id}', event)" title="More Options"><i class="fas fa-ellipsis-v"></i></button>` +
+                   `</div>`;
+        }
+    }
+];
+
+let tableManager = null;
+
+function loadColumnPreferences() {
+    const saved = localStorage.getItem('productVisibleColumns');
+    if (saved) {
+        try {
+            const order = JSON.parse(saved);
+            TABLE_COLUMNS.sort((a, b) => order.indexOf(a.key) - order.indexOf(b.key));
+        } catch (e) {
+            console.error('Error loading column preferences:', e);
+        }
+    }
+}
 
 class ProductIntelligenceSystem {
     constructor() {
@@ -390,141 +494,50 @@ showStatus(message, type = 'info', duration = 3000) {
 
     // RENDERING PRINCIPALE
     renderProducts() {
-        const productsList = document.getElementById('productsList');
-        if (!productsList) return;
-        productsList.className = 'products-intelligence-list';
-        productsList.innerHTML = this.renderProductsList();
+        const container = document.getElementById('productsTableContainer');
+        if (!container) return;
+
+        const products = this.getFilteredAndSortedProducts().map(p => {
+            const analytics = this.getAnalytics(p.id);
+
+            let statusBadge = 'TRACKED';
+            let statusClass = 'sol-badge-secondary';
+            if (Math.abs(analytics.profitImpact || 0) > 10000) {
+                statusBadge = 'HIGH IMPACT';
+                statusClass = 'sol-badge-danger';
+            } else if ((analytics.performance?.costEfficiency || 0) > 85) {
+                statusBadge = 'OPTIMIZED';
+                statusClass = 'sol-badge-success';
+            }
+
+            return {
+                ...p,
+                avgShippingCost: analytics.avgShippingCost,
+                costTrend: analytics.costTrend,
+                costTrendPercentage: analytics.costTrendPercentage,
+                totalUnitsShipped: analytics.totalUnitsShipped,
+                profitImpact: analytics.profitImpact,
+                statusBadge,
+                statusClass
+            };
+        });
+
+        if (!tableManager) {
+            tableManager = new TableManager('productsTableContainer', {
+                columns: TABLE_COLUMNS,
+                enableColumnDrag: true,
+                enableColumnManager: true,
+                searchable: false,
+                selectable: false,
+                paginate: true,
+                pageSize: 20
+            });
+            window.tableManager = tableManager;
+            window.registerTableManager('productsTableContainer', tableManager);
+        }
+
+        tableManager.setData(products);
     }
-    renderProductsList() {
-    const products = this.getFilteredAndSortedProducts();
-
-    if (products.length === 0) {
-        return `
-            <div class="empty-state">
-                <i class="fas fa-search fa-3x text-muted"></i>
-                <h3>No products found</h3>
-                <p>Try adjusting your filters or search criteria</p>
-                <button class="sol-btn sol-btn-primary" onclick="window.productIntelligenceSystem.clearFilters()">
-                    Clear Filters
-                </button>
-            </div>
-        `;
-    }
-
-    const tableHTML = `
-        <div class="products-list-table">
-            <table class="sol-table">
-                <thead>
-                    <tr>
-                        <th class="sortable" onclick="window.productIntelligenceSystem.sortProducts('sku')">
-                            SKU ${this.getSortIcon('sku')}
-                        </th>
-                        <th class="sortable" onclick="window.productIntelligenceSystem.sortProducts('name')">
-                            Product Name ${this.getSortIcon('name')}
-                        </th>
-                        <th class="sortable" onclick="window.productIntelligenceSystem.sortProducts('category')">
-                            Category ${this.getSortIcon('category')}
-                        </th>
-                        <th class="sortable" onclick="window.productIntelligenceSystem.sortProducts('shippingCost')">
-                            Avg Shipping Cost ${this.getSortIcon('shippingCost')}
-                        </th>
-                        <th class="sortable" onclick="window.productIntelligenceSystem.sortProducts('costTrend')">
-                            Cost Trend ${this.getSortIcon('costTrend')}
-                        </th>
-                        <th class="sortable" onclick="window.productIntelligenceSystem.sortProducts('unitsShipped')">
-                            Units Shipped ${this.getSortIcon('unitsShipped')}
-                        </th>
-                        <th class="sortable" onclick="window.productIntelligenceSystem.sortProducts('profitImpact')">
-                            Profit Impact ${this.getSortIcon('profitImpact')}
-                        </th>
-                        <th>Status</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    ${products.map(product => this.renderProductRow(product)).join('')}
-                </tbody>
-            </table>
-        </div>
-    `;
-
-    return tableHTML;
-}
-   renderProductRow(product) {
-    const safe = (v, fallback = '') => v !== undefined && v !== null ? v : fallback;
-    const analytics = this.getAnalytics(product.id);
-    const costTrendIcon = analytics.costTrend === 'increasing' ? 'fa-arrow-up' : 
-                         analytics.costTrend === 'decreasing' ? 'fa-arrow-down' : 'fa-minus';
-    const costTrendClass = analytics.costTrend === 'increasing' ? 'negative' : 
-                          analytics.costTrend === 'decreasing' ? 'positive' : 'stable';
-
-    let statusBadge = 'TRACKED';
-    let statusClass = 'sol-badge-secondary';
-    if (Math.abs(safe(analytics.profitImpact, 0)) > 10000) {
-        statusBadge = 'HIGH IMPACT';
-        statusClass = 'sol-badge-danger';
-    } else if (safe(analytics.performance?.costEfficiency, 0) > 85) {
-        statusBadge = 'OPTIMIZED';
-        statusClass = 'sol-badge-success';
-    }
-
-    return `
-        <tr data-product-id="${safe(product.id)}">
-            <td class="font-mono">${safe(product.sku)}</td>
-            <td>
-                <div class="product-name-cell">
-                    <strong>${safe(product.name)}</strong>
-                    ${product.description ? `<small class="text-muted">${safe(product.description).substring(0, 50)}...</small>` : ''}
-                </div>
-            </td>
-            <td>
-                <span class="category-badge category-${safe(product.category)}">
-                    ${safe(product.category)}
-                </span>
-            </td>
-            <td>
-                <strong>${safe(analytics.avgShippingCost, 0).toFixed(2)}</strong>
-            </td>
-            <td>
-                <div class="cost-trend-cell ${costTrendClass}">
-                    <i class="fas ${costTrendIcon}"></i>
-                    ${Math.abs(safe(analytics.costTrendPercentage, 0)).toFixed(1)}%
-                </div>
-            </td>
-            <td class="text-right">
-                ${safe(analytics.totalUnitsShipped, 0).toLocaleString()}
-            </td>
-            <td>
-                <span class="profit-impact ${safe(analytics.profitImpact, 0) >= 0 ? 'positive' : 'negative'}">
-                    ${(safe(analytics.profitImpact, 0) >= 0 ? '+' : '') + (safe(analytics.profitImpact, 0) / 1000).toFixed(0)}K
-                </span>
-            </td>
-            <td>
-                <span class="sol-badge ${statusClass}">${statusBadge}</span>
-            </td>
-            <td>
-                <div class="table-actions">
-                    <button class="sol-btn sol-btn-sm sol-btn-glass" 
-                            onclick="viewProductDetails('${safe(product.id)}')" 
-                            title="View Analytics">
-                        <i class="fas fa-chart-area"></i>
-                    </button>
-                    <button class="sol-btn sol-btn-sm sol-btn-glass" 
-                            onclick="editProduct('${safe(product.id)}')"
-                            title="Edit Product">
-                        <i class="fas fa-edit"></i>
-                    </button>
-                    <button class="sol-btn sol-btn-sm sol-btn-glass" 
-                            onclick="showProductMenu('${safe(product.id)}', event)"
-                            title="More Options">
-                        <i class="fas fa-ellipsis-v"></i>
-                    </button>
-                </div>
-            </td>
-        </tr>
-    `;
-}
-
     // --- FORM ---
     getProductFormHTML(product = null) {
         const isEdit = product !== null;
@@ -1016,6 +1029,7 @@ showStatus(message, type = 'info', duration = 3000) {
 window.productIntelligenceSystem = new ProductIntelligenceSystem();
 
 document.addEventListener('DOMContentLoaded', () => {
+    loadColumnPreferences();
     const productSystem = window.productIntelligenceSystem;
     productSystem.init();
 });
@@ -1054,6 +1068,118 @@ window.deleteProduct = function(productId) {
         confirmClass: 'sol-btn-danger',
         onConfirm: () => window.productIntelligenceSystem.deleteProduct(productId)
     });
+};
+
+// Column editor helpers
+window.showColumnEditor = function() {
+    if (!window.ModalSystem) return;
+
+    const currentVisible = tableManager?.options?.columns?.filter(c => !c.hidden).map(c => c.key) || DEFAULT_VISIBLE_COLUMNS;
+
+    const content = `
+        <div class="column-editor">
+            <div class="column-editor-header">
+                <p>Select the columns to display and drag to reorder</p>
+                <div class="column-actions">
+                    <button class="sol-btn sol-btn-sm sol-btn-glass" onclick="selectAllColumns()">Select All</button>
+                    <button class="sol-btn sol-btn-sm sol-btn-glass" onclick="resetDefaultColumns()">Reset Default</button>
+                </div>
+            </div>
+            <div class="column-list" id="columnEditorList">
+                ${AVAILABLE_COLUMNS.map(col => `
+                    <div class="column-item ${col.required ? 'required' : ''}" data-column="${col.key}" draggable="${!col.required}">
+                        <div class="column-drag-handle"><i class="fas fa-grip-vertical"></i></div>
+                        <label class="column-checkbox">
+                            <input type="checkbox" value="${col.key}" ${currentVisible.includes(col.key) ? 'checked' : ''} ${col.required ? 'disabled' : ''} onchange="updateColumnPreview()">
+                            <span class="column-label">${col.label}</span>
+                            ${col.required ? '<span class="badge badge-info ml-2">Required</span>' : ''}
+                        </label>
+                    </div>
+                `).join('')}
+            </div>
+            <div class="column-preview mt-3">
+                <small class="text-muted"><span id="selectedColumnsCount">${currentVisible.length}</span> columns selected</small>
+            </div>
+        </div>
+    `;
+
+    window.ModalSystem.show({
+        title: 'Column Manager',
+        content: content,
+        size: 'md',
+        buttons: [
+            { text: 'Cancel', className: 'sol-btn-secondary', action: () => window.ModalSystem.hide() },
+            { text: 'Apply', className: 'sol-btn-primary', action: () => applyColumnChanges() }
+        ]
+    });
+
+    setTimeout(() => {
+        const list = document.getElementById('columnEditorList');
+        if (list && window.Sortable) {
+            new Sortable(list, { animation: 150, handle: '.column-drag-handle', filter: '.required', onEnd: () => updateColumnPreview() });
+        }
+    }, 100);
+};
+
+window.selectAllColumns = function() {
+    document.querySelectorAll('#columnEditorList input[type="checkbox"]:not(:disabled)').forEach(cb => cb.checked = true);
+    updateColumnPreview();
+};
+
+window.resetDefaultColumns = function() {
+    document.querySelectorAll('#columnEditorList input[type="checkbox"]').forEach(cb => {
+        cb.checked = DEFAULT_VISIBLE_COLUMNS.includes(cb.value) || cb.disabled;
+    });
+    updateColumnPreview();
+};
+
+window.updateColumnPreview = function() {
+    const checked = document.querySelectorAll('#columnEditorList input[type="checkbox"]:checked').length;
+    const counter = document.getElementById('selectedColumnsCount');
+    if (counter) counter.textContent = checked;
+};
+
+window.applyColumnChanges = function() {
+    const columnOrder = [];
+    document.querySelectorAll('#columnEditorList .column-item').forEach(item => {
+        const key = item.dataset.column;
+        const checked = item.querySelector('input[type="checkbox"]').checked;
+        if (checked) columnOrder.push(key);
+    });
+
+    const newColumns = columnOrder.map(key => {
+        const existing = TABLE_COLUMNS.find(c => c.key === key);
+        const available = AVAILABLE_COLUMNS.find(c => c.key === key);
+        return existing || { key, label: available?.label || key, sortable: available?.sortable, formatter: (v) => v || '-' };
+    });
+
+    const actionsCol = TABLE_COLUMNS.find(c => c.key === 'actions');
+    if (actionsCol) newColumns.push(actionsCol);
+
+    TABLE_COLUMNS.length = 0;
+    TABLE_COLUMNS.push(...newColumns);
+    localStorage.setItem('productVisibleColumns', JSON.stringify(columnOrder));
+
+    if (tableManager) {
+        tableManager.options.columns = newColumns;
+        tableManager.render();
+    }
+
+    window.ModalSystem.hide();
+    window.NotificationSystem?.success('Columns updated');
+};
+
+window.refreshColumnEditor = function() {
+    if (document.getElementById('columnEditorList')) {
+        window.ModalSystem.hide();
+        showColumnEditor();
+    }
+};
+
+window.updateTable = function() {
+    if (window.productIntelligenceSystem) {
+        window.productIntelligenceSystem.renderProducts();
+    }
 };
 
 console.log('[ProductIntelligence] Product Intelligence System module loaded successfully');
