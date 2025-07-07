@@ -29,6 +29,8 @@ export const DEFAULT_VISIBLE_COLUMNS = [
     'sku', 'name', 'category', 'avgShippingCost', 'costTrend',
     'totalUnitsShipped', 'profitImpact', 'statusBadge', 'actions'
 ];
+// Provide default visible columns globally for consistency
+window.DEFAULT_VISIBLE_COLUMNS = DEFAULT_VISIBLE_COLUMNS;
 
 export const TABLE_COLUMNS = [
     {
