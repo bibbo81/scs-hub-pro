@@ -1929,23 +1929,47 @@ window.editProduct = function(productId) {
 };
 
 window.showProductMenu = function(productId, event) {
-    event.stopPropagation();
-    
-    // Simple context menu for now
-    const actions = [
-        { label: 'View Details', action: () => viewProductDetails(productId) },
-        { label: 'Edit Product', action: () => editProduct(productId) },
-        { label: 'View Recommendations', action: () => showProductRecommendations(productId) },
-        { label: 'Export Data', action: () => exportProductData(productId) },
-        { label: '---', action: null },
-        { label: 'Delete Product', action: () => deleteProduct(productId), class: 'danger' }
-    ];
-    
-    // For now, just show options in console
-    console.log('Product menu for:', productId, actions);
-    
-    // TODO: Implement proper context menu
-    window.productIntelligenceSystem.showStatus('Product menu - coming soon!', 'info');
+    event && event.stopPropagation && event.stopPropagation();
+
+    const existing = document.getElementById('productMenu');
+    if (existing) existing.remove();
+
+    const menu = document.createElement('div');
+    menu.id = 'productMenu';
+    menu.className = 'sol-dropdown';
+    menu.innerHTML = `
+        <button class="sol-dropdown-item" data-action="view">View Details</button>
+        <button class="sol-dropdown-item" data-action="edit">Edit</button>
+        <div class="sol-dropdown-divider"></div>
+        <button class="sol-dropdown-item sol-text-danger" data-action="delete">Delete</button>
+    `;
+    document.body.appendChild(menu);
+
+    const rect = (event.currentTarget || event.target).getBoundingClientRect();
+    menu.style.left = `${rect.left}px`;
+    menu.style.top = `${rect.bottom}px`;
+    menu.style.display = 'block';
+
+    const hideMenu = (e) => {
+        if (!menu.contains(e.target)) {
+            menu.remove();
+            document.removeEventListener('click', hideMenu);
+        }
+    };
+    setTimeout(() => document.addEventListener('click', hideMenu));
+
+    menu.querySelector('[data-action="view"]').onclick = () => {
+        viewProductDetails(productId);
+        menu.remove();
+    };
+    menu.querySelector('[data-action="edit"]').onclick = () => {
+        editProduct(productId);
+        menu.remove();
+    };
+    menu.querySelector('[data-action="delete"]').onclick = () => {
+        deleteProduct(productId);
+        menu.remove();
+    };
 };
 
 window.showProductRecommendations = function(productId) {
