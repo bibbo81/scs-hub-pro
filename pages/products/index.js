@@ -990,6 +990,7 @@ showStatus(message, type = 'info', duration = 3000) {
 
   const rect = (event.currentTarget || event.target).getBoundingClientRect();
   menu.style.left = `${rect.left}px`;
+  menu.style.right = 'auto';
   menu.style.top = `${rect.bottom}px`;
   menu.style.display = 'block';
 
