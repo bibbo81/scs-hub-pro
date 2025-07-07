@@ -1,127 +1,135 @@
 // pages/products/index.js — Product Intelligence System (NO tracking/spedizioni)
 
 // Import servizi necessari
-import organizationService from '/core/services/organization-service.js';
-import { importWizard } from '/core/import-wizard.js';
-import { supabase } from '/core/services/supabase-client.js';
+import organizationService from "/core/services/organization-service.js";
+import { importWizard } from "/core/import-wizard.js";
+import { supabase } from "/core/services/supabase-client.js";
 importWizard.setSupabaseClient(supabase);
 // Expose supabase globally for modules expecting window.supabase
 window.supabase = supabase;
-console.log('[DEBUG] Supabase client in wizard:', window.importWizard.supabase);
+console.log("[DEBUG] Supabase client in wizard:", window.importWizard.supabase);
 
 class ProductIntelligenceSystem {
   constructor() {
-  this.products = [];
-  this.analytics = {};
-  this.recommendations = [];
-  this.organizationId = null;
-  this.viewMode = 'list';
-  this.allColumns = [
-  { key: 'sku', label: 'SKU' },
-  { key: 'name', label: 'Product Name' },
-  { key: 'category', label: 'Category' },
-  { key: 'shippingCost', label: 'Avg Shipping Cost' },
-  { key: 'costTrend', label: 'Cost Trend' },
-  { key: 'unitsShipped', label: 'Units Shipped' },
-  { key: 'profitImpact', label: 'Profit Impact' },
-  { key: 'status', label: 'Status' },
-  { key: 'actions', label: 'Actions' }
-  ];
-  this.visibleColumns = this.allColumns.map(c => c.key);
-  this.columnSortable = null;
-  this.loadColumnPreferences();
-  this.sortColumn = 'name';
-  this.sortDirection = 'asc';
-  this.activeFilters = {
-    category: '',
-    costTrend: '',
-    search: '',
-    minShippingCost: null,
-    maxShippingCost: null,
-    minUnits: null,
-    profitImpact: 'all'
-  };
-  // Bind methods per non perdere il contesto this
-  this.init = this.init.bind(this);
-  this.loadData = this.loadData.bind(this);
-  this.generateAnalytics = this.generateAnalytics.bind(this);
-  this.showImportModal = this.showImportModal.bind(this);
-  this.showAddProductModal = this.showAddProductModal.bind(this);
-  this.showEditProductModal = this.showEditProductModal.bind(this);
-  this.showProductMenu = this.showProductMenu.bind(this);
-  this.showProductDetails = this.showProductDetails.bind(this);
-  this.showColumnSelector = this.showColumnSelector.bind(this);
-  this.toggleViewMode = this.toggleViewMode.bind(this);
-  this.updateColumnsFromData = this.updateColumnsFromData.bind(this);
-  this.toLabel = this.toLabel.bind(this);
-}
-
-initializeEventHandlers() {
-  // Bottone: aggiungi prodotto
-  const addProductBtn = document.getElementById('addProductBtn');
-  if (addProductBtn) {
-    addProductBtn.onclick = () => this.showAddProductModal();
+    this.products = [];
+    this.analytics = {};
+    this.recommendations = [];
+    this.organizationId = null;
+    this.viewMode = "list";
+    this.allColumns = [
+      { key: "sku", label: "SKU" },
+      { key: "name", label: "Product Name" },
+      { key: "category", label: "Category" },
+      { key: "shippingCost", label: "Avg Shipping Cost" },
+      { key: "costTrend", label: "Cost Trend" },
+      { key: "unitsShipped", label: "Units Shipped" },
+      { key: "profitImpact", label: "Profit Impact" },
+      { key: "status", label: "Status" },
+      { key: "actions", label: "Actions" },
+    ];
+    this.visibleColumns = this.allColumns.map((c) => c.key);
+    this.columnSortable = null;
+    this.loadColumnPreferences();
+    this.sortColumn = "name";
+    this.sortDirection = "asc";
+    this.activeFilters = {
+      category: "",
+      costTrend: "",
+      search: "",
+      minShippingCost: null,
+      maxShippingCost: null,
+      minUnits: null,
+      profitImpact: "all",
+    };
+    // Bind methods per non perdere il contesto this
+    this.init = this.init.bind(this);
+    this.loadData = this.loadData.bind(this);
+    this.generateAnalytics = this.generateAnalytics.bind(this);
+    this.showImportModal = this.showImportModal.bind(this);
+    this.showAddProductModal = this.showAddProductModal.bind(this);
+    this.showEditProductModal = this.showEditProductModal.bind(this);
+    this.showProductMenu = this.showProductMenu.bind(this);
+    this.showProductDetails = this.showProductDetails.bind(this);
+    this.showColumnSelector = this.showColumnSelector.bind(this);
+    this.toggleViewMode = this.toggleViewMode.bind(this);
+    this.updateColumnsFromData = this.updateColumnsFromData.bind(this);
+    this.toLabel = this.toLabel.bind(this);
   }
 
-  // Bottone: esporta analytics
-  const exportBtn = document.getElementById('exportAnalyticsBtn');
-  if (exportBtn) {
-    exportBtn.onclick = () => this.exportAnalytics();
+  initializeEventHandlers() {
+    // Bottone: aggiungi prodotto
+    const addProductBtn = document.getElementById("addProductBtn");
+    if (addProductBtn) {
+      addProductBtn.onclick = () => this.showAddProductModal();
+    }
+
+    // Bottone: esporta analytics
+    const exportBtn = document.getElementById("exportAnalyticsBtn");
+    if (exportBtn) {
+      exportBtn.onclick = () => this.exportAnalytics();
+    }
+
+    // Bottone: importa prodotti (se presente)
+    const importBtn = document.getElementById("importProductsBtn");
+    if (importBtn) {
+      importBtn.onclick = () => this.showImportModal();
+    }
+
+    // Ricerca e filtri base
+    const searchInput = document.getElementById("productSearch");
+    if (searchInput) {
+      searchInput.addEventListener("input", (e) => this.filterProducts());
+    }
+
+    const categoryFilter = document.getElementById("categoryFilter");
+    if (categoryFilter) {
+      categoryFilter.addEventListener("change", () => this.filterProducts());
+    }
+
+    const costTrendFilter = document.getElementById("costTrendFilter");
+    if (costTrendFilter) {
+      costTrendFilter.addEventListener("change", () => this.filterProducts());
+    }
+
+    const columnBtn = document.getElementById("columnSelectorBtn");
+    if (columnBtn) columnBtn.onclick = () => this.showColumnSelector();
+
+    // Bottone: vista griglia/lista (se presente)
+    const gridBtn = document.getElementById("viewGridBtn");
+    const listBtn = document.getElementById("viewListBtn");
+    if (gridBtn) gridBtn.onclick = () => this.toggleViewMode();
+    if (listBtn) listBtn.onclick = () => this.toggleViewMode();
   }
 
-  // Bottone: importa prodotti (se presente)
-  const importBtn = document.getElementById('importProductsBtn');
-  if (importBtn) {
-    importBtn.onclick = () => this.showImportModal();
+  showStatus(message, type = "info", duration = 3000) {
+    if (window.NotificationSystem) {
+      window.NotificationSystem.show(message, type, duration);
+    } else {
+      console.log(`[ProductIntelligence] ${type}: ${message}`);
+    }
   }
-
-  // Ricerca e filtri base
-  const searchInput = document.getElementById('productSearch');
-  if (searchInput) {
-    searchInput.addEventListener('input', (e) => this.filterProducts());
-  }
-
-  const categoryFilter = document.getElementById('categoryFilter');
-  if (categoryFilter) {
-    categoryFilter.addEventListener('change', () => this.filterProducts());
-  }
-
-  const costTrendFilter = document.getElementById('costTrendFilter');
-  if (costTrendFilter) {
-    costTrendFilter.addEventListener('change', () => this.filterProducts());
-  }
-
-  const columnBtn = document.getElementById('columnSelectorBtn');
-  if (columnBtn) columnBtn.onclick = () => this.showColumnSelector();
-
-  // Bottone: vista griglia/lista (se presente)
-  const gridBtn = document.getElementById('viewGridBtn');
-  const listBtn = document.getElementById('viewListBtn');
-  if (gridBtn) gridBtn.onclick = () => this.toggleViewMode();
-  if (listBtn) listBtn.onclick = () => this.toggleViewMode();
-}
-
-showStatus(message, type = 'info', duration = 3000) {
-  if (window.NotificationSystem) {
-    window.NotificationSystem.show(message, type, duration);
-  } else {
-    console.log(`[ProductIntelligence] ${type}: ${message}`);
-  }
-}
 
   async init() {
-    console.log('[ProductIntelligence] Initializing system...');
+    console.log("[ProductIntelligence] Initializing system...");
     try {
-      if (window.organizationService && !window.organizationService.initialized) {
+      if (
+        window.organizationService &&
+        !window.organizationService.initialized
+      ) {
         await window.organizationService.init();
       }
       this.organizationId = window.organizationService.getCurrentOrgId();
 
       if (!this.organizationId) {
-        this.showStatus('Organization data not available. Cannot load products.', 'warning');
+        this.showStatus(
+          "Organization data not available. Cannot load products.",
+          "warning",
+        );
         return;
       }
-      console.log(`[ProductIntelligence] Using organization: ${this.organizationId}`);
+      console.log(
+        `[ProductIntelligence] Using organization: ${this.organizationId}`,
+      );
       await this.loadData();
       await this.generateAnalytics();
       this.initializeEventHandlers();
@@ -129,19 +137,22 @@ showStatus(message, type = 'info', duration = 3000) {
       this.renderProducts();
       this.updateFilterBadge();
     } catch (error) {
-      console.error('[ProductIntelligence] Initialization failed:', error);
-      this.showStatus('System initialization failed. See console for details.', 'error');
+      console.error("[ProductIntelligence] Initialization failed:", error);
+      this.showStatus(
+        "System initialization failed. See console for details.",
+        "error",
+      );
     }
   }
 
   async loadData() {
     const { data, error } = await supabase
-      .from('products')
-      .select('*')
-      .eq('organization_id', this.organizationId);
+      .from("products")
+      .select("*")
+      .eq("organization_id", this.organizationId);
     if (error) {
-      console.error('[ProductIntelligence] Failed to fetch products:', error);
-      this.showStatus('Failed to load products from server', 'error');
+      console.error("[ProductIntelligence] Failed to fetch products:", error);
+      this.showStatus("Failed to load products from server", "error");
       this.products = [];
       return;
     }
@@ -151,7 +162,7 @@ showStatus(message, type = 'info', duration = 3000) {
   // Analytics basilare: calcola margini/profitto su dati prodotto
   async generateAnalytics() {
     this.analytics = {};
-    this.products.forEach(product => {
+    this.products.forEach((product) => {
       const base = this.getEmptyAnalytics();
       const calculated = this.calculateProductAnalytics(product);
       this.analytics[product.id] = { ...base, ...calculated };
@@ -159,29 +170,34 @@ showStatus(message, type = 'info', duration = 3000) {
     this.recommendations = this.generateRecommendations();
   }
 
- showImportModal = async () => {
-  console.log('[ProductIntelligence] Initializing import wizard for products...');
-  if (!window.importWizard) {
-    this.showStatus('Import wizard module not available.', 'error');
-    return;
-  }
-  // Passa il Supabase client all’importWizard
-  window.importWizard.setSupabaseClient(supabase);
-  await window.importWizard.init({
-    entity: 'products',
-    allowCustomFields: true,
-    validationRules: {}, // puoi aggiungere validazioni custom qui
-  });
-  window.importWizard.show();
+  showImportModal = async () => {
+    console.log(
+      "[ProductIntelligence] Initializing import wizard for products...",
+    );
+    if (!window.importWizard) {
+      this.showStatus("Import wizard module not available.", "error");
+      return;
+    }
+    // Passa il Supabase client all’importWizard
+    window.importWizard.setSupabaseClient(supabase);
+    await window.importWizard.init({
+      entity: "products",
+      allowCustomFields: true,
+      validationRules: {}, // puoi aggiungere validazioni custom qui
+    });
+    window.importWizard.show();
 
-  window.importWizard.events.addEventListener('importComplete', async () => {
-    this.showStatus('Import successful! Refreshing data...', 'success');
-    await this.loadData();
-    this.renderProducts();
-    this.renderIntelligenceStats && this.renderIntelligenceStats();
-  }, { once: true });
-};
-
+    window.importWizard.events.addEventListener(
+      "importComplete",
+      async () => {
+        this.showStatus("Import successful! Refreshing data...", "success");
+        await this.loadData();
+        this.renderProducts();
+        this.renderIntelligenceStats && this.renderIntelligenceStats();
+      },
+      { once: true },
+    );
+  };
 
   calculateProductAnalytics(product) {
     // Margine attuale vs target (senza tracking)
@@ -198,16 +214,16 @@ showStatus(message, type = 'info', duration = 3000) {
       currentMargin,
       targetMargin,
       profitImpact: (currentMargin - targetMargin) * value,
-      status: currentMargin >= targetMargin ? 'ok' : 'alert'
+      status: currentMargin >= targetMargin ? "ok" : "alert",
     };
   }
 
   generateRecommendations() {
     const recommendations = [];
-    this.products.forEach(product => {
+    this.products.forEach((product) => {
       const analytics = this.analytics[product.id];
       if (!analytics) return;
-      if (analytics.status === 'alert') {
+      if (analytics.status === "alert") {
         recommendations.push({
           id: `margin-${product.id}`,
           type: "margin_optimization",
@@ -218,7 +234,7 @@ showStatus(message, type = 'info', duration = 3000) {
           description: `Current margin ${(analytics.currentMargin * 100).toFixed(1)}% below target ${(analytics.targetMargin * 100).toFixed(1)}%`,
           action: "Optimize costs or adjust pricing",
           estimatedImpact: analytics.profitImpact,
-          status: "pending"
+          status: "pending",
         });
       }
     });
@@ -230,26 +246,30 @@ showStatus(message, type = 'info', duration = 3000) {
       totalShipments: 0,
       totalUnitsShipped: 0,
       avgShippingCost: 0,
-      costTrend: 'stable',
+      costTrend: "stable",
       costTrendPercentage: 0,
-      bestRoute: 'N/A',
-      worstRoute: 'N/A',
+      bestRoute: "N/A",
+      worstRoute: "N/A",
       routeComparison: {},
       profitImpact: 0,
       performance: {
         costEfficiency: 0,
         routeOptimization: 0,
-        seasonalOptimization: 0
-      }
+        seasonalOptimization: 0,
+      },
     };
   }
 
   // --- FILTRI AVANZATI ---
   applyAdvancedFilters() {
-    const minCost = parseFloat(document.getElementById('filterMinCost')?.value) || null;
-    const maxCost = parseFloat(document.getElementById('filterMaxCost')?.value) || null;
-    const minUnits = parseInt(document.getElementById('filterMinUnits')?.value) || null;
-    const profitImpact = document.getElementById('filterProfitImpact')?.value || 'all';
+    const minCost =
+      parseFloat(document.getElementById("filterMinCost")?.value) || null;
+    const maxCost =
+      parseFloat(document.getElementById("filterMaxCost")?.value) || null;
+    const minUnits =
+      parseInt(document.getElementById("filterMinUnits")?.value) || null;
+    const profitImpact =
+      document.getElementById("filterProfitImpact")?.value || "all";
 
     this.activeFilters.minShippingCost = minCost;
     this.activeFilters.maxShippingCost = maxCost;
@@ -262,42 +282,43 @@ showStatus(message, type = 'info', duration = 3000) {
 
   clearFilters() {
     this.activeFilters = {
-      category: '',
-      costTrend: '',
-      search: '',
+      category: "",
+      costTrend: "",
+      search: "",
       minShippingCost: null,
       maxShippingCost: null,
       minUnits: null,
-      profitImpact: 'all'
+      profitImpact: "all",
     };
     // Reset UI
-    const categoryFilter = document.getElementById('categoryFilter');
-    const costTrendFilter = document.getElementById('costTrendFilter');
-    const productSearch = document.getElementById('productSearch');
-    if (categoryFilter) categoryFilter.value = '';
-    if (costTrendFilter) costTrendFilter.value = '';
-    if (productSearch) productSearch.value = '';
+    const categoryFilter = document.getElementById("categoryFilter");
+    const costTrendFilter = document.getElementById("costTrendFilter");
+    const productSearch = document.getElementById("productSearch");
+    if (categoryFilter) categoryFilter.value = "";
+    if (costTrendFilter) costTrendFilter.value = "";
+    if (productSearch) productSearch.value = "";
     this.renderProducts();
     this.updateFilterBadge();
   }
 
   updateFilterBadge() {
-    const activeCount = Object.values(this.activeFilters)
-      .filter(v => v !== '' && v !== null && v !== 'all').length;
-    const badge = document.getElementById('activeFiltersCount');
+    const activeCount = Object.values(this.activeFilters).filter(
+      (v) => v !== "" && v !== null && v !== "all",
+    ).length;
+    const badge = document.getElementById("activeFiltersCount");
     if (badge) {
       badge.textContent = activeCount;
-      badge.style.display = activeCount > 0 ? 'inline-block' : 'none';
+      badge.style.display = activeCount > 0 ? "inline-block" : "none";
     }
   }
 
   // --- ORDINAMENTO & FILTRI ---
   sortProducts(column) {
     if (this.sortColumn === column) {
-      this.sortDirection = this.sortDirection === 'asc' ? 'desc' : 'asc';
+      this.sortDirection = this.sortDirection === "asc" ? "desc" : "asc";
     } else {
       this.sortColumn = column;
-      this.sortDirection = 'asc';
+      this.sortDirection = "asc";
     }
     this.renderProducts();
   }
@@ -305,14 +326,17 @@ showStatus(message, type = 'info', duration = 3000) {
   getFilteredAndSortedProducts() {
     let filteredProducts = [...this.products];
     if (this.activeFilters.category) {
-      filteredProducts = filteredProducts.filter(p => p.category === this.activeFilters.category);
+      filteredProducts = filteredProducts.filter(
+        (p) => p.category === this.activeFilters.category,
+      );
     }
     if (this.activeFilters.search) {
       const searchLower = this.activeFilters.search.toLowerCase();
-      filteredProducts = filteredProducts.filter(p =>
-        p.name.toLowerCase().includes(searchLower) ||
-        p.sku.toLowerCase().includes(searchLower) ||
-        p.description?.toLowerCase().includes(searchLower)
+      filteredProducts = filteredProducts.filter(
+        (p) =>
+          p.name.toLowerCase().includes(searchLower) ||
+          p.sku.toLowerCase().includes(searchLower) ||
+          p.description?.toLowerCase().includes(searchLower),
       );
     }
     // Puoi aggiungere qui eventuali altri filtri interni!
@@ -320,23 +344,32 @@ showStatus(message, type = 'info', duration = 3000) {
     filteredProducts.sort((a, b) => {
       let aValue, bValue;
       switch (this.sortColumn) {
-        case 'sku': aValue = a.sku; bValue = b.sku; break;
-        case 'name': aValue = a.name; bValue = b.name; break;
-        case 'category': aValue = a.category; bValue = b.category; break;
-        case 'margin':
+        case "sku":
+          aValue = a.sku;
+          bValue = b.sku;
+          break;
+        case "name":
+          aValue = a.name;
+          bValue = b.name;
+          break;
+        case "category":
+          aValue = a.category;
+          bValue = b.category;
+          break;
+        case "margin":
           aValue = this.analytics[a.id]?.currentMargin || 0;
           bValue = this.analytics[b.id]?.currentMargin || 0;
           break;
-        default: aValue = a.name; bValue = b.name;
+        default:
+          aValue = a.name;
+          bValue = b.name;
       }
-      if (typeof aValue === 'string' && typeof bValue === 'string') {
-        return this.sortDirection === 'asc'
+      if (typeof aValue === "string" && typeof bValue === "string") {
+        return this.sortDirection === "asc"
           ? aValue.localeCompare(bValue)
           : bValue.localeCompare(aValue);
       } else {
-        return this.sortDirection === 'asc'
-          ? aValue - bValue
-          : bValue - aValue;
+        return this.sortDirection === "asc" ? aValue - bValue : bValue - aValue;
       }
     });
     return filteredProducts;
@@ -346,17 +379,21 @@ showStatus(message, type = 'info', duration = 3000) {
     if (this.sortColumn !== column) {
       return '<i class="fas fa-sort"></i>';
     }
-    return this.sortDirection === 'asc'
+    return this.sortDirection === "asc"
       ? '<i class="fas fa-sort-up"></i>'
       : '<i class="fas fa-sort-down"></i>';
   }
   // --- RENDERING ---
   renderIntelligenceStats() {
-    const statsContainer = document.getElementById('intelligenceStats');
+    const statsContainer = document.getElementById("intelligenceStats");
     if (!statsContainer) return;
     const totalProducts = this.products.length;
-    const marginOK = Object.values(this.analytics).filter(a => a.status === 'ok').length;
-    const marginAlert = Object.values(this.analytics).filter(a => a.status === 'alert').length;
+    const marginOK = Object.values(this.analytics).filter(
+      (a) => a.status === "ok",
+    ).length;
+    const marginAlert = Object.values(this.analytics).filter(
+      (a) => a.status === "alert",
+    ).length;
 
     statsContainer.innerHTML = `
       <div class="sol-stat-card">
@@ -385,20 +422,21 @@ showStatus(message, type = 'info', duration = 3000) {
 
   // RENDERING PRINCIPALE
   renderProducts() {
-    const productsGrid = document.getElementById('productsGrid');
+    const productsGrid = document.getElementById("productsGrid");
     if (!productsGrid) return;
-    productsGrid.className = 'products-intelligence-list';
+    productsGrid.className = "products-intelligence-list";
     productsGrid.innerHTML = this.renderProductsList();
     this.initColumnDrag();
   }
 
   renderProductsGrid() {
-  const safe = (value, fallback = '') => value !== undefined && value !== null ? value : fallback;
-  // Usa getFilteredAndSortedProducts per filtrare come in lista (così i filtri funzionano!)
-  const products = this.getFilteredAndSortedProducts();
+    const safe = (value, fallback = "") =>
+      value !== undefined && value !== null ? value : fallback;
+    // Usa getFilteredAndSortedProducts per filtrare come in lista (così i filtri funzionano!)
+    const products = this.getFilteredAndSortedProducts();
 
-  if (products.length === 0) {
-    return `
+    if (products.length === 0) {
+      return `
       <div class="empty-state">
         <i class="fas fa-search fa-3x text-muted"></i>
         <h3>No products found</h3>
@@ -408,28 +446,38 @@ showStatus(message, type = 'info', duration = 3000) {
         </button>
       </div>
     `;
-  }
-
-  return products.map(product => {
-    // Fallback su oggetto vuoto per tutti i campi potenzialmente assenti
-    const analytics = this.analytics?.[product.id] || this.getEmptyAnalytics();
-    const costTrendIcon = analytics.costTrend === 'increasing' ? 'fa-arrow-up' : 
-              analytics.costTrend === 'decreasing' ? 'fa-arrow-down' : 'fa-minus';
-    const costTrendClass = analytics.costTrend === 'increasing' ? 'negative' : 
-              analytics.costTrend === 'decreasing' ? 'positive' : 'stable';
-
-    // Badge robusto
-    let badgeClass = '';
-    let badgeText = 'TRACKED';
-    if (Math.abs(safe(analytics.profitImpact, 0)) > 10000) {
-      badgeClass = 'high-impact';
-      badgeText = 'HIGH IMPACT';
-    } else if (safe(analytics.performance?.costEfficiency, 0) > 85) {
-      badgeClass = 'optimized';
-      badgeText = 'OPTIMIZED';
     }
 
-    return `
+    return products
+      .map((product) => {
+        // Fallback su oggetto vuoto per tutti i campi potenzialmente assenti
+        const analytics =
+          this.analytics?.[product.id] || this.getEmptyAnalytics();
+        const costTrendIcon =
+          analytics.costTrend === "increasing"
+            ? "fa-arrow-up"
+            : analytics.costTrend === "decreasing"
+              ? "fa-arrow-down"
+              : "fa-minus";
+        const costTrendClass =
+          analytics.costTrend === "increasing"
+            ? "negative"
+            : analytics.costTrend === "decreasing"
+              ? "positive"
+              : "stable";
+
+        // Badge robusto
+        let badgeClass = "";
+        let badgeText = "TRACKED";
+        if (Math.abs(safe(analytics.profitImpact, 0)) > 10000) {
+          badgeClass = "high-impact";
+          badgeText = "HIGH IMPACT";
+        } else if (safe(analytics.performance?.costEfficiency, 0) > 85) {
+          badgeClass = "optimized";
+          badgeText = "OPTIMIZED";
+        }
+
+        return `
       <div class="product-intelligence-card" data-product-id="${safe(product.id)}">
         <div class="intelligence-badge ${badgeClass}">${badgeText}</div>
         
@@ -459,8 +507,8 @@ showStatus(message, type = 'info', duration = 3000) {
           </div>
           <div class="metric-item">
             <span class="metric-label">Profit Impact</span>
-            <span class="metric-value ${safe(analytics.profitImpact, 0) >= 0 ? 'positive' : 'negative'}">
-              ${(safe(analytics.profitImpact, 0) >= 0 ? '+' : '') + (safe(analytics.profitImpact, 0) / 1000).toFixed(0)}K
+            <span class="metric-value ${safe(analytics.profitImpact, 0) >= 0 ? "positive" : "negative"}">
+              ${(safe(analytics.profitImpact, 0) >= 0 ? "+" : "") + (safe(analytics.profitImpact, 0) / 1000).toFixed(0)}K
             </span>
           </div>
         </div>
@@ -478,8 +526,9 @@ showStatus(message, type = 'info', duration = 3000) {
         </div>
       </div>
     `;
-  }).join('');
-}
+      })
+      .join("");
+  }
   renderProductsList() {
     const products = this.getFilteredAndSortedProducts();
 
@@ -496,31 +545,35 @@ showStatus(message, type = 'info', duration = 3000) {
       `;
     }
 
-    const headerCells = this.visibleColumns.map(key => {
-      const col = this.allColumns.find(c => c.key === key) || { label: this.toLabel(key) };
-      switch (key) {
-        case 'sku':
-          return `<th data-key="${key}" class="sortable" onclick="window.productIntelligenceSystem.sortProducts('sku')">SKU ${this.getSortIcon('sku')}</th>`;
-        case 'name':
-          return `<th data-key="${key}" class="sortable" onclick="window.productIntelligenceSystem.sortProducts('name')">Product Name ${this.getSortIcon('name')}</th>`;
-        case 'category':
-          return `<th data-key="${key}" class="sortable" onclick="window.productIntelligenceSystem.sortProducts('category')">Category ${this.getSortIcon('category')}</th>`;
-        case 'shippingCost':
-          return `<th data-key="${key}" class="sortable" onclick="window.productIntelligenceSystem.sortProducts('shippingCost')">Avg Shipping Cost ${this.getSortIcon('shippingCost')}</th>`;
-        case 'costTrend':
-          return `<th data-key="${key}" class="sortable" onclick="window.productIntelligenceSystem.sortProducts('costTrend')">Cost Trend ${this.getSortIcon('costTrend')}</th>`;
-        case 'unitsShipped':
-          return `<th data-key="${key}" class="sortable" onclick="window.productIntelligenceSystem.sortProducts('unitsShipped')">Units Shipped ${this.getSortIcon('unitsShipped')}</th>`;
-        case 'profitImpact':
-          return `<th data-key="${key}" class="sortable" onclick="window.productIntelligenceSystem.sortProducts('profitImpact')">Profit Impact ${this.getSortIcon('profitImpact')}</th>`;
-        case 'status':
-          return `<th data-key="${key}">Status</th>`;
-        case 'actions':
-          return `<th data-key="${key}">Actions</th>`;
-        default:
-          return `<th data-key="${key}">${col.label}</th>`;
-      }
-    }).join('');
+    const headerCells = this.visibleColumns
+      .map((key) => {
+        const col = this.allColumns.find((c) => c.key === key) || {
+          label: this.toLabel(key),
+        };
+        switch (key) {
+          case "sku":
+            return `<th data-key="${key}" class="sortable" onclick="window.productIntelligenceSystem.sortProducts('sku')">SKU ${this.getSortIcon("sku")}</th>`;
+          case "name":
+            return `<th data-key="${key}" class="sortable" onclick="window.productIntelligenceSystem.sortProducts('name')">Product Name ${this.getSortIcon("name")}</th>`;
+          case "category":
+            return `<th data-key="${key}" class="sortable" onclick="window.productIntelligenceSystem.sortProducts('category')">Category ${this.getSortIcon("category")}</th>`;
+          case "shippingCost":
+            return `<th data-key="${key}" class="sortable" onclick="window.productIntelligenceSystem.sortProducts('shippingCost')">Avg Shipping Cost ${this.getSortIcon("shippingCost")}</th>`;
+          case "costTrend":
+            return `<th data-key="${key}" class="sortable" onclick="window.productIntelligenceSystem.sortProducts('costTrend')">Cost Trend ${this.getSortIcon("costTrend")}</th>`;
+          case "unitsShipped":
+            return `<th data-key="${key}" class="sortable" onclick="window.productIntelligenceSystem.sortProducts('unitsShipped')">Units Shipped ${this.getSortIcon("unitsShipped")}</th>`;
+          case "profitImpact":
+            return `<th data-key="${key}" class="sortable" onclick="window.productIntelligenceSystem.sortProducts('profitImpact')">Profit Impact ${this.getSortIcon("profitImpact")}</th>`;
+          case "status":
+            return `<th data-key="${key}">Status</th>`;
+          case "actions":
+            return `<th data-key="${key}">Actions</th>`;
+          default:
+            return `<th data-key="${key}">${col.label}</th>`;
+        }
+      })
+      .join("");
 
     const tableHTML = `
       <div class="products-list-table">
@@ -529,7 +582,7 @@ showStatus(message, type = 'info', duration = 3000) {
             <tr>${headerCells}</tr>
           </thead>
           <tbody>
-            ${products.map(p => this.renderProductRow(p)).join('')}
+            ${products.map((p) => this.renderProductRow(p)).join("")}
           </tbody>
         </table>
       </div>
@@ -537,77 +590,86 @@ showStatus(message, type = 'info', duration = 3000) {
 
     return tableHTML;
   }
-   renderProductRow(product) {
-  const safe = (v, fallback = '') => v !== undefined && v !== null ? v : fallback;
-  const analytics = this.analytics?.[product.id] || this.getEmptyAnalytics();
-  const costTrendIcon = analytics.costTrend === 'increasing' ? 'fa-arrow-up' : 
-             analytics.costTrend === 'decreasing' ? 'fa-arrow-down' : 'fa-minus';
-  const costTrendClass = analytics.costTrend === 'increasing' ? 'negative' : 
-            analytics.costTrend === 'decreasing' ? 'positive' : 'stable';
+  renderProductRow(product) {
+    const safe = (v, fallback = "") =>
+      v !== undefined && v !== null ? v : fallback;
+    const analytics = this.analytics?.[product.id] || this.getEmptyAnalytics();
+    const costTrendIcon =
+      analytics.costTrend === "increasing"
+        ? "fa-arrow-up"
+        : analytics.costTrend === "decreasing"
+          ? "fa-arrow-down"
+          : "fa-minus";
+    const costTrendClass =
+      analytics.costTrend === "increasing"
+        ? "negative"
+        : analytics.costTrend === "decreasing"
+          ? "positive"
+          : "stable";
 
-  let statusBadge = 'TRACKED';
-  let statusClass = 'sol-badge-secondary';
-  if (Math.abs(safe(analytics.profitImpact, 0)) > 10000) {
-    statusBadge = 'HIGH IMPACT';
-    statusClass = 'sol-badge-danger';
-  } else if (safe(analytics.performance?.costEfficiency, 0) > 85) {
-    statusBadge = 'OPTIMIZED';
-    statusClass = 'sol-badge-success';
-  }
-
-  const cells = this.visibleColumns.map(key => {
-    switch (key) {
-      case 'sku':
-        return `<td class="font-mono">${safe(product.sku)}</td>`;
-      case 'name':
-        return `<td><div class="product-name-cell"><strong>${safe(product.name)}</strong>${product.description ? `<small class="text-muted">${safe(product.description).substring(0, 50)}...</small>` : ''}</div></td>`;
-      case 'category':
-        return `<td><span class="category-badge category-${safe(product.category)}">${safe(product.category)}</span></td>`;
-      case 'shippingCost':
-        return `<td><strong>${safe(analytics.avgShippingCost, 0).toFixed(2)}</strong></td>`;
-      case 'costTrend':
-        return `<td><div class="cost-trend-cell ${costTrendClass}"><i class="fas ${costTrendIcon}"></i>${Math.abs(safe(analytics.costTrendPercentage, 0)).toFixed(1)}%</div></td>`;
-      case 'unitsShipped':
-        return `<td class="text-right">${safe(analytics.totalUnitsShipped, 0).toLocaleString()}</td>`;
-      case 'profitImpact':
-        return `<td><span class="profit-impact ${safe(analytics.profitImpact, 0) >= 0 ? 'positive' : 'negative'}">${(safe(analytics.profitImpact, 0) >= 0 ? '+' : '') + (safe(analytics.profitImpact, 0) / 1000).toFixed(0)}K</span></td>`;
-      case 'status':
-        return `<td><span class="sol-badge ${statusClass}">${statusBadge}</span></td>`;
-      case 'actions':
-        return `<td><div class="table-actions"><button class="sol-btn sol-btn-sm sol-btn-glass" onclick="viewProductDetails('${safe(product.id)}')" title="View Analytics"><i class="fas fa-chart-area"></i></button><button class="sol-btn sol-btn-sm sol-btn-glass" onclick="editProduct('${safe(product.id)}')" title="Edit Product"><i class="fas fa-edit"></i></button><button class="sol-btn sol-btn-sm sol-btn-glass" onclick="showProductMenu('${safe(product.id)}', event)" title="More Options"><i class="fas fa-ellipsis-v"></i></button></div></td>`;
-      default:
-        return `<td>${safe(product[key])}</td>`;
+    let statusBadge = "TRACKED";
+    let statusClass = "sol-badge-secondary";
+    if (Math.abs(safe(analytics.profitImpact, 0)) > 10000) {
+      statusBadge = "HIGH IMPACT";
+      statusClass = "sol-badge-danger";
+    } else if (safe(analytics.performance?.costEfficiency, 0) > 85) {
+      statusBadge = "OPTIMIZED";
+      statusClass = "sol-badge-success";
     }
-  });
-  return `<tr data-product-id="${safe(product.id)}">${cells.join('')}</tr>`;
-}
+
+    const cells = this.visibleColumns.map((key) => {
+      switch (key) {
+        case "sku":
+          return `<td class="font-mono">${safe(product.sku)}</td>`;
+        case "name":
+          return `<td><div class="product-name-cell"><strong>${safe(product.name)}</strong>${product.description ? `<small class="text-muted">${safe(product.description).substring(0, 50)}...</small>` : ""}</div></td>`;
+        case "category":
+          return `<td><span class="category-badge category-${safe(product.category)}">${safe(product.category)}</span></td>`;
+        case "shippingCost":
+          return `<td><strong>${safe(analytics.avgShippingCost, 0).toFixed(2)}</strong></td>`;
+        case "costTrend":
+          return `<td><div class="cost-trend-cell ${costTrendClass}"><i class="fas ${costTrendIcon}"></i>${Math.abs(safe(analytics.costTrendPercentage, 0)).toFixed(1)}%</div></td>`;
+        case "unitsShipped":
+          return `<td class="text-right">${safe(analytics.totalUnitsShipped, 0).toLocaleString()}</td>`;
+        case "profitImpact":
+          return `<td><span class="profit-impact ${safe(analytics.profitImpact, 0) >= 0 ? "positive" : "negative"}">${(safe(analytics.profitImpact, 0) >= 0 ? "+" : "") + (safe(analytics.profitImpact, 0) / 1000).toFixed(0)}K</span></td>`;
+        case "status":
+          return `<td><span class="sol-badge ${statusClass}">${statusBadge}</span></td>`;
+        case "actions":
+          return `<td><div class="table-actions"><button class="sol-btn sol-btn-sm sol-btn-glass" onclick="viewProductDetails('${safe(product.id)}')" title="View Analytics"><i class="fas fa-chart-area"></i></button><button class="sol-btn sol-btn-sm sol-btn-glass" onclick="editProduct('${safe(product.id)}')" title="Edit Product"><i class="fas fa-edit"></i></button><button class="sol-btn sol-btn-sm sol-btn-glass" onclick="showProductMenu('${safe(product.id)}', event)" title="More Options"><i class="fas fa-ellipsis-v"></i></button></div></td>`;
+        default:
+          return `<td>${safe(product[key])}</td>`;
+      }
+    });
+    return `<tr data-product-id="${safe(product.id)}">${cells.join("")}</tr>`;
+  }
 
   // --- FORM ---
   getProductFormHTML(product = null) {
     const isEdit = product !== null;
     const data = {
-      sku: product?.sku || '',
-      name: product?.name || '',
-      category: product?.category || 'electronics',
-      description: product?.description || '',
+      sku: product?.sku || "",
+      name: product?.name || "",
+      category: product?.category || "electronics",
+      description: product?.description || "",
       specifications: {
         weight: product?.specifications?.weight ?? 0,
         dimensions: {
           length: product?.specifications?.dimensions?.length ?? 0,
           width: product?.specifications?.dimensions?.width ?? 0,
-          height: product?.specifications?.dimensions?.height ?? 0
+          height: product?.specifications?.dimensions?.height ?? 0,
         },
         value: product?.specifications?.value ?? 0,
-        hsCode: product?.specifications?.hsCode || '',
+        hsCode: product?.specifications?.hsCode || "",
         fragile: product?.specifications?.fragile ?? false,
-        hazardous: product?.specifications?.hazardous ?? false
+        hazardous: product?.specifications?.hazardous ?? false,
       },
       costTracking: {
         baseCost: product?.costTracking?.baseCost ?? 0,
-        targetMargin: product?.costTracking?.targetMargin ?? 0.30,
+        targetMargin: product?.costTracking?.targetMargin ?? 0.3,
         shippingBudget: product?.costTracking?.shippingBudget ?? 0,
-        currencyCode: product?.costTracking?.currencyCode || 'USD'
-      }
+        currencyCode: product?.costTracking?.currencyCode || "USD",
+      },
     };
     return `
       <form id="productForm" class="sol-form">
@@ -624,12 +686,12 @@ showStatus(message, type = 'info', duration = 3000) {
           <div class="sol-form-group">
             <label class="sol-form-label"><i class="fas fa-layer-group"></i> Category</label>
             <select class="sol-form-select" id="productCategory">
-              <option value="electronics" ${data.category === 'electronics' ? 'selected' : ''}>Electronics</option>
-              <option value="apparel" ${data.category === 'apparel' ? 'selected' : ''}>Apparel</option>
-              <option value="home" ${data.category === 'home' ? 'selected' : ''}>Home & Garden</option>
-              <option value="automotive" ${data.category === 'automotive' ? 'selected' : ''}>Automotive</option>
-              <option value="industrial" ${data.category === 'industrial' ? 'selected' : ''}>Industrial</option>
-              <option value="food" ${data.category === 'food' ? 'selected' : ''}>Food & Beverage</option>
+              <option value="electronics" ${data.category === "electronics" ? "selected" : ""}>Electronics</option>
+              <option value="apparel" ${data.category === "apparel" ? "selected" : ""}>Apparel</option>
+              <option value="home" ${data.category === "home" ? "selected" : ""}>Home & Garden</option>
+              <option value="automotive" ${data.category === "automotive" ? "selected" : ""}>Automotive</option>
+              <option value="industrial" ${data.category === "industrial" ? "selected" : ""}>Industrial</option>
+              <option value="food" ${data.category === "food" ? "selected" : ""}>Food & Beverage</option>
             </select>
           </div>
           <div class="sol-form-group">
@@ -678,11 +740,11 @@ showStatus(message, type = 'info', duration = 3000) {
         </div>
         <div class="sol-form-grid" style="grid-template-columns: repeat(2, 1fr);">
           <label class="sol-form-label" style="display: flex; align-items: center; gap: 0.5rem;">
-            <input type="checkbox" id="productFragile" ${data.specifications.fragile ? 'checked' : ''}>
+            <input type="checkbox" id="productFragile" ${data.specifications.fragile ? "checked" : ""}>
             <i class="fas fa-fragile"></i> Fragile Item
           </label>
           <label class="sol-form-label" style="display: flex; align-items: center; gap: 0.5rem;">
-            <input type="checkbox" id="productHazardous" ${data.specifications.hazardous ? 'checked' : ''}>
+            <input type="checkbox" id="productHazardous" ${data.specifications.hazardous ? "checked" : ""}>
             <i class="fas fa-exclamation-triangle"></i> Hazardous Material
           </label>
         </div>
@@ -692,73 +754,76 @@ showStatus(message, type = 'info', duration = 3000) {
   // --- CRUD & MODALS ---
 
   showAddProductModal() {
-  if (!window.ModalSystem) {
-    this.showStatus('Modal system not available', 'error');
-    return;
+    if (!window.ModalSystem) {
+      this.showStatus("Modal system not available", "error");
+      return;
+    }
+    window.ModalSystem.show({
+      title: "Add New Product",
+      content: this.getProductFormHTML(),
+      size: "lg",
+      actions: [
+        {
+          label: "Cancel",
+          class: "sol-btn-secondary",
+          handler: () => true,
+        },
+        {
+          label: "Save Product",
+          class: "sol-btn-primary",
+          handler: () => this.saveProduct(),
+        },
+      ],
+    });
   }
-  window.ModalSystem.show({
-    title: 'Add New Product',
-    content: this.getProductFormHTML(),
-    size: 'lg',
-    actions: [
-      {
-        label: 'Cancel',
-        class: 'sol-btn-secondary',
-        handler: () => true
-      },
-      {
-        label: 'Save Product',
-        class: 'sol-btn-primary',
-        handler: () => this.saveProduct()
-      }
-    ]
-  });
-}
 
   saveProduct() {
-    const form = document.getElementById('productForm');
+    const form = document.getElementById("productForm");
     if (!form || !form.checkValidity()) {
-      this.showStatus('Please fill all required fields', 'error');
+      this.showStatus("Please fill all required fields", "error");
       return false;
     }
     // Get form data
     const productData = {
       id: `prod-${Date.now()}`,
-      sku: document.getElementById('productSku').value.trim(),
-      name: document.getElementById('productName').value.trim(),
-      category: document.getElementById('productCategory').value,
-      description: document.getElementById('productDescription').value.trim(),
+      sku: document.getElementById("productSku").value.trim(),
+      name: document.getElementById("productName").value.trim(),
+      category: document.getElementById("productCategory").value,
+      description: document.getElementById("productDescription").value.trim(),
       specifications: {
-        weight: parseFloat(document.getElementById('productWeight').value),
+        weight: parseFloat(document.getElementById("productWeight").value),
         dimensions: {
-          length: parseFloat(document.getElementById('productLength').value),
-          width: parseFloat(document.getElementById('productWidth').value),
-          height: parseFloat(document.getElementById('productHeight').value)
+          length: parseFloat(document.getElementById("productLength").value),
+          width: parseFloat(document.getElementById("productWidth").value),
+          height: parseFloat(document.getElementById("productHeight").value),
         },
-        value: parseFloat(document.getElementById('productValue').value),
-        hsCode: document.getElementById('productHsCode').value.trim(),
-        fragile: document.getElementById('productFragile').checked,
-        hazardous: document.getElementById('productHazardous').checked
+        value: parseFloat(document.getElementById("productValue").value),
+        hsCode: document.getElementById("productHsCode").value.trim(),
+        fragile: document.getElementById("productFragile").checked,
+        hazardous: document.getElementById("productHazardous").checked,
       },
       costTracking: {
-        baseCost: parseFloat(document.getElementById('productBaseCost').value),
-        targetMargin: parseFloat(document.getElementById('productMargin').value) / 100,
-        shippingBudget: parseFloat(document.getElementById('productShippingBudget').value),
-        currencyCode: 'USD',
-        lastCostUpdate: new Date().toISOString()
+        baseCost: parseFloat(document.getElementById("productBaseCost").value),
+        targetMargin:
+          parseFloat(document.getElementById("productMargin").value) / 100,
+        shippingBudget: parseFloat(
+          document.getElementById("productShippingBudget").value,
+        ),
+        currencyCode: "USD",
+        lastCostUpdate: new Date().toISOString(),
       },
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       isActive: true,
-      tags: []
+      tags: [],
     };
     // Calculate volume
     const { length, width, height } = productData.specifications.dimensions;
     productData.specifications.volume = (length * width * height) / 1000000;
 
     // Check for duplicate SKU
-    if (this.products.some(p => p.sku === productData.sku)) {
-      this.showStatus('SKU already exists', 'error');
+    if (this.products.some((p) => p.sku === productData.sku)) {
+      this.showStatus("SKU already exists", "error");
       return false;
     }
 
@@ -769,108 +834,114 @@ showStatus(message, type = 'info', duration = 3000) {
 
   async addProduct(productData) {
     productData.organization_id = this.organizationId;
-    const { error } = await supabase.from('products').insert([productData]);
+    const { error } = await supabase.from("products").insert([productData]);
     if (error) {
-      this.showStatus('Errore nel salvataggio prodotto', 'error');
-      console.error('[ProductIntelligence] Add error:', error);
+      this.showStatus("Errore nel salvataggio prodotto", "error");
+      console.error("[ProductIntelligence] Add error:", error);
       return false;
     }
-    this.showStatus('Prodotto aggiunto!', 'success');
+    this.showStatus("Prodotto aggiunto!", "success");
     await this.loadData();
     return true;
   }
 
   async updateProduct(productId) {
     // Leggi i dati dal form modale
-    const form = document.getElementById('productForm');
+    const form = document.getElementById("productForm");
     if (!form || !form.checkValidity()) {
-      this.showStatus('Please fill all required fields', 'error');
+      this.showStatus("Please fill all required fields", "error");
       return false;
     }
     // Prendi solo i valori aggiornati
     const updatedData = {
-      sku: document.getElementById('productSku').value.trim(),
-      name: document.getElementById('productName').value.trim(),
-      category: document.getElementById('productCategory').value,
-      description: document.getElementById('productDescription').value.trim(),
+      sku: document.getElementById("productSku").value.trim(),
+      name: document.getElementById("productName").value.trim(),
+      category: document.getElementById("productCategory").value,
+      description: document.getElementById("productDescription").value.trim(),
       specifications: {
-        weight: parseFloat(document.getElementById('productWeight').value),
+        weight: parseFloat(document.getElementById("productWeight").value),
         dimensions: {
-          length: parseFloat(document.getElementById('productLength').value),
-          width: parseFloat(document.getElementById('productWidth').value),
-          height: parseFloat(document.getElementById('productHeight').value)
+          length: parseFloat(document.getElementById("productLength").value),
+          width: parseFloat(document.getElementById("productWidth").value),
+          height: parseFloat(document.getElementById("productHeight").value),
         },
-        value: parseFloat(document.getElementById('productValue').value),
-        hsCode: document.getElementById('productHsCode').value.trim(),
-        fragile: document.getElementById('productFragile').checked,
-        hazardous: document.getElementById('productHazardous').checked
+        value: parseFloat(document.getElementById("productValue").value),
+        hsCode: document.getElementById("productHsCode").value.trim(),
+        fragile: document.getElementById("productFragile").checked,
+        hazardous: document.getElementById("productHazardous").checked,
       },
       costTracking: {
-        baseCost: parseFloat(document.getElementById('productBaseCost').value),
-        targetMargin: parseFloat(document.getElementById('productMargin').value) / 100,
-        shippingBudget: parseFloat(document.getElementById('productShippingBudget').value),
-        currencyCode: 'USD',
-        lastCostUpdate: new Date().toISOString()
+        baseCost: parseFloat(document.getElementById("productBaseCost").value),
+        targetMargin:
+          parseFloat(document.getElementById("productMargin").value) / 100,
+        shippingBudget: parseFloat(
+          document.getElementById("productShippingBudget").value,
+        ),
+        currencyCode: "USD",
+        lastCostUpdate: new Date().toISOString(),
       },
-      updatedAt: new Date().toISOString()
+      updatedAt: new Date().toISOString(),
     };
     // Calcola volume
     const { length, width, height } = updatedData.specifications.dimensions;
     updatedData.specifications.volume = (length * width * height) / 1000000;
 
-    const { error } = await supabase.from('products').update(updatedData)
-      .eq('id', productId)
-      .eq('organization_id', this.organizationId);
+    const { error } = await supabase
+      .from("products")
+      .update(updatedData)
+      .eq("id", productId)
+      .eq("organization_id", this.organizationId);
 
     if (error) {
-      this.showStatus('Errore nell’aggiornamento', 'error');
-      console.error('[ProductIntelligence] Update error:', error);
+      this.showStatus("Errore nell’aggiornamento", "error");
+      console.error("[ProductIntelligence] Update error:", error);
       return false;
     }
-    this.showStatus('Prodotto aggiornato!', 'success');
+    this.showStatus("Prodotto aggiornato!", "success");
     await this.loadData();
     return true;
   }
 
   async deleteProduct(productId) {
-    const { error } = await supabase.from('products')
+    const { error } = await supabase
+      .from("products")
       .delete()
-      .eq('id', productId)
-      .eq('organization_id', this.organizationId);
+      .eq("id", productId)
+      .eq("organization_id", this.organizationId);
     if (error) {
-      this.showStatus('Errore nella cancellazione', 'error');
-      console.error('[ProductIntelligence] Delete error:', error);
+      this.showStatus("Errore nella cancellazione", "error");
+      console.error("[ProductIntelligence] Delete error:", error);
       return false;
     }
-    this.showStatus('Prodotto eliminato!', 'success');
+    this.showStatus("Prodotto eliminato!", "success");
     await this.loadData();
     return true;
   }
 
   // MODALE ANALYTICS/DETAILS
   showProductDetails(productId) {
-    const product = this.products.find(p => p.id === productId);
+    const product = this.products.find((p) => p.id === productId);
     const defaults = this.getEmptyAnalytics();
     const analytics = {
       ...defaults,
       ...(this.analytics[productId] || {}),
       performance: {
         ...defaults.performance,
-        ...(this.analytics[productId]?.performance || {})
-      }
+        ...(this.analytics[productId]?.performance || {}),
+      },
     };
 
     if (!product) {
-      this.showStatus('Product not found', 'error');
+      this.showStatus("Product not found", "error");
       return;
     }
-  if (!window.ModalSystem) {
-    this.showStatus('Modal system not available', 'error');
-    return;
-  }
-     window.ModalSystem.show({
-    title: 'Product Intelligence Details',
-    content: `
+    if (!window.ModalSystem) {
+      this.showStatus("Modal system not available", "error");
+      return;
+    }
+    window.ModalSystem.show({
+      title: "Product Intelligence Details",
+      content: `
       <div class="product-details-modal">
         <div class="product-header">
           <h3>${product.name}</h3>
@@ -908,8 +979,8 @@ showStatus(message, type = 'info', duration = 3000) {
             </div>
             <div class="metric-row">
               <span>Profit Impact:</span>
-              <span class="${analytics.profitImpact >= 0 ? 'positive' : 'negative'}">
-                ${analytics.profitImpact >= 0 ? '+' : ''}${(analytics.profitImpact / 1000).toFixed(1)}K
+              <span class="${analytics.profitImpact >= 0 ? "positive" : "negative"}">
+                ${analytics.profitImpact >= 0 ? "+" : ""}${(analytics.profitImpact / 1000).toFixed(1)}K
               </span>
             </div>
           </div>
@@ -931,69 +1002,69 @@ showStatus(message, type = 'info', duration = 3000) {
         </div>
       </div>
     `,
-    size: 'lg',
-    actions: [
-      {
-        label: 'Close',
-        class: 'sol-btn-secondary',
-        handler: () => true
-      },
-      {
-        label: 'Edit Product',
-        class: 'sol-btn-primary',
-        handler: () => {
-          this.showEditProductModal(productId);
-          return true;
-        }
-      }
-    ]
-  });
-}
+      size: "lg",
+      actions: [
+        {
+          label: "Close",
+          class: "sol-btn-secondary",
+          handler: () => true,
+        },
+        {
+          label: "Edit Product",
+          class: "sol-btn-primary",
+          handler: () => {
+            this.showEditProductModal(productId);
+            return true;
+          },
+        },
+      ],
+    });
+  }
 
   showEditProductModal(productId) {
-  const product = this.products.find(p => p.id === productId);
-  if (!product) {
-    this.showStatus('Product not found', 'error');
-    return;
-  }
-  if (!window.ModalSystem) {
-    this.showStatus('Modal system not available', 'error');
-    return;
-  }
+    const product = this.products.find((p) => p.id === productId);
+    if (!product) {
+      this.showStatus("Product not found", "error");
+      return;
+    }
+    if (!window.ModalSystem) {
+      this.showStatus("Modal system not available", "error");
+      return;
+    }
 
-  window.ModalSystem.show({
-    title: 'Edit Product',
-    content: this.getProductFormHTML(product),
-    size: 'lg',
-    actions: [
-      {
-        label: 'Cancel',
-        class: 'sol-btn-secondary',
-        handler: () => true
-      },
-      {
-        label: 'Update Product',
-        class: 'sol-btn-primary',
-        handler: async () => {
-          const ok = await this.updateProduct(productId);
-          return ok;
-        }
-      }
-    ]
-  });
-}
+    window.ModalSystem.show({
+      title: "Edit Product",
+      content: this.getProductFormHTML(product),
+      size: "lg",
+      actions: [
+        {
+          label: "Cancel",
+          class: "sol-btn-secondary",
+          handler: () => true,
+        },
+        {
+          label: "Update Product",
+          class: "sol-btn-primary",
+          handler: async () => {
+            const ok = await this.updateProduct(productId);
+            return ok;
+          },
+        },
+      ],
+    });
+  }
 
   // CONTEXT MENU/BASIC EXPORT
   showProductMenu(productId, event) {
     event && event.stopPropagation && event.stopPropagation();
 
-    const existing = document.getElementById('productMenu');
+    const existing = document.getElementById("productMenu");
     if (existing) existing.remove();
 
-    const menu = document.createElement('div');
-    menu.id = 'productMenu';
-    menu.className = 'sol-dropdown';
-    menu.style.visibility = 'hidden';
+    const menu = document.createElement("div");
+    menu.id = "productMenu";
+    menu.className = "sol-dropdown";
+    menu.style.visibility = "hidden";
     menu.innerHTML = `
       <button class="sol-dropdown-item" data-action="view">View Details</button>
       <button class="sol-dropdown-item" data-action="edit">Edit</button>
@@ -1002,55 +1073,57 @@ showStatus(message, type = 'info', duration = 3000) {
     `;
     document.body.appendChild(menu);
 
-    menu.style.display = 'block';
+    menu.style.display = "block";
     const rect = (event.currentTarget || event.target).getBoundingClientRect();
     const menuHeight = menu.offsetHeight;
     menu.style.left = `${rect.left + window.scrollX}px`;
     menu.style.top = `${rect.top + window.scrollY - menuHeight - 8}px`;
-    menu.style.right = 'auto';
-    menu.style.visibility = 'visible';
+    menu.style.right = "auto";
+    menu.style.visibility = "visible";
 
-  const hideMenu = (e) => {
-    if (!menu.contains(e.target)) {
+    const hideMenu = (e) => {
+      if (!menu.contains(e.target)) {
+        menu.remove();
+        document.removeEventListener("click", hideMenu);
+      }
+    };
+    setTimeout(() => document.addEventListener("click", hideMenu));
+
+    menu.querySelector('[data-action="view"]').onclick = () => {
+      this.showProductDetails(productId);
       menu.remove();
-      document.removeEventListener('click', hideMenu);
-    }
-  };
-  setTimeout(() => document.addEventListener('click', hideMenu));
-
-  menu.querySelector('[data-action="view"]').onclick = () => {
-    this.showProductDetails(productId);
-    menu.remove();
-  };
-  menu.querySelector('[data-action="edit"]').onclick = () => {
-    this.showEditProductModal(productId);
-    menu.remove();
-  };
-  menu.querySelector('[data-action="delete"]').onclick = () => {
-    window.deleteProduct(productId);
-    menu.remove();
-  };
-}
+    };
+    menu.querySelector('[data-action="edit"]').onclick = () => {
+      this.showEditProductModal(productId);
+      menu.remove();
+    };
+    menu.querySelector('[data-action="delete"]').onclick = () => {
+      window.deleteProduct(productId);
+      menu.remove();
+    };
+  }
 
   exportAnalytics() {
     // Export all analytics data as JSON
     const exportData = {
       exportDate: new Date().toISOString(),
-      products: this.products.map(product => ({
+      products: this.products.map((product) => ({
         ...product,
-        analytics: this.analytics[product.id]
-      }))
+        analytics: this.analytics[product.id],
+      })),
     };
-    const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+    const blob = new Blob([JSON.stringify(exportData, null, 2)], {
+      type: "application/json",
+    });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
+    const a = document.createElement("a");
     a.href = url;
-    a.download = `product-analytics-${new Date().toISOString().split('T')[0]}.json`;
+    a.download = `product-analytics-${new Date().toISOString().split("T")[0]}.json`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-    this.showStatus('Analytics exported successfully', 'success');
+    this.showStatus("Analytics exported successfully", "success");
   }
 
   showColumnSelector() {
@@ -1058,98 +1131,116 @@ showStatus(message, type = 'info', duration = 3000) {
     const content = `
       <div class="column-editor">
         <div class="column-list" id="columnSelectorList">
-          ${this.allColumns.map(col => `
+          ${this.allColumns
+            .map(
+              (col) => `
             <div class="column-item" data-column="${col.key}">
               <div class="column-drag-handle"><i class="fas fa-grip-vertical"></i></div>
               <label>
-                <input type="checkbox" value="${col.key}" ${this.visibleColumns.includes(col.key) ? 'checked' : ''}>
+                <input type="checkbox" value="${col.key}" ${this.visibleColumns.includes(col.key) ? "checked" : ""}>
                 <span>${col.label}</span>
               </label>
             </div>
-          `).join('')}
+          `,
+            )
+            .join("")}
         </div>
         <div class="column-preview mt-2">
           <small class="text-muted"><span id="selectedColumnsCount">${this.visibleColumns.length}</span> columns selected</small>
         </div>
       </div>`;
     window.ModalSystem.show({
-      title: 'Manage Columns',
+      title: "Manage Columns",
       content,
-      size: 'md',
+      size: "md",
       actions: [
-        { label: 'Cancel', class: 'sol-btn-secondary', handler: () => true },
-        { label: 'Apply', class: 'sol-btn-primary', handler: () => applyChanges() }
-      ]
+        { label: "Cancel", class: "sol-btn-secondary", handler: () => true },
+        {
+          label: "Apply",
+          class: "sol-btn-primary",
+          handler: () => applyChanges(),
+        },
+      ],
     });
 
-    const list = document.getElementById('columnSelectorList');
+    const list = document.getElementById("columnSelectorList");
     if (list && window.Sortable) {
       new Sortable(list, {
         animation: 150,
-        handle: '.column-drag-handle',
-        onEnd: () => updatePreview()
+        handle: ".column-drag-handle",
+        onEnd: () => updatePreview(),
       });
     }
 
     const updatePreview = () => {
-      const checked = list.querySelectorAll('input:checked').length;
-      document.getElementById('selectedColumnsCount').textContent = checked;
+      const checked = list.querySelectorAll("input:checked").length;
+      document.getElementById("selectedColumnsCount").textContent = checked;
     };
 
     const applyChanges = () => {
       const order = [];
-      list.querySelectorAll('.column-item').forEach(item => {
+      list.querySelectorAll(".column-item").forEach((item) => {
         const key = item.dataset.column;
-        if (item.querySelector('input').checked) order.push(key);
+        if (item.querySelector("input").checked) order.push(key);
       });
-      this.visibleColumns = order.length ? order : this.allColumns.map(c => c.key);
+      this.visibleColumns = order.length
+        ? order
+        : this.allColumns.map((c) => c.key);
       this.saveColumnPreferences();
       this.renderProducts();
       return true;
     };
-    }
+  }
 
-    initColumnDrag() {
-      if (!window.Sortable) return;
-      const header = document.querySelector('.products-list-table thead tr');
-      if (!header) return;
-      if (this.columnSortable) this.columnSortable.destroy();
-      this.columnSortable = new Sortable(header, {
-        animation: 150,
-        onEnd: () => {
-          this.visibleColumns = Array.from(header.children).map(th => th.dataset.key);
-          this.saveColumnPreferences();
-          this.renderProducts();
-        }
-      });
-    }
+  initColumnDrag() {
+    if (!window.Sortable) return;
+    const header = document.querySelector(".products-list-table thead tr");
+    if (!header) return;
+    if (this.columnSortable) this.columnSortable.destroy();
+    this.columnSortable = new Sortable(header, {
+      animation: 150,
+      onEnd: () => {
+        this.visibleColumns = Array.from(header.children).map(
+          (th) => th.dataset.key,
+        );
+        this.saveColumnPreferences();
+        this.renderProducts();
+      },
+    });
+  }
 
-    saveColumnPreferences() {
-      localStorage.setItem('productColumns', JSON.stringify(this.visibleColumns));
-    }
+  saveColumnPreferences() {
+    localStorage.setItem("productColumns", JSON.stringify(this.visibleColumns));
+  }
 
-    loadColumnPreferences() {
-      try {
-        const saved = JSON.parse(localStorage.getItem('productColumns'));
-        if (Array.isArray(saved) && saved.length) {
-          this.visibleColumns = saved;
-        }
-      } catch (e) {}
-    }
+  loadColumnPreferences() {
+    try {
+      const saved = JSON.parse(localStorage.getItem("productColumns"));
+      if (Array.isArray(saved) && saved.length) {
+        this.visibleColumns = saved;
+      }
+    } catch (e) {}
+  }
 
   toggleViewMode() {
     // View mode is fixed to list; no toggle behavior
   }
 
   toLabel(key) {
-    return key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+    return key.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase());
   }
 
   updateColumnsFromData() {
-    const exclude = ['id', 'created_at', 'updated_at', 'user_id', 'organization_id'];
-    const existing = new Set(this.allColumns.map(c => c.key));
-    this.products.forEach(p => {
-      Object.keys(p).forEach(k => {
+    const exclude = [
+      "id",
+      "created_at",
+      "updated_at",
+      "user_id",
+      "organization_id",
+    ];
+    const existing = new Set(this.allColumns.map((c) => c.key));
+    this.products.forEach((p) => {
+      Object.keys(p).forEach((k) => {
         if (!existing.has(k) && !exclude.includes(k)) {
           existing.add(k);
           this.allColumns.push({ key: k, label: this.toLabel(k) });
@@ -1158,13 +1249,12 @@ showStatus(message, type = 'info', duration = 3000) {
       });
     });
   }
-
 } // END CLASS
 
 // ===== GLOBAL FUNCTIONS =====
 window.productIntelligenceSystem = new ProductIntelligenceSystem();
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener("DOMContentLoaded", () => {
   const productSystem = window.productIntelligenceSystem;
   productSystem.init();
 });
@@ -1172,37 +1262,40 @@ document.addEventListener('DOMContentLoaded', () => {
 // Funzioni globali per bottoni
 
 // Funzioni globali per bottoni/modal prodotti
-window.viewProductDetails = function(productId) {
+window.viewProductDetails = function (productId) {
   window.productIntelligenceSystem.showProductDetails(productId);
 };
-window.editProduct = function(productId) {
+window.editProduct = function (productId) {
   window.productIntelligenceSystem.showEditProductModal(productId);
 };
-window.showProductMenu = function(productId, event) {
+window.showProductMenu = function (productId, event) {
   window.productIntelligenceSystem.showProductMenu(productId, event);
 };
-window.deleteProduct = function(productId) {
+window.deleteProduct = function (productId) {
   if (!window.ModalSystem) {
-    if (confirm('Are you sure you want to delete this product?')) {
+    if (confirm("Are you sure you want to delete this product?")) {
       window.productIntelligenceSystem.deleteProduct(productId);
     }
     return;
   }
   // PATCH: Bottone import prodotti
-  const importBtn = document.getElementById('importBtn');
+  const importBtn = document.getElementById("importBtn");
   if (importBtn) {
-  importBtn.onclick = () => {
-  importWizard.show({ entity: 'products' }); // O 'shipments', 'containers', ecc.
+    importBtn.onclick = () => {
+      importWizard.show({ entity: "products" }); // O 'shipments', 'containers', ecc.
     };
   }
 
   window.ModalSystem.confirm({
-    title: 'Delete Product',
-    message: 'Are you sure you want to delete this product? This action cannot be undone.',
-    confirmLabel: 'Delete',
-    confirmClass: 'sol-btn-danger',
-    onConfirm: () => window.productIntelligenceSystem.deleteProduct(productId)
+    title: "Delete Product",
+    message:
+      "Are you sure you want to delete this product? This action cannot be undone.",
+    confirmLabel: "Delete",
+    confirmClass: "sol-btn-danger",
+    onConfirm: () => window.productIntelligenceSystem.deleteProduct(productId),
   });
 };
 
-console.log('[ProductIntelligence] Product Intelligence System module loaded successfully');
+console.log(
+  "[ProductIntelligence] Product Intelligence System module loaded successfully",
+);
