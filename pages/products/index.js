@@ -296,6 +296,15 @@ showStatus(message, type = 'info', duration = 3000) {
         });
         return filteredProducts;
     }
+
+    getSortIcon(column) {
+        if (this.sortColumn !== column) {
+            return '<i class="fas fa-sort"></i>';
+        }
+        return this.sortDirection === 'asc'
+            ? '<i class="fas fa-sort-up"></i>'
+            : '<i class="fas fa-sort-down"></i>';
+    }
     // --- RENDERING ---
     renderIntelligenceStats() {
         const statsContainer = document.getElementById('intelligenceStats');
