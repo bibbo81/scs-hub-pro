@@ -585,24 +585,28 @@ showStatus(message, type = 'info', duration = 3000) {
   // --- FORM ---
   getProductFormHTML(product = null) {
     const isEdit = product !== null;
-    const data = product || {
-      sku: '',
-      name: '',
-      category: 'electronics',
-      description: '',
+    const data = {
+      sku: product?.sku || '',
+      name: product?.name || '',
+      category: product?.category || 'electronics',
+      description: product?.description || '',
       specifications: {
-        weight: 0,
-        dimensions: { length: 0, width: 0, height: 0 },
-        value: 0,
-        hsCode: '',
-        fragile: false,
-        hazardous: false
+        weight: product?.specifications?.weight ?? 0,
+        dimensions: {
+          length: product?.specifications?.dimensions?.length ?? 0,
+          width: product?.specifications?.dimensions?.width ?? 0,
+          height: product?.specifications?.dimensions?.height ?? 0
+        },
+        value: product?.specifications?.value ?? 0,
+        hsCode: product?.specifications?.hsCode || '',
+        fragile: product?.specifications?.fragile ?? false,
+        hazardous: product?.specifications?.hazardous ?? false
       },
       costTracking: {
-        baseCost: 0,
-        targetMargin: 0.30,
-        shippingBudget: 0,
-        currencyCode: 'USD'
+        baseCost: product?.costTracking?.baseCost ?? 0,
+        targetMargin: product?.costTracking?.targetMargin ?? 0.30,
+        shippingBudget: product?.costTracking?.shippingBudget ?? 0,
+        currencyCode: product?.costTracking?.currencyCode || 'USD'
       }
     };
     return `
@@ -962,7 +966,10 @@ showStatus(message, type = 'info', duration = 3000) {
       {
         label: 'Update Product',
         class: 'sol-btn-primary',
-        handler: () => this.updateProduct(productId)
+        handler: async () => {
+          const ok = await this.updateProduct(productId);
+          return ok;
+        }
       }
     ]
   });
