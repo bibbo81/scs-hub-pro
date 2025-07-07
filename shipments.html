@@ -24,12 +24,21 @@
         import headerComponent from '/core/header-component.js';
         import notificationSystem from '/core/notification-system.js';
         import modalSystem from '/core/modal-system.js';
-        
+        import organizationService from '/core/services/organization-service.js';
+        import { supabase } from '/core/services/supabase-client.js';
+        import supabaseShipmentsService from '/core/services/supabase-shipments-service.js';
+
         // Make modules available globally
         window.api = api;
         window.headerComponent = headerComponent;
         window.NotificationSystem = notificationSystem;
         window.ModalSystem = modalSystem;
+        window.organizationService = organizationService;
+        window.supabase = supabase;
+        window.supabaseShipmentsService = supabaseShipmentsService;
+
+        // Initialize header after globals are set
+        headerComponent.init();
     </script>
     
     <script src="/core/product-sync.js"></script>
