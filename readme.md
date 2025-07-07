@@ -60,3 +60,18 @@ python3 -m http.server 8000 --directory public
 
 # Open in browser
 open http://localhost:8000/tracking.html
+```
+
+### 🔑 Supabase Configuration
+
+Set the `SUPABASE_URL` and `SUPABASE_ANON_KEY` environment variables in your deployment platform. During local development you can create a `runtime-config.json` file in the project root with the following structure:
+
+```json
+{
+  "supabaseUrl": "https://your-project.supabase.co",
+  "supabaseAnonKey": "public-anon-key"
+}
+```
+
+These values are loaded at runtime by `core/services/supabase-client.js`.
+
