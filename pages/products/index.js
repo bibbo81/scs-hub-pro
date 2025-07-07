@@ -272,15 +272,12 @@ showStatus(message, type = 'info', duration = 3000) {
                     }
                 });
 
-                // Refresh column editor and table manager if available
+                // Refresh column editor and update table if available
                 if (typeof window.refreshColumnEditor === 'function') {
                     window.refreshColumnEditor();
                 }
-                if (window.tableManager) {
-                    window.tableManager.options.columns = window.AVAILABLE_COLUMNS;
-                    if (typeof window.updateTable === 'function') {
-                        window.updateTable();
-                    }
+                if (typeof window.updateTable === 'function') {
+                    window.updateTable();
                 }
             }
         } catch (e) {
