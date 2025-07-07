@@ -2449,7 +2449,12 @@ async function handleEnhancedSubmit(e) {
                     }
                     
                     // Dispatch event per notificare altri componenti
-                    window.dispatchEvent(new Event('trackingsUpdated'));
+                    window.dispatchEvent(new CustomEvent('trackingsUpdated', {
+                        detail: { trackings: [result.tracking], source: 'manual_add' }
+                    }));
+                    window.dispatchEvent(new CustomEvent('trackingAdded', {
+                        detail: result.tracking
+                    }));
                     
                     // Se ancora non funziona, ricarica la pagina
                     setTimeout(() => {
@@ -4486,22 +4491,23 @@ if (finalData.status === 'sailing' || finalData.status === 'SAILING') {
                try {
                    const savedTracking = await window.supabaseTrackingService.createTracking(finalData);
                    if (savedTracking) {
-                       return { success: true, message: 'Tracking salvato in Supabase!' };
+                       return { success: true, message: 'Tracking salvato in Supabase!', tracking: savedTracking };
                    }
                } catch (supabaseError) {
                    console.error('Errore salvataggio Supabase:', supabaseError);
                    // Continua con localStorage come fallback
                }
            }
-           
+
            // Fallback to localStorage
            const trackings = JSON.parse(localStorage.getItem('trackings') || '[]');
-           trackings.push({
+           const newTracking = {
                ...finalData,
                id: Date.now()
-           });
+           };
+           trackings.push(newTracking);
            localStorage.setItem('trackings', JSON.stringify(trackings));
-           return { success: true, message: 'Tracking aggiunto localmente' };
+           return { success: true, message: 'Tracking aggiunto localmente', tracking: newTracking };
        }
    }// ========================================
    // FILE IMPORT
