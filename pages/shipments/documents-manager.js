@@ -348,8 +348,8 @@ if (window.DocumentsManager) {
         }
         
         getCurrentUser() {
-            // Get from auth system or use default
-            return localStorage.getItem('userEmail') || 'user@example.com';
+            // In a real app this would come from the auth system
+            return 'user@example.com';
         }
         
         async generateChecksum(data) {
@@ -365,30 +365,12 @@ if (window.DocumentsManager) {
         
         // STORAGE
         loadDocuments() {
-            try {
-                const saved = localStorage.getItem('shipmentDocuments');
-                if (saved) {
-                    const data = JSON.parse(saved);
-                    this.documents = new Map(data);
-                }
-                console.log(`📄 Loaded documents for ${this.documents.size} shipments`);
-            } catch (error) {
-                console.error('Error loading documents:', error);
-                this.documents = new Map();
-            }
+            // Documents are kept in memory; persistence is handled server-side
+            this.documents = new Map();
         }
         
         saveDocuments() {
-            try {
-                const data = Array.from(this.documents.entries());
-                localStorage.setItem('shipmentDocuments', JSON.stringify(data));
-            } catch (error) {
-                console.error('Error saving documents:', error);
-                // Handle quota exceeded
-                if (error.name === 'QuotaExceededError') {
-                    this.cleanupOldDocuments();
-                }
-            }
+            // Persistence removed; documents are synced via the backend
         }
         
         cleanupOldDocuments() {

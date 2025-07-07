@@ -57,95 +57,18 @@ class RegistryCore {
             console.log(`✅ Found shipments registry: ${this.registry.shipments.length} shipments`);
             return;
         }
-        
-        const strategies = [
-            () => window.shipmentsRegistry,
-            () => window.ShipmentsRegistry ? new window.ShipmentsRegistry() : null,
-            () => this.createFallbackRegistry()
-        ];
-        
-        for (const strategy of strategies) {
-            try {
-                const registry = strategy();
-                if (registry && (registry.shipments || registry.initialized)) {
-                    this.registry = registry;
-                    if (!this.registry.shipments) this.registry.shipments = [];
-                    console.log(`✅ Registry initialized with ${this.registry.shipments?.length || 0} shipments`);
-                    
-                    if (!window.shipmentsRegistry) {
-                        window.shipmentsRegistry = this.registry;
-                    }
-                    return;
-                }
-            } catch (error) {
-                continue;
+
+        if (window.ShipmentsRegistry) {
+            window.shipmentsRegistry = new window.ShipmentsRegistry();
+            if (typeof window.shipmentsRegistry.init === 'function') {
+                await window.shipmentsRegistry.init();
             }
+            this.registry = window.shipmentsRegistry;
+            console.log(`✅ Registry initialized with ${this.registry.shipments?.length || 0} shipments`);
+            return;
         }
-        
-        console.warn('⚠️ No shipments registry available, creating fallback');
-        this.registry = this.createFallbackRegistry();
-        window.shipmentsRegistry = this.registry;
-    }
-    
-    createFallbackRegistry() {
-        const storageKeys = ['shipmentsRegistry', 'shipments', 'SCH_Shipments'];
-        
-        for (const key of storageKeys) {
-            try {
-                const data = localStorage.getItem(key);
-                if (data) {
-                    const parsed = JSON.parse(data);
-                    const shipments = Array.isArray(parsed) ? parsed : parsed.shipments || [];
-                    
-                    if (shipments.length > 0) {
-                        console.log(`✅ Loaded ${shipments.length} shipments from localStorage:${key}`);
-                        return {
-                            shipments,
-                            initialized: true,
-                            updateShipment: (id, updates) => {
-                                const shipment = shipments.find(s => s.id === id);
-                                if (shipment) {
-                                    Object.assign(shipment, updates);
-                                    localStorage.setItem(key, JSON.stringify(shipments));
-                                }
-                            },
-                            getStatistics: () => {
-                                const total = shipments.length;
-                                const byStatus = {};
-                                let totalCost = 0;
-                                let totalTransit = 0;
-                                let transitCount = 0;
-                                
-                                shipments.forEach(s => {
-                                    byStatus[s.status] = (byStatus[s.status] || 0) + 1;
-                                    totalCost += s.costs?.total || 0;
-                                    if (s.route?.estimatedTransit) {
-                                        totalTransit += s.route.estimatedTransit;
-                                        transitCount++;
-                                    }
-                                });
-                                
-                                return {
-                                    total,
-                                    byStatus,
-                                    totalCost,
-                                    avgTransitTime: transitCount > 0 ? Math.round(totalTransit / transitCount) : 0
-                                };
-                            }
-                        };
-                    }
-                }
-            } catch (error) {
-                continue;
-            }
-        }
-        
-        return {
-            shipments: [],
-            initialized: true,
-            updateShipment: () => {},
-            getStatistics: () => ({ total: 0, byStatus: {}, totalCost: 0, avgTransitTime: 0 })
-        };
+
+        throw new Error('ShipmentsRegistry not available');
     }
     
     setupEventListeners() {
@@ -802,9 +725,6 @@ class RegistryCore {
                         const index = this.registry.shipments.findIndex(s => s.id === shipmentId);
                         if (index >= 0) {
                             this.registry.shipments.splice(index, 1);
-                            if (localStorage.getItem('shipmentsRegistry')) {
-                                localStorage.setItem('shipmentsRegistry', JSON.stringify(this.registry.shipments));
-                            }
                         }
                     }
                     
