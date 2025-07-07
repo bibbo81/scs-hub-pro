@@ -42,6 +42,7 @@ In today's global supply chain, **visibility is everything**. Lost shipments, de
 - Batch status updates
 - Automated data synchronization
 - Smart duplicate detection
+- Product import in **replace** mode automatically syncs new CSV headers with your table columns
 
 ---
 
