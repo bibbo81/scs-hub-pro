@@ -1937,6 +1937,7 @@ window.showProductMenu = function(productId, event) {
     const menu = document.createElement('div');
     menu.id = 'productMenu';
     menu.className = 'sol-dropdown';
+    menu.style.visibility = 'hidden';
     menu.innerHTML = `
         <button class="sol-dropdown-item" data-action="view">View Details</button>
         <button class="sol-dropdown-item" data-action="edit">Edit</button>
@@ -1945,11 +1946,13 @@ window.showProductMenu = function(productId, event) {
     `;
     document.body.appendChild(menu);
 
-    const rect = (event.currentTarget || event.target).getBoundingClientRect();
-    menu.style.left = `${rect.left}px`;
-    menu.style.top = `${rect.bottom}px`;
-    menu.style.right = 'auto';
     menu.style.display = 'block';
+    const rect = (event.currentTarget || event.target).getBoundingClientRect();
+    const menuHeight = menu.offsetHeight;
+    menu.style.left = `${rect.left + window.scrollX}px`;
+    menu.style.top = `${rect.top + window.scrollY - menuHeight - 8}px`;
+    menu.style.right = 'auto';
+    menu.style.visibility = 'visible';
 
     const hideMenu = (e) => {
         if (!menu.contains(e.target)) {
