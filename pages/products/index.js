@@ -28,6 +28,8 @@ class ProductIntelligenceSystem {
   { key: 'actions', label: 'Actions' }
   ];
   this.visibleColumns = this.allColumns.map(c => c.key);
+  this.columnSortable = null;
+  this.loadColumnPreferences();
   this.sortColumn = 'name';
   this.sortDirection = 'asc';
   this.activeFilters = {
@@ -387,6 +389,7 @@ showStatus(message, type = 'info', duration = 3000) {
     if (!productsGrid) return;
     productsGrid.className = 'products-intelligence-list';
     productsGrid.innerHTML = this.renderProductsList();
+    this.initColumnDrag();
   }
 
   renderProductsGrid() {
@@ -497,25 +500,25 @@ showStatus(message, type = 'info', duration = 3000) {
       const col = this.allColumns.find(c => c.key === key) || { label: this.toLabel(key) };
       switch (key) {
         case 'sku':
-          return `<th class="sortable" onclick="window.productIntelligenceSystem.sortProducts('sku')">SKU ${this.getSortIcon('sku')}</th>`;
+          return `<th data-key="${key}" class="sortable" onclick="window.productIntelligenceSystem.sortProducts('sku')">SKU ${this.getSortIcon('sku')}</th>`;
         case 'name':
-          return `<th class="sortable" onclick="window.productIntelligenceSystem.sortProducts('name')">Product Name ${this.getSortIcon('name')}</th>`;
+          return `<th data-key="${key}" class="sortable" onclick="window.productIntelligenceSystem.sortProducts('name')">Product Name ${this.getSortIcon('name')}</th>`;
         case 'category':
-          return `<th class="sortable" onclick="window.productIntelligenceSystem.sortProducts('category')">Category ${this.getSortIcon('category')}</th>`;
+          return `<th data-key="${key}" class="sortable" onclick="window.productIntelligenceSystem.sortProducts('category')">Category ${this.getSortIcon('category')}</th>`;
         case 'shippingCost':
-          return `<th class="sortable" onclick="window.productIntelligenceSystem.sortProducts('shippingCost')">Avg Shipping Cost ${this.getSortIcon('shippingCost')}</th>`;
+          return `<th data-key="${key}" class="sortable" onclick="window.productIntelligenceSystem.sortProducts('shippingCost')">Avg Shipping Cost ${this.getSortIcon('shippingCost')}</th>`;
         case 'costTrend':
-          return `<th class="sortable" onclick="window.productIntelligenceSystem.sortProducts('costTrend')">Cost Trend ${this.getSortIcon('costTrend')}</th>`;
+          return `<th data-key="${key}" class="sortable" onclick="window.productIntelligenceSystem.sortProducts('costTrend')">Cost Trend ${this.getSortIcon('costTrend')}</th>`;
         case 'unitsShipped':
-          return `<th class="sortable" onclick="window.productIntelligenceSystem.sortProducts('unitsShipped')">Units Shipped ${this.getSortIcon('unitsShipped')}</th>`;
+          return `<th data-key="${key}" class="sortable" onclick="window.productIntelligenceSystem.sortProducts('unitsShipped')">Units Shipped ${this.getSortIcon('unitsShipped')}</th>`;
         case 'profitImpact':
-          return `<th class="sortable" onclick="window.productIntelligenceSystem.sortProducts('profitImpact')">Profit Impact ${this.getSortIcon('profitImpact')}</th>`;
+          return `<th data-key="${key}" class="sortable" onclick="window.productIntelligenceSystem.sortProducts('profitImpact')">Profit Impact ${this.getSortIcon('profitImpact')}</th>`;
         case 'status':
-          return '<th>Status</th>';
+          return `<th data-key="${key}">Status</th>`;
         case 'actions':
-          return '<th>Actions</th>';
+          return `<th data-key="${key}">Actions</th>`;
         default:
-          return `<th>${col.label}</th>`;
+          return `<th data-key="${key}">${col.label}</th>`;
       }
     }).join('');
 
@@ -1053,28 +1056,86 @@ showStatus(message, type = 'info', duration = 3000) {
   showColumnSelector() {
     if (!window.ModalSystem) return;
     const content = `
-      <div id="columnSelector">
-        ${this.allColumns.map(col => `
-          <label style="display:block;margin-bottom:0.5rem;">
-            <input type="checkbox" value="${col.key}" ${this.visibleColumns.includes(col.key) ? 'checked' : ''}>
-            ${col.label}
-          </label>
-        `).join('')}
+      <div class="column-editor">
+        <div class="column-list" id="columnSelectorList">
+          ${this.allColumns.map(col => `
+            <div class="column-item" data-column="${col.key}">
+              <div class="column-drag-handle"><i class="fas fa-grip-vertical"></i></div>
+              <label>
+                <input type="checkbox" value="${col.key}" ${this.visibleColumns.includes(col.key) ? 'checked' : ''}>
+                <span>${col.label}</span>
+              </label>
+            </div>
+          `).join('')}
+        </div>
+        <div class="column-preview mt-2">
+          <small class="text-muted"><span id="selectedColumnsCount">${this.visibleColumns.length}</span> columns selected</small>
+        </div>
       </div>`;
     window.ModalSystem.show({
-      title: 'Select Columns',
+      title: 'Manage Columns',
       content,
+      size: 'md',
       actions: [
         { label: 'Cancel', class: 'sol-btn-secondary', handler: () => true },
-        { label: 'Apply', class: 'sol-btn-primary', handler: () => {
-          const selected = Array.from(document.querySelectorAll('#columnSelector input:checked')).map(el => el.value);
-          this.visibleColumns = selected.length ? selected : this.allColumns.map(c => c.key);
-          this.renderProducts();
-          return true;
-        } }
+        { label: 'Apply', class: 'sol-btn-primary', handler: () => applyChanges() }
       ]
     });
-  }
+
+    const list = document.getElementById('columnSelectorList');
+    if (list && window.Sortable) {
+      new Sortable(list, {
+        animation: 150,
+        handle: '.column-drag-handle',
+        onEnd: () => updatePreview()
+      });
+    }
+
+    const updatePreview = () => {
+      const checked = list.querySelectorAll('input:checked').length;
+      document.getElementById('selectedColumnsCount').textContent = checked;
+    };
+
+    const applyChanges = () => {
+      const order = [];
+      list.querySelectorAll('.column-item').forEach(item => {
+        const key = item.dataset.column;
+        if (item.querySelector('input').checked) order.push(key);
+      });
+      this.visibleColumns = order.length ? order : this.allColumns.map(c => c.key);
+      this.saveColumnPreferences();
+      this.renderProducts();
+      return true;
+    };
+    }
+
+    initColumnDrag() {
+      if (!window.Sortable) return;
+      const header = document.querySelector('.products-list-table thead tr');
+      if (!header) return;
+      if (this.columnSortable) this.columnSortable.destroy();
+      this.columnSortable = new Sortable(header, {
+        animation: 150,
+        onEnd: () => {
+          this.visibleColumns = Array.from(header.children).map(th => th.dataset.key);
+          this.saveColumnPreferences();
+          this.renderProducts();
+        }
+      });
+    }
+
+    saveColumnPreferences() {
+      localStorage.setItem('productColumns', JSON.stringify(this.visibleColumns));
+    }
+
+    loadColumnPreferences() {
+      try {
+        const saved = JSON.parse(localStorage.getItem('productColumns'));
+        if (Array.isArray(saved) && saved.length) {
+          this.visibleColumns = saved;
+        }
+      } catch (e) {}
+    }
 
   toggleViewMode() {
     // View mode is fixed to list; no toggle behavior
