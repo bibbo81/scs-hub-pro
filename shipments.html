@@ -3018,7 +3018,11 @@ MSCU7654321,PO-2024-002,22000,PI-2024-002,22000,CI-2024-002,22000,BL-2024-002,CI
        // Enhanced page initialization with Executive BI support
        document.addEventListener('DOMContentLoaded', async () => {
            console.log('🚢 Initializing Enhanced Shipments Registry with Executive BI...');
-           
+
+           if (window.organizationService && !window.organizationService.initialized) {
+               await window.organizationService.init();
+           }
+
            // // Initialize header
            // if (window.headerComponent) {
            //     await window.headerComponent.init();
@@ -3311,7 +3315,8 @@ MSCU7654321,PO-2024-002,22000,PI-2024-002,22000,CI-2024-002,22000,BL-2024-002,CI
            }
            
            // MVP: Load from localStorage first
-           const savedShipments = localStorage.getItem('shipmentsRegistry');
+           const orgId = window.organizationService?.getCurrentOrgId();
+           const savedShipments = localStorage.getItem(`shipmentsRegistry_${orgId}`);
            if (savedShipments) {
                try {
                    const parsed = JSON.parse(savedShipments);

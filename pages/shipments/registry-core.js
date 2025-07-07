@@ -88,7 +88,13 @@ class RegistryCore {
     }
     
     createFallbackRegistry() {
-        const storageKeys = ['shipmentsRegistry', 'shipments', 'SCH_Shipments'];
+        const orgId = window.organizationService?.getCurrentOrgId();
+        const storageKeys = [
+            `shipmentsRegistry_${orgId}`,
+            'shipmentsRegistry',
+            'shipments',
+            'SCH_Shipments'
+        ];
         
         for (const key of storageKeys) {
             try {
@@ -802,8 +808,9 @@ class RegistryCore {
                         const index = this.registry.shipments.findIndex(s => s.id === shipmentId);
                         if (index >= 0) {
                             this.registry.shipments.splice(index, 1);
-                            if (localStorage.getItem('shipmentsRegistry')) {
-                                localStorage.setItem('shipmentsRegistry', JSON.stringify(this.registry.shipments));
+                            const key = `shipmentsRegistry_${window.organizationService?.getCurrentOrgId()}`;
+                            if (localStorage.getItem(key)) {
+                                localStorage.setItem(key, JSON.stringify(this.registry.shipments));
                             }
                         }
                     }
