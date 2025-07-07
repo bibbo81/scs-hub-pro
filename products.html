@@ -143,15 +143,7 @@
                 <div class="sol-card-header">
                     <h3 class="sol-card-title">Product Management</h3>
                     <div class="sol-card-filters">
-                        <div class="view-toggle-buttons">
-    <button class="sol-btn sol-btn-glass active" id="viewGridBtn" onclick="window.productIntelligenceSystem.toggleViewMode('grid')">
-        <i class="fas fa-th"></i> Grid
-    </button>
-    <button class="sol-btn sol-btn-glass" id="viewListBtn" onclick="window.productIntelligenceSystem.toggleViewMode('list')">
-        <i class="fas fa-list"></i> List
-    </button>
-</div>
-                        </div>
+
                         <select class="sol-select" id="categoryFilter">
                             <option value="">All Categories</option>
                             <option value="electronics">Electronics</option>
@@ -178,13 +170,8 @@
                 </div>
             </div>
 
-            <!-- Products Grid View -->
-            <div id="productsGrid" class="products-intelligence-grid">
-                <!-- Populated by JS -->
-            </div>
-
             <!-- Products List View -->
-            <div id="productsList" class="products-intelligence-list" style="display: none;">
+            <div id="productsList" class="products-intelligence-list">
                 <div class="products-list-table">
                     <table>
                         <thead>

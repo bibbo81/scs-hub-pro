@@ -14,7 +14,6 @@ class ProductIntelligenceSystem {
     this.analytics = {};
     this.recommendations = [];
     this.organizationId = null;
-        this.viewMode = 'list';
     this.sortColumn = 'name';
     this.sortDirection = 'asc';
     this.activeFilters = {
@@ -72,11 +71,6 @@ initializeEventHandlers() {
         costTrendFilter.addEventListener('change', () => this.filterProducts());
     }
 
-    // Bottone: vista griglia/lista (se presente)
-    const gridBtn = document.getElementById('viewGridBtn');
-    const listBtn = document.getElementById('viewListBtn');
-    if (gridBtn) gridBtn.onclick = () => this.toggleViewMode('grid');
-    if (listBtn) listBtn.onclick = () => this.toggleViewMode('list');
 }
 
 showStatus(message, type = 'info', duration = 3000) {
@@ -364,105 +358,11 @@ showStatus(message, type = 'info', duration = 3000) {
 
     // RENDERING PRINCIPALE
     renderProducts() {
-        const productsGrid = document.getElementById('productsGrid');
-        if (!productsGrid) return;
-        if (this.viewMode === 'grid') {
-            productsGrid.className = 'products-intelligence-grid';
-            productsGrid.innerHTML = this.renderProductsGrid();
-        } else {
-            productsGrid.className = 'products-intelligence-list';
-            productsGrid.innerHTML = this.renderProductsList();
-        }
+        const productsList = document.getElementById('productsList');
+        if (!productsList) return;
+        productsList.className = 'products-intelligence-list';
+        productsList.innerHTML = this.renderProductsList();
     }
-
-    renderProductsGrid() {
-    const safe = (value, fallback = '') => value !== undefined && value !== null ? value : fallback;
-    // Usa getFilteredAndSortedProducts per filtrare come in lista (così i filtri funzionano!)
-    const products = this.getFilteredAndSortedProducts();
-
-    if (products.length === 0) {
-        return `
-            <div class="empty-state">
-                <i class="fas fa-search fa-3x text-muted"></i>
-                <h3>No products found</h3>
-                <p>Try adjusting your filters or search criteria</p>
-                <button class="sol-btn sol-btn-primary" onclick="window.productIntelligenceSystem.clearFilters()">
-                    Clear Filters
-                </button>
-            </div>
-        `;
-    }
-
-    return products.map(product => {
-        // Fallback su oggetto vuoto per tutti i campi potenzialmente assenti
-        const analytics = this.getAnalytics(product.id);
-        const costTrendIcon = analytics.costTrend === 'increasing' ? 'fa-arrow-up' : 
-                            analytics.costTrend === 'decreasing' ? 'fa-arrow-down' : 'fa-minus';
-        const costTrendClass = analytics.costTrend === 'increasing' ? 'negative' : 
-                            analytics.costTrend === 'decreasing' ? 'positive' : 'stable';
-
-        // Badge robusto
-        let badgeClass = '';
-        let badgeText = 'TRACKED';
-        if (Math.abs(safe(analytics.profitImpact, 0)) > 10000) {
-            badgeClass = 'high-impact';
-            badgeText = 'HIGH IMPACT';
-        } else if (safe(analytics.performance?.costEfficiency, 0) > 85) {
-            badgeClass = 'optimized';
-            badgeText = 'OPTIMIZED';
-        }
-
-        return `
-            <div class="product-intelligence-card" data-product-id="${safe(product.id)}">
-                <div class="intelligence-badge ${badgeClass}">${badgeText}</div>
-                
-                <div class="product-card-header">
-                    <div class="product-info">
-                        <div class="product-sku">${safe(product.sku)}</div>
-                        <h4 class="product-name">${safe(product.name)}</h4>
-                        <p class="product-category">${safe(product.category)}</p>
-                    </div>
-                    <div class="cost-indicator">
-                        <span class="cost-value">${safe(analytics.avgShippingCost, 0).toFixed(2)}</span>
-                        <div class="cost-trend ${costTrendClass}">
-                            <i class="fas ${costTrendIcon}"></i>
-                            ${Math.abs(safe(analytics.costTrendPercentage, 0)).toFixed(1)}%
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="product-metrics">
-                    <div class="metric-item">
-                        <span class="metric-label">Units Shipped</span>
-                        <span class="metric-value">${safe(analytics.totalUnitsShipped, 0).toLocaleString()}</span>
-                    </div>
-                    <div class="metric-item">
-                        <span class="metric-label">Shipments</span>
-                        <span class="metric-value">${safe(analytics.totalShipments, 0)}</span>
-                    </div>
-                    <div class="metric-item">
-                        <span class="metric-label">Profit Impact</span>
-                        <span class="metric-value ${safe(analytics.profitImpact, 0) >= 0 ? 'positive' : 'negative'}">
-                            ${(safe(analytics.profitImpact, 0) >= 0 ? '+' : '') + (safe(analytics.profitImpact, 0) / 1000).toFixed(0)}K
-                        </span>
-                    </div>
-                </div>
-                
-                <div class="product-actions">
-                    <button class="sol-btn sol-btn-secondary" onclick="viewProductDetails('${safe(product.id)}')">
-                        <i class="fas fa-chart-area"></i> Analytics
-                    </button>
-                    <button class="sol-btn sol-btn-primary" onclick="editProduct('${safe(product.id)}')">
-                        <i class="fas fa-edit"></i> Edit
-                    </button>
-                    <button class="sol-btn sol-btn-glass" onclick="showProductMenu('${safe(product.id)}', event)">
-                        <i class="fas fa-ellipsis-v"></i>
-                    </button>
-                </div>
-            </div>
-        `;
-    }).join('');
-}
     renderProductsList() {
     const products = this.getFilteredAndSortedProducts();
 
@@ -1011,25 +911,7 @@ showStatus(message, type = 'info', duration = 3000) {
         this.showStatus('Analytics exported successfully', 'success');
     }
 
-    toggleViewMode(mode) {
-        if (mode) {
-            this.viewMode = mode;
-        } else {
-            this.viewMode = this.viewMode === 'grid' ? 'list' : 'grid';
-        }
-        this.renderProducts();
-        const gridBtn = document.getElementById('viewGridBtn');
-        const listBtn = document.getElementById('viewListBtn');
-        if (gridBtn && listBtn) {
-            if (this.viewMode === 'grid') {
-                gridBtn.classList.add('active');
-                listBtn.classList.remove('active');
-            } else {
-                gridBtn.classList.remove('active');
-                listBtn.classList.add('active');
-            }
-        }
-    }
+
 
 } // END CLASS
 
