@@ -147,7 +147,9 @@ showStatus(message, type = 'info', duration = 3000) {
   async generateAnalytics() {
     this.analytics = {};
     this.products.forEach(product => {
-      this.analytics[product.id] = this.calculateProductAnalytics(product);
+      const base = this.getEmptyAnalytics();
+      const calculated = this.calculateProductAnalytics(product);
+      this.analytics[product.id] = { ...base, ...calculated };
     });
     this.recommendations = this.generateRecommendations();
   }
@@ -845,12 +847,20 @@ showStatus(message, type = 'info', duration = 3000) {
   // MODALE ANALYTICS/DETAILS
   showProductDetails(productId) {
     const product = this.products.find(p => p.id === productId);
-  const analytics = this.analytics[productId];
+    const defaults = this.getEmptyAnalytics();
+    const analytics = {
+      ...defaults,
+      ...(this.analytics[productId] || {}),
+      performance: {
+        ...defaults.performance,
+        ...(this.analytics[productId]?.performance || {})
+      }
+    };
 
-  if (!product || !analytics) {
-    this.showStatus('Product not found', 'error');
-    return;
-  }
+    if (!product) {
+      this.showStatus('Product not found', 'error');
+      return;
+    }
   if (!window.ModalSystem) {
     this.showStatus('Modal system not available', 'error');
     return;
@@ -972,27 +982,30 @@ showStatus(message, type = 'info', duration = 3000) {
 
   // CONTEXT MENU/BASIC EXPORT
   showProductMenu(productId, event) {
-  event && event.stopPropagation && event.stopPropagation();
+    event && event.stopPropagation && event.stopPropagation();
 
-  const existing = document.getElementById('productMenu');
-  if (existing) existing.remove();
+    const existing = document.getElementById('productMenu');
+    if (existing) existing.remove();
 
-  const menu = document.createElement('div');
-  menu.id = 'productMenu';
-  menu.className = 'product-menu';
-  menu.innerHTML = `
-    <button class="sol-dropdown-item" data-action="view">View Details</button>
-    <button class="sol-dropdown-item" data-action="edit">Edit</button>
-    <div class="sol-dropdown-divider"></div>
-    <button class="sol-dropdown-item sol-text-danger" data-action="delete">Delete</button>
-  `;
-  document.body.appendChild(menu);
+    const menu = document.createElement('div');
+    menu.id = 'productMenu';
+    menu.className = 'sol-dropdown';
+    menu.style.visibility = 'hidden';
+    menu.innerHTML = `
+      <button class="sol-dropdown-item" data-action="view">View Details</button>
+      <button class="sol-dropdown-item" data-action="edit">Edit</button>
+      <div class="sol-dropdown-divider"></div>
+      <button class="sol-dropdown-item sol-text-danger" data-action="delete">Delete</button>
+    `;
+    document.body.appendChild(menu);
 
-  const rect = (event.currentTarget || event.target).getBoundingClientRect();
-  menu.style.left = `${rect.left}px`;
-  menu.style.top = `${rect.bottom}px`;
-  menu.style.right = 'auto';
-  menu.style.display = 'block';
+    menu.style.display = 'block';
+    const rect = (event.currentTarget || event.target).getBoundingClientRect();
+    const menuHeight = menu.offsetHeight;
+    menu.style.left = `${rect.left + window.scrollX}px`;
+    menu.style.top = `${rect.top + window.scrollY - menuHeight - 8}px`;
+    menu.style.right = 'auto';
+    menu.style.visibility = 'visible';
 
   const hideMenu = (e) => {
     if (!menu.contains(e.target)) {
