@@ -1,4 +1,5 @@
 import { supabase } from '/core/services/supabase-client.js';
+import organizationService from '/core/services/organization-service.js';
 
 class SupabaseShipmentsService {
     constructor() {
@@ -11,10 +12,12 @@ class SupabaseShipmentsService {
     // ========================================
 
     async getAllShipments() {
+        const orgId = organizationService.getCurrentOrgId();
         try {
             const { data, error } = await supabase
                 .from(this.table)
                 .select('*')
+                .eq('organization_id', orgId)
                 .order('created_at', { ascending: false });
 
             if (error) throw error;
@@ -28,11 +31,13 @@ class SupabaseShipmentsService {
     }
 
     async getShipment(id) {
+        const orgId = organizationService.getCurrentOrgId();
         try {
             const { data, error } = await supabase
                 .from(this.table)
                 .select('*')
                 .eq('id', id)
+                .eq('organization_id', orgId)
                 .single();
 
             if (error) throw error;
@@ -44,10 +49,11 @@ class SupabaseShipmentsService {
     }
 
     async createShipment(shipmentData) {
+        const orgId = organizationService.getCurrentOrgId();
         try {
             const { data, error } = await supabase
                 .from(this.table)
-                .insert([shipmentData])
+                .insert([{ ...shipmentData, organization_id: orgId }])
                 .select()
                 .single();
 
@@ -62,11 +68,13 @@ class SupabaseShipmentsService {
     }
 
     async updateShipment(id, updates) {
+        const orgId = organizationService.getCurrentOrgId();
         try {
             const { data, error } = await supabase
                 .from(this.table)
                 .update(updates)
                 .eq('id', id)
+                .eq('organization_id', orgId)
                 .select()
                 .single();
 
@@ -81,11 +89,13 @@ class SupabaseShipmentsService {
     }
 
     async deleteShipment(id) {
+        const orgId = organizationService.getCurrentOrgId();
         try {
             const { error } = await supabase
                 .from(this.table)
                 .delete()
-                .eq('id', id);
+                .eq('id', id)
+                .eq('organization_id', orgId);
 
             if (error) throw error;
 

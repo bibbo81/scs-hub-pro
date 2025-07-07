@@ -1,12 +1,14 @@
 // shipments-registry.js - Enhanced Shipments Registry with Better Initialization
 // Path: /core/shipments-registry.js
 
+import organizationService from '/core/services/organization-service.js';
+
 class ShipmentsRegistry {
     constructor() {
         this.shipments = [];
         this.initialized = false;
         this.subscribers = [];
-        this.storageKey = 'shipmentsRegistry';
+        this.storageKeyBase = 'shipmentsRegistry';
         this.version = '2.0.0';
         
         console.log('🏗️ ShipmentsRegistry constructor called');
@@ -48,9 +50,14 @@ class ShipmentsRegistry {
         }
     }
     
+    getStorageKey() {
+        const orgId = organizationService.getCurrentOrgId();
+        return `${this.storageKeyBase}_${orgId}`;
+    }
+
     async loadShipments() {
         try {
-            const stored = localStorage.getItem(this.storageKey);
+            const stored = localStorage.getItem(this.getStorageKey());
             if (stored) {
                 const data = JSON.parse(stored);
                 
@@ -67,9 +74,12 @@ class ShipmentsRegistry {
                 console.log('📦 No existing shipments found, starting fresh');
                 this.shipments = [];
             }
-            
+
             // Validate and clean up data
             this.shipments = this.validateShipments(this.shipments);
+
+            const orgId = organizationService.getCurrentOrgId();
+            this.shipments = this.shipments.filter(s => !s.organization_id || s.organization_id === orgId);
             
             return true;
             
@@ -152,7 +162,7 @@ class ShipmentsRegistry {
                 savedAt: new Date().toISOString()
             };
             
-            localStorage.setItem(this.storageKey, JSON.stringify(data));
+            localStorage.setItem(this.getStorageKey(), JSON.stringify(data));
             console.log(`💾 Saved ${this.shipments.length} shipments to storage`);
             
             return true;
@@ -162,7 +172,7 @@ class ShipmentsRegistry {
             
             // Try to save without version info as fallback
             try {
-                localStorage.setItem(this.storageKey, JSON.stringify(this.shipments));
+                localStorage.setItem(this.getStorageKey(), JSON.stringify(this.shipments));
                 console.log('💾 Fallback save completed');
                 return true;
             } catch (fallbackError) {
