@@ -15,7 +15,7 @@ class ProductIntelligenceSystem {
   this.analytics = {};
   this.recommendations = [];
   this.organizationId = null;
-  this.viewMode = 'grid';
+  this.viewMode = 'list';
   this.allColumns = [
   { key: 'sku', label: 'SKU' },
   { key: 'name', label: 'Product Name' },
@@ -380,13 +380,8 @@ showStatus(message, type = 'info', duration = 3000) {
   renderProducts() {
     const productsGrid = document.getElementById('productsGrid');
     if (!productsGrid) return;
-    if (this.viewMode === 'grid') {
-      productsGrid.className = 'products-intelligence-grid';
-      productsGrid.innerHTML = this.renderProductsGrid();
-    } else {
-      productsGrid.className = 'products-intelligence-list';
-      productsGrid.innerHTML = this.renderProductsList();
-    }
+    productsGrid.className = 'products-intelligence-list';
+    productsGrid.innerHTML = this.renderProductsList();
   }
 
   renderProductsGrid() {
@@ -1023,19 +1018,7 @@ showStatus(message, type = 'info', duration = 3000) {
   }
 
   toggleViewMode() {
-    this.viewMode = this.viewMode === 'grid' ? 'list' : 'grid';
-    this.renderProducts();
-    const gridBtn = document.getElementById('viewGridBtn');
-    const listBtn = document.getElementById('viewListBtn');
-    if (gridBtn && listBtn) {
-      if (this.viewMode === 'grid') {
-        gridBtn.classList.add('active');
-        listBtn.classList.remove('active');
-      } else {
-        gridBtn.classList.remove('active');
-        listBtn.classList.add('active');
-      }
-    }
+    // View mode is fixed to list; no toggle behavior
   }
 
 } // END CLASS
