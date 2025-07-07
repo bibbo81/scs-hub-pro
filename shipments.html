@@ -3340,29 +3340,37 @@ MSCU7654321,PO-2024-002,22000,PI-2024-002,22000,CI-2024-002,22000,BL-2024-002,CI
 
        // Placeholder functions (to be implemented in registry-core.js)
        async function loadShipments() {
-           // Ensure we return an array
-           if (window.shipmentsRegistry && window.shipmentsRegistry.shipments) {
-               return window.shipmentsRegistry.shipments;
+           // Try loading from Supabase first
+           try {
+               const supShipments = await window.supabaseShipmentsService.getAllShipments();
+               if (Array.isArray(supShipments) && window.shipmentsRegistry) {
+                   window.shipmentsRegistry.shipments = supShipments;
+                   return supShipments;
+               }
+           } catch (error) {
+               console.error('Supabase load failed:', error);
            }
-           
-           // MVP: Load from localStorage first
+
+           // Fallback: load from localStorage
            const orgId = window.organizationService?.getCurrentOrgId();
            const savedShipments = localStorage.getItem(`shipmentsRegistry_${orgId}`);
            if (savedShipments) {
                try {
                    const parsed = JSON.parse(savedShipments);
-                   // Handle both old and new format
                    if (Array.isArray(parsed)) {
+                       if (window.shipmentsRegistry) window.shipmentsRegistry.shipments = parsed;
                        return parsed;
                    } else if (parsed.shipments && Array.isArray(parsed.shipments)) {
+                       if (window.shipmentsRegistry) window.shipmentsRegistry.shipments = parsed.shipments;
                        return parsed.shipments;
                    }
                } catch (e) {
                    console.error('Error parsing saved shipments:', e);
                }
            }
-           
+
            // Default empty array
+           if (window.shipmentsRegistry) window.shipmentsRegistry.shipments = [];
            return [];
        }
 
