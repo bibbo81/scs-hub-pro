@@ -1,8 +1,47 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 // --- Configurazione Supabase ---
-const supabaseUrl = 'https://gnlrmnsdmpjzitsysowq.supabase.co';
-const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdubHJtbnNkbXBqeml0c3lzb3dxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk0NjMxMzQsImV4cCI6MjA2NTAzOTEzNH0.UoJJoDUoDXGbiWnKNN48qb9PVQWOW_X_MXqAfzTHSaA';
+let supabaseUrl = typeof process !== 'undefined' ? process.env.SUPABASE_URL : '';
+let supabaseKey = typeof process !== 'undefined' ? process.env.SUPABASE_ANON_KEY : '';
+
+if (typeof window !== 'undefined') {
+    supabaseUrl = window.SUPABASE_URL || supabaseUrl;
+    supabaseKey = window.SUPABASE_ANON_KEY || supabaseKey;
+}
+
+async function loadRuntimeConfig() {
+    if ((!supabaseUrl || !supabaseKey) && typeof fetch === 'function') {
+        try {
+            const response = await fetch('/.netlify/functions/get-config');
+            if (response.ok) {
+                const cfg = await response.json();
+                supabaseUrl = supabaseUrl || cfg.supabaseUrl;
+                supabaseKey = supabaseKey || cfg.supabaseAnonKey;
+            }
+        } catch (error) {
+            console.warn('get-config failed, trying runtime-config.json', error);
+        }
+    }
+
+    if ((!supabaseUrl || !supabaseKey) && typeof fetch === 'function') {
+        try {
+            const response = await fetch('/runtime-config.json');
+            if (response.ok) {
+                const cfg = await response.json();
+                supabaseUrl = supabaseUrl || cfg.supabaseUrl;
+                supabaseKey = supabaseKey || cfg.supabaseAnonKey;
+            }
+        } catch (error) {
+            console.error('Failed to load runtime configuration', error);
+        }
+    }
+
+    if (!supabaseUrl || !supabaseKey) {
+        throw new Error('Supabase configuration missing');
+    }
+}
+
+await loadRuntimeConfig();
 
 // --- Creazione del Client (una sola volta) ---
 export const supabase = createClient(supabaseUrl, supabaseKey, {
