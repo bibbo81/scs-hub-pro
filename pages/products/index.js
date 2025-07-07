@@ -13,7 +13,7 @@ class ProductIntelligenceSystem {
     this.analytics = {};
     this.recommendations = [];
     this.organizationId = null;
-    this.viewMode = 'grid';
+        this.viewMode = 'list';
     this.sortColumn = 'name';
     this.sortDirection = 'asc';
     this.activeFilters = {
@@ -74,8 +74,8 @@ initializeEventHandlers() {
     // Bottone: vista griglia/lista (se presente)
     const gridBtn = document.getElementById('viewGridBtn');
     const listBtn = document.getElementById('viewListBtn');
-    if (gridBtn) gridBtn.onclick = () => this.toggleViewMode();
-    if (listBtn) listBtn.onclick = () => this.toggleViewMode();
+    if (gridBtn) gridBtn.onclick = () => this.toggleViewMode('grid');
+    if (listBtn) listBtn.onclick = () => this.toggleViewMode('list');
 }
 
 showStatus(message, type = 'info', duration = 3000) {
@@ -974,8 +974,12 @@ showStatus(message, type = 'info', duration = 3000) {
         this.showStatus('Analytics exported successfully', 'success');
     }
 
-    toggleViewMode() {
-        this.viewMode = this.viewMode === 'grid' ? 'list' : 'grid';
+    toggleViewMode(mode) {
+        if (mode) {
+            this.viewMode = mode;
+        } else {
+            this.viewMode = this.viewMode === 'grid' ? 'list' : 'grid';
+        }
         this.renderProducts();
         const gridBtn = document.getElementById('viewGridBtn');
         const listBtn = document.getElementById('viewListBtn');
