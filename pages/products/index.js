@@ -7,7 +7,6 @@ import { supabase } from '/core/services/supabase-client.js';
 importWizard.setSupabaseClient(supabase);
 // Expose supabase globally for modules expecting window.supabase
 window.supabase = supabase;
-console.log('[DEBUG] Supabase client in wizard:', window.importWizard.supabase);
 
 class ProductIntelligenceSystem {
   constructor() {
