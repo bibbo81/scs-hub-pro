@@ -22,6 +22,9 @@ export const AVAILABLE_COLUMNS = [
     { key: 'actions', label: 'Actions', sortable: false }
 ];
 
+// Expose available columns to other modules
+window.AVAILABLE_COLUMNS = AVAILABLE_COLUMNS;
+
 export const DEFAULT_VISIBLE_COLUMNS = [
     'sku', 'name', 'category', 'avgShippingCost', 'costTrend',
     'totalUnitsShipped', 'profitImpact', 'statusBadge', 'actions'
@@ -97,6 +100,9 @@ export const TABLE_COLUMNS = [
         }
     }
 ];
+
+// Provide table column config globally
+window.TABLE_COLUMNS = TABLE_COLUMNS;
 
 let tableManager = null;
 
