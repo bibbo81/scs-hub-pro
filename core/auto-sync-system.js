@@ -110,7 +110,7 @@ class AutoSyncSystem {
         // Listen for new tracking additions
         this.addEventListener('trackingAdded', (event) => {
             console.log('🔄 New tracking added');
-            this.handleNewTracking(event.detail);
+            this.createShipmentFromTracking(event.detail);
         });
 
         // Listen for tracking imports
