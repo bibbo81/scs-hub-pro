@@ -143,15 +143,17 @@
                 <div class="sol-card-header">
                     <h3 class="sol-card-title">Product Management</h3>
                     <div class="sol-card-filters">
-                        <<div class="view-toggle-buttons">
-    <button class="sol-btn sol-btn-glass active" id="viewGridBtn" onclick="window.productIntelligenceSystem.toggleViewMode('grid')">
-        <i class="fas fa-th"></i> Grid
-    </button>
-    <button class="sol-btn sol-btn-glass" id="viewListBtn" onclick="window.productIntelligenceSystem.toggleViewMode('list')">
-        <i class="fas fa-list"></i> List
-    </button>
-</div>
+                        <div class="view-toggle-buttons">
+                            <button class="sol-btn sol-btn-glass active" id="viewGridBtn">
+                                <i class="fas fa-th"></i> Grid
+                            </button>
+                            <button class="sol-btn sol-btn-glass" id="viewListBtn">
+                                <i class="fas fa-list"></i> List
+                            </button>
                         </div>
+                        <button class="sol-btn sol-btn-glass" id="columnSelectorBtn">
+                            <i class="fas fa-columns"></i> Columns
+                        </button>
                         <select class="sol-select" id="categoryFilter">
                             <option value="">All Categories</option>
                             <option value="electronics">Electronics</option>
@@ -178,32 +180,8 @@
                 </div>
             </div>
 
-            <!-- Products Grid View -->
-            <div id="productsGrid" class="products-intelligence-grid">
+            <div id="productsGrid" class="products-intelligence-list">
                 <!-- Populated by JS -->
-            </div>
-
-            <!-- Products List View -->
-            <div id="productsList" class="products-intelligence-list" style="display: none;">
-                <div class="products-list-table">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Product</th>
-                                <th>SKU</th>
-                                <th>Category</th>
-                                <th class="text-right">Shipping Cost</th>
-                                <th class="text-right">Cost Trend</th>
-                                <th class="text-right">Monthly Volume</th>
-                                <th class="text-right">Profit Impact</th>
-                                <th class="text-right">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody id="productsListBody">
-                            <!-- Populated by JS -->
-                        </tbody>
-                    </table>
-                </div>
             </div>
         </div>
 
@@ -654,23 +632,46 @@
             display: flex;
             gap: 0.5rem;
         }
-        
+
+        .product-menu {
+            position: absolute;
+            background: white;
+            border: 1px solid var(--sol-gray-200);
+            box-shadow: var(--sol-shadow-sm);
+            border-radius: var(--sol-radius-sm);
+            padding: 0.25rem 0;
+            z-index: 1000;
+        }
+
+        .product-menu button {
+            display: block;
+            width: 100%;
+            padding: 0.5rem 1rem;
+            background: none;
+            border: none;
+            text-align: left;
+        }
+
+        .product-menu button:hover {
+            background: var(--sol-gray-100);
+        }
+
         /* View Toggle Buttons */
         .view-toggle-buttons {
-            display: flex;
-            gap: 0.5rem;
-            margin-right: 1rem;
+          display: flex;
+          gap: 0.5rem;
+          margin-right: 1rem;
         }
-        
+
         .view-toggle-buttons .sol-btn {
-            padding: 0.5rem 1rem;
+          padding: 0.5rem 1rem;
         }
-        
+
         .view-toggle-buttons .sol-btn.active {
-            background: var(--sol-primary);
-            color: white;
+          background: var(--sol-primary);
+          color: white;
         }
-        
+
         /* Advanced Filters Button */
         .advanced-filters-btn {
             position: relative;
@@ -998,6 +999,7 @@
                 margin-right: 0;
                 margin-bottom: 0.5rem;
             }
+
         }
         /* ===== FIX MODAL FULLSCREEN ===== */
 .sol-modal-content {
