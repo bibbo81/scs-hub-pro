@@ -920,7 +920,7 @@
             </div>
         </div>
 
-        <<div id="products-link" class="sol-tab-content">
+        <div id="products-link" class="sol-tab-content">
     <div class="sol-card">
         <div class="sol-card-header">
             <h3 class="sol-card-title">
@@ -2093,8 +2093,39 @@
            .sol-grid-2 {
                grid-template-columns: 1fr;
            }
-       }
-   </style>
+
+        }
+        /* Side Panel for product linking */
+        .product-link-panel {
+            position: fixed;
+            top: 0;
+            right: -400px;
+            width: 400px;
+            height: 100%;
+            background: white;
+            box-shadow: -2px 0 8px rgba(0, 0, 0, 0.1);
+            transition: right 0.3s ease;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .product-link-panel.open {
+            right: 0;
+        }
+
+        .product-link-panel-header,
+        .product-link-panel-footer {
+            padding: 1rem;
+            border-bottom: 1px solid var(--sol-gray-200);
+        }
+
+        .product-link-panel-body {
+            flex: 1;
+            overflow-y: auto;
+            padding: 1rem;
+        }
+    </style>
 
    <script>
        // ===== COLUMN MANAGER IMPLEMENTATION =====
@@ -5139,6 +5170,87 @@ window.addEventListener('shipmentsUpdated', () => {
 </script>
 
 <script>
+document.addEventListener('DOMContentLoaded', () => {
+    const panel = document.getElementById('productLinkPanel');
+    const openBtn = document.getElementById('linkProductsBtn');
+    const closeBtn = document.getElementById('closeProductLinkPanel');
+    const shipmentSelect = document.getElementById('plShipmentSelect');
+    const productsList = document.getElementById('plProductsList');
+    const confirmBtn = document.getElementById('confirmProductLink');
+
+    function populatePanel() {
+        shipmentSelect.innerHTML = '';
+        const shipments = window.shipmentsRegistry?.shipments || [];
+        const unlinked = shipments.filter(s => !s.products || s.products.length === 0);
+        shipmentSelect.innerHTML = unlinked.map(s => `<option value="${s.id}">${s.shipmentNumber}</option>`).join('');
+
+        productsList.innerHTML = '';
+        const orgId = window.organizationService?.getCurrentOrgId();
+        let products = [];
+        if (window.productLinkingV20Final?.productsData) {
+            products = window.productLinkingV20Final.productsData;
+        } else if (window.productSync?.getProducts) {
+            products = window.productSync.getProducts();
+        }
+        products = products.filter(p => !orgId || p.organization_id === orgId);
+
+        products.forEach(prod => {
+            const row = document.createElement('label');
+            row.className = 'pl-product-row';
+            row.style.display = 'flex';
+            row.style.alignItems = 'center';
+            row.style.marginBottom = '0.5rem';
+            row.innerHTML = `
+                <input type="checkbox" value="${prod.id}" class="pl-product-checkbox" title="Seleziona prodotto" style="margin-right:8px;">
+                <span style="flex:1;" title="${prod.name}">${prod.name} <small class="font-mono">${prod.sku}</small></span>
+                <input type="number" value="1" min="1" class="pl-product-qty" data-prod-id="${prod.id}" style="width:60px;margin-left:8px;">
+            `;
+            productsList.appendChild(row);
+        });
+    }
+
+    function openPanel() {
+        populatePanel();
+        panel.classList.add('open');
+        panel.setAttribute('aria-hidden', 'false');
+    }
+
+    function closePanel() {
+        panel.classList.remove('open');
+        panel.setAttribute('aria-hidden', 'true');
+    }
+
+    openBtn?.addEventListener('click', openPanel);
+    closeBtn?.addEventListener('click', closePanel);
+
+    confirmBtn?.addEventListener('click', () => {
+        const shipmentId = shipmentSelect.value;
+        if (!shipmentId) {
+            window.NotificationSystem?.show('Attenzione', 'Seleziona una spedizione', 'warning');
+            return;
+        }
+        const selections = [];
+        panel.querySelectorAll('.pl-product-checkbox:checked').forEach(cb => {
+            const qtyInput = panel.querySelector(`.pl-product-qty[data-prod-id="${cb.value}"]`);
+            const qty = parseInt(qtyInput?.value || '1', 10);
+            selections.push({ productId: cb.value, quantity: qty });
+        });
+        if (selections.length === 0) {
+            window.NotificationSystem?.show('Attenzione', 'Seleziona almeno un prodotto', 'warning');
+            return;
+        }
+        if (window.productLinkingV20Final?.linkProductsToShipment) {
+            window.productLinkingV20Final.linkProductsToShipment(shipmentId, selections);
+            window.productLinkingV20Final.populateProductsMenu?.();
+            updateProductsLinkStats?.();
+            window.NotificationSystem?.show('Successo', 'Prodotti collegati', 'success');
+        }
+        closePanel();
+    });
+});
+</script>
+
+<script>
 // Fix semplice e sicuro per reset button
 document.addEventListener('DOMContentLoaded', function() {
     setTimeout(() => {
@@ -5214,6 +5326,24 @@ setTimeout(() => {
     }
 }, 3000);
 </script>
+
+    <div id="productLinkPanel" class="product-link-panel" aria-hidden="true">
+        <div class="product-link-panel-header">
+            <h3 style="margin:0;">Collega Prodotti</h3>
+            <button id="closeProductLinkPanel" class="sol-btn sol-btn-sm sol-btn-glass" title="Chiudi pannello">&times;</button>
+        </div>
+        <div class="product-link-panel-body">
+            <div class="sol-form-group">
+                <label class="sol-form-label" for="plShipmentSelect">Spedizione</label>
+                <select id="plShipmentSelect" class="sol-form-select" title="Seleziona la spedizione di destinazione"></select>
+            </div>
+            <p style="font-size:0.875rem;color:var(--sol-gray-600);">Seleziona i prodotti e imposta la quantità da collegare.</p>
+            <div id="plProductsList" style="margin-top:1rem;"></div>
+        </div>
+        <div class="product-link-panel-footer" style="text-align:right;">
+            <button id="confirmProductLink" class="sol-btn sol-btn-primary" title="Collega i prodotti selezionati">Conferma</button>
+        </div>
+    </div>
 
 </body>
 </html>
