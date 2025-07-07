@@ -265,8 +265,14 @@ class AutoSyncSystem {
             }
 
             const existingShipment = this.findShipmentByTracking(trackingData.tracking_number);
-            
+
             if (existingShipment) {
+                const currentOrgId = window.organizationService?.getCurrentOrgId();
+                if (existingShipment.organization_id && currentOrgId && existingShipment.organization_id !== currentOrgId) {
+                    console.warn('⚠️ Organization mismatch. Skipping update for shipment:', existingShipment.id);
+                    return false;
+                }
+
                 // Update existing shipment
                 return await this.updateShipmentFromTracking(existingShipment, trackingData);
             } else {
@@ -291,6 +297,7 @@ class AutoSyncSystem {
                 const newShipment = {
                     id: `AUTO-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
                     ...shipmentData,
+                    organization_id: window.organizationService?.getCurrentOrgId(),
                     autoCreated: true,
                     createdFrom: 'tracking',
                     sourceTrackingId: trackingData.id,
@@ -326,7 +333,13 @@ class AutoSyncSystem {
 
     async updateShipmentFromTracking(shipment, trackingData) {
         console.log('🔄 Updating shipment from tracking:', trackingData.tracking_number);
-        
+
+        const currentOrgId = window.organizationService?.getCurrentOrgId();
+        if (shipment.organization_id && currentOrgId && shipment.organization_id !== currentOrgId) {
+            console.warn('⚠️ Organization mismatch. Skipping update for shipment:', shipment.id);
+            return false;
+        }
+
         const updates = {};
         let hasChanges = false;
 
