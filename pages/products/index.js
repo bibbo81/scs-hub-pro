@@ -4,6 +4,7 @@
 import organizationService from '/core/services/organization-service.js';
 import { importWizard } from '/core/import-wizard.js';
 import { supabase } from '/core/services/supabase-client.js';
+window.supabase = supabase;
 importWizard.setSupabaseClient(supabase);
 console.log('[DEBUG] Supabase client in wizard:', window.importWizard.supabase);
 
