@@ -5,7 +5,7 @@ import organizationService from '/core/services/organization-service.js';
 class SupabaseShipmentsService {
     constructor() {
         this.table = 'shipments';
-        this.subscription = null;
+        this.realtimeSubscription = null;
     }
 
     // ========================================
@@ -108,12 +108,12 @@ class SupabaseShipmentsService {
     // ========================================
 
     subscribeToChanges(callback) {
-        if (this.subscription) {
-            this.subscription.unsubscribe();
+        if (this.realtimeSubscription) {
+            this.realtimeSubscription.unsubscribe();
         }
 
         const organizationId = organizationService.getCurrentOrgId();
-        this.subscription = supabase
+        this.realtimeSubscription = supabase
             .channel('shipments_changes')
             .on(
                 'postgres_changes',
@@ -129,13 +129,13 @@ class SupabaseShipmentsService {
             )
             .subscribe();
 
-        return this.subscription;
+        return this.realtimeSubscription;
     }
 
     unsubscribe() {
-        if (this.subscription) {
-            this.subscription.unsubscribe();
-            this.subscription = null;
+        if (this.realtimeSubscription) {
+            this.realtimeSubscription.unsubscribe();
+            this.realtimeSubscription = null;
         }
     }
 }
