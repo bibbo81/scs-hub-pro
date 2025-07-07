@@ -833,17 +833,17 @@ showStatus(message, type = 'info', duration = 3000) {
     // MODALE ANALYTICS/DETAILS
     showProductDetails(productId) {
         const product = this.products.find(p => p.id === productId);
-    const analytics = this.analytics[productId];
+        const analytics = this.analytics[productId] || this.getEmptyAnalytics();
 
-    if (!product || !analytics) {
-        this.showStatus('Product not found', 'error');
-        return;
-    }
-    if (!window.ModalSystem) {
-        this.showStatus('Modal system not available', 'error');
-        return;
-    }
-         window.ModalSystem.show({
+        if (!product) {
+            this.showStatus('Product not found', 'error');
+            return;
+        }
+        if (!window.ModalSystem) {
+            this.showStatus('Modal system not available', 'error');
+            return;
+        }
+        window.ModalSystem.show({
         title: 'Product Intelligence Details',
         content: `
             <div class="product-details-modal">
