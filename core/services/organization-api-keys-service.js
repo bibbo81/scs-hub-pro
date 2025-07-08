@@ -388,3 +388,4 @@ export default orgApiKeysService;
 
 // Esponi globalmente per debug
 window.orgApiKeysService = orgApiKeysService;
+window.organizationApiKeysService = orgApiKeysService;
