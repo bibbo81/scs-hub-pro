@@ -166,13 +166,14 @@ class AutoSyncSystem {
 
             if (orphanedTrackings.length > 0) {
                 console.log(`🔄 Found ${orphanedTrackings.length} trackings without shipments`);
-                
-                // Show notification for user confirmation
-                if (window.NotificationSystem) {
+
+                if (shipments.length === 0) {
+                    await this.createShipmentsFromTrackings(orphanedTrackings);
+                } else if (window.NotificationSystem) {
                     const notificationId = window.NotificationSystem.show(
                         `Trovati ${orphanedTrackings.length} tracking senza spedizioni corrispondenti`,
                         'info',
-                        0, // No auto-dismiss
+                        0,
                         {
                             actions: [
                                 {
@@ -531,13 +532,27 @@ class AutoSyncSystem {
             if (window.shipmentsRegistry?.shipments) {
                 return window.shipmentsRegistry.shipments;
             }
-            
-            const stored = localStorage.getItem('shipmentsRegistry');
-            if (stored) {
-                const parsed = JSON.parse(stored);
-                return Array.isArray(parsed) ? parsed : parsed.shipments || [];
+
+            const orgId = window.organizationService?.getCurrentOrgId();
+            const keys = [
+                orgId ? `shipmentsRegistry_${orgId}` : null,
+                'shipmentsRegistry',
+                'shipments',
+                'SCH_Shipments'
+            ].filter(Boolean);
+
+            for (const key of keys) {
+                const stored = localStorage.getItem(key);
+                if (stored) {
+                    try {
+                        const parsed = JSON.parse(stored);
+                        return Array.isArray(parsed) ? parsed : parsed.shipments || [];
+                    } catch (e) {
+                        continue;
+                    }
+                }
             }
-            
+
             return [];
         } catch (error) {
             console.error('❌ Error getting shipments:', error);
