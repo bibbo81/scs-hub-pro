@@ -1466,20 +1466,41 @@
     async function setupOrganizationApiKeys() {
         try {
             const { default: orgApiKeysService } = await import('/core/services/organization-api-keys-service.js');
-            
+
             const info = await orgApiKeysService.getOrganizationApiKeysInfo();
             console.log('[Settings] Organization info:', info);
-            
+
             if (info.hasOrganization) {
                 document.getElementById('org-api-keys-info').style.display = 'block';
                 document.getElementById('org-name').textContent = info.organizationName;
-                
+
                 const roleBadge = document.getElementById('org-role-badge');
                 roleBadge.textContent = info.isAdmin ? 'Admin' : 'Member';
                 roleBadge.className = info.isAdmin ? 'sol-badge sol-badge-primary' : 'sol-badge sol-badge-secondary';
-                
+
                 if (info.isAdmin) {
                     document.getElementById('admin-api-controls').style.display = 'block';
+                }
+
+                const statusEl = document.getElementById('org-api-status');
+                statusEl.innerHTML = '';
+                for (const provider in info.apiKeys) {
+                    const source = info.apiKeys[provider].activeSource;
+                    let label = 'Nessuna';
+                    let cls = 'sol-badge sol-badge-secondary';
+                    if (source === 'organization') {
+                        label = 'Organizzazione';
+                        cls = 'sol-badge sol-badge-primary';
+                    } else if (source === 'personal') {
+                        label = 'Personale';
+                        cls = 'sol-badge sol-badge-secondary';
+                    }
+                    const span = document.createElement('span');
+                    span.className = cls;
+                    span.textContent = label;
+                    span.style.marginRight = '0.25rem';
+                    span.title = provider;
+                    statusEl.appendChild(span);
                 }
             }
         } catch (error) {
@@ -1552,14 +1573,16 @@
             
             // Dispatch evento per aggiornare altre pagine
             window.dispatchEvent(new CustomEvent('apiKeysUpdated', {
-                detail: { 
+                detail: {
                     hasV1: !!v1Key,
                     hasV2: !!v2Token,
                     source: 'settings',
                     mode: saveMode
                 }
             }));
-            
+
+            await setupOrganizationApiKeys();
+
             // Mostra/nascondi test button
             const testButton = document.querySelector('button[onclick*="testShipsGoConnection"]');
             if (testButton) {
