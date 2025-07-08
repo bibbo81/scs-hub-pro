@@ -750,16 +750,36 @@ class AutoSyncSystem {
 // Create global instance
 window.autoSyncSystem = new AutoSyncSystem();
 
-// Auto-initialize
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', async () => {
-        await window.autoSyncSystem.initialize();
-    });
-} else {
-    setTimeout(async () => {
-        await window.autoSyncSystem.initialize();
-    }, 1000);
-}
+// Auto-initialize after shipmentsRegistryReady with fallback
+const startAutoSync = () => {
+    const init = async () => {
+        if (!window.autoSyncSystem.initialized) {
+            await window.autoSyncSystem.initialize();
+        }
+    };
+
+    const handleReady = async () => {
+        window.removeEventListener('shipmentsRegistryReady', handleReady);
+        clearTimeout(fallback);
+        await init();
+    };
+
+    const fallback = setTimeout(init, 3000);
+
+    window.addEventListener('shipmentsRegistryReady', handleReady, { once: true });
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', () => {
+            if (window.shipmentsRegistry?.initialized) {
+                handleReady();
+            }
+        });
+    } else if (window.shipmentsRegistry?.initialized) {
+        handleReady();
+    }
+};
+
+startAutoSync();
 
 // Debug helper
 window.debugAutoSync = function() {
