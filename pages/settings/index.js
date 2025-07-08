@@ -268,7 +268,7 @@ async function loadAllSettings() {
     try {
         console.log('[Settings] Attempting to load all settings from userSettingsService...');
         // Fetch all settings from the service. This should return a consolidated object.
-        const allSettings = await userSettingsService.getAllSettings();
+        const allSettings = await userSettingsService.getSettings();
         console.log('[Settings] Loaded all settings:', allSettings);
 
         // Populate form fields for each category.
