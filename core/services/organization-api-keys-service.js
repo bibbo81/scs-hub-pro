@@ -1,6 +1,7 @@
 // core/services/organization-api-keys-service.js
 import { supabase, requireAuth } from '/core/services/supabase-client.js';
 import userSettingsService from '/core/services/user-settings-service.js';
+import apiClient from '/core/api-client.js';
 
 class OrganizationApiKeysService {
     constructor() {
@@ -297,28 +298,15 @@ class OrganizationApiKeysService {
                 };
             }
 
-            // Se admin, aggiungi info su chi ha configurato
+            // Se admin, recupera i dettagli tramite funzione Netlify
             if (isAdmin) {
-                const { data } = await supabase
-                    .from('organization_api_keys')
-                    .select(`
-                        provider,
-                        created_at,
-                        updated_at,
-                        created_by,
-                        auth.users!created_by (
-                            email
-                        )
-                    `)
-                    .eq('organization_id', org.id)
-                    .eq('is_active', true);
-
-                if (data) {
-                    info.configuredKeys = data.map(key => ({
-                        provider: key.provider,
-                        configuredBy: key.users?.email || 'Unknown',
-                        configuredAt: key.created_at,
-                        lastUpdated: key.updated_at
+                const response = await apiClient.get('org-api-keys-info');
+                if (response && response.keys) {
+                    info.configuredKeys = response.keys.map(k => ({
+                        provider: k.provider,
+                        configuredBy: k.configuredBy,
+                        configuredAt: k.configuredAt,
+                        lastUpdated: k.lastUpdated
                     }));
                 }
             }
