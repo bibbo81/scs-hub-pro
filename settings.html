@@ -482,7 +482,7 @@
                                     placeholder="Inserisci API Key v1.2 (32 caratteri hex)"
                                     autocomplete="new-password"
                                 >
-                                <button type="button" class="api-key-toggle" onclick="toggleApiKeyVisibility('shipsgoV1ApiKey', this)" aria-label="Mostra/Nascondi API Key">
+                                <button type="button" class="api-key-toggle" onclick="toggleApiKeyVisibility('shipsgoV1ApiKey', event)" aria-label="Mostra/Nascondi API Key">
                                     <i class="fas fa-eye"></i>
                                 </button>
                             </div>
@@ -505,7 +505,7 @@
                                     placeholder="Inserisci Bearer Token v2.0 (formato UUID)"
                                     autocomplete="new-password"
                                 >
-                                <button type="button" class="api-key-toggle" onclick="toggleApiKeyVisibility('shipsgoV2Token', this)" aria-label="Mostra/Nascondi Bearer Token">
+                                <button type="button" class="api-key-toggle" onclick="toggleApiKeyVisibility('shipsgoV2Token', event)" aria-label="Mostra/Nascondi Bearer Token">
                                     <i class="fas fa-eye"></i>
                                 </button>
                             </div>
@@ -1163,8 +1163,9 @@
         }
 
         // Global functions for inline events
-        window.toggleApiKeyVisibility = function(inputId, button) {
+        window.toggleApiKeyVisibility = function(inputId, event) {
             const input = document.getElementById(inputId);
+            const button = event.currentTarget;
             const icon = button.querySelector('i');
             
             if (input.type === 'password') {
