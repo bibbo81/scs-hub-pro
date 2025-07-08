@@ -474,10 +474,18 @@
         // Check if already authenticated
         async function checkAuth() {
             const { data: { session } } = await supabase.auth.getSession();
-            if (session) {
-                // Already logged in, redirect to tracking
-                window.location.href = '/tracking.html';
+            if (!session) return;
+
+            const user = session.user;
+            const isDemo = user.email === 'demo@supplychainhub.com' || user.is_anonymous;
+
+            if (isDemo) {
+                await supabase.auth.signOut();
+                return;
             }
+
+            // Already logged in with a real account, redirect to tracking
+            window.location.href = '/tracking.html';
         }
         
         // Switch between login and register tabs
@@ -554,11 +562,25 @@
                 
             } catch (error) {
                 console.error('Login error:', error);
-                showAlert(error.message || 'Errore durante l\'accesso', 'error');
-                
+
+                const networkError =
+                    error.status === 0 ||
+                    /fetch failed|Failed to fetch/i.test(error.message || '');
+
+                if (networkError) {
+                    showAlert(
+                        'Impossibile connettersi al servizio di autenticazione. ' +
+                        'Verifica la connessione.',
+                        'error'
+                    );
+                } else {
+                    showAlert(error.message || 'Errore durante l\'accesso', 'error');
+                }
+
                 // Reset button
                 button.disabled = false;
-                button.innerHTML = '<i class="fas fa-sign-in-alt"></i> <span>Accedi</span>';
+                button.innerHTML =
+                    '<i class="fas fa-sign-in-alt"></i> <span>Accedi</span>';
             }
         }
         

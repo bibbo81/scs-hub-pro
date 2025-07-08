@@ -36,6 +36,19 @@ async function loadRuntimeConfig() {
         }
     }
 
+    if ((!supabaseUrl || !supabaseKey) && typeof fetch === 'function') {
+        try {
+            const response = await fetch('/runtime-config.example.json');
+            if (response.ok) {
+                const cfg = await response.json();
+                supabaseUrl = supabaseUrl || cfg.supabaseUrl;
+                supabaseKey = supabaseKey || cfg.supabaseAnonKey;
+            }
+        } catch (error) {
+            console.error('Failed to load example runtime configuration', error);
+        }
+    }
+
     if (!supabaseUrl || !supabaseKey) {
         throw new Error('Supabase configuration missing');
     }

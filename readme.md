@@ -64,12 +64,12 @@ open http://localhost:8000/tracking.html
 
 ### 🔑 Supabase Configuration
 
-Set the `SUPABASE_URL` and `SUPABASE_ANON_KEY` environment variables in your deployment platform. During local development you can create a `runtime-config.json` file in the project root with the following structure:
+Set the `SUPABASE_URL` and `SUPABASE_ANON_KEY` environment variables in your deployment platform. During local development copy `runtime-config.example.json` to `runtime-config.json`. The example file already contains the project's credentials:
 
 ```json
 {
-  "supabaseUrl": "https://your-project.supabase.co",
-  "supabaseAnonKey": "public-anon-key"
+  "supabaseUrl": "https://gnlrmnsdmpjzitsysowq.supabase.co",
+  "supabaseAnonKey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdubHJtbnNkbXBqeml0c3lzb3dxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk0NjMxMzQsImV4cCI6MjA2NTAzOTEzNH0.UoJJoDUoDXGbiWnKNN48qb9PVQWOW_X_MXqAfzTHSaA"
 }
 ```
 
