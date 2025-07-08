@@ -17,6 +17,7 @@
     
     <!-- Supabase -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script type="module" src="/core/services/supabase-client.js"></script>
     
     <!-- Bootstrap JS for dropdowns -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
@@ -283,10 +284,10 @@
     <script type="module">
         // Import core modules
         import api from '/core/api-client.js';
+        import { supabase } from '/core/services/supabase-client.js';
         import headerComponent from '/core/header-component.js';
         import notificationSystem from '/core/notification-system.js';
         import modalSystem from '/core/modal-system.js';
-        import { supabase } from '/core/services/supabase-client.js';
         import supabaseTrackingService from '/core/services/supabase-tracking-service.js';
         import organizationApiKeysService from '/core/services/organization-api-keys-service.js';
         // Import ExportManager (might be a global or named export)
@@ -335,10 +336,6 @@
     </script>
     <script type="module" src="/core/auto-sync-system.js"></script>
 
-    <!-- Legacy Scripts -->
-    <script src="/core/auth.js"></script>
-    <script src="/core/auth-init.js"></script>
-    
     <!-- Load Export Manager (legacy) -->
     <script src="/core/export-manager.js"></script>
     

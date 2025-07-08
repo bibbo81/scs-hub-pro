@@ -17,15 +17,16 @@
     <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
     
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
+    <script type="module" src="/core/services/supabase-client.js"></script>
     
     <script type="module">
         // Import core modules IDENTICI a tracking.html
         import api from '/core/api-client.js';
+        import { supabase } from '/core/services/supabase-client.js';
         import headerComponent from '/core/header-component.js';
         import notificationSystem from '/core/notification-system.js';
         import modalSystem from '/core/modal-system.js';
         import organizationService from '/core/services/organization-service.js';
-        import { supabase } from '/core/services/supabase-client.js';
         import supabaseShipmentsService from '/core/services/supabase-shipments-service.js';
 
         // Make modules available globally
@@ -43,8 +44,6 @@
     
     <script src="/core/product-sync.js"></script>
 
-    <script src="/core/auth.js"></script>
-    <script src="/core/auth-init.js"></script>
     <script src="/core/import-manager.js"></script>
     <script src="/core/export-manager.js"></script>
     <script src="/core/product-linking-system-v20-1-final.js"></script>
