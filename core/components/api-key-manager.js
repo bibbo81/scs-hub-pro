@@ -33,7 +33,7 @@ export class ApiKeyManager {
                                     placeholder="Inserisci ShipsGo v1.2 API Key"
                                     value="${keys.shipsgo_v1 || ''}"
                                 >
-                                <button class="sol-btn sol-btn-sm sol-btn-glass" onclick="toggleApiKeyVisibility('shipsgoV1Key')">
+                                <button class="sol-btn sol-btn-sm sol-btn-glass" data-target-input="shipsgoV1Key">
                                     <i class="fas fa-eye"></i>
                                 </button>
                             </div>
@@ -55,7 +55,7 @@ export class ApiKeyManager {
                                     placeholder="Inserisci ShipsGo v2.0 User Token"
                                     value="${keys.shipsgo_v2 || ''}"
                                 >
-                                <button class="sol-btn sol-btn-sm sol-btn-glass" onclick="toggleApiKeyVisibility('shipsgoV2Token')">
+                                <button class="sol-btn sol-btn-sm sol-btn-glass" data-target-input="shipsgoV2Token">
                                     <i class="fas fa-eye"></i>
                                 </button>
                             </div>
