@@ -474,10 +474,18 @@
         // Check if already authenticated
         async function checkAuth() {
             const { data: { session } } = await supabase.auth.getSession();
-            if (session) {
-                // Already logged in, redirect to tracking
-                window.location.href = '/tracking.html';
+            if (!session) return;
+
+            const user = session.user;
+            const isDemo = user.email === 'demo@supplychainhub.com' || user.is_anonymous;
+
+            if (isDemo) {
+                await supabase.auth.signOut();
+                return;
             }
+
+            // Already logged in with a real account, redirect to tracking
+            window.location.href = '/tracking.html';
         }
         
         // Switch between login and register tabs
