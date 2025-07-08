@@ -59,3 +59,50 @@ python3 -m http.server 8000 --directory public
 
 # Open in browser
 open http://localhost:8000/tracking.html
+⚙️ Branch Workflow — feature/complete-update
+
+🚦 IMPORTANT: All development happens directly on the feature/complete-update branch to avoid unnecessary patch branches and PR merges.
+✅ How to work
+1️⃣ Always work on the branch:
+
+git checkout feature/complete-update
+git pull origin feature/complete-update
+2️⃣ Make your changes with Copilot/Codex or manually.
+
+3️⃣ Stage & commit:
+
+git add .
+git commit -m "feat: your description"
+4️⃣ Push directly:
+
+git push
+If needed, set upstream once:
+
+git push --set-upstream origin feature/complete-update
+🔒 Branch protection
+feature/complete-update is unprotected → direct commits allowed.
+main stays protected → merge only when stable.
+✅ Web UI commits
+When committing via GitHub web editor, always select:
+
+⭕ Commit directly to the feature/complete-update branch
+Never select:
+
+⭕ Create a new branch for this commit and start a pull request
+🚀 Deploy
+Production deploy is triggered when main is updated.
+
+Merge feature/complete-update to main when ready:
+
+git checkout main
+git pull origin main
+git merge feature/complete-update
+git push origin main
+⚡ Optional shortcut
+Add this alias:
+
+git config --global alias.pushfcu 'push origin feature/complete-update'
+Then:
+
+git pushfcu
+📌 Follow this flow → No patch branches → No redundant PRs → Smooth deploy 🚀
