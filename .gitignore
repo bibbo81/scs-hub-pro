@@ -50,3 +50,4 @@ git.status.txt
 *.backup
 *.bak.history/
 .history/
+*.patch

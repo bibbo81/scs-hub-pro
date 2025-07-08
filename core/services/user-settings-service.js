@@ -294,6 +294,65 @@ class UserSettingsService {
         }
     }
 
+    // Get complete settings object including plain API keys
+    async getAllSettings(forceRefresh = false) {
+        const settings = await this.getSettings(forceRefresh);
+        const apiKeys = await this.getAllApiKeys();
+        return {
+            ...settings,
+            api_keys: apiKeys
+        };
+    }
+
+    // Save a single preference category
+    async saveSetting(category, data) {
+        return this.savePreferences({ [category]: data });
+    }
+
+    // Reset preferences and API keys in Supabase
+    async resetAllSettings() {
+        try {
+            const user = await requireAuth();
+            const { data, error } = await supabase
+                .from('user_settings')
+                .update({
+                    api_keys: {},
+                    preferences: {},
+                    updated_at: new Date().toISOString()
+                })
+                .eq('user_id', user.id)
+                .select()
+                .single();
+
+            if (error) throw error;
+
+            this.cache = data;
+            return true;
+        } catch (error) {
+            console.error('Error resetting settings:', error);
+            return false;
+        }
+    }
+
+    // Delete user settings record from Supabase
+    async deleteAllData() {
+        try {
+            const user = await requireAuth();
+            const { error } = await supabase
+                .from('user_settings')
+                .delete()
+                .eq('user_id', user.id);
+
+            if (error) throw error;
+
+            this.cache = null;
+            return true;
+        } catch (error) {
+            console.error('Error deleting settings:', error);
+            return false;
+        }
+    }
+
     // 🔥 NUOVO: Metodo di debug per verificare lo stato
     async debugApiKeys() {
         if (!this.debugMode) return;
