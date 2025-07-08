@@ -50,7 +50,11 @@ async function loadRuntimeConfig() {
     }
 
     if (!supabaseUrl || !supabaseKey) {
-        throw new Error('Supabase configuration missing');
+        const message =
+            'Supabase credentials are not set. ' +
+            'Ensure SUPABASE_URL and SUPABASE_ANON_KEY are configured or copy ' +
+            'runtime-config.example.json to runtime-config.json.';
+        throw new Error(message);
     }
 }
 
