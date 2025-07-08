@@ -356,16 +356,16 @@ export class HeaderComponent {
                     let userInfo;
                     
                     if (user.email) {
-                        // Utente con email
-                        const name = user.email.split('@')[0];
+                        const name = window.authInit?.formatUserName(user) ||
+                                      user.email.split('@')[0];
                         userInfo = {
-                            name: name.charAt(0).toUpperCase() + name.slice(1),
+                            name,
                             email: user.email,
-                            initials: name.substring(0, 2).toUpperCase(),
+                            initials: window.authInit?.getUserInitials(name) ||
+                                      name.substring(0, 2).toUpperCase(),
                             isAnonymous: false
                         };
                     } else {
-                        // Utente anonimo
                         userInfo = {
                             name: 'Demo User',
                             email: 'demo@example.com',
