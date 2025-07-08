@@ -70,6 +70,11 @@ export const supabase = createClient(supabaseUrl, supabaseKey, {
     }
 });
 
+if (typeof window !== 'undefined') {
+    window.supabase = supabase;
+    window.supabaseClient = supabase; // for legacy code
+}
+
 // --- Helper e Funzioni di Supporto (Il tuo codice originale, mantenuto) ---
 
 export const requireAuth = async () => {
