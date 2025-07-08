@@ -2876,132 +2876,6 @@ MSCU7654321,PO-2024-002,22000,PI-2024-002,22000,CI-2024-002,22000,BL-2024-002,CI
        // Initialize ShipmentsPageV14 instance
        window.shipmentsPageV14 = new ShipmentsPageV14();
 
-       // Generate comprehensive sample data for BI insights
-       function generateComprehensiveSampleData() {
-           const carriers = [
-               { code: 'MAERSK', name: 'Maersk Line', service: 'AE7' },
-               { code: 'MSC', name: 'MSC', service: 'TIGER' },
-               { code: 'CMA', name: 'CMA CGM', service: 'COLUMBUS' },
-               { code: 'COSCO', name: 'COSCO Shipping', service: 'OCEAN ALLIANCE' },
-               { code: 'HAPAG', name: 'Hapag-Lloyd', service: 'AL1' }
-           ];
-           
-           const routes = [
-               { origin: { port: 'CNSHA', name: 'Shanghai', country: 'China' }, destination: { port: 'ITGOA', name: 'Genova', country: 'Italy' } },
-               { origin: { port: 'CNNBO', name: 'Ningbo', country: 'China' }, destination: { port: 'ITLIV', name: 'Livorno', country: 'Italy' } },
-               { origin: { port: 'CNQIN', name: 'Qingdao', country: 'China' }, destination: { port: 'ITLSP', name: 'La Spezia', country: 'Italy' } },
-               { origin: { port: 'CNXMN', name: 'Xiamen', country: 'China' }, destination: { port: 'ITNAP', name: 'Napoli', country: 'Italy' } },
-               { origin: { port: 'HKHKG', name: 'Hong Kong', country: 'Hong Kong' }, destination: { port: 'ITMXP', name: 'Milano Malpensa', country: 'Italy' } }
-           ];
-           
-           const statuses = ['planned', 'departed', 'in_transit', 'arrived', 'delivered'];
-           const types = ['container', 'awb', 'bl', 'lcl'];
-           
-           const sampleShipments = [];
-           
-           // Generate shipments for the last 12 months
-           for (let month = 11; month >= 0; month--) {
-               const shipmentsThisMonth = Math.floor(Math.random() * 15) + 8; // 8-22 shipments per month
-               
-               for (let i = 0; i < shipmentsThisMonth; i++) {
-                   const date = new Date();
-                   date.setMonth(date.getMonth() - month);
-                   date.setDate(Math.floor(Math.random() * 28) + 1);
-                   
-                   const carrier = carriers[Math.floor(Math.random() * carriers.length)];
-                   const route = routes[Math.floor(Math.random() * routes.length)];
-                   const type = types[Math.floor(Math.random() * types.length)];
-                   const status = statuses[Math.floor(Math.random() * statuses.length)];
-                   
-                   // Generate realistic cost variations
-                   const baseCost = 2800 + (Math.random() * 1500); // 2800-4300 base
-                   const seasonalMultiplier = 1 + (Math.sin((month - 2) * Math.PI / 6) * 0.15); // Seasonal variation
-                   const carrierMultiplier = carrier.code === 'MAERSK' ? 1.1 : carrier.code === 'MSC' ? 0.95 : 1.0;
-                   
-                   const totalCost = Math.round(baseCost * seasonalMultiplier * carrierMultiplier);
-                   
-                   // Calculate ETD/ETA with realistic delays
-                   const etd = new Date(date);
-                   etd.setDate(etd.getDate() + Math.floor(Math.random() * 10) + 5);
-                   
-                   const estimatedTransit = 25 + Math.floor(Math.random() * 15); // 25-40 days
-                   const eta = new Date(etd);
-                   eta.setDate(eta.getDate() + estimatedTransit);
-                   
-                   // Actual arrival with 20% chance of delay
-                   let ata = null;
-                   if (['arrived', 'delivered'].includes(status)) {
-                       ata = new Date(eta);
-                       if (Math.random() < 0.2) { // 20% delayed
-                           ata.setDate(ata.getDate() + Math.floor(Math.random() * 7) + 1); // 1-7 days delay
-                       }
-                   }
-                   
-                   const shipment = {
-                       id: `SHIP-2024-${String(Date.now() + i).slice(-6)}`,
-                       shipmentNumber: `${carrier.code}${String(Math.floor(Math.random() * 9000000) + 1000000)}`,
-                       type: type,
-                       carrier: carrier,
-                       route: {
-                           ...route,
-                           via: Math.random() > 0.5 ? ['SGSIN'] : [],
-                           distance: 18000 + Math.floor(Math.random() * 5000),
-                           estimatedTransit: estimatedTransit
-                       },
-                       schedule: {
-                           etd: etd.toISOString().split('T')[0],
-                           eta: eta.toISOString().split('T')[0],
-                           atd: ['departed', 'in_transit', 'arrived', 'delivered'].includes(status) ? etd.toISOString().split('T')[0] : null,
-                           ata: ata ? ata.toISOString().split('T')[0] : null
-                       },
-                       products: [], // Add products separately if needed
-                       costs: {
-                           oceanFreight: Math.round(totalCost * 0.7),
-                           bunkerSurcharge: Math.round(totalCost * 0.15),
-                           portCharges: Math.round(totalCost * 0.08),
-                           customs: Math.round(totalCost * 0.04),
-                           insurance: Math.round(totalCost * 0.03),
-                           total: totalCost,
-                           currency: 'EUR'
-                       },
-                       status: status,
-                       createdAt: date.toISOString(),
-                       updatedAt: new Date().toISOString()
-                   };
-                   
-                   sampleShipments.push(shipment);
-               }
-           }
-           
-           return sampleShipments;
-       }
-
-       // Ensure sample data exists for meaningful BI insights
-       async function ensureSampleData() {
-           if (!window.shipmentsRegistry) return;
-           
-           // Check if we have enough data for meaningful insights
-           const shipments = window.shipmentsRegistry.shipments || [];
-           
-           if (shipments.length < 10) {
-               console.log('📊 Adding sample data for Executive BI Dashboard...');
-               
-               // Generate more comprehensive sample data
-               const sampleShipments = generateComprehensiveSampleData();
-               
-               // Add to registry
-               for (const shipment of sampleShipments) {
-                   window.shipmentsRegistry.shipments.push(shipment);
-               }
-               
-               // Save to localStorage
-               window.shipmentsRegistry.saveShipments();
-               
-               console.log(`✅ Added ${sampleShipments.length} sample shipments for BI analysis`);
-           }
-       }
-
-       // Enhanced KPI update function with BI insights
        function updateKPIs(shipments) {
            if (!shipments || shipments.length === 0) return;
            
@@ -3104,9 +2978,6 @@ MSCU7654321,PO-2024-002,22000,PI-2024-002,22000,CI-2024-002,22000,BL-2024-002,CI
            
            // Setup documents integration
            setupDocumentsIntegration();
-           
-           // Add sample data if none exists
-           await ensureSampleData();
            
            console.log('✅ Enhanced Shipments Registry with Executive BI initialized');
        });
@@ -4641,8 +4512,6 @@ MSCU7654321,container,in_transit,MSC,MSC,TIGER,CNNBO,Ningbo,ITLIV,Livorno,SGSIN,
                    // Setup documents integration
                    setupDocumentsIntegration();
                    
-                   // Add sample data if needed
-                   await ensureSampleData();
                    
                    // Show success notification
                    if (window.NotificationSystem) {
