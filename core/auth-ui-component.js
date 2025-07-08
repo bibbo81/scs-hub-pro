@@ -9,7 +9,7 @@ class AuthUIComponent {
         this.initialized = false;
         
         // Determina quale sistema auth usare
-        this.useSupabase = !!window.supabaseClient;
+        this.useSupabase = !!(window.supabase || window.supabaseClient);
         this.authSystem = null;
         
         this.init();
