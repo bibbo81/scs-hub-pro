@@ -27,6 +27,7 @@
     import notificationSystem from '/core/notification-system.js';
     import modalSystem from '/core/modal-system.js';
     import organizationService from '/core/services/organization-service.js';
+    import TableManager from '/core/table-manager.js';
     
     // Make organization service available globally
     window.organizationService = organizationService;
@@ -35,6 +36,18 @@
         window.headerComponent = headerComponent;
         window.NotificationSystem = notificationSystem;
         window.ModalSystem = modalSystem;
+        window.TableManager = TableManager;
+
+        window.registerTableManager = function(id, instance) {
+            if (!window.tableManagers) {
+                window.tableManagers = {};
+            }
+            window.tableManagers[id] = instance;
+        };
+
+        window.getTableManager = function(id) {
+            return window.tableManagers?.[id];
+        };
     </script>
     
     <!-- STESSI Legacy Scripts -->
@@ -43,6 +56,9 @@
     
     <!-- Phase 2 Architecture -->
     <script src="/phase2-architecture.js"></script>
+
+    <!-- SortableJS for column drag/drop -->
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
     
     <!-- Products page specific script -->
 <script type="module" src="/pages/products/index.js"></script>
@@ -143,15 +159,7 @@
                 <div class="sol-card-header">
                     <h3 class="sol-card-title">Product Management</h3>
                     <div class="sol-card-filters">
-                        <<div class="view-toggle-buttons">
-    <button class="sol-btn sol-btn-glass active" id="viewGridBtn" onclick="window.productIntelligenceSystem.toggleViewMode('grid')">
-        <i class="fas fa-th"></i> Grid
-    </button>
-    <button class="sol-btn sol-btn-glass" id="viewListBtn" onclick="window.productIntelligenceSystem.toggleViewMode('list')">
-        <i class="fas fa-list"></i> List
-    </button>
-</div>
-                        </div>
+
                         <select class="sol-select" id="categoryFilter">
                             <option value="">All Categories</option>
                             <option value="electronics">Electronics</option>
@@ -178,32 +186,9 @@
                 </div>
             </div>
 
-            <!-- Products Grid View -->
-            <div id="productsGrid" class="products-intelligence-grid">
-                <!-- Populated by JS -->
-            </div>
-
             <!-- Products List View -->
-            <div id="productsList" class="products-intelligence-list" style="display: none;">
-                <div class="products-list-table">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Product</th>
-                                <th>SKU</th>
-                                <th>Category</th>
-                                <th class="text-right">Shipping Cost</th>
-                                <th class="text-right">Cost Trend</th>
-                                <th class="text-right">Monthly Volume</th>
-                                <th class="text-right">Profit Impact</th>
-                                <th class="text-right">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody id="productsListBody">
-                            <!-- Populated by JS -->
-                        </tbody>
-                    </table>
-                </div>
+            <div id="productsList" class="products-intelligence-list">
+                <div id="productsTableContainer"></div>
             </div>
         </div>
 

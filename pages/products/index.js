@@ -4,8 +4,121 @@
 import organizationService from '/core/services/organization-service.js';
 import { importWizard } from '/core/import-wizard.js';
 import { supabase } from '/core/services/supabase-client.js';
+import TableManager from '/core/table-manager.js';
+window.supabase = supabase;
 importWizard.setSupabaseClient(supabase);
 console.log('[DEBUG] Supabase client in wizard:', window.importWizard.supabase);
+
+// Column configuration
+export const AVAILABLE_COLUMNS = [
+    { key: 'sku', label: 'SKU', sortable: true, required: true },
+    { key: 'name', label: 'Product Name', sortable: true, required: true },
+    { key: 'category', label: 'Category', sortable: true },
+    { key: 'avgShippingCost', label: 'Avg Shipping Cost', sortable: true },
+    { key: 'costTrend', label: 'Cost Trend', sortable: true },
+    { key: 'totalUnitsShipped', label: 'Units Shipped', sortable: true },
+    { key: 'profitImpact', label: 'Profit Impact', sortable: true },
+    { key: 'statusBadge', label: 'Status', sortable: false },
+    { key: 'actions', label: 'Actions', sortable: false }
+];
+
+// Expose available columns to other modules
+window.AVAILABLE_COLUMNS = AVAILABLE_COLUMNS;
+
+export const DEFAULT_VISIBLE_COLUMNS = [
+    'sku', 'name', 'category', 'avgShippingCost', 'costTrend',
+    'totalUnitsShipped', 'profitImpact', 'statusBadge', 'actions'
+];
+// Provide default visible columns globally for consistency
+window.DEFAULT_VISIBLE_COLUMNS = DEFAULT_VISIBLE_COLUMNS;
+
+export const TABLE_COLUMNS = [
+    {
+        key: 'sku',
+        label: 'SKU',
+        sortable: true,
+        formatter: (v) => `<span class="font-mono">${v || ''}</span>`
+    },
+    {
+        key: 'name',
+        label: 'PRODUCT NAME',
+        sortable: true,
+        formatter: (v, row) => {
+            const desc = row.description ? `<small class="text-muted">${row.description.substring(0,50)}...</small>` : '';
+            return `<div class="product-name-cell"><strong>${v || ''}</strong>${desc}</div>`;
+        }
+    },
+    {
+        key: 'category',
+        label: 'CATEGORY',
+        sortable: true,
+        formatter: (v) => `<span class="category-badge category-${v}">${v}</span>`
+    },
+    {
+        key: 'avgShippingCost',
+        label: 'SHIPPING COST',
+        sortable: true,
+        formatter: (v) => `<strong>${(v || 0).toFixed(2)}</strong>`
+    },
+    {
+        key: 'costTrend',
+        label: 'COST TREND',
+        sortable: true,
+        formatter: (v, row) => {
+            const icon = v === 'increasing' ? 'fa-arrow-up' : v === 'decreasing' ? 'fa-arrow-down' : 'fa-minus';
+            const cls = v === 'increasing' ? 'negative' : v === 'decreasing' ? 'positive' : 'stable';
+            const pct = Math.abs(row.costTrendPercentage || 0).toFixed(1);
+            return `<div class="cost-trend-cell ${cls}"><i class="fas ${icon}"></i> ${pct}%</div>`;
+        }
+    },
+    {
+        key: 'totalUnitsShipped',
+        label: 'UNITS SHIPPED',
+        sortable: true,
+        formatter: (v) => (v || 0).toLocaleString()
+    },
+    {
+        key: 'profitImpact',
+        label: 'PROFIT IMPACT',
+        sortable: true,
+        formatter: (v) => `<span class="profit-impact ${v >= 0 ? 'positive' : 'negative'}">${(v >= 0 ? '+' : '') + (v / 1000).toFixed(0)}K</span>`
+    },
+    {
+        key: 'statusBadge',
+        label: 'STATUS',
+        sortable: false,
+        formatter: (v, row) => `<span class="sol-badge ${row.statusClass}">${v}</span>`
+    },
+    {
+        key: 'actions',
+        label: 'ACTIONS',
+        sortable: false,
+        formatter: (v, row) => {
+            return `<div class="table-actions">` +
+                   `<button class="sol-btn sol-btn-sm sol-btn-glass" onclick="viewProductDetails('${row.id}')" title="View Analytics"><i class="fas fa-chart-area"></i></button>` +
+                   `<button class="sol-btn sol-btn-sm sol-btn-glass" onclick="editProduct('${row.id}')" title="Edit Product"><i class="fas fa-edit"></i></button>` +
+                   `<button class="sol-btn sol-btn-sm sol-btn-glass" onclick="showProductMenu('${row.id}', event)" title="More Options"><i class="fas fa-ellipsis-v"></i></button>` +
+                   `</div>`;
+        }
+    }
+];
+
+// Provide table column config globally
+window.TABLE_COLUMNS = TABLE_COLUMNS;
+
+let tableManager = null;
+
+function loadColumnPreferences() {
+    const saved = localStorage.getItem('productVisibleColumns');
+    if (saved) {
+        try {
+            const order = JSON.parse(saved);
+            TABLE_COLUMNS.sort((a, b) => order.indexOf(a.key) - order.indexOf(b.key));
+        } catch (e) {
+            console.error('Error loading column preferences:', e);
+        }
+    }
+}
 
 class ProductIntelligenceSystem {
     constructor() {
@@ -13,7 +126,6 @@ class ProductIntelligenceSystem {
     this.analytics = {};
     this.recommendations = [];
     this.organizationId = null;
-    this.viewMode = 'grid';
     this.sortColumn = 'name';
     this.sortDirection = 'asc';
     this.activeFilters = {
@@ -71,11 +183,6 @@ initializeEventHandlers() {
         costTrendFilter.addEventListener('change', () => this.filterProducts());
     }
 
-    // Bottone: vista griglia/lista (se presente)
-    const gridBtn = document.getElementById('viewGridBtn');
-    const listBtn = document.getElementById('viewListBtn');
-    if (gridBtn) gridBtn.onclick = () => this.toggleViewMode();
-    if (listBtn) listBtn.onclick = () => this.toggleViewMode();
 }
 
 showStatus(message, type = 'info', duration = 3000) {
@@ -150,6 +257,35 @@ showStatus(message, type = 'info', duration = 3000) {
 
     window.importWizard.events.addEventListener('importComplete', async () => {
         this.showStatus('Import successful! Refreshing data...', 'success');
+
+        // Add any new headers as optional columns
+        try {
+            const headers = Array.isArray(window.importWizard.headers)
+                ? window.importWizard.headers
+                : [];
+            if (window.AVAILABLE_COLUMNS && headers.length) {
+                headers.forEach(header => {
+                    if (!window.AVAILABLE_COLUMNS.find(c => c.key === header)) {
+                        window.AVAILABLE_COLUMNS.push({
+                            key: header,
+                            label: header,
+                            sortable: true
+                        });
+                    }
+                });
+
+                // Refresh column editor and update table if available
+                if (typeof window.refreshColumnEditor === 'function') {
+                    window.refreshColumnEditor();
+                }
+                if (typeof window.updateTable === 'function') {
+                    window.updateTable();
+                }
+            }
+        } catch (e) {
+            console.error('Error updating columns from import:', e);
+        }
+
         await this.loadData();
         this.renderProducts();
         this.renderIntelligenceStats && this.renderIntelligenceStats();
@@ -174,6 +310,29 @@ showStatus(message, type = 'info', duration = 3000) {
             profitImpact: (currentMargin - targetMargin) * value,
             status: currentMargin >= targetMargin ? 'ok' : 'alert'
         };
+    }
+
+    getEmptyAnalytics() {
+        return {
+            totalShipments: 0,
+            totalUnitsShipped: 0,
+            avgShippingCost: 0,
+            costTrend: "stable",
+            costTrendPercentage: 0,
+            bestRoute: "N/A",
+            worstRoute: "N/A",
+            routeComparison: {},
+            profitImpact: 0,
+            performance: {
+                costEfficiency: 0,
+                routeOptimization: 0,
+                seasonalOptimization: 0
+            }
+        };
+    }
+
+    getAnalytics(productId) {
+        return this.analytics?.[productId] || this.getEmptyAnalytics();
     }
 
     generateRecommendations() {
@@ -296,6 +455,15 @@ showStatus(message, type = 'info', duration = 3000) {
         });
         return filteredProducts;
     }
+
+    getSortIcon(column) {
+        if (this.sortColumn !== column) {
+            return '<i class="fas fa-sort"></i>';
+        }
+        return this.sortDirection === 'asc'
+            ? '<i class="fas fa-sort-up"></i>'
+            : '<i class="fas fa-sort-down"></i>';
+    }
     // --- RENDERING ---
     renderIntelligenceStats() {
         const statsContainer = document.getElementById('intelligenceStats');
@@ -331,256 +499,75 @@ showStatus(message, type = 'info', duration = 3000) {
 
     // RENDERING PRINCIPALE
     renderProducts() {
-        const productsGrid = document.getElementById('productsGrid');
-        if (!productsGrid) return;
-        if (this.viewMode === 'grid') {
-            productsGrid.className = 'products-intelligence-grid';
-            productsGrid.innerHTML = this.renderProductsGrid();
-        } else {
-            productsGrid.className = 'products-intelligence-list';
-            productsGrid.innerHTML = this.renderProductsList();
-        }
-    }
+        const container = document.getElementById('productsTableContainer');
+        if (!container) return;
 
-    renderProductsGrid() {
-    const safe = (value, fallback = '') => value !== undefined && value !== null ? value : fallback;
-    // Usa getFilteredAndSortedProducts per filtrare come in lista (così i filtri funzionano!)
-    const products = this.getFilteredAndSortedProducts();
+        const products = this.getFilteredAndSortedProducts().map(p => {
+            const analytics = this.getAnalytics(p.id);
 
-    if (products.length === 0) {
-        return `
-            <div class="empty-state">
-                <i class="fas fa-search fa-3x text-muted"></i>
-                <h3>No products found</h3>
-                <p>Try adjusting your filters or search criteria</p>
-                <button class="sol-btn sol-btn-primary" onclick="window.productIntelligenceSystem.clearFilters()">
-                    Clear Filters
-                </button>
-            </div>
-        `;
-    }
+            let statusBadge = 'TRACKED';
+            let statusClass = 'sol-badge-secondary';
+            if (Math.abs(analytics.profitImpact || 0) > 10000) {
+                statusBadge = 'HIGH IMPACT';
+                statusClass = 'sol-badge-danger';
+            } else if ((analytics.performance?.costEfficiency || 0) > 85) {
+                statusBadge = 'OPTIMIZED';
+                statusClass = 'sol-badge-success';
+            }
 
-    return products.map(product => {
-        // Fallback su oggetto vuoto per tutti i campi potenzialmente assenti
-        const analytics = this.analytics?.[product.id] || this.getEmptyAnalytics();
-        const costTrendIcon = analytics.costTrend === 'increasing' ? 'fa-arrow-up' : 
-                            analytics.costTrend === 'decreasing' ? 'fa-arrow-down' : 'fa-minus';
-        const costTrendClass = analytics.costTrend === 'increasing' ? 'negative' : 
-                            analytics.costTrend === 'decreasing' ? 'positive' : 'stable';
+            return {
+                ...p,
+                avgShippingCost: analytics.avgShippingCost,
+                costTrend: analytics.costTrend,
+                costTrendPercentage: analytics.costTrendPercentage,
+                totalUnitsShipped: analytics.totalUnitsShipped,
+                profitImpact: analytics.profitImpact,
+                statusBadge,
+                statusClass
+            };
+        });
 
-        // Badge robusto
-        let badgeClass = '';
-        let badgeText = 'TRACKED';
-        if (Math.abs(safe(analytics.profitImpact, 0)) > 10000) {
-            badgeClass = 'high-impact';
-            badgeText = 'HIGH IMPACT';
-        } else if (safe(analytics.performance?.costEfficiency, 0) > 85) {
-            badgeClass = 'optimized';
-            badgeText = 'OPTIMIZED';
+        if (!tableManager) {
+            tableManager = new TableManager('productsTableContainer', {
+                columns: TABLE_COLUMNS,
+                enableColumnDrag: true,
+                enableColumnManager: true,
+                searchable: false,
+                selectable: false,
+                paginate: true,
+                pageSize: 20
+            });
+            window.tableManager = tableManager;
+            window.registerTableManager('productsTableContainer', tableManager);
         }
 
-        return `
-            <div class="product-intelligence-card" data-product-id="${safe(product.id)}">
-                <div class="intelligence-badge ${badgeClass}">${badgeText}</div>
-                
-                <div class="product-card-header">
-                    <div class="product-info">
-                        <div class="product-sku">${safe(product.sku)}</div>
-                        <h4 class="product-name">${safe(product.name)}</h4>
-                        <p class="product-category">${safe(product.category)}</p>
-                    </div>
-                    <div class="cost-indicator">
-                        <span class="cost-value">${safe(analytics.avgShippingCost, 0).toFixed(2)}</span>
-                        <div class="cost-trend ${costTrendClass}">
-                            <i class="fas ${costTrendIcon}"></i>
-                            ${Math.abs(safe(analytics.costTrendPercentage, 0)).toFixed(1)}%
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="product-metrics">
-                    <div class="metric-item">
-                        <span class="metric-label">Units Shipped</span>
-                        <span class="metric-value">${safe(analytics.totalUnitsShipped, 0).toLocaleString()}</span>
-                    </div>
-                    <div class="metric-item">
-                        <span class="metric-label">Shipments</span>
-                        <span class="metric-value">${safe(analytics.totalShipments, 0)}</span>
-                    </div>
-                    <div class="metric-item">
-                        <span class="metric-label">Profit Impact</span>
-                        <span class="metric-value ${safe(analytics.profitImpact, 0) >= 0 ? 'positive' : 'negative'}">
-                            ${(safe(analytics.profitImpact, 0) >= 0 ? '+' : '') + (safe(analytics.profitImpact, 0) / 1000).toFixed(0)}K
-                        </span>
-                    </div>
-                </div>
-                
-                <div class="product-actions">
-                    <button class="sol-btn sol-btn-secondary" onclick="viewProductDetails('${safe(product.id)}')">
-                        <i class="fas fa-chart-area"></i> Analytics
-                    </button>
-                    <button class="sol-btn sol-btn-primary" onclick="editProduct('${safe(product.id)}')">
-                        <i class="fas fa-edit"></i> Edit
-                    </button>
-                    <button class="sol-btn sol-btn-glass" onclick="showProductMenu('${safe(product.id)}', event)">
-                        <i class="fas fa-ellipsis-v"></i>
-                    </button>
-                </div>
-            </div>
-        `;
-    }).join('');
-}
-    renderProductsList() {
-    const products = this.getFilteredAndSortedProducts();
-
-    if (products.length === 0) {
-        return `
-            <div class="empty-state">
-                <i class="fas fa-search fa-3x text-muted"></i>
-                <h3>No products found</h3>
-                <p>Try adjusting your filters or search criteria</p>
-                <button class="sol-btn sol-btn-primary" onclick="window.productIntelligenceSystem.clearFilters()">
-                    Clear Filters
-                </button>
-            </div>
-        `;
+        tableManager.setData(products);
     }
-
-    const tableHTML = `
-        <div class="products-list-table">
-            <table class="sol-table">
-                <thead>
-                    <tr>
-                        <th class="sortable" onclick="window.productIntelligenceSystem.sortProducts('sku')">
-                            SKU ${this.getSortIcon('sku')}
-                        </th>
-                        <th class="sortable" onclick="window.productIntelligenceSystem.sortProducts('name')">
-                            Product Name ${this.getSortIcon('name')}
-                        </th>
-                        <th class="sortable" onclick="window.productIntelligenceSystem.sortProducts('category')">
-                            Category ${this.getSortIcon('category')}
-                        </th>
-                        <th class="sortable" onclick="window.productIntelligenceSystem.sortProducts('shippingCost')">
-                            Avg Shipping Cost ${this.getSortIcon('shippingCost')}
-                        </th>
-                        <th class="sortable" onclick="window.productIntelligenceSystem.sortProducts('costTrend')">
-                            Cost Trend ${this.getSortIcon('costTrend')}
-                        </th>
-                        <th class="sortable" onclick="window.productIntelligenceSystem.sortProducts('unitsShipped')">
-                            Units Shipped ${this.getSortIcon('unitsShipped')}
-                        </th>
-                        <th class="sortable" onclick="window.productIntelligenceSystem.sortProducts('profitImpact')">
-                            Profit Impact ${this.getSortIcon('profitImpact')}
-                        </th>
-                        <th>Status</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    ${products.map(product => this.renderProductRow(product)).join('')}
-                </tbody>
-            </table>
-        </div>
-    `;
-
-    return tableHTML;
-}
-   renderProductRow(product) {
-    const safe = (v, fallback = '') => v !== undefined && v !== null ? v : fallback;
-    const analytics = this.analytics?.[product.id] || this.getEmptyAnalytics();
-    const costTrendIcon = analytics.costTrend === 'increasing' ? 'fa-arrow-up' : 
-                         analytics.costTrend === 'decreasing' ? 'fa-arrow-down' : 'fa-minus';
-    const costTrendClass = analytics.costTrend === 'increasing' ? 'negative' : 
-                          analytics.costTrend === 'decreasing' ? 'positive' : 'stable';
-
-    let statusBadge = 'TRACKED';
-    let statusClass = 'sol-badge-secondary';
-    if (Math.abs(safe(analytics.profitImpact, 0)) > 10000) {
-        statusBadge = 'HIGH IMPACT';
-        statusClass = 'sol-badge-danger';
-    } else if (safe(analytics.performance?.costEfficiency, 0) > 85) {
-        statusBadge = 'OPTIMIZED';
-        statusClass = 'sol-badge-success';
-    }
-
-    return `
-        <tr data-product-id="${safe(product.id)}">
-            <td class="font-mono">${safe(product.sku)}</td>
-            <td>
-                <div class="product-name-cell">
-                    <strong>${safe(product.name)}</strong>
-                    ${product.description ? `<small class="text-muted">${safe(product.description).substring(0, 50)}...</small>` : ''}
-                </div>
-            </td>
-            <td>
-                <span class="category-badge category-${safe(product.category)}">
-                    ${safe(product.category)}
-                </span>
-            </td>
-            <td>
-                <strong>${safe(analytics.avgShippingCost, 0).toFixed(2)}</strong>
-            </td>
-            <td>
-                <div class="cost-trend-cell ${costTrendClass}">
-                    <i class="fas ${costTrendIcon}"></i>
-                    ${Math.abs(safe(analytics.costTrendPercentage, 0)).toFixed(1)}%
-                </div>
-            </td>
-            <td class="text-right">
-                ${safe(analytics.totalUnitsShipped, 0).toLocaleString()}
-            </td>
-            <td>
-                <span class="profit-impact ${safe(analytics.profitImpact, 0) >= 0 ? 'positive' : 'negative'}">
-                    ${(safe(analytics.profitImpact, 0) >= 0 ? '+' : '') + (safe(analytics.profitImpact, 0) / 1000).toFixed(0)}K
-                </span>
-            </td>
-            <td>
-                <span class="sol-badge ${statusClass}">${statusBadge}</span>
-            </td>
-            <td>
-                <div class="table-actions">
-                    <button class="sol-btn sol-btn-sm sol-btn-glass" 
-                            onclick="viewProductDetails('${safe(product.id)}')" 
-                            title="View Analytics">
-                        <i class="fas fa-chart-area"></i>
-                    </button>
-                    <button class="sol-btn sol-btn-sm sol-btn-glass" 
-                            onclick="editProduct('${safe(product.id)}')"
-                            title="Edit Product">
-                        <i class="fas fa-edit"></i>
-                    </button>
-                    <button class="sol-btn sol-btn-sm sol-btn-glass" 
-                            onclick="showProductMenu('${safe(product.id)}', event)"
-                            title="More Options">
-                        <i class="fas fa-ellipsis-v"></i>
-                    </button>
-                </div>
-            </td>
-        </tr>
-    `;
-}
-
     // --- FORM ---
     getProductFormHTML(product = null) {
         const isEdit = product !== null;
-        const data = product || {
-            sku: '',
-            name: '',
-            category: 'electronics',
-            description: '',
+        const data = {
+            sku: product?.sku ?? '',
+            name: product?.name ?? '',
+            category: product?.category ?? 'electronics',
+            description: product?.description ?? '',
             specifications: {
-                weight: 0,
-                dimensions: { length: 0, width: 0, height: 0 },
-                value: 0,
-                hsCode: '',
-                fragile: false,
-                hazardous: false
+                weight: product?.specifications?.weight ?? 0,
+                dimensions: {
+                    length: product?.specifications?.dimensions?.length ?? 0,
+                    width: product?.specifications?.dimensions?.width ?? 0,
+                    height: product?.specifications?.dimensions?.height ?? 0,
+                },
+                value: product?.specifications?.value ?? 0,
+                hsCode: product?.specifications?.hsCode ?? '',
+                fragile: product?.specifications?.fragile ?? false,
+                hazardous: product?.specifications?.hazardous ?? false
             },
             costTracking: {
-                baseCost: 0,
-                targetMargin: 0.30,
-                shippingBudget: 0,
-                currencyCode: 'USD'
+                baseCost: product?.costTracking?.baseCost ?? 0,
+                targetMargin: product?.costTracking?.targetMargin ?? 0.30,
+                shippingBudget: product?.costTracking?.shippingBudget ?? 0,
+                currencyCode: product?.costTracking?.currencyCode ?? 'USD'
             }
         };
         return `
@@ -824,17 +811,17 @@ showStatus(message, type = 'info', duration = 3000) {
     // MODALE ANALYTICS/DETAILS
     showProductDetails(productId) {
         const product = this.products.find(p => p.id === productId);
-    const analytics = this.analytics[productId];
+        const analytics = this.getAnalytics(productId);
 
-    if (!product || !analytics) {
-        this.showStatus('Product not found', 'error');
-        return;
-    }
-    if (!window.ModalSystem) {
-        this.showStatus('Modal system not available', 'error');
-        return;
-    }
-         window.ModalSystem.show({
+        if (!product) {
+            this.showStatus('Product not found', 'error');
+            return;
+        }
+        if (!window.ModalSystem) {
+            this.showStatus('Modal system not available', 'error');
+            return;
+        }
+        window.ModalSystem.show({
         title: 'Product Intelligence Details',
         content: `
             <div class="product-details-modal">
@@ -946,12 +933,77 @@ showStatus(message, type = 'info', duration = 3000) {
     });
 }
 
-    // CONTEXT MENU/BASIC EXPORT
+    // Show a simple context menu for product actions
     showProductMenu(productId, event) {
-    event && event.stopPropagation && event.stopPropagation();
-    // Puoi customizzare con un context menu reale
-    this.showStatus('Product menu - coming soon!', 'info');
-}
+        event && event.preventDefault && event.preventDefault();
+        event && event.stopPropagation && event.stopPropagation();
+
+        // Remove any existing menu
+        const existing = document.getElementById('productContextMenu');
+        if (existing) existing.remove();
+
+        const actions = [
+            { label: 'View Details', handler: () => this.showProductDetails(productId) },
+            { label: 'Edit Product', handler: () => this.showEditProductModal(productId) },
+            { separator: true },
+            { label: 'Delete Product', handler: () => this.deleteProduct(productId), class: 'danger' }
+        ];
+
+        // Basic menu element
+        const menu = document.createElement('div');
+        menu.id = 'productContextMenu';
+        menu.className = 'sol-context-menu';
+
+        const list = document.createElement('ul');
+        menu.appendChild(list);
+
+        actions.forEach(item => {
+            if (item.separator) {
+                const sep = document.createElement('li');
+                sep.className = 'separator';
+                list.appendChild(sep);
+                return;
+            }
+            const li = document.createElement('li');
+            li.textContent = item.label;
+            if (item.class) li.classList.add(item.class);
+            li.onclick = () => {
+                item.handler();
+                hideMenu();
+            };
+            list.appendChild(li);
+        });
+
+        // Position menu
+        menu.style.position = 'absolute';
+        menu.style.top = `${event.clientY}px`;
+        menu.style.left = `${event.clientX}px`;
+        menu.style.zIndex = 1000;
+
+        document.body.appendChild(menu);
+
+        // Hide handler
+        function hideMenu() {
+            menu.remove();
+            document.removeEventListener('click', hideMenu);
+        }
+        setTimeout(() => document.addEventListener('click', hideMenu));
+
+        // Inject minimal styles if not present
+        if (!document.getElementById('productContextMenuStyle')) {
+            const style = document.createElement('style');
+            style.id = 'productContextMenuStyle';
+            style.textContent = `
+                .sol-context-menu { background: #fff; border: 1px solid #ccc; border-radius: 4px; box-shadow: 0 2px 6px rgba(0,0,0,0.15); }
+                .sol-context-menu ul { list-style: none; margin: 0; padding: 4px 0; }
+                .sol-context-menu li { padding: 6px 12px; cursor: pointer; font-size: 14px; }
+                .sol-context-menu li.separator { margin: 4px 0; border-top: 1px solid #eee; pointer-events: none; }
+                .sol-context-menu li.danger { color: #d9534f; }
+                .sol-context-menu li:hover { background: #f5f5f5; }
+            `;
+            document.head.appendChild(style);
+        }
+    }
 
   exportAnalytics() {
         // Export all analytics data as JSON
@@ -974,21 +1026,7 @@ showStatus(message, type = 'info', duration = 3000) {
         this.showStatus('Analytics exported successfully', 'success');
     }
 
-    toggleViewMode() {
-        this.viewMode = this.viewMode === 'grid' ? 'list' : 'grid';
-        this.renderProducts();
-        const gridBtn = document.getElementById('viewGridBtn');
-        const listBtn = document.getElementById('viewListBtn');
-        if (gridBtn && listBtn) {
-            if (this.viewMode === 'grid') {
-                gridBtn.classList.add('active');
-                listBtn.classList.remove('active');
-            } else {
-                gridBtn.classList.remove('active');
-                listBtn.classList.add('active');
-            }
-        }
-    }
+
 
 } // END CLASS
 
@@ -996,6 +1034,7 @@ showStatus(message, type = 'info', duration = 3000) {
 window.productIntelligenceSystem = new ProductIntelligenceSystem();
 
 document.addEventListener('DOMContentLoaded', () => {
+    loadColumnPreferences();
     const productSystem = window.productIntelligenceSystem;
     productSystem.init();
 });
@@ -1034,6 +1073,118 @@ window.deleteProduct = function(productId) {
         confirmClass: 'sol-btn-danger',
         onConfirm: () => window.productIntelligenceSystem.deleteProduct(productId)
     });
+};
+
+// Column editor helpers
+window.showColumnEditor = function() {
+    if (!window.ModalSystem) return;
+
+    const currentVisible = tableManager?.options?.columns?.filter(c => !c.hidden).map(c => c.key) || DEFAULT_VISIBLE_COLUMNS;
+
+    const content = `
+        <div class="column-editor">
+            <div class="column-editor-header">
+                <p>Select the columns to display and drag to reorder</p>
+                <div class="column-actions">
+                    <button class="sol-btn sol-btn-sm sol-btn-glass" onclick="selectAllColumns()">Select All</button>
+                    <button class="sol-btn sol-btn-sm sol-btn-glass" onclick="resetDefaultColumns()">Reset Default</button>
+                </div>
+            </div>
+            <div class="column-list" id="columnEditorList">
+                ${AVAILABLE_COLUMNS.map(col => `
+                    <div class="column-item ${col.required ? 'required' : ''}" data-column="${col.key}" draggable="${!col.required}">
+                        <div class="column-drag-handle"><i class="fas fa-grip-vertical"></i></div>
+                        <label class="column-checkbox">
+                            <input type="checkbox" value="${col.key}" ${currentVisible.includes(col.key) ? 'checked' : ''} ${col.required ? 'disabled' : ''} onchange="updateColumnPreview()">
+                            <span class="column-label">${col.label}</span>
+                            ${col.required ? '<span class="badge badge-info ml-2">Required</span>' : ''}
+                        </label>
+                    </div>
+                `).join('')}
+            </div>
+            <div class="column-preview mt-3">
+                <small class="text-muted"><span id="selectedColumnsCount">${currentVisible.length}</span> columns selected</small>
+            </div>
+        </div>
+    `;
+
+    window.ModalSystem.show({
+        title: 'Column Manager',
+        content: content,
+        size: 'md',
+        buttons: [
+            { text: 'Cancel', className: 'sol-btn-secondary', action: () => window.ModalSystem.hide() },
+            { text: 'Apply', className: 'sol-btn-primary', action: () => applyColumnChanges() }
+        ]
+    });
+
+    setTimeout(() => {
+        const list = document.getElementById('columnEditorList');
+        if (list && window.Sortable) {
+            new Sortable(list, { animation: 150, handle: '.column-drag-handle', filter: '.required', onEnd: () => updateColumnPreview() });
+        }
+    }, 100);
+};
+
+window.selectAllColumns = function() {
+    document.querySelectorAll('#columnEditorList input[type="checkbox"]:not(:disabled)').forEach(cb => cb.checked = true);
+    updateColumnPreview();
+};
+
+window.resetDefaultColumns = function() {
+    document.querySelectorAll('#columnEditorList input[type="checkbox"]').forEach(cb => {
+        cb.checked = DEFAULT_VISIBLE_COLUMNS.includes(cb.value) || cb.disabled;
+    });
+    updateColumnPreview();
+};
+
+window.updateColumnPreview = function() {
+    const checked = document.querySelectorAll('#columnEditorList input[type="checkbox"]:checked').length;
+    const counter = document.getElementById('selectedColumnsCount');
+    if (counter) counter.textContent = checked;
+};
+
+window.applyColumnChanges = function() {
+    const columnOrder = [];
+    document.querySelectorAll('#columnEditorList .column-item').forEach(item => {
+        const key = item.dataset.column;
+        const checked = item.querySelector('input[type="checkbox"]').checked;
+        if (checked) columnOrder.push(key);
+    });
+
+    const newColumns = columnOrder.map(key => {
+        const existing = TABLE_COLUMNS.find(c => c.key === key);
+        const available = AVAILABLE_COLUMNS.find(c => c.key === key);
+        return existing || { key, label: available?.label || key, sortable: available?.sortable, formatter: (v) => v || '-' };
+    });
+
+    const actionsCol = TABLE_COLUMNS.find(c => c.key === 'actions');
+    if (actionsCol) newColumns.push(actionsCol);
+
+    TABLE_COLUMNS.length = 0;
+    TABLE_COLUMNS.push(...newColumns);
+    localStorage.setItem('productVisibleColumns', JSON.stringify(columnOrder));
+
+    if (tableManager) {
+        tableManager.options.columns = newColumns;
+        tableManager.render();
+    }
+
+    window.ModalSystem.hide();
+    window.NotificationSystem?.success('Columns updated');
+};
+
+window.refreshColumnEditor = function() {
+    if (document.getElementById('columnEditorList')) {
+        window.ModalSystem.hide();
+        showColumnEditor();
+    }
+};
+
+window.updateTable = function() {
+    if (window.productIntelligenceSystem) {
+        window.productIntelligenceSystem.renderProducts();
+    }
 };
 
 console.log('[ProductIntelligence] Product Intelligence System module loaded successfully');

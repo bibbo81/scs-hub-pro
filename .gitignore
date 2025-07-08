@@ -42,9 +42,11 @@ public/core/mock-data.js
 *.temp
 .cache/
 
+# Debug
+git-status.txt
+git.status.txt
+
 # Backup files
 *.backup
 *.bak.history/
 .history/
-.DS_Store
-.DS_Store

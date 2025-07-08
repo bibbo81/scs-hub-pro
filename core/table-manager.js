@@ -293,12 +293,13 @@ export class TableManager {
             : 'fa-sort';
         
         return `
-            <th 
+            <th
                 class="${column.sortable !== false ? 'sortable' : ''} ${column.className || ''}"
                 data-column="${column.key}"
                 ${column.sortable !== false ? `onclick="window.tableManagerSort('${this.container.id}', '${column.key}')"` : ''}
             >
                 <div class="th-content">
+                    ${this.options.enableColumnDrag ? '<span class="drag-handle"><i class="fas fa-grip-lines"></i></span>' : ''}
                     <span>${column.label || column.key}</span>
                     ${column.sortable !== false ? `<i class="fas ${sortIcon} sort-icon"></i>` : ''}
                 </div>
