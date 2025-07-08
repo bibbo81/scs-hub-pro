@@ -92,7 +92,23 @@ export const debug = {
 };
 
 // Listener per lo stato di autenticazione
+export const getAccessToken = () => {
+    return localStorage.getItem('sb-access-token') ||
+           sessionStorage.getItem('sb-access-token');
+};
+
+// Listener per lo stato di autenticazione
 supabase.auth.onAuthStateChange((event, session) => {
+    if (session?.access_token) {
+        localStorage.setItem('sb-access-token', session.access_token);
+        sessionStorage.setItem('sb-access-token', session.access_token);
+    }
+
+    if (event === 'SIGNED_OUT') {
+        localStorage.removeItem('sb-access-token');
+        sessionStorage.removeItem('sb-access-token');
+    }
+
     if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') {
         console.log('[Auth]', event);
     }
