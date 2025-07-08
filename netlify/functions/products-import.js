@@ -7,6 +7,13 @@ exports.handler = async (event, context) => {
         return { statusCode: 405, body: 'Method Not Allowed' };
     }
 
+    if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+        throw new Error('SUPABASE_SERVICE_ROLE_KEY environment variable not set');
+    }
+    if (!process.env.SUPABASE_URL) {
+        throw new Error('SUPABASE_URL environment variable not set');
+    }
+
     try {
         // Dati inviati dal frontend (import-wizard)
         const { data } = JSON.parse(event.body);

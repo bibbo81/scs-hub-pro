@@ -109,10 +109,10 @@ git pushfcu
 
 ## 🔧 Environment setup
 
-Ensure the Netlify project defines the following variables:
+Ensure the Netlify project defines the following variables **in the Netlify dashboard**:
 
 - `SUPABASE_URL` – your Supabase instance URL (e.g. `https://gnlrmnsdmpjzitsysowq.supabase.co`)
-- `SUPABASE_SERVICE_ROLE_KEY` – service role key for server-side functions
+- `SUPABASE_SERVICE_ROLE_KEY` – **must be set**; service role key for server-side functions
 - `SUPABASE_ANON_KEY` – public anonymous key
 
 Set them in **Site settings → Environment variables**. Functions like `netlify/functions/notifications.js` rely on these values and will fail with `500` errors if missing.

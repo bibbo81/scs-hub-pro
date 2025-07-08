@@ -1,20 +1,17 @@
 // netlify/functions/notifications.js
 const { createClient } = require('@supabase/supabase-js');
 
-// Initialize Supabase client
-const supabase = createClient(
-    process.env.SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY
-);
-
 exports.handler = async (event, context) => {
-    if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
-        return {
-            statusCode: 500,
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ error: 'Supabase configuration missing' })
-        };
+    if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+        throw new Error('SUPABASE_SERVICE_ROLE_KEY environment variable not set');
     }
+    if (!process.env.SUPABASE_URL) {
+        throw new Error('SUPABASE_URL environment variable not set');
+    }
+    const supabase = createClient(
+        process.env.SUPABASE_URL,
+        process.env.SUPABASE_SERVICE_ROLE_KEY
+    );
     const headers = {
         'Content-Type': 'application/json',
         'Access-Control-Allow-Origin': '*',

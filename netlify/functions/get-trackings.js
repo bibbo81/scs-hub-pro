@@ -1,13 +1,17 @@
 // netlify/functions/get-trackings.js
 const { createClient } = require('@supabase/supabase-js');
 
-// Initialize Supabase client
-const supabase = createClient(
-    process.env.SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY
-);
-
 exports.handler = async (event, context) => {
+    if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+        throw new Error('SUPABASE_SERVICE_ROLE_KEY environment variable not set');
+    }
+    if (!process.env.SUPABASE_URL) {
+        throw new Error('SUPABASE_URL environment variable not set');
+    }
+    const supabase = createClient(
+        process.env.SUPABASE_URL,
+        process.env.SUPABASE_SERVICE_ROLE_KEY
+    );
     // Only allow GET requests
     if (event.httpMethod !== 'GET') {
         return {
