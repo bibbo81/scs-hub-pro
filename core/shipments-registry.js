@@ -2,6 +2,7 @@
 // Path: /core/shipments-registry.js
 
 import organizationService from '/core/services/organization-service.js';
+import supabaseShipmentsService from '/core/services/supabase-shipments-service.js';
 
 class ShipmentsRegistry {
     constructor() {
@@ -200,14 +201,23 @@ class ShipmentsRegistry {
             updatedAt: new Date().toISOString(),
             ...shipmentData
         };
-        
-        this.shipments.push(shipment);
+
+        let created = null;
+        try {
+            created = await supabaseShipmentsService.createShipment(shipment);
+        } catch (error) {
+            console.error('Supabase create error:', error);
+        }
+
+        const finalShipment = created || shipment;
+
+        this.shipments.push(finalShipment);
         this.saveShipments();
-        
-        this.notifySubscribers('created', { shipment });
-        
-        console.log(`✅ Created shipment: ${shipment.shipmentNumber}`);
-        return shipment;
+
+        this.notifySubscribers('created', { shipment: finalShipment });
+
+        console.log(`✅ Created shipment: ${finalShipment.shipmentNumber}`);
+        return finalShipment;
     }
     
     async updateShipment(shipmentId, updates) {
@@ -219,7 +229,14 @@ class ShipmentsRegistry {
         
         const oldShipment = { ...this.shipments[index] };
         
-        this.shipments[index] = {
+        let updated = null;
+        try {
+            updated = await supabaseShipmentsService.updateShipment(shipmentId, updates);
+        } catch (error) {
+            console.error('Supabase update error:', error);
+        }
+
+        this.shipments[index] = updated || {
             ...this.shipments[index],
             ...updates,
             updatedAt: new Date().toISOString()
@@ -238,14 +255,20 @@ class ShipmentsRegistry {
     
     async deleteShipment(shipmentId) {
         const index = this.shipments.findIndex(s => s.id === shipmentId);
-        
+
         if (index === -1) {
             throw new Error(`Shipment ${shipmentId} not found`);
         }
-        
+
+        try {
+            await supabaseShipmentsService.deleteShipment(shipmentId);
+        } catch (error) {
+            console.error('Supabase delete error:', error);
+        }
+
         const deletedShipment = this.shipments.splice(index, 1)[0];
         this.saveShipments();
-        
+
         this.notifySubscribers('deleted', { shipment: deletedShipment });
         
         console.log(`✅ Deleted shipment: ${deletedShipment.shipmentNumber}`);
