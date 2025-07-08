@@ -106,3 +106,15 @@ Then:
 
 git pushfcu
 📌 Follow this flow → No patch branches → No redundant PRs → Smooth deploy 🚀
+
+## 🔧 Environment setup
+
+Ensure the Netlify project defines the following variables:
+
+- `SUPABASE_URL` – your Supabase instance URL (e.g. `https://gnlrmnsdmpjzitsysowq.supabase.co`)
+- `SUPABASE_SERVICE_ROLE_KEY` – service role key for server-side functions
+- `SUPABASE_ANON_KEY` – public anonymous key
+
+Set them in **Site settings → Environment variables**. Functions like `netlify/functions/notifications.js` rely on these values and will fail with `500` errors if missing.
+
+Real‑time features use WebSocket connections to the Supabase URL. Make sure outbound WebSocket traffic is allowed; otherwise the application will fall back to HTTP-only APIs.

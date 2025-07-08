@@ -8,6 +8,13 @@ const supabase = createClient(
 );
 
 exports.handler = async (event, context) => {
+    if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+        return {
+            statusCode: 500,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ error: 'Supabase configuration missing' })
+        };
+    }
     const headers = {
         'Content-Type': 'application/json',
         'Access-Control-Allow-Origin': '*',
