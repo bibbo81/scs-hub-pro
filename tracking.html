@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="/core/env-check.js"></script>
     <title>Supply Chain Hub - Tracking Spedizioni</title>
     
     <!-- Favicon -->
@@ -335,7 +336,18 @@
     </script>
     
     <!-- Legacy Scripts -->
-    <script src="/core/auth.js"></script>
+    <script>
+        (function() {
+            const script = document.createElement('script');
+            if (window.isDemoEnv) {
+                script.src = '/core/auth.js';
+            } else {
+                script.type = 'module';
+                script.src = '/core/auth-supabase.js';
+            }
+            document.head.appendChild(script);
+        })();
+    </script>
     <script src="/core/auth-init.js"></script>
     
     <!-- Load Export Manager (legacy) -->
