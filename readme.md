@@ -55,6 +55,9 @@ Get up and running in less than 2 minutes:
 git clone https://github.com/[username]/scs-hub-pro.git
 cd scs-hub-pro
 
+# Copy Supabase credentials for local development
+cp runtime-config.example.json runtime-config.json
+
 # Start development server
 python3 -m http.server 8000 --directory public
 
