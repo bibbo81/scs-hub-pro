@@ -562,11 +562,25 @@
                 
             } catch (error) {
                 console.error('Login error:', error);
-                showAlert(error.message || 'Errore durante l\'accesso', 'error');
-                
+
+                const networkError =
+                    error.status === 0 ||
+                    /fetch failed|Failed to fetch/i.test(error.message || '');
+
+                if (networkError) {
+                    showAlert(
+                        'Impossibile connettersi al servizio di autenticazione. ' +
+                        'Verifica la connessione.',
+                        'error'
+                    );
+                } else {
+                    showAlert(error.message || 'Errore durante l\'accesso', 'error');
+                }
+
                 // Reset button
                 button.disabled = false;
-                button.innerHTML = '<i class="fas fa-sign-in-alt"></i> <span>Accedi</span>';
+                button.innerHTML =
+                    '<i class="fas fa-sign-in-alt"></i> <span>Accedi</span>';
             }
         }
         
