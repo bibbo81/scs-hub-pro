@@ -304,6 +304,31 @@ class UserSettingsService {
         };
     }
 
+    // Update entire settings object in Supabase
+    async updateSettings(settings) {
+        try {
+            const user = await requireAuth();
+            const { data, error } = await supabase
+                .from('user_settings')
+                .update({
+                    api_keys: settings.api_keys,
+                    preferences: settings.preferences,
+                    updated_at: new Date().toISOString()
+                })
+                .eq('user_id', user.id)
+                .select()
+                .single();
+
+            if (error) throw error;
+
+            this.cache = data;
+            return true;
+        } catch (error) {
+            console.error('Error updating settings:', error);
+            return false;
+        }
+    }
+
     // Save a single preference category
     async saveSetting(category, data) {
         return this.savePreferences({ [category]: data });
