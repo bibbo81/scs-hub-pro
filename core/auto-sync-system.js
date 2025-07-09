@@ -300,6 +300,7 @@ class AutoSyncSystem {
             try {
                 const newShipment = await window.shipmentsRegistry.createShipment({
                     ...shipmentData,
+                    organization_id: window.organizationService?.getCurrentOrgId() || null,
                     autoCreated: true,
                     createdFrom: 'tracking',
                     sourceTrackingId: trackingData.id
