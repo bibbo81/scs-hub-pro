@@ -28,8 +28,16 @@ class AutoSyncSystem {
             }
         }
 
-        // Initial sync check
-        await this.performInitialSync();
+        // Wait for shipments registry
+        if (window.shipmentsRegistry?.initialized) {
+            await this.performInitialSync();
+        } else {
+            const readyHandler = async () => {
+                window.removeEventListener('shipmentsRegistryReady', readyHandler);
+                await this.performInitialSync();
+            };
+            window.addEventListener('shipmentsRegistryReady', readyHandler);
+        }
         
         this.initialized = true;
         console.log('✅ Auto-Sync System initialized successfully');
@@ -142,6 +150,11 @@ class AutoSyncSystem {
                 console.log('🔄 Tracking storage changed');
                 this.queueSync('trackingStorageChange', event);
             }
+        });
+
+        // Wait for shipments registry to be ready
+        this.addEventListener('shipmentsRegistryReady', () => {
+            this.performInitialSync();
         });
 
         console.log('✅ Auto-sync event listeners setup completed');
