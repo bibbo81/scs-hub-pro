@@ -138,3 +138,8 @@ If you get a number greater than zero, the tables are populated.
 ### 🔒 Run security checks
 
 Inside `supabase/security-fixes.sql` you will find additional validation queries. Copy the statements from the **8. VALIDAZIONE FINALE** section and run them in the SQL Editor. These ensure no views rely on `SECURITY DEFINER` and every function specifies a safe `search_path`.
+
+### 🚚 Update shipments table
+
+Run the SQL in `supabase/shipments_carrier_columns.sql` using the Supabase SQL editor. This adds carrier
+information fields to `public.shipments` and grants the API role permission to insert or update them.
