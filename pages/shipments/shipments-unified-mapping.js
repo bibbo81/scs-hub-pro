@@ -89,7 +89,17 @@ window.ShipmentUnifiedMapping = {
         'Total Cost': 'total_cost',
         'Costo Totale': 'total_cost',
         'Currency': 'currency',
-        'Valuta': 'currency'
+        'Valuta': 'currency',
+
+        // Products
+        'Product SKU': 'product_sku',
+        'SKU': 'product_sku',
+        'Product Name': 'product_name',
+        'Description': 'description',
+        'Quantity': 'quantity',
+        'Qty': 'quantity',
+        'Weight': 'weight',
+        'Volume': 'volume'
     },
 
     STATUS_MAPPING: {

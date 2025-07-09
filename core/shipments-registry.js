@@ -454,23 +454,26 @@ class ShipmentsRegistry {
         };
     }
 
+    // Extract product information from a CSV row using mapped keys
     extractProductFromRow(row) {
         const mapped = {};
         for (const [key, value] of Object.entries(row)) {
-            const norm = window.ShipmentUnifiedMapping.mapColumn
+            const normalize = window.ShipmentUnifiedMapping?.mapColumn
                 ? window.ShipmentUnifiedMapping.mapColumn(key)
                 : key.toLowerCase().replace(/[^a-z0-9]+/g, '_');
-            mapped[norm] = value;
+            mapped[normalize] = value;
         }
 
-        const sku = mapped.sku || mapped.product_sku;
-        const name = mapped.product_name || mapped.name || mapped.description;
-        const quantity = parseFloat(mapped.quantity || mapped.qty || 0) || 0;
-        const weight = parseFloat(mapped.weight || 0) || 0;
-        const volume = parseFloat(mapped.volume || 0) || 0;
-        const value = parseFloat(mapped.value || 0) || 0;
+        const sku = mapped.product_sku || mapped.sku;
+        const name = mapped.product_name || mapped.description || mapped.name;
+        const quantity = parseFloat(mapped.quantity) || 0;
+        const weight = parseFloat(mapped.weight) || 0;
+        const volume = parseFloat(mapped.volume) || 0;
+        const value = parseFloat(mapped.value) || 0;
 
-        if (!sku && !name) return null;
+        if (!sku && !name) {
+            return null;
+        }
 
         return {
             sku,
