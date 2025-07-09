@@ -646,34 +646,40 @@ class ProductLinkingSystemV20OneFinal {
             await this.delay(this.config.retryDelay);
         }
         
-        // Wait for ShipmentsRegistry via event or timeout
+        // Wait for ShipmentsRegistry via event or extended timeout
         await new Promise((resolve) => {
-            if (window.shipmentsRegistry?.shipments?.length > 0) {
+            const setRegistry = () => {
                 this.shipmentsRegistry = window.shipmentsRegistry;
                 console.log(`✅ Found ${this.shipmentsRegistry.shipments.length} shipments`);
                 resolve();
+            };
+
+            if (window.shipmentsRegistry?.shipments?.length > 0) {
+                setRegistry();
                 return;
             }
 
             const readyHandler = () => {
                 clearTimeout(timeoutId);
                 window.removeEventListener('shipmentsRegistryReady', readyHandler);
-                this.shipmentsRegistry = window.shipmentsRegistry;
-                console.log('✅ shipmentsRegistryReady event received');
-                resolve();
+                if (window.shipmentsRegistry?.shipments?.length > 0) {
+                    setRegistry();
+                } else {
+                    console.warn('⚠️ shipmentsRegistryReady fired but registry missing');
+                    resolve();
+                }
             };
 
             const timeoutId = setTimeout(() => {
                 window.removeEventListener('shipmentsRegistryReady', readyHandler);
                 if (window.shipmentsRegistry?.shipments?.length > 0) {
-                    this.shipmentsRegistry = window.shipmentsRegistry;
-                    console.log(`✅ Found ${this.shipmentsRegistry.shipments.length} shipments after timeout`);
+                    setRegistry();
                 } else {
-                    console.warn('⚠️ ShipmentsRegistry not ready after 10s');
+                    console.warn('⚠️ ShipmentsRegistry not ready after 15s');
                     this.createFallbackRegistry();
+                    resolve();
                 }
-                resolve();
-            }, 10000);
+            }, 15000);
 
             window.addEventListener('shipmentsRegistryReady', readyHandler);
         });
