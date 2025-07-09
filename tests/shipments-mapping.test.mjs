@@ -10,6 +10,13 @@ global.window = {
     addEventListener() {}
 };
 
+global.CustomEvent = class {
+    constructor(type, options) {
+        this.type = type;
+        this.detail = options?.detail;
+    }
+};
+
 global.document = { readyState: 'complete', addEventListener() {} };
 
 global.localStorage = {
@@ -23,7 +30,7 @@ global.localStorage = {
 global.setInterval = () => 0;
 
 await import('../pages/shipments/shipments-unified-mapping.js');
-await import('/core/product-sync.js');
+await import('../core/product-sync.js');
 
 function convert(row) {
     const mapped = {};
@@ -167,5 +174,9 @@ const merged = window.productSync.mergeProducts([prod]);
 assert.ok(Array.isArray(merged));
 assert.strictEqual(merged.length, 1);
 assert.ok(window.events.includes('productsSynced'));
+
+const saved = JSON.parse(localStorage.getItem('products'));
+assert.strictEqual(saved.length, 1);
+assert.strictEqual(saved[0].sku, 'PROD1');
 
 console.log('Shipments mapping tests passed');
