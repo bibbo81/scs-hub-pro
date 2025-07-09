@@ -25,12 +25,14 @@
         import headerComponent from '/core/header-component.js';
         import notificationSystem from '/core/notification-system.js';
         import modalSystem from '/core/modal-system.js';
+        import organizationService from '/core/services/organization-service.js';
         
         // Make modules available globally
         window.api = api;
         window.headerComponent = headerComponent;
         window.NotificationSystem = notificationSystem;
         window.ModalSystem = modalSystem;
+        window.organizationService = organizationService;
     </script>
     
     <script src="/core/product-sync.js"></script>
@@ -2913,6 +2915,7 @@ MSCU7654321,PO-2024-002,22000,PI-2024-002,22000,CI-2024-002,22000,BL-2024-002,CI
                        id: `SHIP-2024-${String(Date.now() + i).slice(-6)}`,
                        shipmentNumber: `${carrier.code}${String(Math.floor(Math.random() * 9000000) + 1000000)}`,
                        type: type,
+                       organization_id: window.organizationService?.getCurrentOrgId() || 'demo-org',
                        carrier: carrier,
                        route: {
                            ...route,
@@ -3037,8 +3040,14 @@ MSCU7654321,PO-2024-002,22000,PI-2024-002,22000,CI-2024-002,22000,BL-2024-002,CI
            if (window.ShipmentsRegistry) {
                window.shipmentsRegistry = new window.ShipmentsRegistry();
                await window.shipmentsRegistry.init();
+
+               const orgId = window.organizationService?.getCurrentOrgId();
+               if (orgId) {
+                   window.shipmentsRegistry.shipments = window.shipmentsRegistry.shipments.filter(s => s.organization_id === orgId);
+               }
+
                console.log('✅ Shipments Registry initialized');
-               
+
                // Dispatch ready event for CarrierPerformance and Executive BI
                window.dispatchEvent(new Event('shipmentsRegistryReady'));
            }

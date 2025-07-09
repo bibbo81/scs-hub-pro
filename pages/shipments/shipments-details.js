@@ -820,10 +820,23 @@ if (window.ShipmentDetails) {
         }
         
         async createShipment() {
-            // Implementation for creating new shipment
-            console.log('Creating shipment...');
-            window.NotificationSystem?.show('Successo', 'Spedizione creata', 'success');
-            window.ModalSystem.close();
+            try {
+                const shipmentData = {
+                    organization_id: window.organizationService?.getCurrentOrgId() || null
+                };
+
+                if (window.shipmentsRegistry?.createShipment) {
+                    const shipment = await window.shipmentsRegistry.createShipment(shipmentData);
+                    window.NotificationSystem?.show('Successo', 'Spedizione creata', 'success');
+                    window.ModalSystem.close();
+                    return shipment;
+                }
+
+                throw new Error('Shipments registry not available');
+            } catch (error) {
+                console.error('Errore creazione spedizione:', error);
+                window.NotificationSystem?.show('Errore', 'Creazione spedizione fallita', 'error');
+            }
         }
         
         async allocateCosts() {

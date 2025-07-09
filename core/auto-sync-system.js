@@ -291,6 +291,7 @@ class AutoSyncSystem {
                 const newShipment = {
                     id: `AUTO-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
                     ...shipmentData,
+                    organization_id: window.organizationService?.getCurrentOrgId() || null,
                     autoCreated: true,
                     createdFrom: 'tracking',
                     sourceTrackingId: trackingData.id,
