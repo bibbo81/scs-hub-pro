@@ -89,57 +89,118 @@ class RegistryCore {
     
     createFallbackRegistry() {
         const storageKeys = ['shipmentsRegistry', 'shipments', 'SCH_Shipments'];
-        
-        for (const key of storageKeys) {
+        const checkKeys = [...storageKeys, 'trackings'];
+
+        const convertTracking = (tracking) => {
+            const statusMap = {
+                registered: 'planned',
+                in_transit: 'in_transit',
+                arrived: 'arrived',
+                delivered: 'delivered',
+                delayed: 'in_transit',
+                exception: 'in_transit'
+            };
+
+            const typeMap = {
+                container: 'container',
+                bl: 'bl',
+                awb: 'awb',
+                air_waybill: 'awb',
+                parcel: 'lcl',
+                lcl: 'lcl'
+            };
+
+            const id = tracking.id || (crypto.randomUUID ? crypto.randomUUID() : Date.now().toString());
+
+            return {
+                id,
+                shipmentNumber: tracking.tracking_number,
+                trackingNumber: tracking.tracking_number,
+                type: typeMap[tracking.tracking_type] || 'container',
+                status: statusMap[tracking.current_status || tracking.status] || 'planned',
+                carrier: {
+                    name: tracking.carrier_name || tracking.carrier || tracking.carrier_code || 'N/A',
+                    code: tracking.carrier_code || tracking.carrier || ''
+                },
+                route: {
+                    origin: { port: tracking.origin_port || '', name: tracking.origin_name || tracking.origin || '' },
+                    destination: { port: tracking.destination_port || '', name: tracking.destination_name || tracking.destination || '' },
+                    via: []
+                },
+                schedule: {
+                    etd: tracking.departure_date || tracking.date_of_loading || tracking.created_at || null,
+                    eta: tracking.eta || tracking.arrival_date || tracking.date_of_discharge || null,
+                    atd: tracking.departure_date || null,
+                    ata: tracking.arrival_date || null
+                },
+                costs: { total: 0, currency: 'EUR' },
+                products: [],
+                commercial: {},
+                metadata: tracking.metadata || {},
+                createdAt: tracking.created_at || new Date().toISOString(),
+                updatedAt: tracking.updated_at || new Date().toISOString()
+            };
+        };
+
+        for (const key of checkKeys) {
             try {
                 const data = localStorage.getItem(key);
-                if (data) {
-                    const parsed = JSON.parse(data);
-                    const shipments = Array.isArray(parsed) ? parsed : parsed.shipments || [];
-                    
-                    if (shipments.length > 0) {
-                        console.log(`✅ Loaded ${shipments.length} shipments from localStorage:${key}`);
-                        return {
-                            shipments,
-                            initialized: true,
-                            updateShipment: (id, updates) => {
-                                const shipment = shipments.find(s => s.id === id);
-                                if (shipment) {
-                                    Object.assign(shipment, updates);
-                                    localStorage.setItem(key, JSON.stringify(shipments));
-                                }
-                            },
-                            getStatistics: () => {
-                                const total = shipments.length;
-                                const byStatus = {};
-                                let totalCost = 0;
-                                let totalTransit = 0;
-                                let transitCount = 0;
-                                
-                                shipments.forEach(s => {
-                                    byStatus[s.status] = (byStatus[s.status] || 0) + 1;
-                                    totalCost += s.costs?.total || 0;
-                                    if (s.route?.estimatedTransit) {
-                                        totalTransit += s.route.estimatedTransit;
-                                        transitCount++;
-                                    }
-                                });
-                                
-                                return {
-                                    total,
-                                    byStatus,
-                                    totalCost,
-                                    avgTransitTime: transitCount > 0 ? Math.round(totalTransit / transitCount) : 0
-                                };
-                            }
-                        };
+                if (!data) continue;
+
+                const parsed = JSON.parse(data);
+                let shipments = Array.isArray(parsed) ? parsed : parsed.shipments || [];
+
+                if (key === 'trackings') {
+                    if (Array.isArray(parsed)) {
+                        shipments = parsed.map(convertTracking);
+                    } else if (Array.isArray(parsed.trackings)) {
+                        shipments = parsed.trackings.map(convertTracking);
                     }
+                }
+
+                if (shipments.length > 0) {
+                    console.log(`✅ Loaded ${shipments.length} shipments from localStorage:${key}`);
+                    return {
+                        shipments,
+                        initialized: true,
+                        updateShipment: (id, updates) => {
+                            const shipment = shipments.find(s => s.id === id);
+                            if (shipment) {
+                                Object.assign(shipment, updates);
+                                const saveKey = key === 'trackings' ? 'shipmentsRegistry' : key;
+                                localStorage.setItem(saveKey, JSON.stringify(shipments));
+                            }
+                        },
+                        getStatistics: () => {
+                            const total = shipments.length;
+                            const byStatus = {};
+                            let totalCost = 0;
+                            let totalTransit = 0;
+                            let transitCount = 0;
+
+                            shipments.forEach(s => {
+                                byStatus[s.status] = (byStatus[s.status] || 0) + 1;
+                                totalCost += s.costs?.total || 0;
+                                if (s.route?.estimatedTransit) {
+                                    totalTransit += s.route.estimatedTransit;
+                                    transitCount++;
+                                }
+                            });
+
+                            return {
+                                total,
+                                byStatus,
+                                totalCost,
+                                avgTransitTime: transitCount > 0 ? Math.round(totalTransit / transitCount) : 0
+                            };
+                        }
+                    };
                 }
             } catch (error) {
                 continue;
             }
         }
-        
+
         return {
             shipments: [],
             initialized: true,
