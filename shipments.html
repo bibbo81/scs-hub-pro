@@ -983,7 +983,7 @@
                     </div>
                 </div>
             </div>
-            <div class="link-container">
+            <div class="link-container" style="display:none;">
                 <div class="link-panel">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
                         <h4 style="margin: 0; display: flex; align-items: center; gap: 0.5rem;">
@@ -4891,6 +4891,8 @@ document.addEventListener('DOMContentLoaded', function() {
     setupLinkedProductsFilters();
     // Setup refresh functionality
     setupRefreshFunctionality();
+    // Setup link container toggle
+    setupLinkContainerToggle();
 });
 function initializeEnhancedAutoLink() {
     const autoLinkBtn = document.getElementById('autoLinkBtn');
@@ -5107,6 +5109,27 @@ function exportProductLinks() {
     if (window.NotificationSystem) {
         window.NotificationSystem.show('Export', `${exportData.length} collegamenti esportati`, 'success');
     }
+}
+function setupLinkContainerToggle() {
+    const container = document.querySelector('.link-container');
+    if (!container) return;
+
+    const showContainer = () => {
+        container.style.display = 'grid';
+        updateProductsLinkStats();
+    };
+
+    const linkBtn = document.getElementById('linkProductsBtn');
+    if (linkBtn) {
+        linkBtn.addEventListener('click', showContainer);
+    }
+
+    document.body.addEventListener('click', event => {
+        const btn = event.target.closest('button');
+        if (btn && btn.title && (btn.title.includes('Collega prodotti') || btn.title.includes('Gestisci'))) {
+            showContainer();
+        }
+    });
 }
 // Auto-update stats when page loads
 setTimeout(() => {
