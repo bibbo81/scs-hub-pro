@@ -118,3 +118,23 @@ Ensure the Netlify project defines the following variables **in the Netlify dash
 Set them in **Site settings → Environment variables**. Functions like `netlify/functions/notifications.js` rely on these values and will fail with `500` errors if missing.
 
 Real‑time features use WebSocket connections to the Supabase URL. Make sure outbound WebSocket traffic is allowed; otherwise the application will fall back to HTTP-only APIs.
+
+## 📊 Verify Supabase data
+
+Follow these steps to confirm that the main tables contain real records:
+
+1. Open the Supabase dashboard and select your project.
+2. Navigate to the **SQL Editor**.
+3. Execute the following queries one by one:
+
+```sql
+SELECT COUNT(*) FROM products;
+SELECT COUNT(*) FROM shipments;
+SELECT COUNT(*) FROM trackings;
+```
+
+If you get a number greater than zero, the tables are populated.
+
+### 🔒 Run security checks
+
+Inside `supabase/security-fixes.sql` you will find additional validation queries. Copy the statements from the **8. VALIDAZIONE FINALE** section and run them in the SQL Editor. These ensure no views rely on `SECURITY DEFINER` and every function specifies a safe `search_path`.
