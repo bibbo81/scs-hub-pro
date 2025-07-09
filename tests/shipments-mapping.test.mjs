@@ -82,4 +82,23 @@ assert.strictEqual(result.carrier.code, 'MSK');
 assert.strictEqual(result.route.origin.port, 'CNSHA');
 assert.strictEqual(result.route.via.length, 2);
 
+const aliasSample = {
+    ShipmentNumber: '321',
+    'Current Status': 'Loaded',
+    CarrierName: 'MSC',
+    ShippingLine: 'MSCU',
+    'Port Of Loading': 'CNSHA',
+    'Port Of Discharge': 'ITGOA',
+    'Date Of Departure': '2024-02-20',
+    'Date Of Arrival': '2024-03-15'
+};
+
+const aliasResult = convert(aliasSample);
+assert.strictEqual(aliasResult.shipmentNumber, '321');
+assert.strictEqual(aliasResult.status, 'in_transit');
+assert.strictEqual(aliasResult.carrier.code, 'MSCU');
+assert.strictEqual(aliasResult.carrier.name, 'MSC');
+assert.strictEqual(aliasResult.route.origin.port, 'CNSHA');
+assert.strictEqual(aliasResult.route.destination.port, 'ITGOA');
+
 console.log('Shipments mapping tests passed');
