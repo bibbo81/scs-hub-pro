@@ -1,7 +1,29 @@
 import assert from 'assert';
 
 global.window = {};
+// Minimal browser-like environment
+global.window = {
+    events: [],
+    dispatchEvent(event) {
+        this.events.push(event.type);
+    },
+    addEventListener() {}
+};
+
+global.document = { readyState: 'complete', addEventListener() {} };
+
+global.localStorage = {
+    store: {},
+    getItem(key) { return this.store[key]; },
+    setItem(key, val) { this.store[key] = String(val); },
+    removeItem(key) { delete this.store[key]; }
+};
+
+// Disable intervals triggered by productSync
+global.setInterval = () => 0;
+
 await import('../pages/shipments/shipments-unified-mapping.js');
+await import('/core/product-sync.js');
 
 function convert(row) {
     const mapped = {};
@@ -48,6 +70,31 @@ function convert(row) {
             total: parseFloat(get('total_cost')) || 0,
             currency: get('currency') || 'EUR'
         }
+    };
+}
+function extractProduct(row) {
+    const mapped = {};
+    for (const [key, value] of Object.entries(row)) {
+        const norm = window.ShipmentUnifiedMapping.mapColumn
+            ? window.ShipmentUnifiedMapping.mapColumn(key)
+            : key.toLowerCase().replace(/[^a-z0-9]+/g, '_');
+        mapped[norm] = value;
+    }
+
+    const sku = mapped.sku || mapped.product_sku;
+    const name = mapped.product_name || mapped.name || mapped.description;
+    const quantity = parseFloat(mapped.quantity || mapped.qty || 0) || 0;
+    const weight = parseFloat(mapped.weight || 0) || 0;
+    const volume = parseFloat(mapped.volume || 0) || 0;
+    const value = parseFloat(mapped.value || 0) || 0;
+
+    if (!sku && !name) return null;
+
+    return {
+        sku,
+        name: name || 'Unnamed Product',
+        quantity,
+        specifications: { weight, volume, value }
     };
 }
 
@@ -100,5 +147,25 @@ assert.strictEqual(aliasResult.carrier.code, 'MSCU');
 assert.strictEqual(aliasResult.carrier.name, 'MSC');
 assert.strictEqual(aliasResult.route.origin.port, 'CNSHA');
 assert.strictEqual(aliasResult.route.destination.port, 'ITGOA');
+
+const productRow = {
+    SKU: 'PROD1',
+    Name: 'Widget',
+    Quantity: '5',
+    Weight: '1.2',
+    Volume: '0.3',
+    Value: '42'
+};
+
+const prod = extractProduct(productRow);
+assert.strictEqual(prod.sku, 'PROD1');
+assert.strictEqual(prod.quantity, 5);
+assert.strictEqual(prod.specifications.weight, 1.2);
+
+window.events = [];
+const merged = window.productSync.mergeProducts([prod]);
+assert.ok(Array.isArray(merged));
+assert.strictEqual(merged.length, 1);
+assert.ok(window.events.includes('productsSynced'));
 
 console.log('Shipments mapping tests passed');
