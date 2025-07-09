@@ -25,6 +25,19 @@ class SupabaseShipmentsService {
         try {
             const orgId = organizationService.getCurrentOrgId();
             const payload = { ...shipment, organization_id: orgId };
+            // Map camelCase properties to snake_case columns
+            if (payload.autoCreated !== undefined) {
+                payload.auto_created = payload.autoCreated;
+                delete payload.autoCreated;
+            }
+            if (payload.createdFrom !== undefined) {
+                payload.created_from = payload.createdFrom;
+                delete payload.createdFrom;
+            }
+            if (payload.sourceTrackingId !== undefined) {
+                payload.source_tracking_id = payload.sourceTrackingId;
+                delete payload.sourceTrackingId;
+            }
             const { data, error } = await supabase
                 .from(this.table)
                 .insert([payload])
