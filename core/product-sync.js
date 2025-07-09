@@ -138,6 +138,57 @@ class ProductSync {
             return [];
         }
     }
+
+    // Unisce i nuovi prodotti con quelli esistenti
+    mergeProducts(newProducts) {
+        if (!Array.isArray(newProducts)) return [];
+
+        const existing = this.getProducts();
+        const map = {};
+        existing.forEach((p, i) => {
+            if (p.id) map[p.id] = i;
+            if (p.sku) map[p.sku] = i;
+        });
+
+        newProducts.forEach(p => {
+            if (!p || (!p.sku && !p.id)) return;
+
+            const key = map[p.id] !== undefined ? p.id : map[p.sku] !== undefined ? p.sku : null;
+            const base = {
+                id: p.id || `PROD-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+                sku: p.sku || 'N/A',
+                name: p.name || p.productName || 'Unnamed Product',
+                quantity: p.quantity || 0,
+                specifications: {
+                    weight: p.specifications?.weight || p.weight || 0,
+                    volume: p.specifications?.volume || p.volume || 0,
+                    value: p.specifications?.value || p.value || 0
+                },
+                updatedAt: new Date().toISOString()
+            };
+
+            if (key !== null) {
+                const idx = map[key];
+                existing[idx] = {
+                    ...existing[idx],
+                    ...base,
+                    createdAt: existing[idx].createdAt || new Date().toISOString()
+                };
+            } else {
+                existing.push({
+                    ...base,
+                    createdAt: new Date().toISOString()
+                });
+            }
+        });
+
+        localStorage.setItem('products', JSON.stringify(existing));
+        window.dispatchEvent(new CustomEvent('productsSynced', {
+            detail: { count: existing.length, source: 'mergeProducts' }
+        }));
+
+        return existing;
+    }
     
     // Metodo helper per ottenere prodotti sincronizzati
     getProducts() {

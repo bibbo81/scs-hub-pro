@@ -355,6 +355,7 @@ class ShipmentsRegistry {
     async importShipments(data, options = {}) {
         const { overwrite = false } = options;
         const results = { imported: [], errors: [] };
+        const collectedProducts = [];
         
         if (!Array.isArray(data)) {
             throw new Error('Import data must be an array');
@@ -366,6 +367,8 @@ class ShipmentsRegistry {
             try {
                 // Convert CSV row to shipment object
                 const shipmentData = this.convertImportRowToShipment(row);
+                const product = this.extractProductFromRow(row);
+                if (product) collectedProducts.push(product);
                 
                 // Check if shipment already exists
                 const existing = this.getShipmentByNumber(shipmentData.shipmentNumber);
@@ -395,6 +398,9 @@ class ShipmentsRegistry {
         }
         
         console.log(`📥 Import completed: ${results.imported.length} imported, ${results.errors.length} errors`);
+        if (collectedProducts.length > 0 && window.productSync?.mergeProducts) {
+            window.productSync.mergeProducts(collectedProducts);
+        }
         return results;
     }
     
@@ -445,6 +451,32 @@ class ShipmentsRegistry {
                 total: parseFloat(getField('total_cost')) || 0,
                 currency: getField('currency') || 'EUR'
             }
+        };
+    }
+
+    extractProductFromRow(row) {
+        const mapped = {};
+        for (const [key, value] of Object.entries(row)) {
+            const norm = window.ShipmentUnifiedMapping.mapColumn
+                ? window.ShipmentUnifiedMapping.mapColumn(key)
+                : key.toLowerCase().replace(/[^a-z0-9]+/g, '_');
+            mapped[norm] = value;
+        }
+
+        const sku = mapped.sku || mapped.product_sku;
+        const name = mapped.product_name || mapped.name || mapped.description;
+        const quantity = parseFloat(mapped.quantity || mapped.qty || 0) || 0;
+        const weight = parseFloat(mapped.weight || 0) || 0;
+        const volume = parseFloat(mapped.volume || 0) || 0;
+        const value = parseFloat(mapped.value || 0) || 0;
+
+        if (!sku && !name) return null;
+
+        return {
+            sku,
+            name: name || 'Unnamed Product',
+            quantity,
+            specifications: { weight, volume, value }
         };
     }
     
