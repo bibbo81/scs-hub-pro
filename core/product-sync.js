@@ -98,7 +98,7 @@ class ProductSync {
                 const normalizedProducts = products.map(p => ({
                     id: p.id || `PROD-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
                     sku: p.sku || p.code || 'N/A',
-                    name: p.name || p.productName || 'Unnamed Product',
+                    name: p.name || p.productName || p.description || p.descrizione || 'Unnamed Product',
                     category: p.category || 'uncategorized',
                     brand: p.brand || 'Generic',
                     specifications: {
