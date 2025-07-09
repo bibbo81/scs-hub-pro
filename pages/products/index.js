@@ -227,9 +227,11 @@ showStatus(message, type = 'info', duration = 3000) {
             console.error('[ProductIntelligence] Failed to fetch products:', error);
             this.showStatus('Failed to load products from server', 'error');
             this.products = [];
+            this.syncProducts();
             return;
         }
         this.products = data || [];
+        this.syncProducts();
     }
     // Analytics basilare: calcola margini/profitto su dati prodotto
     async generateAnalytics() {
@@ -356,6 +358,21 @@ showStatus(message, type = 'info', duration = 3000) {
             }
         });
         return recommendations;
+    }
+
+    syncProducts() {
+        try {
+            localStorage.setItem('products', JSON.stringify(this.products));
+        } catch (e) {
+            console.error('[ProductIntelligence] Failed to save products:', e);
+        }
+        window.dispatchEvent(new CustomEvent('productsSynced', {
+            detail: {
+                count: this.products.length,
+                source: 'ProductIntelligence'
+            }
+        }));
+        window.productIntelligence = { products: this.products };
     }
 
     // --- FILTRI AVANZATI ---
@@ -738,6 +755,7 @@ showStatus(message, type = 'info', duration = 3000) {
         }
         this.showStatus('Prodotto aggiunto!', 'success');
         await this.loadData();
+        this.syncProducts();
         return true;
     }
 
@@ -790,6 +808,7 @@ showStatus(message, type = 'info', duration = 3000) {
         }
         this.showStatus('Prodotto aggiornato!', 'success');
         await this.loadData();
+        this.syncProducts();
         return true;
     }
 
@@ -805,6 +824,7 @@ showStatus(message, type = 'info', duration = 3000) {
         }
         this.showStatus('Prodotto eliminato!', 'success');
         await this.loadData();
+        this.syncProducts();
         return true;
     }
 
