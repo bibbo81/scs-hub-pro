@@ -25,7 +25,7 @@
         import headerComponent from '/core/header-component.js';
         import notificationSystem from '/core/notification-system.js';
         import modalSystem from '/core/modal-system.js';
-        import organizationService from '/core/services/organization-service.js';
+        import organizationService, { getActiveOrganizationId } from '/core/services/organization-service.js';
         
         // Make modules available globally
         window.api = api;
@@ -33,6 +33,7 @@
         window.NotificationSystem = notificationSystem;
         window.ModalSystem = modalSystem;
         window.organizationService = organizationService;
+        window.getActiveOrganizationId = getActiveOrganizationId;
     </script>
     
     <script src="/core/product-sync.js"></script>
@@ -2917,7 +2918,7 @@ function generateComprehensiveSampleData() {
                 id: `SHIP-2024-${String(Date.now() + i).slice(-6)}`,
                 shipmentNumber: `${carrier.code}${String(Math.floor(Math.random() * 9000000) + 1000000)}`,
                 type: type,
-                organization_id: window.organizationService?.getCurrentOrgId() || 'demo-org',
+                organization_id: window.getActiveOrganizationId ? window.getActiveOrganizationId() : null,
                 carrier: carrier,
                 route: {
                     ...route,
@@ -3045,7 +3046,7 @@ async function ensureSampleData() {
                window.shipmentsRegistry = new window.ShipmentsRegistry();
                await window.shipmentsRegistry.init();
 
-               const orgId = window.organizationService?.getCurrentOrgId();
+               const orgId = window.getActiveOrganizationId ? window.getActiveOrganizationId() : null;
                if (orgId) {
                    window.shipmentsRegistry.shipments = window.shipmentsRegistry.shipments.filter(s => s.organization_id === orgId);
                }

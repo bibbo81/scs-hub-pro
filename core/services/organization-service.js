@@ -115,6 +115,8 @@ class OrganizationService {
 // Singleton
 export const organizationService = new OrganizationService();
 
+export const getActiveOrganizationId = () => organizationService.getCurrentOrgId();
+
 // Auto-init
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {

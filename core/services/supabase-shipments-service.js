@@ -1,6 +1,6 @@
 // core/services/supabase-shipments-service.js
 import { supabase } from '/core/services/supabase-client.js';
-import organizationService from '/core/services/organization-service.js';
+import { getActiveOrganizationId } from '/core/services/organization-service.js';
 
 class SupabaseShipmentsService {
     constructor() {
@@ -9,9 +9,11 @@ class SupabaseShipmentsService {
 
     async getAllShipments() {
         try {
-            const orgId = organizationService.getCurrentOrgId();
-            let query = supabase.from(this.table).select('*');
-            if (orgId) query = query.eq('organization_id', orgId);
+            const orgId = getActiveOrganizationId();
+            if (!orgId) {
+                throw new Error("Organization ID non trovato! L'utente non ha selezionato alcuna organizzazione.");
+            }
+            let query = supabase.from(this.table).select('*').eq('organization_id', orgId);
             const { data, error } = await query.order('created_at', { ascending: false });
             if (error) throw error;
             return data || [];
@@ -44,7 +46,10 @@ class SupabaseShipmentsService {
 
     async createShipment(shipment) {
         try {
-            const orgId = organizationService.getCurrentOrgId();
+            const orgId = getActiveOrganizationId();
+            if (!orgId) {
+                throw new Error("Organization ID non trovato! L'utente non ha selezionato alcuna organizzazione.");
+            }
             const payload = this.preparePayload({ ...shipment, organization_id: orgId });
             const { data, error } = await supabase
                 .from(this.table)
@@ -61,7 +66,11 @@ class SupabaseShipmentsService {
 
     async updateShipment(id, updates) {
         try {
-            const payload = this.preparePayload({ ...updates, updatedAt: new Date().toISOString() });
+            const orgId = getActiveOrganizationId();
+            if (!orgId) {
+                throw new Error("Organization ID non trovato! L'utente non ha selezionato alcuna organizzazione.");
+            }
+            const payload = this.preparePayload({ ...updates, organization_id: orgId, updatedAt: new Date().toISOString() });
             const { data, error } = await supabase
                 .from(this.table)
                 .update(payload)

@@ -311,9 +311,13 @@ class AutoSyncSystem {
         
         if (window.shipmentsRegistry?.createShipment) {
             try {
+                const orgId = window.getActiveOrganizationId?.();
+                if (!orgId) {
+                    throw new Error("Organization ID non trovato! L'utente non ha selezionato alcuna organizzazione.");
+                }
                 const newShipment = await window.shipmentsRegistry.createShipment({
                     ...shipmentData,
-                    organization_id: window.organizationService?.getCurrentOrgId() || null,
+                    organization_id: orgId,
                     autoCreated: true,
                     createdFrom: 'tracking',
                     sourceTrackingId: trackingData.id

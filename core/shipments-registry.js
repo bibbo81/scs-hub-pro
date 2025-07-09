@@ -2,6 +2,7 @@
 // Path: /core/shipments-registry.js
 import supabaseShipmentsService from '/core/services/supabase-shipments-service.js';
 import { supabase } from '/core/services/supabase-client.js';
+import { getActiveOrganizationId } from '/core/services/organization-service.js';
 
 class ShipmentsRegistry {
     constructor() {
@@ -136,6 +137,10 @@ class ShipmentsRegistry {
     // ===== SHIPMENT OPERATIONS =====
     
     async createShipment(shipmentData) {
+        const orgId = getActiveOrganizationId();
+        if (!orgId) {
+            throw new Error("Organization ID non trovato! L'utente non ha selezionato alcuna organizzazione.");
+        }
         const shipment = {
             id: shipmentData.id || this.generateId(),
             shipmentNumber: shipmentData.shipmentNumber || this.generateShipmentNumber(),
@@ -149,6 +154,7 @@ class ShipmentsRegistry {
             commercial: shipmentData.commercial || this.createDefaultCommercial(),
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
+            organization_id: orgId,
             ...shipmentData
         };
         
@@ -175,12 +181,17 @@ class ShipmentsRegistry {
             throw new Error(`Shipment ${shipmentId} not found`);
         }
         
+        const orgId = getActiveOrganizationId();
+        if (!orgId) {
+            throw new Error("Organization ID non trovato! L'utente non ha selezionato alcuna organizzazione.");
+        }
         const oldShipment = { ...this.shipments[index] };
         
         this.shipments[index] = {
             ...this.shipments[index],
             ...updates,
-            updatedAt: new Date().toISOString()
+            updatedAt: new Date().toISOString(),
+            organization_id: getActiveOrganizationId()
         };
 
         try {
@@ -234,7 +245,7 @@ class ShipmentsRegistry {
             throw new Error(`Shipment ${shipmentId} not found`);
         }
         
-        const orgId = window.organizationService?.getCurrentOrgId?.();
+        const orgId = window.getActiveOrganizationId ? window.getActiveOrganizationId() : null;
         const { data, error } = await supabase
             .from('products')
             .select('*')

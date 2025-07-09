@@ -821,8 +821,12 @@ if (window.ShipmentDetails) {
         
         async createShipment() {
             try {
+                const orgId = window.getActiveOrganizationId?.();
+                if (!orgId) {
+                    throw new Error("Organization ID non trovato! L'utente non ha selezionato alcuna organizzazione.");
+                }
                 const shipmentData = {
-                    organization_id: window.organizationService?.getCurrentOrgId() || null
+                    organization_id: orgId
                 };
 
                 if (window.shipmentsRegistry?.createShipment) {

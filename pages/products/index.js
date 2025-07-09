@@ -1,7 +1,7 @@
 // pages/products/index.js — Product Intelligence System (NO tracking/spedizioni)
 
 // Import servizi necessari
-import organizationService from '/core/services/organization-service.js';
+import organizationService, { getActiveOrganizationId } from '/core/services/organization-service.js';
 import { importWizard } from '/core/import-wizard.js';
 import { supabase } from '/core/services/supabase-client.js';
 import TableManager from '/core/table-manager.js';
@@ -199,7 +199,7 @@ showStatus(message, type = 'info', duration = 3000) {
             if (window.organizationService && !window.organizationService.initialized) {
                 await window.organizationService.init();
             }
-            this.organizationId = window.organizationService.getCurrentOrgId();
+            this.organizationId = getActiveOrganizationId();
 
             if (!this.organizationId) {
                 this.showStatus('Organization data not available. Cannot load products.', 'warning');
