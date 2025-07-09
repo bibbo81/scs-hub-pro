@@ -1,5 +1,7 @@
-// shipments-registry.js - Enhanced Shipments Registry with Better Initialization
+// shipments-registry.js - Enhanced Shipments Registry with Supabase support
 // Path: /core/shipments-registry.js
+import supabaseShipmentsService from '/core/services/supabase-shipments-service.js';
+import { supabase } from '/core/services/supabase-client.js';
 
 class ShipmentsRegistry {
     constructor() {
@@ -21,7 +23,7 @@ class ShipmentsRegistry {
         console.log('🚀 Initializing ShipmentsRegistry...');
         
         try {
-            // Load existing shipments from localStorage
+            // Load existing shipments from Supabase
             await this.loadShipments();
             
             // Set up event listeners
@@ -50,29 +52,11 @@ class ShipmentsRegistry {
     
     async loadShipments() {
         try {
-            const stored = localStorage.getItem(this.storageKey);
-            if (stored) {
-                const data = JSON.parse(stored);
-                
-                // Handle version migration if needed
-                if (data.version !== this.version) {
-                    console.log('🔄 Migrating shipments data...');
-                    this.shipments = this.migrateData(data.shipments || data);
-                } else {
-                    this.shipments = data.shipments || [];
-                }
-                
-                console.log(`📦 Loaded ${this.shipments.length} shipments from storage`);
-            } else {
-                console.log('📦 No existing shipments found, starting fresh');
-                this.shipments = [];
-            }
-            
-            // Validate and clean up data
-            this.shipments = this.validateShipments(this.shipments);
-            
+            const data = await supabaseShipmentsService.getAllShipments();
+            this.shipments = this.validateShipments(data);
+            console.log(`📦 Loaded ${this.shipments.length} shipments from Supabase`);
             return true;
-            
+
         } catch (error) {
             console.error('❌ Error loading shipments:', error);
             this.shipments = [];
@@ -145,31 +129,8 @@ class ShipmentsRegistry {
     }
     
     saveShipments() {
-        try {
-            const data = {
-                version: this.version,
-                shipments: this.shipments,
-                savedAt: new Date().toISOString()
-            };
-            
-            localStorage.setItem(this.storageKey, JSON.stringify(data));
-            console.log(`💾 Saved ${this.shipments.length} shipments to storage`);
-            
-            return true;
-            
-        } catch (error) {
-            console.error('❌ Error saving shipments:', error);
-            
-            // Try to save without version info as fallback
-            try {
-                localStorage.setItem(this.storageKey, JSON.stringify(this.shipments));
-                console.log('💾 Fallback save completed');
-                return true;
-            } catch (fallbackError) {
-                console.error('❌ Fallback save also failed:', fallbackError);
-                return false;
-            }
-        }
+        console.log('💾 Shipments are persisted via Supabase');
+        return true;
     }
     
     // ===== SHIPMENT OPERATIONS =====
@@ -191,11 +152,18 @@ class ShipmentsRegistry {
             ...shipmentData
         };
         
+        try {
+            const saved = await supabaseShipmentsService.createShipment(shipment);
+            if (saved && saved.id) {
+                Object.assign(shipment, saved);
+            }
+        } catch (e) {
+            console.error('❌ Error saving shipment to Supabase:', e);
+        }
+
         this.shipments.push(shipment);
-        this.saveShipments();
-        
         this.notifySubscribers('created', { shipment });
-        
+
         console.log(`✅ Created shipment: ${shipment.shipmentNumber}`);
         return shipment;
     }
@@ -214,14 +182,18 @@ class ShipmentsRegistry {
             ...updates,
             updatedAt: new Date().toISOString()
         };
-        
-        this.saveShipments();
-        
-        this.notifySubscribers('updated', { 
-            shipment: this.shipments[index], 
-            oldShipment 
+
+        try {
+            await supabaseShipmentsService.updateShipment(shipmentId, this.shipments[index]);
+        } catch (e) {
+            console.error('❌ Error updating shipment in Supabase:', e);
+        }
+
+        this.notifySubscribers('updated', {
+            shipment: this.shipments[index],
+            oldShipment
         });
-        
+
         console.log(`✅ Updated shipment: ${this.shipments[index].shipmentNumber}`);
         return this.shipments[index];
     }
@@ -234,10 +206,14 @@ class ShipmentsRegistry {
         }
         
         const deletedShipment = this.shipments.splice(index, 1)[0];
-        this.saveShipments();
-        
+        try {
+            await supabaseShipmentsService.deleteShipment(shipmentId);
+        } catch (e) {
+            console.error('❌ Error deleting shipment from Supabase:', e);
+        }
+
         this.notifySubscribers('deleted', { shipment: deletedShipment });
-        
+
         console.log(`✅ Deleted shipment: ${deletedShipment.shipmentNumber}`);
         return deletedShipment;
     }
@@ -258,26 +234,27 @@ class ShipmentsRegistry {
             throw new Error(`Shipment ${shipmentId} not found`);
         }
         
-        // Get products from localStorage (integration with products system)
-        const allProducts = JSON.parse(localStorage.getItem('products') || '[]');
-        
-        const linkedProducts = productIds.map(productId => {
-            const product = allProducts.find(p => p.id === productId);
-            if (!product) {
-                console.warn(`Product ${productId} not found`);
-                return null;
-            }
-            
-            return {
-                productId: product.id,
-                sku: product.sku,
-                productName: product.name,
-                quantity: 1, // Default quantity
-                weight: product.specifications?.weight || 0,
-                volume: product.specifications?.volume || 0,
-                value: product.specifications?.value || 0
-            };
-        }).filter(Boolean);
+        const orgId = window.organizationService?.getCurrentOrgId?.();
+        const { data, error } = await supabase
+            .from('products')
+            .select('*')
+            .in('id', productIds)
+            .eq('organization_id', orgId);
+
+        if (error) {
+            console.error('❌ Failed to load products from Supabase:', error);
+            return [];
+        }
+
+        const linkedProducts = (data || []).map(product => ({
+            productId: product.id,
+            sku: product.sku,
+            productName: product.name,
+            quantity: 1,
+            weight: product.specifications?.weight || 0,
+            volume: product.specifications?.volume || 0,
+            value: product.specifications?.value || 0
+        }));
         
         // Update shipment with linked products
         await this.updateShipment(shipmentId, {

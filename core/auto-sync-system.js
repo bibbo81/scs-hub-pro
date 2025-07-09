@@ -4,6 +4,7 @@ class AutoSyncSystem {
         this.initialized = false;
         this.syncQueue = [];
         this.processing = false;
+        this.supabaseTrackings = [];
         this.syncRules = this.initializeSyncRules();
         this.eventListeners = new Map();
         this.debugMode = true;
@@ -16,7 +17,17 @@ class AutoSyncSystem {
         
         // Setup event listeners
         this.setupEventListeners();
-        
+
+        if (window.supabaseTrackingService) {
+            try {
+                this.supabaseTrackings = await window.supabaseTrackingService.getAllTrackings();
+                localStorage.setItem('trackings', JSON.stringify(this.supabaseTrackings));
+                console.log(`[AutoSync] Loaded ${this.supabaseTrackings.length} trackings from Supabase`);
+            } catch (e) {
+                console.error('[AutoSync] Failed to load trackings from Supabase:', e);
+            }
+        }
+
         // Initial sync check
         await this.performInitialSync();
         
@@ -285,35 +296,18 @@ class AutoSyncSystem {
         
         const shipmentData = this.mapTrackingToShipment(trackingData);
         
-        // Add to shipments registry
-        if (window.shipmentsRegistry) {
+        if (window.shipmentsRegistry?.createShipment) {
             try {
-                const newShipment = {
-                    id: `AUTO-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+                const newShipment = await window.shipmentsRegistry.createShipment({
                     ...shipmentData,
                     autoCreated: true,
                     createdFrom: 'tracking',
-                    sourceTrackingId: trackingData.id,
-                    createdAt: new Date().toISOString(),
-                    updatedAt: new Date().toISOString()
-                };
+                    sourceTrackingId: trackingData.id
+                });
 
-                window.shipmentsRegistry.shipments.push(newShipment);
-                window.shipmentsRegistry.saveShipments();
-                
                 console.log('✅ Shipment created successfully:', newShipment.id);
-                
-                // Trigger update event
-                window.dispatchEvent(new CustomEvent('shipmentsUpdated', {
-                    detail: {
-                        action: 'created',
-                        shipment: newShipment,
-                        source: 'autoSync'
-                    }
-                }));
-
                 return newShipment;
-                
+
             } catch (error) {
                 console.error('❌ Error creating shipment:', error);
                 return null;
@@ -354,26 +348,12 @@ class AutoSyncSystem {
         updates.lastSyncAt = new Date().toISOString();
         updates.updatedAt = new Date().toISOString();
 
-        if (hasChanges && window.shipmentsRegistry) {
+        if (hasChanges && window.shipmentsRegistry?.updateShipment) {
             try {
-                // Apply updates
-                Object.assign(shipment, updates);
-                window.shipmentsRegistry.saveShipments();
-                
+                await window.shipmentsRegistry.updateShipment(shipment.id, updates);
                 console.log('✅ Shipment updated successfully:', shipment.id);
-                
-                // Trigger update event
-                window.dispatchEvent(new CustomEvent('shipmentsUpdated', {
-                    detail: {
-                        action: 'updated',
-                        shipment: shipment,
-                        source: 'autoSync',
-                        changes: updates
-                    }
-                }));
-
                 return true;
-                
+
             } catch (error) {
                 console.error('❌ Error updating shipment:', error);
                 return false;
@@ -488,7 +468,10 @@ class AutoSyncSystem {
 
     getTrackings() {
         try {
-            // Try multiple sources
+            if (this.supabaseTrackings && this.supabaseTrackings.length > 0) {
+                return this.supabaseTrackings;
+            }
+
             const sources = [
                 () => JSON.parse(localStorage.getItem('trackings') || '[]'),
                 () => JSON.parse(localStorage.getItem('mockTrackings') || '[]'),
@@ -505,7 +488,7 @@ class AutoSyncSystem {
                     continue;
                 }
             }
-            
+
             return [];
         } catch (error) {
             console.error('❌ Error getting trackings:', error);
