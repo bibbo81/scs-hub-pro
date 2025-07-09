@@ -83,7 +83,12 @@ class SupabaseTrackingService {
             
             // Aggiorna anche localStorage per backward compatibility
             this.updateLocalStorage('create', data);
-            
+
+            // Notify other modules of the new tracking
+            window.dispatchEvent(new CustomEvent('trackingAdded', {
+                detail: { tracking: data }
+            }));
+
             return data;
             
         } catch (error) {
@@ -101,7 +106,13 @@ class SupabaseTrackingService {
             }
             
             // Fallback: salva solo in localStorage
-            return this.saveToLocalStorageFallback(trackingData);
+            const fallback = await this.saveToLocalStorageFallback(trackingData);
+            if (fallback) {
+                window.dispatchEvent(new CustomEvent('trackingAdded', {
+                    detail: { tracking: fallback }
+                }));
+            }
+            return fallback;
         }
     }
 
