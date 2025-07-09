@@ -5139,6 +5139,15 @@ setTimeout(() => {
 window.addEventListener('shipmentsUpdated', () => {
     setTimeout(updateProductsLinkStats, 100);
 });
+// Listen for products syncs to refresh stats and products menu
+window.addEventListener('productsSynced', () => {
+    updateProductsLinkStats();
+    if (window.registryCore?.scheduleProductsMenuUpdate) {
+        window.registryCore.scheduleProductsMenuUpdate();
+    } else if (window.productLinkingV20Final?.populateProductsMenu) {
+        window.productLinkingV20Final.populateProductsMenu();
+    }
+});
 </script>
 
 <script>
