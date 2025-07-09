@@ -650,11 +650,12 @@ class ProductLinkingSystemV20OneFinal {
         await new Promise((resolve) => {
             const setRegistry = () => {
                 this.shipmentsRegistry = window.shipmentsRegistry;
-                console.log(`✅ Found ${this.shipmentsRegistry.shipments.length} shipments`);
+                const count = this.shipmentsRegistry.shipments?.length ?? 0;
+                console.log(`✅ Found ${count} shipments`);
                 resolve();
             };
 
-            if (window.shipmentsRegistry?.shipments?.length > 0) {
+            if (window.shipmentsRegistry && window.shipmentsRegistry.initialized) {
                 setRegistry();
                 return;
             }
@@ -662,7 +663,7 @@ class ProductLinkingSystemV20OneFinal {
             const readyHandler = () => {
                 clearTimeout(timeoutId);
                 window.removeEventListener('shipmentsRegistryReady', readyHandler);
-                if (window.shipmentsRegistry?.shipments?.length > 0) {
+                if (window.shipmentsRegistry && window.shipmentsRegistry.initialized) {
                     setRegistry();
                 } else {
                     console.warn('⚠️ shipmentsRegistryReady fired but registry missing');
@@ -672,7 +673,7 @@ class ProductLinkingSystemV20OneFinal {
 
             const timeoutId = setTimeout(() => {
                 window.removeEventListener('shipmentsRegistryReady', readyHandler);
-                if (window.shipmentsRegistry?.shipments?.length > 0) {
+                if (window.shipmentsRegistry && window.shipmentsRegistry.initialized) {
                     setRegistry();
                 } else {
                     console.warn('⚠️ ShipmentsRegistry not ready after 15s');
