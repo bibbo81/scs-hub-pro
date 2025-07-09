@@ -3200,27 +3200,40 @@ async function ensureSampleData() {
            document.getElementById('resetFiltersBtn')?.addEventListener('click', resetFilters);
        }
 
-       // Load shipments data
+       // Public: Load shipments data and render registry view
        async function loadShipmentsData() {
            try {
-               // Show loading state
+               console.log('📊 Loading shipments data...');
                showLoading();
-               
-               // Load from API or localStorage (MVP approach)
+
                const shipments = await loadShipments();
-               
-               // Update KPIs
+
                updateKPIs(shipments);
-               
-               // Render table
-               renderShipmentsTable(shipments);
-               
-               // Update count
-               document.getElementById('registryCount').textContent = shipments.length;
-               
+
+               if (window.registryCore) {
+                   window.registryCore.render();
+               } else {
+                   console.log('⚠️ Registry core not available, using fallback table rendering');
+                   renderShipmentsTable(shipments);
+               }
+
+               const registryCount = document.getElementById('registryCount');
+               if (registryCount) {
+                   registryCount.textContent = shipments.length;
+               }
+
+               console.log(`✅ Loaded ${shipments.length} shipments`);
            } catch (error) {
                console.error('Error loading shipments:', error);
                showError('Errore nel caricamento delle spedizioni');
+
+               if (window.NotificationSystem) {
+                   window.NotificationSystem.show(
+                       'Data Loading Error',
+                       'Failed to load shipments data',
+                       'error'
+                   );
+               }
            } finally {
                hideLoading();
            }
@@ -4716,49 +4729,6 @@ MSCU7654321,container,in_transit,MSC,MSC,TIGER,CNNBO,Ningbo,ITLIV,Livorno,SGSIN,
            }
        }
        
-       // Enhanced error handling for loadShipmentsData
-       async function loadShipmentsData() {
-           try {
-               console.log('📊 Loading shipments data...');
-               
-               if (!window.shipmentsRegistry) {
-                   console.warn('⚠️ ShipmentsRegistry not available');
-                   return;
-               }
-               
-               const shipments = window.shipmentsRegistry.shipments || [];
-               
-               // Update KPIs
-               updateKPIs(shipments);
-               
-               // Render table if registry core is available
-               if (window.registryCore) {
-                   window.registryCore.render();
-               } else {
-                   console.log('⚠️ Registry core not available, using fallback table rendering');
-                   renderShipmentsTable(shipments);
-               }
-               
-               // Update count
-               const registryCount = document.getElementById('registryCount');
-               if (registryCount) {
-                   registryCount.textContent = shipments.length;
-               }
-               
-               console.log(`✅ Loaded ${shipments.length} shipments`);
-               
-           } catch (error) {
-               console.error('❌ Error loading shipments data:', error);
-               
-               if (window.NotificationSystem) {
-                   window.NotificationSystem.show(
-                       'Data Loading Error', 
-                       'Failed to load shipments data', 
-                       'error'
-                   );
-               }
-           }
-       }
        
        // Enhanced event listener setup
        function setupEventListeners() {
