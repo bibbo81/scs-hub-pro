@@ -15,10 +15,12 @@ ON public.shipments TO api;
 
 DROP POLICY IF EXISTS "API upsert shipments" ON public.shipments;
 CREATE POLICY "API upsert shipments" ON public.shipments
-    FOR INSERT WITH CHECK (auth.role() = 'api')
-    TO api;
-
+    FOR INSERT TO api
+    WITH CHECK (auth.role() = 'api');
+    
 DROP POLICY IF EXISTS "API update shipments" ON public.shipments;
 CREATE POLICY "API update shipments" ON public.shipments
+    FOR UPDATE TO api
+    USING (auth.role() = 'api');
     FOR UPDATE USING (auth.role() = 'api')
     TO api;

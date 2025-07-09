@@ -21,29 +21,31 @@ class SupabaseShipmentsService {
         }
     }
 
+    camelToSnake(key) {
+        return key.replace(/([A-Z])/g, '_$1').toLowerCase();
+    }
+
+    preparePayload(shipment) {
+        const payload = {};
+        Object.entries(shipment).forEach(([key, value]) => {
+            if (value === undefined) return;
+            if (key === 'carrier' && value) {
+                payload.carrier_code = value.code;
+                payload.carrier_name = value.name;
+                payload.carrier_service = value.service;
+                return;
+            }
+
+            const snake = this.camelToSnake(key);
+            payload[snake] = value;
+        });
+        return payload;
+    }
+
     async createShipment(shipment) {
         try {
             const orgId = organizationService.getCurrentOrgId();
-            const payload = { ...shipment, organization_id: orgId };
-            // Map camelCase properties to snake_case columns
-            if (payload.autoCreated !== undefined) {
-                payload.auto_created = payload.autoCreated;
-                delete payload.autoCreated;
-            }
-            if (payload.createdFrom !== undefined) {
-                payload.created_from = payload.createdFrom;
-                delete payload.createdFrom;
-            }
-            if (payload.sourceTrackingId !== undefined) {
-                payload.source_tracking_id = payload.sourceTrackingId;
-                delete payload.sourceTrackingId;
-            }
-            if (payload.carrier) {
-                payload.carrier_code = payload.carrier.code;
-                payload.carrier_name = payload.carrier.name;
-                payload.carrier_service = payload.carrier.service;
-                delete payload.carrier;
-            }
+            const payload = this.preparePayload({ ...shipment, organization_id: orgId });
             const { data, error } = await supabase
                 .from(this.table)
                 .insert([payload])
@@ -59,13 +61,7 @@ class SupabaseShipmentsService {
 
     async updateShipment(id, updates) {
         try {
-            const payload = { ...updates, updated_at: new Date().toISOString() };
-            if (payload.carrier) {
-                payload.carrier_code = payload.carrier.code;
-                payload.carrier_name = payload.carrier.name;
-                payload.carrier_service = payload.carrier.service;
-                delete payload.carrier;
-            }
+            const payload = this.preparePayload({ ...updates, updatedAt: new Date().toISOString() });
             const { data, error } = await supabase
                 .from(this.table)
                 .update(payload)
