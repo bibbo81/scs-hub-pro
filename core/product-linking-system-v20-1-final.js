@@ -646,15 +646,37 @@ class ProductLinkingSystemV20OneFinal {
             await this.delay(this.config.retryDelay);
         }
         
-        // Wait for ShipmentsRegistry
-        for (let i = 0; i < this.config.retryAttempts; i++) {
+        // Wait for ShipmentsRegistry via event or timeout
+        await new Promise((resolve) => {
             if (window.shipmentsRegistry?.shipments?.length > 0) {
                 this.shipmentsRegistry = window.shipmentsRegistry;
                 console.log(`✅ Found ${this.shipmentsRegistry.shipments.length} shipments`);
-                break;
+                resolve();
+                return;
             }
-            await this.delay(this.config.retryDelay);
-        }
+
+            const readyHandler = () => {
+                clearTimeout(timeoutId);
+                window.removeEventListener('shipmentsRegistryReady', readyHandler);
+                this.shipmentsRegistry = window.shipmentsRegistry;
+                console.log('✅ shipmentsRegistryReady event received');
+                resolve();
+            };
+
+            const timeoutId = setTimeout(() => {
+                window.removeEventListener('shipmentsRegistryReady', readyHandler);
+                if (window.shipmentsRegistry?.shipments?.length > 0) {
+                    this.shipmentsRegistry = window.shipmentsRegistry;
+                    console.log(`✅ Found ${this.shipmentsRegistry.shipments.length} shipments after timeout`);
+                } else {
+                    console.warn('⚠️ ShipmentsRegistry not ready after 10s');
+                    this.createFallbackRegistry();
+                }
+                resolve();
+            }, 10000);
+
+            window.addEventListener('shipmentsRegistryReady', readyHandler);
+        });
         
         // Load products
         this.productsData = this.loadProducts();
@@ -670,8 +692,7 @@ class ProductLinkingSystemV20OneFinal {
         }
         
         if (!this.shipmentsRegistry) {
-            console.warn('⚠️ No shipments registry, creating fallback');
-            this.createFallbackRegistry();
+            console.warn('⚠️ No shipments registry, using fallback');
         }
         
         if (this.productsData.length === 0) {
