@@ -399,50 +399,51 @@ class ShipmentsRegistry {
     }
     
     convertImportRowToShipment(row) {
-        // Handle different possible column names
-        const getField = (row, ...names) => {
-            for (const name of names) {
-                if (row[name] !== undefined && row[name] !== null && row[name] !== '') {
-                    return row[name];
-                }
-            }
-            return null;
+        const mapped = {};
+        for (const [key, value] of Object.entries(row)) {
+            const normalized = window.ShipmentUnifiedMapping.mapColumn(key);
+            mapped[normalized] = value;
+        }
+
+        const getField = (name, def = null) => {
+            return mapped[name] !== undefined && mapped[name] !== null && mapped[name] !== ''
+                ? mapped[name]
+                : def;
         };
-        
+
         return {
-            shipmentNumber: getField(row, 'Shipment Number', 'shipmentNumber', 'Numero Spedizione'),
-            type: (getField(row, 'Type', 'type', 'Tipo') || 'container').toLowerCase(),
-            status: (getField(row, 'Status', 'status', 'Stato') || 'planned').toLowerCase(),
+            shipmentNumber: getField('shipment_number'),
+            type: (getField('type', 'container') || 'container').toLowerCase(),
+            status: window.ShipmentUnifiedMapping.mapStatus(getField('status', 'planned')),
             carrier: {
-                code: getField(row, 'Carrier Code', 'carrierCode', 'Codice Vettore'),
-                name: getField(row, 'Carrier Name', 'carrierName', 'Nome Vettore', 'Carrier'),
-                service: getField(row, 'Service', 'service', 'Servizio')
+                code: getField('carrier_code'),
+                name: getField('carrier_name'),
+                service: getField('service')
             },
             route: {
                 origin: {
-                    port: getField(row, 'Origin Port', 'originPort', 'Porto Origine'),
-                    name: getField(row, 'Origin Name', 'originName', 'Nome Origine', 'Origin')
+                    port: getField('origin_port'),
+                    name: getField('origin_name')
                 },
                 destination: {
-                    port: getField(row, 'Destination Port', 'destinationPort', 'Porto Destinazione'),
-                    name: getField(row, 'Destination Name', 'destinationName', 'Nome Destinazione', 'Destination')
+                    port: getField('destination_port'),
+                    name: getField('destination_name')
                 },
-                via: getField(row, 'Via', 'via', 'Scali') ? 
-                    getField(row, 'Via', 'via', 'Scali').split(',').map(s => s.trim()) : [],
-                estimatedTransit: parseInt(getField(row, 'Transit Days', 'transitDays', 'Giorni Transito')) || 0
+                via: getField('via') ? getField('via').split(',').map(s => s.trim()) : [],
+                estimatedTransit: parseInt(getField('transit_days')) || 0
             },
             schedule: {
-                etd: getField(row, 'ETD', 'etd', 'Partenza Stimata'),
-                eta: getField(row, 'ETA', 'eta', 'Arrivo Stimato')
+                etd: getField('etd'),
+                eta: getField('eta')
             },
             costs: {
-                oceanFreight: parseFloat(getField(row, 'Ocean Freight', 'oceanFreight', 'Nolo Marittimo')) || 0,
-                bunkerSurcharge: parseFloat(getField(row, 'BAF', 'bunkerSurcharge', 'Bunker')) || 0,
-                portCharges: parseFloat(getField(row, 'Port Charges', 'portCharges', 'Spese Portuali')) || 0,
-                customs: parseFloat(getField(row, 'Customs', 'customs', 'Dogana')) || 0,
-                insurance: parseFloat(getField(row, 'Insurance', 'insurance', 'Assicurazione')) || 0,
-                total: parseFloat(getField(row, 'Total Cost', 'totalCost', 'Costo Totale')) || 0,
-                currency: getField(row, 'Currency', 'currency', 'Valuta') || 'EUR'
+                oceanFreight: parseFloat(getField('ocean_freight')) || 0,
+                bunkerSurcharge: parseFloat(getField('bunker_surcharge')) || 0,
+                portCharges: parseFloat(getField('port_charges')) || 0,
+                customs: parseFloat(getField('customs')) || 0,
+                insurance: parseFloat(getField('insurance')) || 0,
+                total: parseFloat(getField('total_cost')) || 0,
+                currency: getField('currency') || 'EUR'
             }
         };
     }
