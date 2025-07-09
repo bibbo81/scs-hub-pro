@@ -38,6 +38,12 @@ class SupabaseShipmentsService {
                 payload.source_tracking_id = payload.sourceTrackingId;
                 delete payload.sourceTrackingId;
             }
+            if (payload.carrier) {
+                payload.carrier_code = payload.carrier.code;
+                payload.carrier_name = payload.carrier.name;
+                payload.carrier_service = payload.carrier.service;
+                delete payload.carrier;
+            }
             const { data, error } = await supabase
                 .from(this.table)
                 .insert([payload])
@@ -53,9 +59,16 @@ class SupabaseShipmentsService {
 
     async updateShipment(id, updates) {
         try {
+            const payload = { ...updates, updated_at: new Date().toISOString() };
+            if (payload.carrier) {
+                payload.carrier_code = payload.carrier.code;
+                payload.carrier_name = payload.carrier.name;
+                payload.carrier_service = payload.carrier.service;
+                delete payload.carrier;
+            }
             const { data, error } = await supabase
                 .from(this.table)
-                .update({ ...updates, updated_at: new Date().toISOString() })
+                .update(payload)
                 .eq('id', id)
                 .select()
                 .single();
