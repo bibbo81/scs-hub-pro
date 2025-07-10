@@ -41,7 +41,7 @@
             if (!user) return 'Utente';
             
             // Check display_name personalizzato
-            if (user.user_metadata?.display_name) {
+            if (user.user_metadata?.display_name && user.user_metadata.display_name !== user.email?.split('@')[0]) {
                 return user.user_metadata.display_name;
             }
             
@@ -50,18 +50,23 @@
                           user.user_metadata?.name || 
                           '';
             
-            // Se non trovato, usa email
+            // NUOVO: Se non trovato, usa email PRIMA del fallback
             if (!fullName && user.email) {
                 fullName = user.email.split('@')[0];
             }
             
-            // Formatta correttamente
-            return fullName
-                .replace(/[._-]/g, ' ')
-                .split(' ')
-                .filter(w => w.length > 0)
-                .map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
-                .join(' ') || 'Utente';
+            // FISSO: Applica sempre la formattazione, anche se fullName viene da metadata
+            if (fullName) {
+                return fullName
+                    .replace(/[._-]/g, ' ')
+                    .split(' ')
+                    .filter(w => w.length > 0)
+                    .map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+                    .join(' ');
+            }
+            
+            // Ultimo fallback
+            return user.email?.split('@')[0] || 'Utente';
         },
         
         // Ottieni iniziali

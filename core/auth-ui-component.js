@@ -126,10 +126,13 @@ class AuthUIComponent {
                 </button>
             `;
         } else {
-           const displayName = this.currentUser?.user_metadata?.full_name || 
-                   this.currentUser?.user_metadata?.name ||
-                   this.currentUser?.email?.split('@')[0] ||
-                   'Utente';
+           // NUOVO: Usa formatUserName per consistenza
+           const displayName = window.authInit ? 
+               window.authInit.formatUserName(this.currentUser) :
+               (this.currentUser?.user_metadata?.full_name || 
+                this.currentUser?.user_metadata?.name ||
+                this.currentUser?.email?.split('@')[0] ||
+                'Utente');
             
             indicator.innerHTML = `
                 <div class="auth-user-info">
@@ -152,11 +155,13 @@ class AuthUIComponent {
             if (this.isAnonymous) {
                 userName.textContent = 'Modalità Demo';
             } else {
-                const displayName = this.currentUser?.user_metadata?.full_name || 
-                  this.currentUser?.user_metadata?.name ||
-                  this.currentUser?.email?.split('@')[0] ||
-                  'Utente';
-userName.textContent = displayName;
+                // NUOVO: Usa formatUserName per consistenza
+                const displayName = window.authInit ? 
+                    window.authInit.formatUserName(this.currentUser) :
+                    (this.currentUser?.user_metadata?.full_name || 
+                     this.currentUser?.user_metadata?.name ||
+                     this.currentUser?.email?.split('@')[0] || 'Utente');
+                userName.textContent = displayName;
             }
         }
         
@@ -402,6 +407,14 @@ userName.textContent = displayName;
         this.isAnonymous = false;
         
         modal.close();
+        
+        // NUOVO: Forza aggiornamento UI completo
+        this.updateUIState();
+        
+        // NUOVO: Aggiorna anche authInit se disponibile
+        if (window.authInit) {
+            window.authInit.updateUserUI();
+        }
         
         // Trigger stato change
         this.handleAuthStateChange('SIGNED_IN', { user: result.user });

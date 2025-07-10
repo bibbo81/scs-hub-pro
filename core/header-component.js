@@ -349,6 +349,32 @@ export class HeaderComponent {
         }
         
         try {
+            // NUOVO: Check mock auth system first when available
+            if (window.auth && typeof window.auth.getCurrentUser === 'function') {
+                const mockUser = window.auth.getCurrentUser();
+                if (mockUser && mockUser.email) {
+                    const name = window.authInit?.formatUserName(mockUser) ||
+                                  mockUser.user_metadata?.full_name ||
+                                  mockUser.user_metadata?.display_name ||
+                                  mockUser.email.split('@')[0];
+                    
+                    const userInfo = {
+                        name,
+                        email: mockUser.email,
+                        initials: window.authInit?.getUserInitials(name) ||
+                                  name.substring(0, 2).toUpperCase(),
+                        isAnonymous: false
+                    };
+                    
+                    // Aggiorna cache
+                    this.userInfoCache = userInfo;
+                    this.userInfoCacheTime = now;
+                    
+                    return userInfo;
+                }
+            }
+            
+            // Fallback to Supabase if available
             if (supabase) {
                 const { data: { user } } = await supabase.auth.getUser();
                 
@@ -806,6 +832,15 @@ export class HeaderComponent {
                 this.handleAuthStateChange(event, session);
             });
             this._authListenerAttached = true;
+        }
+        
+        // NUOVO: Listen for mock auth changes
+        if (!this._mockAuthListenerAttached) {
+            window.addEventListener('mockAuthStateChange', (event) => {
+                console.log('[HeaderComponent] Mock auth state changed:', event.detail);
+                this.handleAuthStateChange(event.detail.event, event.detail.session);
+            });
+            this._mockAuthListenerAttached = true;
         }
         
         // Aggiungi listener per visibility change - use once
