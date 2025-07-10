@@ -27,7 +27,11 @@
     import headerComponent from '/core/header-component.js';
     import notificationSystem from '/core/notification-system.js';
     import modalSystem from '/core/modal-system.js';
-    import organizationService from '/core/services/organization-service.js';
+    import organizationService, { ensureOrganizationSelected } from '/core/services/organization-service.js';
+
+    if (!ensureOrganizationSelected()) {
+        throw new Error('Organization not selected');
+    }
     
     // Make organization service available globally
     window.organizationService = organizationService;

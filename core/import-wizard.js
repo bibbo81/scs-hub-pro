@@ -3,7 +3,7 @@ import notificationSystem from '/core/notification-system.js';
 import modalSystem from '/core/modal-system.js';
 import apiClient from '/core/api-client.js';
 import { supabase } from '/core/services/supabase-client.js';
-import { getActiveOrganizationId } from '/core/services/organization-service.js';
+import { getActiveOrganizationId, ensureOrganizationSelected } from '/core/services/organization-service.js';
 
 class ImportWizard {
     constructor() {
@@ -768,8 +768,10 @@ if (!this.targetFields || !Array.isArray(this.targetFields) || this.targetFields
 
     try {
         // 1. Organization e User ID
+        if (!ensureOrganizationSelected()) {
+            throw new Error('Organization non selezionata!');
+        }
         const orgId = getActiveOrganizationId();
-        if (!orgId) throw new Error('Organization non selezionata!');
         
         let supa = this.supabase || supabase || window.supabase;
         if (!supa || !supa.auth) {
@@ -1126,11 +1128,11 @@ gotoStep = (stepIndex) => {
 
 startImport = async () => {
     try {
-        const orgId = getActiveOrganizationId();
-        if (!orgId) {
+        if (!ensureOrganizationSelected()) {
             notificationSystem.show("Missing organization context. Cannot proceed with import.", "error");
             return;
         }
+        const orgId = getActiveOrganizationId();
         let supa = this.supabase || supabase || window.supabase;
         if (!supa || !supa.auth) {
             console.error('Supabase client not initialized');

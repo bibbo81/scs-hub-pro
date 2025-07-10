@@ -119,6 +119,17 @@ export const organizationService = new OrganizationService();
 
 export const getActiveOrganizationId = () => organizationService.getCurrentOrgId();
 
+export function ensureOrganizationSelected() {
+    const id = typeof getActiveOrganizationId === 'function'
+        ? getActiveOrganizationId()
+        : window.activeOrganizationId || null;
+    if (!id) {
+        alert("\u26A0\uFE0F Nessuna organizzazione selezionata! Selezionala dal menu.");
+        return false;
+    }
+    return true;
+}
+
 // Auto-init
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {

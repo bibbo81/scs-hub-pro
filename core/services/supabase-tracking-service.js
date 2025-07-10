@@ -1,6 +1,6 @@
 // core/services/supabase-tracking-service.js
 import { supabase, initializeSupabase } from '/core/services/supabase-client.js';
-import { getActiveOrganizationId } from '/core/services/organization-service.js';
+import { getActiveOrganizationId, ensureOrganizationSelected } from '/core/services/organization-service.js';
 
 class SupabaseTrackingService {
     constructor() {
@@ -74,13 +74,10 @@ class SupabaseTrackingService {
             const user = await this.getCurrentUser();
             if (!user) throw new Error('User not authenticated');
 
-            const orgId = getActiveOrganizationId?.() || (window.getActiveOrganizationId?.());
-            if (!orgId) {
-                if (typeof window !== 'undefined' && window.NotificationSystem) {
-                    window.NotificationSystem.error('Seleziona un\'organizzazione prima di creare un tracking');
-                }
+            if (!ensureOrganizationSelected()) {
                 throw new Error('Organization ID missing');
             }
+            const orgId = getActiveOrganizationId?.() || (window.getActiveOrganizationId?.());
 
             // Prepara i dati per Supabase
             const supabaseData = this.prepareForSupabase(trackingData, user.id, orgId);
@@ -423,10 +420,10 @@ class SupabaseTrackingService {
             if (!user) {
                 throw new Error('User must be authenticated to migrate data');
             }
-            const orgId = getActiveOrganizationId?.() || (window.getActiveOrganizationId?.());
-            if (!orgId) {
+            if (!ensureOrganizationSelected()) {
                 throw new Error('Organization ID missing');
             }
+            const orgId = getActiveOrganizationId?.() || (window.getActiveOrganizationId?.());
 
             const localTrackings = this.getLocalStorageFallback();
             if (localTrackings.length === 0) {
