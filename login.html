@@ -458,7 +458,9 @@
     </div>
     
     <script type="module">
-        import { supabase } from '/core/services/supabase-client.js';
+        import { supabase, initializeSupabase } from '/core/services/supabase-client.js';
+
+        await initializeSupabase();
         
         // Debug functions
         window.toggleDebug = function() {
