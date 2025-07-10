@@ -1,5 +1,6 @@
 // core/services/supabase-tracking-service.js
 import { supabase, initializeSupabase } from '/core/services/supabase-client.js';
+import { getActiveOrganizationId } from '/core/services/organization-service.js';
 
 class SupabaseTrackingService {
     constructor() {
@@ -73,8 +74,16 @@ class SupabaseTrackingService {
             const user = await this.getCurrentUser();
             if (!user) throw new Error('User not authenticated');
 
+            const orgId = getActiveOrganizationId?.() || (window.getActiveOrganizationId?.());
+            if (!orgId) {
+                if (typeof window !== 'undefined' && window.NotificationSystem) {
+                    window.NotificationSystem.error('Seleziona un\'organizzazione prima di creare un tracking');
+                }
+                throw new Error('Organization ID missing');
+            }
+
             // Prepara i dati per Supabase
-            const supabaseData = this.prepareForSupabase(trackingData, user.id);
+            const supabaseData = this.prepareForSupabase(trackingData, user.id, orgId);
 
             const { data, error } = await supabase
                 .from(this.table)
@@ -159,10 +168,11 @@ class SupabaseTrackingService {
     // DATA PREPARATION
     // ========================================
 
-    prepareForSupabase(trackingData, userId) {
+    prepareForSupabase(trackingData, userId, organizationId) {
         // Mappa i campi dal formato localStorage al formato Supabase
         const prepared = {
             user_id: userId,
+            organization_id: organizationId,
             tracking_number: trackingData.tracking_number || trackingData.trackingNumber,
             tracking_type: trackingData.tracking_type || trackingData.trackingType,
             carrier_code: trackingData.carrier_code || trackingData.carrier,
@@ -413,6 +423,10 @@ class SupabaseTrackingService {
             if (!user) {
                 throw new Error('User must be authenticated to migrate data');
             }
+            const orgId = getActiveOrganizationId?.() || (window.getActiveOrganizationId?.());
+            if (!orgId) {
+                throw new Error('Organization ID missing');
+            }
 
             const localTrackings = this.getLocalStorageFallback();
             if (localTrackings.length === 0) {
@@ -423,8 +437,8 @@ class SupabaseTrackingService {
             console.log(`📦 Found ${localTrackings.length} trackings to migrate`);
 
             // Prepara tutti i tracking per l'inserimento batch
-            const supabaseData = localTrackings.map(tracking => 
-                this.prepareForSupabase(tracking, user.id)
+            const supabaseData = localTrackings.map(tracking =>
+                this.prepareForSupabase(tracking, user.id, orgId)
             );
 
             // Inserisci in batch
