@@ -1,6 +1,7 @@
 // shipments-registry.js - Enhanced Shipments Registry with Supabase support
 // Path: /core/shipments-registry.js
 import supabaseShipmentsService from '/core/services/supabase-shipments-service.js';
+import '/core/supabase-init.js';
 import { supabase } from '/core/services/supabase-client.js';
 import { getActiveOrganizationId } from '/core/services/organization-service.js';
 

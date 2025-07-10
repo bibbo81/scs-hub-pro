@@ -1,4 +1,5 @@
 // core/services/supabase-shipments-service.js
+import '/core/supabase-init.js';
 import { supabase } from '/core/services/supabase-client.js';
 import { getActiveOrganizationId } from '/core/services/organization-service.js';
 

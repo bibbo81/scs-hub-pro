@@ -4,6 +4,7 @@
 // Import organization service
 import organizationService, { getActiveOrganizationId } from '/core/services/organization-service.js';
 import { importWizard } from '/core/import-wizard.js';
+import '/core/supabase-init.js';
 import { supabase } from '/core/services/supabase-client.js';
 importWizard.setSupabaseClient(supabase);
 import { showContextMenu } from '/core/components/context-menu.mjs';
