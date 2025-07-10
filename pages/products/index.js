@@ -5,6 +5,7 @@ import organizationService, { getActiveOrganizationId } from '/core/services/org
 import { importWizard } from '/core/import-wizard.js';
 import { supabase } from '/core/services/supabase-client.js';
 import TableManager from '/core/table-manager.js';
+window.TableManager = TableManager;
 window.supabase = supabase;
 importWizard.setSupabaseClient(supabase);
 console.log('[DEBUG] Supabase client in wizard:', window.importWizard.supabase);
