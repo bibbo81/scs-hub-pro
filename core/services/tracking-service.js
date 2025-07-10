@@ -1841,3 +1841,4 @@ if (window.location.hostname === 'localhost') {
 }
 
 export default trackingService;
+window.trackingService = trackingService;
