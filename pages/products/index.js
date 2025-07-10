@@ -3,6 +3,7 @@
 // Import servizi necessari
 import organizationService, { getActiveOrganizationId } from '/core/services/organization-service.js';
 import { importWizard } from '/core/import-wizard.js';
+import '/core/supabase-init.js';
 import { supabase } from '/core/services/supabase-client.js';
 import TableManager from '/core/table-manager.js';
 window.supabase = supabase;
