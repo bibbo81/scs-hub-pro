@@ -78,6 +78,11 @@ class SupabaseShipmentsService {
                 payload
             });
 
+            console.log('🚚 Tentativo INSERT shipment su Supabase:');
+            console.log('organization_id:', payload.organization_id);
+            console.log('user_id:', userId || (supabase.auth && supabase.auth.user && supabase.auth.user().id));
+            console.log('Payload completo:', JSON.stringify(payload, null, 2));
+
             const filters = [];
             if (shipment.shipmentNumber) {
                 filters.push(`shipment_number.eq.${shipment.shipmentNumber}`);
@@ -107,6 +112,8 @@ class SupabaseShipmentsService {
                 .select()
                 .single();
             if (error) {
+                console.error('❌ Errore INSERT shipment su Supabase:', error);
+                console.log('Payload che ha dato errore:', JSON.stringify(payload, null, 2));
                 if (error.status === 403) {
                     console.error('403 error creating shipment', { payload, userId });
                 }

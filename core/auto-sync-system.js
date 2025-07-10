@@ -352,13 +352,20 @@ class AutoSyncSystem {
                     payload: shipmentData
                 });
 
-                const newShipment = await window.shipmentsRegistry.createShipment({
+                const fullPayload = {
                     ...shipmentData,
                     organization_id: orgId,
                     autoCreated: true,
                     createdFrom: 'tracking',
                     sourceTrackingId: trackingData.id
-                });
+                };
+
+                console.log('🚚 Tentativo INSERT shipment su Supabase:');
+                console.log('organization_id:', fullPayload.organization_id);
+                console.log('user_id:', userId || (sb && sb.auth && sb.auth.user && sb.auth.user().id));
+                console.log('Payload completo:', JSON.stringify(fullPayload, null, 2));
+
+                const newShipment = await window.shipmentsRegistry.createShipment(fullPayload);
 
                 console.log('Spedizione creata con successo', newShipment.id);
                 return newShipment;
@@ -371,6 +378,13 @@ class AutoSyncSystem {
                     });
                 }
                 console.error('❌ Error creating shipment:', error);
+                console.log('Payload che ha dato errore:', JSON.stringify({
+                    ...shipmentData,
+                    organization_id: orgId,
+                    autoCreated: true,
+                    createdFrom: 'tracking',
+                    sourceTrackingId: trackingData.id
+                }, null, 2));
                 return null;
             }
         }
