@@ -25,7 +25,10 @@
         import headerComponent from '/core/header-component.js';
         import notificationSystem from '/core/notification-system.js';
         import modalSystem from '/core/modal-system.js';
-        import organizationService, { getActiveOrganizationId } from '/core/services/organization-service.js';
+        import organizationService, { getActiveOrganizationId, ensureOrganizationSelected } from '/core/services/organization-service.js';
+        if (!ensureOrganizationSelected()) {
+            throw new Error('Organization not selected');
+        }
         
         // Make modules available globally
         window.api = api;

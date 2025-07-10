@@ -294,7 +294,10 @@
         import { supabase } from '/core/services/supabase-client.js';
         import supabaseTrackingService from '/core/services/supabase-tracking-service.js';
         import organizationApiKeysService from '/core/services/organization-api-keys-service.js';
-        import organizationService, { getActiveOrganizationId } from '/core/services/organization-service.js';
+        import organizationService, { getActiveOrganizationId, ensureOrganizationSelected } from '/core/services/organization-service.js';
+        if (!ensureOrganizationSelected()) {
+            throw new Error('Organization not selected');
+        }
         // Import ExportManager (might be a global or named export)
         // import ExportManager from '/core/export-manager.js';
         // Make modules available globally
