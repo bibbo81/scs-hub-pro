@@ -8,8 +8,6 @@ import { getSupabase } from '/core/services/supabase-client.js';
 import TableManager from '/core/table-manager.js';
 window.TableManager = TableManager;
 const supabase = getSupabase();
-window.supabase = supabase;
-window.TableManager = TableManager;
 if (supabase) {
     importWizard.setSupabaseClient(supabase);
     console.log('[DEBUG] Supabase client in wizard:', window.importWizard.supabase);
