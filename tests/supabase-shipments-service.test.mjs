@@ -5,16 +5,23 @@ let notifications = [];
 // Minimal NotificationSystem mock
 global.window = {
     NotificationSystem: {
-        warning(msg) { notifications.push(msg); }
+        warning(msg) {
+            notifications.push(msg);
+        }
     }
 };
 
+let activeOrgId = null;
 function getActiveOrganizationId() {
-    return null;
+    return activeOrgId;
 }
 
 class TestService {
-    constructor() { this.table = 'shipments'; }
+    constructor(logger = console) {
+        this.table = 'shipments';
+        this.logger = logger;
+        this.existing = new Set();
+    }
 
     camelToSnake(key) {
         return key.replace(/([A-Z])/g, '_$1').toLowerCase();
@@ -49,7 +56,16 @@ class TestService {
             );
             return null;
         }
-        return this.preparePayload(data);
+        const payload = this.preparePayload(data);
+        if (this.existing.has(payload.shipment_number)) {
+            return null;
+        }
+        if (data.force403) {
+            this.logger.error({ payload, userId: orgId });
+            return null;
+        }
+        this.existing.add(payload.shipment_number);
+        return payload;
     }
 
     async updateShipment(id, updates) {
@@ -64,7 +80,7 @@ class TestService {
     }
 }
 
-(async () => {
+async function runMissingOrgTests() {
     const svc = new TestService();
     const all = await svc.getAllShipments();
     assert.deepStrictEqual(all, []);
@@ -79,4 +95,38 @@ class TestService {
     assert.ok(notifications.length === 3);
 
     console.log('SupabaseShipmentsService missing organization tests passed');
+}
+
+async function runExistingShipmentTest() {
+    activeOrgId = '1';
+    const svc = new TestService();
+    const first = await svc.createShipment({ shipmentNumber: 'ABC' });
+    assert.strictEqual(first.shipment_number, 'ABC');
+
+    const second = await svc.createShipment({ shipmentNumber: 'ABC' });
+    assert.strictEqual(second, null);
+
+    console.log('SupabaseShipmentsService duplicate shipment test passed');
+}
+
+async function runForbiddenLoggingTest() {
+    const logs = [];
+    const logger = { error(entry) { logs.push(entry); } };
+    activeOrgId = 'user-1';
+    const svc = new TestService(logger);
+    const result = await svc.createShipment({ shipmentNumber: 'FORBID', force403: true });
+    assert.strictEqual(result, null);
+    assert.strictEqual(logs.length, 1);
+    assert.deepStrictEqual(logs[0], {
+        payload: { shipment_number: 'FORBID', force403: true },
+        userId: 'user-1'
+    });
+
+    console.log('SupabaseShipmentsService 403 logging test passed');
+}
+
+(async () => {
+    await runMissingOrgTests();
+    await runExistingShipmentTest();
+    await runForbiddenLoggingTest();
 })();
