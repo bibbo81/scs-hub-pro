@@ -1,4 +1,12 @@
 // auto-sync-system.js - Event-driven synchronization between Tracking and Shipments
+
+// Handle bulk tracking imports and create shipments automatically
+window.addEventListener('trackingImported', async (event) => {
+    const { imported } = event.detail;
+    for (const tracking of imported) {
+        await window.autoSyncSystem?.createShipmentFromTracking(tracking);
+    }
+});
 class AutoSyncSystem {
     constructor() {
         this.initialized = false;
