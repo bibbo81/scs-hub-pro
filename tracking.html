@@ -294,7 +294,6 @@
         // Import ExportManager (might be a global or named export)
         // import ExportManager from '/core/export-manager.js';
         import TableManager from '/core/table-manager.js';
-        import trackingService from '/core/services/tracking-service.js';
         
         // Make modules available globally
         window.api = api;
@@ -308,18 +307,6 @@
         window.getActiveOrganizationId = getActiveOrganizationId;
         // window.ExportManager = ExportManager; // Commented out until we verify export structure
         window.TableManager = TableManager;
-        
-        // Register table manager globally
-        window.registerTableManager = function(id, instance) {
-            if (!window.tableManagers) {
-                window.tableManagers = {};
-            }
-            window.tableManagers[id] = instance;
-        };
-        
-        window.getTableManager = function(id) {
-            return window.tableManagers?.[id];
-        };
         
         // Initialize components
         headerComponent.init();

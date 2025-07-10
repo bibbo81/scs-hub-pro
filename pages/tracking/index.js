@@ -1,5 +1,6 @@
 // index.js - Clean tracking page logic with all mappings
 import TableManager from '/core/table-manager.js';
+window.TableManager = TableManager;
 
 // State
 let trackings = [];
@@ -1092,19 +1093,6 @@ async function refreshTracking(id) {
     window.NotificationSystem?.info('Aggiornamento tracking...');
     
     try {
-        // Check if tracking service is available and initialized
-        if (!window.trackingService) {
-            console.log('Initializing tracking service...');
-            // Try to load tracking service
-            const script = document.createElement('script');
-            script.src = '/core/services/tracking-service.js';
-            script.type = 'module';
-            document.head.appendChild(script);
-            
-            // Wait for it to load
-            await new Promise(resolve => setTimeout(resolve, 1000));
-        }
-        
         if (window.trackingService && window.trackingService.track) {
             // Initialize if needed
             if (!window.trackingService.initialized) {
