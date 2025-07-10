@@ -391,7 +391,12 @@ window.performanceReport = function() {
     // ... resto del codice ...
 };
 </script>
-    <!-- Page Logic -->
+    <!-- Load Required Modules in Order -->
+    <script type="module" src="/core/services/supabase-client.js"></script>
+    <script type="module" src="/core/services/tracking-service.js"></script>
+    <script src="shipments-initialization-fix.js"></script>
+    <script type="module" src="/core/shipments-registry.js"></script>
+    <script src="/core/auto-sync-system.js"></script>
     <script type="module" src="/pages/tracking/index.js"></script>
     <!-- FIX: Assicura che showAddTrackingForm sia disponibile -->
 <script>
@@ -451,10 +456,6 @@ setTimeout(() => {
 }, 2000);
 </script>
 
-    <!-- Shipments registry for unified tracking -->
-    <script src="shipments-initialization-fix.js"></script>
-    <script src="/core/auto-sync-system.js"></script>
-    
     <!-- Load Progressive Form -->
     <script src="/pages/tracking/tracking-form-progressive.js"></script>
     
