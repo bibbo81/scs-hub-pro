@@ -1,8 +1,17 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 // --- Configurazione Supabase ---
-const supabaseUrl = 'https://gnlrmnsdmpjzitsysowq.supabase.co';
-const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdubHJtbnNkbXBqeml0c3lzb3dxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk0NjMxMzQsImV4cCI6MjA2NTAzOTEzNH0.UoJJoDUoDXGbiWnKNN48qb9PVQWOW_X_MXqAfzTHSaA';
+const supabaseUrl =
+    (typeof process !== 'undefined' && process.env.SUPABASE_URL) ||
+    (typeof Deno !== 'undefined' && typeof Deno.env?.get === 'function' && Deno.env.get('SUPABASE_URL')) ||
+    (typeof window !== 'undefined' && window.SUPABASE_URL) ||
+    '';
+
+const supabaseKey =
+    (typeof process !== 'undefined' && process.env.SUPABASE_ANON_KEY) ||
+    (typeof Deno !== 'undefined' && typeof Deno.env?.get === 'function' && Deno.env.get('SUPABASE_ANON_KEY')) ||
+    (typeof window !== 'undefined' && window.SUPABASE_ANON_KEY) ||
+    '';
 
 // --- Creazione del Client (una sola volta) ---
 export const supabase = createClient(supabaseUrl, supabaseKey, {
