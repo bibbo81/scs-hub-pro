@@ -68,6 +68,14 @@
             // Persist user data in localStorage
             localStorage.setItem('sb-user-data', JSON.stringify(loggedInUser));
             
+            // NUOVO: Dispatch auth state change event
+            window.dispatchEvent(new CustomEvent('mockAuthStateChange', {
+                detail: {
+                    event: 'SIGNED_IN',
+                    session: { user: loggedInUser }
+                }
+            }));
+            
             return {
                 user: loggedInUser,
                 session: { access_token: mockToken }
@@ -79,6 +87,15 @@
             localStorage.removeItem('sb-access-token');
             sessionStorage.removeItem('sb-access-token');
             localStorage.removeItem('sb-user-data');
+            
+            // NUOVO: Dispatch auth state change event
+            window.dispatchEvent(new CustomEvent('mockAuthStateChange', {
+                detail: {
+                    event: 'SIGNED_OUT',
+                    session: null
+                }
+            }));
+            
             window.location.replace('/login.html');
         }
     };

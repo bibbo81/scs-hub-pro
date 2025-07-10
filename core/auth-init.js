@@ -50,7 +50,7 @@
                           user.user_metadata?.name || 
                           '';
             
-            // Se non trovato, usa email
+            // NUOVO: Se non trovato, usa email PRIMA del fallback
             if (!fullName && user.email) {
                 fullName = user.email.split('@')[0];
             }
@@ -61,7 +61,7 @@
                 .split(' ')
                 .filter(w => w.length > 0)
                 .map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
-                .join(' ') || 'Utente';
+                .join(' ') || user.email?.split('@')[0] || 'Utente';
         },
         
         // Ottieni iniziali
