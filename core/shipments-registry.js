@@ -3,7 +3,7 @@
 import supabaseShipmentsService from '/core/services/supabase-shipments-service.js';
 import '/core/supabase-init.js';
 import { supabase } from '/core/services/supabase-client.js';
-import { getActiveOrganizationId } from '/core/services/organization-service.js';
+import { getActiveOrganizationId, ensureOrganizationSelected } from '/core/services/organization-service.js';
 
 class ShipmentsRegistry {
     constructor() {
@@ -139,11 +139,10 @@ class ShipmentsRegistry {
     
     // Create a new shipment and persist it via Supabase
     async createShipment(shipmentData) {
-        const orgId = getActiveOrganizationId();
-        if (!orgId) {
-            window.NotificationSystem?.error('Nessuna organizzazione selezionata');
+        if (!ensureOrganizationSelected()) {
             throw new Error("Organization ID non trovato! L'utente non ha selezionato alcuna organizzazione.");
         }
+        const orgId = getActiveOrganizationId();
 
         const duplicate = this.shipments.find(s =>
             s.organization_id === orgId &&
@@ -214,10 +213,10 @@ class ShipmentsRegistry {
             throw new Error(`Shipment ${shipmentId} not found`);
         }
         
-        const orgId = getActiveOrganizationId();
-        if (!orgId) {
+        if (!ensureOrganizationSelected()) {
             throw new Error("Organization ID non trovato! L'utente non ha selezionato alcuna organizzazione.");
         }
+        const orgId = getActiveOrganizationId();
         const oldShipment = { ...this.shipments[index] };
         
         this.shipments[index] = {
@@ -278,6 +277,9 @@ class ShipmentsRegistry {
             throw new Error(`Shipment ${shipmentId} not found`);
         }
         
+        if (!ensureOrganizationSelected()) {
+            throw new Error("Organization ID non trovato! L'utente non ha selezionato alcuna organizzazione.");
+        }
         const orgId = window.getActiveOrganizationId ? window.getActiveOrganizationId() : null;
         const { data, error } = await supabase
             .from('products')

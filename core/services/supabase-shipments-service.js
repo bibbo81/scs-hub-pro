@@ -1,7 +1,7 @@
 // core/services/supabase-shipments-service.js
 import '/core/supabase-init.js';
 import { supabase } from '/core/services/supabase-client.js';
-import { getActiveOrganizationId } from '/core/services/organization-service.js';
+import { getActiveOrganizationId, ensureOrganizationSelected } from '/core/services/organization-service.js';
 
 class SupabaseShipmentsService {
     constructor() {
@@ -10,13 +10,10 @@ class SupabaseShipmentsService {
 
     async getAllShipments() {
         try {
-            const orgId = getActiveOrganizationId();
-            if (!orgId) {
-                if (typeof window !== 'undefined' && window.NotificationSystem) {
-                    window.NotificationSystem.warning('Seleziona un\'organizzazione per visualizzare le spedizioni');
-                }
+            if (!ensureOrganizationSelected()) {
                 return [];
             }
+            const orgId = getActiveOrganizationId();
             const query = supabase
                 .from(this.table)
                 .select('*')
@@ -58,13 +55,10 @@ class SupabaseShipmentsService {
      */
     async createShipment(shipment) {
         try {
-            const orgId = getActiveOrganizationId();
-            if (!orgId) {
-                if (typeof window !== 'undefined' && window.NotificationSystem) {
-                    window.NotificationSystem.warning('Seleziona un\'organizzazione prima di creare una spedizione');
-                }
+            if (!ensureOrganizationSelected()) {
                 return null;
             }
+            const orgId = getActiveOrganizationId();
 
             const {
                 data: { user }
@@ -129,13 +123,10 @@ class SupabaseShipmentsService {
 
     async updateShipment(id, updates) {
         try {
-            const orgId = getActiveOrganizationId();
-            if (!orgId) {
-                if (typeof window !== 'undefined' && window.NotificationSystem) {
-                    window.NotificationSystem.warning('Seleziona un\'organizzazione prima di aggiornare una spedizione');
-                }
+            if (!ensureOrganizationSelected()) {
                 return null;
             }
+            const orgId = getActiveOrganizationId();
             const payload = this.preparePayload({
                 ...updates,
                 organization_id: orgId,
