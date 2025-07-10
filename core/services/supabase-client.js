@@ -265,5 +265,6 @@ if (supabaseClient) {
 
 // Expose Supabase client globally when running in the browser
 if (typeof window !== 'undefined') {
-    window.supabaseClient = supabase;
+    window.supabase = supabase;
+    console.log('Supabase global:', window.supabase);
 }
