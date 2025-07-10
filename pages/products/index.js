@@ -7,6 +7,7 @@ import '/core/supabase-init.js';
 import { supabase } from '/core/services/supabase-client.js';
 import TableManager from '/core/table-manager.js';
 window.supabase = supabase;
+window.TableManager = TableManager;
 importWizard.setSupabaseClient(supabase);
 console.log('[DEBUG] Supabase client in wizard:', window.importWizard.supabase);
 
