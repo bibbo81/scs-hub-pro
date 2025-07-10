@@ -136,11 +136,24 @@ class ShipmentsRegistry {
     
     // ===== SHIPMENT OPERATIONS =====
     
+    // Create a new shipment and persist it via Supabase
     async createShipment(shipmentData) {
         const orgId = getActiveOrganizationId();
         if (!orgId) {
+            window.NotificationSystem?.error('Nessuna organizzazione selezionata');
             throw new Error("Organization ID non trovato! L'utente non ha selezionato alcuna organizzazione.");
         }
+
+        const duplicate = this.shipments.find(s =>
+            s.organization_id === orgId &&
+            (s.shipmentNumber === shipmentData.shipmentNumber ||
+                (shipmentData.trackingNumber && s.trackingNumber === shipmentData.trackingNumber))
+        );
+        if (duplicate) {
+            console.log('[ShipmentsRegistry] Duplicate shipment found', duplicate.id);
+            return duplicate;
+        }
+
         const shipment = {
             id: shipmentData.id || this.generateId(),
             shipmentNumber: shipmentData.shipmentNumber || this.generateShipmentNumber(),
@@ -158,6 +171,19 @@ class ShipmentsRegistry {
             ...shipmentData
         };
         
+        let userId = null;
+        try {
+            const { data: { user } } = await supabase.auth.getUser();
+            userId = user?.id || null;
+        } catch (e) {
+            console.warn('Failed to get user', e);
+        }
+        console.log('[ShipmentsRegistry] Creating shipment', {
+            organization_id: orgId,
+            user_id: userId,
+            shipment
+        });
+
         try {
             const saved = await supabaseShipmentsService.createShipment(shipment);
             if (saved && saved.id) {
