@@ -50,6 +50,11 @@ class SupabaseShipmentsService {
         return payload;
     }
 
+    /**
+     * Create a new shipment in Supabase
+     * @param {Object} shipment - Shipment data
+     * @returns {Object|null} Inserted shipment or null on failure
+     */
     async createShipment(shipment) {
         try {
             const orgId = getActiveOrganizationId();
@@ -59,13 +64,54 @@ class SupabaseShipmentsService {
                 }
                 return null;
             }
+
+            const {
+                data: { user }
+            } = await supabase.auth.getUser();
+            const userId = user ? user.id : null;
             const payload = this.preparePayload({ ...shipment, organization_id: orgId });
+
+            console.log('Creating shipment', {
+                organization_id: orgId,
+                user_id: userId,
+                payload
+            });
+
+            const filters = [];
+            if (shipment.shipmentNumber) {
+                filters.push(`shipment_number.eq.${shipment.shipmentNumber}`);
+            }
+            if (shipment.trackingNumber) {
+                filters.push(`tracking_number.eq.${shipment.trackingNumber}`);
+            }
+            if (filters.length > 0) {
+                const { data: existing, error: existErr } = await supabase
+                    .from(this.table)
+                    .select('id')
+                    .eq('organization_id', orgId)
+                    .or(filters.join(','));
+                if (existErr) throw existErr;
+                if (existing && existing.length > 0) {
+                    console.warn('Shipment already exists for org', orgId);
+                    if (typeof window !== 'undefined' && window.NotificationSystem) {
+                        window.NotificationSystem.warning('Spedizione già esistente');
+                    }
+                    return null;
+                }
+            }
+
             const { data, error } = await supabase
                 .from(this.table)
                 .insert([payload])
                 .select()
                 .single();
-            if (error) throw error;
+            if (error) {
+                if (error.status === 403) {
+                    console.error('403 error creating shipment', { payload, userId });
+                }
+                throw error;
+            }
+            console.log('Spedizione creata con successo', data.id);
             return data;
         } catch (e) {
             console.error('❌ SupabaseShipmentsService.createShipment:', e);
