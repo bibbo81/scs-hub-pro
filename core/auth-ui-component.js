@@ -10,7 +10,7 @@ class AuthUIComponent {
         this.isLoading = true; // Add loading state
         
         // Determina quale sistema auth usare
-        this.useSupabase = !!window.supabaseClient;
+        this.useSupabase = !!window.supabase;
         this.authSystem = null;
         
         this.init();
