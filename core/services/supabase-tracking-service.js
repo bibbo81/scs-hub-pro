@@ -1,5 +1,5 @@
 // core/services/supabase-tracking-service.js
-import { supabase, initializeSupabase } from '/core/services/supabase-client.js';
+import { getSupabase, initializeSupabase } from '/core/services/supabase-client.js';
 import { getActiveOrganizationId, ensureOrganizationSelected } from '/core/services/organization-service.js';
 
 class SupabaseTrackingService {
@@ -14,6 +14,10 @@ class SupabaseTrackingService {
 
     async getAllTrackings() {
         try {
+            const supabase = getSupabase();
+            if (!supabase) {
+                return this.getLocalStorageFallback();
+            }
             const { data, error } = await supabase
                 .from(this.table)
                 .select('*')
@@ -32,6 +36,10 @@ class SupabaseTrackingService {
 
     async getTracking(id) {
         try {
+            const supabase = getSupabase();
+            if (!supabase) {
+                return null;
+            }
             const { data, error } = await supabase
                 .from(this.table)
                 .select('*')
@@ -82,6 +90,10 @@ class SupabaseTrackingService {
             // Prepara i dati per Supabase
             const supabaseData = this.prepareForSupabase(trackingData, user.id, orgId);
 
+            const supabase = getSupabase();
+            if (!supabase) {
+                throw new Error('Supabase client non disponibile');
+            }
             const { data, error } = await supabase
                 .from(this.table)
                 .insert([supabaseData])
@@ -116,6 +128,10 @@ class SupabaseTrackingService {
 
     async updateTracking(id, updates) {
         try {
+            const supabase = getSupabase();
+            if (!supabase) {
+                return null;
+            }
             const { data, error } = await supabase
                 .from(this.table)
                 .update({
@@ -142,6 +158,10 @@ class SupabaseTrackingService {
 
     async deleteTracking(id) {
         try {
+            const supabase = getSupabase();
+            if (!supabase) {
+                return false;
+            }
             const { error } = await supabase
                 .from(this.table)
                 .delete()
@@ -297,6 +317,10 @@ class SupabaseTrackingService {
             this.realtimeSubscription.unsubscribe();
         }
 
+        const supabase = getSupabase();
+        if (!supabase) {
+            return null;
+        }
         this.realtimeSubscription = supabase
             .channel('trackings_changes')
             .on('postgres_changes', 
@@ -328,6 +352,10 @@ class SupabaseTrackingService {
 
     async getCurrentUser() {
         await initializeSupabase();
+        const supabase = getSupabase();
+        if (!supabase) {
+            return null;
+        }
         const { data: { user } } = await supabase.auth.getUser();
         return user;
     }
@@ -439,6 +467,10 @@ class SupabaseTrackingService {
             );
 
             // Inserisci in batch
+            const supabase = getSupabase();
+            if (!supabase) {
+                throw new Error('Supabase client non disponibile');
+            }
             const { data, error } = await supabase
                 .from(this.table)
                 .insert(supabaseData)

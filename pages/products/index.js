@@ -4,13 +4,18 @@
 import organizationService, { getActiveOrganizationId, ensureOrganizationSelected } from '/core/services/organization-service.js';
 import { importWizard } from '/core/import-wizard.js';
 import '/core/supabase-init.js';
-import { supabase } from '/core/services/supabase-client.js';
+import { getSupabase } from '/core/services/supabase-client.js';
 import TableManager from '/core/table-manager.js';
 window.TableManager = TableManager;
+const supabase = getSupabase();
 window.supabase = supabase;
 window.TableManager = TableManager;
-importWizard.setSupabaseClient(supabase);
-console.log('[DEBUG] Supabase client in wizard:', window.importWizard.supabase);
+if (supabase) {
+    importWizard.setSupabaseClient(supabase);
+    console.log('[DEBUG] Supabase client in wizard:', window.importWizard.supabase);
+} else {
+    console.error('Supabase client non disponibile');
+}
 
 // Column configuration
 export const AVAILABLE_COLUMNS = [
@@ -221,7 +226,12 @@ showStatus(message, type = 'info', duration = 3000) {
     }
 
     async loadData() {
-        const { data, error } = await supabase
+        const sb = getSupabase();
+        if (!sb) {
+            this.showStatus('Supabase non disponibile', 'error');
+            return;
+        }
+        const { data, error } = await sb
             .from('products')
             .select('*')
             .eq('organization_id', this.organizationId);
@@ -749,7 +759,12 @@ showStatus(message, type = 'info', duration = 3000) {
 
     async addProduct(productData) {
         productData.organization_id = this.organizationId;
-        const { error } = await supabase.from('products').insert([productData]);
+        const sb = getSupabase();
+        if (!sb) {
+            this.showStatus('Supabase non disponibile', 'error');
+            return false;
+        }
+        const { error } = await sb.from('products').insert([productData]);
         if (error) {
             this.showStatus('Errore nel salvataggio prodotto', 'error');
             console.error('[ProductIntelligence] Add error:', error);
@@ -799,7 +814,12 @@ showStatus(message, type = 'info', duration = 3000) {
         const { length, width, height } = updatedData.specifications.dimensions;
         updatedData.specifications.volume = (length * width * height) / 1000000;
 
-        const { error } = await supabase.from('products').update(updatedData)
+        const sb = getSupabase();
+        if (!sb) {
+            this.showStatus('Supabase non disponibile', 'error');
+            return false;
+        }
+        const { error } = await sb.from('products').update(updatedData)
             .eq('id', productId)
             .eq('organization_id', this.organizationId);
 
@@ -815,7 +835,12 @@ showStatus(message, type = 'info', duration = 3000) {
     }
 
     async deleteProduct(productId) {
-        const { error } = await supabase.from('products')
+        const sb = getSupabase();
+        if (!sb) {
+            this.showStatus('Supabase non disponibile', 'error');
+            return false;
+        }
+        const { error } = await sb.from('products')
             .delete()
             .eq('id', productId)
             .eq('organization_id', this.organizationId);

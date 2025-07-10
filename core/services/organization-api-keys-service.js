@@ -1,5 +1,5 @@
 // core/services/organization-api-keys-service.js
-import { supabase, requireAuth } from '/core/services/supabase-client.js';
+import { getSupabase, requireAuth } from '/core/services/supabase-client.js';
 import userSettingsService from '/core/services/user-settings-service.js';
 import apiClient from '/core/api-client.js';
 
@@ -22,6 +22,10 @@ class OrganizationApiKeysService {
 
             // PRODUCTION FIX: Query semplificata per evitare errore 406
             // Prima ottieni membership
+            const supabase = getSupabase();
+            if (!supabase) {
+                return null;
+            }
             const { data: memberData, error: memberError } = await supabase
                 .from('organization_members')
                 .select('organization_id, role')
@@ -77,6 +81,10 @@ class OrganizationApiKeysService {
             const encryptedKey = btoa(apiKey);
 
             // Upsert (insert o update)
+            const supabase = getSupabase();
+            if (!supabase) {
+                throw new Error('Supabase client non disponibile');
+            }
             const { data, error } = await supabase
                 .from('organization_api_keys')
                 .upsert({
@@ -143,6 +151,10 @@ class OrganizationApiKeysService {
             }
 
             // Fetch from database
+            const supabase = getSupabase();
+            if (!supabase) {
+                return null;
+            }
             const { data, error } = await supabase
                 .from('organization_api_keys')
                 .select('api_key, is_active')
@@ -201,6 +213,10 @@ class OrganizationApiKeysService {
             const org = await this.getCurrentOrganization();
             if (!org) throw new Error('Nessuna organizzazione trovata');
 
+            const supabase = getSupabase();
+            if (!supabase) {
+                return false;
+            }
             const { error } = await supabase
                 .from('organization_api_keys')
                 .update({ is_active: false })
@@ -232,6 +248,8 @@ class OrganizationApiKeysService {
             if (!org) return;
 
             // Usa Supabase Realtime per notificare
+            const supabase = getSupabase();
+            if (!supabase) return;
             await supabase
                 .channel(`org-${org.id}-api-keys`)
                 .send({
@@ -253,6 +271,8 @@ class OrganizationApiKeysService {
         this.getCurrentOrganization().then(org => {
             if (!org) return;
 
+            const supabase = getSupabase();
+            if (!supabase) return;
             supabase
                 .channel(`org-${org.id}-api-keys`)
                 .on('broadcast', { event: 'api-key-updated' }, (payload) => {
@@ -325,6 +345,10 @@ class OrganizationApiKeysService {
             const user = await requireAuth();
 
             // Crea organizzazione
+            const supabase = getSupabase();
+            if (!supabase) {
+                throw new Error('Supabase client non disponibile');
+            }
             const { data: org, error: orgError } = await supabase
                 .from('organizations')
                 .insert({ name })
