@@ -132,6 +132,14 @@ export { initializeSupabase };
 
 // --- Helper e Funzioni di Supporto (Il tuo codice originale, mantenuto) ---
 
+export function getSupabase() {
+    if (!window.supabase || typeof window.supabase.from !== 'function') {
+        console.error('Supabase client non inizializzato!');
+        return null;
+    }
+    return window.supabase;
+}
+
 export const requireAuth = async () => {
     await ensureSupabaseInitialized();
     const { data: { user } } = await supabase.auth.getUser();

@@ -1,6 +1,6 @@
 // core/services/supabase-shipments-service.js
 import '/core/supabase-init.js';
-import { supabase } from '/core/services/supabase-client.js';
+import { getSupabase } from '/core/services/supabase-client.js';
 import { getActiveOrganizationId, ensureOrganizationSelected } from '/core/services/organization-service.js';
 
 class SupabaseShipmentsService {
@@ -14,6 +14,10 @@ class SupabaseShipmentsService {
                 return [];
             }
             const orgId = getActiveOrganizationId();
+            const supabase = getSupabase();
+            if (!supabase) {
+                return [];
+            }
             const query = supabase
                 .from(this.table)
                 .select('*')
@@ -58,6 +62,10 @@ class SupabaseShipmentsService {
         let userId = null;
         try {
             if (!ensureOrganizationSelected()) {
+                return null;
+            }
+            const supabase = getSupabase();
+            if (!supabase) {
                 return null;
             }
             orgId = getActiveOrganizationId();
@@ -146,6 +154,10 @@ class SupabaseShipmentsService {
             if (!ensureOrganizationSelected()) {
                 return null;
             }
+            const supabase = getSupabase();
+            if (!supabase) {
+                return null;
+            }
             const orgId = getActiveOrganizationId();
             const payload = this.preparePayload({
                 ...updates,
@@ -168,6 +180,10 @@ class SupabaseShipmentsService {
 
     async deleteShipment(id) {
         try {
+            const supabase = getSupabase();
+            if (!supabase) {
+                throw new Error('Supabase client non disponibile');
+            }
             const { error } = await supabase.from(this.table).delete().eq('id', id);
             if (error) throw error;
             return true;

@@ -2,7 +2,7 @@
 // Path: /core/shipments-registry.js
 import supabaseShipmentsService from '/core/services/supabase-shipments-service.js';
 import '/core/supabase-init.js';
-import { supabase } from '/core/services/supabase-client.js';
+import { getSupabase } from '/core/services/supabase-client.js';
 import { getActiveOrganizationId, ensureOrganizationSelected } from '/core/services/organization-service.js';
 
 class ShipmentsRegistry {
@@ -173,8 +173,11 @@ class ShipmentsRegistry {
         
         let userId = null;
         try {
-            const { data: { user } } = await supabase.auth.getUser();
-            userId = user?.id || null;
+            const supabase = getSupabase();
+            if (supabase) {
+                const { data: { user } } = await supabase.auth.getUser();
+                userId = user?.id || null;
+            }
         } catch (e) {
             console.warn('Failed to get user', e);
         }
@@ -186,7 +189,8 @@ class ShipmentsRegistry {
 
         console.log('🚚 Tentativo INSERT shipment su Supabase:');
         console.log('organization_id:', shipment.organization_id);
-        console.log('user_id:', userId || (supabase.auth && supabase.auth.user && supabase.auth.user().id));
+        const sb = getSupabase();
+        console.log('user_id:', userId || (sb && sb.auth && sb.auth.user && sb.auth.user().id));
         console.log('Payload completo:', JSON.stringify(shipment, null, 2));
 
         try {
@@ -281,7 +285,11 @@ class ShipmentsRegistry {
             return [];
         }
         const orgId = window.getActiveOrganizationId ? window.getActiveOrganizationId() : null;
-        const { data, error } = await supabase
+        const sb = getSupabase();
+        if (!sb) {
+            return [];
+        }
+        const { data, error } = await sb
             .from('products')
             .select('*')
             .in('id', productIds)
