@@ -733,6 +733,17 @@
     100% { transform: scale(1); }
 }
 
+.org-warning {
+    background: var(--sol-warning-light);
+    border: 1px solid var(--sol-warning);
+    color: var(--sol-warning-dark, #856404);
+    padding: 1.5rem;
+    border-radius: var(--sol-radius-md);
+    text-align: center;
+    margin: 2rem;
+    font-weight: 600;
+}
+
     </style>
 </head>
 <body>
@@ -4574,7 +4585,22 @@ MSCU7654321,container,in_transit,MSC,MSC,TIGER,CNNBO,Ningbo,ITLIV,Livorno,SGSIN,
    
    (function() {
        console.log('🔧 Applying shipments initialization fixes...');
-       
+
+       const userOrgs = window.organizationService?.getUserOrgs?.() || [];
+       if (userOrgs.length === 0) {
+           console.error('[Shipments] User has no organizations');
+           const main = document.getElementById('mainContent');
+           if (main) {
+               main.innerHTML = `
+    <div class="org-warning">
+        Non sei membro di nessuna organizzazione. Contatta un amministratore per essere aggiunto.
+    </div>
+               `;
+           }
+           document.querySelectorAll('.sol-page-actions button').forEach(btn => btn.disabled = true);
+           return;
+       }
+
        // Wait for dependency resolution system
        let initAttempts = 0;
        const maxAttempts = 50; // 5 seconds maximum wait
