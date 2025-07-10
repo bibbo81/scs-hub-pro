@@ -1,7 +1,9 @@
-import { supabase } from '/core/services/supabase-client.js';
+import { supabase, initializeSupabase } from '/core/services/supabase-client.js';
 
-(function() {
+(async () => {
     'use strict';
+
+    await initializeSupabase();
 
     window.auth = {
         isAuthenticated() {
