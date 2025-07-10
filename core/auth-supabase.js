@@ -1,7 +1,17 @@
-import { supabase } from '/core/services/supabase-client.js';
+import { supabase, initializeSupabase } from '/core/services/supabase-client.js';
 
 (function() {
     'use strict';
+
+    // Ensure Supabase is ready
+    async function ensureSupabaseReady() {
+        try {
+            return supabase;
+        } catch (error) {
+            console.log('[auth-supabase] Initializing Supabase client...');
+            return await initializeSupabase();
+        }
+    }
 
     window.auth = {
         isAuthenticated() {
@@ -11,12 +21,14 @@ import { supabase } from '/core/services/supabase-client.js';
         },
 
         async getCurrentUser() {
-            const { data: { user } } = await supabase.auth.getUser();
+            const client = await ensureSupabaseReady();
+            const { data: { user } } = await client.auth.getUser();
             return user;
         },
 
         async login(email, password) {
-            const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+            const client = await ensureSupabaseReady();
+            const { data, error } = await client.auth.signInWithPassword({ email, password });
             if (error) throw error;
             if (data.session?.access_token) {
                 localStorage.setItem('sb-access-token', data.session.access_token);
@@ -25,7 +37,8 @@ import { supabase } from '/core/services/supabase-client.js';
         },
 
         async logout() {
-            await supabase.auth.signOut();
+            const client = await ensureSupabaseReady();
+            await client.auth.signOut();
             localStorage.removeItem('sb-access-token');
             sessionStorage.removeItem('sb-access-token');
             window.location.replace('/login.html');

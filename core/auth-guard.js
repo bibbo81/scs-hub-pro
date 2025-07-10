@@ -1,11 +1,25 @@
 // core/auth-guard.js - Middleware per proteggere le pagine
-import { supabase } from '/core/services/supabase-client.js';
+import { supabase, initializeSupabase } from '/core/services/supabase-client.js';
 
 class AuthGuard {
     constructor() {
         this.publicPages = ['/login.html', '/index.html', '/'];
         this.redirectUrl = '/login.html';
         this.initialized = false;
+        this.supabaseClient = null;
+    }
+
+    // Ensure Supabase is ready
+    async ensureSupabaseReady() {
+        if (!this.supabaseClient) {
+            try {
+                this.supabaseClient = supabase;
+            } catch (error) {
+                console.log('[AuthGuard] Supabase not immediately available, initializing async');
+                this.supabaseClient = await initializeSupabase();
+            }
+        }
+        return this.supabaseClient;
     }
 
     // Inizializza il guard
@@ -14,8 +28,10 @@ class AuthGuard {
         
         console.log('[AuthGuard] Initializing...');
         
+        const client = await this.ensureSupabaseReady();
+        
         // Ascolta i cambiamenti di stato auth
-        supabase.auth.onAuthStateChange((event, session) => {
+        client.auth.onAuthStateChange((event, session) => {
             console.log('[AuthGuard] Auth state changed:', event);
             
             if (event === 'SIGNED_OUT') {
@@ -48,8 +64,10 @@ class AuthGuard {
                 return true;
             }
             
+            const client = await this.ensureSupabaseReady();
+            
             // Ottieni la sessione corrente
-            const { data: { session }, error } = await supabase.auth.getSession();
+            const { data: { session }, error } = await client.auth.getSession();
             
             if (error) {
                 console.error('[AuthGuard] Error getting session:', error);
@@ -136,7 +154,8 @@ class AuthGuard {
     // Ottieni info utente corrente
     async getCurrentUser() {
         try {
-            const { data: { user } } = await supabase.auth.getUser();
+            const client = await this.ensureSupabaseReady();
+            const { data: { user } } = await client.auth.getUser();
             return user;
         } catch (error) {
             console.error('[AuthGuard] Error getting user:', error);
@@ -148,7 +167,8 @@ class AuthGuard {
     async logout() {
         try {
             console.log('[AuthGuard] Logging out...');
-            const { error } = await supabase.auth.signOut();
+            const client = await this.ensureSupabaseReady();
+            const { error } = await client.auth.signOut();
             
             if (error) throw error;
             
