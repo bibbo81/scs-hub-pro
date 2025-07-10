@@ -185,12 +185,15 @@ class ShipmentsDependencyManager {
                 resolve();
                 return;
             }
-            
+
             const script = document.createElement('script');
             if (isModule) {
                 script.type = 'module';
             }
             script.src = src;
+            if (isModule) {
+                script.type = 'module';
+            }
             script.onload = () => resolve();
             script.onerror = () => reject(new Error(`Failed to load script: ${src}`));
             document.head.appendChild(script);
