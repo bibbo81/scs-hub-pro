@@ -243,6 +243,13 @@ export class HeaderComponent {
             background: var(--sol-gray-50);
         }
 
+        .org-selector .org-single {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0 0.75rem;
+        }
+
         .org-selector .sol-dropdown-item.active {
             background: var(--sol-primary-light);
         }
@@ -489,15 +496,30 @@ export class HeaderComponent {
             // Check 3: Verifica se abbiamo dati validi
             const currentOrg = window.organizationService.getCurrentOrg();
             const userOrgs = window.organizationService.getUserOrgs();
-            
-            // Non mostrare se non c'è org o se c'è solo 1 org
-            if (!currentOrg || !userOrgs || userOrgs.length <= 1) {
+
+            if (!currentOrg || !userOrgs) {
+                console.error('[Header] Organization data missing');
                 return '';
             }
+
+            // Se esiste una sola organizzazione, mostra comunque le info
+            if (userOrgs.length === 1) {
+                return `
+                    <div class="org-selector" id="orgSelector">
+                        <div class="org-single">
+                            <i class="fas fa-building"></i>
+                            <strong>${currentOrg.organizations?.name || 'Organization'}</strong>
+                            <small style="color: var(--sol-gray-600);">${currentOrg.role || ''}</small>
+                        </div>
+                    </div>
+                `;
+            }
+
+            // Solo ora renderizza il selector per più organizzazioni
             
             // Solo ora renderizza il selector
             return `
-                <div class="org-selector">
+                <div class="org-selector" id="orgSelector">
                     <button class="sol-btn sol-btn-glass" id="orgSelectorBtn" onclick="window.toggleOrgDropdown && window.toggleOrgDropdown(event)">
                         <i class="fas fa-building"></i>
                         <span class="hide-mobile">${currentOrg.organizations?.name || 'Organization'}</span>
