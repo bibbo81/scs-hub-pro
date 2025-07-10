@@ -112,11 +112,13 @@ git pushfcu
 
 ## 🔧 Environment setup
 
-The application now reads Supabase credentials directly from environment variables. Ensure the Netlify project defines the following variables **in the Netlify dashboard** (or in a local `.env` file when running locally):
+The application now reads Supabase credentials directly from environment variables. Define the variables below in the Netlify dashboard or in a local `.env` file when running locally:
 
 - `SUPABASE_URL` – your Supabase instance URL (e.g. `https://gnlrmnsdmpjzitsysowq.supabase.co`)
 - `SUPABASE_SERVICE_ROLE_KEY` – **must be set**; service role key for server-side functions
 - `SUPABASE_ANON_KEY` – public anonymous key
+
+Create an `.env` file with these variables if you run the project locally.
 
 `runtime-config.json` has been removed from version control. Create your own file or
 set these variables in the environment before running any scripts.
