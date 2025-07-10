@@ -521,19 +521,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         
         // Setup event listeners
         setupEventListeners();
-        
-        // Initialize tracking service if available
-        if (!window.trackingService) {
-            // Try to import it
-            try {
-                const module = await import('/core/services/tracking-service.js');
-                window.trackingService = module.default || module.trackingService || module;
-                console.log('🔧 Tracking service imported');
-            } catch (error) {
-                console.warn('⚠️ Could not import tracking service:', error);
-            }
-        }
-        
+
         if (window.trackingService) {
             console.log('🔧 Initializing tracking service...');
             const initialized = await window.trackingService.initialize();
@@ -1092,19 +1080,7 @@ async function refreshTracking(id) {
     window.NotificationSystem?.info('Aggiornamento tracking...');
     
     try {
-        // Check if tracking service is available and initialized
-        if (!window.trackingService) {
-            console.log('Initializing tracking service...');
-            // Try to load tracking service
-            const script = document.createElement('script');
-            script.src = '/core/services/tracking-service.js';
-            script.type = 'module';
-            document.head.appendChild(script);
-            
-            // Wait for it to load
-            await new Promise(resolve => setTimeout(resolve, 1000));
-        }
-        
+
         if (window.trackingService && window.trackingService.track) {
             // Initialize if needed
             if (!window.trackingService.initialized) {
