@@ -33,6 +33,17 @@
         // Get current user
         getCurrentUser() {
             if (this.isAuthenticated()) {
+                // Check for persisted user data first
+                const savedUser = localStorage.getItem('sb-user-data');
+                if (savedUser) {
+                    try {
+                        return JSON.parse(savedUser);
+                    } catch (e) {
+                        console.warn('[Auth] Invalid saved user data:', e);
+                        localStorage.removeItem('sb-user-data');
+                    }
+                }
+                // Fallback to mock user for compatibility
                 return this.mockUser;
             }
             return null;
@@ -44,12 +55,21 @@
             const mockToken = 'mock-token-' + Date.now();
             localStorage.setItem('sb-access-token', mockToken);
             
-            // Aggiorna user mock con email fornita
-            this.mockUser.email = email;
-            this.mockUser.user_metadata.full_name = email.split('@')[0];
+            // Create new user object instead of modifying global mockUser
+            const loggedInUser = {
+                id: 'dev-user-' + Date.now(),
+                email: email,
+                user_metadata: {
+                    full_name: email.split('@')[0],
+                    display_name: email.split('@')[0]
+                }
+            };
+            
+            // Persist user data in localStorage
+            localStorage.setItem('sb-user-data', JSON.stringify(loggedInUser));
             
             return {
-                user: this.mockUser,
+                user: loggedInUser,
                 session: { access_token: mockToken }
             };
         },
@@ -58,6 +78,7 @@
         logout() {
             localStorage.removeItem('sb-access-token');
             sessionStorage.removeItem('sb-access-token');
+            localStorage.removeItem('sb-user-data');
             window.location.replace('/login.html');
         }
     };
