@@ -7,6 +7,7 @@ class AuthUIComponent {
         this.isAnonymous = true;
         this.authStateListeners = [];
         this.initialized = false;
+        this.isLoading = true; // Add loading state
         
         // Determina quale sistema auth usare
         this.useSupabase = !!window.supabaseClient;
@@ -17,6 +18,12 @@ class AuthUIComponent {
     
     async init() {
         if (this.initialized) return;
+        
+        console.log('🔐 [AuthUI] Starting authentication initialization...');
+        this.isLoading = true;
+        
+        // Update UI to show loading state immediately
+        this.updateUIState();
         
         // Configura il sistema di autenticazione
         if (this.useSupabase) {
@@ -52,13 +59,16 @@ class AuthUIComponent {
             }
         }
         
+        this.isLoading = false;
         this.updateUIState();
         this.initialized = true;
+        console.log('✅ [AuthUI] Authentication initialization complete');
     }
     
     handleAuthStateChange(event, session) {
         this.currentUser = session?.user || null;
         this.isAnonymous = this.currentUser && !this.currentUser.email;
+        this.isLoading = false; // Always set loading to false on auth state change
         
         this.updateUIState();
         
@@ -118,6 +128,17 @@ class AuthUIComponent {
             }
         }
         
+        if (this.isLoading) {
+            // Show loading state
+            indicator.innerHTML = `
+                <div class="auth-loading">
+                    <i class="fas fa-spinner fa-spin"></i>
+                    <span class="hide-mobile">Autenticazione...</span>
+                </div>
+            `;
+            return;
+        }
+        
         if (this.isAnonymous) {
             indicator.innerHTML = `
                 <button class="sol-btn sol-btn-primary sol-btn-sm" onclick="window.authUI.showLoginModal()">
@@ -144,6 +165,17 @@ class AuthUIComponent {
         const userEmail = document.querySelector('.user-email');
         const userName = document.querySelector('.user-name');
         
+        if (this.isLoading) {
+            // Show loading state instead of demo user
+            if (userEmail) {
+                userEmail.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Caricamento...';
+            }
+            if (userName) {
+                userName.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Caricamento...';
+            }
+            return;
+        }
+        
         if (userEmail) {
             userEmail.textContent = this.isAnonymous ? 'Utente Anonimo' : (this.currentUser.email || 'Utente');
         }
@@ -156,7 +188,7 @@ class AuthUIComponent {
                   this.currentUser?.user_metadata?.name ||
                   this.currentUser?.email?.split('@')[0] ||
                   'Utente';
-userName.textContent = displayName;
+                userName.textContent = displayName;
             }
         }
         
@@ -583,6 +615,10 @@ userName.textContent = displayName;
     
     getCurrentUser() {
         return this.currentUser;
+    }
+    
+    isLoadingAuth() {
+        return this.isLoading;
     }
 }
 
