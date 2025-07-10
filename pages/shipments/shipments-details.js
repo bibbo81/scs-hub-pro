@@ -829,8 +829,16 @@ if (window.ShipmentDetails) {
                     organization_id: orgId
                 };
 
+                console.log('Creating shipment with payload:', shipmentData, 'Org ID:', orgId);
+
                 if (window.shipmentsRegistry?.createShipment) {
                     const shipment = await window.shipmentsRegistry.createShipment(shipmentData);
+
+                    if (shipment === null) {
+                        window.NotificationSystem?.warning('Spedizione già presente');
+                        return null;
+                    }
+
                     window.NotificationSystem?.show('Successo', 'Spedizione creata', 'success');
                     window.ModalSystem.close();
                     return shipment;
