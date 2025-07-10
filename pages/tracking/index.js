@@ -1384,6 +1384,12 @@ async function handleImportFile(file) {
                 // Just reload the trackings
                 await loadTrackings();
                 window.NotificationSystem?.success(`Import completato: ${result.stats?.imported || 0} tracking importati`);
+
+                if (Array.isArray(result.trackings)) {
+                    window.dispatchEvent(new CustomEvent('trackingImported', {
+                        detail: { imported: result.trackings }
+                    }));
+                }
                 
                 if (result.stats?.errors > 0) {
                     window.NotificationSystem?.warning(`${result.stats.errors} record con errori`);
@@ -1498,13 +1504,15 @@ async function handleImportFile(file) {
                     if (window.supabaseTrackingService) {
                         let imported = 0;
                         let errors = 0;
+                        const createdTrackings = [];
                         
                         // Show progress
                         window.NotificationSystem?.info(`Importazione di ${mappedData.length} tracking...`);
                         
                         for (const tracking of mappedData) {
                             try {
-                                await window.supabaseTrackingService.createTracking(tracking);
+                                const saved = await window.supabaseTrackingService.createTracking(tracking);
+                                if (saved) createdTrackings.push(saved);
                                 imported++;
                             } catch (err) {
                                 console.error('Error importing tracking:', tracking.tracking_number, err);
@@ -1514,6 +1522,12 @@ async function handleImportFile(file) {
                         
                         // Reload trackings
                         await loadTrackings();
+
+                        if (createdTrackings.length > 0) {
+                            window.dispatchEvent(new CustomEvent('trackingImported', {
+                                detail: { imported: createdTrackings }
+                            }));
+                        }
                         
                         // Show results
                         if (imported > 0) {
