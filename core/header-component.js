@@ -1,7 +1,7 @@
 // header-component.js - Header unificato con SINGLETON PATTERN ROBUSTO
 import api from '/core/api-client.js';
 import notificationSystem from '/core/notification-system.js';
-import { supabase } from '/core/services/supabase-client.js';
+import { supabase, initializeSupabase } from '/core/services/supabase-client.js';
 
 // SINGLETON PATTERN ROBUSTO
 let headerInstance = null;
@@ -77,6 +77,7 @@ export class HeaderComponent {
     }
     
     async _performInit() {
+        await initializeSupabase();
         console.log('🔧 [HeaderComponent] Starting initialization...');
         
         // CRITICAL: Rimuovi TUTTI gli header esistenti prima di inizializzare
@@ -98,7 +99,7 @@ export class HeaderComponent {
             await this.mount();
             console.log('✅ [HeaderComponent] Header mounted to DOM');
             
-            this.attachEventListeners();
+            await this.attachEventListeners();
             console.log('✅ [HeaderComponent] Event listeners attached');
             
             this.initialized = true;
@@ -280,7 +281,7 @@ export class HeaderComponent {
             this.updateUserDisplay(userInfo);
             
             // Re-attach event listeners nel caso siano stati persi
-            this.attachEventListeners();
+            await this.attachEventListeners();
             
             return;
         }
@@ -360,6 +361,7 @@ export class HeaderComponent {
         }
         
         try {
+            await initializeSupabase();
             if (supabase) {
                 const { data: { user } } = await supabase.auth.getUser();
                 
@@ -733,7 +735,8 @@ export class HeaderComponent {
         return window.location.pathname === href;
     }
     
-    attachEventListeners() {
+    async attachEventListeners() {
+        await initializeSupabase();
         // CRITICAL FIX: Previeni attach multipli di event listeners
         // Rimuovi vecchi listener prima di aggiungerne di nuovi
         

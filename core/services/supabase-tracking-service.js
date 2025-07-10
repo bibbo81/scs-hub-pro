@@ -1,5 +1,5 @@
 // core/services/supabase-tracking-service.js
-import { supabase } from '/core/services/supabase-client.js';
+import { supabase, initializeSupabase } from '/core/services/supabase-client.js';
 
 class SupabaseTrackingService {
     constructor() {
@@ -320,6 +320,7 @@ class SupabaseTrackingService {
     // ========================================
 
     async getCurrentUser() {
+        await initializeSupabase();
         const { data: { user } } = await supabase.auth.getUser();
         return user;
     }
