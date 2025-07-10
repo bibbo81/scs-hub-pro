@@ -37,7 +37,9 @@
                 
                 // Import Supabase client
                 const { supabase } = await import('/core/services/supabase-client.js');
-                window.supabase = supabase;
+                if (!window.supabase) {
+                    window.supabase = supabase;
+                }
                 console.log('[Settings] ✅ Supabase loaded');
                 
                 // Import UserSettings service

@@ -305,7 +305,9 @@
         window.headerComponent = headerComponent;
         window.NotificationSystem = notificationSystem;
         window.ModalSystem = modalSystem;
-        window.supabase = supabase;
+        if (!window.supabase) {
+            window.supabase = supabase;
+        }
         window.supabaseTrackingService = supabaseTrackingService;
         window.organizationApiKeysService = organizationApiKeysService;
         window.organizationService = organizationService;
