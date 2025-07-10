@@ -451,7 +451,7 @@ export class HeaderComponent {
     
     return `
         <div class="sol-header-right">
-            ${await this.renderOrgSelector()}  <!-- AGGIUNGI QUESTA RIGA -->
+            ${await this.renderOrgSelector()}  <!-- Render organization selector -->
             ${this.renderCustomActions()}
             ${this.isDevMode ? this.renderDevActions() : ''}
             ${this.options.showNotifications ? this.renderNotificationButton() : ''}
@@ -459,7 +459,7 @@ export class HeaderComponent {
         </div>
     `;
 }
-    // AGGIUNGI QUESTO NUOVO METODO COMPLETO
+    // Render the organization selector dropdown
     async renderOrgSelector() {
         try {
             // Check 1: Verifica se organizationService esiste
