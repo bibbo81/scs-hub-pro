@@ -262,3 +262,8 @@ if (supabaseClient) {
 } else if (supabaseInitPromise) {
     supabaseInitPromise.then(setupAuthListener);
 }
+
+// Expose Supabase client globally when running in the browser
+if (typeof window !== 'undefined') {
+    window.supabaseClient = supabase;
+}
