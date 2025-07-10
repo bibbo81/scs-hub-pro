@@ -4,7 +4,7 @@
 import supabaseTrackingService from '/core/services/supabase-tracking-service.js';
 import userSettingsService from '/core/services/user-settings-service.js';
 import organizationApiKeysService from '/core/services/organization-api-keys-service.js';
-import { supabase } from '/core/services/supabase-client.js';
+import { supabase, initializeSupabase } from '/core/services/supabase-client.js';
 
 class TrackingService {
     constructor() {
@@ -51,6 +51,7 @@ class TrackingService {
     }
 
     async _doInitialize() {
+        await initializeSupabase();
     try {
         if (this.debugMode) {
             console.group('🔧 [TrackingService] DETAILED INITIALIZATION');
@@ -123,6 +124,7 @@ return true;
 
     async testSupabaseConnection() {
         try {
+            await initializeSupabase();
             const { data: { user } } = await supabase.auth.getUser();
             return !!user;
         } catch (e) {
@@ -322,6 +324,8 @@ return true;
     // ... resto del codice rimane uguale ...
 
     async callShipsGoAPI(version, endpoint, method, params, data, contentType) {
+        await initializeSupabase();
+
         if (this.useSupabase) {
             // Usa Edge Function invece di chiamata diretta
             const { data: { user } } = await supabase.auth.getUser();
