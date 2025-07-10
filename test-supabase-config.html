@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Supabase Client Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        pre {
+            background-color: #f8f9fa;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        button:disabled {
+            background-color: #6c757d;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body>
+    <h1>Supabase Client Configuration Test</h1>
+    <p>This page tests the dynamic Supabase client initialization with API fallback.</p>
+    
+    <div id="status" class="status info">
+        <strong>Status:</strong> Ready to test
+    </div>
+
+    <div>
+        <button onclick="testConfigAPI()" id="testConfigBtn">Test Config API</button>
+        <button onclick="testSupabaseInit()" id="testSupabaseBtn">Test Supabase Initialization</button>
+        <button onclick="clearResults()" id="clearBtn">Clear Results</button>
+    </div>
+
+    <div id="results"></div>
+
+    <script type="module">
+        // Test the config API endpoint
+        window.testConfigAPI = async function() {
+            const btn = document.getElementById('testConfigBtn');
+            const status = document.getElementById('status');
+            const results = document.getElementById('results');
+            
+            btn.disabled = true;
+            status.className = 'status info';
+            status.innerHTML = '<strong>Status:</strong> Testing config API...';
+            
+            try {
+                const response = await fetch('/api/config');
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const config = await response.json();
+                
+                results.innerHTML += `
+                    <div class="status success">
+                        <strong>✓ Config API Test Successful</strong>
+                        <pre>${JSON.stringify(config, null, 2)}</pre>
+                    </div>
+                `;
+                
+                status.className = 'status success';
+                status.innerHTML = '<strong>Status:</strong> Config API test completed successfully';
+                
+            } catch (error) {
+                results.innerHTML += `
+                    <div class="status error">
+                        <strong>✗ Config API Test Failed</strong>
+                        <pre>Error: ${error.message}</pre>
+                    </div>
+                `;
+                
+                status.className = 'status error';
+                status.innerHTML = '<strong>Status:</strong> Config API test failed';
+            } finally {
+                btn.disabled = false;
+            }
+        };
+
+        // Test Supabase client initialization
+        window.testSupabaseInit = async function() {
+            const btn = document.getElementById('testSupabaseBtn');
+            const status = document.getElementById('status');
+            const results = document.getElementById('results');
+            
+            btn.disabled = true;
+            status.className = 'status info';
+            status.innerHTML = '<strong>Status:</strong> Testing Supabase initialization...';
+            
+            try {
+                // Import the Supabase client
+                const { initializeSupabase, supabase } = await import('./core/services/supabase-client.js');
+                
+                // Initialize the client
+                const client = await initializeSupabase();
+                
+                // Test basic functionality
+                const isInitialized = client && typeof client.auth === 'object';
+                
+                if (isInitialized) {
+                    results.innerHTML += `
+                        <div class="status success">
+                            <strong>✓ Supabase Initialization Successful</strong>
+                            <pre>Client initialized with auth methods available</pre>
+                        </div>
+                    `;
+                    
+                    status.className = 'status success';
+                    status.innerHTML = '<strong>Status:</strong> Supabase initialization completed successfully';
+                } else {
+                    throw new Error('Client not properly initialized');
+                }
+                
+            } catch (error) {
+                results.innerHTML += `
+                    <div class="status error">
+                        <strong>✗ Supabase Initialization Failed</strong>
+                        <pre>Error: ${error.message}</pre>
+                    </div>
+                `;
+                
+                status.className = 'status error';
+                status.innerHTML = '<strong>Status:</strong> Supabase initialization failed';
+            } finally {
+                btn.disabled = false;
+            }
+        };
+
+        // Clear results
+        window.clearResults = function() {
+            document.getElementById('results').innerHTML = '';
+            document.getElementById('status').className = 'status info';
+            document.getElementById('status').innerHTML = '<strong>Status:</strong> Ready to test';
+        };
+
+        // Auto-test on page load
+        window.addEventListener('load', async () => {
+            // Wait a moment for the page to fully load
+            setTimeout(() => {
+                testConfigAPI();
+            }, 500);
+        });
+    </script>
+</body>
+</html>

@@ -458,26 +458,53 @@
     </div>
     
     <script type="module">
-        import { supabase } from '/core/services/supabase-client.js';
+        import { supabase, initializeSupabase } from '/core/services/supabase-client.js';
+        
+        // Initialize Supabase client
+        let supabaseClient = null;
+        try {
+            supabaseClient = supabase;
+        } catch (error) {
+            console.log('Supabase not immediately available, will initialize async');
+        }
+        
+        // Ensure Supabase is initialized
+        async function ensureSupabaseReady() {
+            if (!supabaseClient) {
+                try {
+                    supabaseClient = await initializeSupabase();
+                } catch (error) {
+                    console.error('Failed to initialize Supabase:', error);
+                    throw error;
+                }
+            }
+            return supabaseClient;
+        }
         
         // Debug functions
         window.toggleDebug = function() {
             const panel = document.getElementById('debugPanel');
             panel.classList.toggle('active');
         };
-        
+
         window.updateDebug = function(info) {
             const content = document.getElementById('debugContent');
             const timestamp = new Date().toLocaleTimeString();
             content.textContent = `[${timestamp}]\n${JSON.stringify(info, null, 2)}`;
         };
-        
+
         // Check if already authenticated
         async function checkAuth() {
-            const { data: { session } } = await supabase.auth.getSession();
-            if (session) {
-                // Already logged in, redirect to tracking
-                window.location.href = '/tracking.html';
+            try {
+                const client = await ensureSupabaseReady();
+                const { data: { session } } = await client.auth.getSession();
+                if (session) {
+                    // Already logged in, redirect to tracking
+                    window.location.href = '/tracking.html';
+                }
+            } catch (error) {
+                console.error('Auth check failed:', error);
+                // Don't redirect on auth check failure - let user try to login
             }
         }
         
@@ -539,7 +566,8 @@
             button.innerHTML = '<span class="loading-spinner"></span> Accesso in corso...';
             
             try {
-                const { data, error } = await supabase.auth.signInWithPassword({
+                const client = await ensureSupabaseReady();
+                const { data, error } = await client.auth.signInWithPassword({
                     email,
                     password
                 });
@@ -594,7 +622,8 @@
                 updateDebug({ action: 'register_start', email });
                 
                 // Try registration with better error handling
-                const { data, error } = await supabase.auth.signUp({
+                const client = await ensureSupabaseReady();
+                const { data, error } = await client.auth.signUp({
                     email,
                     password,
                     options: {
@@ -681,8 +710,9 @@
             updateDebug({ action: 'demo_access_start' });
             
             try {
+                const client = await ensureSupabaseReady();
                 // Try anonymous sign in
-                const { data, error } = await supabase.auth.signInAnonymously();
+                const { data, error } = await client.auth.signInAnonymously();
                 
                 if (error) {
                     console.warn('Anonymous sign-in failed:', error);
@@ -693,7 +723,7 @@
                         showAlert('Accesso anonimo disabilitato. Utilizzo account demo...', 'info');
                         
                         // Try to sign in with a pre-created demo account
-                        const demoResult = await supabase.auth.signInWithPassword({
+                        const demoResult = await client.auth.signInWithPassword({
                             email: 'demo@supplychainhub.com',
                             password: 'demo123456'
                         });
@@ -745,7 +775,8 @@
             updateDebug({ action: 'forgot_password', email });
             
             try {
-                const { error } = await supabase.auth.resetPasswordForEmail(email, {
+                const client = await ensureSupabaseReady();
+                const { error } = await client.auth.resetPasswordForEmail(email, {
                     redirectTo: window.location.origin + '/reset-password.html'
                 });
                 
@@ -766,16 +797,17 @@
             console.log('Testing Supabase configuration...');
             
             try {
+                const client = await ensureSupabaseReady();
                 // Test basic connection
-                const { data: session, error: sessionError } = await supabase.auth.getSession();
+                const { data: session, error: sessionError } = await client.auth.getSession();
                 console.log('Session test:', { session, sessionError });
                 
                 // Get auth settings
                 const authSettings = {
-                    url: supabase.supabaseUrl,
-                    hasAnonKey: !!supabase.supabaseKey,
-                    authAutoRefresh: supabase.auth.autoRefreshToken,
-                    authPersistSession: supabase.auth.persistSession
+                    url: client.supabaseUrl,
+                    hasAnonKey: !!client.supabaseKey,
+                    authAutoRefresh: client.auth.autoRefreshToken,
+                    authPersistSession: client.auth.persistSession
                 };
                 
                 console.log('Auth settings:', authSettings);
@@ -784,7 +816,7 @@
                 // Test if email auth is enabled
                 try {
                     // This will fail if email auth is not enabled
-                    const { error } = await supabase.auth.signInWithPassword({
+                    const { error } = await client.auth.signInWithPassword({
                         email: 'test@test.com',
                         password: 'testtest'
                     });
