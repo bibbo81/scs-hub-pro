@@ -1,5 +1,5 @@
 // core/auth-guard.js - Middleware per proteggere le pagine
-import { supabase } from '/core/services/supabase-client.js';
+import { supabase, initializeSupabase } from '/core/services/supabase-client.js';
 
 class AuthGuard {
     constructor() {
@@ -11,9 +11,11 @@ class AuthGuard {
     // Inizializza il guard
     async init() {
         if (this.initialized) return;
-        
+
         console.log('[AuthGuard] Initializing...');
-        
+
+        await initializeSupabase();
+
         // Ascolta i cambiamenti di stato auth
         supabase.auth.onAuthStateChange((event, session) => {
             console.log('[AuthGuard] Auth state changed:', event);
