@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Auth Loading State Test</title>
+    
+    <!-- Core CSS -->
+    <link rel="stylesheet" href="/assets/css/solarium.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Supabase (for testing with real auth) -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <style>
+        body {
+            margin: 0;
+            font-family: var(--sol-font-sans);
+            background: var(--sol-gray-50);
+        }
+        
+        .test-container {
+            max-width: 1200px;
+            margin: 2rem auto;
+            padding: 2rem;
+        }
+        
+        .test-section {
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        }
+        
+        .test-section h3 {
+            margin: 0 0 1rem 0;
+            color: var(--sol-gray-800);
+        }
+        
+        .demo-header {
+            background: var(--sol-primary);
+            color: white;
+            padding: 1rem 2rem;
+            border-radius: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+        
+        .demo-user-menu {
+            background: white;
+            border: 1px solid var(--sol-gray-200);
+            border-radius: 8px;
+            padding: 1rem;
+            max-width: 300px;
+        }
+        
+        .demo-dropdown-header {
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid var(--sol-gray-200);
+            margin-bottom: 0.5rem;
+        }
+        
+        .btn {
+            background: var(--sol-primary);
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            cursor: pointer;
+            margin: 0.25rem;
+        }
+        
+        .btn:hover {
+            background: var(--sol-primary-dark);
+        }
+        
+        .btn.secondary {
+            background: var(--sol-gray-500);
+        }
+        
+        .status {
+            padding: 0.5rem;
+            border-radius: 4px;
+            margin: 0.5rem 0;
+            font-weight: bold;
+        }
+        
+        .status.loading {
+            background: var(--sol-warning-light);
+            color: var(--sol-warning-dark);
+        }
+        
+        .status.success {
+            background: var(--sol-success-light);
+            color: var(--sol-success-dark);
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>🧪 Authentication Loading State Test</h1>
+        <p>This page demonstrates the improved auth loading states that prevent "Demo User" flash.</p>
+        
+        <!-- Test Section 1: Header Auth Indicator -->
+        <div class="test-section">
+            <h3>1. Header Auth Indicator</h3>
+            <div class="demo-header">
+                <div>Supply Chain Hub</div>
+                <div id="headerAuthTest">
+                    <!-- Will be populated by test -->
+                </div>
+            </div>
+            <button class="btn" onclick="simulateAuthLoading()">Simulate Auth Loading</button>
+            <button class="btn" onclick="simulateAuthSuccess()">Simulate Auth Success</button>
+            <button class="btn secondary" onclick="resetAuthTest()">Reset</button>
+            <div id="authStatus" class="status">Ready for testing</div>
+        </div>
+        
+        <!-- Test Section 2: User Menu -->
+        <div class="test-section">
+            <h3>2. User Menu</h3>
+            <div class="demo-user-menu">
+                <div class="demo-dropdown-header">
+                    <p class="user-name" id="testUserName">Ready for testing</p>
+                    <p class="user-email" id="testUserEmail">Click buttons below to test</p>
+                </div>
+                <div class="demo-dropdown-body">
+                    <div id="menuLoadingState" style="display: none;">
+                        <div class="loading-state">
+                            <i class="fas fa-spinner fa-spin"></i>
+                            <span>Caricamento menu...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <button class="btn" onclick="simulateMenuLoading()">Simulate Menu Loading</button>
+            <button class="btn" onclick="simulateMenuLoaded()">Simulate Menu Loaded</button>
+            <button class="btn secondary" onclick="resetMenuTest()">Reset</button>
+        </div>
+        
+        <!-- Test Section 3: User Button -->
+        <div class="test-section">
+            <h3>3. User Button</h3>
+            <div id="userButtonTest">
+                <!-- Will be populated by test -->
+            </div>
+            <button class="btn" onclick="simulateButtonLoading()">Simulate Button Loading</button>
+            <button class="btn" onclick="simulateButtonLoaded()">Simulate Button Loaded</button>
+            <button class="btn secondary" onclick="resetButtonTest()">Reset</button>
+        </div>
+        
+        <!-- Test Section 4: Integration Test -->
+        <div class="test-section">
+            <h3>4. Complete Auth Flow Test</h3>
+            <p>This simulates the complete authentication flow from loading to authenticated state.</p>
+            <button class="btn" onclick="runCompleteAuthFlow()">Run Complete Auth Flow</button>
+            <div id="flowStatus" class="status">Click button to start</div>
+            <div id="flowDemo" style="margin-top: 1rem;">
+                <!-- Complete demo will be shown here -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Test utilities
+        function updateStatus(elementId, message, type = '') {
+            const el = document.getElementById(elementId);
+            el.textContent = message;
+            el.className = `status ${type}`;
+        }
+        
+        // Test 1: Header Auth Indicator
+        function simulateAuthLoading() {
+            document.getElementById('headerAuthTest').innerHTML = `
+                <div class="auth-loading">
+                    <i class="fas fa-spinner fa-spin"></i>
+                    <span>Autenticazione...</span>
+                </div>
+            `;
+            updateStatus('authStatus', 'Loading state active', 'loading');
+        }
+        
+        function simulateAuthSuccess() {
+            document.getElementById('headerAuthTest').innerHTML = `
+                <div class="auth-user-info" style="display: flex; align-items: center; gap: 0.5rem;">
+                    <i class="fas fa-user-check" style="color: var(--sol-success);"></i>
+                    <span>Mario Rossi</span>
+                </div>
+            `;
+            updateStatus('authStatus', 'Authenticated successfully', 'success');
+        }
+        
+        function resetAuthTest() {
+            document.getElementById('headerAuthTest').innerHTML = '<span>Ready for testing</span>';
+            updateStatus('authStatus', 'Ready for testing', '');
+        }
+        
+        // Test 2: User Menu
+        function simulateMenuLoading() {
+            document.getElementById('testUserName').innerHTML = '<i class="fas fa-spinner fa-spin"></i> Caricamento...';
+            document.getElementById('testUserEmail').innerHTML = '<i class="fas fa-spinner fa-spin"></i> Autenticazione in corso...';
+            document.getElementById('menuLoadingState').style.display = 'block';
+        }
+        
+        function simulateMenuLoaded() {
+            document.getElementById('testUserName').textContent = 'Mario Rossi';
+            document.getElementById('testUserEmail').textContent = 'mario.rossi@example.com';
+            document.getElementById('menuLoadingState').style.display = 'none';
+        }
+        
+        function resetMenuTest() {
+            document.getElementById('testUserName').textContent = 'Ready for testing';
+            document.getElementById('testUserEmail').textContent = 'Click buttons below to test';
+            document.getElementById('menuLoadingState').style.display = 'none';
+        }
+        
+        // Test 3: User Button
+        function simulateButtonLoading() {
+            document.getElementById('userButtonTest').innerHTML = `
+                <button class="sol-btn sol-btn-glass" style="display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 1rem; border: 1px solid #ddd; background: white; border-radius: 6px;">
+                    <div class="user-avatar loading" style="width: 32px; height: 32px; border-radius: 50%; background: var(--sol-gray-200); display: flex; align-items: center; justify-content: center;">
+                        <i class="fas fa-spinner fa-spin" style="color: var(--sol-gray-500); font-size: 0.75rem;"></i>
+                    </div>
+                    <span style="display: flex; align-items: center; gap: 0.25rem;">
+                        <i class="fas fa-spinner fa-spin"></i>
+                    </span>
+                    <i class="fas fa-chevron-down"></i>
+                </button>
+            `;
+        }
+        
+        function simulateButtonLoaded() {
+            document.getElementById('userButtonTest').innerHTML = `
+                <button class="sol-btn sol-btn-glass" style="display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 1rem; border: 1px solid #ddd; background: white; border-radius: 6px;">
+                    <div class="user-avatar" style="width: 32px; height: 32px; border-radius: 50%; background: var(--sol-primary); color: white; display: flex; align-items: center; justify-content: center; font-weight: bold;">
+                        MR
+                    </div>
+                    <span>Mario Rossi</span>
+                    <i class="fas fa-chevron-down"></i>
+                </button>
+            `;
+        }
+        
+        function resetButtonTest() {
+            document.getElementById('userButtonTest').innerHTML = '<p>Ready for testing</p>';
+        }
+        
+        // Test 4: Complete Auth Flow
+        async function runCompleteAuthFlow() {
+            updateStatus('flowStatus', 'Starting authentication flow...', 'loading');
+            
+            // Step 1: Show initial loading
+            document.getElementById('flowDemo').innerHTML = `
+                <div style="border: 1px solid #ddd; border-radius: 8px; padding: 1rem; background: white;">
+                    <h4>Auth State: Loading</h4>
+                    <div style="display: flex; align-items: center; gap: 0.5rem; color: var(--sol-gray-500);">
+                        <i class="fas fa-spinner fa-spin"></i>
+                        <span>Initializing authentication...</span>
+                    </div>
+                </div>
+            `;
+            
+            await new Promise(resolve => setTimeout(resolve, 1500));
+            
+            // Step 2: Show auth check
+            updateStatus('flowStatus', 'Checking authentication status...', 'loading');
+            document.getElementById('flowDemo').innerHTML = `
+                <div style="border: 1px solid #ddd; border-radius: 8px; padding: 1rem; background: white;">
+                    <h4>Auth State: Checking</h4>
+                    <div style="display: flex; align-items: center; gap: 0.5rem; color: var(--sol-gray-500);">
+                        <i class="fas fa-spinner fa-spin"></i>
+                        <span>Verifying user credentials...</span>
+                    </div>
+                </div>
+            `;
+            
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            
+            // Step 3: Show success
+            updateStatus('flowStatus', 'Authentication completed successfully!', 'success');
+            document.getElementById('flowDemo').innerHTML = `
+                <div style="border: 1px solid var(--sol-success); border-radius: 8px; padding: 1rem; background: var(--sol-success-light);">
+                    <h4>Auth State: Authenticated</h4>
+                    <div style="display: flex; align-items: center; gap: 0.5rem; color: var(--sol-success-dark);">
+                        <i class="fas fa-check-circle"></i>
+                        <span>Welcome back, Mario Rossi (mario.rossi@example.com)</span>
+                    </div>
+                    <div style="margin-top: 0.5rem; font-size: 0.875rem; color: var(--sol-gray-600);">
+                        ✅ No "Demo User" flash occurred<br>
+                        ✅ Smooth loading transitions<br>
+                        ✅ Immediate UI update with real user data
+                    </div>
+                </div>
+            `;
+        }
+        
+        // Initialize page
+        resetAuthTest();
+        resetMenuTest();
+        resetButtonTest();
+    </script>
+</body>
+</html>

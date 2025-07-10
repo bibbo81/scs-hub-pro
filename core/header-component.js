@@ -1,7 +1,7 @@
 // header-component.js - Header unificato con SINGLETON PATTERN ROBUSTO
 import api from '/core/api-client.js';
 import notificationSystem from '/core/notification-system.js';
-import { supabase } from '/core/services/supabase-client.js';
+import { supabase, initializeSupabase } from '/core/services/supabase-client.js';
 
 // SINGLETON PATTERN ROBUSTO
 let headerInstance = null;
@@ -77,6 +77,7 @@ export class HeaderComponent {
     }
     
     async _performInit() {
+        await initializeSupabase();
         console.log('🔧 [HeaderComponent] Starting initialization...');
         
         // CRITICAL: Rimuovi TUTTI gli header esistenti prima di inizializzare
@@ -98,7 +99,7 @@ export class HeaderComponent {
             await this.mount();
             console.log('✅ [HeaderComponent] Header mounted to DOM');
             
-            this.attachEventListeners();
+            await this.attachEventListeners();
             console.log('✅ [HeaderComponent] Event listeners attached');
             
             this.initialized = true;
@@ -280,7 +281,7 @@ export class HeaderComponent {
             this.updateUserDisplay(userInfo);
             
             // Re-attach event listeners nel caso siano stati persi
-            this.attachEventListeners();
+            await this.attachEventListeners();
             
             return;
         }
@@ -338,7 +339,7 @@ export class HeaderComponent {
         `;
     }
     
-    // FIX 4: getUserInfo ASYNC con CACHE
+    // FIX 4: getUserInfo ASYNC con CACHE e loading state
     async getUserInfo() {
         // Cache per 5 minuti
         const cacheExpiry = 5 * 60 * 1000;
@@ -348,7 +349,19 @@ export class HeaderComponent {
             return this.userInfoCache;
         }
         
+        // Check if auth UI is still loading
+        if (window.authUI && window.authUI.isLoading) {
+            return {
+                name: '',
+                email: '',
+                initials: '',
+                isAnonymous: true,
+                isLoading: true
+            };
+        }
+        
         try {
+            await initializeSupabase();
             if (supabase) {
                 const { data: { user } } = await supabase.auth.getUser();
                 
@@ -363,14 +376,16 @@ export class HeaderComponent {
                             email: user.email,
                             initials: window.authInit?.getUserInitials(name) ||
                                       name.substring(0, 2).toUpperCase(),
-                            isAnonymous: false
+                            isAnonymous: false,
+                            isLoading: false
                         };
                     } else {
                         userInfo = {
                             name: 'Demo User',
                             email: 'demo@example.com',
                             initials: 'DU',
-                            isAnonymous: true
+                            isAnonymous: true,
+                            isLoading: false
                         };
                     }
                     
@@ -385,18 +400,30 @@ export class HeaderComponent {
             console.log('[HeaderComponent] Error getting user:', error);
         }
         
-        // Fallback
-        const fallback = {
-            name: 'Demo User',
-            email: 'demo@example.com',
-            initials: 'DU',
-            isAnonymous: true
+        // Fallback - but only if not loading
+        if (window.authUI && !window.authUI.isLoading) {
+            const fallback = {
+                name: 'Demo User',
+                email: 'demo@example.com',
+                initials: 'DU',
+                isAnonymous: true,
+                isLoading: false
+            };
+            
+            this.userInfoCache = fallback;
+            this.userInfoCacheTime = now;
+            
+            return fallback;
+        }
+        
+        // Still loading
+        return {
+            name: '',
+            email: '',
+            initials: '',
+            isAnonymous: true,
+            isLoading: true
         };
-        
-        this.userInfoCache = fallback;
-        this.userInfoCacheTime = now;
-        
-        return fallback;
     }
     
     // Invalida cache quando cambia l'utente
@@ -522,6 +549,27 @@ export class HeaderComponent {
     // FIX 4: renderUserDropdown ASYNC
     async renderUserDropdown() {
         const userInfo = await this.getUserInfo();
+        
+        if (userInfo.isLoading) {
+            return `
+                <div class="sol-dropdown" id="userDropdown" style="display: none;">
+                    <div class="sol-dropdown-header">
+                        <p class="user-name">
+                            <i class="fas fa-spinner fa-spin"></i> Caricamento...
+                        </p>
+                        <p class="user-email">
+                            <i class="fas fa-spinner fa-spin"></i> Autenticazione in corso...
+                        </p>
+                    </div>
+                    <div class="sol-dropdown-body">
+                        <div class="loading-state">
+                            <i class="fas fa-spinner fa-spin"></i>
+                            <span>Caricamento menu...</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
         
         return `
             <div class="sol-dropdown" id="userDropdown" style="display: none;">
@@ -687,7 +735,8 @@ export class HeaderComponent {
         return window.location.pathname === href;
     }
     
-    attachEventListeners() {
+    async attachEventListeners() {
+        await initializeSupabase();
         // CRITICAL FIX: Previeni attach multipli di event listeners
         // Rimuovi vecchi listener prima di aggiungerne di nuovi
         
@@ -868,9 +917,9 @@ export class HeaderComponent {
         this.lastAuthState = event;
         this.invalidateUserCache();
         
-        // Update user info
-        if (event === 'SIGNED_IN' || event === 'USER_UPDATED') {
-            // CRITICAL: Solo aggiorna il display, NON re-inizializzare
+        // Update user info immediately on auth change
+        if (event === 'SIGNED_IN' || event === 'USER_UPDATED' || event === 'SIGNED_OUT') {
+            // CRITICAL: Force immediate update of user display
             setTimeout(async () => {
                 const userInfo = await this.getUserInfo();
                 this.updateUserDisplay(userInfo);
@@ -878,9 +927,9 @@ export class HeaderComponent {
                 // Aggiorna anche i dropdown se esistono
                 const dropdownName = document.querySelector('.user-name');
                 const dropdownEmail = document.querySelector('.user-email');
-                if (dropdownName) dropdownName.textContent = userInfo.name;
-                if (dropdownEmail) dropdownEmail.textContent = userInfo.email;
-            }, 500);
+                if (dropdownName && !userInfo.isLoading) dropdownName.textContent = userInfo.name;
+                if (dropdownEmail && !userInfo.isLoading) dropdownEmail.textContent = userInfo.email;
+            }, 100); // Small delay to ensure auth state is fully updated
         }
         
         // NUOVO: Gestione intelligente notifiche
@@ -928,6 +977,22 @@ export class HeaderComponent {
         const userName = document.getElementById('userName');
         const dropdownName = document.querySelector('.user-name');
         const dropdownEmail = document.querySelector('.user-email');
+        
+        if (userInfo.isLoading) {
+            if (userInitial) {
+                userInitial.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+            }
+            if (userName) {
+                userName.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+            }
+            if (dropdownName) {
+                dropdownName.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Caricamento...';
+            }
+            if (dropdownEmail) {
+                dropdownEmail.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Autenticazione in corso...';
+            }
+            return;
+        }
         
         if (userInitial) userInitial.textContent = userInfo.initials;
         if (userName) userName.textContent = userInfo.name;
@@ -1132,6 +1197,20 @@ export class HeaderComponent {
     }
     
     renderUserButton(userInfo) {
+        if (userInfo.isLoading) {
+            return `
+                <button class="sol-btn sol-btn-glass" id="userMenuBtn">
+                    <div class="user-avatar loading">
+                        <i class="fas fa-spinner fa-spin"></i>
+                    </div>
+                    <span id="userName" class="hide-mobile">
+                        <i class="fas fa-spinner fa-spin"></i>
+                    </span>
+                    <i class="fas fa-chevron-down hide-mobile"></i>
+                </button>
+            `;
+        }
+        
         return `
             <button class="sol-btn sol-btn-glass" id="userMenuBtn">
                 <div class="user-avatar">

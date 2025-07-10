@@ -151,3 +151,9 @@ Inside `supabase/security-fixes.sql` you will find additional validation queries
 
 Run the SQL in `supabase/shipments_carrier_columns.sql` using the Supabase SQL editor. This adds carrier
 information fields to `public.shipments` and grants the API role permission to insert or update them.
+
+## 🯩 Browser extension
+
+This repository does not include Chrome extension files like `background.js` or `content.js`. If you encounter errors referencing these scripts, they originate from an optional browser add-on maintained separately from **SCS Hub Pro**.
+
+The web application runs without the extension, but certain automation features may rely on the add-on. Check the dedicated extension repository or contact the maintainers for installation instructions. Ensure the extension is loaded in your browser to avoid missing-script errors.

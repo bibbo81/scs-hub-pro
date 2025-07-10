@@ -1,4 +1,4 @@
-import { supabase } from '/core/services/supabase-client.js';
+import { supabase, initializeSupabase } from '/core/services/supabase-client.js';
 
 class OrganizationService {
     constructor() {
@@ -9,7 +9,9 @@ class OrganizationService {
 
     async init() {
         if (this.initialized) return;
-        
+
+        await initializeSupabase();
+
         try {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) throw new Error('No authenticated user');
