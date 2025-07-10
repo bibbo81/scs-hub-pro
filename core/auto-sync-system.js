@@ -323,6 +323,21 @@ class AutoSyncSystem {
                 if (!orgId) {
                     throw new Error("Organization ID non trovato! L'utente non ha selezionato alcuna organizzazione.");
                 }
+
+                const sb = window.supabase || (typeof supabase !== 'undefined' ? supabase : null);
+                if (sb) {
+                    const { data: existing } = await sb
+                        .from('shipments')
+                        .select('id')
+                        .eq('organization_id', orgId)
+                        .eq('shipmentNumber', trackingData.tracking_number)
+                        .maybeSingle();
+                    if (existing) {
+                        console.log('🚫 Shipment already exists, skipping creation:', existing.id);
+                        return null;
+                    }
+                }
+
                 const newShipment = await window.shipmentsRegistry.createShipment({
                     ...shipmentData,
                     organization_id: orgId,
