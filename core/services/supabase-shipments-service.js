@@ -11,9 +11,15 @@ class SupabaseShipmentsService {
         try {
             const orgId = getActiveOrganizationId();
             if (!orgId) {
-                throw new Error("Organization ID non trovato! L'utente non ha selezionato alcuna organizzazione.");
+                if (typeof window !== 'undefined' && window.NotificationSystem) {
+                    window.NotificationSystem.warning('Seleziona un\'organizzazione per visualizzare le spedizioni');
+                }
+                return [];
             }
-            let query = supabase.from(this.table).select('*').eq('organization_id', orgId);
+            const query = supabase
+                .from(this.table)
+                .select('*')
+                .eq('organization_id', orgId);
             const { data, error } = await query.order('created_at', { ascending: false });
             if (error) throw error;
             return data || [];
@@ -48,7 +54,10 @@ class SupabaseShipmentsService {
         try {
             const orgId = getActiveOrganizationId();
             if (!orgId) {
-                throw new Error("Organization ID non trovato! L'utente non ha selezionato alcuna organizzazione.");
+                if (typeof window !== 'undefined' && window.NotificationSystem) {
+                    window.NotificationSystem.warning('Seleziona un\'organizzazione prima di creare una spedizione');
+                }
+                return null;
             }
             const payload = this.preparePayload({ ...shipment, organization_id: orgId });
             const { data, error } = await supabase
@@ -60,7 +69,7 @@ class SupabaseShipmentsService {
             return data;
         } catch (e) {
             console.error('❌ SupabaseShipmentsService.createShipment:', e);
-            throw e;
+            return null;
         }
     }
 
@@ -68,9 +77,16 @@ class SupabaseShipmentsService {
         try {
             const orgId = getActiveOrganizationId();
             if (!orgId) {
-                throw new Error("Organization ID non trovato! L'utente non ha selezionato alcuna organizzazione.");
+                if (typeof window !== 'undefined' && window.NotificationSystem) {
+                    window.NotificationSystem.warning('Seleziona un\'organizzazione prima di aggiornare una spedizione');
+                }
+                return null;
             }
-            const payload = this.preparePayload({ ...updates, organization_id: orgId, updatedAt: new Date().toISOString() });
+            const payload = this.preparePayload({
+                ...updates,
+                organization_id: orgId,
+                updatedAt: new Date().toISOString()
+            });
             const { data, error } = await supabase
                 .from(this.table)
                 .update(payload)
@@ -81,7 +97,7 @@ class SupabaseShipmentsService {
             return data;
         } catch (e) {
             console.error('❌ SupabaseShipmentsService.updateShipment:', e);
-            throw e;
+            return null;
         }
     }
 
