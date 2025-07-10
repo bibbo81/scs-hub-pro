@@ -318,6 +318,7 @@ class AutoSyncSystem {
         const shipmentData = this.mapTrackingToShipment(trackingData);
         
         if (window.shipmentsRegistry?.createShipment) {
+            let userId = null;
             try {
                 const orgId = window.getActiveOrganizationId?.();
                 if (!orgId) {
@@ -338,6 +339,19 @@ class AutoSyncSystem {
                     }
                 }
 
+                if (sb?.auth?.getUser) {
+                    const { data, error } = await sb.auth.getUser();
+                    if (!error) {
+                        userId = data?.user?.id;
+                    }
+                }
+
+                console.log('ℹ️ Preparing shipment creation', {
+                    organization_id: orgId,
+                    user_id: userId,
+                    payload: shipmentData
+                });
+
                 const newShipment = await window.shipmentsRegistry.createShipment({
                     ...shipmentData,
                     organization_id: orgId,
@@ -346,10 +360,16 @@ class AutoSyncSystem {
                     sourceTrackingId: trackingData.id
                 });
 
-                console.log('✅ Shipment created successfully:', newShipment.id);
+                console.log('Spedizione creata con successo', newShipment.id);
                 return newShipment;
 
             } catch (error) {
+                if (error?.status === 403 || error?.code === '403') {
+                    console.error('❌ Forbidden creating shipment', {
+                        payload: { ...shipmentData, organization_id: orgId },
+                        user_id: userId
+                    });
+                }
                 console.error('❌ Error creating shipment:', error);
                 return null;
             }
