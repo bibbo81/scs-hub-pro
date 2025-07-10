@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Authentication Race Condition Fix Demo</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        
+        .demo-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .demo-header {
+            background: linear-gradient(135deg, #007AFF, #5856D6);
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+        
+        .demo-content {
+            padding: 30px;
+        }
+        
+        .comparison {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+        
+        .before, .after {
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            padding: 20px;
+        }
+        
+        .before {
+            border-color: #ff3b30;
+            background: #fff5f5;
+        }
+        
+        .after {
+            border-color: #34c759;
+            background: #f0fff4;
+        }
+        
+        .mock-header {
+            background: #fff;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            padding: 12px 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .mock-user-btn {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: #f8f9fa;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            padding: 8px 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .mock-user-btn:hover {
+            background: #e9ecef;
+        }
+        
+        .user-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: #007AFF;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 14px;
+        }
+        
+        .demo-user-avatar {
+            background: #ff6b6b;
+        }
+        
+        .loading-avatar {
+            background: #6c757d;
+        }
+        
+        .explanation {
+            background: #f8f9fa;
+            border-left: 4px solid #007AFF;
+            padding: 15px;
+            margin: 20px 0;
+        }
+        
+        .code-snippet {
+            background: #2d3748;
+            color: #e2e8f0;
+            padding: 15px;
+            border-radius: 6px;
+            overflow-x: auto;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 13px;
+            margin: 10px 0;
+        }
+        
+        .timeline {
+            position: relative;
+            padding-left: 30px;
+        }
+        
+        .timeline::before {
+            content: '';
+            position: absolute;
+            left: 10px;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: #ddd;
+        }
+        
+        .timeline-item {
+            position: relative;
+            margin-bottom: 20px;
+        }
+        
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            left: -25px;
+            top: 5px;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: white;
+            border: 3px solid #007AFF;
+        }
+        
+        .flash-demo {
+            animation: flash 2s infinite;
+        }
+        
+        @keyframes flash {
+            0%, 50% { opacity: 1; background: #ff6b6b; }
+            25%, 75% { opacity: 0.7; background: #ffd93d; }
+        }
+        
+        .loading-demo {
+            animation: pulse 1.5s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+        
+        .section-title {
+            color: #2d3748;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #e2e8f0;
+        }
+    </style>
+</head>
+<body>
+    <div class="demo-container">
+        <div class="demo-header">
+            <h1><i class="fas fa-bug-slash"></i> Authentication Race Condition Fix</h1>
+            <p>Tracking.html User Display Issue Resolution</p>
+        </div>
+        
+        <div class="demo-content">
+            <div class="comparison">
+                <div class="before">
+                    <h3 class="section-title">❌ Before (Problem)</h3>
+                    <div class="mock-header">
+                        <div>Supply Chain Hub</div>
+                        <div class="mock-user-btn">
+                            <div class="user-avatar demo-user-avatar flash-demo">DU</div>
+                            <span>Demo User</span>
+                            <i class="fas fa-chevron-down"></i>
+                        </div>
+                    </div>
+                    
+                    <div class="timeline">
+                        <div class="timeline-item">
+                            <strong>Page Load:</strong> tracking.html starts loading
+                        </div>
+                        <div class="timeline-item">
+                            <strong>Header Init:</strong> Shows "Demo User" immediately
+                        </div>
+                        <div class="timeline-item">
+                            <strong>Auth Load:</strong> Supabase authentication loads
+                        </div>
+                        <div class="timeline-item">
+                            <strong>Flash Issue:</strong> Real user data replaces demo data
+                        </div>
+                        <div class="timeline-item">
+                            <strong>Confusing UX:</strong> User sees demo content briefly
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="after">
+                    <h3 class="section-title">✅ After (Fixed)</h3>
+                    <div class="mock-header">
+                        <div>Supply Chain Hub</div>
+                        <div class="mock-user-btn">
+                            <div class="user-avatar loading-avatar loading-demo">
+                                <i class="fas fa-spinner fa-spin"></i>
+                            </div>
+                            <span>Loading...</span>
+                            <i class="fas fa-chevron-down"></i>
+                        </div>
+                    </div>
+                    
+                    <div class="timeline">
+                        <div class="timeline-item">
+                            <strong>Page Load:</strong> tracking.html starts loading
+                        </div>
+                        <div class="timeline-item">
+                            <strong>Header Init:</strong> Shows loading spinner
+                        </div>
+                        <div class="timeline-item">
+                            <strong>Auth Load:</strong> Supabase authentication loads
+                        </div>
+                        <div class="timeline-item">
+                            <strong>Smooth Update:</strong> Real user data appears
+                        </div>
+                        <div class="timeline-item">
+                            <strong>Clear UX:</strong> No confusing demo content
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="explanation">
+                <h4><i class="fas fa-lightbulb"></i> Problem Analysis</h4>
+                <p>The <code>tracking.html</code> page was showing "Demo User (demo@example.com)" temporarily while the authentication system loaded, creating a confusing user experience. This happened because:</p>
+                <ul>
+                    <li>The header component returned fallback demo data immediately</li>
+                    <li>Multiple async modules in tracking.html created timing conflicts</li>
+                    <li>Real user data loaded after the initial render</li>
+                </ul>
+            </div>
+            
+            <h3 class="section-title">🔧 Solution Implemented</h3>
+            
+            <h4>1. Modified <code>getUserInfo()</code> method:</h4>
+            <div class="code-snippet">
+// OLD: Returned demo fallback immediately
+const fallback = {
+    name: 'Demo User',
+    email: 'demo@example.com',
+    initials: 'DU',
+    isAnonymous: true
+};
+
+// NEW: Returns loading state instead
+const loadingState = {
+    name: 'Loading...',
+    email: '...',
+    initials: '...',
+    isAnonymous: false,
+    isLoading: true
+};
+            </div>
+            
+            <h4>2. Enhanced <code>renderUserButton()</code>:</h4>
+            <div class="code-snippet">
+// NEW: Check for loading state and show spinner
+if (userInfo.isLoading) {
+    return `
+        &lt;button class="sol-btn sol-btn-glass" id="userMenuBtn"&gt;
+            &lt;div class="user-avatar"&gt;
+                &lt;i class="fas fa-spinner fa-spin"&gt;&lt;/i&gt;
+            &lt;/div&gt;
+            &lt;span id="userName" class="hide-mobile"&gt;Loading...&lt;/span&gt;
+            &lt;i class="fas fa-chevron-down hide-mobile"&gt;&lt;/i&gt;
+        &lt;/button&gt;
+    `;
+}
+            </div>
+            
+            <h4>3. Improved <code>updateUserDisplay()</code>:</h4>
+            <div class="code-snippet">
+// NEW: Handle loading states with smooth transitions
+if (userInfo.isLoading) {
+    if (userInitial) {
+        userInitial.innerHTML = '&lt;i class="fas fa-spinner fa-spin"&gt;&lt;/i&gt;';
+    }
+    if (userName) userName.textContent = 'Loading...';
+    if (userButton) userButton.classList.add('loading');
+    return;
+}
+            </div>
+            
+            <h4>4. Enhanced CSS for loading states:</h4>
+            <div class="code-snippet">
+/* Loading state for user button */
+.sol-btn.loading .user-avatar {
+    opacity: 0.7;
+}
+.sol-btn.loading #userName {
+    opacity: 0.7;
+}
+/* Loading spinner in user avatar */
+.user-avatar .fa-spinner {
+    font-size: 14px;
+    color: #666;
+}
+            </div>
+            
+            <div class="explanation">
+                <h4><i class="fas fa-check-circle"></i> Result</h4>
+                <p>Now when <code>tracking.html</code> loads, users see a clear loading state instead of confusing "Demo User" content. The authentication loads smoothly in the background and updates the interface without any jarring transitions.</p>
+                
+                <h5>Benefits:</h5>
+                <ul>
+                    <li>✅ No more confusing "Demo User" flash</li>
+                    <li>✅ Clear loading indication</li>
+                    <li>✅ Smooth transition to real user data</li>
+                    <li>✅ Consistent across all pages</li>
+                    <li>✅ Better user experience</li>
+                </ul>
+            </div>
+            
+            <div class="explanation">
+                <h4><i class="fas fa-test-tube"></i> Testing</h4>
+                <p>Created comprehensive test suite to verify the fix:</p>
+                <ul>
+                    <li>✅ getUserInfo returns loading state instead of demo fallback</li>
+                    <li>✅ renderUserButton handles loading state with spinner</li>
+                    <li>✅ updateUserDisplay manages loading state transitions</li>
+                    <li>✅ CSS includes proper loading state styles</li>
+                    <li>✅ Auth state changes are handled smoothly</li>
+                </ul>
+                
+                <p><strong>All tests pass ✅</strong> - The fix is working correctly!</p>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Demo animation control
+        document.addEventListener('DOMContentLoaded', () => {
+            // Simulate the fixed loading transition after 3 seconds
+            setTimeout(() => {
+                const afterButton = document.querySelector('.after .mock-user-btn');
+                if (afterButton) {
+                    afterButton.innerHTML = `
+                        <div class="user-avatar" style="background: #34c759;">JD</div>
+                        <span>John Doe</span>
+                        <i class="fas fa-chevron-down"></i>
+                    `;
+                }
+            }, 3000);
+        });
+    </script>
+</body>
+</html>
