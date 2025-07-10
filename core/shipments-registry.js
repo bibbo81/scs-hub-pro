@@ -185,6 +185,11 @@ class ShipmentsRegistry {
             shipment
         });
 
+        console.log('🚚 Tentativo INSERT shipment su Supabase:');
+        console.log('organization_id:', shipment.organization_id);
+        console.log('user_id:', userId || (supabase.auth && supabase.auth.user && supabase.auth.user().id));
+        console.log('Payload completo:', JSON.stringify(shipment, null, 2));
+
         try {
             const saved = await supabaseShipmentsService.createShipment(shipment);
             if (saved && saved.id) {
@@ -192,6 +197,7 @@ class ShipmentsRegistry {
             }
         } catch (e) {
             console.error('❌ Error saving shipment to Supabase:', e);
+            console.log('Payload che ha dato errore:', JSON.stringify(shipment, null, 2));
         }
 
         this.shipments.push(shipment);
