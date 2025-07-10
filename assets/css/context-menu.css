@@ -1,0 +1,27 @@
+.sol-context-menu {
+    background: #fff;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+}
+.sol-context-menu ul {
+    list-style: none;
+    margin: 0;
+    padding: 4px 0;
+}
+.sol-context-menu li {
+    padding: 6px 12px;
+    cursor: pointer;
+    font-size: 14px;
+}
+.sol-context-menu li.separator {
+    margin: 4px 0;
+    border-top: 1px solid #eee;
+    pointer-events: none;
+}
+.sol-context-menu li.danger {
+    color: #d9534f;
+}
+.sol-context-menu li:hover {
+    background: #f5f5f5;
+}

@@ -6,6 +6,7 @@ import organizationService, { getActiveOrganizationId } from '/core/services/org
 import { importWizard } from '/core/import-wizard.js';
 import { supabase } from '/core/services/supabase-client.js';
 importWizard.setSupabaseClient(supabase);
+import { showContextMenu } from '/core/components/context-menu.mjs';
 
 // ===== PRODUCT INTELLIGENCE CORE =====
 
@@ -1933,22 +1934,17 @@ window.editProduct = function(productId) {
 
 window.showProductMenu = function(productId, event) {
     event.stopPropagation();
-    
-    // Simple context menu for now
+
     const actions = [
-        { label: 'View Details', action: () => viewProductDetails(productId) },
-        { label: 'Edit Product', action: () => editProduct(productId) },
-        { label: 'View Recommendations', action: () => showProductRecommendations(productId) },
-        { label: 'Export Data', action: () => exportProductData(productId) },
-        { label: '---', action: null },
-        { label: 'Delete Product', action: () => deleteProduct(productId), class: 'danger' }
+        { label: 'View Details', handler: () => viewProductDetails(productId) },
+        { label: 'Edit Product', handler: () => editProduct(productId) },
+        { label: 'View Recommendations', handler: () => showProductRecommendations(productId) },
+        { label: 'Export Data', handler: () => exportProductData(productId) },
+        { separator: true },
+        { label: 'Delete Product', handler: () => deleteProduct(productId), class: 'danger' }
     ];
-    
-    // For now, just show options in console
-    console.log('Product menu for:', productId, actions);
-    
-    // TODO: Implement proper context menu
-    window.productIntelligenceSystem.showStatus('Product menu - coming soon!', 'info');
+
+    showContextMenu(actions, event);
 };
 
 window.showProductRecommendations = function(productId) {
