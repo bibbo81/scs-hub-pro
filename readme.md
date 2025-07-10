@@ -57,8 +57,11 @@ cd scs-hub-pro
 # Start development server
 python3 -m http.server 8000 --directory public
 
-# Open in browser
-open http://localhost:8000/tracking.html
+# Open in browser (use the command for your OS)
+# macOS:   open http://localhost:8000/tracking.html
+# Linux:   xdg-open http://localhost:8000/tracking.html
+# Windows: start http://localhost:8000/tracking.html
+```
 ⚙️ Branch Workflow — feature/complete-update
 
 🚦 IMPORTANT: All development happens directly on the feature/complete-update branch to avoid unnecessary patch branches and PR merges.
