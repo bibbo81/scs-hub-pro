@@ -1030,269 +1030,6 @@
         }
     </style>
 
-    <script>
-        // Initialize Settings Page
-        document.addEventListener('DOMContentLoaded', () => {
-            console.log('[Settings] Initializing with Solarium Design System...');
-            
-            // Initialize header component
-            initializeHeader();
-            
-            // Initialize tabs
-            initializeTabs();
-            
-            // Initialize status messages
-            initializeStatusMessages();
-            
-            // Load settings after auth is ready
-            waitForAuthAndLoad();
-        });
-
-        // Initialize header component
-        async function initializeHeader() {
-            try {
-                if (window.headerComponent) {
-                    await window.headerComponent.init();
-                    console.log('[Settings] Header component initialized');
-                }
-            } catch (error) {
-                console.error('[Settings] Header initialization error:', error);
-            }
-        }
-
-        // Tab Navigation (SOLARIUM STYLE)
-        function initializeTabs() {
-            const tabs = document.querySelectorAll('.sol-tab');
-            const contents = document.querySelectorAll('.sol-tab-content');
-            
-            tabs.forEach(tab => {
-                tab.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    const targetSection = tab.dataset.section;
-                    
-                    // Update tabs
-                    tabs.forEach(t => t.classList.remove('active'));
-                    tab.classList.add('active');
-                    
-                    // Update content
-                    contents.forEach(content => {
-                        content.classList.remove('active');
-                        if (content.id === targetSection) {
-                            content.classList.add('active');
-                        }
-                    });
-                    
-                    // Update URL
-                    history.pushState(null, '', `#${targetSection}`);
-                });
-            });
-            
-            // Handle direct URL access
-            const hash = window.location.hash.slice(1);
-            if (hash) {
-                const tab = document.querySelector(`[data-section="${hash}"]`);
-                if (tab) tab.click();
-            }
-        }
-
-        // Status Messages (SOLARIUM STYLE)
-        function initializeStatusMessages() {
-            // Auto-hide status messages after 5 seconds
-            const statusEl = document.getElementById('api-status');
-            if (statusEl && statusEl.style.display !== 'none') {
-                setTimeout(() => {
-                    statusEl.style.display = 'none';
-                }, 5000);
-            }
-        }
-
-        // Wait for auth and load settings
-        function waitForAuthAndLoad() {
-            let retries = 0;
-            const checkAuth = setInterval(() => {
-                retries++;
-                
-                if (window.auth && window.auth.isAuthenticated()) {
-                    clearInterval(checkAuth);
-                    console.log('[Settings] Auth ready, loading settings...');
-                    loadAllSettings();
-                } else if (retries >= 20) {
-                    clearInterval(checkAuth);
-                    console.log('[Settings] Auth timeout, loading anyway...');
-                    loadAllSettings();
-                }
-            }, 500);
-        }
-
-        // Load all settings (placeholder)
-        function loadAllSettings() {
-            console.log('[Settings] Loading settings with Solarium Design System...');
-            
-            // Load from localStorage for demo
-            const settings = JSON.parse(localStorage.getItem('appSettings') || '{}');
-            
-            // Populate form fields
-            if (settings.company) {
-                Object.keys(settings.company).forEach(key => {
-                    const input = document.getElementById(key);
-                    if (input) input.value = settings.company[key];
-                });
-            }
-            
-            console.log('[Settings] Settings loaded successfully');
-        }
-
-        // Show status message (SOLARIUM STYLE)
-        function showStatus(message, type = 'info', duration = 3000) {
-            // Use NotificationSystem for better UX
-            if (window.NotificationSystem) {
-                window.NotificationSystem.show(message, type, duration);
-            } else {
-                // Fallback to status element
-                const statusEl = document.getElementById('api-status');
-                if (statusEl) {
-                    statusEl.innerHTML = `<i class="fas fa-check-circle"></i><span>${message}</span>`;
-                    statusEl.className = `sol-alert sol-alert-${type}`;
-                    statusEl.style.display = 'flex';
-                    
-                    setTimeout(() => {
-                        statusEl.style.display = 'none';
-                    }, duration);
-                }
-            }
-        }
-
-        // Global functions for inline events
-        window.toggleApiKeyVisibility = function(inputId, event) {
-            const input = document.getElementById(inputId);
-            const button = event.currentTarget;
-            const icon = button.querySelector('i');
-            
-            if (input.type === 'password') {
-                input.type = 'text';
-                icon.className = 'fas fa-eye-slash';
-                button.setAttribute('aria-label', 'Nascondi');
-            } else {
-                input.type = 'password';
-                icon.className = 'fas fa-eye';
-                button.setAttribute('aria-label', 'Mostra');
-            }
-        };
-
-        window.testShipsGoConnection = async function(event) {
-            event.preventDefault();
-            
-            const button = event.target.closest('button');
-            const originalHTML = button.innerHTML;
-            const resultDiv = document.getElementById('shipsgoTestResult');
-            
-            // Stato loading
-            button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Testing...';
-            button.disabled = true;
-            
-            try {
-                // Assicurati che tracking service sia inizializzato
-                if (!window.trackingService.initialized) {
-                    await window.trackingService.initialize();
-                }
-                
-                const results = await window.trackingService.testConnection();
-                
-                // Mostra risultati dettagliati
-                let html = '<div class="sol-alert ';
-                
-                if (results.overall) {
-                    html += 'sol-alert-success">';
-                    html += '<i class="fas fa-check-circle"></i> ';
-                    html += '<div><strong>Connessione riuscita!</strong><br>';
-                    
-                    if (results.v1?.success) {
-                        html += '✅ ShipsGo v1.2 (Container): Connesso<br>';
-                    }
-                    if (results.v2?.success) {
-                        html += '✅ ShipsGo v2.0 (AWB): Connesso<br>';
-                    }
-                    html += '</div>';
-                } else {
-                    html += 'sol-alert-error">';
-                    html += '<i class="fas fa-exclamation-circle"></i> ';
-                    html += '<div><strong>Errore connessione</strong><br>';
-                    
-                    if (results.v1 && !results.v1.success) {
-                        html += `❌ v1.2: ${results.v1.message || 'Connessione fallita'}<br>`;
-                    }
-                    if (results.v2 && !results.v2.success) {
-                        html += `❌ v2.0: ${results.v2.message || 'Connessione fallita'}<br>`;
-                    }
-                    
-                    if (!results.v1 && !results.v2) {
-                        html += 'Nessuna API key configurata<br>';
-                    }
-                    
-                    html += '<small>Verifica le API keys e riprova</small></div>';
-                }
-                
-                html += '</div>';
-                
-                resultDiv.innerHTML = html;
-                resultDiv.style.display = 'block';
-                
-                // Nascondi dopo 10 secondi
-                setTimeout(() => {
-                    resultDiv.style.opacity = '0';
-                    setTimeout(() => {
-                        resultDiv.style.display = 'none';
-                        resultDiv.style.opacity = '1';
-                    }, 300);
-                }, 10000);
-                
-            } catch (error) {
-                console.error('Connection test error:', error);
-                
-                resultDiv.innerHTML = `
-                    <div class="sol-alert sol-alert-error">
-                        <i class="fas fa-exclamation-circle"></i>
-                        <div>
-                            <strong>Errore durante il test</strong><br>
-                            ${error.message}
-                        </div>
-                    </div>
-                `;
-                resultDiv.style.display = 'block';
-            } finally {
-                button.innerHTML = originalHTML;
-                button.disabled = false;
-            }
-        };
-
-        window.copyToClipboard = function(text) {
-            navigator.clipboard.writeText(text).then(() => {
-                showStatus('URL copiato negli appunti!', 'success');
-            }).catch(err => {
-                showStatus('Errore nella copia', 'error');
-            });
-        };
-
-        window.showWebhookInstructions = function() {
-            if (window.ModalSystem) {
-                window.ModalSystem.alert({
-                    type: 'info',
-                    title: 'Istruzioni Webhook',
-                    message: `
-                        <strong>Configurazione webhook ShipsGo:</strong><br><br>
-                        1. Copia l'URL del webhook<br>
-                        2. Accedi a ShipsGo Dashboard<br>
-                        3. Vai su Settings → Webhooks<br>
-                        4. Incolla l'URL e attiva il webhook<br>
-                        5. Seleziona gli eventi da ricevere
-                    `
-                });
-            }
-        };
-
-        console.log('[Settings] Script loaded with Solarium Design System compliance');
-    </script>
-    
     <script type="module">
     // Import tracking service
     import trackingService from '/core/services/tracking-service.js';
@@ -1629,6 +1366,269 @@
         }, 1000);
     });
     </script>
+    <script>
+        // Initialize Settings Page
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('[Settings] Initializing with Solarium Design System...');
+            
+            // Initialize header component
+            initializeHeader();
+            
+            // Initialize tabs
+            initializeTabs();
+            
+            // Initialize status messages
+            initializeStatusMessages();
+            
+            // Load settings after auth is ready
+            waitForAuthAndLoad();
+        });
+
+        // Initialize header component
+        async function initializeHeader() {
+            try {
+                if (window.headerComponent) {
+                    await window.headerComponent.init();
+                    console.log('[Settings] Header component initialized');
+                }
+            } catch (error) {
+                console.error('[Settings] Header initialization error:', error);
+            }
+        }
+
+        // Tab Navigation (SOLARIUM STYLE)
+        function initializeTabs() {
+            const tabs = document.querySelectorAll('.sol-tab');
+            const contents = document.querySelectorAll('.sol-tab-content');
+            
+            tabs.forEach(tab => {
+                tab.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    const targetSection = tab.dataset.section;
+                    
+                    // Update tabs
+                    tabs.forEach(t => t.classList.remove('active'));
+                    tab.classList.add('active');
+                    
+                    // Update content
+                    contents.forEach(content => {
+                        content.classList.remove('active');
+                        if (content.id === targetSection) {
+                            content.classList.add('active');
+                        }
+                    });
+                    
+                    // Update URL
+                    history.pushState(null, '', `#${targetSection}`);
+                });
+            });
+            
+            // Handle direct URL access
+            const hash = window.location.hash.slice(1);
+            if (hash) {
+                const tab = document.querySelector(`[data-section="${hash}"]`);
+                if (tab) tab.click();
+            }
+        }
+
+        // Status Messages (SOLARIUM STYLE)
+        function initializeStatusMessages() {
+            // Auto-hide status messages after 5 seconds
+            const statusEl = document.getElementById('api-status');
+            if (statusEl && statusEl.style.display !== 'none') {
+                setTimeout(() => {
+                    statusEl.style.display = 'none';
+                }, 5000);
+            }
+        }
+
+        // Wait for auth and load settings
+        function waitForAuthAndLoad() {
+            let retries = 0;
+            const checkAuth = setInterval(() => {
+                retries++;
+                
+                if (window.auth && window.auth.isAuthenticated()) {
+                    clearInterval(checkAuth);
+                    console.log('[Settings] Auth ready, loading settings...');
+                    loadAllSettings();
+                } else if (retries >= 20) {
+                    clearInterval(checkAuth);
+                    console.log('[Settings] Auth timeout, loading anyway...');
+                    loadAllSettings();
+                }
+            }, 500);
+        }
+
+        // Load all settings (placeholder)
+        function loadAllSettings() {
+            console.log('[Settings] Loading settings with Solarium Design System...');
+            
+            // Load from localStorage for demo
+            const settings = JSON.parse(localStorage.getItem('appSettings') || '{}');
+            
+            // Populate form fields
+            if (settings.company) {
+                Object.keys(settings.company).forEach(key => {
+                    const input = document.getElementById(key);
+                    if (input) input.value = settings.company[key];
+                });
+            }
+            
+            console.log('[Settings] Settings loaded successfully');
+        }
+
+        // Show status message (SOLARIUM STYLE)
+        function showStatus(message, type = 'info', duration = 3000) {
+            // Use NotificationSystem for better UX
+            if (window.NotificationSystem) {
+                window.NotificationSystem.show(message, type, duration);
+            } else {
+                // Fallback to status element
+                const statusEl = document.getElementById('api-status');
+                if (statusEl) {
+                    statusEl.innerHTML = `<i class="fas fa-check-circle"></i><span>${message}</span>`;
+                    statusEl.className = `sol-alert sol-alert-${type}`;
+                    statusEl.style.display = 'flex';
+                    
+                    setTimeout(() => {
+                        statusEl.style.display = 'none';
+                    }, duration);
+                }
+            }
+        }
+
+        // Global functions for inline events
+        window.toggleApiKeyVisibility = function(inputId, event) {
+            const input = document.getElementById(inputId);
+            const button = event.currentTarget;
+            const icon = button.querySelector('i');
+            
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.className = 'fas fa-eye-slash';
+                button.setAttribute('aria-label', 'Nascondi');
+            } else {
+                input.type = 'password';
+                icon.className = 'fas fa-eye';
+                button.setAttribute('aria-label', 'Mostra');
+            }
+        };
+
+        window.testShipsGoConnection = async function(event) {
+            event.preventDefault();
+            
+            const button = event.target.closest('button');
+            const originalHTML = button.innerHTML;
+            const resultDiv = document.getElementById('shipsgoTestResult');
+            
+            // Stato loading
+            button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Testing...';
+            button.disabled = true;
+            
+            try {
+                // Assicurati che tracking service sia inizializzato
+                if (!window.trackingService.initialized) {
+                    await window.trackingService.initialize();
+                }
+                
+                const results = await window.trackingService.testConnection();
+                
+                // Mostra risultati dettagliati
+                let html = '<div class="sol-alert ';
+                
+                if (results.overall) {
+                    html += 'sol-alert-success">';
+                    html += '<i class="fas fa-check-circle"></i> ';
+                    html += '<div><strong>Connessione riuscita!</strong><br>';
+                    
+                    if (results.v1?.success) {
+                        html += '✅ ShipsGo v1.2 (Container): Connesso<br>';
+                    }
+                    if (results.v2?.success) {
+                        html += '✅ ShipsGo v2.0 (AWB): Connesso<br>';
+                    }
+                    html += '</div>';
+                } else {
+                    html += 'sol-alert-error">';
+                    html += '<i class="fas fa-exclamation-circle"></i> ';
+                    html += '<div><strong>Errore connessione</strong><br>';
+                    
+                    if (results.v1 && !results.v1.success) {
+                        html += `❌ v1.2: ${results.v1.message || 'Connessione fallita'}<br>`;
+                    }
+                    if (results.v2 && !results.v2.success) {
+                        html += `❌ v2.0: ${results.v2.message || 'Connessione fallita'}<br>`;
+                    }
+                    
+                    if (!results.v1 && !results.v2) {
+                        html += 'Nessuna API key configurata<br>';
+                    }
+                    
+                    html += '<small>Verifica le API keys e riprova</small></div>';
+                }
+                
+                html += '</div>';
+                
+                resultDiv.innerHTML = html;
+                resultDiv.style.display = 'block';
+                
+                // Nascondi dopo 10 secondi
+                setTimeout(() => {
+                    resultDiv.style.opacity = '0';
+                    setTimeout(() => {
+                        resultDiv.style.display = 'none';
+                        resultDiv.style.opacity = '1';
+                    }, 300);
+                }, 10000);
+                
+            } catch (error) {
+                console.error('Connection test error:', error);
+                
+                resultDiv.innerHTML = `
+                    <div class="sol-alert sol-alert-error">
+                        <i class="fas fa-exclamation-circle"></i>
+                        <div>
+                            <strong>Errore durante il test</strong><br>
+                            ${error.message}
+                        </div>
+                    </div>
+                `;
+                resultDiv.style.display = 'block';
+            } finally {
+                button.innerHTML = originalHTML;
+                button.disabled = false;
+            }
+        };
+
+        window.copyToClipboard = function(text) {
+            navigator.clipboard.writeText(text).then(() => {
+                showStatus('URL copiato negli appunti!', 'success');
+            }).catch(err => {
+                showStatus('Errore nella copia', 'error');
+            });
+        };
+
+        window.showWebhookInstructions = function() {
+            if (window.ModalSystem) {
+                window.ModalSystem.alert({
+                    type: 'info',
+                    title: 'Istruzioni Webhook',
+                    message: `
+                        <strong>Configurazione webhook ShipsGo:</strong><br><br>
+                        1. Copia l'URL del webhook<br>
+                        2. Accedi a ShipsGo Dashboard<br>
+                        3. Vai su Settings → Webhooks<br>
+                        4. Incolla l'URL e attiva il webhook<br>
+                        5. Seleziona gli eventi da ricevere
+                    `
+                });
+            }
+        };
+
+        console.log('[Settings] Script loaded with Solarium Design System compliance');
+    </script>
+    
 
 </body>
 </html>
