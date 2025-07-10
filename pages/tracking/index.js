@@ -1,5 +1,6 @@
 // index.js - Clean tracking page logic with all mappings
 import TableManager from '/core/table-manager.js';
+window.TableManager = TableManager;
 
 // State
 let trackings = [];
