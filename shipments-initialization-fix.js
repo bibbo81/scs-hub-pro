@@ -25,7 +25,8 @@ class ShipmentsDependencyManager {
         this.dependencies.set('shipments-registry', {
             script: '/core/shipments-registry.js',
             global: 'ShipmentsRegistry',
-            dependencies: ['phase2-architecture']
+            dependencies: ['phase2-architecture'],
+            module: true
         });
         
         this.dependencies.set('documents-manager', {
@@ -140,7 +141,7 @@ class ShipmentsDependencyManager {
         console.log(`📥 Loading ${moduleName}...`);
         
         try {
-            await this.loadScript(module.script);
+            await this.loadScript(module.script, module.module);
             
             // Wait for global to be available
             const success = await this.waitForGlobal(module.global, 5000);
@@ -176,7 +177,7 @@ class ShipmentsDependencyManager {
         return obj !== undefined;
     }
     
-    async loadScript(src) {
+    async loadScript(src, isModule = false) {
         return new Promise((resolve, reject) => {
             // Check if script already exists
             const existing = document.querySelector(`script[src="${src}"]`);
@@ -186,6 +187,9 @@ class ShipmentsDependencyManager {
             }
             
             const script = document.createElement('script');
+            if (isModule) {
+                script.type = 'module';
+            }
             script.src = src;
             script.onload = () => resolve();
             script.onerror = () => reject(new Error(`Failed to load script: ${src}`));
