@@ -57,8 +57,10 @@ class SupabaseShipmentsService {
      * @returns {Object|null} Inserted shipment or null on failure
      */
     async createShipment(shipment) {
+        let orgId = null;
+        let userId = null;
         try {
-            const orgId = getActiveOrganizationId();
+            orgId = getActiveOrganizationId();
             if (!orgId) {
                 if (typeof window !== 'undefined' && window.NotificationSystem) {
                     window.NotificationSystem.warning('Seleziona un\'organizzazione prima di creare una spedizione');
@@ -69,7 +71,11 @@ class SupabaseShipmentsService {
             const {
                 data: { user }
             } = await supabase.auth.getUser();
-            const userId = user ? user.id : null;
+            userId = user ? user.id : null;
+
+            console.log('[DEBUG] Utente attivo:', userId);
+            console.log('[DEBUG] Organization ID:', orgId);
+            console.log('[DEBUG] shipmentData:', shipment);
             const payload = this.preparePayload({ ...shipment, organization_id: orgId });
 
             console.log('Creating shipment', {
@@ -117,11 +123,25 @@ class SupabaseShipmentsService {
                 if (error.status === 403) {
                     console.error('403 error creating shipment', { payload, userId });
                 }
+                if (error.code === '42501') {
+                    if (typeof window !== 'undefined' && window.NotificationSystem) {
+                        window.NotificationSystem.error('Non sei autorizzato a creare una spedizione per questa organizzazione');
+                    }
+                    console.error(`Verifica che l'utente sia presente nella tabella organization_members per organization_id=${orgId}`);
+                    console.error(
+                        `SELECT * FROM organization_members WHERE user_id = '${userId}' AND organization_id = '${orgId}';`
+                    );
+                    console.info("Se manca il record, aggiungi l'utente alla tabella organization_members tramite SQL o dall'interfaccia Supabase.");
+                    console.info('Se l\'errore persiste ma l\'utente è presente, verifica che il token di sessione sia aggiornato e non scaduto.');
+                }
                 throw error;
             }
             console.log('Spedizione creata con successo', data.id);
             return data;
         } catch (e) {
+            console.error('[DEBUG] user_id:', userId);
+            console.error('[DEBUG] organization_id:', orgId);
+            console.error('[DEBUG] errore ricevuto:', e);
             console.error('❌ SupabaseShipmentsService.createShipment:', e);
             return null;
         }
