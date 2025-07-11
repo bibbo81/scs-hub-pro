@@ -23,36 +23,43 @@ class SupabaseShipmentsService {
     
     async _initialize() {
         try {
-            // Wait for Supabase to be ready
+            // Check if Supabase is ready with limited retry
             let attempts = 0;
-            const maxAttempts = 10;
+            const maxAttempts = 5; // Reduced from 10
             
             while (attempts < maxAttempts) {
                 try {
                     const supabase = getSupabase();
                     if (supabase) {
-                        // Test if we can get organization
-                        const orgId = await getMyOrganizationId(supabase);
-                        if (orgId || attempts > 5) { // Allow proceeding without org after some attempts
-                            this.initialized = true;
-                            return true;
+                        // Try to get organization, but don't block on it
+                        try {
+                            const orgId = await getMyOrganizationId(supabase);
+                            console.log('SupabaseShipmentsService initialized with org:', orgId);
+                        } catch (orgError) {
+                            console.warn('Organization ID not available during init, will fetch later:', orgError.message);
                         }
+                        
+                        this.initialized = true;
+                        return true;
                     }
                 } catch (e) {
-                    console.log(`Waiting for initialization... attempt ${attempts + 1}/${maxAttempts}`);
+                    console.log(`Waiting for Supabase initialization... attempt ${attempts + 1}/${maxAttempts}:`, e.message);
                 }
                 
-                await new Promise(resolve => setTimeout(resolve, 1000));
+                // Exponential backoff to avoid excessive retries
+                await new Promise(resolve => setTimeout(resolve, 500 * (attempts + 1)));
                 attempts++;
             }
             
-            console.warn('Initialization completed with warnings');
+            // Proceed even if initialization is partial
+            console.warn('SupabaseShipmentsService initialization completed with warnings - service will retry operations as needed');
             this.initialized = true;
             return true;
         } catch (error) {
             console.error('Failed to initialize SupabaseShipmentsService:', error);
-            this.initialized = false;
-            throw error;
+            // Still mark as initialized to prevent infinite retry loops
+            this.initialized = true;
+            return false;
         }
     }
 

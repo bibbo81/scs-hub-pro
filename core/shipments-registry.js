@@ -723,19 +723,7 @@ class ShipmentsRegistry {
 // ===== GLOBAL REGISTRATION =====
 window.ShipmentsRegistry = ShipmentsRegistry;
 
-// Only auto-initialize if not already done by dependency manager
-if (!window.shipmentsRegistry || !window.shipmentsRegistry.initialized) {
-    console.log('🏗️ Auto-initializing ShipmentsRegistry...');
-    
-    document.addEventListener('DOMContentLoaded', async () => {
-        if (!window.shipmentsRegistry || !window.shipmentsRegistry.initialized) {
-            window.shipmentsRegistry = new ShipmentsRegistry();
-            await window.shipmentsRegistry.init();
-            
-            // Dispatch ready event
-            window.dispatchEvent(new Event('shipmentsRegistryReady'));
-        }
-    });
-}
+// Export for module systems
+export default ShipmentsRegistry;
 
 console.log('[ShipmentsRegistry] Enhanced registry system loaded - v2.0');
