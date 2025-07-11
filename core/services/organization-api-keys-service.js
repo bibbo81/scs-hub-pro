@@ -321,7 +321,7 @@ class OrganizationApiKeysService {
             // Se admin, recupera i dettagli tramite funzione Netlify
             if (isAdmin) {
                 const response = await apiClient.get('org-api-keys-info');
-                if (response && response.keys) {
+                if (response && response.keys && Array.isArray(response.keys)) {
                     info.configuredKeys = response.keys.map(k => ({
                         provider: k.provider,
                         configuredBy: k.configuredBy,

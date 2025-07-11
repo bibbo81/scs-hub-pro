@@ -55,12 +55,14 @@ class ShipmentsRegistry {
     async loadShipments() {
         try {
             const data = await supabaseShipmentsService.getAllShipments();
-            this.shipments = this.validateShipments(data);
+            // FIXME: Add more robust validation for shipment data structure
+            this.shipments = this.validateShipments(data || []);
             console.log(`📦 Loaded ${this.shipments.length} shipments from Supabase`);
             return true;
 
         } catch (error) {
             console.error('❌ Error loading shipments:', error);
+            // TODO: Implement retry mechanism for transient failures
             this.shipments = [];
             return false;
         }

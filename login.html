@@ -629,7 +629,7 @@
                 
                 // Check if user was created
                 if (data.user) {
-                    if (data.user.identities && data.user.identities.length === 0) {
+                    if (data.user && data.user.identities && Array.isArray(data.user.identities) && data.user.identities.length === 0) {
                         showAlert('Un account con questa email esiste già. Prova ad accedere.', 'error');
                         updateDebug({ action: 'register_error', type: 'user_exists' });
                     } else if (data.session) {

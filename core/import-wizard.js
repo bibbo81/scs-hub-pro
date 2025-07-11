@@ -342,8 +342,9 @@ setTimeout(tryRenderMapping, 0);
                     filename: file.name
                 });
 
-                this.headers = Array.isArray(response.headers) ? response.headers.map(h => h.trim()) : [];
-                this.parsedData = response.data || [];
+                // TODO: Add more comprehensive validation for response structure
+                this.headers = Array.isArray(response.headers) ? response.headers.map(h => h && h.trim ? h.trim() : h) : [];
+                this.parsedData = Array.isArray(response.data) ? response.data : [];
 
                 // ✅ UI + AutoMap subito qui
                 const tryRenderMapping = () => {
