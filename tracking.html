@@ -732,5 +732,48 @@ document.addEventListener('DOMContentLoaded', () => {
     }, 3000);
 }); // <-- Questa parentesi chiude il DOMContentLoaded
 </script>
+
+<!-- Prima di tutti gli altri script, aggiungi: -->
+<script type="module">
+// Fix per l'ordine di caricamento
+import { getSupabase, waitForSession } from '/core/services/supabase-client.js';
+
+// Aspetta che tutto sia pronto prima di inizializzare
+document.addEventListener('DOMContentLoaded', async () => {
+    try {
+        console.log('🔄 Waiting for Supabase and session...');
+        
+        // 1. Aspetta Supabase e sessione
+        await window.supabaseReady;
+        console.log('✅ Supabase ready');
+        
+        // 2. Inizializza tracking service se non è già stato fatto
+        if (window.trackingService && typeof window.trackingService.init === 'function') {
+            await window.trackingService.init();
+            console.log('✅ TrackingService ready');
+        }
+        
+        // 3. Ora carica la tabella tracking
+        if (window.loadTrackingTable) {
+            await window.loadTrackingTable();
+            console.log('✅ Tracking table loaded');
+        }
+        
+    } catch (error) {
+        console.error('❌ Initialization failed:', error);
+        // Mostra errore all'utente invece di reindirizzare
+        const statusEl = document.getElementById('status-panel');
+        if (statusEl) {
+            statusEl.innerHTML = `
+                <div class="error-message">
+                    <h3>Errore di Inizializzazione</h3>
+                    <p>${error.message}</p>
+                    <button onclick="location.reload()">Ricarica Pagina</button>
+                </div>
+            `;
+        }
+    }
+});
+</script>
 </body>
 </html>

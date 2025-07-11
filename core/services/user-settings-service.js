@@ -1,5 +1,5 @@
-// core/services/user-settings-service.js - FIX DEFINITIVO PER MODALITÀ DEMO
-import { supabase, requireAuth } from '/core/services/supabase-client.js';
+// ...existing code...
+import { getSupabase, requireAuth } from '/core/services/supabase-client.js';
 
 class UserSettingsService {
     constructor() {
@@ -18,7 +18,7 @@ class UserSettingsService {
 
         try {
             const user = await requireAuth();
-            
+            const supabase = getSupabase();
             // Fetch settings
             let { data, error } = await supabase
                 .from('user_settings')
@@ -71,7 +71,7 @@ class UserSettingsService {
         try {
             const user = await requireAuth();
             const settings = await this.getSettings();
-            
+            const supabase = getSupabase();
             // 🔥 CRITICO: NON crittare le API keys - salvarle in chiaro
             // La crittografia causava il problema della modalità demo
             
@@ -156,7 +156,7 @@ class UserSettingsService {
         try {
             const user = await requireAuth();
             const settings = await this.getSettings();
-            
+            const supabase = getSupabase();
             // Remove from api_keys
             const updatedApiKeys = { ...settings.api_keys };
             delete updatedApiKeys[provider];
@@ -254,7 +254,7 @@ class UserSettingsService {
         try {
             const user = await requireAuth();
             const settings = await this.getSettings();
-            
+            const supabase = getSupabase();
             const updatedPreferences = {
                 ...settings.preferences,
                 ...preferences
@@ -308,6 +308,7 @@ class UserSettingsService {
     async updateSettings(settings) {
         try {
             const user = await requireAuth();
+            const supabase = getSupabase();
             const { data, error } = await supabase
                 .from('user_settings')
                 .update({
@@ -338,6 +339,7 @@ class UserSettingsService {
     async resetAllSettings() {
         try {
             const user = await requireAuth();
+            const supabase = getSupabase();
             const { data, error } = await supabase
                 .from('user_settings')
                 .update({
@@ -363,6 +365,7 @@ class UserSettingsService {
     async deleteAllData() {
         try {
             const user = await requireAuth();
+            const supabase = getSupabase();
             const { error } = await supabase
                 .from('user_settings')
                 .delete()
@@ -414,6 +417,7 @@ const userSettingsService = new UserSettingsService();
 // Auto-migrate on load if user is authenticated
 (async () => {
     try {
+        const supabase = getSupabase();
         const { data: { user } } = await supabase.auth.getUser();
         if (user && !user.is_anonymous) {
             // Migra API key esistenti
@@ -433,3 +437,4 @@ export default userSettingsService;
 
 // Esponi globalmente per debug
 window.userSettings = userSettingsService;
+// ...existing code...

@@ -54,17 +54,9 @@ export async function getMyOrganizationId(supabaseClient = null, retries = 3) {
 
         // Ottieni dati utente con organizzazione
         const { data: userData, error: userError } = await supabase
-            .from('user_organizations')
-            .select(`
-                organization_id,
-                organizations!inner(
-                    id,
-                    name,
-                    status
-                )
-            `)
+            .from('organization_members')
+            .select('organization_id')
             .eq('user_id', session.user.id)
-            .eq('organizations.status', 'active')
             .single();
 
         if (userError) {

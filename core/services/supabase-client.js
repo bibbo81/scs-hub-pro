@@ -316,3 +316,4 @@ export async function checkSession() {
         return null;
     }
 }
+export { supabase }; // ← AGGIUNGI QUESTA RIGA
