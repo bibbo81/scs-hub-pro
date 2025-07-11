@@ -95,7 +95,7 @@ class ShipmentsRegistry {
             return [];
         }
         
-        return oldData.map(shipment => {
+        return (Array.isArray(oldData) ? oldData : []).map(shipment => {
             // Add any new fields or update structure
             return {
                 ...shipment,
@@ -352,7 +352,7 @@ class ShipmentsRegistry {
         const allocations = this.calculateCostAllocations(shipment, method);
         
         // Update products with allocated costs
-        const updatedProducts = shipment.products.map((product, index) => ({
+        const updatedProducts = (Array.isArray(shipment.products) ? shipment.products : []).map((product, index) => ({
             ...product,
             allocatedCost: allocations[index]?.allocatedCost || 0,
             unitCost: allocations[index]?.unitCost || 0
@@ -376,7 +376,7 @@ class ShipmentsRegistry {
             quantity: products.reduce((sum, p) => sum + (p.quantity || 0), 0)
         };
         
-        return products.map(product => {
+        return (Array.isArray(products) ? products : []).map(product => {
             let allocationRatio = 0;
             
             const productWeight = (product.weight || 0) * (product.quantity || 0);
@@ -505,7 +505,7 @@ class ShipmentsRegistry {
                     port: getField('destination_port'),
                     name: getField('destination_name')
                 },
-                via: getField('via') ? getField('via').split(',').map(s => s.trim()) : [],
+                via: getField('via') ? getField('via').split(',').map(s => s && s.trim ? s.trim() : s) : [],
                 estimatedTransit: parseInt(getField('transit_days')) || 0
             },
             schedule: {
@@ -570,7 +570,7 @@ class ShipmentsRegistry {
             'Created', 'Updated'
         ];
         
-        const rows = this.shipments.map(s => [
+        const rows = (Array.isArray(this.shipments) ? this.shipments : []).map(s => [
             s.shipmentNumber,
             s.type,
             s.status,
@@ -599,7 +599,7 @@ class ShipmentsRegistry {
         
         const csvContent = [
             headers.join(','),
-            ...rows.map(row => row.map(cell => 
+            ...(Array.isArray(rows) ? rows : []).map(row => (Array.isArray(row) ? row : []).map(cell => 
                 typeof cell === 'string' && cell.includes(',') ? `"${cell}"` : cell
             ).join(','))
         ].join('\n');

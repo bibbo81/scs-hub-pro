@@ -342,8 +342,8 @@ setTimeout(tryRenderMapping, 0);
                     filename: file.name
                 });
 
-                this.headers = response.headers.map(h => h.trim());
-                this.parsedData = response.data;
+                this.headers = Array.isArray(response.headers) ? response.headers.map(h => h.trim()) : [];
+                this.parsedData = response.data || [];
 
                 // ✅ UI + AutoMap subito qui
                 const tryRenderMapping = () => {
@@ -500,7 +500,7 @@ if (!this.targetFields || !Array.isArray(this.targetFields) || this.targetFields
     console.error('❌ sourceColumns non trovato! Sei nello step MAPPING?');
     return;
   }
-  container.innerHTML = this.headers.map((header, index) => `
+  container.innerHTML = (Array.isArray(this.headers) ? this.headers : []).map((header, index) => `
     <div class="source-column" draggable="true" data-column="${header}" data-index="${index}">
       <div class="column-header">${header}</div>
       <div class="column-sample">${this.getColumnSample(header)}</div>
@@ -536,11 +536,11 @@ if (!this.targetFields || !Array.isArray(this.targetFields) || this.targetFields
   container.innerHTML = `
     <div class="fields-section">
       <h5>Required Fields</h5>
-      ${requiredFields.map(field => this.renderTargetField(field)).join('')}
+      ${(Array.isArray(requiredFields) ? requiredFields : []).map(field => this.renderTargetField(field)).join('')}
     </div>
     <div class="fields-section">
       <h5>Optional Fields</h5>
-      ${optionalFields.map(field => this.renderTargetField(field)).join('')}
+      ${(Array.isArray(optionalFields) ? optionalFields : []).map(field => this.renderTargetField(field)).join('')}
     </div>
   `;
   container.querySelectorAll('.target-field').forEach(field => {
@@ -565,7 +565,7 @@ if (!this.targetFields || !Array.isArray(this.targetFields) || this.targetFields
                 </div>
                 <div class="field-editor" style="display: none;">
                     <div class="form-group"><label>Field Name (in Database)</label><input type="text" class="field-editor-name" value="${field.name}"></div>
-                    <div class="form-group"><label>Data Type</label><select class="field-editor-type">${dataTypes.map(type => `<option value="${type}" ${type === field.type ? 'selected' : ''}>${type.charAt(0).toUpperCase() + type.slice(1)}</option>`).join('')}</select></div>
+                    <div class="form-group"><label>Data Type</label><select class="field-editor-type">${(Array.isArray(dataTypes) ? dataTypes : []).map(type => `<option value="${type}" ${type === field.type ? 'selected' : ''}>${type.charAt(0).toUpperCase() + type.slice(1)}</option>`).join('')}</select></div>
                 </div>
             </div>
         `;
@@ -582,7 +582,7 @@ if (!this.targetFields || !Array.isArray(this.targetFields) || this.targetFields
     }
 
     getColumnSample = (column) => {
-        const samples = this.parsedData.slice(0, 3).map(row => row[column]).filter(val => val).join(', ');
+        const samples = (Array.isArray(this.parsedData) ? this.parsedData : []).slice(0, 3).map(row => row && row[column]).filter(val => val).join(', ');
         return samples || 'No data';
     }
 
@@ -724,7 +724,7 @@ if (!this.targetFields || !Array.isArray(this.targetFields) || this.targetFields
         if (validation.details.length > 0) {
             html += '<div class="validation-details">';
             validation.details.slice(0, 5).forEach(detail => {
-                html += `<div class="validation-detail"><strong>Row ${detail.row}:</strong> ${detail.errors.map(e => `<span class="text-danger">${e}</span>`).join(', ')} ${detail.warnings.map(w => `<span class="text-warning">${w}</span>`).join(', ')}</div>`;
+                html += `<div class="validation-detail"><strong>Row ${detail.row}:</strong> ${(Array.isArray(detail.errors) ? detail.errors : []).map(e => `<span class="text-danger">${e}</span>`).join(', ')} ${(Array.isArray(detail.warnings) ? detail.warnings : []).map(w => `<span class="text-warning">${w}</span>`).join(', ')}</div>`;
             });
             if (validation.details.length > 5) html += `<div class="text-muted">...and ${validation.details.length - 5} more issues</div>`;
             html += '</div>';
@@ -789,7 +789,7 @@ if (!this.targetFields || !Array.isArray(this.targetFields) || this.targetFields
         const columnMappings = this.getColumnMappings();
 
         // 3. Prepara dati per import dinamico
-        const importData = this.parsedData.map(row => {
+        const importData = (Array.isArray(this.parsedData) ? this.parsedData : []).map(row => {
             const mapped = { organization_id: orgId, user_id: userId };
             const metadata = {};
 
@@ -863,7 +863,7 @@ getFinalMappings = () => {
         return finalMappings;
     }
     prepareImportData = () => {
-    return this.parsedData.map(row => {
+    return (Array.isArray(this.parsedData) ? this.parsedData : []).map(row => {
         const importRow = {};
         const finalMappings = this.getFinalMappings();
 
@@ -1108,7 +1108,7 @@ gotoStep = (stepIndex) => {
         const container = this.modal.querySelector('#templatesGrid');
         const section = this.modal.querySelector('.templates-section');
         if (container && section) {
-            container.innerHTML = templates.map(template => {
+            container.innerHTML = (Array.isArray(templates) ? templates : []).map(template => {
                 const templateString = JSON.stringify(template).replace(/"/g, '&quot;').replace(/'/g, "\\'");
                 return `
                 <div class="template-card" onclick="importWizard.applyTemplate('${templateString}')">
@@ -1150,7 +1150,7 @@ startImport = async () => {
             return;
         }
         // Assicurati che mappings sia pronto (autoMap già chiamato)
-        const records = this.parsedData.map(row => {
+        const records = (Array.isArray(this.parsedData) ? this.parsedData : []).map(row => {
             const newRecord = {};
             for (const [colName, fieldName] of Object.entries(this.mappings)) {
                 if (fieldName && fieldName !== "id") newRecord[fieldName] = row[colName];

@@ -387,7 +387,7 @@ class CompleteModalSystem {
         }
 
         let footer = '';
-        if (config.buttons && config.buttons.length > 0) {
+        if (config.buttons && Array.isArray(config.buttons) && config.buttons.length > 0) {
             footer = config.buttons.map((btn, index) => `
                 <button class="sol-btn ${btn.class || 'sol-btn-primary'}" 
                         data-modal-action="button-${index}"
