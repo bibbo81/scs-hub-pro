@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="/core/env-check.js"></script>
+    <!-- Load Supabase initialization FIRST to ensure it's ready before other components -->
+    <script type="module" src="/core/supabase-init.js"></script>
     <title>Supply Chain Hub - Tracking Spedizioni</title>
     
     <!-- Favicon -->
@@ -286,47 +288,94 @@
 
     <!-- Load Core Modules -->
     <script type="module">
-        // Import core modules
-        import api from '/core/api-client.js';
-        import headerComponent from '/core/header-component.js';
-        import notificationSystem from '/core/notification-system.js';
-        import modalSystem from '/core/modal-system.js';
-        import { supabase } from '/core/services/supabase-client.js';
-        import supabaseTrackingService from '/core/services/supabase-tracking-service.js';
-        import organizationApiKeysService from '/core/services/organization-api-keys-service.js';
-        import { getMyOrganizationId } from '/core/services/organization-service.js';
-        const orgId = await getMyOrganizationId(supabase);
-        // Import ExportManager (might be a global or named export)
-        // import ExportManager from '/core/export-manager.js';
-        // Make modules available globally
-        window.api = api;
-        window.headerComponent = headerComponent;
-        window.NotificationSystem = notificationSystem;
-        window.ModalSystem = modalSystem;
-        window.supabaseTrackingService = supabaseTrackingService;
-        window.organizationApiKeysService = organizationApiKeysService;
-        window.getMyOrganizationId = getMyOrganizationId;
-        window.currentOrganizationId = orgId;
-        // window.ExportManager = ExportManager; // Commented out until we verify export structure
-        
-        // Initialize components
-        headerComponent.init();
-        
-        // Debug info
-        console.log('🚀 Core modules loaded:', {
-            api: !!window.api,
-            headerComponent: !!window.headerComponent,
-            notificationSystem: !!window.NotificationSystem,
-            modalSystem: !!window.ModalSystem,
-            supabaseClient: !!window.supabase,
-            supabaseTrackingService: !!window.supabaseTrackingService,
-            organizationApiKeysService: !!window.organizationApiKeysService,
-            ExportManager: !!window.ExportManager,
-            TableManager: !!window.TableManager
+        // Wait for Supabase to be ready before loading other modules
+        async function initializeModules() {
+            // Import core modules
+            const api = (await import('/core/api-client.js')).default;
+            const headerComponent = (await import('/core/header-component.js')).default;
+            const notificationSystem = (await import('/core/notification-system.js')).default;
+            const modalSystem = (await import('/core/modal-system.js')).default;
+            const { supabase } = await import('/core/services/supabase-client.js');
+            const supabaseTrackingService = (await import('/core/services/supabase-tracking-service.js')).default;
+            const organizationApiKeysService = (await import('/core/services/organization-api-keys-service.js')).default;
+            const { getMyOrganizationId } = await import('/core/services/organization-service.js');
+            
+            // Verify Supabase is ready
+            if (!window.supabase || !supabase) {
+                throw new Error('Supabase not initialized');
+            }
+            
+            const orgId = await getMyOrganizationId(supabase);
+            
+            // Make modules available globally
+            window.api = api;
+            window.headerComponent = headerComponent;
+            window.NotificationSystem = notificationSystem;
+            window.ModalSystem = modalSystem;
+            window.supabaseTrackingService = supabaseTrackingService;
+            window.organizationApiKeysService = organizationApiKeysService;
+            window.getMyOrganizationId = getMyOrganizationId;
+            window.currentOrganizationId = orgId;
+            
+            // Initialize components
+            headerComponent.init();
+            
+            // Debug info
+            console.log('🚀 Core modules loaded:', {
+                api: !!window.api,
+                headerComponent: !!window.headerComponent,
+                notificationSystem: !!window.NotificationSystem,
+                modalSystem: !!window.ModalSystem,
+                supabaseClient: !!window.supabase,
+                supabaseTrackingService: !!window.supabaseTrackingService,
+                organizationApiKeysService: !!window.organizationApiKeysService,
+                ExportManager: !!window.ExportManager,
+                TableManager: !!window.TableManager
+            });
+            
+            // Emit event to signal ES6 modules are loaded
+            window.dispatchEvent(new CustomEvent('es6ModulesLoaded'));
+        }
+
+        // Listen for supabase-ready event
+        window.addEventListener('supabase-ready', async (event) => {
+            console.log('🎯 supabase-ready event received, initializing modules...');
+            try {
+                await initializeModules();
+                console.log('✅ All modules initialized successfully');
+            } catch (error) {
+                console.error('❌ Module initialization error:', error);
+                // Show user-friendly error
+                if (window.NotificationSystem) {
+                    window.NotificationSystem.error('Errore di inizializzazione. Ricaricare la pagina.');
+                } else {
+                    alert('Errore di inizializzazione. Ricaricare la pagina.');
+                }
+            }
         });
-        
-        // Emit event to signal ES6 modules are loaded
-        window.dispatchEvent(new CustomEvent('es6ModulesLoaded'));
+
+        // Handle Supabase initialization errors
+        window.addEventListener('supabase-error', (event) => {
+            console.error('🚨 Supabase initialization failed:', event.detail.error);
+            // Redirect to login if Supabase fails
+            if (!window.location.pathname.includes('login.html')) {
+                console.log('🔄 Redirecting to login due to Supabase error...');
+                window.location.href = '/login.html';
+            }
+        });
+
+        // Fallback timeout in case supabase-ready never fires
+        setTimeout(() => {
+            if (!window.supabase) {
+                console.warn('⚠️ Timeout waiting for Supabase, attempting fallback initialization...');
+                initializeModules().catch(error => {
+                    console.error('❌ Fallback initialization failed:', error);
+                    if (!window.location.pathname.includes('login.html')) {
+                        window.location.href = '/login.html';
+                    }
+                });
+            }
+        }, 10000); // 10 second timeout
     </script>
     
     <!-- Legacy Scripts -->
@@ -383,7 +432,6 @@ window.performanceReport = function() {
 };
 </script>
     <!-- Page Logic -->
-    <script type="module" src="/core/supabase-init.js"></script>
     <!-- FIX: Assicura che showAddTrackingForm sia disponibile -->
 <script>
 // Fix per il timeout del progressive form

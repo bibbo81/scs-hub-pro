@@ -486,6 +486,11 @@ function formatDateOnly(dateStr) {
 
 // Initialize
 document.addEventListener('DOMContentLoaded', async () => {
+    console.log('🚀 DOM loaded, waiting for initialization...');
+    
+    // Wait for both Supabase and ES6 modules to be ready
+    await waitForInitialization();
+    
     console.log('🚀 Initializing tracking page...');
     
     try {
@@ -541,29 +546,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
         
         console.log('✅ Tracking page initialized');
-/*
-// Fix event delegation per checkbox dinamici
-document.addEventListener('click', function(e) {
-    if (e.target.type === 'checkbox' && e.target.classList.contains('select-row')) {
-        e.stopPropagation();
         
-        const rowId = e.target.value || e.target.dataset.id;
-        const checked = e.target.checked;
-        
-        // Ignora se rowId è "on" o non valido
-        if (!rowId || rowId === 'on') {
-            console.warn('Invalid checkbox rowId:', rowId);
-            return;
-        }
-        
-        console.log('Checkbox clicked:', rowId, checked);
-        
-        if (tableManager) {
-            tableManager.selectRow(rowId, checked);
-        }
-    }
-});
-*/     
         console.log('✅ Checkbox event delegation added');
         
     } catch (error) {
@@ -572,34 +555,62 @@ document.addEventListener('click', function(e) {
     }
 });
 
+// Wait for proper initialization
+async function waitForInitialization() {
+    return new Promise((resolve, reject) => {
+        let supabaseReady = false;
+        let es6ModulesReady = false;
+        let timeoutId;
+        
+        const checkReady = () => {
+            if (supabaseReady && es6ModulesReady) {
+                clearTimeout(timeoutId);
+                console.log('✅ All initialization events received');
+                resolve();
+            }
+        };
+        
+        // Listen for Supabase ready
+        window.addEventListener('supabase-ready', () => {
+            console.log('✅ Supabase ready event received');
+            supabaseReady = true;
+            checkReady();
+        });
+        
+        // Listen for ES6 modules ready
+        window.addEventListener('es6ModulesLoaded', () => {
+            console.log('✅ ES6 modules loaded event received');
+            es6ModulesReady = true;
+            checkReady();
+        });
+        
+        // Check if already initialized (in case events already fired)
+        if (window.supabase && window.headerComponent) {
+            console.log('✅ Components already initialized');
+            supabaseReady = true;
+            es6ModulesReady = true;
+            checkReady();
+            return;
+        }
+        
+        // Timeout fallback
+        timeoutId = setTimeout(() => {
+            console.warn('⚠️ Initialization timeout, proceeding anyway...');
+            if (window.supabase) {
+                resolve();
+            } else {
+                reject(new Error('Initialization timeout - Supabase not ready'));
+            }
+        }, 15000); // 15 second timeout
+    });
+}
+
 // Load trackings from Supabase
 async function loadTrackings() {
     try {
-        if (window.supabaseTrackingService) {
-            const data = await window.supabaseTrackingService.getAllTrackings();
-            trackings = data || [];
-            trackings = trackings.map(t => {
-    if (t.metadata?.source === 'shipsgo_v2_ocean') {
-        return {
-            ...t,
-            carrier_name: t.carrier_name || t.metadata?.mapped?.carrier_name || t.carrier || '-',
-            vessel_name: t.vessel_name || t.vessel_info?.name || t.original_data?.vessel_name || '-',
-            vessel_imo: t.vessel_imo || t.vessel_info?.imo || '-',
-            voyage_number: t.voyage_number || t.vessel_info?.voyage || t.original_data?.voyage_number || '-',
-            container_size: t.container_size || t.metadata?.raw?.shipment?.containers?.[0]?.size || '-',
-            container_type: t.container_type || t.metadata?.raw?.shipment?.containers?.[0]?.type || '-',
-            date_of_loading: t.date_of_loading || 
-                            t.metadata?.raw?.shipment?.route?.port_of_loading?.date_of_loading || 
-                            t.metadata?.raw?.shipment?.containers?.[0]?.movements?.find(m => m.event === 'LOAD')?.timestamp || 
-                            '-'
-        };
-    }
-    return t;
-});
-            // Map data to ensure compatibility
-            trackings = trackings.map(mapTrackingData);
-        } else {
-            // Mock data for testing
+        // Ensure Supabase service is available
+        if (!window.supabaseTrackingService) {
+            console.warn('⚠️ Supabase tracking service not available, using mock data');
             trackings = [
                 {
                     id: '1',
@@ -614,48 +625,132 @@ async function loadTrackings() {
                     last_update: new Date().toISOString()
                 }
             ];
+        } else {
+            console.log('📦 Loading trackings from Supabase...');
+            const data = await window.supabaseTrackingService.getAllTrackings();
+            trackings = Array.isArray(data) ? data : [];
+            
+            // Safely process trackings with fallbacks for undefined properties
+            trackings = trackings.map(t => {
+                if (!t) return null; // Skip null/undefined trackings
+                
+                try {
+                    if (t.metadata?.source === 'shipsgo_v2_ocean') {
+                        return {
+                            ...t,
+                            carrier_name: t.carrier_name || 
+                                         (t.metadata?.mapped?.carrier_name) || 
+                                         t.carrier || '-',
+                            vessel_name: t.vessel_name || 
+                                        (t.vessel_info?.name) || 
+                                        (t.original_data?.vessel_name) || '-',
+                            vessel_imo: t.vessel_imo || 
+                                       (t.vessel_info?.imo) || '-',
+                            voyage_number: t.voyage_number || 
+                                          (t.vessel_info?.voyage) || 
+                                          (t.original_data?.voyage_number) || '-',
+                            container_size: t.container_size || 
+                                           (t.metadata?.raw?.shipment?.containers?.[0]?.size) || '-',
+                            container_type: t.container_type || 
+                                           (t.metadata?.raw?.shipment?.containers?.[0]?.type) || '-',
+                            date_of_loading: t.date_of_loading || 
+                                            (t.metadata?.raw?.shipment?.route?.port_of_loading?.date_of_loading) || 
+                                            (t.metadata?.raw?.shipment?.containers?.[0]?.movements?.find(m => m.event === 'LOAD')?.timestamp) || 
+                                            '-'
+                        };
+                    }
+                    return t;
+                } catch (processError) {
+                    console.warn('⚠️ Error processing tracking:', t.id || 'unknown', processError);
+                    return t; // Return original tracking if processing fails
+                }
+            }).filter(Boolean); // Remove null/undefined entries
+            
+            // Map data to ensure compatibility
+            trackings = trackings.map(mapTrackingData).filter(Boolean);
         }
         
         filteredTrackings = [...trackings];
         updateTable();
         updateStats();
         
+        console.log(`✅ Loaded ${trackings.length} trackings`);
+        
     } catch (error) {
-        console.error('Error loading trackings:', error);
-        showError('Errore nel caricamento dei tracking');
+        console.error('❌ Error loading trackings:', error);
+        
+        // Show user-friendly error without breaking the page
+        if (window.NotificationSystem) {
+            window.NotificationSystem.error('Errore nel caricamento dei tracking. Verifica la connessione.');
+        }
+        
+        // Set empty state safely
+        trackings = [];
+        filteredTrackings = [];
+        updateTable();
+        updateStats();
     }
 }
 
 // Map tracking data for compatibility
 function mapTrackingData(tracking) {
-    return {
-        ...tracking,
-        // Ensure all required fields exist
-        carrier_name: tracking.carrier_name || 
-                     tracking.metadata?.mapped?.carrier_name || 
-                     tracking.carrier_code || 
-                     tracking.carrier || '-',
-        current_status: tracking.current_status || tracking.status || 'pending',
-        origin_port: tracking.origin_port || tracking.origin_name || '-',
-        destination_port: tracking.destination_port || tracking.destination_name || '-',
-        tracking_type: tracking.tracking_type || detectTrackingType(tracking.tracking_number),
-        
-        // FIX OCEAN V2 - ESTRAI DAI SOTTO-OGGETTI
-        vessel_name: tracking.vessel_name || 
-                    tracking.vessel_info?.name || 
-                    tracking.original_data?.vessel_name || '-',
-        vessel_imo: tracking.vessel_imo || 
-                   tracking.vessel_info?.imo || '-',
-        voyage_number: tracking.voyage_number || 
-                      tracking.vessel_info?.voyage || 
-                      tracking.original_data?.voyage_number || '-',
-        container_size: tracking.container_size || 
-                       tracking.metadata?.raw?.shipment?.containers?.[0]?.size || '-',
-        container_type: tracking.container_type || 
-                       tracking.metadata?.raw?.shipment?.containers?.[0]?.type || '-',
-        date_of_loading: tracking.date_of_loading || 
-                        tracking.metadata?.raw?.shipment?.route?.port_of_loading?.date_of_loading || '-'
-    };
+    if (!tracking || typeof tracking !== 'object') {
+        console.warn('⚠️ Invalid tracking data:', tracking);
+        return null;
+    }
+    
+    try {
+        return {
+            ...tracking,
+            // Ensure all required fields exist with safe fallbacks
+            id: tracking.id || crypto.randomUUID?.() || `temp-${Date.now()}`,
+            tracking_number: tracking.tracking_number || 'N/A',
+            carrier_name: tracking.carrier_name || 
+                         (tracking.metadata?.mapped?.carrier_name) || 
+                         tracking.carrier_code || 
+                         tracking.carrier || '-',
+            current_status: tracking.current_status || tracking.status || 'pending',
+            origin_port: tracking.origin_port || tracking.origin_name || '-',
+            destination_port: tracking.destination_port || tracking.destination_name || '-',
+            tracking_type: tracking.tracking_type || detectTrackingType(tracking.tracking_number),
+            
+            // FIX OCEAN V2 - ESTRAI DAI SOTTO-OGGETTI with safe access
+            vessel_name: tracking.vessel_name || 
+                        (tracking.vessel_info?.name) || 
+                        (tracking.original_data?.vessel_name) || '-',
+            vessel_imo: tracking.vessel_imo || 
+                       (tracking.vessel_info?.imo) || '-',
+            voyage_number: tracking.voyage_number || 
+                          (tracking.vessel_info?.voyage) || 
+                          (tracking.original_data?.voyage_number) || '-',
+            container_size: tracking.container_size || 
+                           (tracking.metadata?.raw?.shipment?.containers?.[0]?.size) || '-',
+            container_type: tracking.container_type || 
+                           (tracking.metadata?.raw?.shipment?.containers?.[0]?.type) || '-',
+            date_of_loading: tracking.date_of_loading || 
+                            (tracking.metadata?.raw?.shipment?.route?.port_of_loading?.date_of_loading) || '-',
+            
+            // Ensure timestamps
+            created_at: tracking.created_at || new Date().toISOString(),
+            updated_at: tracking.updated_at || new Date().toISOString(),
+            last_update: tracking.last_update || tracking.updated_at || new Date().toISOString()
+        };
+    } catch (error) {
+        console.error('❌ Error mapping tracking data:', tracking.id || 'unknown', error);
+        // Return minimal safe object
+        return {
+            id: tracking.id || `error-${Date.now()}`,
+            tracking_number: tracking.tracking_number || 'ERROR',
+            tracking_type: 'container',
+            current_status: 'pending',
+            carrier_name: '-',
+            origin_port: '-',
+            destination_port: '-',
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+            last_update: new Date().toISOString()
+        };
+    }
 }
 
 // Detect tracking type from number format
@@ -672,39 +767,67 @@ function detectTrackingType(trackingNumber) {
 
 // Update table
 function updateTable() {
-    if (tableManager) {
-        tableManager.setData(filteredTrackings);
-        
-        // Show/hide empty state
-        const emptyState = document.getElementById('emptyState');
-        const tableContainer = document.getElementById('trackingTableContainer');
-        
-        if (filteredTrackings.length === 0) {
-            emptyState.style.display = 'block';
-            tableContainer.style.display = 'none';
+    try {
+        if (tableManager && Array.isArray(filteredTrackings)) {
+            tableManager.setData(filteredTrackings);
+            
+            // Show/hide empty state
+            const emptyState = document.getElementById('emptyState');
+            const tableContainer = document.getElementById('trackingTableContainer');
+            
+            if (emptyState && tableContainer) {
+                if (filteredTrackings.length === 0) {
+                    emptyState.style.display = 'block';
+                    tableContainer.style.display = 'none';
+                } else {
+                    emptyState.style.display = 'none';
+                    tableContainer.style.display = 'block';
+                }
+            }
         } else {
-            emptyState.style.display = 'none';
-            tableContainer.style.display = 'block';
+            console.warn('⚠️ TableManager not available or invalid data');
         }
+    } catch (error) {
+        console.error('❌ Error updating table:', error);
+        // Don't show error to user for table updates
     }
 }
 
 // Update statistics
 function updateStats() {
-    const stats = {
-        total: trackings.length,
-        delivered: trackings.filter(t => t.current_status === 'delivered').length,
-        inTransit: trackings.filter(t => t.current_status === 'in_transit').length,
-        exception: trackings.filter(t => 
-            t.current_status === 'exception' || 
-            t.current_status === 'delayed'
-        ).length
-    };
-    
-    document.getElementById('totalTrackings').textContent = stats.total;
-    document.getElementById('deliveredCount').textContent = stats.delivered;
-    document.getElementById('inTransitCount').textContent = stats.inTransit;
-    document.getElementById('exceptionCount').textContent = stats.exception;
+    try {
+        if (!Array.isArray(trackings)) {
+            console.warn('⚠️ Invalid trackings data for stats');
+            return;
+        }
+        
+        const stats = {
+            total: trackings.length,
+            delivered: trackings.filter(t => t?.current_status === 'delivered').length,
+            inTransit: trackings.filter(t => t?.current_status === 'in_transit').length,
+            exception: trackings.filter(t => 
+                t?.current_status === 'exception' || 
+                t?.current_status === 'delayed'
+            ).length
+        };
+        
+        // Safely update DOM elements
+        const updateElement = (id, value) => {
+            const element = document.getElementById(id);
+            if (element) {
+                element.textContent = value || '0';
+            }
+        };
+        
+        updateElement('totalTrackings', stats.total);
+        updateElement('deliveredCount', stats.delivered);
+        updateElement('inTransitCount', stats.inTransit);
+        updateElement('exceptionCount', stats.exception);
+        
+    } catch (error) {
+        console.error('❌ Error updating stats:', error);
+        // Don't show error to user for stats updates
+    }
 }
 
 // Handle selection change

@@ -149,23 +149,53 @@ if (typeof window !== 'undefined') {
 // Auth helper functions
 export async function requireAuth() {
     const supabase = await getSupabaseAsync();
-    const { data: { user }, error } = await supabase.auth.getUser();
     
-    if (error) {
-        console.error('Auth error:', error);
+    try {
+        const { data: { user }, error } = await supabase.auth.getUser();
+        
+        if (error) {
+            console.error('Auth error:', error);
+            throw error;
+        }
+        
+        if (!user) {
+            throw new Error('User not authenticated');
+        }
+        
+        console.log('✅ User authenticated:', user.email);
+        return user;
+    } catch (error) {
+        console.error('❌ Authentication check failed:', error);
+        // Redirect to login if not on login page
+        if (!window.location.pathname.includes('login.html')) {
+            console.log('🔄 Redirecting to login...');
+            window.location.href = '/login.html';
+        }
         throw error;
     }
-    
-    if (!user) {
-        throw new Error('User not authenticated');
-    }
-    
-    return user;
 }
 
 export async function getUser() {
     const supabase = await getSupabaseAsync();
     return await supabase.auth.getUser();
+}
+
+// Safe session check that doesn't redirect
+export async function checkSession() {
+    try {
+        const supabase = await getSupabaseAsync();
+        const { data: { session }, error } = await supabase.auth.getSession();
+        
+        if (error) {
+            console.warn('Session check error:', error);
+            return null;
+        }
+        
+        return session;
+    } catch (error) {
+        console.warn('Session check failed:', error);
+        return null;
+    }
 }
 
 // Export Supabase instance for backward compatibility
