@@ -3,7 +3,6 @@ import api from '/core/api-client.js';
 import notificationSystem from '/core/notification-system.js';
 import modalSystem from '/core/modal-system.js';
 import { supabase } from '/core/services/supabase-client.js';
-importWizard.setSupabaseClient(supabase);
 
 
 // Import dinamico per headerComponent con versioning

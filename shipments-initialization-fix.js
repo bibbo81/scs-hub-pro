@@ -401,7 +401,7 @@ async function initializeShipmentsSystem() {
         
         return true;
         
-    } catch (error) {
+        } catch (error) {
         console.error('❌ Shipments system initialization failed:', error);
         
         // Show user-friendly error
@@ -418,19 +418,27 @@ async function initializeShipmentsSystem() {
     }
 }
 
-// ===== AUTO-INITIALIZATION =====
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => {
+// ===== CONTROLLED INITIALIZATION =====
+// Only initialize when explicitly called or when shipments page is detected
+function shouldAutoInitialize() {
+    const currentPage = window.location.pathname;
+    return currentPage.includes('shipments.html') || window.location.search.includes('autoInitShipments=true');
+}
+
+if (shouldAutoInitialize()) {
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', () => {
+            setTimeout(initializeShipmentsSystem, 1000);
+        });
+    } else {
         setTimeout(initializeShipmentsSystem, 1000);
-    });
-} else {
-    setTimeout(initializeShipmentsSystem, 1000);
+    }
 }
 
 // ===== DEBUG HELPERS =====
 window.debugShipmentsInit = function() {
     console.log('🔍 Shipments System Debug Info:');
-    console.log('📦 Loaded Modules:', Array.from(window.shipmentsInitManager.loadedModules));
+    console.log('📦 Loaded Modules:', Array.from(window.shipmentsInitManager?.loadedModules || []));
     console.log('🌐 Available Globals:', {
         shipmentsRegistry: !!window.shipmentsRegistry,
         documentsManager: !!window.documentsManager,
@@ -446,8 +454,9 @@ window.debugShipmentsInit = function() {
     });
 };
 
-// Add to global scope for debugging
-window.reinitializeShipments = initializeShipmentsSystem;
+// Add to global scope for debugging and manual initialization
+window.initializeShipmentsSystem = initializeShipmentsSystem;
 
 console.log('🔧 Shipments Dependency Resolution System loaded');
 console.log('💡 Use window.debugShipmentsInit() to debug initialization');
+console.log('💡 Use window.initializeShipmentsSystem() to manually initialize');
