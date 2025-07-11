@@ -576,14 +576,45 @@ Ultimo aggiornamento: ${tracking.last_update || tracking.updated_at || '-'}
         }
     }
     
-    // Avvia quando DOM è pronto
+    // Avvia quando DOM è pronto e Supabase/sessione sono disponibili
     if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', () => {
-            setTimeout(initializeAllFixes, 1500);
+        document.addEventListener('DOMContentLoaded', async () => {
+            console.log('🔄 DOM ready, waiting for Supabase and session...');
+            try {
+                // Wait for Supabase and valid session
+                await window.supabaseReady;
+                console.log('✅ Supabase and session ready, starting tracking fixes...');
+                setTimeout(initializeAllFixes, 1500);
+            } catch (error) {
+                console.error('❌ Session not available for tracking initialization:', error);
+                // Show loading state to user instead of failing silently
+                const loadingDiv = document.getElementById('loadingState');
+                if (loadingDiv) {
+                    loadingDiv.innerHTML = `
+                        <div class="text-center">
+                            <i class="fas fa-exclamation-triangle text-warning fa-3x mb-3"></i>
+                            <h4>Inizializzazione in corso...</h4>
+                            <p class="text-muted">Attendere il caricamento della sessione utente.</p>
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="sr-only">Loading...</span>
+                            </div>
+                        </div>
+                    `;
+                }
+            }
         });
     } else {
-        // Aspetta un po' per dare tempo ai moduli
-        setTimeout(initializeAllFixes, 1500);
+        // DOM already loaded, wait for session
+        (async () => {
+            try {
+                console.log('🔄 Waiting for Supabase and session (DOM already ready)...');
+                await window.supabaseReady;
+                console.log('✅ Supabase and session ready, starting tracking fixes...');
+                setTimeout(initializeAllFixes, 1500);
+            } catch (error) {
+                console.error('❌ Session not available:', error);
+            }
+        })();
     }
     
 })();

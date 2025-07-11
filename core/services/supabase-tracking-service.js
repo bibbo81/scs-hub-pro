@@ -14,70 +14,136 @@ class SupabaseTrackingService {
 
     async getAllTrackings() {
         try {
+            // Wait for Supabase and valid session before proceeding
+            console.log('🔄 Waiting for Supabase and session...');
+            await window.supabaseReady;
+            
             const supabase = getSupabase();
             if (!supabase) {
+                console.warn('⚠️ Supabase not available, using fallback');
                 return this.getLocalStorageFallback();
             }
+
+            // Check if session is still valid
+            if (!window.currentSession || !window.currentUser) {
+                console.warn('⚠️ No valid session, using fallback');
+                return this.getLocalStorageFallback();
+            }
+
             const { data, error } = await supabase
                 .from(this.table)
                 .select('*')
                 .order('created_at', { ascending: false });
 
-            if (error) throw error;
+            if (error) {
+                console.error('❌ Supabase query error:', error);
+                // Check if it's an auth error
+                if (error.code === '401' || error.message?.includes('JWT')) {
+                    console.warn('🔐 Authentication error, session may be invalid');
+                    throw new Error('Session expired or invalid. Please log in again.');
+                }
+                throw error;
+            }
 
-            console.log(`✅ Loaded ${data.length} trackings from Supabase`);
-            return data;
+            console.log(`✅ Loaded ${data?.length || 0} trackings from Supabase`);
+            return data || [];
         } catch (error) {
             console.error('❌ Error loading trackings:', error);
-            // Fallback a localStorage se Supabase fallisce
+            
+            // Provide user-friendly error messages
+            if (error.message?.includes('Session expired')) {
+                // Don't fallback to localStorage for auth errors
+                throw error;
+            }
+            
+            // Fallback a localStorage se Supabase fallisce per altri motivi
+            console.log('🔄 Using localStorage fallback');
             return this.getLocalStorageFallback();
         }
     }
 
     async getTracking(id) {
         try {
+            // Wait for Supabase and valid session before proceeding
+            await window.supabaseReady;
+            
             const supabase = getSupabase();
             if (!supabase) {
+                console.warn('⚠️ Supabase not available');
                 return null;
             }
+
+            // Check if session is still valid
+            if (!window.currentSession || !window.currentUser) {
+                console.warn('⚠️ No valid session');
+                throw new Error('Session expired or invalid. Please log in again.');
+            }
+
             const { data, error } = await supabase
                 .from(this.table)
                 .select('*')
                 .eq('id', id)
                 .single();
 
-            if (error) throw error;
+            if (error) {
+                if (error.code === '401' || error.message?.includes('JWT')) {
+                    console.warn('🔐 Authentication error in getTracking');
+                    throw new Error('Session expired or invalid. Please log in again.');
+                }
+                throw error;
+            }
+            
             return data;
         } catch (error) {
             console.error('❌ Error getting tracking:', error);
+            
+            // Re-throw auth errors to be handled by caller
+            if (error.message?.includes('Session expired')) {
+                throw error;
+            }
+            
             return null;
         }
     }
 
     async createTracking(trackingData) {
-    try {
-        // FIX DATES - AGGIUNGI QUESTE RIGHE
-        if (trackingData.created_at && typeof trackingData.created_at === 'string' && trackingData.created_at.includes('/')) {
-            const [datePart, timePart] = trackingData.created_at.split(' ');
-            const [day, month, year] = datePart.split('/');
-            if (timePart) {
-                const [hours, minutes, seconds] = timePart.split(':');
-                trackingData.created_at = new Date(year, month - 1, day, hours, minutes, seconds).toISOString();
-            } else {
-                trackingData.created_at = new Date(year, month - 1, day).toISOString();
+        try {
+            // Wait for Supabase and valid session before proceeding
+            await window.supabaseReady;
+            
+            // Protect against null/undefined trackingData
+            if (!trackingData || typeof trackingData !== 'object') {
+                throw new Error('Invalid tracking data provided');
             }
-        }
-        
-        if (trackingData.updated_at && typeof trackingData.updated_at === 'string' && trackingData.updated_at.includes('/')) {
-            const [datePart, timePart] = trackingData.updated_at.split(' ');
-            const [day, month, year] = datePart.split('/');
-            if (timePart) {
-                const [hours, minutes, seconds] = timePart.split(':');
-                trackingData.updated_at = new Date(year, month - 1, day, hours, minutes, seconds).toISOString();
-            } else {
-                trackingData.updated_at = new Date(year, month - 1, day).toISOString();
+
+            // FIX DATES - AGGIUNGI QUESTE RIGHE
+            if (trackingData.created_at && typeof trackingData.created_at === 'string' && trackingData.created_at.includes('/')) {
+                const [datePart, timePart] = trackingData.created_at.split(' ');
+                const [day, month, year] = datePart.split('/');
+                if (timePart) {
+                    const [hours, minutes, seconds] = timePart.split(':');
+                    trackingData.created_at = new Date(year, month - 1, day, hours, minutes, seconds).toISOString();
+                } else {
+                    trackingData.created_at = new Date(year, month - 1, day).toISOString();
+                }
             }
-        }
+            
+            if (trackingData.updated_at && typeof trackingData.updated_at === 'string' && trackingData.updated_at.includes('/')) {
+                const [datePart, timePart] = trackingData.updated_at.split(' ');
+                const [day, month, year] = datePart.split('/');
+                if (timePart) {
+                    const [hours, minutes, seconds] = timePart.split(':');
+                    trackingData.updated_at = new Date(year, month - 1, day, hours, minutes, seconds).toISOString();
+                } else {
+                    trackingData.updated_at = new Date(year, month - 1, day).toISOString();
+                }
+            }
+
+            // Ensure session is still valid
+            if (!window.currentSession || !window.currentUser) {
+                throw new Error('Session expired or invalid. Please log in again.');
+            }
+
             // Ottieni user_id corrente
             const user = await this.getCurrentUser();
             if (!user) throw new Error('User not authenticated');
@@ -86,6 +152,7 @@ class SupabaseTrackingService {
             try {
                 orgId = await getMyOrganizationId(getSupabase());
             } catch (e) {
+                console.error('❌ Error getting organization ID:', e);
                 throw new Error('Organization ID missing');
             }
 
