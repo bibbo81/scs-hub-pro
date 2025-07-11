@@ -495,80 +495,16 @@ export class HeaderComponent {
     // FIX 4: renderDropdowns ASYNC
     async renderDropdowns() {
         // CRITICAL FIX: Non renderizzare dropdown se esistono già
-        if (document.querySelector('#userDropdown') || document.querySelector('#notificationDropdown')) {
+        if (document.querySelector('#notificationDropdown')) {
             console.warn('[HeaderComponent] Dropdowns already exist, skipping render');
             return '';
         }
-        
+
         return `
-            ${await this.renderUserDropdown()}
             ${this.renderNotificationDropdown()}
         `;
     }
-    
-    // FIX 4: renderUserDropdown ASYNC
-    async renderUserDropdown() {
-        const userInfo = await this.getUserInfo();
-        
-        if (userInfo.isLoading) {
-            return `
-                <div class="sol-dropdown" id="userDropdown" style="display: none;">
-                    <div class="sol-dropdown-header">
-                        <p class="user-name">
-                            <i class="fas fa-spinner fa-spin"></i> Caricamento...
-                        </p>
-                        <p class="user-email">
-                            <i class="fas fa-spinner fa-spin"></i> Autenticazione in corso...
-                        </p>
-                    </div>
-                    <div class="sol-dropdown-body">
-                        <div class="loading-state">
-                            <i class="fas fa-spinner fa-spin"></i>
-                            <span>Caricamento menu...</span>
-                        </div>
-                    </div>
-                </div>
-            `;
-        }
-        
-        return `
-            <div class="sol-dropdown" id="userDropdown" style="display: none;">
-                <div class="sol-dropdown-header">
-                    <p class="user-name">${userInfo.name}</p>
-                    <p class="user-email">${userInfo.email}</p>
-                </div>
-                <div class="sol-dropdown-body">
-                    <a href="/profile.html" class="sol-dropdown-item">
-                        <i class="fas fa-user"></i> Profilo
-                    </a>
-                    <a href="/settings.html" class="sol-dropdown-item">
-                        <i class="fas fa-cog"></i> Impostazioni
-                    </a>
-                    <a href="/billing.html" class="sol-dropdown-item">
-                        <i class="fas fa-credit-card"></i> Fatturazione
-                    </a>
-                    ${this.isDevMode ? `
-                        <div class="sol-dropdown-divider"></div>
-                        <a href="/test-integration.html" class="sol-dropdown-item">
-                            <i class="fas fa-flask"></i> Integration Tests
-                        </a>
-                        <button class="sol-dropdown-item" onclick="toggleDebugMode()">
-                            <i class="fas fa-bug"></i> Toggle Debug Mode
-                        </button>
-                        <button class="sol-dropdown-item" onclick="clearSystemData()">
-                            <i class="fas fa-trash"></i> Clear System Data
-                        </button>
-                    ` : ''}
-                </div>
-                <div class="sol-dropdown-footer">
-                    <a href="#" class="sol-dropdown-item" onclick="handleLogout(event)">
-                        <i class="fas fa-sign-out-alt"></i>
-                        <span>Logout</span>
-                    </a>
-                </div>
-            </div>
-        `;
-    }
+
     
     renderSidebar() {
         // CRITICAL FIX: Non renderizzare sidebar se esiste già
@@ -723,16 +659,6 @@ export class HeaderComponent {
             backdrop.hasEventListener = true;
         }
         
-        // User menu
-        const userMenuBtn = document.getElementById('userMenuBtn');
-        if (userMenuBtn && !userMenuBtn.hasEventListener) {
-            userMenuBtn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                e.preventDefault();
-                this.toggleDropdown('userDropdown', 'userMenuBtn');
-            });
-            userMenuBtn.hasEventListener = true;
-        }
         
         // Notifications
         const notificationBtn = document.getElementById('notificationBtn');
@@ -766,9 +692,7 @@ export class HeaderComponent {
         // Close dropdowns on outside click - use once to prevent multiple listeners
         if (!this._outsideClickListenerAttached) {
             document.addEventListener('click', (e) => {
-                if (!e.target.closest('#userMenuBtn') && 
-                    !e.target.closest('#notificationBtn') && 
-                    !e.target.closest('#userDropdown') && 
+                if (!e.target.closest('#notificationBtn') &&
                     !e.target.closest('#notificationDropdown')) {
                     
                     setTimeout(() => {
@@ -780,16 +704,6 @@ export class HeaderComponent {
         }
         
         // Prevent dropdown close when clicking inside
-        const userDropdown = document.getElementById('userDropdown');
-        if (userDropdown && !userDropdown.hasEventListener) {
-            userDropdown.addEventListener('click', (e) => {
-                if (!e.target.closest('a') && !e.target.closest('button')) {
-                    e.stopPropagation();
-                }
-            });
-            userDropdown.hasEventListener = true;
-        }
-        
         const notificationDropdown = document.getElementById('notificationDropdown');
         if (notificationDropdown && !notificationDropdown.hasEventListener) {
             notificationDropdown.addEventListener('click', (e) => {
@@ -1364,7 +1278,6 @@ window.debugHeaderState = function() {
     console.log('- Auto-init done:', autoInitDone);
     console.log('- Headers in DOM:', document.querySelectorAll('.sol-header').length);
     console.log('- Sidebars in DOM:', document.querySelectorAll('#sidebar').length);
-    console.log('- User dropdowns:', document.querySelectorAll('#userDropdown').length);
     console.log('- Notification dropdowns:', document.querySelectorAll('#notificationDropdown').length);
     console.log('- Backdrops:', document.querySelectorAll('#backdrop').length);
     
@@ -1376,7 +1289,6 @@ window.debugHeaderState = function() {
         elements: {
             headers: document.querySelectorAll('.sol-header').length,
             sidebars: document.querySelectorAll('#sidebar').length,
-            userDropdowns: document.querySelectorAll('#userDropdown').length,
             notificationDropdowns: document.querySelectorAll('#notificationDropdown').length,
             backdrops: document.querySelectorAll('#backdrop').length
         }
