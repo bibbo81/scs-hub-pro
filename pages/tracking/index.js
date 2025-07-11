@@ -628,23 +628,6 @@ async function waitForInitialization() {
         throw error;
     }
 }
-            supabaseReady = true;
-            es6ModulesReady = true;
-            checkReady();
-            return;
-        }
-        
-        // Timeout fallback
-        timeoutId = setTimeout(() => {
-            console.warn('⚠️ Initialization timeout, proceeding anyway...');
-            if (window.supabase) {
-                resolve();
-            } else {
-                reject(new Error('Initialization timeout - Supabase not ready'));
-            }
-        }, 15000); // 15 second timeout
-    });
-}
 
 // Load trackings from Supabase
 async function loadTrackings() {

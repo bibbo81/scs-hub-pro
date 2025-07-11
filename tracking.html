@@ -4,7 +4,33 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <!-- Deve essere PRIMA di qualsiasi script di debug o altro script che usa Supabase -->
-    <script src="/core/services/supabase-client.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+    // Supabase Client Configuration
+    (function() {
+        'use strict';
+
+        // Configurazione Supabase
+        const SUPABASE_URL = 'https://gnlrmnsdmpjzitsysowq.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdubHJtbnNkbXBqeml0c3lzb3dxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzU0MDM2MDQsImV4cCI6MjA1MDk3OTYwNH0.1GBOAO0MEoFcUTBCWc6PBPeKQU7Ztb-cJtzPdI_wDCk';
+
+        // Inizializza Supabase Client
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+            auth: {
+                autoRefreshToken: true,
+                persistSession: true,
+                detectSessionInUrl: true
+            }
+        });
+
+        // Esporta globalmente
+        window.supabaseClient = supabase;
+        window.supabase = supabase; // Per compatibilità
+        window.getSupabase = function() { return supabase; };
+
+        console.log('✅ Supabase client initialized');
+    })();
+    </script>
     <script>
     // TEMPORARY FIX: Disable auto-sync to prevent loops
     window.DISABLE_AUTO_SYNC = true;

@@ -190,6 +190,34 @@ async function performInitialization() {
     }
 }
 
+// Supabase Client Configuration
+(function() {
+    'use strict';
+
+    // Assicurati che la libreria Supabase sia già caricata tramite CDN:
+    // <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    // Configurazione Supabase
+    const SUPABASE_URL = 'https://gnlrmnsdmpjzitsysowq.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdubHJtbnNkbXBqeml0c3lzb3dxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzU0MDM2MDQsImV4cCI6MjA1MDk3OTYwNH0.1GBOAO0MEoFcUTBCWc6PBPeKQU7Ztb-cJtzPdI_wDCk';
+
+    // Inizializza Supabase Client
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+        auth: {
+            autoRefreshToken: true,
+            persistSession: true,
+            detectSessionInUrl: true
+        }
+    });
+
+    // Esporta globalmente
+    window.supabaseClient = supabase;
+    window.supabase = supabase; // Per compatibilità con altri script
+    window.getSupabase = function() { return supabase; };
+
+    console.log('✅ Supabase client initialized');
+})();
+
 // Export functions
 export { initializeSupabase };
 
