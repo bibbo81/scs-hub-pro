@@ -557,36 +557,77 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 // Wait for proper initialization
 async function waitForInitialization() {
-    return new Promise((resolve, reject) => {
-        let supabaseReady = false;
-        let es6ModulesReady = false;
-        let timeoutId;
+    console.log('🔄 Waiting for Supabase and session initialization...');
+    
+    try {
+        // Wait for the global supabaseReady Promise (includes both Supabase init and valid session)
+        await window.supabaseReady;
+        console.log('✅ Supabase and session are ready');
         
-        const checkReady = () => {
-            if (supabaseReady && es6ModulesReady) {
-                clearTimeout(timeoutId);
-                console.log('✅ All initialization events received');
-                resolve();
-            }
-        };
+        // Wait for ES6 modules to be loaded
+        if (!window.headerComponent || !window.supabaseTrackingService) {
+            console.log('🔄 Waiting for ES6 modules...');
+            await new Promise((resolve, reject) => {
+                const timeoutId = setTimeout(() => {
+                    reject(new Error('Timeout waiting for ES6 modules'));
+                }, 15000);
+                
+                const checkModules = () => {
+                    if (window.headerComponent && window.supabaseTrackingService && window.NotificationSystem) {
+                        clearTimeout(timeoutId);
+                        console.log('✅ ES6 modules are ready');
+                        resolve();
+                    }
+                };
+                
+                // Listen for modules loaded event
+                window.addEventListener('es6ModulesLoaded', () => {
+                    console.log('✅ ES6 modules loaded event received');
+                    checkModules();
+                });
+                
+                // Check if already loaded
+                checkModules();
+                
+                // Fallback check every 500ms
+                const interval = setInterval(() => {
+                    checkModules();
+                }, 500);
+                
+                // Cleanup interval on resolve
+                const originalResolve = resolve;
+                resolve = () => {
+                    clearInterval(interval);
+                    originalResolve();
+                };
+            });
+        }
         
-        // Listen for Supabase ready
-        window.addEventListener('supabase-ready', () => {
-            console.log('✅ Supabase ready event received');
-            supabaseReady = true;
-            checkReady();
-        });
+        console.log('✅ All initialization requirements met');
+        return true;
         
-        // Listen for ES6 modules ready
-        window.addEventListener('es6ModulesLoaded', () => {
-            console.log('✅ ES6 modules loaded event received');
-            es6ModulesReady = true;
-            checkReady();
-        });
+    } catch (error) {
+        console.error('❌ Initialization failed:', error);
         
-        // Check if already initialized (in case events already fired)
-        if (window.supabase && window.headerComponent) {
-            console.log('✅ Components already initialized');
+        // Provide user feedback
+        const loadingDiv = document.getElementById('loadingState');
+        if (loadingDiv) {
+            loadingDiv.innerHTML = `
+                <div class="text-center">
+                    <i class="fas fa-exclamation-triangle text-danger fa-3x mb-3"></i>
+                    <h4>Errore di Inizializzazione</h4>
+                    <p class="text-muted">${error.message}</p>
+                    <button class="btn btn-primary" onclick="window.location.reload()">
+                        <i class="fas fa-refresh"></i> Ricarica Pagina
+                    </button>
+                </div>
+            `;
+            loadingDiv.style.display = 'block';
+        }
+        
+        throw error;
+    }
+}
             supabaseReady = true;
             es6ModulesReady = true;
             checkReady();

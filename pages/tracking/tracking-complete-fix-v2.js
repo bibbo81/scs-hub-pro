@@ -929,11 +929,52 @@ mappedFields: {
         console.log('✅ All fixes initialized. Check window.trackingFixStatus for status.');
     }
     
-    // Start initialization when DOM is ready
+    // Start initialization when DOM is ready and session is available
     if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', initializeAllFixes);
+        document.addEventListener('DOMContentLoaded', async () => {
+            console.log('🔄 DOM ready, waiting for Supabase and session...');
+            try {
+                // Wait for Supabase and valid session
+                await window.supabaseReady;
+                console.log('✅ Session ready, initializing tracking complete fixes...');
+                initializeAllFixes();
+            } catch (error) {
+                console.error('❌ Session not available for tracking complete fixes:', error);
+                console.log('🔄 Will retry when session becomes available...');
+                
+                // Retry periodically until session is available
+                const retryInterval = setInterval(async () => {
+                    try {
+                        await window.supabaseReady;
+                        console.log('✅ Session now available, initializing tracking fixes...');
+                        clearInterval(retryInterval);
+                        initializeAllFixes();
+                    } catch (e) {
+                        // Still waiting for session
+                    }
+                }, 2000);
+                
+                // Give up after 30 seconds
+                setTimeout(() => {
+                    clearInterval(retryInterval);
+                    console.warn('⚠️ Timeout waiting for session, initializing with limited functionality...');
+                    initializeAllFixes();
+                }, 30000);
+            }
+        });
     } else {
-        initializeAllFixes();
+        (async () => {
+            try {
+                console.log('🔄 Waiting for Supabase and session (DOM already ready)...');
+                await window.supabaseReady;
+                console.log('✅ Session ready, initializing tracking complete fixes...');
+                initializeAllFixes();
+            } catch (error) {
+                console.error('❌ Session not available:', error);
+                console.log('🔄 Initializing with limited functionality...');
+                initializeAllFixes();
+            }
+        })();
     }
     
 })();
