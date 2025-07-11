@@ -265,7 +265,11 @@ if (typeof window !== 'undefined') {
     window.getSupabaseWithSession = getSupabaseWithSession;
     window.isSessionReady = isSessionReady;
     window.waitForSession = waitForSession;
-    
+
+    // Espone direttamente l'istanza supabase e la funzione compatibile con la console
+    window.supabase = supabase;
+    window.getSupabaseInstance = () => supabase;
+
     // Initialize immediately
     console.log('🚀 Starting Supabase auto-initialization...');
     initializeSupabase().catch(err => {

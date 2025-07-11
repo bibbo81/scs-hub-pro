@@ -3,6 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Deve essere PRIMA di qualsiasi script di debug o altro script che usa Supabase -->
+    <script src="/core/services/supabase-client.js"></script>
     <script>
     // TEMPORARY FIX: Disable auto-sync to prevent loops
     window.DISABLE_AUTO_SYNC = true;
