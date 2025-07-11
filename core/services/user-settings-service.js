@@ -1,5 +1,6 @@
 // core/services/user-settings-service.js - FIX DEFINITIVO PER MODALITÀ DEMO
 import { supabase, requireAuth } from '/core/services/supabase-client.js';
+import { supabaseReady } from '/core/supabase-init.js';
 
 class UserSettingsService {
     constructor() {
@@ -414,6 +415,7 @@ const userSettingsService = new UserSettingsService();
 // Auto-migrate on load if user is authenticated
 (async () => {
     try {
+        await supabaseReady;
         const { data: { user } } = await supabase.auth.getUser();
         if (user && !user.is_anonymous) {
             // Migra API key esistenti
