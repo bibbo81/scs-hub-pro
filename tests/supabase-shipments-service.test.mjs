@@ -1,18 +1,7 @@
 import assert from 'assert';
 
-let notifications = [];
-
-// Minimal NotificationSystem mock
-global.window = {
-    NotificationSystem: {
-        warning(msg) {
-            notifications.push(msg);
-        }
-    }
-};
-
 let activeOrgId = null;
-function getActiveOrganizationId() {
+function getMyOrganizationId() {
     return activeOrgId;
 }
 
@@ -38,23 +27,17 @@ class TestService {
     }
 
     async getAllShipments() {
-        const orgId = getActiveOrganizationId();
+        const orgId = getMyOrganizationId();
         if (!orgId) {
-            global.window.NotificationSystem.warning(
-                "Seleziona un'organizzazione per visualizzare le spedizioni"
-            );
-            return [];
+            throw new Error('Organization not selected');
         }
         return [{ id: 1 }];
     }
 
     async createShipment(data) {
-        const orgId = getActiveOrganizationId();
+        const orgId = getMyOrganizationId();
         if (!orgId) {
-            global.window.NotificationSystem.warning(
-                "Seleziona un'organizzazione prima di creare una spedizione"
-            );
-            return null;
+            throw new Error('Organization not selected');
         }
         const payload = this.preparePayload(data);
         if (this.existing.has(payload.shipment_number)) {
@@ -69,12 +52,9 @@ class TestService {
     }
 
     async updateShipment(id, updates) {
-        const orgId = getActiveOrganizationId();
+        const orgId = getMyOrganizationId();
         if (!orgId) {
-            global.window.NotificationSystem.warning(
-                "Seleziona un'organizzazione prima di aggiornare una spedizione"
-            );
-            return null;
+            throw new Error('Organization not selected');
         }
         return { id, ...updates };
     }
@@ -82,17 +62,17 @@ class TestService {
 
 async function runMissingOrgTests() {
     const svc = new TestService();
-    const all = await svc.getAllShipments();
-    assert.deepStrictEqual(all, []);
-    assert.ok(notifications.length === 1);
+    await assert.rejects(svc.getAllShipments(), /Organization not selected/);
 
-    const created = await svc.createShipment({ name: 'test' });
-    assert.strictEqual(created, null);
-    assert.ok(notifications.length === 2);
+    await assert.rejects(
+        svc.createShipment({ name: 'test' }),
+        /Organization not selected/
+    );
 
-    const updated = await svc.updateShipment('1', { name: 't' });
-    assert.strictEqual(updated, null);
-    assert.ok(notifications.length === 3);
+    await assert.rejects(
+        svc.updateShipment('1', { name: 't' }),
+        /Organization not selected/
+    );
 
     console.log('SupabaseShipmentsService missing organization tests passed');
 }
