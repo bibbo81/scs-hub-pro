@@ -1087,25 +1087,31 @@ export class HeaderComponent {
     
     async loadNotifications() {
         try {
-            const data = await api.get('notifications', { silent: true });
-            this.renderNotifications(data?.notifications || []);
-            this.notificationCount = data?.unread_count || 0;
-            this.updateNotificationBadge();
-        } catch (error) {
-            if (error.status === 404 || error.status === 502) {
-                console.log('📣 Notifications API not available (development mode)');
-                this.renderNotifications([]);
-                this.notificationCount = 0;
-                this.updateNotificationBadge();
-            } else {
-                console.error('Failed to load notifications:', error);
-                this.renderNotifications([]);
-                this.notificationCount = 0;
-                this.updateNotificationBadge();
+            console.log('📬 Loading notifications...');
+            
+            // Verifica sessione prima
+            const { data: { user } } = await window.supabaseClient.auth.getUser();
+            if (!user) {
+                console.warn('No user session for notifications');
+                return;
             }
+            
+            // Per ora, usa notifiche locali invece di API
+            // TODO: Implementare backend per notifiche
+            console.log('Using local notifications for now');
+            
+            // Mostra notifiche locali dal NotificationSystem
+            if (window.NotificationSystem) {
+                const notifications = window.NotificationSystem.getNotifications();
+                this.updateNotificationBadge(notifications.length);
+            }
+            
+        } catch (error) {
+            console.warn('Notifications not available:', error);
+            // Non è un errore critico, continua
         }
     }
-    
+
     renderNotifications(notifications) {
         const container = document.getElementById('notificationList');
         if (!container) return;
