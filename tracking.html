@@ -516,12 +516,14 @@
                 console.log('✅ All modules initialized successfully');
             } catch (error) {
                 console.error('❌ Initialization failed:', error);
-                // Fallback to login page if initialization fails
-                if (!window.location.pathname.includes('login.html')) {
+                // Fallback to login page if initialization fails (unless in debug mode)
+                if (!window.location.pathname.includes('login.html') && !window.SCS_HUB_DEBUG_PAUSE) {
                     console.log('🔄 Redirecting to login due to initialization error...');
                     setTimeout(() => {
                         window.location.href = '/login.html';
                     }, 3000);
+                } else if (window.SCS_HUB_DEBUG_PAUSE) {
+                    console.log('🛑 DEBUG MODE: Initialization error detected but redirect blocked');
                 }
             }
         });
