@@ -3,6 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script>
+    // TEMPORARY FIX: Disable auto-sync to prevent loops
+    window.DISABLE_AUTO_SYNC = true;
+    console.log('🛑 Auto-sync disabled to prevent loops');
+    </script>
     <script src="/core/env-check.js"></script>
     <!-- Load Supabase initialization FIRST to ensure it's ready before other components -->
     <script type="module" src="/core/supabase-init.js"></script>
@@ -772,6 +777,22 @@ document.addEventListener('DOMContentLoaded', async () => {
                 </div>
             `;
         }
+    }
+});
+</script>
+
+<!-- Debug Auth Context -->
+<script src="/auth-context-debug.js"></script>
+<script>
+// Auto-run debug dopo inizializzazione
+document.addEventListener('DOMContentLoaded', () => {
+    if (window.supabaseReady) {
+        window.supabaseReady.then(() => {
+            setTimeout(() => {
+                console.log('🚀 Running automatic auth debug...');
+                window.debugAuthContext();
+            }, 2000);
+        });
     }
 });
 </script>

@@ -54,7 +54,7 @@ export async function getMyOrganizationId(supabaseClient = null, retries = 3) {
 
         // Ottieni dati utente con organizzazione
         const { data: userData, error: userError } = await supabase
-            .from('organization_members')
+            .from('organization_members')  // ← TABELLA CORRETTA
             .select('organization_id')
             .eq('user_id', session.user.id)
             .single();
