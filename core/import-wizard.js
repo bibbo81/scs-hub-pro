@@ -2,7 +2,7 @@
 import notificationSystem from '/core/notification-system.js';
 import modalSystem from '/core/modal-system.js';
 import apiClient from '/core/api-client.js';
-import { supabase } from '/core/services/supabase-client.js';
+import { getSupabaseAsync } from '/core/services/supabase-client.js';
 import { getMyOrganizationId } from '/core/services/organization-service.js';
 
 class ImportWizard {
@@ -19,12 +19,19 @@ class ImportWizard {
     this.currentStep = 0;
     this.steps = ['upload', 'mapping', 'preview', 'import'];
     this.events = new EventTarget();
-    // PATCH: fallback automatico
-    this.supabase = supabase; // Usa sempre quello importato
+    // PATCH: Use safe async getter
+    this.supabase = null; // Will be set async
     }
 
-        setSupabaseClient = (client) => {
-    this.supabase = client || supabase;
+    async getSupabase() {
+        if (!this.supabase) {
+            this.supabase = await getSupabaseAsync();
+        }
+        return this.supabase;
+    }
+
+    setSupabaseClient = (client) => {
+    this.supabase = client;
     }
 
     attachEventListeners = () => {
@@ -776,15 +783,25 @@ if (!this.targetFields || !Array.isArray(this.targetFields) || this.targetFields
             throw new Error('Nessuna organizzazione trovata. Contatta un amministratore.');
         }
         
-        let supa = this.supabase || supabase || window.supabase;
+        let supa;
+        try {
+            supa = await this.getSupabase();
+        } catch (error) {
+            console.error('Failed to get Supabase client:', error);
+            notificationSystem.show('Supabase client not initialized', 'error');
+            return;
+        }
+        
         if (!supa || !supa.auth) {
             console.error('Supabase client not initialized');
             notificationSystem.show('Supabase client not initialized', 'error');
             return;
         }
-        const user = await supa.auth.getUser();
-        const userId = user?.data?.user?.id;
-        if (!userId) throw new Error('Utente non autenticato su Supabase');
+        
+        try {
+            const user = await supa.auth.getUser();
+            const userId = user?.data?.user?.id;
+            if (!userId) throw new Error('Utente non autenticato su Supabase');
 
         // 2. Mapping dinamico
         const columnMappings = this.getColumnMappings();
@@ -1133,23 +1150,36 @@ startImport = async () => {
     try {
         let orgId;
         try {
-            orgId = await getMyOrganizationId(supabase);
+            // Use safe async getter for organization
+            const supa = await this.getSupabase();
+            orgId = await getMyOrganizationId(supa);
         } catch (e) {
             notificationSystem.show("Nessuna organizzazione trovata. Contatta un amministratore.", "error");
             return;
         }
-        let supa = this.supabase || supabase || window.supabase;
+        
+        let supa;
+        try {
+            supa = await this.getSupabase();
+        } catch (error) {
+            console.error('Failed to get Supabase client:', error);
+            notificationSystem.show('Supabase client not initialized', 'error');
+            return;
+        }
+        
         if (!supa || !supa.auth) {
             console.error('Supabase client not initialized');
             throw new Error('Supabase client not initialized');
         }
         this.supabase = supa;
-        const user = await supa.auth.getUser();
-        const userId = user?.data?.user?.id;
-        if (!userId) {
-            notificationSystem.show("User not authenticated", "error");
-            return;
-        }
+        
+        try {
+            const user = await supa.auth.getUser();
+            const userId = user?.data?.user?.id;
+            if (!userId) {
+                notificationSystem.show("User not authenticated", "error");
+                return;
+            }
         // Assicurati che mappings sia pronto (autoMap già chiamato)
         const records = (Array.isArray(this.parsedData) ? this.parsedData : []).map(row => {
             const newRecord = {};
