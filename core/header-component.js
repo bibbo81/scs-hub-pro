@@ -499,17 +499,17 @@ export class HeaderComponent {
             console.warn('[HeaderComponent] Dropdowns already exist, skipping render');
             return '';
         }
-        
+
         return `
             ${await this.renderUserDropdown()}
             ${this.renderNotificationDropdown()}
         `;
     }
-    
+
     // FIX 4: renderUserDropdown ASYNC
     async renderUserDropdown() {
         const userInfo = await this.getUserInfo();
-        
+
         if (userInfo.isLoading) {
             return `
                 <div class="sol-dropdown" id="userDropdown" style="display: none;">
@@ -530,7 +530,7 @@ export class HeaderComponent {
                 </div>
             `;
         }
-        
+
         return `
             <div class="sol-dropdown" id="userDropdown" style="display: none;">
                 <div class="sol-dropdown-header">
@@ -569,6 +569,7 @@ export class HeaderComponent {
             </div>
         `;
     }
+
     
     renderSidebar() {
         // CRITICAL FIX: Non renderizzare sidebar se esiste già
@@ -723,6 +724,7 @@ export class HeaderComponent {
             backdrop.hasEventListener = true;
         }
         
+        
         // User menu
         const userMenuBtn = document.getElementById('userMenuBtn');
         if (userMenuBtn && !userMenuBtn.hasEventListener) {
@@ -733,7 +735,7 @@ export class HeaderComponent {
             });
             userMenuBtn.hasEventListener = true;
         }
-        
+
         // Notifications
         const notificationBtn = document.getElementById('notificationBtn');
         if (notificationBtn && !notificationBtn.hasEventListener) {
@@ -766,9 +768,9 @@ export class HeaderComponent {
         // Close dropdowns on outside click - use once to prevent multiple listeners
         if (!this._outsideClickListenerAttached) {
             document.addEventListener('click', (e) => {
-                if (!e.target.closest('#userMenuBtn') && 
-                    !e.target.closest('#notificationBtn') && 
-                    !e.target.closest('#userDropdown') && 
+                if (!e.target.closest('#userMenuBtn') &&
+                    !e.target.closest('#notificationBtn') &&
+                    !e.target.closest('#userDropdown') &&
                     !e.target.closest('#notificationDropdown')) {
                     
                     setTimeout(() => {
@@ -780,6 +782,7 @@ export class HeaderComponent {
         }
         
         // Prevent dropdown close when clicking inside
+        // Prevent dropdown close when clicking inside
         const userDropdown = document.getElementById('userDropdown');
         if (userDropdown && !userDropdown.hasEventListener) {
             userDropdown.addEventListener('click', (e) => {
@@ -789,7 +792,7 @@ export class HeaderComponent {
             });
             userDropdown.hasEventListener = true;
         }
-        
+
         const notificationDropdown = document.getElementById('notificationDropdown');
         if (notificationDropdown && !notificationDropdown.hasEventListener) {
             notificationDropdown.addEventListener('click', (e) => {
