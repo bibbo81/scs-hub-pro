@@ -16,7 +16,12 @@ class SupabaseTrackingService {
         try {
             // Wait for Supabase and valid session before proceeding
             console.log('🔄 Waiting for Supabase and session...');
-            await window.supabaseReady;
+            try {
+                await window.supabaseReady;
+            } catch (err) {
+                console.error('❌ Supabase initialization failed:', err);
+                return this.getLocalStorageFallback();
+            }
             
             const supabase = getSupabase();
             if (!supabase) {
@@ -65,7 +70,12 @@ class SupabaseTrackingService {
     async getTracking(id) {
         try {
             // Wait for Supabase and valid session before proceeding
-            await window.supabaseReady;
+            try {
+                await window.supabaseReady;
+            } catch (err) {
+                console.error('❌ Supabase initialization failed:', err);
+                return this.getLocalStorageFallback();
+            }
             
             const supabase = getSupabase();
             if (!supabase) {
@@ -109,7 +119,12 @@ class SupabaseTrackingService {
     async createTracking(trackingData) {
         try {
             // Wait for Supabase and valid session before proceeding
-            await window.supabaseReady;
+            try {
+                await window.supabaseReady;
+            } catch (err) {
+                console.error('❌ Supabase initialization failed:', err);
+                return this.getLocalStorageFallback();
+            }
             
             // Protect against null/undefined trackingData
             if (!trackingData || typeof trackingData !== 'object') {
