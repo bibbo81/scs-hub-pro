@@ -146,6 +146,28 @@ if (typeof window !== 'undefined') {
     });
 }
 
+// Auth helper functions
+export async function requireAuth() {
+    const supabase = await getSupabaseAsync();
+    const { data: { user }, error } = await supabase.auth.getUser();
+    
+    if (error) {
+        console.error('Auth error:', error);
+        throw error;
+    }
+    
+    if (!user) {
+        throw new Error('User not authenticated');
+    }
+    
+    return user;
+}
+
+export async function getUser() {
+    const supabase = await getSupabaseAsync();
+    return await supabase.auth.getUser();
+}
+
 // Export Supabase instance for backward compatibility
 // TODO: Remove direct supabase export in favor of getSupabase() to ensure proper initialization
 export { supabase };
