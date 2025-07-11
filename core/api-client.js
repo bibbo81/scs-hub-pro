@@ -36,6 +36,9 @@ export class ApiClient {
     
     // Main request method with session protection
     async request(endpoint, options = {}) {
+        let loadingId = null; // Move loadingId declaration to function scope
+        let url, config; // Declare url and config at function scope for error handling
+        
         try {
             // Wait for valid session before making API calls (except for login/public endpoints)
             const isAuthRequired = !this._isPublicEndpoint(endpoint);
@@ -53,9 +56,9 @@ export class ApiClient {
             // Ensure we have latest token
             this.refreshToken();
             
-            const url = endpoint.startsWith('http') ? endpoint : `${this.baseUrl}/${endpoint}`;
+            url = endpoint.startsWith('http') ? endpoint : `${this.baseUrl}/${endpoint}`;
             
-            const config = {
+            config = {
                 ...options,
                 headers: {
                     ...this.defaultHeaders,
@@ -69,7 +72,6 @@ export class ApiClient {
             }
             
             // Show loading if specified
-            let loadingId;
             if (options.loading) {
                 loadingId = notificationSystem.loading(
                     typeof options.loading === 'string' ? options.loading : 'Caricamento...'
@@ -132,7 +134,7 @@ export class ApiClient {
             }
             
             // Enhanced error logging
-            console.error(`❌ [ApiClient] ${config.method || 'GET'} ${url} failed:`, {
+            console.error(`❌ [ApiClient] ${config?.method || 'GET'} ${url || endpoint} failed:`, {
                 error: error.message,
                 status: error.status,
                 endpoint,
