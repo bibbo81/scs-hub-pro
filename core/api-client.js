@@ -34,27 +34,40 @@ export class ApiClient {
         return token;
     }
     
-    // Main request method
+    // Main request method with session protection
     async request(endpoint, options = {}) {
-        // Ensure we have latest token
-        this.refreshToken();
-        
-        const url = endpoint.startsWith('http') ? endpoint : `${this.baseUrl}/${endpoint}`;
-        
-        const config = {
-            ...options,
-            headers: {
-                ...this.defaultHeaders,
-                ...options.headers
-            }
-        };
-        
-        // Run request interceptors
-        for (const interceptor of this.interceptors.request) {
-            await interceptor(config);
-        }
-        
         try {
+            // Wait for valid session before making API calls (except for login/public endpoints)
+            const isAuthRequired = !this._isPublicEndpoint(endpoint);
+            
+            if (isAuthRequired) {
+                console.log('🔄 [ApiClient] Waiting for valid session...');
+                await window.supabaseReady;
+                
+                // Double-check session is still valid
+                if (!window.currentSession || !window.currentUser) {
+                    throw new Error('Session expired or invalid. Please log in again.');
+                }
+            }
+            
+            // Ensure we have latest token
+            this.refreshToken();
+            
+            const url = endpoint.startsWith('http') ? endpoint : `${this.baseUrl}/${endpoint}`;
+            
+            const config = {
+                ...options,
+                headers: {
+                    ...this.defaultHeaders,
+                    ...options.headers
+                }
+            };
+            
+            // Run request interceptors
+            for (const interceptor of this.interceptors.request) {
+                await interceptor(config);
+            }
+            
             // Show loading if specified
             let loadingId;
             if (options.loading) {
@@ -78,12 +91,31 @@ export class ApiClient {
                 notificationSystem.dismiss(loadingId);
             }
             
-            // Check response status
+            // Check response status and provide better error messages
             if (!response.ok) {
-                const error = new Error(data.error || data.message || `HTTP ${response.status}`);
+                let errorMessage = data?.error || data?.message || `HTTP ${response.status}`;
+                
+                // Provide user-friendly messages for common errors
+                if (response.status === 401) {
+                    errorMessage = 'Session expired or unauthorized. Please log in again.';
+                } else if (response.status === 403) {
+                    errorMessage = 'Access denied. You do not have permission to perform this action.';
+                } else if (response.status === 404) {
+                    errorMessage = 'Resource not found.';
+                } else if (response.status >= 500) {
+                    errorMessage = 'Server error. Please try again later.';
+                }
+                
+                const error = new Error(errorMessage);
                 error.status = response.status;
                 error.data = data;
                 throw error;
+            }
+            
+            // Protect against null/undefined responses
+            if (data && typeof data === 'object') {
+                // Add safe accessors for common array operations
+                this._addSafeAccessors(data);
             }
             
             // Run response interceptors
@@ -94,6 +126,19 @@ export class ApiClient {
             return data;
             
         } catch (error) {
+            // Dismiss loading on error
+            if (loadingId) {
+                notificationSystem.dismiss(loadingId);
+            }
+            
+            // Enhanced error logging
+            console.error(`❌ [ApiClient] ${config.method || 'GET'} ${url} failed:`, {
+                error: error.message,
+                status: error.status,
+                endpoint,
+                data: error.data
+            });
+            
             // Run error interceptors
             for (const interceptor of this.interceptors.error) {
                 await interceptor(error);
@@ -105,10 +150,55 @@ export class ApiClient {
         }
     }
     
-    // Error handling
+    // Helper to check if endpoint requires authentication
+    _isPublicEndpoint(endpoint) {
+        const publicEndpoints = [
+            'login',
+            'signup', 
+            'reset-password',
+            'config',
+            'health'
+        ];
+        
+        return publicEndpoints.some(pub => endpoint.includes(pub));
+    }
+    
+    // Helper to add safe accessors to response data
+    _addSafeAccessors(data) {
+        // Protect array operations like map, filter, etc.
+        if (Array.isArray(data)) {
+            return data;
+        }
+        
+        // Protect object properties that might be used in array operations
+        const protectedProps = ['checkoutUrls', 'items', 'results', 'data'];
+        protectedProps.forEach(prop => {
+            if (data[prop] && !Array.isArray(data[prop])) {
+                console.warn(`⚠️ [ApiClient] Property '${prop}' is not an array:`, typeof data[prop]);
+                // Convert to empty array to prevent TypeError
+                data[prop] = [];
+            }
+        });
+        
+        return data;
+    }
+    }
+    
+    // Enhanced error handling with better user feedback
     handleError(error, options = {}) {
         // Skip notification if specified
         if (options.silent) return;
+        
+        // Special handling for session-related errors
+        if (error.message?.includes('Session expired') || error.message?.includes('unauthorized')) {
+            notificationSystem.error('La tua sessione è scaduta. Verrai reindirizzato alla pagina di login.');
+            setTimeout(() => {
+                if (!window.location.pathname.includes('login.html')) {
+                    window.location.href = '/login.html';
+                }
+            }, 2000);
+            return;
+        }
         
         // ADD THIS: Special handling for 404 in development with mock data
         if (error.status === 404 && (window.MockData?.enabled || window.FORCE_MOCK_API)) {
@@ -122,7 +212,11 @@ export class ApiClient {
             message = 'Sessione scaduta. Effettua nuovamente il login.';
             // Auto logout after 2 seconds
             setTimeout(() => {
-                window.auth?.logout();
+                if (window.auth?.logout) {
+                    window.auth.logout();
+                } else if (!window.location.pathname.includes('login.html')) {
+                    window.location.href = '/login.html';
+                }
             }, 2000);
         } else if (error.status === 403) {
             message = 'Non hai i permessi per questa operazione';

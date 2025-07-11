@@ -77,30 +77,67 @@ export class HeaderComponent {
         }
     }
     
+    // Helper method to show loading state when session is not ready
+    _showLoadingState(errorMessage) {
+        const headerRoot = document.getElementById('header-root');
+        if (headerRoot) {
+            headerRoot.innerHTML = `
+                <header class="sol-header">
+                    <div class="sol-header-content">
+                        <div class="sol-header-left">
+                            <div class="sol-logo">
+                                <i class="fas fa-spinner fa-spin"></i>
+                                <span>Loading...</span>
+                            </div>
+                        </div>
+                        <div class="sol-header-center"></div>
+                        <div class="sol-header-right">
+                            <div class="loading-message">
+                                <i class="fas fa-exclamation-triangle text-warning"></i>
+                                <span class="ml-2">${errorMessage || 'Connecting...'}</span>
+                            </div>
+                        </div>
+                    </div>
+                </header>
+            `;
+        }
+    }
+    
+    async _performInit() {
+        console.log('🔧 [HeaderComponent] Starting initialization...');
+        
     async _performInit() {
         console.log('🔧 [HeaderComponent] Starting initialization...');
         
         try {
-            // Wait for Supabase to be ready first
-            console.log('🔄 [HeaderComponent] Waiting for Supabase initialization...');
-            await window.waitForSupabaseReady();
-            console.log('✅ [HeaderComponent] Supabase is ready');
+            // Wait for Supabase and valid session to be ready
+            console.log('🔄 [HeaderComponent] Waiting for Supabase and session...');
             
-            // Check if we need a valid session (skip for login page)
             const isLoginPage = window.location.pathname.includes('login.html');
             if (!isLoginPage) {
-                console.log('🔄 [HeaderComponent] Waiting for valid session...');
+                // For protected pages, wait for both Supabase and valid session
+                await window.supabaseReady;
+                console.log('✅ [HeaderComponent] Supabase and session are ready');
+            } else {
+                // For login page, just wait for Supabase (no session needed)
+                console.log('📝 [HeaderComponent] Login page detected, waiting for basic Supabase init...');
                 try {
-                    await window.waitForValidSession(5000); // 5 second timeout
-                    console.log('✅ [HeaderComponent] Valid session found');
+                    await window.supabaseReady;
+                    console.log('✅ [HeaderComponent] Supabase ready for login page');
                 } catch (error) {
-                    console.warn('⚠️ [HeaderComponent] No valid session found, some features may be limited');
-                    // Don't throw - allow header to load with limited functionality
+                    // On login page, continue even if session is not available
+                    console.warn('⚠️ [HeaderComponent] No session on login page (expected)');
                 }
             }
         } catch (error) {
-            console.error('❌ [HeaderComponent] Supabase initialization failed:', error);
-            // Continue with limited functionality
+            console.error('❌ [HeaderComponent] Supabase/session initialization failed:', error);
+            
+            // If it's a session error and not on login page, provide user feedback
+            if (!window.location.pathname.includes('login.html')) {
+                // Show a user-friendly loading state in the header
+                this._showLoadingState(error.message);
+                return;
+            }
         }
         
         // CRITICAL: Rimuovi TUTTI gli header esistenti prima di inizializzare
@@ -493,15 +530,40 @@ export class HeaderComponent {
     // Render the organization selector (no dropdown)
     async renderOrgSelector() {
         try {
+            // Ensure we have a valid session first
+            if (!window.currentSession || !window.currentUser) {
+                return `<div class="org-selector">
+                    <div class="org-loading">
+                        <i class="fas fa-spinner fa-spin"></i> Loading...
+                    </div>
+                </div>`;
+            }
+
+            const supabase = getSupabase();
+            if (!supabase) {
+                throw new Error('Supabase not available');
+            }
+
             const orgId = await getMyOrganizationId(supabase);
             const { data, error } = await supabase
                 .from('organizations')
                 .select('name')
                 .eq('id', orgId)
                 .maybeSingle();
-            if (error || !data) {
+                
+            if (error) {
+                console.error('[Header] Error fetching organization:', error);
+                // Check for auth errors
+                if (error.code === '401' || error.message?.includes('JWT')) {
+                    throw new Error('Session expired');
+                }
+                throw error;
+            }
+            
+            if (!data) {
                 return `<div class="org-selector">Nessuna organizzazione trovata. Contatta un amministratore.</div>`;
             }
+            
             return `
                 <div class="org-selector" id="orgSelector">
                     <div class="org-single">
@@ -512,6 +574,15 @@ export class HeaderComponent {
             `;
         } catch (error) {
             console.error('[Header] Error rendering org selector:', error);
+            
+            if (error.message?.includes('Session expired')) {
+                return `<div class="org-selector">
+                    <div class="org-error">
+                        <i class="fas fa-exclamation-triangle"></i> Session expired
+                    </div>
+                </div>`;
+            }
+            
             return `<div class="org-selector">Nessuna organizzazione trovata. Contatta un amministratore.</div>`;
         }
     }
