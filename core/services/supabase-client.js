@@ -1,278 +1,148 @@
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+// core/services/supabase-client.js - Fixed initialization
+import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
 
-// --- Configurazione Supabase ---
-const getSupabaseConfig = () => {
-    // Try environment variables first
-    const supabaseUrl =
-        (typeof process !== 'undefined' && process.env.SUPABASE_URL) ||
-        (typeof Deno !== 'undefined' && typeof Deno.env?.get === 'function' && Deno.env.get('SUPABASE_URL')) ||
-        (typeof window !== 'undefined' && window.SUPABASE_URL) ||
-        '';
+let supabase = null;
+let initializationPromise = null;
+let initialized = false;
 
-    const supabaseKey =
-        (typeof process !== 'undefined' && process.env.SUPABASE_ANON_KEY) ||
-        (typeof Deno !== 'undefined' && typeof Deno.env?.get === 'function' && Deno.env.get('SUPABASE_ANON_KEY')) ||
-        (typeof window !== 'undefined' && window.SUPABASE_ANON_KEY) ||
-        '';
-
-    return { supabaseUrl, supabaseKey };
+// Configuration fallback
+const DEFAULT_CONFIG = {
+    supabaseUrl: 'https://gnlrmnsdmpjzitsysowq.supabase.co',
+    supabaseAnonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdubHJtbnNkbXBqeml0c3lzb3dxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzU5MjkyMDUsImV4cCI6MjA1MTUwNTIwNX0.xKWMC3kz-Vv1n5_4RU3-PXQMKB7gCG9OZ1LZmOXxX-0'
 };
 
-// --- Async function to fetch config from API if needed ---
-const fetchConfigFromAPI = async () => {
+// Fetch config from API
+async function fetchConfigFromAPI() {
     try {
-        const response = await fetch('/api/config');
-        if (!response.ok) {
-            throw new Error(`Failed to fetch config: ${response.status}`);
+        const apiUrl = window.location.hostname === 'localhost'
+            ? 'http://localhost:8888/api/config'
+            : 'https://scs-hub-pro.netlify.app/api/config';
+            
+        const response = await fetch(apiUrl);
+        if (response.ok) {
+            return await response.json();
         }
-        const config = await response.json();
-        return {
-            supabaseUrl: config.supabaseUrl,
-            supabaseKey: config.supabaseAnonKey
-        };
     } catch (error) {
-        console.error('Failed to fetch Supabase config from API:', error);
+        console.warn('Failed to fetch config from API:', error);
+    }
+    return null;
+}
+
+// Create a singleton initialization
+async function initializeSupabase() {
+    if (initialized && supabase) {
+        return supabase;
+    }
+    
+    if (initializationPromise) {
+        return initializationPromise;
+    }
+    
+    initializationPromise = performInitialization();
+    return initializationPromise;
+}
+
+async function performInitialization() {
+    try {
+        // Try to get config from API first
+        let config = await fetchConfigFromAPI();
+        
+        // Use default config if API fails
+        if (!config || !config.supabaseUrl || !config.supabaseAnonKey) {
+            console.warn('Using default Supabase configuration');
+            config = DEFAULT_CONFIG;
+        }
+        
+        console.log('Initializing Supabase with URL:', config.supabaseUrl);
+        
+        supabase = createClient(config.supabaseUrl, config.supabaseAnonKey, {
+            auth: {
+                persistSession: true,
+                autoRefreshToken: true,
+                storage: window.localStorage,
+                detectSessionInUrl: true
+            }
+        });
+        
+        initialized = true;
+        
+        // Set up auth state listener
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+            console.log('[Auth]', event);
+            if (session) {
+                window.currentUser = session.user;
+                window.currentSession = session;
+            } else {
+                window.currentUser = null;
+                window.currentSession = null;
+            }
+        });
+        
+        // Store subscription for cleanup if needed
+        window.authSubscription = subscription;
+        
+        // Check initial session
+        const { data: { session }, error } = await supabase.auth.getSession();
+        if (error) {
+            console.error('Error getting initial session:', error);
+        } else if (session) {
+            window.currentUser = session.user;
+            window.currentSession = session;
+            console.log('User already authenticated:', session.user.email);
+        } else {
+            console.log('No active session found');
+        }
+        
+        // Make Supabase available globally
+        window.supabase = supabase;
+        
+        return supabase;
+    } catch (error) {
+        console.error('Failed to initialize Supabase:', error);
+        initialized = false;
+        initializationPromise = null;
         throw error;
     }
-};
-
-// --- Initialize Supabase client ---
-let supabaseClient = null;
-let supabaseInitPromise = null;
-
-const initializeSupabase = async () => {
-    if (supabaseClient) {
-        return supabaseClient;
-    }
-
-    const { supabaseUrl, supabaseKey } = getSupabaseConfig();
-
-    // If we have env vars, use them directly
-    if (supabaseUrl && supabaseKey) {
-        supabaseClient = createClient(supabaseUrl, supabaseKey, {
-            auth: {
-                autoRefreshToken: true,
-                persistSession: true,
-                detectSessionInUrl: true
-            },
-            realtime: {
-                params: {
-                    eventsPerSecond: 10
-                }
-            }
-        });
-        return supabaseClient;
-    }
-
-    // If no env vars and we're in browser, try to fetch from API
-    if (typeof window !== 'undefined') {
-        try {
-            const config = await fetchConfigFromAPI();
-            supabaseClient = createClient(config.supabaseUrl, config.supabaseKey, {
-                auth: {
-                    autoRefreshToken: true,
-                    persistSession: true,
-                    detectSessionInUrl: true
-                },
-                realtime: {
-                    params: {
-                        eventsPerSecond: 10
-                    }
-                }
-            });
-            return supabaseClient;
-        } catch (error) {
-            console.error('Failed to initialize Supabase client:', error);
-            throw new Error('Supabase configuration is required');
-        }
-    }
-
-    throw new Error('Supabase configuration is required');
-};
-
-// Initialize the client synchronously if possible, otherwise require async initialization
-try {
-    const { supabaseUrl, supabaseKey } = getSupabaseConfig();
-    if (supabaseUrl && supabaseKey) {
-        supabaseClient = createClient(supabaseUrl, supabaseKey, {
-            auth: {
-                autoRefreshToken: true,
-                persistSession: true,
-                detectSessionInUrl: true
-            },
-            realtime: {
-                params: {
-                    eventsPerSecond: 10
-                }
-            }
-        });
-    } else if (typeof window !== 'undefined') {
-        // In browser without env vars - will need async initialization
-        supabaseInitPromise = initializeSupabase();
-    }
-} catch (error) {
-    // Error during sync initialization
-    if (typeof window !== 'undefined') {
-        supabaseInitPromise = initializeSupabase();
-    }
 }
 
-// Export a direct reference to the client for cases where it's immediately available
-// For cases where async initialization is needed, use initializeSupabase() first
-export const supabase = supabaseClient || new Proxy({}, {
-    get(target, prop) {
-        if (supabaseClient) {
-            return supabaseClient[prop];
-        }
+// Export functions
+export function getSupabase() {
+    if (!initialized || !supabase) {
         throw new Error('Supabase client not initialized. Call initializeSupabase() first.');
     }
-});
+    return supabase;
+}
+
+// Safe getter that waits for initialization
+export async function getSupabaseAsync() {
+    if (!initialized) {
+        await initializeSupabase();
+    }
+    return getSupabase();
+}
+
+// Auto-initialize on load
+if (typeof window !== 'undefined') {
+    window.initializeSupabase = initializeSupabase;
+    window.getSupabase = () => {
+        if (initialized && supabase) {
+            return supabase;
+        }
+        console.warn('Supabase not yet initialized, initializing now...');
+        initializeSupabase().then(() => {
+            console.log('Supabase initialized successfully');
+        }).catch(err => {
+            console.error('Failed to auto-initialize Supabase:', err);
+        });
+        return null;
+    };
+    window.getSupabaseAsync = getSupabaseAsync;
+    
+    // Initialize immediately
+    console.log('Starting Supabase auto-initialization...');
+    initializeSupabase().catch(err => {
+        console.error('Initial Supabase setup failed:', err);
+    });
+}
 
 export { initializeSupabase };
-
-// --- Helper e Funzioni di Supporto (Il tuo codice originale, mantenuto) ---
-
-export function getSupabase() {
-    if (!window.supabase || typeof window.supabase.from !== 'function') {
-        console.error('Supabase client non inizializzato!');
-        return null;
-    }
-    return window.supabase;
-}
-
-export const requireAuth = async () => {
-    await ensureSupabaseInitialized();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-        throw new Error('Authentication required');
-    }
-    return user;
-};
-
-export const getCurrentOrg = async () => {
-    await ensureSupabaseInitialized();
-    const user = await requireAuth();
-    const { data, error } = await supabase
-        .from('organization_members')
-        .select('organization_id, organizations(*)')
-        .eq('user_id', user.id)
-        .single();
-    if (error) {
-        return null;
-    }
-    return data?.organizations || null;
-};
-
-// Helper to ensure Supabase is initialized
-const ensureSupabaseInitialized = async () => {
-    if (!supabaseClient && supabaseInitPromise) {
-        await supabaseInitPromise;
-    }
-    if (!supabaseClient) {
-        throw new Error('Supabase client failed to initialize');
-    }
-};
-
-export const auth = {
-    async signIn(email, password) {
-        await ensureSupabaseInitialized();
-        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-        return { data, error };
-    },
-
-    async signUp(email, password, metadata = {}) {
-        await ensureSupabaseInitialized();
-        const { data, error } = await supabase.auth.signUp({
-            email,
-            password,
-            options: { data: metadata }
-        });
-        return { data, error };
-    },
-
-    async signOut() {
-        await ensureSupabaseInitialized();
-        const { error } = await supabase.auth.signOut();
-        return { error };
-    },
-
-    async getUser() {
-        await ensureSupabaseInitialized();
-        const { data: { user } } = await supabase.auth.getUser();
-        return user;
-    },
-
-    async signInAnonymously() {
-        throw new Error('Anonymous sign-in is disabled in production');
-    },
-
-    onAuthStateChange(callback) {
-        if (supabaseClient) {
-            return supabase.auth.onAuthStateChange(callback);
-        }
-        // If not initialized yet, wait for initialization
-        if (supabaseInitPromise) {
-            supabaseInitPromise.then(() => {
-                return supabase.auth.onAuthStateChange(callback);
-            });
-        }
-        return { data: { subscription: null }, error: new Error('Supabase not initialized') };
-    }
-};
-
-export const debug = {
-    async testConnection() {
-        if (window.location.hostname === 'localhost') {
-            try {
-                await ensureSupabaseInitialized();
-                const { data, error } = await supabase.from('trackings').select('count').limit(1);
-                if (error) throw error;
-                return true;
-            } catch (error) {
-                console.error('Supabase connection failed:', error);
-                return false;
-            }
-        }
-        return null;
-    }
-};
-
-// Listener per lo stato di autenticazione
-export const getAccessToken = () => {
-    return localStorage.getItem('sb-access-token') ||
-           sessionStorage.getItem('sb-access-token');
-};
-
-// Setup auth state listener when client is available
-const setupAuthListener = () => {
-    if (supabaseClient) {
-        supabase.auth.onAuthStateChange((event, session) => {
-            if (session?.access_token) {
-                localStorage.setItem('sb-access-token', session.access_token);
-                sessionStorage.setItem('sb-access-token', session.access_token);
-            }
-
-            if (event === 'SIGNED_OUT') {
-                localStorage.removeItem('sb-access-token');
-                sessionStorage.removeItem('sb-access-token');
-            }
-
-            if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') {
-                console.log('[Auth]', event);
-            }
-        });
-    }
-};
-
-// Setup listener immediately if client is available, otherwise wait for initialization
-if (supabaseClient) {
-    setupAuthListener();
-} else if (supabaseInitPromise) {
-    supabaseInitPromise.then(setupAuthListener);
-}
-
-// Expose Supabase client globally when running in the browser
-if (typeof window !== 'undefined') {
-    window.supabase = supabase;
-    console.log('Supabase global:', window.supabase);
-}

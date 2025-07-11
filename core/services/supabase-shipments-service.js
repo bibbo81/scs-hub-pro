@@ -6,10 +6,60 @@ import { getMyOrganizationId } from '/core/services/organization-service.js';
 class SupabaseShipmentsService {
     constructor() {
         this.table = 'shipments';
+        this.initialized = false;
+        this.initPromise = null;
+    }
+
+    async ensureInitialized() {
+        if (this.initialized) return true;
+        
+        if (this.initPromise) {
+            return this.initPromise;
+        }
+        
+        this.initPromise = this._initialize();
+        return this.initPromise;
+    }
+    
+    async _initialize() {
+        try {
+            // Wait for Supabase to be ready
+            let attempts = 0;
+            const maxAttempts = 10;
+            
+            while (attempts < maxAttempts) {
+                try {
+                    const supabase = getSupabase();
+                    if (supabase) {
+                        // Test if we can get organization
+                        const orgId = await getMyOrganizationId(supabase);
+                        if (orgId || attempts > 5) { // Allow proceeding without org after some attempts
+                            this.initialized = true;
+                            return true;
+                        }
+                    }
+                } catch (e) {
+                    console.log(`Waiting for initialization... attempt ${attempts + 1}/${maxAttempts}`);
+                }
+                
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                attempts++;
+            }
+            
+            console.warn('Initialization completed with warnings');
+            this.initialized = true;
+            return true;
+        } catch (error) {
+            console.error('Failed to initialize SupabaseShipmentsService:', error);
+            this.initialized = false;
+            throw error;
+        }
     }
 
     async getAllShipments() {
         try {
+            await this.ensureInitialized();
+            
             const supabase = getSupabase();
             if (!supabase) {
                 return [];
@@ -21,15 +71,23 @@ class SupabaseShipmentsService {
                 console.error('Organization ID not found', e);
                 return [];
             }
+            
+            if (!orgId) {
+                console.warn('No organization ID, returning empty shipments');
+                return [];
+            }
+            
             const query = supabase
                 .from(this.table)
                 .select('*')
                 .eq('organization_id', orgId);
             const { data, error } = await query.order('created_at', { ascending: false });
             if (error) throw error;
+            
+            console.log(`✅ Loaded ${data?.length || 0} shipments from Supabase`);
             return data || [];
         } catch (e) {
-            console.error('❌ SupabaseShipmentsService.getAllShipments:', e);
+            console.error('❌ SupabaseShipmentsService.getAllShipments:', e.message);
             return [];
         }
     }
@@ -64,6 +122,8 @@ class SupabaseShipmentsService {
         let orgId = null;
         let userId = null;
         try {
+            await this.ensureInitialized();
+            
             const supabase = getSupabase();
             if (!supabase) {
                 return null;
@@ -156,6 +216,8 @@ class SupabaseShipmentsService {
 
     async updateShipment(id, updates) {
         try {
+            await this.ensureInitialized();
+            
             const supabase = getSupabase();
             if (!supabase) {
                 return null;
@@ -188,6 +250,8 @@ class SupabaseShipmentsService {
 
     async deleteShipment(id) {
         try {
+            await this.ensureInitialized();
+            
             const supabase = getSupabase();
             if (!supabase) {
                 throw new Error('Supabase client non disponibile');
@@ -202,4 +266,12 @@ class SupabaseShipmentsService {
     }
 }
 
-export default new SupabaseShipmentsService();
+// Export as singleton
+const shipmentsService = new SupabaseShipmentsService();
+
+// Make available globally
+if (typeof window !== 'undefined') {
+    window.SupabaseShipmentsService = shipmentsService;
+}
+
+export default shipmentsService;
