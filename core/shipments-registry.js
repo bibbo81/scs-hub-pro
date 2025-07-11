@@ -1,7 +1,7 @@
 // shipments-registry.js - Enhanced Shipments Registry with Supabase support
 // Path: /core/shipments-registry.js
 import supabaseShipmentsService from '/core/services/supabase-shipments-service.js';
-import '/core/supabase-init.js';
+import supabaseReady from '/core/supabase-init.js';
 import { getSupabase } from '/core/services/supabase-client.js';
 import { getMyOrganizationId } from '/core/services/organization-service.js';
 
@@ -23,8 +23,11 @@ class ShipmentsRegistry {
         }
         
         console.log('🚀 Initializing ShipmentsRegistry...');
-        
+
         try {
+            // Wait for Supabase client to be ready
+            await supabaseReady;
+
             // Load existing shipments from Supabase
             await this.loadShipments();
             
