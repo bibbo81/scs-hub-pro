@@ -1,5 +1,5 @@
 // core/services/supabase-shipments-service.js
-import '/core/supabase-init.js';
+import { supabaseReady } from '/core/supabase-init.js';
 import { getSupabase } from '/core/services/supabase-client.js';
 import { getMyOrganizationId } from '/core/services/organization-service.js';
 
@@ -9,6 +9,12 @@ class SupabaseShipmentsService {
     }
 
     async getAllShipments() {
+        try {
+            await supabaseReady;
+        } catch (e) {
+            console.error('Supabase initialization failed', e);
+            return [];
+        }
         try {
             const supabase = getSupabase();
             if (!supabase) {
@@ -63,6 +69,12 @@ class SupabaseShipmentsService {
     async createShipment(shipment) {
         let orgId = null;
         let userId = null;
+        try {
+            await supabaseReady;
+        } catch (e) {
+            console.error('Supabase initialization failed', e);
+            return null;
+        }
         try {
             const supabase = getSupabase();
             if (!supabase) {
@@ -156,6 +168,12 @@ class SupabaseShipmentsService {
 
     async updateShipment(id, updates) {
         try {
+            await supabaseReady;
+        } catch (e) {
+            console.error('Supabase initialization failed', e);
+            return null;
+        }
+        try {
             const supabase = getSupabase();
             if (!supabase) {
                 return null;
@@ -188,16 +206,22 @@ class SupabaseShipmentsService {
 
     async deleteShipment(id) {
         try {
+            await supabaseReady;
+        } catch (e) {
+            console.error('Supabase initialization failed', e);
+            return false;
+        }
+        try {
             const supabase = getSupabase();
             if (!supabase) {
-                throw new Error('Supabase client non disponibile');
+                return false;
             }
             const { error } = await supabase.from(this.table).delete().eq('id', id);
             if (error) throw error;
             return true;
         } catch (e) {
             console.error('❌ SupabaseShipmentsService.deleteShipment:', e);
-            throw e;
+            return false;
         }
     }
 }
