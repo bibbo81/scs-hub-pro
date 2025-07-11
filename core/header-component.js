@@ -495,56 +495,18 @@ export class HeaderComponent {
             
             // Check 3: Verifica se abbiamo dati validi
             const currentOrg = window.organizationService.getCurrentOrg();
-            const userOrgs = window.organizationService.getUserOrgs();
 
-            if (!currentOrg || !userOrgs) {
+            if (!currentOrg) {
                 console.error('[Header] Organization data missing');
                 return '';
             }
 
-            // Se esiste una sola organizzazione, mostra comunque le info
-            if (userOrgs.length === 1) {
-                return `
-                    <div class="org-selector" id="orgSelector">
-                        <div class="org-single">
-                            <i class="fas fa-building"></i>
-                            <strong>${currentOrg.organizations?.name || 'Organization'}</strong>
-                            <small style="color: var(--sol-gray-600);">${currentOrg.role || ''}</small>
-                        </div>
-                    </div>
-                `;
-            }
-
-            // Solo ora renderizza il selector per più organizzazioni
-            
-            // Solo ora renderizza il selector
             return `
                 <div class="org-selector" id="orgSelector">
-                    <button class="sol-btn sol-btn-glass" id="orgSelectorBtn" onclick="window.toggleOrgDropdown && window.toggleOrgDropdown(event)">
+                    <div class="org-single">
                         <i class="fas fa-building"></i>
-                        <span class="hide-mobile">${currentOrg.organizations?.name || 'Organization'}</span>
-                        <i class="fas fa-chevron-down"></i>
-                    </button>
-                    <div class="sol-dropdown" id="orgDropdown" style="display: none;">
-                        <div class="sol-dropdown-header">
-                            <h4>Switch Organization</h4>
-                        </div>
-                        <div class="sol-dropdown-body">
-                            ${userOrgs.map(membership => `
-                                <div class="sol-dropdown-item ${membership.organization_id === currentOrg.organization_id ? 'active' : ''}"
-                                     onclick="window.switchOrganization && window.switchOrganization('${membership.organization_id}')">
-                                    <div style="display: flex; justify-content: space-between; align-items: center;">
-                                        <div>
-                                            <strong>${membership.organizations?.name || 'Unknown'}</strong>
-                                            <br>
-                                            <small style="color: var(--sol-gray-600);">${membership.role || 'member'}</small>
-                                        </div>
-                                        ${membership.organization_id === currentOrg.organization_id ? 
-                                            '<i class="fas fa-check" style="color: var(--sol-success);"></i>' : ''}
-                                    </div>
-                                </div>
-                            `).join('')}
-                        </div>
+                        <strong>${currentOrg.organizations?.name || 'Organization'}</strong>
+                        <small style="color: var(--sol-gray-600);">${currentOrg.role || ''}</small>
                     </div>
                 </div>
             `;
