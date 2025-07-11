@@ -22,9 +22,11 @@ class AuthGuard {
             console.log('[AuthGuard] Auth state changed:', event);
             
             if (event === 'SIGNED_OUT') {
-                // Se l'utente fa logout, redirect al login
-                if (!this.isPublicPage()) {
+                // Se l'utente fa logout, redirect al login (unless in debug mode)
+                if (!this.isPublicPage() && !window.SCS_HUB_DEBUG_PAUSE) {
                     window.location.href = this.redirectUrl;
+                } else if (window.SCS_HUB_DEBUG_PAUSE) {
+                    console.log('🛑 DEBUG MODE: User signed out but redirect blocked');
                 }
             }
         });
@@ -66,8 +68,12 @@ class AuthGuard {
                 // Salva la pagina di destinazione per redirect dopo login
                 sessionStorage.setItem('redirectAfterLogin', window.location.href);
                 
-                // Redirect al login
-                window.location.href = this.redirectUrl;
+                // Redirect al login (unless in debug mode)
+                if (!window.SCS_HUB_DEBUG_PAUSE) {
+                    window.location.href = this.redirectUrl;
+                } else {
+                    console.log('🛑 DEBUG MODE: No session found but redirect blocked');
+                }
                 return false;
             }
             
@@ -187,15 +193,23 @@ class AuthGuard {
 // Crea istanza singleton
 const authGuard = new AuthGuard();
 
-// Auto-inizializza quando il DOM è pronto
+// Auto-inizializza quando il DOM è pronto (unless in debug mode)
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', async () => {
-        await authGuard.init();
-        await authGuard.checkAuth();
+        if (!window.SCS_HUB_DEBUG_PAUSE) {
+            await authGuard.init();
+            await authGuard.checkAuth();
+        } else {
+            console.log('🛑 DEBUG MODE: AuthGuard auto-initialization blocked');
+        }
     });
 } else {
-    // DOM già caricato
-    authGuard.init().then(() => authGuard.checkAuth());
+    // DOM già caricato (unless in debug mode)
+    if (!window.SCS_HUB_DEBUG_PAUSE) {
+        authGuard.init().then(() => authGuard.checkAuth());
+    } else {
+        console.log('🛑 DEBUG MODE: AuthGuard auto-initialization blocked');
+    }
 }
 
 // Esporta per uso globale

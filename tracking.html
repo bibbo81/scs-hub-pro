@@ -3,9 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script>debugger;</script>
     <script>
+    // TEMPORARY DEBUG MODE: Block all auto-redirects and auto-initialization
+    window.SCS_HUB_DEBUG_PAUSE = true;
     // TEMPORARY FIX: Disable auto-sync to prevent loops
     window.DISABLE_AUTO_SYNC = true;
+    console.log('🛑 Debug mode enabled - auto-redirects and auto-initialization disabled');
     console.log('🛑 Auto-sync disabled to prevent loops');
     </script>
     <script src="/core/env-check.js"></script>
@@ -29,6 +33,11 @@
     <!-- Ensure Tracking Service is ready -->
     <script type="module">
         document.addEventListener('DOMContentLoaded', async () => {
+            if (window.SCS_HUB_DEBUG_PAUSE) {
+                console.log('🛑 DEBUG MODE: TrackingService readiness check blocked');
+                return;
+            }
+            
             let retries = 10;
             while ((!window.trackingService || !window.trackingService.initialized) && retries > 0) {
                 await new Promise(resolve => setTimeout(resolve, 100));
@@ -122,6 +131,104 @@
     }
 
     </style>
+    
+    <!-- DEBUG SCRIPT: Session and RLS Testing -->
+    <script>
+    // This script runs after global variables are loaded but before any auto-initialization
+    if (window.SCS_HUB_DEBUG_PAUSE) {
+        document.addEventListener('DOMContentLoaded', async () => {
+            console.log('🔍 DEBUG MODE: Starting session and RLS diagnostics...');
+            
+            try {
+                // Wait a bit for any async loading to complete
+                await new Promise(resolve => setTimeout(resolve, 2000));
+                
+                console.log('📊 === SESSION DEBUG INFO ===');
+                
+                // Check if Supabase is available
+                if (window.supabase) {
+                    console.log('✅ Supabase client is available');
+                    
+                    // Get current session
+                    const { data: { session }, error: sessionError } = await window.supabase.auth.getSession();
+                    
+                    if (sessionError) {
+                        console.error('❌ Session error:', sessionError);
+                    } else if (session) {
+                        console.log('✅ Active session found:');
+                        console.log('  - User ID:', session.user?.id);
+                        console.log('  - Email:', session.user?.email || 'Anonymous');
+                        console.log('  - Expires at:', new Date(session.expires_at * 1000).toLocaleString());
+                        console.log('  - Session is expired:', new Date(session.expires_at * 1000) < new Date());
+                        
+                        // Try to refresh if expired
+                        if (new Date(session.expires_at * 1000) < new Date()) {
+                            console.log('🔄 Session expired, attempting refresh...');
+                            const { data: refreshData, error: refreshError } = await window.supabase.auth.refreshSession();
+                            if (refreshError) {
+                                console.error('❌ Refresh failed:', refreshError);
+                            } else {
+                                console.log('✅ Session refreshed successfully');
+                            }
+                        }
+                    } else {
+                        console.log('⚠️ No active session found');
+                    }
+                    
+                    // Test membership data access
+                    console.log('📊 === MEMBERSHIP DATA TEST ===');
+                    try {
+                        const { data: membershipData, error: membershipError } = await window.supabase
+                            .from('memberships')
+                            .select('*')
+                            .limit(5);
+                            
+                        if (membershipError) {
+                            console.error('❌ Membership query error (RLS?):', membershipError);
+                        } else {
+                            console.log('✅ Membership data accessible:', membershipData?.length || 0, 'records');
+                        }
+                    } catch (err) {
+                        console.error('❌ Membership query exception:', err);
+                    }
+                    
+                    // Test shipments data access
+                    console.log('📊 === SHIPMENTS DATA TEST ===');
+                    try {
+                        const { data: shipmentsData, error: shipmentsError } = await window.supabase
+                            .from('shipments')
+                            .select('*')
+                            .limit(5);
+                            
+                        if (shipmentsError) {
+                            console.error('❌ Shipments query error (RLS?):', shipmentsError);
+                        } else {
+                            console.log('✅ Shipments data accessible:', shipmentsData?.length || 0, 'records');
+                        }
+                    } catch (err) {
+                        console.error('❌ Shipments query exception:', err);
+                    }
+                    
+                } else {
+                    console.error('❌ Supabase client not available');
+                }
+                
+                console.log('📊 === GLOBAL VARIABLES ===');
+                console.log('- window.currentUser:', window.currentUser ? 'Available' : 'Not set');
+                console.log('- window.currentSession:', window.currentSession ? 'Available' : 'Not set');
+                console.log('- window.supabaseReady:', typeof window.supabaseReady);
+                console.log('- window.SCS_HUB_DEBUG_PAUSE:', window.SCS_HUB_DEBUG_PAUSE);
+                
+                console.log('🔍 === DEBUG MODE COMPLETE ===');
+                console.log('💡 You can now manually test queries in the console without automatic redirects');
+                console.log('💡 Use window.supabase.from("table_name").select("*") to test RLS policies');
+                
+            } catch (error) {
+                console.error('❌ Debug script error:', error);
+            }
+        });
+    }
+    </script>
 </head>
 <body>
     <!-- Header will be injected here -->
@@ -743,8 +850,13 @@ document.addEventListener('DOMContentLoaded', () => {
 // Fix per l'ordine di caricamento
 import { getSupabase, waitForSession } from '/core/services/supabase-client.js';
 
-// Aspetta che tutto sia pronto prima di inizializzare
+// Aspetta che tutto sia pronto prima di inizializzare (unless in debug mode)
 document.addEventListener('DOMContentLoaded', async () => {
+    if (window.SCS_HUB_DEBUG_PAUSE) {
+        console.log('🛑 DEBUG MODE: Main initialization script blocked');
+        return;
+    }
+    
     try {
         console.log('🔄 Waiting for Supabase and session...');
         
@@ -784,8 +896,13 @@ document.addEventListener('DOMContentLoaded', async () => {
 <!-- Debug Auth Context -->
 <script src="/auth-context-debug.js"></script>
 <script>
-// Auto-run debug dopo inizializzazione
+// Auto-run debug dopo inizializzazione (unless in debug mode)
 document.addEventListener('DOMContentLoaded', () => {
+    if (window.SCS_HUB_DEBUG_PAUSE) {
+        console.log('🛑 DEBUG MODE: Auto debug auth context blocked');
+        return;
+    }
+    
     if (window.supabaseReady) {
         window.supabaseReady.then(() => {
             setTimeout(() => {
