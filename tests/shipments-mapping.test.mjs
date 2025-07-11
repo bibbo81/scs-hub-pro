@@ -44,7 +44,7 @@ function convert(row) {
             : def;
 
     return {
-        shipmentNumber: get('shipment_number'),
+        shipment_number: get('shipment_number'),
         type: (get('type', 'container') || 'container').toLowerCase(),
         status: window.ShipmentUnifiedMapping.mapStatus(get('status', 'planned')),
         carrier: {
@@ -130,7 +130,7 @@ const sample = {
 };
 
 const result = convert(sample);
-assert.strictEqual(result.shipmentNumber, '123');
+assert.strictEqual(result.shipment_number, '123');
 assert.strictEqual(result.status, 'departed');
 assert.strictEqual(result.carrier.code, 'MSK');
 assert.strictEqual(result.route.origin.port, 'CNSHA');
@@ -148,7 +148,7 @@ const aliasSample = {
 };
 
 const aliasResult = convert(aliasSample);
-assert.strictEqual(aliasResult.shipmentNumber, '321');
+assert.strictEqual(aliasResult.shipment_number, '321');
 assert.strictEqual(aliasResult.status, 'in_transit');
 assert.strictEqual(aliasResult.carrier.code, 'MSCU');
 assert.strictEqual(aliasResult.carrier.name, 'MSC');

@@ -43,7 +43,7 @@ if (window.ShipmentDetails) {
             // Create modal with enhanced content
             if (window.ModalSystem) {
                 window.ModalSystem.show({
-                    title: `Dettagli Spedizione - ${shipment.shipmentNumber}`,
+                    title: `Dettagli Spedizione - ${shipment.shipment_number}`,
                     content: this.getModalContent(shipment),
                     size: 'xl',
                     buttons: [
@@ -76,7 +76,7 @@ if (window.ShipmentDetails) {
             
             if (window.ModalSystem) {
                 window.ModalSystem.show({
-                    title: `Modifica Spedizione - ${shipment.shipmentNumber}`,
+                    title: `Modifica Spedizione - ${shipment.shipment_number}`,
                     content: this.getEditModalContent(shipment),
                     size: 'xl',
                     buttons: [
@@ -141,7 +141,7 @@ if (window.ShipmentDetails) {
             return `
                 <div class="shipment-modal-header">
                     <div class="shipment-info">
-                        <h3 class="shipment-number">${shipment.shipmentNumber}</h3>
+                        <h3 class="shipment-number">${shipment.shipment_number}</h3>
                         <span class="sol-badge status-${shipment.status}">
                             ${this.getStatusLabel(shipment.status)}
                         </span>
@@ -207,7 +207,7 @@ if (window.ShipmentDetails) {
                             <div class="info-grid">
                                 <div class="info-item">
                                     <label>Numero Spedizione</label>
-                                    <span class="font-mono">${shipment.shipmentNumber}</span>
+                                    <span class="font-mono">${shipment.shipment_number}</span>
                                 </div>
                                 <div class="info-item">
                                     <label>Tipo</label>
@@ -870,7 +870,7 @@ if (window.ShipmentDetails) {
                 <div class="edit-shipment-form">
                     <p>Form di modifica spedizione in sviluppo...</p>
                     <div class="form-preview">
-                        <strong>Numero:</strong> ${shipment.shipmentNumber}<br>
+                        <strong>Numero:</strong> ${shipment.shipment_number}<br>
                         <strong>Tipo:</strong> ${shipment.type}<br>
                         <strong>Stato:</strong> ${shipment.status}
                     </div>
