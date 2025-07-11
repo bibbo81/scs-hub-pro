@@ -36,8 +36,6 @@
                     }
                 }
             }
-        } else {
-            console.error('❌ organizationApiKeysService not found');
         }
         
         // 2. Controlla Supabase direttamente
@@ -226,17 +224,37 @@
         }
     };
     
-    // Auto-debug al caricamento
-    setTimeout(async () => {
+    const MAX_WAIT = 10000;
+    const INTERVAL = 100;
+    let waited = 0;
+
+    const runDebug = async () => {
         console.log('🔍 Running auto-debug...');
         const debugResult = await window.debugApiKeys();
-        
+
         if (!debugResult.hasApiKeys) {
             console.warn('⚠️ No API keys found!');
             console.log('💡 Use window.saveShipsGoApiKeys("YOUR_AUTH_CODE") to save keys');
             console.log('💡 Or use window.configureShipsGoV2() for v2 API');
         }
-    }, 2000);
+    };
+
+    function startWhenReady() {
+        if (window.organizationApiKeysService) {
+            clearInterval(waitInterval);
+            window.removeEventListener('apiKeysReady', startWhenReady);
+            runDebug();
+        } else if (waited >= MAX_WAIT) {
+            clearInterval(waitInterval);
+            window.removeEventListener('apiKeysReady', startWhenReady);
+            console.warn('⏰ organizationApiKeysService not found after waiting');
+            runDebug();
+        }
+        waited += INTERVAL;
+    }
+
+    const waitInterval = setInterval(startWhenReady, INTERVAL);
+    window.addEventListener('apiKeysReady', startWhenReady, { once: true });
     
     // Aggiungi comando help
     window.apiKeysHelp = function() {
