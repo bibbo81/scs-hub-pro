@@ -152,6 +152,14 @@ Inside `supabase/security-fixes.sql` you will find additional validation queries
 Run the SQL in `supabase/shipments_carrier_columns.sql` using the Supabase SQL editor. This adds carrier
 information fields to `public.shipments` and grants the API role permission to insert or update them.
 
+### 🛡️ Shipments access policies
+
+Execute the statements in `supabase/shipments_access_policies.sql` to enable row-level
+security on shipments. The policy **"Org members can access own shipments"**
+restricts reads to members of the same organization. The file also creates
+analogous policies for `INSERT`, `UPDATE` and `DELETE` so organization members can
+manage only their own shipments.
+
 ## 🯩 Browser extension
 
 This repository does not include Chrome extension files like `background.js` or `content.js`. If you encounter errors referencing these scripts, they originate from an optional browser add-on maintained separately from **SCS Hub Pro**.
