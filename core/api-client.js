@@ -182,7 +182,7 @@ export class ApiClient {
         
         return data;
     }
-    }
+    // ❌ RIMUOVI QUESTA RIGA 185: }
     
     // Enhanced error handling with better user feedback
     handleError(error, options = {}) {
@@ -323,7 +323,7 @@ export class ApiClient {
         
         return Promise.all(promises);
     }
-}
+} // ✅ QUESTA È LA CHIUSURA CORRETTA DELLA CLASSE
 
 // Create singleton instance
 const apiClient = new ApiClient();

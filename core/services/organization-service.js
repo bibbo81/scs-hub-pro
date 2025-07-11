@@ -1,111 +1,129 @@
-// core/services/organization-service.js - Fixed to handle initialization properly
+// core/services/organization-service.js
 import { getSupabase } from '/core/services/supabase-client.js';
 
-// Cache organization ID to avoid repeated queries
-let cachedOrgId = null;
+// Cache organization ID to avoid repeated queries + miglioramenti
+let organizationCache = null;
+let isLoading = false;
 
-export async function getMyOrganizationId(supabaseClient = null) {
+export async function getMyOrganizationId(supabaseClient = null, retries = 3) {
+    // Usa cache se disponibile
+    if (organizationCache) {
+        return organizationCache;
+    }
+
+    // Evita chiamate multiple simultanee
+    if (isLoading) {
+        return new Promise((resolve, reject) => {
+            const checkCache = () => {
+                if (organizationCache) {
+                    resolve(organizationCache);
+                } else if (!isLoading) {
+                    reject(new Error('Organization loading failed'));
+                } else {
+                    setTimeout(checkCache, 100);
+                }
+            };
+            checkCache();
+        });
+    }
+
+    isLoading = true;
+
     try {
-        // Return cached value if available
-        if (cachedOrgId) {
-            return cachedOrgId;
-        }
-        
-        // Get Supabase client
+        // Get Supabase client se non fornito
         let supabase = supabaseClient;
         if (!supabase) {
             try {
                 supabase = getSupabase();
             } catch (error) {
                 console.warn('Supabase client not initialized yet:', error.message);
-                return null;
+                throw new Error('Supabase client not initialized');
             }
         }
-        
+
         if (!supabase) {
             console.warn('Supabase client not available, organization ID will be null');
-            return null;
+            throw new Error('Supabase client not available');
         }
-        
-        // Check if we have a valid session first
+
+        // Verifica sessione utente
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
         if (sessionError || !session) {
-            console.warn('No valid session available for organization lookup');
-            return null;
+            throw new Error('No valid session found');
         }
-        
-        // Get current user
-        const { data: { user }, error: userError } = await supabase.auth.getUser();
+
+        // Ottieni dati utente con organizzazione
+        const { data: userData, error: userError } = await supabase
+            .from('user_organizations')
+            .select(`
+                organization_id,
+                organizations!inner(
+                    id,
+                    name,
+                    status
+                )
+            `)
+            .eq('user_id', session.user.id)
+            .eq('organizations.status', 'active')
+            .single();
+
         if (userError) {
-            console.error('Error getting user:', userError);
-            return null;
+            if (retries > 0) {
+                console.warn(`[OrganizationService] Retry attempt ${4 - retries}`);
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                return getMyOrganizationId(supabase, retries - 1);
+            }
+            throw new Error(`Organization query failed: ${userError.message}`);
         }
-        
-        if (!user) {
-            console.warn('No authenticated user');
-            return null;
+
+        if (!userData?.organization_id) {
+            throw new Error('No organization found for user');
         }
-        
-        console.log('Current user:', user.email);
-        
-        // Get organization membership
-        const { data: memberships, error: memberError } = await supabase
-            .from('organization_members')
-            .select('organization_id')
-            .eq('user_id', user.id)
-            .limit(1);
-            
-        if (memberError) {
-            console.error('Error fetching organization membership:', memberError);
-            return null;
-        }
-        
-        if (!memberships || memberships.length === 0) {
-            console.warn('User has no organization membership');
-            return null;
-        }
-        
-        const orgId = memberships[0].organization_id;
-        console.log('Found organization ID:', orgId);
-        
-        // Cache the result
-        cachedOrgId = orgId;
-        
-        // Get organization details for logging
+
+        // Cache il risultato
+        organizationCache = userData.organization_id;
+        console.log(`[OrganizationService] Organization cached: ${organizationCache}`);
+
+        // Ottieni dettagli organizzazione per logging (opzionale)
         try {
             const { data: org } = await supabase
                 .from('organizations')
                 .select('name')
-                .eq('id', orgId)
+                .eq('id', organizationCache)
                 .single();
-            
+
             if (org) {
                 console.log('Organization name:', org.name);
             }
         } catch (e) {
             // Non-critical error
         }
-        
-        return orgId;
-        
+
+        return organizationCache;
+
     } catch (error) {
-        console.error('Error in getMyOrganizationId:', error);
-        return null;
+        console.error('[OrganizationService] Error:', error);
+        throw error;
+    } finally {
+        isLoading = false;
     }
 }
 
-// Clear cache on auth state change
+// Funzione per pulire la cache (utile per logout)
+export function clearOrganizationCache() {
+    organizationCache = null;
+    isLoading = false;
+    console.log('Organization cache cleared');
+}
+
+// (OPZIONALE) Clear cache su evento di logout globale lato client
 if (typeof window !== 'undefined') {
     window.getMyOrganizationId = getMyOrganizationId;
-    window.clearOrganizationCache = () => {
-        cachedOrgId = null;
-        console.log('Organization cache cleared');
-    };
-    
-    // Clear cache on logout
+    window.clearOrganizationCache = clearOrganizationCache;
+
     window.addEventListener('auth-state-changed', (event) => {
         if (event.detail === 'SIGNED_OUT') {
-            cachedOrgId = null;
+            clearOrganizationCache();
         }
     });
 }

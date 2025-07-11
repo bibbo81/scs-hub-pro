@@ -18,6 +18,30 @@
     <link rel="stylesheet" href="/pages/tracking/tracking-complete.css">
     <link rel="stylesheet" href="/pages/tracking/tracking-table.css">
 
+    <!-- Init Tracking Service -->
+    <script type="module" src="/core/tracking-service-init.js"></script>
+
+    <!-- Ensure Tracking Service is ready -->
+    <script type="module">
+        document.addEventListener('DOMContentLoaded', async () => {
+            let retries = 10;
+            while ((!window.trackingService || !window.trackingService.initialized) && retries > 0) {
+                await new Promise(resolve => setTimeout(resolve, 100));
+                retries--;
+            }
+
+            if (!window.trackingService?.initialized) {
+                console.error('❌ TrackingService failed to initialize');
+                return;
+            }
+
+            console.log('✅ TrackingService ready, proceeding with page initialization');
+            if (typeof initTrackingPage === 'function') {
+                initTrackingPage();
+            }
+        });
+    </script>
+
     <!-- Tracking Service -->
     <script type="module" src="/core/services/supabase-client.js"></script>
     <script type="module" src="/core/services/tracking-service.js"></script>
