@@ -14,11 +14,23 @@ export async function getMyOrganizationId(supabaseClient = null) {
         // Get Supabase client
         let supabase = supabaseClient;
         if (!supabase) {
-        supabase = getSupabase();
+            try {
+                supabase = getSupabase();
+            } catch (error) {
+                console.warn('Supabase client not initialized yet:', error.message);
+                return null;
+            }
         }
         
         if (!supabase) {
-            console.error('Supabase client not available');
+            console.warn('Supabase client not available, organization ID will be null');
+            return null;
+        }
+        
+        // Check if we have a valid session first
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        if (sessionError || !session) {
+            console.warn('No valid session available for organization lookup');
             return null;
         }
         

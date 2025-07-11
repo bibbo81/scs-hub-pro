@@ -96,6 +96,17 @@ async function performInitialization() {
         // Make Supabase available globally
         window.supabase = supabase;
         
+        // Emit custom event for Supabase ready
+        const supabaseReadyEvent = new CustomEvent('supabase-ready', {
+            detail: {
+                supabase: supabase,
+                session: session,
+                user: session?.user || null
+            }
+        });
+        window.dispatchEvent(supabaseReadyEvent);
+        console.log('✅ Supabase ready event emitted');
+        
         return supabase;
     } catch (error) {
         console.error('Failed to initialize Supabase:', error);
@@ -138,6 +149,8 @@ if (typeof window !== 'undefined') {
         return null;
     };
     window.getSupabaseAsync = getSupabaseAsync;
+    window.waitForSupabaseReady = waitForSupabaseReady;
+    window.waitForValidSession = waitForValidSession;
     
     // Initialize immediately
     console.log('Starting Supabase auto-initialization...');
@@ -196,6 +209,66 @@ export async function checkSession() {
         console.warn('Session check failed:', error);
         return null;
     }
+}
+
+// Helper function to wait for Supabase to be ready
+export function waitForSupabaseReady() {
+    return new Promise((resolve) => {
+        if (initialized && supabase) {
+            resolve({ supabase, session: window.currentSession, user: window.currentUser });
+        } else {
+            window.addEventListener('supabase-ready', (event) => {
+                resolve(event.detail);
+            }, { once: true });
+        }
+    });
+}
+
+// Helper function to wait for valid session
+export async function waitForValidSession(timeout = 10000) {
+    return new Promise(async (resolve, reject) => {
+        const timeoutId = setTimeout(() => {
+            reject(new Error('Timeout waiting for valid session'));
+        }, timeout);
+        
+        const checkSession = async () => {
+            try {
+                const session = await checkSession();
+                if (session && session.user) {
+                    clearTimeout(timeoutId);
+                    resolve(session);
+                    return true;
+                }
+            } catch (error) {
+                console.warn('Session check failed:', error);
+            }
+            return false;
+        };
+        
+        // Check immediately
+        if (await checkSession()) return;
+        
+        // Listen for auth state changes
+        const handleSupabaseReady = async () => {
+            if (await checkSession()) return;
+            
+            // Set up auth listener
+            const supabase = getSupabase();
+            const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+                if (session && session.user) {
+                    clearTimeout(timeoutId);
+                    subscription.unsubscribe();
+                    resolve(session);
+                }
+            });
+        };
+        
+        if (initialized) {
+            handleSupabaseReady();
+        } else {
+            window.addEventListener('supabase-ready', handleSupabaseReady, { once: true });
+        }
+    });
 }
 
 // Export Supabase instance for backward compatibility

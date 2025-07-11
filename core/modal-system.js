@@ -676,26 +676,27 @@ class CompleteModalSystem {
         
         if (config.buttons && Array.isArray(config.buttons) && config.buttons.length > 0) {
             config.buttons.forEach((btn, index) => {
-            if (btn.onclick && typeof btn.onclick === 'function') {
-                const btnElement = document.querySelector(`[data-modal-action="button-${index}"][data-modal-id="${modalId}"]`);
-                if (btnElement) {
-                    btnElement.addEventListener('click', (e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        
-                        try {
-                            const result = btn.onclick();
-                            if (result !== false) {
+                if (btn.onclick && typeof btn.onclick === 'function') {
+                    const btnElement = document.querySelector(`[data-modal-action="button-${index}"][data-modal-id="${modalId}"]`);
+                    if (btnElement) {
+                        btnElement.addEventListener('click', (e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            
+                            try {
+                                const result = btn.onclick();
+                                if (result !== false) {
+                                    this.close(modalId);
+                                }
+                            } catch (error) {
+                                console.error('Error in button click handler:', error);
                                 this.close(modalId);
                             }
-                        } catch (error) {
-                            console.error('Error in button click handler:', error);
-                            this.close(modalId);
-                        }
-                    });
+                        });
+                    }
                 }
-            }
-        });
+            });
+        }
     }
 
     show_confirm(message, title = 'Conferma') {
