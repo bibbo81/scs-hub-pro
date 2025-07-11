@@ -72,16 +72,14 @@ if (!window.trackingService) {
     window.trackingService = new TrackingService();
 }
 
-// Auto-inizializzazione sicura (unless in debug mode)
+// Auto-inizializzazione sicura
 const initService = async () => {
     try {
-        if (!window.SCS_HUB_DEBUG_PAUSE && window.trackingService && typeof window.trackingService.init === 'function') {
+        if (window.trackingService && typeof window.trackingService.init === 'function') {
             const success = await window.trackingService.init();
             if (success) {
                 console.log('[TrackingService] ✅ Auto-initialization complete');
             }
-        } else if (window.SCS_HUB_DEBUG_PAUSE) {
-            console.log('🛑 DEBUG MODE: TrackingService auto-initialization blocked');
         }
     } catch (error) {
         console.error('[TrackingService] Auto-init failed:', error);
