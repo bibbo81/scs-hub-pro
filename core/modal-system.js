@@ -387,7 +387,7 @@ class CompleteModalSystem {
         }
 
         let footer = '';
-        if (config.buttons && config.buttons.length > 0) {
+        if (config.buttons && Array.isArray(config.buttons) && config.buttons.length > 0) {
             footer = config.buttons.map((btn, index) => `
                 <button class="sol-btn ${btn.class || 'sol-btn-primary'}" 
                         data-modal-action="button-${index}"
@@ -675,7 +675,8 @@ class CompleteModalSystem {
     setupCustomButtonHandlers(modalId, config) {
         if (!config.buttons) return;
         
-        config.buttons.forEach((btn, index) => {
+        if (config.buttons && Array.isArray(config.buttons) && config.buttons.length > 0) {
+            config.buttons.forEach((btn, index) => {
             if (btn.onclick && typeof btn.onclick === 'function') {
                 const btnElement = document.querySelector(`[data-modal-action="button-${index}"][data-modal-id="${modalId}"]`);
                 if (btnElement) {

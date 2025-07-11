@@ -1,7 +1,7 @@
 // header-component.js - Header unificato con SINGLETON PATTERN ROBUSTO
 import api from '/core/api-client.js';
 import notificationSystem from '/core/notification-system.js';
-import { supabase, initializeSupabase } from '/core/services/supabase-client.js';
+import { initializeSupabase, getSupabase } from '/core/services/supabase-client.js';
 import { getMyOrganizationId } from '/core/services/organization-service.js';
 
 // SINGLETON PATTERN ROBUSTO
@@ -370,6 +370,7 @@ export class HeaderComponent {
         
         try {
             await initializeSupabase();
+            const supabase = getSupabase();
             if (supabase) {
                 const { data: { user } } = await supabase.auth.getUser();
                 
@@ -813,6 +814,7 @@ export class HeaderComponent {
         }
         
         // FIX: Listen for auth state changes con gestione notifiche migliorata
+        const supabase = getSupabase();
         if (supabase && !this._authListenerAttached) {
             supabase.auth.onAuthStateChange((event, session) => {
                 this.handleAuthStateChange(event, session);

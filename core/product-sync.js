@@ -95,7 +95,7 @@ class ProductSync {
             // Se abbiamo trovato prodotti, sincronizzali
             if (products.length > 0) {
                 // Normalizza la struttura dei prodotti
-                const normalizedProducts = products.map(p => ({
+                const normalizedProducts = (Array.isArray(products) ? products : []).map(p => ({
                     id: p.id || `PROD-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
                     sku: p.sku || p.code || 'N/A',
                     name: p.name || p.productName || p.description || p.descrizione || 'Unnamed Product',

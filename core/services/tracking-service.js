@@ -4,7 +4,7 @@
 import supabaseTrackingService from '/core/services/supabase-tracking-service.js';
 import userSettingsService from '/core/services/user-settings-service.js';
 import organizationApiKeysService from '/core/services/organization-api-keys-service.js';
-import { supabase, initializeSupabase } from '/core/services/supabase-client.js';
+import { initializeSupabase, getSupabase } from '/core/services/supabase-client.js';
 
 class TrackingService {
     constructor() {
@@ -125,6 +125,7 @@ return true;
     async testSupabaseConnection() {
         try {
             await initializeSupabase();
+            const supabase = getSupabase();
             const { data: { user } } = await supabase.auth.getUser();
             return !!user;
         } catch (e) {
@@ -328,6 +329,7 @@ return true;
 
         if (this.useSupabase) {
             // Usa Edge Function invece di chiamata diretta
+            const supabase = getSupabase();
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) {
                 throw new Error('User not authenticated');

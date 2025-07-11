@@ -106,6 +106,7 @@ async function performInitialization() {
 }
 
 // Export functions
+export { initializeSupabase };
 export function getSupabase() {
     if (!initialized || !supabase) {
         throw new Error('Supabase client not initialized. Call initializeSupabase() first.');
@@ -146,4 +147,5 @@ if (typeof window !== 'undefined') {
 }
 
 // Export Supabase instance for backward compatibility
+// TODO: Remove direct supabase export in favor of getSupabase() to ensure proper initialization
 export { supabase };
