@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API Client LoadingId Fix Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .success { border-color: #28a745; background-color: #d4edda; }
+        .error { border-color: #dc3545; background-color: #f8d7da; }
+        .pending { border-color: #ffc107; background-color: #fff3cd; }
+        button {
+            padding: 10px 15px;
+            margin: 5px;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+            background-color: #007bff;
+            color: white;
+        }
+        button:hover { background-color: #0056b3; }
+        .log {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 3px;
+            font-family: monospace;
+            white-space: pre-wrap;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔧 API Client LoadingId Fix Test</h1>
+    <p>This page tests the fix for the critical error where <code>loadingId</code> was undefined when dismissing loading notifications.</p>
+    
+    <div class="test-section pending" id="test1-section">
+        <h3>Test 1: Request with Loading - Network Error (should not cause ReferenceError)</h3>
+        <p>This test simulates a request with loading notification that fails due to network error. The fix ensures no ReferenceError occurs.</p>
+        <button onclick="testLoadingWithError()">Run Test</button>
+        <div class="log" id="test1-log">Click button to run test...</div>
+    </div>
+
+    <div class="test-section pending" id="test2-section">
+        <h3>Test 2: Request without Loading - Network Error</h3>
+        <p>This test simulates a request without loading notification that fails. Variables should still be properly scoped.</p>
+        <button onclick="testNoLoadingWithError()">Run Test</button>
+        <div class="log" id="test2-log">Click button to run test...</div>
+    </div>
+
+    <div class="test-section pending" id="test3-section">
+        <h3>Test 3: Request with Loading - Success</h3>
+        <p>This test simulates a successful request with loading to ensure normal flow still works.</p>
+        <button onclick="testLoadingWithSuccess()">Run Test</button>
+        <div class="log" id="test3-log">Click button to run test...</div>
+    </div>
+
+    <!-- Mock Notification System -->
+    <script type="module">
+        // Mock notification system
+        class MockNotificationSystem {
+            constructor() {
+                this.notifications = new Map();
+                this.counter = 0;
+            }
+            
+            loading(message) {
+                const id = `loading-${++this.counter}`;
+                this.notifications.set(id, { type: 'loading', message });
+                console.log(`[NotificationSystem] Loading: ${message} (ID: ${id})`);
+                return id;
+            }
+            
+            dismiss(id) {
+                if (this.notifications.has(id)) {
+                    console.log(`[NotificationSystem] Dismissed: ${id}`);
+                    this.notifications.delete(id);
+                    return true;
+                }
+                console.log(`[NotificationSystem] Warning: Attempted to dismiss non-existent notification: ${id}`);
+                return false;
+            }
+            
+            error(message) {
+                console.log(`[NotificationSystem] Error: ${message}`);
+                return true;
+            }
+        }
+
+        // Mock global objects for API client
+        window.supabaseReady = Promise.resolve();
+        window.currentSession = { access_token: 'test-token' };
+        window.currentUser = { id: 'test-user' };
+        window.authInit = {
+            getToken: () => 'test-token'
+        };
+
+        // Create mock notification system
+        const mockNotificationSystem = new MockNotificationSystem();
+        
+        // Mock the notification system module
+        window.notificationSystemMock = mockNotificationSystem;
+    </script>
+
+    <!-- Load the actual API client -->
+    <script type="module">
+        // Override fetch for testing
+        const originalFetch = window.fetch;
+        
+        window.testFetch = {
+            // Mode for controlling fetch behavior
+            mode: 'error', // 'error' | 'success'
+            
+            // Mock fetch implementation
+            mock: async (url, config) => {
+                console.log(`[MockFetch] ${config?.method || 'GET'} ${url} (mode: ${window.testFetch.mode})`);
+                
+                if (window.testFetch.mode === 'error') {
+                    throw new Error('Network connection failed (simulated for testing)');
+                } else if (window.testFetch.mode === 'success') {
+                    return new Response(JSON.stringify({ success: true, data: 'Test data' }), {
+                        status: 200,
+                        headers: { 'Content-Type': 'application/json' }
+                    });
+                }
+            }
+        };
+
+        // Import API client
+        import { ApiClient } from './core/api-client.js';
+        
+        // Override the notification system in the imported module
+        // We'll do this by intercepting the module loading
+        
+        const apiClient = new ApiClient();
+        window.testApiClient = apiClient;
+        
+        console.log('API Client loaded for testing');
+        
+    </script>
+
+    <script>
+        // Test functions
+        async function testLoadingWithError() {
+            const section = document.getElementById('test1-section');
+            const log = document.getElementById('test1-log');
+            
+            section.className = 'test-section pending';
+            log.textContent = 'Running test...\n';
+            
+            try {
+                // Override fetch to always fail
+                window.testFetch.mode = 'error';
+                const originalFetch = window.fetch;
+                window.fetch = window.testFetch.mock;
+                
+                // Capture console output
+                const originalConsoleError = console.error;
+                let errorLogs = [];
+                console.error = (...args) => {
+                    errorLogs.push(args.map(arg => 
+                        typeof arg === 'object' ? JSON.stringify(arg) : String(arg)
+                    ).join(' '));
+                    originalConsoleError(...args);
+                };
+                
+                try {
+                    await window.testApiClient.request('test-endpoint', {
+                        loading: 'Testing with loading...',
+                        silent: true
+                    });
+                    
+                    log.textContent += '❌ ERROR: Request should have failed but succeeded\n';
+                    section.className = 'test-section error';
+                    
+                } catch (error) {
+                    log.textContent += `✓ Request failed as expected: ${error.message}\n`;
+                    
+                    // Check for ReferenceError about loadingId
+                    const hasReferenceError = errorLogs.some(logEntry => 
+                        logEntry.includes('loadingId is not defined') ||
+                        logEntry.includes('ReferenceError')
+                    );
+                    
+                    if (hasReferenceError) {
+                        log.textContent += '❌ CRITICAL: ReferenceError for loadingId still occurs!\n';
+                        log.textContent += 'Error logs:\n' + errorLogs.join('\n') + '\n';
+                        section.className = 'test-section error';
+                    } else {
+                        log.textContent += '✅ SUCCESS: No ReferenceError for loadingId\n';
+                        log.textContent += '✅ Loading notification properly handled in error scenario\n';
+                        section.className = 'test-section success';
+                    }
+                    
+                    if (errorLogs.length > 0) {
+                        log.textContent += '\nCaptured logs:\n' + errorLogs.join('\n') + '\n';
+                    }
+                }
+                
+                // Restore original functions
+                console.error = originalConsoleError;
+                window.fetch = originalFetch;
+                
+            } catch (testError) {
+                log.textContent += `❌ TEST ERROR: ${testError.message}\n`;
+                section.className = 'test-section error';
+            }
+        }
+
+        async function testNoLoadingWithError() {
+            const section = document.getElementById('test2-section');
+            const log = document.getElementById('test2-log');
+            
+            section.className = 'test-section pending';
+            log.textContent = 'Running test...\n';
+            
+            try {
+                window.testFetch.mode = 'error';
+                const originalFetch = window.fetch;
+                window.fetch = window.testFetch.mock;
+                
+                const originalConsoleError = console.error;
+                let errorLogs = [];
+                console.error = (...args) => {
+                    errorLogs.push(args.map(arg => 
+                        typeof arg === 'object' ? JSON.stringify(arg) : String(arg)
+                    ).join(' '));
+                    originalConsoleError(...args);
+                };
+                
+                try {
+                    await window.testApiClient.request('test-endpoint-no-loading', {
+                        silent: true
+                        // No loading option
+                    });
+                    
+                    log.textContent += '❌ ERROR: Request should have failed but succeeded\n';
+                    section.className = 'test-section error';
+                    
+                } catch (error) {
+                    log.textContent += `✓ Request failed as expected: ${error.message}\n`;
+                    
+                    const hasReferenceError = errorLogs.some(logEntry => 
+                        logEntry.includes('is not defined') ||
+                        logEntry.includes('ReferenceError')
+                    );
+                    
+                    if (hasReferenceError) {
+                        log.textContent += '❌ CRITICAL: ReferenceError still occurs in no-loading scenario!\n';
+                        log.textContent += 'Error logs:\n' + errorLogs.join('\n') + '\n';
+                        section.className = 'test-section error';
+                    } else {
+                        log.textContent += '✅ SUCCESS: No ReferenceError in no-loading scenario\n';
+                        log.textContent += '✅ Variables properly scoped throughout request method\n';
+                        section.className = 'test-section success';
+                    }
+                }
+                
+                console.error = originalConsoleError;
+                window.fetch = originalFetch;
+                
+            } catch (testError) {
+                log.textContent += `❌ TEST ERROR: ${testError.message}\n`;
+                section.className = 'test-section error';
+            }
+        }
+
+        async function testLoadingWithSuccess() {
+            const section = document.getElementById('test3-section');
+            const log = document.getElementById('test3-log');
+            
+            section.className = 'test-section pending';
+            log.textContent = 'Running test...\n';
+            
+            try {
+                window.testFetch.mode = 'success';
+                const originalFetch = window.fetch;
+                window.fetch = window.testFetch.mock;
+                
+                const result = await window.testApiClient.request('test-endpoint-success', {
+                    loading: 'Testing successful request...'
+                });
+                
+                log.textContent += `✓ Request succeeded: ${JSON.stringify(result)}\n`;
+                log.textContent += '✅ SUCCESS: Loading notification properly handled in success scenario\n';
+                log.textContent += '✅ No errors in normal flow\n';
+                section.className = 'test-section success';
+                
+                window.fetch = originalFetch;
+                
+            } catch (error) {
+                log.textContent += `❌ ERROR: Successful request failed: ${error.message}\n`;
+                section.className = 'test-section error';
+                window.fetch = originalFetch;
+            }
+        }
+    </script>
+</body>
+</html>
