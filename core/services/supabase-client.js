@@ -119,14 +119,12 @@ async function performInitialization() {
                 window.currentSession = null;
                 sessionReady = false;
                 
-                // If user logs out, redirect to login (unless already on login page or in debug mode)
-                if (event === 'SIGNED_OUT' && !window.location.pathname.includes('login.html') && !window.SCS_HUB_DEBUG_PAUSE) {
+                // If user logs out, redirect to login (unless already on login page)
+                if (event === 'SIGNED_OUT' && !window.location.pathname.includes('login.html')) {
                     console.log('🔄 User signed out, redirecting to login...');
                     setTimeout(() => {
                         window.location.href = '/login.html';
                     }, 1000);
-                } else if (event === 'SIGNED_OUT' && window.SCS_HUB_DEBUG_PAUSE) {
-                    console.log('🛑 DEBUG MODE: Sign out detected but redirect blocked');
                 }
             }
         });
@@ -138,14 +136,12 @@ async function performInitialization() {
         const { data: { session }, error } = await supabase.auth.getSession();
         if (error) {
             console.error('❌ Error getting initial session:', error);
-            // If on a protected page and no session, redirect to login (unless in debug mode)
-            if (!window.location.pathname.includes('login.html') && !window.SCS_HUB_DEBUG_PAUSE) {
+            // If on a protected page and no session, redirect to login
+            if (!window.location.pathname.includes('login.html')) {
                 console.log('🔄 Redirecting to login due to session error...');
                 setTimeout(() => {
                     window.location.href = '/login.html';
                 }, 1000);
-            } else if (window.SCS_HUB_DEBUG_PAUSE) {
-                console.log('🛑 DEBUG MODE: Session error detected but redirect blocked');
             }
         } else if (session) {
             window.currentUser = session.user;
@@ -167,14 +163,12 @@ async function performInitialization() {
         } else {
             console.log('⚠️ No active session found');
             sessionReady = false;
-            // If on a protected page and no session, redirect to login (unless in debug mode)
-            if (!window.location.pathname.includes('login.html') && !window.SCS_HUB_DEBUG_PAUSE) {
+            // If on a protected page and no session, redirect to login
+            if (!window.location.pathname.includes('login.html')) {
                 console.log('🔄 Redirecting to login - no session found...');
                 setTimeout(() => {
                     window.location.href = '/login.html';
                 }, 1000);
-            } else if (window.SCS_HUB_DEBUG_PAUSE) {
-                console.log('🛑 DEBUG MODE: No session found but redirect blocked');
             }
         }
         
@@ -272,15 +266,11 @@ if (typeof window !== 'undefined') {
     window.isSessionReady = isSessionReady;
     window.waitForSession = waitForSession;
     
-    // Initialize immediately only if not in debug mode
-    if (!window.SCS_HUB_DEBUG_PAUSE) {
-        console.log('🚀 Starting Supabase auto-initialization...');
-        initializeSupabase().catch(err => {
-            console.error('❌ Initial Supabase setup failed:', err);
-        });
-    } else {
-        console.log('🛑 DEBUG MODE: Supabase auto-initialization blocked');
-    }
+    // Initialize immediately
+    console.log('🚀 Starting Supabase auto-initialization...');
+    initializeSupabase().catch(err => {
+        console.error('❌ Initial Supabase setup failed:', err);
+    });
 }
 
 // Auth helper functions with better error handling
@@ -297,12 +287,10 @@ export async function requireAuth() {
         return window.currentUser;
     } catch (error) {
         console.error('❌ Authentication check failed:', error);
-        // Redirect to login if not on login page (unless in debug mode)
-        if (!window.location.pathname.includes('login.html') && !window.SCS_HUB_DEBUG_PAUSE) {
+        // Redirect to login if not on login page
+        if (!window.location.pathname.includes('login.html')) {
             console.log('🔄 Redirecting to login...');
             window.location.href = '/login.html';
-        } else if (window.SCS_HUB_DEBUG_PAUSE) {
-            console.log('🛑 DEBUG MODE: Auth check failed but redirect blocked');
         }
         throw error;
     }
