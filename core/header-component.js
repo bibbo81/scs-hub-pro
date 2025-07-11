@@ -78,8 +78,30 @@ export class HeaderComponent {
     }
     
     async _performInit() {
-        await initializeSupabase();
         console.log('🔧 [HeaderComponent] Starting initialization...');
+        
+        try {
+            // Wait for Supabase to be ready first
+            console.log('🔄 [HeaderComponent] Waiting for Supabase initialization...');
+            await window.waitForSupabaseReady();
+            console.log('✅ [HeaderComponent] Supabase is ready');
+            
+            // Check if we need a valid session (skip for login page)
+            const isLoginPage = window.location.pathname.includes('login.html');
+            if (!isLoginPage) {
+                console.log('🔄 [HeaderComponent] Waiting for valid session...');
+                try {
+                    await window.waitForValidSession(5000); // 5 second timeout
+                    console.log('✅ [HeaderComponent] Valid session found');
+                } catch (error) {
+                    console.warn('⚠️ [HeaderComponent] No valid session found, some features may be limited');
+                    // Don't throw - allow header to load with limited functionality
+                }
+            }
+        } catch (error) {
+            console.error('❌ [HeaderComponent] Supabase initialization failed:', error);
+            // Continue with limited functionality
+        }
         
         // CRITICAL: Rimuovi TUTTI gli header esistenti prima di inizializzare
         const existingHeaders = document.querySelectorAll('.sol-header');

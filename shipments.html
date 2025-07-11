@@ -26,12 +26,15 @@
         import notificationSystem from '/core/notification-system.js';
         import modalSystem from '/core/modal-system.js';
         import { getMyOrganizationId } from '/core/services/organization-service.js';
-        const orgId = await getMyOrganizationId(supabase);
         import { initializeSupabase, getSupabase } from '/core/services/supabase-client.js';
 
-        // Initialize and get supabase
+        // Initialize and get supabase FIRST
         await initializeSupabase();
         const supabase = getSupabase(); 
+        
+        // Now get organization ID with initialized supabase
+        const orgId = await getMyOrganizationId(supabase);
+        
         // Make modules available globally
         window.api = api;
         window.headerComponent = headerComponent;
