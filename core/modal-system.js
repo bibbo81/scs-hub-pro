@@ -42,7 +42,6 @@ class CompleteModalSystem {
         this.setupStyles();
         this.setupGlobalHandlers();
         this.isInitialized = true;
-        
     }
 
     setupStyles() {
