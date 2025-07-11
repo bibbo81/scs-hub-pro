@@ -1,7 +1,7 @@
 // core/services/supabase-shipments-service.js
 import '/core/supabase-init.js';
 import { getSupabase } from '/core/services/supabase-client.js';
-import { getActiveOrganizationId, ensureOrganizationSelected } from '/core/services/organization-service.js';
+import { getMyOrganizationId } from '/core/services/organization-service.js';
 
 class SupabaseShipmentsService {
     constructor() {
@@ -10,10 +10,10 @@ class SupabaseShipmentsService {
 
     async getAllShipments() {
         try {
-            if (!ensureOrganizationSelected()) {
+            const orgId = await getMyOrganizationId();
+            if (!orgId) {
                 return [];
             }
-            const orgId = getActiveOrganizationId();
             const supabase = getSupabase();
             if (!supabase) {
                 return [];
@@ -61,14 +61,14 @@ class SupabaseShipmentsService {
         let orgId = null;
         let userId = null;
         try {
-            if (!ensureOrganizationSelected()) {
+            orgId = await getMyOrganizationId();
+            if (!orgId) {
                 return null;
             }
             const supabase = getSupabase();
             if (!supabase) {
                 return null;
             }
-            orgId = getActiveOrganizationId();
 
             const {
                 data: { user }
@@ -151,14 +151,14 @@ class SupabaseShipmentsService {
 
     async updateShipment(id, updates) {
         try {
-            if (!ensureOrganizationSelected()) {
+            const orgId = await getMyOrganizationId();
+            if (!orgId) {
                 return null;
             }
             const supabase = getSupabase();
             if (!supabase) {
                 return null;
             }
-            const orgId = getActiveOrganizationId();
             const payload = this.preparePayload({
                 ...updates,
                 organization_id: orgId,

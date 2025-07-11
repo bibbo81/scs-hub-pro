@@ -3,7 +3,7 @@
 import supabaseShipmentsService from '/core/services/supabase-shipments-service.js';
 import '/core/supabase-init.js';
 import { getSupabase } from '/core/services/supabase-client.js';
-import { getActiveOrganizationId, ensureOrganizationSelected } from '/core/services/organization-service.js';
+import { getMyOrganizationId } from '/core/services/organization-service.js';
 
 class ShipmentsRegistry {
     constructor() {
@@ -139,10 +139,10 @@ class ShipmentsRegistry {
     
     // Create a new shipment and persist it via Supabase
     async createShipment(shipmentData) {
-        if (!ensureOrganizationSelected()) {
+        const orgId = await getMyOrganizationId();
+        if (!orgId) {
             throw new Error("Organization ID non trovato! L'utente non ha selezionato alcuna organizzazione.");
         }
-        const orgId = getActiveOrganizationId();
 
         const duplicate = this.shipments.find(s =>
             s.organization_id === orgId &&
@@ -217,17 +217,17 @@ class ShipmentsRegistry {
             throw new Error(`Shipment ${shipmentId} not found`);
         }
         
-        if (!ensureOrganizationSelected()) {
+        const orgId = await getMyOrganizationId();
+        if (!orgId) {
             throw new Error("Organization ID non trovato! L'utente non ha selezionato alcuna organizzazione.");
         }
-        const orgId = getActiveOrganizationId();
         const oldShipment = { ...this.shipments[index] };
-        
+
         this.shipments[index] = {
             ...this.shipments[index],
             ...updates,
             updatedAt: new Date().toISOString(),
-            organization_id: getActiveOrganizationId()
+            organization_id: orgId
         };
 
         try {
@@ -281,10 +281,10 @@ class ShipmentsRegistry {
             throw new Error(`Shipment ${shipmentId} not found`);
         }
         
-        if (!ensureOrganizationSelected()) {
+        const orgId = await getMyOrganizationId();
+        if (!orgId) {
             return [];
         }
-        const orgId = window.getActiveOrganizationId ? window.getActiveOrganizationId() : null;
         const sb = getSupabase();
         if (!sb) {
             return [];

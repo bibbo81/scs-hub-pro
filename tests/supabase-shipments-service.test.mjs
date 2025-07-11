@@ -12,7 +12,7 @@ global.window = {
 };
 
 let activeOrgId = null;
-function getActiveOrganizationId() {
+async function getMyOrganizationId() {
     return activeOrgId;
 }
 
@@ -38,7 +38,7 @@ class TestService {
     }
 
     async getAllShipments() {
-        const orgId = getActiveOrganizationId();
+        const orgId = await getMyOrganizationId();
         if (!orgId) {
             global.window.NotificationSystem.warning(
                 "Seleziona un'organizzazione per visualizzare le spedizioni"
@@ -49,7 +49,7 @@ class TestService {
     }
 
     async createShipment(data) {
-        const orgId = getActiveOrganizationId();
+        const orgId = await getMyOrganizationId();
         if (!orgId) {
             global.window.NotificationSystem.warning(
                 "Seleziona un'organizzazione prima di creare una spedizione"
@@ -69,7 +69,7 @@ class TestService {
     }
 
     async updateShipment(id, updates) {
-        const orgId = getActiveOrganizationId();
+        const orgId = await getMyOrganizationId();
         if (!orgId) {
             global.window.NotificationSystem.warning(
                 "Seleziona un'organizzazione prima di aggiornare una spedizione"

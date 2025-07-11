@@ -124,6 +124,18 @@ export const organizationService = new OrganizationService();
 
 export const getActiveOrganizationId = () => organizationService.getCurrentOrgId();
 
+export async function getMyOrganizationId() {
+    try {
+        if (!organizationService.initialized) {
+            await organizationService.init();
+        }
+        return organizationService.getCurrentOrgId();
+    } catch (e) {
+        console.error('Failed to get organization id:', e);
+        return null;
+    }
+}
+
 export function ensureOrganizationSelected() {
     const id = typeof getActiveOrganizationId === 'function'
         ? getActiveOrganizationId()
