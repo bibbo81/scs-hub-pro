@@ -145,4 +145,5 @@ if (typeof window !== 'undefined') {
     });
 }
 
-export { initializeSupabase };
+// Export Supabase instance for backward compatibility
+export { supabase };

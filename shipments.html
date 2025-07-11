@@ -27,7 +27,11 @@
         import modalSystem from '/core/modal-system.js';
         import { getMyOrganizationId } from '/core/services/organization-service.js';
         const orgId = await getMyOrganizationId(supabase);
-        
+        import { initializeSupabase, getSupabase } from '/core/services/supabase-client.js';
+
+        // Initialize and get supabase
+        await initializeSupabase();
+        const supabase = getSupabase(); 
         // Make modules available globally
         window.api = api;
         window.headerComponent = headerComponent;

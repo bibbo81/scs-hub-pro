@@ -1,38 +1,64 @@
-import { supabase, initializeSupabase } from '/core/services/supabase-client.js';
+// core/auth-supabase.js
+import { initializeSupabase, getSupabase } from '/core/services/supabase-client.js';
 
-(async () => {
-    'use strict';
-
-    await initializeSupabase();
-
-    window.auth = {
-        isAuthenticated() {
-            const token = localStorage.getItem('sb-access-token') ||
-                           sessionStorage.getItem('sb-access-token');
-            return !!token;
-        },
-
-        async getCurrentUser() {
-            const { data: { user } } = await supabase.auth.getUser();
-            return user;
-        },
-
-        async login(email, password) {
-            const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-            if (error) throw error;
-            if (data.session?.access_token) {
-                localStorage.setItem('sb-access-token', data.session.access_token);
+// Initialize auth system
+async function initAuth() {
+    try {
+        await initializeSupabase();
+        const supabase = getSupabase();
+        
+        // Set up auth state listener
+        supabase.auth.onAuthStateChange((event, session) => {
+            console.log('[Auth]', event);
+            if (event === 'SIGNED_IN' && session) {
+                // Redirect to shipments page after login
+                if (window.location.pathname.includes('login.html')) {
+                    window.location.href = '/shipments.html';
+                }
+            } else if (event === 'SIGNED_OUT') {
+                // Redirect to login page after logout
+                if (!window.location.pathname.includes('login.html')) {
+                    window.location.href = '/login.html';
+                }
             }
-            return { user: data.user, session: data.session };
-        },
+        });
+        
+        // Check if user is already logged in
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session && window.location.pathname.includes('login.html')) {
+            window.location.href = '/shipments.html';
+        } else if (!session && !window.location.pathname.includes('login.html')) {
+            window.location.href = '/login.html';
+        }
+        
+    } catch (error) {
+        console.error('[Auth] Initialization error:', error);
+    }
+}
 
-        async logout() {
-            await supabase.auth.signOut();
-            localStorage.removeItem('sb-access-token');
-            sessionStorage.removeItem('sb-access-token');
-            window.location.replace('/login.html');
+// Export functions for global use
+if (typeof window !== 'undefined') {
+    window.authSupabase = {
+        signIn: async (email, password) => {
+            const supabase = getSupabase();
+            return await supabase.auth.signInWithPassword({ email, password });
+        },
+        signOut: async () => {
+            const supabase = getSupabase();
+            return await supabase.auth.signOut();
+        },
+        getSession: async () => {
+            const supabase = getSupabase();
+            return await supabase.auth.getSession();
+        },
+        getUser: async () => {
+            const supabase = getSupabase();
+            return await supabase.auth.getUser();
         }
     };
+}
 
-    console.log('[Auth] Supabase auth system loaded');
-})();
+// Initialize on load
+initAuth();
+
+console.log('[Auth] Supabase auth system loaded');

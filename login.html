@@ -459,9 +459,11 @@
     
     <script type="module" src="/core/supabase-init.js"></script>
     <script type="module">
-        import { supabase, initializeSupabase } from '/core/services/supabase-client.js';
+        import { initializeSupabase, getSupabase } from '/core/services/supabase-client.js';
 
-        await initializeSupabase();
+    // Initialize and get supabase
+    await initializeSupabase();
+    const supabase = getSupabase();
         
         // Debug functions
         window.toggleDebug = function() {

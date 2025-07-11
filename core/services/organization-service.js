@@ -1,5 +1,5 @@
 // core/services/organization-service.js - Fixed to handle initialization properly
-import { getSupabaseAsync } from '/core/services/supabase-client.js';
+import { getSupabase } from '/core/services/supabase-client.js';
 
 // Cache organization ID to avoid repeated queries
 let cachedOrgId = null;
@@ -14,7 +14,7 @@ export async function getMyOrganizationId(supabaseClient = null) {
         // Get Supabase client
         let supabase = supabaseClient;
         if (!supabase) {
-            supabase = await getSupabaseAsync();
+        supabase = getSupabase();
         }
         
         if (!supabase) {
