@@ -106,9 +106,6 @@ export class HeaderComponent {
     async _performInit() {
         console.log('🔧 [HeaderComponent] Starting initialization...');
         
-    async _performInit() {
-        console.log('🔧 [HeaderComponent] Starting initialization...');
-        
         try {
             // Wait for Supabase and valid session to be ready
             console.log('🔄 [HeaderComponent] Waiting for Supabase and session...');

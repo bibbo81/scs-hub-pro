@@ -36,6 +36,17 @@ export class ApiClient {
     
     // Main request method with session protection
     async request(endpoint, options = {}) {
+        // Declare variables outside try block for catch access
+        const url = endpoint.startsWith('http') ? endpoint : `${this.baseUrl}/${endpoint}`;
+        const config = {
+            ...options,
+            headers: {
+                ...this.defaultHeaders,
+                ...options.headers
+            }
+        };
+        let loadingId;
+        
         try {
             // Wait for valid session before making API calls (except for login/public endpoints)
             const isAuthRequired = !this._isPublicEndpoint(endpoint);
@@ -53,23 +64,12 @@ export class ApiClient {
             // Ensure we have latest token
             this.refreshToken();
             
-            const url = endpoint.startsWith('http') ? endpoint : `${this.baseUrl}/${endpoint}`;
-            
-            const config = {
-                ...options,
-                headers: {
-                    ...this.defaultHeaders,
-                    ...options.headers
-                }
-            };
-            
             // Run request interceptors
             for (const interceptor of this.interceptors.request) {
                 await interceptor(config);
             }
             
             // Show loading if specified
-            let loadingId;
             if (options.loading) {
                 loadingId = notificationSystem.loading(
                     typeof options.loading === 'string' ? options.loading : 'Caricamento...'
@@ -181,7 +181,6 @@ export class ApiClient {
         });
         
         return data;
-    }
     }
     
     // Enhanced error handling with better user feedback
