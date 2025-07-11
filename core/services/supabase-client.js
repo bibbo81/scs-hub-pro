@@ -257,7 +257,7 @@ export async function waitForSession(timeoutMs = 10000) {
     });
 }
 
-// Auto-initialize on load
+// Auto-initialize on load (unless in debug mode)
 if (typeof window !== 'undefined') {
     window.initializeSupabase = initializeSupabase;
     window.getSupabase = getSupabase;
