@@ -6,12 +6,27 @@ let initializationPromise = null;
 let initialized = false;
 let supabaseReadyPromise = null;
 let supabaseReadyResolve = null;
+let supabaseReadyReject = null;
 let sessionReady = false;
 
 // Create the global supabaseReady Promise immediately
-supabaseReadyPromise = new Promise((resolve) => {
-    supabaseReadyResolve = resolve;
+supabaseReadyPromise = new Promise((resolve, reject) => {
+    supabaseReadyResolve = (value) => {
+        clearTimeout(initializationTimeout);
+        resolve(value);
+    };
+    supabaseReadyReject = (error) => {
+        clearTimeout(initializationTimeout);
+        reject(error);
+    };
 });
+
+// Timeout to avoid hanging forever on initialization
+const initializationTimeout = setTimeout(() => {
+    if (!window.supabaseReadyResolved && supabaseReadyReject) {
+        supabaseReadyReject(new Error('Supabase initialization timeout'));
+    }
+}, 5000);
 
 // Make it available globally
 if (typeof window !== 'undefined') {
@@ -168,6 +183,9 @@ async function performInitialization() {
         console.error('Failed to initialize Supabase:', error);
         initialized = false;
         initializationPromise = null;
+        if (supabaseReadyReject) {
+            supabaseReadyReject(error);
+        }
         throw error;
     }
 }
