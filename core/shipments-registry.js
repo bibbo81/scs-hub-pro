@@ -3,7 +3,7 @@
 import supabaseShipmentsService from '/core/services/supabase-shipments-service.js';
 import '/core/supabase-init.js';
 import { getSupabase } from '/core/services/supabase-client.js';
-import { getActiveOrganizationId, ensureOrganizationSelected } from '/core/services/organization-service.js';
+import { getMyOrganizationId } from '/core/services/organization-service.js';
 
 class ShipmentsRegistry {
     constructor() {
@@ -139,10 +139,16 @@ class ShipmentsRegistry {
     
     // Create a new shipment and persist it via Supabase
     async createShipment(shipmentData) {
-        if (!ensureOrganizationSelected()) {
-            throw new Error("Organization ID non trovato! L'utente non ha selezionato alcuna organizzazione.");
+        const supabase = getSupabase();
+        if (!supabase) {
+            throw new Error('Supabase client non disponibile');
         }
-        const orgId = getActiveOrganizationId();
+        let orgId;
+        try {
+            orgId = await getMyOrganizationId(supabase);
+        } catch (e) {
+            throw new Error("Nessuna organizzazione trovata. Contatta un amministratore.");
+        }
 
         const duplicate = this.shipments.find(s =>
             s.organization_id === orgId &&
@@ -217,17 +223,23 @@ class ShipmentsRegistry {
             throw new Error(`Shipment ${shipmentId} not found`);
         }
         
-        if (!ensureOrganizationSelected()) {
-            throw new Error("Organization ID non trovato! L'utente non ha selezionato alcuna organizzazione.");
+        const supabase = getSupabase();
+        if (!supabase) {
+            throw new Error('Supabase client non disponibile');
         }
-        const orgId = getActiveOrganizationId();
+        let orgId;
+        try {
+            orgId = await getMyOrganizationId(supabase);
+        } catch (e) {
+            throw new Error("Nessuna organizzazione trovata. Contatta un amministratore.");
+        }
         const oldShipment = { ...this.shipments[index] };
         
         this.shipments[index] = {
             ...this.shipments[index],
             ...updates,
             updatedAt: new Date().toISOString(),
-            organization_id: getActiveOrganizationId()
+            organization_id: orgId
         };
 
         try {
@@ -281,14 +293,18 @@ class ShipmentsRegistry {
             throw new Error(`Shipment ${shipmentId} not found`);
         }
         
-        if (!ensureOrganizationSelected()) {
-            return [];
-        }
-        const orgId = window.getActiveOrganizationId ? window.getActiveOrganizationId() : null;
         const sb = getSupabase();
         if (!sb) {
             return [];
         }
+        let orgId;
+        try {
+            orgId = await getMyOrganizationId(sb);
+        } catch (e) {
+            console.error('Organization ID not found', e);
+            return [];
+        }
+        
         const { data, error } = await sb
             .from('products')
             .select('*')

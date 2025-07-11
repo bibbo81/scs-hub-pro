@@ -27,14 +27,12 @@
     import headerComponent from '/core/header-component.js';
     import notificationSystem from '/core/notification-system.js';
     import modalSystem from '/core/modal-system.js';
-    import organizationService, { ensureOrganizationSelected } from '/core/services/organization-service.js';
-
-    if (!ensureOrganizationSelected()) {
-        throw new Error('Organization not selected');
-    }
+    import { getMyOrganizationId } from '/core/services/organization-service.js';
+    const orgId = await getMyOrganizationId(supabase);
     
     // Make organization service available globally
-    window.organizationService = organizationService;
+    window.getMyOrganizationId = getMyOrganizationId;
+    window.currentOrganizationId = orgId;
         // Make modules available globally for backward compatibility
         window.api = api;
         window.headerComponent = headerComponent;

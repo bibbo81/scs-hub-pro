@@ -320,9 +320,9 @@ class AutoSyncSystem {
         if (window.shipmentsRegistry?.createShipment) {
             let userId = null;
             try {
-                const orgId = window.getActiveOrganizationId?.();
+                const orgId = window.currentOrganizationId;
                 if (!orgId) {
-                    throw new Error("Organization ID non trovato! L'utente non ha selezionato alcuna organizzazione.");
+                    throw new Error("Nessuna organizzazione trovata. Contatta un amministratore.");
                 }
 
                 const sb = window.supabase || (typeof supabase !== 'undefined' ? supabase : null);
