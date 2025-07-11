@@ -324,6 +324,9 @@
             ExportManager: !!window.ExportManager,
             TableManager: !!window.TableManager
         });
+        
+        // Emit event to signal ES6 modules are loaded
+        window.dispatchEvent(new CustomEvent('es6ModulesLoaded'));
     </script>
     
     <!-- Legacy Scripts -->
@@ -621,6 +624,7 @@ setTimeout(() => {
     </script>
 
 <!-- Load all fixes -->
+<script src="/pages/tracking/organizationApiKeysService-fix.js"></script>
 <script src="/pages/tracking/api-keys-permanent-fix.js"></script>
 <script src="/pages/tracking/tracking-fixes.js"></script>
 <script src="/pages/tracking/tracking-unified-mapping.js"></script>

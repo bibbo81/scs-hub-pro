@@ -4,7 +4,7 @@
   "description": "> **Transform your supply chain chaos into clarity.** Real-time tracking, intelligent insights, and seamless logistics management - all in one powerful platform.",
   "main": "phase2-architecture.js",
   "scripts": {
-    "test": "node tests/user-settings-service.test.mjs && node tests/supabase-env-check.test.mjs && node tests/shipments-mapping.test.mjs && node tests/supabase-shipments-service.test.mjs && node tests/context-menu.test.mjs && node tests/get-config-auth-test.mjs && node tests/config-endpoint.test.mjs && node tests/supabase-client-init.test.mjs"
+    "test": "node tests/user-settings-service.test.mjs && node tests/supabase-env-check.test.mjs && node tests/shipments-mapping.test.mjs && node tests/supabase-shipments-service.test.mjs && node tests/context-menu.test.mjs && node tests/get-config-auth-test.mjs && node tests/config-endpoint.test.mjs && node tests/supabase-client-init.test.mjs && node tests/organization-api-keys-fix.test.mjs"
   },
   "repository": {
     "type": "git",
