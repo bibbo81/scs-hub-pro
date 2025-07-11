@@ -115,102 +115,68 @@ class SupabaseShipmentsService {
 
     /**
      * Create a new shipment in Supabase
-     * @param {Object} shipment - Shipment data
+     * @param {Object} shipmentData - Shipment data
      * @returns {Object|null} Inserted shipment or null on failure
      */
-    async createShipment(shipment) {
-        let orgId = null;
-        let userId = null;
+    async createShipment(shipmentData) {
         try {
-            await this.ensureInitialized();
+            console.log('📦 Creating shipment with data:', shipmentData);
             
-            const supabase = getSupabase();
-            if (!supabase) {
-                return null;
+            // IMPORTANTE: Ottieni sempre l'utente corrente
+            const { data: { user }, error: userError } = await window.supabaseClient.auth.getUser();
+            if (userError || !user) {
+                console.error('❌ Auth error:', userError);
+                throw new Error('User not authenticated');
             }
-            try {
-                orgId = await getMyOrganizationId(supabase);
-            } catch (e) {
-                console.error('Organization ID not found', e);
-                return null;
-            }
-
-            const {
-                data: { user }
-            } = await supabase.auth.getUser();
-            userId = user ? user.id : null;
-
-            console.log('[DEBUG] Utente attivo:', userId);
-            console.log('[DEBUG] Organization ID:', orgId);
-            console.log('[DEBUG] shipmentData:', shipment);
-            const payload = this.preparePayload({ ...shipment, organization_id: orgId });
-
-            console.log('Creating shipment', {
-                organization_id: orgId,
-                user_id: userId,
-                payload
-            });
-
-            console.log('🚚 Tentativo INSERT shipment su Supabase:');
-            console.log('organization_id:', payload.organization_id);
-            console.log('user_id:', userId || (supabase.auth && supabase.auth.user && supabase.auth.user().id));
-            console.log('Payload completo:', JSON.stringify(payload, null, 2));
-
-            const filters = [];
-            if (shipment.shipment_number) {
-                filters.push(`shipment_number.eq.${shipment.shipment_number}`);
-            }
-            if (shipment.trackingNumber) {
-                filters.push(`tracking_number.eq.${shipment.trackingNumber}`);
-            }
-            if (filters.length > 0) {
-                const { data: existing, error: existErr } = await supabase
-                    .from(this.table)
-                    .select('id')
-                    .eq('organization_id', orgId)
-                    .or(filters.join(','));
-                if (existErr) throw existErr;
-                if (existing && existing.length > 0) {
-                    console.warn('Shipment already exists for org', orgId);
-                    if (typeof window !== 'undefined' && window.NotificationSystem) {
-                        window.NotificationSystem.warning('Spedizione già esistente');
-                    }
-                    return null;
+            
+            console.log('Current user:', user.id, user.email);
+            
+            // Verifica membership (opzionale ma utile per debug)
+            const { data: membership } = await window.supabaseClient
+                .from('organization_members')
+                .select('role')
+                .eq('user_id', user.id)
+                .eq('organization_id', shipmentData.organization_id)
+                .single();
+                
+            console.log('User membership:', membership);
+            
+            // CRITICO: Assicurati che user_id sia SEMPRE presente
+            const dataToInsert = {
+                ...shipmentData,
+                user_id: user.id,  // <-- QUESTO È IL FIX PRINCIPALE
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString()
+            };
+            
+            // Rimuovi campi undefined o null che potrebbero causare problemi
+            Object.keys(dataToInsert).forEach(key => {
+                if (dataToInsert[key] === undefined) {
+                    delete dataToInsert[key];
                 }
-            }
-
-            const { data, error } = await supabase
-                .from(this.table)
-                .insert([payload])
+            });
+            
+            console.log('Final data to insert:', dataToInsert);
+            
+            // Inserisci il shipment
+            const { data, error } = await window.supabaseClient
+                .from('shipments')
+                .insert([dataToInsert])
                 .select()
                 .single();
+                
             if (error) {
-                console.error('❌ Errore INSERT shipment su Supabase:', error);
-                console.log('Payload che ha dato errore:', JSON.stringify(payload, null, 2));
-                if (error.status === 403) {
-                    console.error('403 error creating shipment', { payload, userId });
-                }
-                if (error.code === '42501') {
-                    if (typeof window !== 'undefined' && window.NotificationSystem) {
-                        window.NotificationSystem.error('Non sei autorizzato a creare una spedizione per questa organizzazione');
-                    }
-                    console.error(`Verifica che l'utente sia presente nella tabella organization_members per organization_id=${orgId}`);
-                    console.error(
-                        `SELECT * FROM organization_members WHERE user_id = '${userId}' AND organization_id = '${orgId}';`
-                    );
-                    console.info("Se manca il record, aggiungi l'utente alla tabella organization_members tramite SQL o dall'interfaccia Supabase.");
-                    console.info('Se l\'errore persiste ma l\'utente è presente, verifica che il token di sessione sia aggiornato e non scaduto.');
-                }
+                console.error('❌ Insert error:', error);
+                console.error('Full error details:', JSON.stringify(error, null, 2));
                 throw error;
             }
-            console.log('Spedizione creata con successo', data.id);
+            
+            console.log('✅ Shipment created successfully:', data);
             return data;
-        } catch (e) {
-            console.error('[DEBUG] user_id:', userId);
-            console.error('[DEBUG] organization_id:', orgId);
-            console.error('[DEBUG] errore ricevuto:', e);
-            console.error('❌ SupabaseShipmentsService.createShipment:', e);
-            return null;
+            
+        } catch (error) {
+            console.error('❌ SupabaseShipmentsService.createShipment failed:', error);
+            throw error;
         }
     }
 

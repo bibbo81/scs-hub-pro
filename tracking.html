@@ -812,19 +812,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 </script>
 
 <!-- Debug Auth Context -->
-<script src="/auth-context-debug.js"></script>
-<script>
-// Auto-run debug dopo inizializzazione
-document.addEventListener('DOMContentLoaded', () => {
-    if (window.supabaseReady) {
-        window.supabaseReady.then(() => {
-            setTimeout(() => {
-                console.log('🚀 Running automatic auth debug...');
-                window.debugAuthContext();
-            }, 2000);
-        });
-    }
-});
-</script>
+<!-- <script src="/auth-context-debug.js"></script> -->
+<!-- RIMOSSO come richiesto -->
+
 </body>
 </html>

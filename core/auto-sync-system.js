@@ -313,84 +313,59 @@ class AutoSyncSystem {
     }
 
     async createShipmentFromTracking(trackingData) {
-        console.log('🏗️ Creating shipment from tracking:', trackingData.tracking_number);
-        
-        const shipmentData = this.mapTrackingToShipment(trackingData);
-        
-        if (window.shipmentsRegistry?.createShipment) {
-            let userId = null;
-            try {
-                const orgId = window.currentOrganizationId;
-                if (!orgId) {
-                    throw new Error("Nessuna organizzazione trovata. Contatta un amministratore.");
-                }
+        try {
+        console.log('🔄 Creating shipment from tracking:', trackingData.tracking_number);
 
-                const sb = window.supabase || (typeof supabase !== 'undefined' ? supabase : null);
-                if (sb) {
-                    const { data: existing } = await sb
-                        .from('shipments')
-                        .select('id')
-                        .eq('organization_id', orgId)
-                        .eq('shipment_number', trackingData.tracking_number)
-                        .maybeSingle();
-                    if (existing) {
-                        console.log('🚫 Shipment already exists, skipping creation:', existing.id);
-                        return null;
-                    }
-                }
+        // Ottieni user_id autenticato
+        let userId = null;
+        if (window.supabaseClient?.auth?.getUser) {
+            const { data: { user } } = await window.supabaseClient.auth.getUser();
+            if (!user) {
+                throw new Error('No authenticated user');
+            }
+            userId = user.id;
+        }
 
-                if (sb?.auth?.getUser) {
-                    const { data, error } = await sb.auth.getUser();
-                    if (!error) {
-                        userId = data?.user?.id;
-                    }
-                }
+        const orgId = window.currentOrganizationId || trackingData.organization_id;
+        if (!orgId) {
+            throw new Error("Nessuna organizzazione trovata. Contatta un amministratore.");
+        }
 
-                console.log('ℹ️ Preparing shipment creation', {
-                    organization_id: orgId,
-                    user_id: userId,
-                    payload: shipmentData
-                });
+        // Prepara il payload con user_id incluso
+        const shipmentData = {
+            ...this.mapTrackingToShipment(trackingData),
+            organization_id: orgId,
+            user_id: userId, // <-- IMPORTANTE: Aggiungi sempre user_id
+            autoCreated: true,
+            createdFrom: 'tracking',
+            sourceTrackingId: trackingData.id
+        };
 
-                const fullPayload = {
-                    ...shipmentData,
-                    organization_id: orgId,
-                    autoCreated: true,
-                    createdFrom: 'tracking',
-                    sourceTrackingId: trackingData.id
-                };
-
-                console.log('🚚 Tentativo INSERT shipment su Supabase:');
-                console.log('organization_id:', fullPayload.organization_id);
-                console.log('user_id:', userId || (sb && sb.auth && sb.auth.user && sb.auth.user().id));
-                console.log('Payload completo:', JSON.stringify(fullPayload, null, 2));
-
-                const newShipment = await window.shipmentsRegistry.createShipment(fullPayload);
-
-                console.log('Spedizione creata con successo', newShipment.id);
-                return newShipment;
-
-            } catch (error) {
-                if (error?.status === 403 || error?.code === '403') {
-                    console.error('❌ Forbidden creating shipment', {
-                        payload: { ...shipmentData, organization_id: orgId },
-                        user_id: userId
-                    });
-                }
-                console.error('❌ Error creating shipment:', error);
-                console.log('Payload che ha dato errore:', JSON.stringify({
-                    ...shipmentData,
-                    organization_id: orgId,
-                    autoCreated: true,
-                    createdFrom: 'tracking',
-                    sourceTrackingId: trackingData.id
-                }, null, 2));
+        // Verifica se esiste già uno shipment con lo stesso numero
+        const sb = window.supabase || (typeof supabase !== 'undefined' ? supabase : null);
+        if (sb) {
+            const { data: existing } = await sb
+                .from('shipments')
+                .select('id')
+                .eq('organization_id', orgId)
+                .eq('shipment_number', trackingData.tracking_number)
+                .maybeSingle();
+            if (existing) {
+                console.log('🚫 Shipment already exists, skipping creation:', existing.id);
                 return null;
             }
         }
-        
-        console.warn('⚠️ Shipments registry not available');
-        return null;
+
+        // Crea lo shipment
+        const newShipment = await window.shipmentsRegistry.createShipment(shipmentData);
+
+        console.log('✅ Shipment created:', newShipment);
+        return newShipment;
+
+    } catch (error) {
+        console.error('❌ Error creating shipment from tracking:', error);
+        throw error;
+    }
     }
 
     async updateShipmentFromTracking(shipment, trackingData) {
