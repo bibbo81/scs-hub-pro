@@ -120,6 +120,17 @@ The application now reads Supabase credentials directly from environment variabl
 
 Create an `.env` file with these variables if you run the project locally.
 
+### Node version
+
+Use **Node.js 18** for all development and testing. With [nvm](https://github.com/nvm-sh/nvm) run:
+
+```bash
+nvm install 18
+nvm use 18
+```
+
+The repository includes an `.nvmrc` file, so running `nvm use` will automatically select the correct version.
+
 `runtime-config.json` has been removed from version control. Create your own file or
 set these variables in the environment before running any scripts.
 
