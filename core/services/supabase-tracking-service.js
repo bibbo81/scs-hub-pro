@@ -503,5 +503,7 @@ class SupabaseTrackingService {
     }
 }
 
-// Export singleton
-export default new SupabaseTrackingService();
+// Export singleton e aggiungi su window
+const supabaseTrackingService = new SupabaseTrackingService();
+export default supabaseTrackingService;
+window.supabaseTrackingService = supabaseTrackingService;
