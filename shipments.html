@@ -25,18 +25,16 @@
         import headerComponent from '/core/header-component.js';
         import notificationSystem from '/core/notification-system.js';
         import modalSystem from '/core/modal-system.js';
-        import organizationService, { getActiveOrganizationId, ensureOrganizationSelected } from '/core/services/organization-service.js';
-        if (!ensureOrganizationSelected()) {
-            throw new Error('Organization not selected');
-        }
+        import { getMyOrganizationId } from '/core/services/organization-service.js';
+        const orgId = await getMyOrganizationId(supabase);
         
         // Make modules available globally
         window.api = api;
         window.headerComponent = headerComponent;
         window.NotificationSystem = notificationSystem;
         window.ModalSystem = modalSystem;
-        window.organizationService = organizationService;
-        window.getActiveOrganizationId = getActiveOrganizationId;
+        window.getMyOrganizationId = getMyOrganizationId;
+        window.currentOrganizationId = orgId;
     </script>
     
     <script src="/core/product-sync.js"></script>
@@ -2934,7 +2932,7 @@ function generateComprehensiveSampleData() {
                 id: `SHIP-2024-${String(Date.now() + i).slice(-6)}`,
                 shipmentNumber: `${carrier.code}${String(Math.floor(Math.random() * 9000000) + 1000000)}`,
                 type: type,
-                organization_id: window.getActiveOrganizationId ? window.getActiveOrganizationId() : null,
+                organization_id: window.currentOrganizationId || null,
                 carrier: carrier,
                 route: {
                     ...route,
@@ -3062,7 +3060,7 @@ async function ensureSampleData() {
                window.shipmentsRegistry = new window.ShipmentsRegistry();
                await window.shipmentsRegistry.init();
 
-               const orgId = window.getActiveOrganizationId ? window.getActiveOrganizationId() : null;
+               const orgId = window.currentOrganizationId;
                if (orgId) {
                    window.shipmentsRegistry.shipments = window.shipmentsRegistry.shipments.filter(s => s.organization_id === orgId);
                }
@@ -4586,20 +4584,19 @@ MSCU7654321,container,in_transit,MSC,MSC,TIGER,CNNBO,Ningbo,ITLIV,Livorno,SGSIN,
    (function() {
        console.log('🔧 Applying shipments initialization fixes...');
 
-       const userOrgs = window.organizationService?.getUserOrgs?.() || [];
-       if (userOrgs.length === 0) {
-           console.error('[Shipments] User has no organizations');
-           const main = document.getElementById('mainContent');
-           if (main) {
-               main.innerHTML = `
+      if (!window.currentOrganizationId) {
+          console.error('[Shipments] No organization available');
+          const main = document.getElementById('mainContent');
+          if (main) {
+              main.innerHTML = `
     <div class="org-warning">
-        Non sei membro di nessuna organizzazione. Contatta un amministratore per essere aggiunto.
+        Nessuna organizzazione trovata. Contatta un amministratore.
     </div>
-               `;
-           }
-           document.querySelectorAll('.sol-page-actions button').forEach(btn => btn.disabled = true);
-           return;
-       }
+              `;
+          }
+          document.querySelectorAll('.sol-page-actions button').forEach(btn => btn.disabled = true);
+          return;
+      }
 
        // Wait for dependency resolution system
        let initAttempts = 0;

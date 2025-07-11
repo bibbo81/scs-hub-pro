@@ -3,7 +3,7 @@ import notificationSystem from '/core/notification-system.js';
 import modalSystem from '/core/modal-system.js';
 import apiClient from '/core/api-client.js';
 import { supabase } from '/core/services/supabase-client.js';
-import { getActiveOrganizationId, ensureOrganizationSelected } from '/core/services/organization-service.js';
+import { getMyOrganizationId } from '/core/services/organization-service.js';
 
 class ImportWizard {
     constructor() {
@@ -768,10 +768,12 @@ if (!this.targetFields || !Array.isArray(this.targetFields) || this.targetFields
 
     try {
         // 1. Organization e User ID
-        if (!ensureOrganizationSelected()) {
-            throw new Error('Organization non selezionata!');
+        let orgId;
+        try {
+            orgId = await getMyOrganizationId(supabase);
+        } catch (e) {
+            throw new Error('Nessuna organizzazione trovata. Contatta un amministratore.');
         }
-        const orgId = getActiveOrganizationId();
         
         let supa = this.supabase || supabase || window.supabase;
         if (!supa || !supa.auth) {
@@ -1128,11 +1130,13 @@ gotoStep = (stepIndex) => {
 
 startImport = async () => {
     try {
-        if (!ensureOrganizationSelected()) {
-            notificationSystem.show("Missing organization context. Cannot proceed with import.", "error");
+        let orgId;
+        try {
+            orgId = await getMyOrganizationId(supabase);
+        } catch (e) {
+            notificationSystem.show("Nessuna organizzazione trovata. Contatta un amministratore.", "error");
             return;
         }
-        const orgId = getActiveOrganizationId();
         let supa = this.supabase || supabase || window.supabase;
         if (!supa || !supa.auth) {
             console.error('Supabase client not initialized');

@@ -2,6 +2,7 @@
 import api from '/core/api-client.js';
 import notificationSystem from '/core/notification-system.js';
 import { supabase, initializeSupabase } from '/core/services/supabase-client.js';
+import { getMyOrganizationId } from '/core/services/organization-service.js';
 
 // SINGLETON PATTERN ROBUSTO
 let headerInstance = null;
@@ -466,92 +467,29 @@ export class HeaderComponent {
         </div>
     `;
 }
-    // Render the organization selector dropdown
+    // Render the organization selector (no dropdown)
     async renderOrgSelector() {
         try {
-            // Check 1: Verifica se organizationService esiste
-            if (!window.organizationService) {
-                console.log('[Header] Organization service not available');
-                return ''; // Non mostra nulla se non c'è il service
+            const orgId = await getMyOrganizationId(supabase);
+            const { data, error } = await supabase
+                .from('organizations')
+                .select('name')
+                .eq('id', orgId)
+                .maybeSingle();
+            if (error || !data) {
+                return `<div class="org-selector">Nessuna organizzazione trovata. Contatta un amministratore.</div>`;
             }
-            
-            // Check 2: Se non è inizializzato, prova ad inizializzare
-            if (!window.organizationService.initialized) {
-                // Ma solo se siamo in una pagina che lo richiede
-                const currentPath = window.location.pathname;
-                const pagesWithOrg = ['/products.html', '/tracking.html', '/shipments.html'];
-                
-                if (!pagesWithOrg.some(page => currentPath.includes(page))) {
-                    return ''; // Non inizializzare su pagine che non lo usano
-                }
-                
-                try {
-                    await window.organizationService.init();
-                } catch (error) {
-                    console.log('[Header] Organization service init failed:', error);
-                    return ''; // Non mostra nulla se init fallisce
-                }
-            }
-            
-            // Check 3: Verifica se abbiamo dati validi
-            const currentOrg = window.organizationService.getCurrentOrg();
-            const userOrgs = window.organizationService.getUserOrgs();
-
-            if (!currentOrg || !userOrgs) {
-                console.error('[Header] Organization data missing');
-                return '';
-            }
-
-            // Se esiste una sola organizzazione, mostra comunque le info
-            if (userOrgs.length === 1) {
-                return `
-                    <div class="org-selector" id="orgSelector">
-                        <div class="org-single">
-                            <i class="fas fa-building"></i>
-                            <strong>${currentOrg.organizations?.name || 'Organization'}</strong>
-                            <small style="color: var(--sol-gray-600);">${currentOrg.role || ''}</small>
-                        </div>
-                    </div>
-                `;
-            }
-
-            // Solo ora renderizza il selector per più organizzazioni
-            
-            // Solo ora renderizza il selector
             return `
                 <div class="org-selector" id="orgSelector">
-                    <button class="sol-btn sol-btn-glass" id="orgSelectorBtn" onclick="window.toggleOrgDropdown && window.toggleOrgDropdown(event)">
+                    <div class="org-single">
                         <i class="fas fa-building"></i>
-                        <span class="hide-mobile">${currentOrg.organizations?.name || 'Organization'}</span>
-                        <i class="fas fa-chevron-down"></i>
-                    </button>
-                    <div class="sol-dropdown" id="orgDropdown" style="display: none;">
-                        <div class="sol-dropdown-header">
-                            <h4>Switch Organization</h4>
-                        </div>
-                        <div class="sol-dropdown-body">
-                            ${userOrgs.map(membership => `
-                                <div class="sol-dropdown-item ${membership.organization_id === currentOrg.organization_id ? 'active' : ''}"
-                                     onclick="window.switchOrganization && window.switchOrganization('${membership.organization_id}')">
-                                    <div style="display: flex; justify-content: space-between; align-items: center;">
-                                        <div>
-                                            <strong>${membership.organizations?.name || 'Unknown'}</strong>
-                                            <br>
-                                            <small style="color: var(--sol-gray-600);">${membership.role || 'member'}</small>
-                                        </div>
-                                        ${membership.organization_id === currentOrg.organization_id ? 
-                                            '<i class="fas fa-check" style="color: var(--sol-success);"></i>' : ''}
-                                    </div>
-                                </div>
-                            `).join('')}
-                        </div>
+                        <strong>${data.name}</strong>
                     </div>
                 </div>
             `;
-            
         } catch (error) {
             console.error('[Header] Error rendering org selector:', error);
-            return ''; // In caso di qualsiasi errore, non mostra nulla
+            return `<div class="org-selector">Nessuna organizzazione trovata. Contatta un amministratore.</div>`;
         }
     }
     // FIX 4: renderDropdowns ASYNC

@@ -2,7 +2,7 @@
 // Phase 2: Revolutionary Business Intelligence Platform
 
 // Import organization service
-import organizationService, { getActiveOrganizationId, ensureOrganizationSelected } from '/core/services/organization-service.js';
+import { getMyOrganizationId } from '/core/services/organization-service.js';
 import { importWizard } from '/core/import-wizard.js';
 import '/core/supabase-init.js';
 import { supabase } from '/core/services/supabase-client.js';
@@ -42,14 +42,14 @@ async init() {
     console.log('[ProductIntelligence] Initializing system...');
     try {
         // 1. Inizializza i servizi e ottieni l'ID dell'organizzazione
-        if (window.organizationService && !window.organizationService.initialized) {
-            await window.organizationService.init();
+        let orgId;
+        try {
+            orgId = await getMyOrganizationId(supabase);
+        } catch (e) {
+            this.showStatus('Nessuna organizzazione trovata. Contatta un amministratore.', 'error');
+            return;
         }
-        if (!ensureOrganizationSelected()) {
-            this.showStatus('Organization data not available. Cannot load products.', 'warning');
-            return; // Interrompe l'esecuzione se non c'è un'organizzazione
-        }
-        this.organizationId = getActiveOrganizationId();
+        this.organizationId = orgId;
         console.log(`[ProductIntelligence] Using organization: ${this.organizationId}`);
 
         // 2. Carica i dati e genera le analytics

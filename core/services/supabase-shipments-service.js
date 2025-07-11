@@ -1,7 +1,7 @@
 // core/services/supabase-shipments-service.js
 import '/core/supabase-init.js';
 import { getSupabase } from '/core/services/supabase-client.js';
-import { getActiveOrganizationId, ensureOrganizationSelected } from '/core/services/organization-service.js';
+import { getMyOrganizationId } from '/core/services/organization-service.js';
 
 class SupabaseShipmentsService {
     constructor() {
@@ -10,12 +10,15 @@ class SupabaseShipmentsService {
 
     async getAllShipments() {
         try {
-            if (!ensureOrganizationSelected()) {
-                return [];
-            }
-            const orgId = getActiveOrganizationId();
             const supabase = getSupabase();
             if (!supabase) {
+                return [];
+            }
+            let orgId;
+            try {
+                orgId = await getMyOrganizationId(supabase);
+            } catch (e) {
+                console.error('Organization ID not found', e);
                 return [];
             }
             const query = supabase
@@ -61,14 +64,16 @@ class SupabaseShipmentsService {
         let orgId = null;
         let userId = null;
         try {
-            if (!ensureOrganizationSelected()) {
-                return null;
-            }
             const supabase = getSupabase();
             if (!supabase) {
                 return null;
             }
-            orgId = getActiveOrganizationId();
+            try {
+                orgId = await getMyOrganizationId(supabase);
+            } catch (e) {
+                console.error('Organization ID not found', e);
+                return null;
+            }
 
             const {
                 data: { user }
@@ -151,14 +156,17 @@ class SupabaseShipmentsService {
 
     async updateShipment(id, updates) {
         try {
-            if (!ensureOrganizationSelected()) {
-                return null;
-            }
             const supabase = getSupabase();
             if (!supabase) {
                 return null;
             }
-            const orgId = getActiveOrganizationId();
+            let orgId;
+            try {
+                orgId = await getMyOrganizationId(supabase);
+            } catch (e) {
+                console.error('Organization ID not found', e);
+                return null;
+            }
             const payload = this.preparePayload({
                 ...updates,
                 organization_id: orgId,

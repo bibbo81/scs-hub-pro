@@ -821,9 +821,12 @@ if (window.ShipmentDetails) {
         
         async createShipment() {
             try {
-                const orgId = window.getActiveOrganizationId?.();
-                if (!orgId) {
-                    throw new Error("Organization ID non trovato! L'utente non ha selezionato alcuna organizzazione.");
+                const supabase = window.supabase;
+                let orgId;
+                try {
+                    orgId = await window.getMyOrganizationId ? await window.getMyOrganizationId(supabase) : null;
+                } catch (e) {
+                    throw new Error("Nessuna organizzazione trovata. Contatta un amministratore.");
                 }
                 const shipmentData = {
                     organization_id: orgId
