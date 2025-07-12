@@ -157,8 +157,8 @@ class SupabaseShipmentsService {
             console.log('Payload completo:', JSON.stringify(payload, null, 2));
 
             const filters = [];
-            if (shipment.shipmentNumber) {
-                filters.push(`shipment_number.eq.${shipment.shipmentNumber}`);
+            if (shipment.shipment_number) {
+                filters.push(`shipment_number.eq.${shipment.shipment_number}`);
             }
             if (shipment.trackingNumber) {
                 filters.push(`tracking_number.eq.${shipment.trackingNumber}`);

@@ -246,7 +246,7 @@ class ProductLinkingSystemV20OneFinal {
                 if (selectedProducts.length > 0) {
                     linkingPlan.push({
                         shipmentId: shipment.id,
-                        shipmentNumber: shipment.shipmentNumber,
+                        shipment_number: shipment.shipment_number,
                         shipmentType: shipment.type,
                         products: selectedProducts,
                         expectedValue: selectedProducts.reduce((sum, p) => sum + (p.expectedValue || 0), 0)
@@ -321,7 +321,7 @@ class ProductLinkingSystemV20OneFinal {
             }
         }
         
-        console.log(`🎯 V20.1: Selected ${selectedProducts.length} optimal products for ${shipment.shipmentNumber}`);
+        console.log(`🎯 V20.1: Selected ${selectedProducts.length} optimal products for ${shipment.shipment_number}`);
         return selectedProducts;
     }
     
@@ -393,13 +393,13 @@ class ProductLinkingSystemV20OneFinal {
                     results.successCount++;
                     results.totalProducts += linkItem.products.length;
                     
-                    console.log(`✅ V20.1: Successfully linked ${linkItem.products.length} products to ${linkItem.shipmentNumber}`);
+                    console.log(`✅ V20.1: Successfully linked ${linkItem.products.length} products to ${linkItem.shipment_number}`);
                     
                 } catch (error) {
                     results.failureCount++;
                     results.errors.push({
                         shipmentId: linkItem.shipmentId,
-                        shipmentNumber: linkItem.shipmentNumber,
+                        shipment_number: linkItem.shipment_number,
                         error: error.message
                     });
                     
@@ -438,7 +438,7 @@ class ProductLinkingSystemV20OneFinal {
     // NEW V20.1: Execute single auto-link with enhanced error handling
     async executeSingleAutoLink(linkItem) {
         try {
-            console.log(`🔗 V20.1: Linking ${linkItem.products.length} products to ${linkItem.shipmentNumber}`);
+            console.log(`🔗 V20.1: Linking ${linkItem.products.length} products to ${linkItem.shipment_number}`);
             
             // Validate shipment still exists
             const shipment = this.getShipmentById(linkItem.shipmentId);
@@ -455,7 +455,7 @@ class ProductLinkingSystemV20OneFinal {
             // Use existing V20.0 linkProductsToShipment method
             this.linkProductsToShipment(linkItem.shipmentId, productsForLinking);
             
-            console.log(`✅ V20.1: Successfully executed link for ${linkItem.shipmentNumber}`);
+            console.log(`✅ V20.1: Successfully executed link for ${linkItem.shipment_number}`);
             
         } catch (error) {
             console.error(`❌ V20.1: Failed to execute link for ${linkItem.shipmentId}:`, error);
@@ -1151,7 +1151,7 @@ class ProductLinkingSystemV20OneFinal {
             const content = this.generateManageProductsContent(shipmentId, shipment, linkedProducts);
             
             const modal = this.modalSystem.show({
-                title: `🔧 Gestisci Prodotti - ${shipment.shipmentNumber || shipmentId}`,
+                title: `🔧 Gestisci Prodotti - ${shipment.shipment_number || shipmentId}`,
                 content: content,
                 size: 'lg',
                 buttons: [
@@ -1190,7 +1190,7 @@ class ProductLinkingSystemV20OneFinal {
                 <!-- Shipment Info -->
                 <div style="background: #e8f4fd; padding: 16px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #007bff;">
                     <h4 style="margin: 0 0 8px; color: #1d1d1f;">
-                        📦 ${shipment.shipmentNumber || shipmentId}
+                        📦 ${shipment.shipment_number || shipmentId}
                     </h4>
                     <p style="margin: 0 0 8px; color: #6c757d; font-size: 14px;">
                         <strong>Rotta:</strong> ${shipment.route?.origin?.name || 'N/A'} → ${shipment.route?.destination?.name || 'N/A'}
@@ -1401,7 +1401,7 @@ class ProductLinkingSystemV20OneFinal {
             <div class="link-item" onclick="window.productLinkingV20Final.handleLinkClick('${shipment.id}')">
                 <div style="display: flex; justify-content: space-between; align-items: center;">
                     <div>
-                        <div style="font-weight: 600; color: #1d1d1f;">${shipment.shipmentNumber}</div>
+                        <div style="font-weight: 600; color: #1d1d1f;">${shipment.shipment_number}</div>
                         <div style="font-size: 12px; color: #6c757d;">${shipment.route?.origin?.name || 'N/A'} → ${shipment.route?.destination?.name || 'N/A'}</div>
                         <div style="font-size: 12px; color: #dc3545; margin-top: 4px;">
                             <i class="fas fa-exclamation-triangle"></i> Nessun prodotto collegato
@@ -1496,7 +1496,7 @@ class ProductLinkingSystemV20OneFinal {
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
                         <h4 style="margin: 0; color: #1d1d1f; font-size: 16px;">
                             <i class="fas fa-ship" style="color: #007bff; margin-right: 8px;"></i>
-                            ${shipment.shipmentNumber}
+                            ${shipment.shipment_number}
                         </h4>
                         <button class="sol-btn sol-btn-sm sol-btn-glass" 
                                 onclick="window.productLinkingV20Final.handleManageProducts('${shipment.id}')"
@@ -1591,7 +1591,7 @@ class ProductLinkingSystemV20OneFinal {
             const content = this.generateLinkProductsContent(shipmentId, shipment);
             
             const modal = this.modalSystem.show({
-                title: `🔗 Collega Prodotti - ${shipment.shipmentNumber || shipmentId}`,
+                title: `🔗 Collega Prodotti - ${shipment.shipment_number || shipmentId}`,
                 content: content,
                 size: 'lg',
                 buttons: [
@@ -1630,7 +1630,7 @@ class ProductLinkingSystemV20OneFinal {
                 <!-- Shipment Info -->
                 <div style="background: #e8f4fd; padding: 16px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #007bff;">
                     <h4 style="margin: 0 0 8px; color: #1d1d1f;">
-                        📦 ${shipment.shipmentNumber || shipmentId}
+                        📦 ${shipment.shipment_number || shipmentId}
                     </h4>
                     <p style="margin: 0 0 8px; color: #6c757d; font-size: 14px;">
                         <strong>Rotta:</strong> ${shipment.route?.origin?.name || 'N/A'} → ${shipment.route?.destination?.name || 'N/A'}
@@ -1848,7 +1848,7 @@ class ProductLinkingSystemV20OneFinal {
     createEmergencyManageModal(shipmentId, shipment, linkedProducts) {
         const fallbackContent = `
             <div style="padding: 20px;">
-                <h3>Gestisci Prodotti - ${shipment.shipmentNumber}</h3>
+                <h3>Gestisci Prodotti - ${shipment.shipment_number}</h3>
                 <p>Prodotti collegati: ${linkedProducts.length}</p>
                 <p style="color: #dc3545;">Funzionalità ridotta - Sistema modal non disponibile</p>
                 <button onclick="window.productLinkingV20Final.processProductUnlinking('${shipmentId}')" 
@@ -1874,7 +1874,7 @@ class ProductLinkingSystemV20OneFinal {
     createEmergencyLinkModal(shipmentId, shipment) {
         const fallbackContent = `
             <div style="padding: 20px;">
-                <h3>Collega Prodotti - ${shipment.shipmentNumber}</h3>
+                <h3>Collega Prodotti - ${shipment.shipment_number}</h3>
                 <p>Prodotti disponibili: ${this.productsData.length}</p>
                 <p style="color: #dc3545;">Funzionalità ridotta - Sistema modal non disponibile</p>
                 <button onclick="window.productLinkingV20Final.linkProductsToShipment('${shipmentId}', [{productId: 'PROD-001', quantity: 1}])" 

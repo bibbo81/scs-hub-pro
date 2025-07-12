@@ -191,7 +191,7 @@ class CostAllocationUI {
                 <select class="sol-form-select" id="costShipmentSelect" style="max-width: 400px;">
                     ${shipments.map(s => `
                         <option value="${s.id}">
-                            ${s.shipmentNumber} - ${s.route?.origin?.name} → ${s.route?.destination?.name}
+                            ${s.shipment_number} - ${s.route?.origin?.name} → ${s.route?.destination?.name}
                         </option>
                     `).join('')}
                 </select>

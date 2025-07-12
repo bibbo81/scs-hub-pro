@@ -48,7 +48,7 @@ function enhancedPopulateLinkedProductsGrid() {
     if (searchTerm) {
         shipments = shipments.filter(s => {
             // Search in shipment number
-            if (s.shipmentNumber.toLowerCase().includes(searchTerm)) return true;
+            if (s.shipment_number.toLowerCase().includes(searchTerm)) return true;
             
             // Search in route
             if (s.route?.origin?.name?.toLowerCase().includes(searchTerm)) return true;
@@ -108,10 +108,10 @@ function enhancedPopulateLinkedProductsGrid() {
         const totalValue = shipment.products.reduce((sum, p) => sum + (p.value || 0), 0);
         
         // Highlight search terms
-        let shipmentNumberDisplay = shipment.shipmentNumber;
-        if (searchTerm && shipment.shipmentNumber.toLowerCase().includes(searchTerm)) {
+        let shipment_numberDisplay = shipment.shipment_number;
+        if (searchTerm && shipment.shipment_number.toLowerCase().includes(searchTerm)) {
             const regex = new RegExp(`(${searchTerm})`, 'gi');
-            shipmentNumberDisplay = shipment.shipmentNumber.replace(regex, '<mark>$1</mark>');
+            shipment_numberDisplay = shipment.shipment_number.replace(regex, '<mark>$1</mark>');
         }
         
         return `
@@ -119,7 +119,7 @@ function enhancedPopulateLinkedProductsGrid() {
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
                     <h4 style="margin: 0; color: #1d1d1f; font-size: 16px;">
                         <i class="fas fa-ship" style="color: #007bff; margin-right: 8px;"></i>
-                        ${shipmentNumberDisplay}
+                        ${shipment_numberDisplay}
                         ${searchTerm ? '<span style="background: #28a745; color: white; padding: 2px 6px; border-radius: 4px; font-size: 10px; margin-left: 8px;">MATCH</span>' : ''}
                     </h4>
                     <button class="sol-btn sol-btn-sm sol-btn-glass" 

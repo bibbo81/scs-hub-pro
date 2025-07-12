@@ -80,10 +80,10 @@ async function runMissingOrgTests() {
 async function runExistingShipmentTest() {
     activeOrgId = '1';
     const svc = new TestService();
-    const first = await svc.createShipment({ shipmentNumber: 'ABC' });
+    const first = await svc.createShipment({ shipment_number: 'ABC' });
     assert.strictEqual(first.shipment_number, 'ABC');
 
-    const second = await svc.createShipment({ shipmentNumber: 'ABC' });
+    const second = await svc.createShipment({ shipment_number: 'ABC' });
     assert.strictEqual(second, null);
 
     console.log('SupabaseShipmentsService duplicate shipment test passed');
@@ -94,7 +94,7 @@ async function runForbiddenLoggingTest() {
     const logger = { error(entry) { logs.push(entry); } };
     activeOrgId = 'user-1';
     const svc = new TestService(logger);
-    const result = await svc.createShipment({ shipmentNumber: 'FORBID', force403: true });
+    const result = await svc.createShipment({ shipment_number: 'FORBID', force403: true });
     assert.strictEqual(result, null);
     assert.strictEqual(logs.length, 1);
     assert.deepStrictEqual(logs[0], {

@@ -46,7 +46,7 @@ class EnhancedCommercialModel {
         return {
             // Existing fields...
             id: { type: 'string', required: true, immutable: true },
-            shipmentNumber: { type: 'string', required: true, unique: true },
+            shipment_number: { type: 'string', required: true, unique: true },
             type: { type: 'enum', values: ['container', 'awb', 'bl', 'lcl'], required: true },
             status: { type: 'enum', values: ['planned', 'departed', 'in_transit', 'arrived', 'delivered'] },
             

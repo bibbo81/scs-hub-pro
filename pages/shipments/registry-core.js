@@ -114,7 +114,7 @@ class RegistryCore {
 
             return {
                 id,
-                shipmentNumber: tracking.tracking_number,
+                shipment_number: tracking.tracking_number,
                 trackingNumber: tracking.tracking_number,
                 type: typeMap[tracking.tracking_type] || 'container',
                 status: statusMap[tracking.current_status || tracking.status] || 'planned',
@@ -406,11 +406,11 @@ class RegistryCore {
                                    ${isSelected ? 'checked' : ''}>
                         </td>
                     ` : ''}
-                    ${cm.isColumnVisible('shipmentNumber') ? `
+                    ${cm.isColumnVisible('shipment_number') ? `
                         <td class="font-mono">
                             <a href="#" onclick="window.shipmentDetails?.show('${shipment.id}'); return false;" 
                                class="text-primary" style="text-decoration: none;">
-                                ${shipment.shipmentNumber}
+                                ${shipment.shipment_number}
                             </a>
                         </td>
                     ` : ''}
@@ -683,7 +683,7 @@ class RegistryCore {
             const searchTerm = searchRegistry?.value.toLowerCase();
             if (searchTerm) {
                 shipments = shipments.filter(s => 
-                    s.shipmentNumber.toLowerCase().includes(searchTerm) ||
+                    s.shipment_number.toLowerCase().includes(searchTerm) ||
                     s.carrier?.name?.toLowerCase().includes(searchTerm) ||
                     s.route?.origin?.name?.toLowerCase().includes(searchTerm) ||
                     s.route?.destination?.name?.toLowerCase().includes(searchTerm) ||
@@ -715,7 +715,7 @@ class RegistryCore {
     getNestedValue(obj, path) {
         try {
             switch (path) {
-                case 'shipmentNumber': return obj.shipmentNumber;
+                case 'shipment_number': return obj.shipment_number;
                 case 'type': return obj.type;
                 case 'status': return obj.status;
                 case 'carrier': return obj.carrier?.name || '';
@@ -1019,7 +1019,7 @@ window.bulkExport = async function() {
                 window.documentsManager.getShipmentDocuments(s.id).length : 0;
                 
             return {
-                'Shipment Number': s.shipmentNumber,
+                'Shipment Number': s.shipment_number,
                 'Type': s.type,
                 'Status': s.status,
                 'Carrier': s.carrier?.name || '',

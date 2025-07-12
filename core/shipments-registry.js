@@ -77,7 +77,7 @@ class ShipmentsRegistry {
         return shipments.filter(shipment => {
             // Basic validation
             if (!shipment || typeof shipment !== 'object') return false;
-            if (!shipment.id || !shipment.shipmentNumber) return false;
+            if (!shipment.id || !shipment.shipment_number) return false;
             
             // Ensure required fields exist
             shipment.createdAt = shipment.createdAt || new Date().toISOString();
@@ -154,7 +154,7 @@ class ShipmentsRegistry {
 
         const duplicate = this.shipments.find(s =>
             s.organization_id === orgId &&
-            (s.shipmentNumber === shipmentData.shipmentNumber ||
+            (s.shipment_number === shipmentData.shipment_number ||
                 (shipmentData.trackingNumber && s.trackingNumber === shipmentData.trackingNumber))
         );
         if (duplicate) {
@@ -164,7 +164,7 @@ class ShipmentsRegistry {
 
         const shipment = {
             id: shipmentData.id || this.generateId(),
-            shipmentNumber: shipmentData.shipmentNumber || this.generateShipmentNumber(),
+            shipment_number: shipmentData.shipment_number || this.generateShipmentNumber(),
             type: shipmentData.type || 'container',
             status: shipmentData.status || 'planned',
             carrier: shipmentData.carrier || null,
@@ -214,7 +214,7 @@ class ShipmentsRegistry {
         this.shipments.push(shipment);
         this.notifySubscribers('created', { shipment });
 
-        console.log(`✅ Created shipment: ${shipment.shipmentNumber}`);
+        console.log(`✅ Created shipment: ${shipment.shipment_number}`);
         return shipment;
     }
     
@@ -255,7 +255,7 @@ class ShipmentsRegistry {
             oldShipment
         });
 
-        console.log(`✅ Updated shipment: ${this.shipments[index].shipmentNumber}`);
+        console.log(`✅ Updated shipment: ${this.shipments[index].shipment_number}`);
         return this.shipments[index];
     }
     
@@ -275,7 +275,7 @@ class ShipmentsRegistry {
 
         this.notifySubscribers('deleted', { shipment: deletedShipment });
 
-        console.log(`✅ Deleted shipment: ${deletedShipment.shipmentNumber}`);
+        console.log(`✅ Deleted shipment: ${deletedShipment.shipment_number}`);
         return deletedShipment;
     }
     
@@ -283,8 +283,8 @@ class ShipmentsRegistry {
         return this.shipments.find(s => s.id === shipmentId);
     }
     
-    getShipmentByNumber(shipmentNumber) {
-        return this.shipments.find(s => s.shipmentNumber === shipmentNumber);
+    getShipmentByNumber(shipment_number) {
+        return this.shipments.find(s => s.shipment_number === shipment_number);
     }
     
     // ===== PRODUCT LINKING =====
@@ -333,7 +333,7 @@ class ShipmentsRegistry {
             products: [...(shipment.products || []), ...linkedProducts]
         });
         
-        console.log(`✅ Linked ${linkedProducts.length} products to shipment ${shipment.shipmentNumber}`);
+        console.log(`✅ Linked ${linkedProducts.length} products to shipment ${shipment.shipment_number}`);
         return linkedProducts;
     }
     
@@ -362,7 +362,7 @@ class ShipmentsRegistry {
         
         await this.updateShipment(shipmentId, { products: updatedProducts });
         
-        console.log(`✅ Allocated costs for shipment ${shipment.shipmentNumber} using ${method} method`);
+        console.log(`✅ Allocated costs for shipment ${shipment.shipment_number} using ${method} method`);
         return allocations;
     }
     
@@ -443,7 +443,7 @@ class ShipmentsRegistry {
                 if (product) collectedProducts.push(product);
                 
                 // Check if shipment already exists
-                const existing = this.getShipmentByNumber(shipmentData.shipmentNumber);
+                const existing = this.getShipmentByNumber(shipmentData.shipment_number);
                 
                 if (existing && !overwrite) {
                     results.errors.push({
@@ -490,7 +490,7 @@ class ShipmentsRegistry {
         };
 
         return {
-            shipmentNumber: getField('shipment_number'),
+            shipment_number: getField('shipment_number'),
             type: (getField('type', 'container') || 'container').toLowerCase(),
             status: window.ShipmentUnifiedMapping.mapStatus(getField('status', 'planned')),
             carrier: {
@@ -573,7 +573,7 @@ class ShipmentsRegistry {
         ];
         
         const rows = (Array.isArray(this.shipments) ? this.shipments : []).map(s => [
-            s.shipmentNumber,
+            s.shipment_number,
             s.type,
             s.status,
             s.carrier?.code || '',

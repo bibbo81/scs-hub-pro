@@ -1211,7 +1211,7 @@ class CarrierPerformanceAnalytics {
     
     generateCarrierReportData(carrier) {
         return carrier.shipments.map(shipment => ({
-            'Shipment Number': shipment.shipmentNumber,
+            'Shipment Number': shipment.shipment_number,
             'Route': this.getRouteKey(shipment),
             'ETD': shipment.schedule?.etd || '',
             'ETA': shipment.schedule?.eta || '',

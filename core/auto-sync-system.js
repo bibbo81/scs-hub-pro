@@ -58,7 +58,7 @@ class AutoSyncSystem {
         return {
             // Tracking → Shipments mapping rules
             trackingToShipment: {
-                trackingNumber: 'shipmentNumber',
+                trackingNumber: 'shipment_number',
                 tracking_type: (value) => {
                     const typeMapping = {
                         'container': 'container',
@@ -191,7 +191,7 @@ class AutoSyncSystem {
             // Find trackings without corresponding shipments
             const orphanedTrackings = trackings.filter(tracking => {
                 return !shipments.some(shipment => 
-                    shipment.shipmentNumber === tracking.tracking_number ||
+                    shipment.shipment_number === tracking.tracking_number ||
                     shipment.trackingNumber === tracking.tracking_number
                 );
             });
@@ -331,7 +331,7 @@ class AutoSyncSystem {
                         .from('shipments')
                         .select('id')
                         .eq('organization_id', orgId)
-                        .eq('shipmentNumber', trackingData.tracking_number)
+                        .eq('shipment_number', trackingData.tracking_number)
                         .maybeSingle();
                     if (existing) {
                         console.log('🚫 Shipment already exists, skipping creation:', existing.id);
@@ -440,7 +440,7 @@ class AutoSyncSystem {
 
     mapTrackingToShipment(trackingData) {
         const mapped = {
-            shipmentNumber: trackingData.tracking_number,
+            shipment_number: trackingData.tracking_number,
             trackingNumber: trackingData.tracking_number,
             type: this.syncRules.trackingToShipment.tracking_type(trackingData.tracking_type),
             status: this.syncRules.trackingToShipment.status(trackingData.status),
@@ -491,7 +491,7 @@ class AutoSyncSystem {
     }
 
     async syncShipmentToTracking(shipmentData) {
-        const trackingNumber = shipmentData.trackingNumber || shipmentData.shipmentNumber;
+        const trackingNumber = shipmentData.trackingNumber || shipmentData.shipment_number;
         const tracking = this.findTrackingByNumber(trackingNumber);
         
         if (!tracking) return;
@@ -531,7 +531,7 @@ class AutoSyncSystem {
     findShipmentByTracking(trackingNumber) {
         const shipments = this.getShipments();
         return shipments.find(s => 
-            s.shipmentNumber === trackingNumber ||
+            s.shipment_number === trackingNumber ||
             s.trackingNumber === trackingNumber
         );
     }
