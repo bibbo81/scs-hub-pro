@@ -4,6 +4,51 @@
     
     console.log('🔧 TRACKING DETECT FIX: Initializing with ShipsGo integration...');
     
+    // ============================================================================
+    // PAGE DETECTION - Only execute on shipments.html
+    // ============================================================================
+    function isCorrectPage() {
+        // Method 1: Check current URL
+        const currentPath = window.location.pathname;
+        if (currentPath.includes('shipments.html')) {
+            return true;
+        }
+        
+        // Method 2: Check for shipments-specific elements that should exist
+        const shipmentsIndicators = [
+            '#shipmentsTable',
+            '#addShipmentBtn', 
+            '.sol-page-title', // Look for specific page elements
+        ];
+        
+        for (const selector of shipmentsIndicators) {
+            if (document.querySelector(selector)) {
+                return true;
+            }
+        }
+        
+        // Method 3: Check if we're NOT on tracking.html
+        if (currentPath.includes('tracking.html')) {
+            return false;
+        }
+        
+        // Method 4: Look for tracking-specific form elements that this script needs
+        // If the target form elements exist, we can proceed
+        const requiredElements = ['enh_trackingNumber', 'enh_trackingType', 'enh_carrier'];
+        const foundElements = requiredElements.filter(id => document.getElementById(id));
+        
+        // Only proceed if we find at least one of the target elements
+        return foundElements.length > 0;
+    }
+    
+    // Early exit if we're on the wrong page
+    if (!isCorrectPage()) {
+        console.log('🚫 TRACKING DETECT FIX: Skipping execution - not on shipments.html or target elements not found');
+        return; // Exit the entire IIFE
+    }
+    
+    console.log('✅ TRACKING DETECT FIX: Page detection passed - proceeding with initialization');
+    
     // COSTANTI PER EVITARE LOOP
     const MAX_RETRIES = 10;
     const RETRY_DELAY = 500; // ms
