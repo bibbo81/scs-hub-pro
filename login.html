@@ -835,5 +835,126 @@
             window.testSupabaseConfig();
         }
     </script>
+    
+    <script>
+// auth-guard.js - Sistema di protezione delle pagine (versione standalone)
+(function() {
+    'use strict';
+
+    // Pagine che non richiedono autenticazione
+    const publicPages = [
+        '/login.html',
+        '/register.html',
+        '/forgot-password.html',
+        '/index.html',
+        '/'
+    ];
+
+    // Funzione per ottenere il percorso corrente normalizzato
+    function getCurrentPath() {
+        const path = window.location.pathname;
+        return path.endsWith('/') && path !== '/' ? path.slice(0, -1) : path;
+    }
+
+    // Funzione per verificare se l'utente è autenticato
+    function isAuthenticated() {
+        const token = localStorage.getItem('authToken');
+        const user = localStorage.getItem('currentUser');
+        
+        if (!token || !user) {
+            return false;
+        }
+        
+        try {
+            // Verifica se il token è ancora valido
+            const tokenData = JSON.parse(atob(token.split('.')[1]));
+            // Controlla se il token è scaduto
+            if (tokenData.exp && tokenData.exp * 1000 < Date.now()) {
+                // Token scaduto, pulisci lo storage
+                localStorage.removeItem('authToken');
+                localStorage.removeItem('currentUser');
+                return false;
+            }
+            return true;
+        } catch (e) {
+            console.error('Errore nella verifica del token:', e);
+            // In caso di errore, considera l'utente non autenticato
+            localStorage.removeItem('authToken');
+            localStorage.removeItem('currentUser');
+            return false;
+        }
+    }
+
+    // Funzione principale di controllo accesso
+    function checkAuth() {
+        const currentPath = getCurrentPath();
+        const isPublicPage = publicPages.some(page => currentPath.endsWith(page) || currentPath === page);
+        const isLoggedIn = isAuthenticated();
+
+        // Se siamo su una pagina pubblica
+        if (isPublicPage) {
+            // Se l'utente è autenticato e sta cercando di accedere a login/register
+            if (isLoggedIn && (currentPath.includes('login.html') || currentPath.includes('register.html'))) {
+                window.location.href = '/dashboard.html';
+            }
+            return; // Permetti l'accesso alle pagine pubbliche
+        }
+
+        // Se siamo su una pagina protetta e l'utente non è autenticato
+        if (!isLoggedIn) {
+            // Salva la pagina di destinazione per il redirect dopo il login
+            sessionStorage.setItem('redirectAfterLogin', window.location.href);
+            window.location.href = '/login.html';
+            return;
+        }
+    }
+
+    // Listener per intercettare errori di rete/token
+    window.addEventListener('storage', function(e) {
+        if (e.key === 'authToken' && !e.newValue) {
+            window.location.href = '/login.html';
+        }
+    });
+
+    // Intercetta le risposte delle chiamate API per gestire errori di autenticazione
+    if (window.fetch) {
+        const originalFetch = window.fetch;
+        window.fetch = function(...args) {
+            return originalFetch.apply(this, args)
+                .then(response => {
+                    if (response.status === 401) {
+                        localStorage.removeItem('authToken');
+                        localStorage.removeItem('currentUser');
+                        window.location.href = '/login.html';
+                    }
+                    return response;
+                })
+                .catch(error => {
+                    console.error('Errore nella richiesta:', error);
+                    throw error;
+                });
+        };
+    }
+
+    // Esegui il controllo quando il DOM è pronto
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', checkAuth);
+    } else {
+        checkAuth();
+    }
+
+    // Esporta funzioni utili
+    window.AuthGuard = {
+        isAuthenticated,
+        checkAuth,
+        logout: function() {
+            localStorage.removeItem('authToken');
+            localStorage.removeItem('currentUser');
+            sessionStorage.clear();
+            window.location.href = '/login.html';
+        }
+    };
+})();
+</script>
 </body>
 </html>
