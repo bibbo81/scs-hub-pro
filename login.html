@@ -548,8 +548,13 @@
                     email,
                     password
                 });
-                
+
                 if (error) throw error;
+
+                if (data && data.session) {
+                    localStorage.setItem('authToken', data.session.access_token);
+                    localStorage.setItem('currentUser', JSON.stringify(data.session.user));
+                }
                 
                 showAlert('Accesso effettuato con successo! Reindirizzamento...', 'success');
                 
@@ -860,29 +865,25 @@
     function isAuthenticated() {
         const token = localStorage.getItem('authToken');
         const user = localStorage.getItem('currentUser');
-        
-        if (!token || !user) {
-            return false;
-        }
-        
-        try {
-            // Verifica se il token è ancora valido
-            const tokenData = JSON.parse(atob(token.split('.')[1]));
-            // Controlla se il token è scaduto
-            if (tokenData.exp && tokenData.exp * 1000 < Date.now()) {
-                // Token scaduto, pulisci lo storage
+
+        if (token && user) {
+            try {
+                const tokenData = JSON.parse(atob(token.split('.')[1]));
+                if (tokenData.exp && tokenData.exp * 1000 < Date.now()) {
+                    localStorage.removeItem('authToken');
+                    localStorage.removeItem('currentUser');
+                    return false;
+                }
+                return true;
+            } catch (e) {
+                console.error('Errore nella verifica del token:', e);
                 localStorage.removeItem('authToken');
                 localStorage.removeItem('currentUser');
                 return false;
             }
-            return true;
-        } catch (e) {
-            console.error('Errore nella verifica del token:', e);
-            // In caso di errore, considera l'utente non autenticato
-            localStorage.removeItem('authToken');
-            localStorage.removeItem('currentUser');
-            return false;
         }
+
+        return !!(window.currentSession && window.currentUser);
     }
 
     // Funzione principale di controllo accesso

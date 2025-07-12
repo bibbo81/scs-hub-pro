@@ -34,35 +34,31 @@
     function isAuthenticated() {
         const token = localStorage.getItem(config.tokenKey);
         const user = localStorage.getItem(config.userKey);
-        
-        if (!token || !user) {
-            console.log('Auth: Token o user mancante');
-            return false;
-        }
-        
-        try {
-            // Verifica la validità del token
-            const parts = token.split('.');
-            if (parts.length !== 3) {
-                console.log('Auth: Token format non valido');
-                return false;
-            }
-            
-            const payload = JSON.parse(atob(parts[1]));
-            
-            // Controlla scadenza
-            if (payload.exp && payload.exp * 1000 < Date.now()) {
-                console.log('Auth: Token scaduto');
+
+        if (token && user) {
+            try {
+                const parts = token.split('.');
+                if (parts.length !== 3) {
+                    console.log('Auth: Token format non valido');
+                    return false;
+                }
+
+                const payload = JSON.parse(atob(parts[1]));
+                if (payload.exp && payload.exp * 1000 < Date.now()) {
+                    console.log('Auth: Token scaduto');
+                    clearAuth();
+                    return false;
+                }
+
+                return true;
+            } catch (e) {
+                console.error('Auth: Errore nella verifica del token:', e);
                 clearAuth();
                 return false;
             }
-            
-            return true;
-        } catch (e) {
-            console.error('Auth: Errore nella verifica del token:', e);
-            clearAuth();
-            return false;
         }
+
+        return !!(window.currentSession && window.currentUser);
     }
 
     // Pulisce i dati di autenticazione
