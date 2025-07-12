@@ -820,5 +820,112 @@ document.addEventListener('DOMContentLoaded', async () => {
     <script src="assets/js/auth-utils.js"></script>
     <script src="assets/js/navbar.js"></script>
     <script src="assets/js/tracking.js"></script>
+    
+    <script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Fallback: controllo token legacy SOLO se non già gestito da auth-guard.js
+    if (typeof window.AuthGuard === 'undefined') {
+        const authToken = localStorage.getItem('authToken');
+        if (!authToken) {
+            window.location.href = 'login.html';
+            return;
+        }
+        try {
+            const payload = JSON.parse(atob(authToken.split('.')[1]));
+            const now = Date.now() / 1000;
+            if (payload.exp && payload.exp < now) {
+                localStorage.clear();
+                window.location.href = 'login.html';
+                return;
+            }
+        } catch (error) {
+            localStorage.clear();
+            window.location.href = 'login.html';
+        }
+    }
+});
+</script>
+
+    <!-- Loader -->
+    <div id="loader" class="loader" style="display: none;">
+        <div class="spinner"></div>
+    </div>
+    
+    <!-- Script auth.js DEVE essere il primo -->
+    <script src="js/auth.js"></script>
+    
+    <!-- Script specifici della pagina -->
+    <script>
+        // Script per tracking.html - SENZA controlli di auth duplicati
+        let trackingData = [];
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            // auth.js ha già fatto il controllo, procediamo solo se siamo ancora qui
+            initializeTrackingPage();
+        });
+        
+        function initializeTrackingPage() {
+            // Mostra nome utente
+            const user = getCurrentUser();
+            if (user) {
+                document.querySelector('.user-name').textContent = user.name || user.email;
+            }
+            
+            // Setup logout
+            document.getElementById('logoutBtn').addEventListener('click', function(e) {
+                e.preventDefault();
+                if (confirm('Vuoi davvero uscire?')) {
+                    logout(); // Funzione definita in auth.js
+                }
+            });
+            
+            // Carica dati tracking
+            loadTrackingData();
+        }
+        
+        async function loadTrackingData() {
+            const loader = document.getElementById('loader');
+            loader.style.display = 'flex';
+            
+            try {
+                const token = localStorage.getItem('authToken');
+                
+                // Simula caricamento dati - SOSTITUISCI con la tua API
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                
+                // Dati mock per test
+                trackingData = [
+                    {
+                        id: 'TRACK001',
+                        status: 'in_transit',
+                        origin: 'Milano',
+                        destination: 'Roma',
+                        date: new Date().toISOString()
+                    },
+                    {
+                        id: 'TRACK002',
+                        status: 'delivered',
+                        origin: 'Napoli',
+                        destination: 'Torino',
+                        date: new Date().toISOString()
+                    }
+                ];
+                
+                // Aggiorna UI
+                updateTrackingDisplay();
+                
+            } catch (error) {
+                console.error('Errore caricamento dati:', error);
+                alert('Errore nel caricamento dei dati di tracking');
+            } finally {
+                loader.style.display = 'none';
+            }
+        }
+        
+        function updateTrackingDisplay() {
+            // Implementa l'aggiornamento della UI con i dati
+            console.log('Tracking data loaded:', trackingData);
+        }
+    </script>
 </body>
 </html>

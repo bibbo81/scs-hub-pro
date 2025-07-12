@@ -214,10 +214,10 @@ const TABLE_COLUMNS = [
     }
 },
     { 
-    key: 'carrier_name', 
-    label: 'CARRIER', 
-    sortable: true,
-    formatter: (value, row) => {
+        key: 'carrier_name', 
+        label: 'CARRIER', 
+        sortable: true,
+        formatter: (value, row) => {
         // CERCA IN TUTTI I CAMPI POSSIBILI
         const carrier = value || 
                        row.carrier_name || 
@@ -1890,3 +1890,157 @@ window.trackingDebug = {
     getStatusMapping: () => STATUS_DISPLAY
 };
 window.AVAILABLE_COLUMNS = AVAILABLE_COLUMNS;
+
+// File tracking.js corretto - SOSTITUISCI LA PARTE DI AUTENTICAZIONE
+
+// Rimuovi qualsiasi controllo di autenticazione duplicato all'inizio del file
+// Il controllo è già gestito da auth.js
+
+// Variabili globali per tracking
+let trackingData = [];
+let filters = {
+    status: 'all',
+    dateFrom: '',
+    dateTo: '',
+    search: ''
+};
+
+// Inizializzazione
+document.addEventListener('DOMContentLoaded', function() {
+    // Non fare controlli di auth qui, sono già gestiti da auth.js
+    
+    // Inizializza la pagina
+    initializeTrackingPage();
+    
+    // Carica i dati
+    loadTrackingData();
+    
+    // Setup event listeners
+    setupEventListeners();
+});
+
+// Funzione di inizializzazione pagina
+function initializeTrackingPage() {
+    // Mostra info utente
+    const user = getCurrentUser();
+    if (user && user.name) {
+        const userNameElements = document.querySelectorAll('.user-name');
+        userNameElements.forEach(el => {
+            el.textContent = user.name;
+        });
+    }
+    
+    // Imposta data di oggi nei filtri
+    const today = new Date().toISOString().split('T')[0];
+    const dateInputs = document.querySelectorAll('input[type="date"]');
+    dateInputs.forEach(input => {
+        input.max = today;
+    });
+}
+
+// Carica dati tracking
+async function loadTrackingData() {
+    try {
+        const token = localStorage.getItem('authToken');
+        if (!token) {
+            // Se non c'è token, auth.js gestirà il redirect
+            return;
+        }
+        
+        // Mostra loader
+        showLoader();
+        
+        // Chiamata API - sostituisci con il tuo endpoint
+        const response = await fetch('/api/tracking', {
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        if (response.status === 401) {
+            // Token non valido, lascia che auth.js gestisca
+            localStorage.removeItem('authToken');
+            window.location.replace('login.html');
+            return;
+        }
+        
+        if (!response.ok) {
+            throw new Error('Errore caricamento dati');
+        }
+        
+        const data = await response.json();
+        trackingData = data.shipments || [];
+        
+        // Aggiorna UI
+        updateTrackingTable();
+        updateStatistics();
+        
+    } catch (error) {
+        console.error('Errore caricamento tracking:', error);
+        showError('Impossibile caricare i dati di tracking');
+    } finally {
+        hideLoader();
+    }
+}
+
+// Setup event listeners
+function setupEventListeners() {
+    // Filtri
+    const filterInputs = document.querySelectorAll('.filters input, .filters select');
+    filterInputs.forEach(input => {
+        input.addEventListener('change', applyFilters);
+    });
+    
+    // Ricerca
+    const searchInput = document.getElementById('searchTracking');
+    if (searchInput) {
+        searchInput.addEventListener('input', debounce(applyFilters, 300));
+    }
+    
+    // Pulsante logout
+    const logoutBtn = document.getElementById('logoutBtn');
+    if (logoutBtn) {
+        logoutBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            if (confirm('Sei sicuro di voler uscire?')) {
+                logout();
+            }
+        });
+    }
+    
+    // Pulsante refresh
+    const refreshBtn = document.getElementById('refreshTracking');
+    if (refreshBtn) {
+        refreshBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            loadTrackingData();
+        });
+    }
+}
+
+// Funzioni di utility
+function showLoader() {
+    const loader = document.getElementById('loader');
+    if (loader) loader.style.display = 'flex';
+}
+
+function hideLoader() {
+    const loader = document.getElementById('loader');
+    if (loader) loader.style.display = 'none';
+}
+
+function showError(message) {
+    // Implementa notifica errore
+    console.error(message);
+    alert(message); // Sostituisci con una notifica più elegante
+}
+
+function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
