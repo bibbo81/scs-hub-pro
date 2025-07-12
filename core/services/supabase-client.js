@@ -383,19 +383,56 @@ export async function checkSession() {
     }
 }
 
-/*
-if (error) {
-    console.log('❌ Session refresh failed, redirecting to login...');
-    // COMMENTA QUESTA RIGA
-    // window.location.href = '/login.html';
-    return false;
+// Refresh session function with better error handling
+export async function refreshSession() {
+    try {
+        const { data, error } = await supabase.auth.refreshSession();
+        if (error) {
+            console.log('❌ Session refresh failed, redirecting to login...');
+            // Solo se siamo su tracking.html, non su login.html
+            if (!window.location.pathname.includes('login.html')) {
+                window.location.href = '/login.html';
+            }
+            return false;
+        }
+        
+        console.log('✅ Session refreshed:', data.session);
+        return true;
+    } catch (error) {
+        console.error('❌ Error refreshing session:', error);
+        return false;
+    }
 }
-*/
 
-// SOSTITUISCI con questo:
-if (error) {
-    console.log('❌ Session refresh failed, but continuing...');
-    // NON redirigere, continua con sessione locale
-    return true; // Cambia da false a true
+// Inserisci o modifica questa funzione in supabase-client.js
+
+async function handleAuthError() {
+    try {
+        console.log('🔄 Attempting to refresh session...');
+        
+        const { data, error } = await window.supabaseClient.auth.refreshSession();
+        
+        if (error) {
+            console.log('❌ Session refresh failed');
+            
+            // LOGICA INTELLIGENTE: redirige solo se NON sei già sulla pagina di login
+            const currentPath = window.location.pathname;
+            const isOnLoginPage = currentPath.includes('login.html');
+            
+            if (!isOnLoginPage) {
+                console.log('🔄 Redirecting to login...');
+                window.location.href = '/login.html';
+            } else {
+                console.log('🛑 Already on login page, not redirecting');
+            }
+            return false;
+        }
+        
+        console.log('✅ Session refreshed successfully');
+        return true;
+        
+    } catch (error) {
+        console.error('❌ Auth error:', error);
+        return false;
+    }
 }
-export { supabase }; // ← AGGIUNGI QUESTA RIGA
