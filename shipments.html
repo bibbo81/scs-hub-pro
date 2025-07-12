@@ -4585,340 +4585,120 @@ MSCU7654321,container,in_transit,MSC,MSC,TIGER,CNNBO,Ningbo,ITLIV,Livorno,SGSIN,
   </script>
   
   <script>
-   // ===== ENHANCED INITIALIZATION OVERRIDE =====
-   // This replaces the existing DOMContentLoaded handler in shipments.html
-   
-   (function() {
-       console.log('🔧 Applying shipments initialization fixes...');
+    // FIX: Previeni loop infiniti
+    (async function() {
+        'use strict';
 
-      if (!window.currentOrganizationId) {
-          console.error('[Shipments] No organization available');
-          const main = document.getElementById('mainContent');
-          if (main) {
-              main.innerHTML = `
-    <div class="org-warning">
-        Nessuna organizzazione trovata. Contatta un amministratore.
-    </div>
-              `;
-          }
-          document.querySelectorAll('.sol-page-actions button').forEach(btn => btn.disabled = true);
-          return;
-      }
+        console.log('🚀 Initializing Shipments Page...');
 
-       // Wait for dependency resolution system
-       let initAttempts = 0;
-       const maxAttempts = 50; // 5 seconds maximum wait
-       
-       const waitForDependencyManager = () => {
-           initAttempts++;
-           
-           if (window.shipmentsInitManager) {
-               console.log('✅ Dependency manager found, proceeding with enhanced initialization');
-               startEnhancedInitialization();
-           } else if (initAttempts < maxAttempts) {
-               setTimeout(waitForDependencyManager, 100);
-           } else {
-               console.warn('⚠️ Dependency manager not found, falling back to standard initialization');
-               startFallbackInitialization();
-           }
-       };
-       
-       async function startEnhancedInitialization() {
-           try {
-               console.log('🚀 Starting enhanced shipments initialization...');
-               
-               // Initialize header first
-               if (window.headerComponent) {
-                   await window.headerComponent.init();
-                   console.log('✅ Header component initialized');
-               }
-               
-               // Initialize Phase 2 Architecture
-               if (window.Phase2Architecture) {
-                   window.productIntelligence = window.Phase2Architecture.initialize();
-                   console.log('✅ Product Intelligence connected');
-               }
-               
-               // Wait for dependency manager to complete
-               const success = await window.reinitializeShipments();
-               
-               if (success) {
-                   console.log('✅ Enhanced initialization completed successfully');
-                   
-                   // Initialize tabs and UI components
-                   initializeTabs();
-                   initializeFilters();
-                   setupEventListeners();
-                   
-                   // Load initial data
-                   await loadShipmentsData();
-                   
-                   // Setup import/export handlers
-                   setupImportExportHandlers();
-                   
-                   // Setup documents integration
-                   setupDocumentsIntegration();
-                   
-                   
-                   // Show success notification
-                   if (window.NotificationSystem) {
-                       window.NotificationSystem.show(
-                           'System Ready', 
-                           'Enhanced Shipments Registry V15.0 initialized successfully', 
-                           'success',
-                           3000
-                       );
-                   }
-                   
-               } else {
-                   throw new Error('Enhanced initialization failed');
-               }
-               
-           } catch (error) {
-               console.error('❌ Enhanced initialization failed:', error);
-               startFallbackInitialization();
-           }
-       }
-       
-       async function startFallbackInitialization() {
-           console.log('🔄 Starting fallback initialization...');
-           
-           try {
-               // Basic initialization without dependency management
-               if (window.headerComponent) {
-                   await window.headerComponent.init();
-               }
-               
-               // Create basic registry if needed
-               if (!window.shipmentsRegistry) {
-                   if (window.ShipmentsRegistry) {
-                       window.shipmentsRegistry = new window.ShipmentsRegistry();
-                       await window.shipmentsRegistry.init();
-                   } else {
-                       // Create minimal stub
-                       window.shipmentsRegistry = {
-                           shipments: [],
-                           initialized: false,
-                           async init() { this.initialized = true; return true; },
-                           getStatistics() { 
-                               return { total: 0, byStatus: {}, totalCost: 0, avgTransitTime: 0 }; 
-                           }
-                       };
-                       await window.shipmentsRegistry.init();
-                   }
-               }
-               
-               // Initialize basic UI
-               initializeTabs();
-               initializeFilters();
-               setupEventListeners();
-               
-               // Load data
-               await loadShipmentsData();
-               
-               console.log('✅ Fallback initialization completed');
-               
-               if (window.NotificationSystem) {
-                   window.NotificationSystem.show(
-                       'System Ready', 
-                       'Shipments system initialized (fallback mode)', 
-                       'info',
-                       3000
-                   );
-               }
-               
-           } catch (error) {
-               console.error('❌ Fallback initialization also failed:', error);
-               
-               if (window.NotificationSystem) {
-                   window.NotificationSystem.show(
-                       'Initialization Error', 
-                       'Failed to initialize shipments system. Please refresh the page.', 
-                       'error',
-                       10000
-                   );
-               }
-           }
-       }
-       
-       function setupImportExportHandlers() {
-           // Import button
-           const importBtn = document.getElementById('importShipmentsBtn');
-           if (importBtn) {
-               importBtn.onclick = openImportModal;
-           }
-           
-           // Export button
-           const exportBtn = document.getElementById('exportRegistryBtn');
-           if (exportBtn) {
-               exportBtn.onclick = exportRegistry;
-           }
-           
-           // Commercial forms button
-           const commercialBtn = document.getElementById('openCommercialFormsBtn');
-           if (commercialBtn) {
-               commercialBtn.onclick = () => {
-                   if (window.shipmentsPageV14) {
-                       window.shipmentsPageV14.openCommercialDataModal('single');
-                   } else {
-                       console.warn('⚠️ Commercial forms not available yet');
-                   }
-               };
-           }
-       }
-       
-       
-       // Enhanced event listener setup
-       function setupEventListeners() {
-           try {
-               // Add shipment
-               const addBtn = document.getElementById('addShipmentBtn');
-               if (addBtn) {
-                   addBtn.addEventListener('click', () => {
-                       if (window.shipmentDetails) {
-                           window.shipmentDetails.create();
-                       } else {
-                           console.warn('⚠️ Shipment details not available');
-                       }
-                   });
-               }
-               
-               // Bulk actions
-               const bulkBtn = document.getElementById('bulkActionsBtn');
-               if (bulkBtn) {
-                   bulkBtn.addEventListener('click', () => {
-                       showBulkActionsMenu();
-                   });
-               }
-               
-               // Cost allocation
-               const costBtn = document.getElementById('costAllocationBtn');
-               if (costBtn) {
-                   costBtn.addEventListener('click', () => {
-                       if (window.costAllocation) {
-                           window.costAllocation.openModal();
-                       } else {
-                           console.warn('⚠️ Cost allocation not available');
-                       }
-                   });
-               }
-               
-               // Select all checkbox
-               const selectAllBtn = document.getElementById('selectAllShipments');
-               if (selectAllBtn) {
-                   selectAllBtn.addEventListener('change', (e) => {
-                       toggleSelectAll(e.target.checked);
-                   });
-               }
-               
-               // Refresh data
-               const refreshBtn = document.getElementById('refreshDataBtn');
-               if (refreshBtn) {
-                   refreshBtn.addEventListener('click', () => {
-                       loadShipmentsData();
-                   });
-               }
-               
-               console.log('✅ Event listeners setup completed');
-               
-           } catch (error) {
-               console.error('❌ Error setting up event listeners:', error);
-           }
-       }
-       
-       // Enhanced documents integration setup
-       function setupDocumentsIntegration() {
-           // Listen for documents updates to refresh table
-           window.addEventListener('documentsUpdated', (e) => {
-               const { action, document: doc } = e.detail;
-               
-               if (action === 'upload' || action === 'delete') {
-                   // Update the documents count in the table
-                   updateDocumentsCountInTable(doc.shipmentId);
-                   
-                   // Update any open shipment details modal
-                   if (window.shipmentDetails && window.shipmentDetails.currentShipment?.id === doc.shipmentId) {
-                       if (window.shipmentDetails.updateDocumentsCount) {
-                           window.shipmentDetails.updateDocumentsCount();
-                       }
-                       if (window.shipmentDetails.activeTab === 'documents') {
-                           if (window.shipmentDetails.refreshDocumentsTab) {
-                               window.shipmentDetails.refreshDocumentsTab();
-                           }
-                       }
-                   }
-               }
-           });
-           
-           console.log('✅ Documents integration setup completed');
-       }
-       
-       // Update documents count in table
-       function updateDocumentsCountInTable(shipmentId) {
-           if (!window.documentsManager) return;
-           
-           const row = document.querySelector(`tr[data-shipment-id="${shipmentId}"]`);
-           if (!row) return;
-           
-           const documentsCell = row.querySelector('.documents-cell');
-           const docCountSpan = row.querySelector('.doc-count');
-           const documentsBtn = row.querySelector('.documents-btn');
-           
-           if (documentsCell && docCountSpan && documentsBtn) {
-               const count = window.documentsManager.getShipmentDocuments(shipmentId).length;
-               
-               // Update count display
-               docCountSpan.textContent = count;
-               
-               if (count > 0) {
-                   docCountSpan.style.display = 'inline';
-                   documentsBtn.classList.remove('empty');
-                   documentsBtn.onclick = () => window.documentsManager.showDocumentsList(shipmentId);
-                   documentsBtn.title = `${count} documenti caricati`;
-                   
-                   const icon = documentsBtn.querySelector('i');
-                   if (icon) icon.className = 'fas fa-folder';
-               } else {
-                   docCountSpan.style.display = 'none';
-                   documentsBtn.classList.add('empty');
-                   documentsBtn.onclick = () => window.documentsManager.showUploadModal(shipmentId);
-                   documentsBtn.title = 'Carica documenti';
-                   
-                   const icon = documentsBtn.querySelector('i');
-                   if (icon) icon.className = 'fas fa-folder-plus';
-               }
-           }
-       }
-       
-       // Start initialization based on document state
-       if (document.readyState === 'loading') {
-           document.addEventListener('DOMContentLoaded', () => {
-               setTimeout(waitForDependencyManager, 100);
-           });
-       } else {
-           setTimeout(waitForDependencyManager, 100);
-       }
-       
-       // Add debug helper
-       window.debugShipmentsSystem = function() {
-           console.log('🔍 Shipments System Debug:');
-           console.log('- Dependency Manager:', !!window.shipmentsInitManager);
-           console.log('- ShipmentsRegistry:', !!window.shipmentsRegistry, window.shipmentsRegistry?.initialized);
-           console.log('- DocumentsManager:', !!window.documentsManager);
-           console.log('- RegistryCore:', !!window.registryCore);
-           console.log('- ShipmentDetails:', !!window.shipmentDetails);
-           console.log('- CostAllocation:', !!window.costAllocation);
-           console.log('- CarrierPerformance:', !!window.carrierPerformance);
-           console.log('- ExecutiveBI:', !!window.executiveBIDashboard);
-           console.log('- Shipments Count:', window.shipmentsRegistry?.shipments?.length || 0);
-           console.log('- Column Manager:', !!window.columnManager);
-       };
-       
-       console.log('🔧 Initialization override script loaded');
-       console.log('💡 Use window.debugShipmentsSystem() for debugging');
-       
-   })();
-   </script>
+        let initAttempts = 0;
+        const MAX_ATTEMPTS = 10;
+
+        async function tryInit() {
+            try {
+                initAttempts++;
+
+                if (initAttempts > MAX_ATTEMPTS) {
+                    console.error('❌ Max initialization attempts reached');
+                    showError('Errore di inizializzazione. Ricarica la pagina.');
+                    return;
+                }
+
+                if (!window.supabaseClient) {
+                    console.log('⏳ Waiting for Supabase...');
+                    setTimeout(tryInit, 500);
+                    return;
+                }
+
+                const { data: { user } } = await window.supabaseClient.auth.getUser();
+                if (!user) {
+                    console.warn('⚠️ User not authenticated');
+                    window.location.href = '/login.html';
+                    return;
+                }
+
+                console.log('✅ User authenticated:', user.email);
+
+                let orgId = window.currentOrganizationId || null;
+                let orgAttempts = 0;
+
+                while (!orgId && orgAttempts < 5) {
+                    orgAttempts++;
+
+                    try {
+                        if (window.OrganizationService) {
+                            orgId = await window.OrganizationService.getCurrentOrganizationId();
+                        }
+
+                        if (!orgId) {
+                            const { data } = await window.supabaseClient
+                                .from('organization_members')
+                                .select('organization_id')
+                                .eq('user_id', user.id)
+                                .single();
+
+                            orgId = data?.organization_id;
+                        }
+
+                        if (orgId) {
+                            console.log('✅ Organization found:', orgId);
+                            break;
+                        }
+                    } catch (error) {
+                        console.warn(`Attempt ${orgAttempts} failed:`, error);
+                    }
+
+                    if (!orgId && orgAttempts < 5) {
+                        await new Promise(resolve => setTimeout(resolve, 1000));
+                    }
+                }
+
+                if (!orgId) {
+                    console.error('❌ No organization found after all attempts');
+                    showError('Nessuna organizzazione trovata. Contatta un amministratore.');
+                    return;
+                }
+
+                window.currentOrganizationId = orgId;
+
+                await initializeComponents();
+
+                document.getElementById('content-area').style.display = 'block';
+                document.getElementById('error-message').style.display = 'none';
+
+                console.log('✅ Shipments page initialized successfully');
+
+            } catch (error) {
+                console.error('❌ Initialization error:', error);
+                showError('Errore durante il caricamento. Riprova più tardi.');
+            }
+        }
+
+        function showError(message) {
+            const errorEl = document.getElementById('error-message');
+            errorEl.textContent = message;
+            errorEl.style.display = 'block';
+            document.getElementById('content-area').style.display = 'none';
+        }
+
+        async function initializeComponents() {
+            if (window.HeaderComponent) {
+                await window.HeaderComponent.init();
+            }
+
+            if (window.ShipmentsRegistry) {
+                await window.ShipmentsRegistry.init();
+            }
+        }
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', tryInit);
+        } else {
+            tryInit();
+        }
+
+    })();
+  </script>
 <script>
 // Enhanced Auto-Link functionality with progress tracking
 document.addEventListener('DOMContentLoaded', function() {
