@@ -525,8 +525,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Load data
         await loadTrackings();
         
-        // Setup initial event listeners
-        setupLegacyEventListeners();
+        // Setup event listeners
+        setupEventListeners();
 
         if (window.trackingService) {
             console.log('🔧 Initializing tracking service...');
@@ -868,8 +868,8 @@ function handleSelectionChange(selected) {
     }
 }
 
-// Legacy event listeners (to be refactored)
-function setupLegacyEventListeners() {
+// Setup event listeners
+function setupEventListeners() {
     // Search
     const searchInput = document.getElementById('searchInput');
     if (searchInput) {
