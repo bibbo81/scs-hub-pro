@@ -18,6 +18,9 @@
     <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
     
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="/js/header-component.js"></script>
+    <script src="/js/organization-service.js"></script>
     
     <script type="module">
         // Import core modules IDENTICI a tracking.html
@@ -4585,120 +4588,57 @@ MSCU7654321,container,in_transit,MSC,MSC,TIGER,CNNBO,Ningbo,ITLIV,Livorno,SGSIN,
   </script>
   
   <script>
-    // FIX: Previeni loop infiniti
-    (async function() {
-        'use strict';
-
-        console.log('🚀 Initializing Shipments Page...');
-
-        let initAttempts = 0;
-        const MAX_ATTEMPTS = 10;
-
-        async function tryInit() {
-            try {
-                initAttempts++;
-
-                if (initAttempts > MAX_ATTEMPTS) {
-                    console.error('❌ Max initialization attempts reached');
-                    showError('Errore di inizializzazione. Ricarica la pagina.');
-                    return;
+(function() {
+    "use strict";
+    console.log("🔧 Initializing Supabase client...");
+    function waitForSupabase() {
+        return new Promise((resolve, reject) => {
+            let attempts = 0;
+            const maxAttempts = 50;
+            const checkInterval = setInterval(() => {
+                attempts++;
+                if (window.supabase && window.supabase.createClient) {
+                    clearInterval(checkInterval);
+                    resolve();
+                } else if (attempts >= maxAttempts) {
+                    clearInterval(checkInterval);
+                    reject(new Error("Supabase failed to load"));
                 }
-
-                if (!window.supabaseClient) {
-                    console.log('⏳ Waiting for Supabase...');
-                    setTimeout(tryInit, 500);
-                    return;
+            }, 100);
+        });
+    }
+    waitForSupabase()
+        .then(() => {
+            const { createClient } = window.supabase;
+            const SUPABASE_URL = "https://gnlrmnsdmpjzitsysowq.supabase.co";
+            const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdubHJtbnNkbXBqeml0c3lzb3dxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzI2MTM3NDQsImV4cCI6MjA0ODE4OTc0NH0.R83aYv9KobGnPB5zFjA2EJgz34UkACS4NJsRAwLGGmU";
+            const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+                auth: {
+                    persistSession: true,
+                    autoRefreshToken: true,
+                    detectSessionInUrl: true
                 }
-
-                const { data: { user } } = await window.supabaseClient.auth.getUser();
-                if (!user) {
-                    console.warn('⚠️ User not authenticated');
-                    window.location.href = '/login.html';
-                    return;
-                }
-
-                console.log('✅ User authenticated:', user.email);
-
-                let orgId = window.currentOrganizationId || null;
-                let orgAttempts = 0;
-
-                while (!orgId && orgAttempts < 5) {
-                    orgAttempts++;
-
-                    try {
-                        if (window.OrganizationService) {
-                            orgId = await window.OrganizationService.getCurrentOrganizationId();
-                        }
-
-                        if (!orgId) {
-                            const { data } = await window.supabaseClient
-                                .from('organization_members')
-                                .select('organization_id')
-                                .eq('user_id', user.id)
-                                .single();
-
-                            orgId = data?.organization_id;
-                        }
-
-                        if (orgId) {
-                            console.log('✅ Organization found:', orgId);
-                            break;
-                        }
-                    } catch (error) {
-                        console.warn(`Attempt ${orgAttempts} failed:`, error);
-                    }
-
-                    if (!orgId && orgAttempts < 5) {
-                        await new Promise(resolve => setTimeout(resolve, 1000));
-                    }
-                }
-
-                if (!orgId) {
-                    console.error('❌ No organization found after all attempts');
-                    showError('Nessuna organizzazione trovata. Contatta un amministratore.');
-                    return;
-                }
-
-                window.currentOrganizationId = orgId;
-
-                await initializeComponents();
-
-                document.getElementById('content-area').style.display = 'block';
-                document.getElementById('error-message').style.display = 'none';
-
-                console.log('✅ Shipments page initialized successfully');
-
-            } catch (error) {
-                console.error('❌ Initialization error:', error);
-                showError('Errore durante il caricamento. Riprova più tardi.');
-            }
-        }
-
-        function showError(message) {
-            const errorEl = document.getElementById('error-message');
-            errorEl.textContent = message;
-            errorEl.style.display = 'block';
-            document.getElementById('content-area').style.display = 'none';
-        }
-
-        async function initializeComponents() {
-            if (window.HeaderComponent) {
-                await window.HeaderComponent.init();
-            }
-
-            if (window.ShipmentsRegistry) {
-                await window.ShipmentsRegistry.init();
-            }
-        }
-
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', tryInit);
-        } else {
-            tryInit();
-        }
-
-    })();
-  </script>
+            });
+            window.supabaseClient = supabaseClient;
+            console.log("✅ Supabase client ready");
+            window.dispatchEvent(new CustomEvent("supabaseReady"));
+        })
+        .catch(error => {
+            console.error("❌ Failed to initialize Supabase:", error);
+            setTimeout(() => {
+                window.location.reload();
+            }, 3000);
+        });
+})();
+</script>
+<script>
+window.addEventListener("supabaseReady", async () => {
+    if (window.HeaderComponent) {
+        await window.HeaderComponent.init();
+        console.log("✅ Header initialized");
+    }
+});
+</script>
 <script>
 // Enhanced Auto-Link functionality with progress tracking
 document.addEventListener('DOMContentLoaded', function() {

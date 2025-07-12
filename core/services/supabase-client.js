@@ -193,29 +193,63 @@ async function performInitialization() {
 // Supabase Client Configuration
 (function() {
     'use strict';
-
-    // Assicurati che la libreria Supabase sia già caricata tramite CDN:
-    // <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
-    // Configurazione Supabase
-    const SUPABASE_URL = 'https://gnlrmnsdmpjzitsysowq.supabase.co';
-    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdubHJtbnNkbXBqeml0c3lzb3dxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzU0MDM2MDQsImV4cCI6MjA1MDk3OTYwNH0.1GBOAO0MEoFcUTBCWc6PBPeKQU7Ztb-cJtzPdI_wDCk';
-
-    // Inizializza Supabase Client
-    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-        auth: {
-            autoRefreshToken: true,
-            persistSession: true,
-            detectSessionInUrl: true
-        }
-    });
-
-    // Esporta globalmente
-    window.supabaseClient = supabase;
-    window.supabase = supabase; // Per compatibilità con altri script
-    window.getSupabase = function() { return supabase; };
-
-    console.log('✅ Supabase client initialized');
+    
+    console.log('🔧 Initializing Supabase client...');
+    
+    // Aspetta che Supabase sia caricato
+    function waitForSupabase() {
+        return new Promise((resolve, reject) => {
+            let attempts = 0;
+            const maxAttempts = 50; // 5 secondi
+            
+            const checkInterval = setInterval(() => {
+                attempts++;
+                
+                if (window.supabase && window.supabase.createClient) {
+                    clearInterval(checkInterval);
+                    resolve();
+                } else if (attempts >= maxAttempts) {
+                    clearInterval(checkInterval);
+                    reject(new Error('Supabase failed to load'));
+                }
+            }, 100);
+        });
+    }
+    
+    // Inizializza Supabase
+    waitForSupabase()
+        .then(() => {
+            const { createClient } = window.supabase;
+            
+            const SUPABASE_URL = 'https://gnlrmnsdmpjzitsysowq.supabase.co';
+            const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdubHJtbnNkbXBqeml0c3lzb3dxIiwicm9zZSI6ImFub24iLCJpYXQiOjE3MzI2MTM3NDQsImV4cCI6MjA0ODE4OTc0NH0.R83aYv9KobGnPB5zFjA2EJgz34UkACS4NJsRAwLGGmU';
+            
+            // Crea client
+            const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+                auth: {
+                    persistSession: true,
+                    autoRefreshToken: true,
+                    detectSessionInUrl: true
+                }
+            });
+            
+            // Esponi globalmente
+            window.supabaseClient = supabaseClient;
+            
+            console.log('✅ Supabase client ready');
+            
+            // Emetti evento per notificare che è pronto
+            window.dispatchEvent(new CustomEvent('supabaseReady'));
+            
+        })
+        .catch(error => {
+            console.error('❌ Failed to initialize Supabase:', error);
+            
+            // Fallback: riprova dopo un po'
+            setTimeout(() => {
+                window.location.reload();
+            }, 3000);
+        });
 })();
 
 // Export functions
