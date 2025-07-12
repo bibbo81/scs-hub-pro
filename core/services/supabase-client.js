@@ -382,4 +382,20 @@ export async function checkSession() {
         return null;
     }
 }
+
+/*
+if (error) {
+    console.log('❌ Session refresh failed, redirecting to login...');
+    // COMMENTA QUESTA RIGA
+    // window.location.href = '/login.html';
+    return false;
+}
+*/
+
+// SOSTITUISCI con questo:
+if (error) {
+    console.log('❌ Session refresh failed, but continuing...');
+    // NON redirigere, continua con sessione locale
+    return true; // Cambia da false a true
+}
 export { supabase }; // ← AGGIUNGI QUESTA RIGA

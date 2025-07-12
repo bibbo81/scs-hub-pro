@@ -154,6 +154,58 @@
 
 </head>
 <body>
+    <!-- Aggiungi SUBITO DOPO <body> in tracking.html -->
+<script>
+// EMERGENCY FIX - Previeni loop di redirect
+(function() {
+    'use strict';
+    
+    console.log('🚨 EMERGENCY: Preventing redirect loops');
+    
+    // Blocca tutti i redirect a login.html
+    const originalAssign = window.location.assign;
+    const originalReplace = window.location.replace;
+    
+    Object.defineProperty(window.location, 'href', {
+        set: function(value) {
+            if (value.includes('login.html')) {
+                console.log('🛑 BLOCKED redirect to login.html');
+                return;
+            }
+            location.href = value;
+        },
+        get: function() {
+            return location.href;
+        }
+    });
+    
+    window.location.assign = function(url) {
+        if (url.includes('login.html')) {
+            console.log('🛑 BLOCKED assign to login.html');
+            return;
+        }
+        originalAssign.call(this, url);
+    };
+    
+    window.location.replace = function(url) {
+        if (url.includes('login.html')) {
+            console.log('🛑 BLOCKED replace to login.html');
+            return;
+        }
+        originalReplace.call(this, url);
+    };
+    
+    // Override per tutti i navigation events
+    window.addEventListener('beforeunload', function(e) {
+        if (e.target.location.href.includes('login.html')) {
+            e.preventDefault();
+            console.log('🛑 BLOCKED beforeunload to login.html');
+        }
+    });
+    
+    console.log('✅ Emergency redirect prevention active');
+})();
+</script>
     <!-- Header will be injected here -->
     <div id="header-root"></div>
 
