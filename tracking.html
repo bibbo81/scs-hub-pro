@@ -178,8 +178,12 @@
                         <i class="fas fa-file-import mr-2"></i>Importa
                     </button>
                     <button class="btn btn-secondary" onclick="showColumnEditor()">
-        <i class="fas fa-columns mr-2"></i>Colonne
-    </button>
+                        <i class="fas fa-columns mr-2"></i>Colonne
+                    </button>
+                    <!-- AGGIUNGI TEMPORANEAMENTE questo tasto -->
+                    <button class="btn btn-warning" onclick="testDataManager()">
+                        <i class="fas fa-flask mr-2"></i>Test Data Manager
+                    </button>
                 </div>
             </div>
 
@@ -973,6 +977,105 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }, 3000);
 });
+</script>
+
+<!-- AGGIUNGI questo script di test PRIMA di </body> -->
+<script>
+async function testDataManager() {
+    try {
+        console.log('🧪 Starting Data Manager test...');
+        
+        // Verifica che il data manager sia disponibile
+        if (!window.dataManager) {
+            throw new Error('Data Manager non disponibile! Assicurati che sia caricato.');
+        }
+        
+        // Test 1: Aggiungi un tracking
+        const testData = {
+            tracking_number: 'TEST-' + Date.now(),
+            carrier: 'DHL',
+            tracking_type: 'air_waybill',
+            origin: 'Milan, Italy',
+            destination: 'New York, USA',
+            current_status: 'in_transit',
+            notes: 'Test tracking creato da Data Manager'
+        };
+        
+        console.log('📤 Sending test data:', testData);
+        
+        const result = await window.dataManager.addTracking(testData);
+        
+        console.log('✅ Test result:', result);
+        
+        // Mostra dettagli
+        let message = 'Test completato!\n\n';
+        message += `✓ Tracking creato: ${result.tracking.tracking_number}\n`;
+        
+        if (result.shipment) {
+            message += `✓ Shipment auto-creato: ${result.shipment.tracking_number}\n`;
+            message += `  Status: ${result.shipment.status}\n`;
+            message += `  Type: ${result.shipment.type}\n`;
+        }
+        
+        message += '\nControlla la console per i dettagli e vai su Shipments per vedere lo shipment auto-creato.';
+        
+        alert(message);
+        
+        // Auto-refresh dopo 2 secondi
+        setTimeout(() => {
+            if (window.refreshTrackings) {
+                console.log('🔄 Refreshing trackings...');
+                window.refreshTrackings();
+            }
+        }, 2000);
+        
+    } catch (error) {
+        console.error('❌ Test failed:', error);
+        alert('Errore nel test:\n' + error.message + '\n\nControlla la console per dettagli.');
+    }
+}
+
+// Aggiungi anche un comando console per test avanzati
+window.testDataManagerAdvanced = async function() {
+    console.log('🧪 ADVANCED DATA MANAGER TEST');
+    console.log('===========================');
+    
+    try {
+        // Test 1: Get all trackings
+        console.log('\n📋 Test 1: Get all trackings');
+        const trackings = await window.dataManager.getTrackings();
+        console.log(`Found ${trackings.length} trackings`);
+        
+        // Test 2: Get all shipments
+        console.log('\n📦 Test 2: Get all shipments');
+        const shipments = await window.dataManager.getShipments();
+        console.log(`Found ${shipments.length} shipments`);
+        
+        // Test 3: Create multiple trackings
+        console.log('\n➕ Test 3: Create multiple trackings');
+        const results = [];
+        for (let i = 1; i <= 3; i++) {
+            const result = await window.dataManager.addTracking({
+                tracking_number: `BATCH-TEST-${Date.now()}-${i}`,
+                carrier: ['DHL', 'FedEx', 'UPS'][i-1],
+                tracking_type: i === 3 ? 'container' : 'air_waybill',
+                origin: 'Rome, Italy',
+                destination: 'Los Angeles, USA',
+                current_status: ['pending', 'in_transit', 'delivered'][i-1]
+            });
+            results.push(result);
+            console.log(`✓ Created tracking ${i}/3:`, result.tracking.tracking_number);
+        }
+        
+        console.log('\n✅ Advanced test completed!');
+        console.log('Results:', results);
+        
+    } catch (error) {
+        console.error('❌ Advanced test failed:', error);
+    }
+};
+
+console.log('💡 Tip: Usa testDataManagerAdvanced() nella console per test avanzati');
 </script>
 </body>
 </html>

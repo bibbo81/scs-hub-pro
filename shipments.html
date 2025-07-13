@@ -27,6 +27,25 @@
         import notificationSystem from '/core/notification-system.js';
         import modalSystem from '/core/modal-system.js';
         
+        // Aggiungi dopo gli altri import di moduli
+        import dataManager from '/core/services/data-manager.js';
+        // Rendi disponibile globalmente
+        window.dataManager = dataManager;
+        // Inizializza il data manager
+        dataManager.init().then(() => {
+            console.log('✅ Data Manager initialized');
+            // Se hai già una funzione di refresh, agganciala
+            if (window.refreshTrackings) {
+                window.refreshTrackings = async function() {
+                    const trackings = await dataManager.getTrackings();
+                    // Aggiorna la UI con i dati
+                    updateTrackingTable(trackings);
+                };
+            }
+        }).catch(error => {
+            console.error('❌ Data Manager init failed:', error);
+        });
+        
         // Make modules available globally
         window.api = api;
         window.headerComponent = headerComponent;
@@ -5234,6 +5253,47 @@ setTimeout(() => {
         console.log('ℹ️ Main reset button not found yet');
     }
 }, 3000);
+</script>
+
+<!-- ==== INTEGRAZIONE FUNZIONI CUSTOM PER DATA MANAGER E TRACKING ==== -->
+<script>
+// Nella funzione che popola la tabella shipments (versione custom richiesta)
+function renderShipmentRow(shipment) {
+    return `
+        <tr>
+            <td>${shipment.shipment_number}</td>
+            <td>
+                ${shipment.tracking_number || 'N/A'}
+                ${shipment.auto_created ? '<span class="badge badge-info ml-2">Auto</span>' : ''}
+            </td>
+            <td>${shipment.status}</td>
+            <!-- altri campi -->
+        </tr>
+    `;
+}
+
+// Funzione per caricare spedizioni con tracking e popolare la grid
+async function loadShipmentsWithTracking() {
+    const shipments = await window.dataManager.getShipments();
+    // Per la vista grid
+    const grid = document.querySelector('.shipments-grid');
+    if (grid) {
+        grid.innerHTML = shipments.map(shipment => `
+            <div class="shipment-card ${shipment.auto_created ? 'auto-created' : ''}">
+                ${shipment.auto_created ? '<span class="auto-created-badge"><i class="fas fa-magic"></i> Auto</span>' : ''}
+                <h4>${shipment.shipment_number}</h4>
+                <p><strong>Tracking:</strong> ${shipment.tracking_number || 'N/A'}</p>
+                <p><strong>Status:</strong> ${shipment.status}</p>
+                <p><strong>Carrier:</strong> ${shipment.carrier_name || 'N/A'}</p>
+                ${shipment.tracking ? `
+                    <div class="tracking-info mt-2">
+                        <small>Last Update: ${shipment.tracking.last_event_description || 'N/A'}</small>
+                    </div>
+                ` : ''}
+            </div>
+        `).join('');
+    }
+}
 </script>
 
 </body>
