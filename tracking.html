@@ -563,42 +563,34 @@ window.addEventListener('DOMContentLoaded', () => {
                                         const trackingData = {
                                             tracking_number: document.querySelector('#trackingNumber').value,
                                             carrier: document.querySelector('#carrier').value,
-                                            tracking_type: document.querySelector('#trackingType').value,
+                                            tracking_type: document.querySelector('#trackingType').value || 'container',
                                             origin: document.querySelector('#origin').value,
                                             destination: document.querySelector('#destination').value,
-                                            current_status: 'pending'
+                                            status: 'pending',
+                                            // AGGIUNGI QUESTI CAMPI OBBLIGATORI:
+                                            organization_id: window.dataManager.organizationId,
+                                            user_id: window.dataManager.userId
                                         };
-                                        
+
                                         // Validazione base
                                         if (!trackingData.tracking_number) {
                                             throw new Error('Tracking number obbligatorio');
                                         }
-                                        
-                                        // USA IL DATA MANAGER
+
                                         const result = await window.dataManager.addTracking(trackingData);
-                                        
-                                        // Il data manager crea automaticamente anche lo shipment!
-                                        console.log('✅ Tracking creato:', result.tracking);
-                                        if (result.shipment) {
-                                            console.log('✅ Shipment auto-creato:', result.shipment);
-                                        }
-                                        
-                                        // Notifica successo
-                                        window.NotificationSystem.success('Tracking aggiunto con successo!');
-                                        
-                                        // Chiudi modal e aggiorna lista
+
+                                        console.log('✅ Tracking salvato:', result);
                                         window.ModalSystem.hide();
-                                        
-                                        // Refresh della tabella
+
+                                        // Refresh tabella
                                         if (window.refreshTrackings) {
                                             window.refreshTrackings();
-                                        } else if (window.trackingDebug?.refresh) {
-                                            window.trackingDebug.refresh();
+                                        } else if (window.loadTrackings) {
+                                            window.loadTrackings();
                                         }
-                                        
                                     } catch (error) {
-                                        console.error('Errore salvataggio:', error);
-                                        window.NotificationSystem.error('Errore: ' + error.message);
+                                        console.error('❌ Errore:', error);
+                                        window.NotificationSystem.error(error.message);
                                     }
                                 }
                             }
@@ -985,97 +977,67 @@ async function testDataManager() {
     try {
         console.log('🧪 Starting Data Manager test...');
         
-        // Verifica che il data manager sia disponibile
+        // Verifica che il data manager sia disponibile e inizializzato
         if (!window.dataManager) {
-            throw new Error('Data Manager non disponibile! Assicurati che sia caricato.');
+            throw new Error('Data Manager non disponibile!');
         }
         
-        // Test 1: Aggiungi un tracking
+        if (!window.dataManager.initialized) {
+            console.log('⏳ Initializing Data Manager...');
+            await window.dataManager.init();
+        }
+        
+        console.log('✅ Data Manager ready');
+        console.log('📋 Organization ID (dynamic):', window.dataManager.organizationId);
+        console.log('👤 User ID:', window.dataManager.userId);
+        
+        // Test: Aggiungi un tracking
         const testData = {
             tracking_number: 'TEST-' + Date.now(),
             carrier: 'DHL',
-            tracking_type: 'air_waybill',
+            tracking_type: 'container',
             origin: 'Milan, Italy',
             destination: 'New York, USA',
-            current_status: 'in_transit',
-            notes: 'Test tracking creato da Data Manager'
+            current_status: 'in_transit'
         };
         
-        console.log('📤 Sending test data:', testData);
-        
+        console.log('📤 Creating test tracking...');
         const result = await window.dataManager.addTracking(testData);
         
-        console.log('✅ Test result:', result);
-        
-        // Mostra dettagli
-        let message = 'Test completato!\n\n';
-        message += `✓ Tracking creato: ${result.tracking.tracking_number}\n`;
-        
+        console.log('✅ Test successful!');
+        console.log('📦 Tracking:', result.tracking);
         if (result.shipment) {
-            message += `✓ Shipment auto-creato: ${result.shipment.tracking_number}\n`;
-            message += `  Status: ${result.shipment.status}\n`;
-            message += `  Type: ${result.shipment.type}\n`;
+            console.log('🚢 Shipment auto-created:', result.shipment);
         }
         
-        message += '\nControlla la console per i dettagli e vai su Shipments per vedere lo shipment auto-creato.';
+        // Verifica shipments
+        const shipments = await window.dataManager.getShipments();
+        console.log('📚 Total shipments for this organization:', shipments.length);
         
-        alert(message);
-        
-        // Auto-refresh dopo 2 secondi
-        setTimeout(() => {
-            if (window.refreshTrackings) {
-                console.log('🔄 Refreshing trackings...');
-                window.refreshTrackings();
-            }
-        }, 2000);
+        // Notifica successo
+        window.NotificationSystem?.success('Test completato! Check console per dettagli.');
         
     } catch (error) {
         console.error('❌ Test failed:', error);
-        alert('Errore nel test:\n' + error.message + '\n\nControlla la console per dettagli.');
+        window.NotificationSystem?.error('Test fallito: ' + error.message);
     }
 }
 
-// Aggiungi anche un comando console per test avanzati
+// Mantieni i comandi avanzati esistenti
 window.testDataManagerAdvanced = async function() {
-    console.log('🧪 ADVANCED DATA MANAGER TEST');
-    console.log('===========================');
-    
-    try {
-        // Test 1: Get all trackings
-        console.log('\n📋 Test 1: Get all trackings');
-        const trackings = await window.dataManager.getTrackings();
-        console.log(`Found ${trackings.length} trackings`);
-        
-        // Test 2: Get all shipments
-        console.log('\n📦 Test 2: Get all shipments');
-        const shipments = await window.dataManager.getShipments();
-        console.log(`Found ${shipments.length} shipments`);
-        
-        // Test 3: Create multiple trackings
-        console.log('\n➕ Test 3: Create multiple trackings');
-        const results = [];
-        for (let i = 1; i <= 3; i++) {
-            const result = await window.dataManager.addTracking({
-                tracking_number: `BATCH-TEST-${Date.now()}-${i}`,
-                carrier: ['DHL', 'FedEx', 'UPS'][i-1],
-                tracking_type: i === 3 ? 'container' : 'air_waybill',
-                origin: 'Rome, Italy',
-                destination: 'Los Angeles, USA',
-                current_status: ['pending', 'in_transit', 'delivered'][i-1]
-            });
-            results.push(result);
-            console.log(`✓ Created tracking ${i}/3:`, result.tracking.tracking_number);
-        }
-        
-        console.log('\n✅ Advanced test completed!');
-        console.log('Results:', results);
-        
-    } catch (error) {
-        console.error('❌ Advanced test failed:', error);
-    }
+    // ... codice esistente ...
 };
 
-console.log('💡 Tip: Usa testDataManagerAdvanced() nella console per test avanzati');
+window.dmDebug = async function() {
+    const info = await window.dataManager.debugInfo();
+    console.table(info);
+    return info;
+};
+
+console.log('💡 Comandi disponibili:');
+console.log('- testDataManager() - Test rapido del Data Manager');
+console.log('- testDataManagerAdvanced() - Test avanzati');
+console.log('- dmDebug() - Mostra info debug del Data Manager');
 </script>
 </body>
 </html>

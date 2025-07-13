@@ -246,16 +246,31 @@ export class HeaderComponent {
             background: var(--sol-primary-light);
         }
 
+        /* Logo with organization name */
+        .sol-logo-text-container {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            line-height: 1.2;
+        }
+
+        .sol-logo-org {
+            font-size: 0.75rem;
+            color: var(--sol-gray-600);
+            font-weight: normal;
+            margin-top: -2px;
+            opacity: 0.8;
+        }
+
+        /* Adjust logo spacing */
+        .sol-logo {
+            gap: 0.75rem;
+        }
+
+        /* Mobile responsive */
         @media (max-width: 768px) {
-            .org-selector {
-                margin-right: 0.5rem;
-            }
-            
-            .org-selector .sol-btn span.hide-mobile {
-                max-width: 100px;
-                overflow: hidden;
-                text-overflow: ellipsis;
-                white-space: nowrap;
+            .sol-logo-org {
+                display: none; /* Nascondi su mobile per risparmiare spazio */
             }
         }
         </style>
@@ -1071,6 +1086,13 @@ export class HeaderComponent {
     }
     
     renderLeft() {
+        // Ottieni il nome dell'organizzazione dal service se disponibile
+        let orgName = '';
+        if (window.organizationService && window.organizationService.getCurrentOrg) {
+            const currentOrg = window.organizationService.getCurrentOrg();
+            orgName = currentOrg?.organizations?.name || '';
+        }
+        
         return `
             <div class="sol-header-left">
                 <button class="sol-btn sol-btn-glass" id="menuToggle">
@@ -1078,7 +1100,10 @@ export class HeaderComponent {
                 </button>
                 <a href="/dashboard.html" class="sol-logo">
                     <div class="sol-logo-icon">SCH</div>
-                    <span class="sol-logo-text">Supply Chain Hub</span>
+                    <div class="sol-logo-text-container">
+                        <span class="sol-logo-text">Supply Chain Hub</span>
+                        ${orgName ? `<small class="sol-logo-org">${orgName}</small>` : ''}
+                    </div>
                 </a>
             </div>
         `;

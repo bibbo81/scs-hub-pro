@@ -1,649 +1,184 @@
-// shipments-registry.js - Enhanced Shipments Registry with Better Initialization
-// Path: /core/shipments-registry.js
+console.log('[ShipmentsRegistry] Loading...');
 
-class ShipmentsRegistry {
-    constructor() {
-        this.shipments = [];
-        this.initialized = false;
-        this.subscribers = [];
-        this.storageKey = 'shipmentsRegistry';
-        this.version = '2.0.0';
-        
-        console.log('🏗️ ShipmentsRegistry constructor called');
-    }
+const ShipmentsRegistry = {
+    initialized: false,
     
     async init() {
-        if (this.initialized) {
-            console.log('✅ ShipmentsRegistry already initialized');
-            return true;
+        if (this.initialized) return;
+        
+        console.log('[ShipmentsRegistry] Initializing...');
+        
+        // Attendi che dataManager sia disponibile
+        let retries = 0;
+        while (!window.dataManager?.initialized && retries < 20) {
+            await new Promise(resolve => setTimeout(resolve, 500));
+            retries++;
         }
         
-        console.log('🚀 Initializing ShipmentsRegistry...');
-        
-        try {
-            // Load existing shipments from localStorage
-            await this.loadShipments();
-            
-            // Set up event listeners
-            this.setupEventListeners();
-            
-            // Mark as initialized
+        if (window.dataManager?.initialized) {
             this.initialized = true;
-            
-            console.log(`✅ ShipmentsRegistry initialized with ${this.shipments.length} shipments`);
-            
-            // Notify subscribers
-            this.notifySubscribers('initialized', { shipments: this.shipments });
-            
-            return true;
-            
-        } catch (error) {
-            console.error('❌ ShipmentsRegistry initialization failed:', error);
-            
-            // Initialize with empty state on error
-            this.shipments = [];
-            this.initialized = true;
-            
-            return false;
+            console.log('[ShipmentsRegistry] ✅ Ready to load real data');
+        } else {
+            console.error('[ShipmentsRegistry] ❌ DataManager not available');
         }
-    }
+    },
     
     async loadShipments() {
-        try {
-            const stored = localStorage.getItem(this.storageKey);
-            if (stored) {
-                const data = JSON.parse(stored);
-                
-                // Handle version migration if needed
-                if (data.version !== this.version) {
-                    console.log('🔄 Migrating shipments data...');
-                    this.shipments = this.migrateData(data.shipments || data);
-                } else {
-                    this.shipments = data.shipments || [];
-                }
-                
-                console.log(`📦 Loaded ${this.shipments.length} shipments from storage`);
-            } else {
-                console.log('📦 No existing shipments found, starting fresh');
-                this.shipments = [];
-            }
-            
-            // Validate and clean up data
-            this.shipments = this.validateShipments(this.shipments);
-            
-            return true;
-            
-        } catch (error) {
-            console.error('❌ Error loading shipments:', error);
-            this.shipments = [];
-            return false;
-        }
-    }
-    
-    validateShipments(shipments) {
-        if (!Array.isArray(shipments)) {
-            console.warn('⚠️ Invalid shipments data, resetting to empty array');
+        if (!window.dataManager?.initialized) {
+            console.error('[ShipmentsRegistry] DataManager not initialized');
             return [];
         }
         
-        return shipments.filter(shipment => {
-            // Basic validation
-            if (!shipment || typeof shipment !== 'object') return false;
-            if (!shipment.id || !shipment.shipmentNumber) return false;
-            
-            // Ensure required fields exist
-            shipment.createdAt = shipment.createdAt || new Date().toISOString();
-            shipment.updatedAt = shipment.updatedAt || new Date().toISOString();
-            shipment.status = shipment.status || 'planned';
-            shipment.products = shipment.products || [];
-            shipment.costs = shipment.costs || { total: 0, currency: 'EUR' };
-            
-            return true;
-        });
-    }
-    
-    migrateData(oldData) {
-        console.log('🔄 Migrating shipments data to new version...');
-        
-        if (!Array.isArray(oldData)) {
+        try {
+            console.log('[ShipmentsRegistry] Loading real shipments...');
+            const shipments = await window.dataManager.getShipments();
+            console.log(`[ShipmentsRegistry] ✅ Loaded ${shipments.length} shipments`);
+            return shipments;
+        } catch (error) {
+            console.error('[ShipmentsRegistry] Error loading shipments:', error);
             return [];
         }
-        
-        return oldData.map(shipment => {
-            // Add any new fields or update structure
-            return {
-                ...shipment,
-                version: this.version,
-                updatedAt: new Date().toISOString(),
-                // Add commercial structure if missing
-                commercial: shipment.commercial || {
-                    purchaseOrder: {},
-                    proformaInvoice: {},
-                    commercialInvoice: {},
-                    transportDocument: {},
-                    cargo: {},
-                    containers: [],
-                    financial: { currency: 'EUR' },
-                    compliance: { complianceScore: 0 }
-                }
-            };
-        });
-    }
+    },
     
-    setupEventListeners() {
-        // Listen for page unload to save data
-        window.addEventListener('beforeunload', () => {
-            this.saveShipments();
-        });
+    async renderShipmentsTable() {
+        const tbody = document.getElementById('shipmentsTableBody');
+        if (!tbody) return;
         
-        // Auto-save every 30 seconds
-        setInterval(() => {
-            if (this.initialized) {
-                this.saveShipments();
-            }
-        }, 30000);
-    }
-    
-    saveShipments() {
-        try {
-            const data = {
-                version: this.version,
-                shipments: this.shipments,
-                savedAt: new Date().toISOString()
-            };
-            
-            localStorage.setItem(this.storageKey, JSON.stringify(data));
-            console.log(`💾 Saved ${this.shipments.length} shipments to storage`);
-            
-            return true;
-            
-        } catch (error) {
-            console.error('❌ Error saving shipments:', error);
-            
-            // Try to save without version info as fallback
-            try {
-                localStorage.setItem(this.storageKey, JSON.stringify(this.shipments));
-                console.log('💾 Fallback save completed');
-                return true;
-            } catch (fallbackError) {
-                console.error('❌ Fallback save also failed:', fallbackError);
-                return false;
-            }
-        }
-    }
-    
-    // ===== SHIPMENT OPERATIONS =====
-    
-    async createShipment(shipmentData) {
-        const shipment = {
-            id: shipmentData.id || this.generateId(),
-            shipmentNumber: shipmentData.shipmentNumber || this.generateShipmentNumber(),
-            type: shipmentData.type || 'container',
-            status: shipmentData.status || 'planned',
-            carrier: shipmentData.carrier || null,
-            route: shipmentData.route || {},
-            schedule: shipmentData.schedule || {},
-            products: shipmentData.products || [],
-            costs: shipmentData.costs || { total: 0, currency: 'EUR' },
-            commercial: shipmentData.commercial || this.createDefaultCommercial(),
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-            ...shipmentData
-        };
+        // Show loading state
+        tbody.innerHTML = '<tr><td colspan="14" class="text-center">Caricamento...</td></tr>';
         
-        this.shipments.push(shipment);
-        this.saveShipments();
+        // Load real data
+        const shipments = await this.loadShipments();
         
-        this.notifySubscribers('created', { shipment });
-        
-        console.log(`✅ Created shipment: ${shipment.shipmentNumber}`);
-        return shipment;
-    }
-    
-    async updateShipment(shipmentId, updates) {
-        const index = this.shipments.findIndex(s => s.id === shipmentId);
-        
-        if (index === -1) {
-            throw new Error(`Shipment ${shipmentId} not found`);
+        if (shipments.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="14" class="text-center">Nessuna spedizione trovata</td></tr>';
+            return;
         }
         
-        const oldShipment = { ...this.shipments[index] };
+        // Clear and populate with real data
+        tbody.innerHTML = '';
         
-        this.shipments[index] = {
-            ...this.shipments[index],
-            ...updates,
-            updatedAt: new Date().toISOString()
-        };
-        
-        this.saveShipments();
-        
-        this.notifySubscribers('updated', { 
-            shipment: this.shipments[index], 
-            oldShipment 
+        shipments.forEach(shipment => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td><input type="checkbox" value="${shipment.id}"></td>
+                <td class="font-mono">
+                    ${shipment.shipment_number}
+                    ${shipment.auto_created ? '<span class="badge badge-info ml-1">Auto</span>' : ''}
+                </td>
+                <td>${shipment.transport_mode || 'N/A'}</td>
+                <td>
+                    <span class="sol-badge sol-badge-${this.getStatusClass(shipment.status)}">
+                        ${shipment.status}
+                    </span>
+                </td>
+                <td>${shipment.carrier_name || 'N/A'}</td>
+                <td>${shipment.supplier_country || shipment.origin || 'N/A'}</td>
+                <td>${shipment.customer_country || shipment.destination || 'N/A'}</td>
+                <td>${this.formatDate(shipment.departure_date)}</td>
+                <td>${this.formatDate(shipment.arrival_date)}</td>
+                <td>${shipment.products?.length || 0}</td>
+                <td class="documents-cell">
+                    <button class="sol-btn sol-btn-sm sol-btn-glass documents-btn">
+                        <i class="fas fa-folder"></i>
+                        <span class="doc-count">0</span>
+                    </button>
+                </td>
+                <td class="commercial-cell">
+                    <span class="commercial-status missing">Missing</span>
+                </td>
+                <td>${this.formatCurrency(shipment.total_value)}</td>
+                <td>
+                    <div class="btn-group">
+                        <button class="sol-btn sol-btn-sm sol-btn-primary" onclick="viewShipment('${shipment.id}')">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                        <button class="sol-btn sol-btn-sm sol-btn-glass" onclick="editShipment('${shipment.id}')">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                    </div>
+                </td>
+            `;
+            tbody.appendChild(row);
         });
         
-        console.log(`✅ Updated shipment: ${this.shipments[index].shipmentNumber}`);
-        return this.shipments[index];
-    }
+        // Update stats
+        this.updateStats(shipments);
+    },
     
-    async deleteShipment(shipmentId) {
-        const index = this.shipments.findIndex(s => s.id === shipmentId);
+    updateStats(shipments) {
+        // Total shipments
+        const totalEl = document.getElementById('totalShipments');
+        if (totalEl) totalEl.textContent = shipments.length;
         
-        if (index === -1) {
-            throw new Error(`Shipment ${shipmentId} not found`);
+        // Active shipments
+        const activeEl = document.getElementById('activeShipments');
+        if (activeEl) {
+            const active = shipments.filter(s => s.status === 'in_transit').length;
+            activeEl.textContent = active;
         }
         
-        const deletedShipment = this.shipments.splice(index, 1)[0];
-        this.saveShipments();
-        
-        this.notifySubscribers('deleted', { shipment: deletedShipment });
-        
-        console.log(`✅ Deleted shipment: ${deletedShipment.shipmentNumber}`);
-        return deletedShipment;
-    }
-    
-    getShipment(shipmentId) {
-        return this.shipments.find(s => s.id === shipmentId);
-    }
-    
-    getShipmentByNumber(shipmentNumber) {
-        return this.shipments.find(s => s.shipmentNumber === shipmentNumber);
-    }
-    
-    // ===== PRODUCT LINKING =====
-    
-    async linkProducts(shipmentId, productIds) {
-        const shipment = this.getShipment(shipmentId);
-        if (!shipment) {
-            throw new Error(`Shipment ${shipmentId} not found`);
+        // Total costs
+        const costsEl = document.getElementById('totalCosts');
+        if (costsEl) {
+            const total = shipments.reduce((sum, s) => sum + (parseFloat(s.total_value) || 0), 0);
+            costsEl.textContent = this.formatCurrency(total);
         }
         
-        // Get products from localStorage (integration with products system)
-        const allProducts = JSON.parse(localStorage.getItem('products') || '[]');
-        
-        const linkedProducts = productIds.map(productId => {
-            const product = allProducts.find(p => p.id === productId);
-            if (!product) {
-                console.warn(`Product ${productId} not found`);
-                return null;
-            }
-            
-            return {
-                productId: product.id,
-                sku: product.sku,
-                productName: product.name,
-                quantity: 1, // Default quantity
-                weight: product.specifications?.weight || 0,
-                volume: product.specifications?.volume || 0,
-                value: product.specifications?.value || 0
-            };
-        }).filter(Boolean);
-        
-        // Update shipment with linked products
-        await this.updateShipment(shipmentId, {
-            products: [...(shipment.products || []), ...linkedProducts]
-        });
-        
-        console.log(`✅ Linked ${linkedProducts.length} products to shipment ${shipment.shipmentNumber}`);
-        return linkedProducts;
-    }
+        // Update count in header
+        const countEl = document.getElementById('registryCount');
+        if (countEl) countEl.textContent = shipments.length;
+    },
     
-    // ===== COST ALLOCATION =====
-    
-    async allocateCosts(shipmentId, method = 'hybrid') {
-        const shipment = this.getShipment(shipmentId);
-        if (!shipment || !shipment.products || shipment.products.length === 0) {
-            throw new Error('Shipment not found or has no products');
-        }
-        
-        const totalCost = shipment.costs?.total || 0;
-        if (totalCost === 0) {
-            throw new Error('Shipment has no costs to allocate');
-        }
-        
-        // Calculate allocation based on method
-        const allocations = this.calculateCostAllocations(shipment, method);
-        
-        // Update products with allocated costs
-        const updatedProducts = shipment.products.map((product, index) => ({
-            ...product,
-            allocatedCost: allocations[index]?.allocatedCost || 0,
-            unitCost: allocations[index]?.unitCost || 0
-        }));
-        
-        await this.updateShipment(shipmentId, { products: updatedProducts });
-        
-        console.log(`✅ Allocated costs for shipment ${shipment.shipmentNumber} using ${method} method`);
-        return allocations;
-    }
-    
-    calculateCostAllocations(shipment, method) {
-        const products = shipment.products;
-        const totalCost = shipment.costs.total;
-        
-        // Calculate totals for allocation
-        const totals = {
-            weight: products.reduce((sum, p) => sum + ((p.weight || 0) * (p.quantity || 0)), 0),
-            volume: products.reduce((sum, p) => sum + ((p.volume || 0) * (p.quantity || 0)), 0),
-            value: products.reduce((sum, p) => sum + ((p.value || 0) * (p.quantity || 0)), 0),
-            quantity: products.reduce((sum, p) => sum + (p.quantity || 0), 0)
+    getStatusClass(status) {
+        const map = {
+            'planned': 'secondary',
+            'departed': 'info',
+            'in_transit': 'primary',
+            'arrived': 'warning',
+            'delivered': 'success',
+            'cancelled': 'danger'
         };
-        
-        return products.map(product => {
-            let allocationRatio = 0;
-            
-            const productWeight = (product.weight || 0) * (product.quantity || 0);
-            const productVolume = (product.volume || 0) * (product.quantity || 0);
-            const productValue = (product.value || 0) * (product.quantity || 0);
-            
-            switch (method) {
-                case 'weight':
-                    allocationRatio = totals.weight > 0 ? productWeight / totals.weight : 0;
-                    break;
-                case 'volume':
-                    allocationRatio = totals.volume > 0 ? productVolume / totals.volume : 0;
-                    break;
-                case 'value':
-                    allocationRatio = totals.value > 0 ? productValue / totals.value : 0;
-                    break;
-                case 'quantity':
-                    allocationRatio = totals.quantity > 0 ? product.quantity / totals.quantity : 0;
-                    break;
-                case 'hybrid':
-                default:
-                    // 40% value, 30% weight, 30% volume
-                    const valueRatio = totals.value > 0 ? productValue / totals.value : 0;
-                    const weightRatio = totals.weight > 0 ? productWeight / totals.weight : 0;
-                    const volumeRatio = totals.volume > 0 ? productVolume / totals.volume : 0;
-                    allocationRatio = (valueRatio * 0.4) + (weightRatio * 0.3) + (volumeRatio * 0.3);
-                    break;
-            }
-            
-            const allocatedCost = totalCost * allocationRatio;
-            const unitCost = product.quantity > 0 ? allocatedCost / product.quantity : 0;
-            
-            return {
-                sku: product.sku,
-                productName: product.productName,
-                quantity: product.quantity,
-                allocationRatio,
-                allocatedCost,
-                unitCost
-            };
-        });
+        return map[status] || 'secondary';
+    },
+    
+    formatDate(date) {
+        if (!date) return 'N/A';
+        return new Date(date).toLocaleDateString('it-IT');
+    },
+    
+    formatCurrency(value, currency = 'EUR') {
+        if (!value) return '€0';
+        return new Intl.NumberFormat('it-IT', {
+            style: 'currency',
+            currency: currency
+        }).format(value);
     }
-    
-    // ===== IMPORT/EXPORT =====
-    
-    async importShipments(data, options = {}) {
-        const { overwrite = false } = options;
-        const results = { imported: [], errors: [] };
-        
-        if (!Array.isArray(data)) {
-            throw new Error('Import data must be an array');
-        }
-        
-        for (let i = 0; i < data.length; i++) {
-            const row = data[i];
-            
-            try {
-                // Convert CSV row to shipment object
-                const shipmentData = this.convertImportRowToShipment(row);
-                
-                // Check if shipment already exists
-                const existing = this.getShipmentByNumber(shipmentData.shipmentNumber);
-                
-                if (existing && !overwrite) {
-                    results.errors.push({
-                        row: row,
-                        error: 'Shipment already exists'
-                    });
-                    continue;
-                }
-                
-                if (existing && overwrite) {
-                    await this.updateShipment(existing.id, shipmentData);
-                    results.imported.push(existing);
-                } else {
-                    const newShipment = await this.createShipment(shipmentData);
-                    results.imported.push(newShipment);
-                }
-                
-            } catch (error) {
-                results.errors.push({
-                    row: row,
-                    error: error.message
-                });
-            }
-        }
-        
-        console.log(`📥 Import completed: ${results.imported.length} imported, ${results.errors.length} errors`);
-        return results;
-    }
-    
-    convertImportRowToShipment(row) {
-        // Handle different possible column names
-        const getField = (row, ...names) => {
-            for (const name of names) {
-                if (row[name] !== undefined && row[name] !== null && row[name] !== '') {
-                    return row[name];
-                }
-            }
-            return null;
-        };
-        
-        return {
-            shipmentNumber: getField(row, 'Shipment Number', 'shipmentNumber', 'Numero Spedizione'),
-            type: (getField(row, 'Type', 'type', 'Tipo') || 'container').toLowerCase(),
-            status: (getField(row, 'Status', 'status', 'Stato') || 'planned').toLowerCase(),
-            carrier: {
-                code: getField(row, 'Carrier Code', 'carrierCode', 'Codice Vettore'),
-                name: getField(row, 'Carrier Name', 'carrierName', 'Nome Vettore', 'Carrier'),
-                service: getField(row, 'Service', 'service', 'Servizio')
-            },
-            route: {
-                origin: {
-                    port: getField(row, 'Origin Port', 'originPort', 'Porto Origine'),
-                    name: getField(row, 'Origin Name', 'originName', 'Nome Origine', 'Origin')
-                },
-                destination: {
-                    port: getField(row, 'Destination Port', 'destinationPort', 'Porto Destinazione'),
-                    name: getField(row, 'Destination Name', 'destinationName', 'Nome Destinazione', 'Destination')
-                },
-                via: getField(row, 'Via', 'via', 'Scali') ? 
-                    getField(row, 'Via', 'via', 'Scali').split(',').map(s => s.trim()) : [],
-                estimatedTransit: parseInt(getField(row, 'Transit Days', 'transitDays', 'Giorni Transito')) || 0
-            },
-            schedule: {
-                etd: getField(row, 'ETD', 'etd', 'Partenza Stimata'),
-                eta: getField(row, 'ETA', 'eta', 'Arrivo Stimato')
-            },
-            costs: {
-                oceanFreight: parseFloat(getField(row, 'Ocean Freight', 'oceanFreight', 'Nolo Marittimo')) || 0,
-                bunkerSurcharge: parseFloat(getField(row, 'BAF', 'bunkerSurcharge', 'Bunker')) || 0,
-                portCharges: parseFloat(getField(row, 'Port Charges', 'portCharges', 'Spese Portuali')) || 0,
-                customs: parseFloat(getField(row, 'Customs', 'customs', 'Dogana')) || 0,
-                insurance: parseFloat(getField(row, 'Insurance', 'insurance', 'Assicurazione')) || 0,
-                total: parseFloat(getField(row, 'Total Cost', 'totalCost', 'Costo Totale')) || 0,
-                currency: getField(row, 'Currency', 'currency', 'Valuta') || 'EUR'
-            }
-        };
-    }
-    
-    exportShipments(format = 'csv') {
-        if (format.toLowerCase() === 'csv') {
-            return this.exportToCsv();
-        } else {
-            throw new Error(`Export format ${format} not supported`);
-        }
-    }
-    
-    exportToCsv() {
-        const headers = [
-            'Shipment Number', 'Type', 'Status', 'Carrier Code', 'Carrier Name', 'Service',
-            'Origin Port', 'Origin Name', 'Destination Port', 'Destination Name', 'Via',
-            'Transit Days', 'ETD', 'ETA', 'Ocean Freight', 'BAF', 'Port Charges',
-            'Customs', 'Insurance', 'Total Cost', 'Currency', 'Products Count',
-            'Created', 'Updated'
-        ];
-        
-        const rows = this.shipments.map(s => [
-            s.shipmentNumber,
-            s.type,
-            s.status,
-            s.carrier?.code || '',
-            s.carrier?.name || '',
-            s.carrier?.service || '',
-            s.route?.origin?.port || '',
-            s.route?.origin?.name || '',
-            s.route?.destination?.port || '',
-            s.route?.destination?.name || '',
-            s.route?.via?.join(', ') || '',
-            s.route?.estimatedTransit || '',
-            s.schedule?.etd || '',
-            s.schedule?.eta || '',
-            s.costs?.oceanFreight || 0,
-            s.costs?.bunkerSurcharge || 0,
-            s.costs?.portCharges || 0,
-            s.costs?.customs || 0,
-            s.costs?.insurance || 0,
-            s.costs?.total || 0,
-            s.costs?.currency || 'EUR',
-            s.products?.length || 0,
-            new Date(s.createdAt).toLocaleDateString('it-IT'),
-            new Date(s.updatedAt).toLocaleDateString('it-IT')
-        ]);
-        
-        const csvContent = [
-            headers.join(','),
-            ...rows.map(row => row.map(cell => 
-                typeof cell === 'string' && cell.includes(',') ? `"${cell}"` : cell
-            ).join(','))
-        ].join('\n');
-        
-        return csvContent;
-    }
-    
-    // ===== STATISTICS =====
-    
-    getStatistics() {
-        const stats = {
-            total: this.shipments.length,
-            byStatus: {},
-            byType: {},
-            byCarrier: {},
-            totalCost: 0,
-            avgTransitTime: 0,
-            avgCost: 0
-        };
-        
-        let totalTransitDays = 0;
-        let shipmentsWithTransit = 0;
-        let totalCosts = 0;
-        let shipmentsWithCosts = 0;
-        
-        this.shipments.forEach(shipment => {
-            // By status
-            stats.byStatus[shipment.status] = (stats.byStatus[shipment.status] || 0) + 1;
-            
-            // By type
-            stats.byType[shipment.type] = (stats.byType[shipment.type] || 0) + 1;
-            
-            // By carrier
-            if (shipment.carrier?.name) {
-                stats.byCarrier[shipment.carrier.name] = (stats.byCarrier[shipment.carrier.name] || 0) + 1;
-            }
-            
-            // Transit time
-            if (shipment.route?.estimatedTransit) {
-                totalTransitDays += shipment.route.estimatedTransit;
-                shipmentsWithTransit++;
-            }
-            
-            // Costs
-            if (shipment.costs?.total) {
-                totalCosts += shipment.costs.total;
-                shipmentsWithCosts++;
-            }
-        });
-        
-        stats.totalCost = totalCosts;
-        stats.avgTransitTime = shipmentsWithTransit > 0 ? Math.round(totalTransitDays / shipmentsWithTransit) : 0;
-        stats.avgCost = shipmentsWithCosts > 0 ? Math.round(totalCosts / shipmentsWithCosts) : 0;
-        
-        return stats;
-    }
-    
-    // ===== UTILITY METHODS =====
-    
-    generateId() {
-        return 'SHIP-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
-    }
-    
-    generateShipmentNumber() {
-        const prefix = 'SCH';
-        const timestamp = Date.now().toString().slice(-8);
-        const random = Math.random().toString(36).substr(2, 3).toUpperCase();
-        return `${prefix}${timestamp}${random}`;
-    }
-    
-    createDefaultCommercial() {
-        return {
-            purchaseOrder: {},
-            proformaInvoice: {},
-            commercialInvoice: {},
-            transportDocument: {},
-            cargo: {},
-            containers: [],
-            financial: { currency: 'EUR' },
-            compliance: { complianceScore: 0 }
-        };
-    }
-    
-    // ===== SUBSCRIPTION SYSTEM =====
-    
-    subscribe(callback) {
-        this.subscribers.push(callback);
-        return () => {
-            const index = this.subscribers.indexOf(callback);
-            if (index > -1) {
-                this.subscribers.splice(index, 1);
-            }
-        };
-    }
-    
-    notifySubscribers(event, data) {
-        this.subscribers.forEach(callback => {
-            try {
-                callback(event, data);
-            } catch (error) {
-                console.error('Error in subscriber callback:', error);
-            }
-        });
-        
-        // Also dispatch global events
-        window.dispatchEvent(new CustomEvent('shipmentsUpdated', {
-            detail: { event, data }
-        }));
-    }
+};
+
+// Auto-init quando il DOM è pronto
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => ShipmentsRegistry.init());
+} else {
+    ShipmentsRegistry.init();
 }
 
-// ===== GLOBAL REGISTRATION =====
+// Esporta per uso globale
 window.ShipmentsRegistry = ShipmentsRegistry;
 
-// Only auto-initialize if not already done by dependency manager
-if (!window.shipmentsRegistry || !window.shipmentsRegistry.initialized) {
-    console.log('🏗️ Auto-initializing ShipmentsRegistry...');
+// Setup refresh button
+document.addEventListener('DOMContentLoaded', () => {
+    const refreshBtn = document.getElementById('refreshDataBtn');
+    if (refreshBtn) {
+        refreshBtn.onclick = () => ShipmentsRegistry.renderShipmentsTable();
+    }
     
-    document.addEventListener('DOMContentLoaded', async () => {
-        if (!window.shipmentsRegistry || !window.shipmentsRegistry.initialized) {
-            window.shipmentsRegistry = new ShipmentsRegistry();
-            await window.shipmentsRegistry.init();
-            
-            // Dispatch ready event
-            window.dispatchEvent(new Event('shipmentsRegistryReady'));
+    // Auto-load data dopo init
+    setTimeout(() => {
+        if (ShipmentsRegistry.initialized) {
+            ShipmentsRegistry.renderShipmentsTable();
         }
-    });
-}
+    }, 1000);
+});
 
-console.log('[ShipmentsRegistry] Enhanced registry system loaded - v2.0');
+console.log('[ShipmentsRegistry] ✅ Module loaded');

@@ -1442,7 +1442,7 @@ function waitForShowAddTrackingForm() {
                     grid-template-columns: repeat(3, 1fr);
                 }
                 
-                .import-layout-new {
+                .import-layout_new {
                     grid-template-columns: 1fr;
                     gap: 16px;
                 }
@@ -4878,61 +4878,22 @@ if (finalData.status === 'sailing' || finalData.status === 'SAILING') {
   // ========================================
   
   // 1. CREA E ESPONI showWorkflowProgress
-  window.showWorkflowProgress = function(options = {}) {
-      console.log('🚀 showWorkflowProgress called with:', options);
-      
-      // Se options contiene steps, crea un workflow personalizzato
-      if (options.steps) {
-          const overlay = document.createElement('div');
-          overlay.className = 'workflow-modal-overlay';
-          overlay.innerHTML = `
-              <div class="workflow-modal">
-                  <h3>${options.title || '🚀 Elaborazione in corso'}</h3>
-                  <div class="workflow-container">
-                      ${options.steps.map((step, index) => `
-                          <div class="workflow-step" data-step="${index}">
-                              <div class="step-icon">${step.icon || '📋'}</div>
-                              <div class="step-content">
-                                  <h4>${step.title}</h4>
-                                  <p>${step.description || ''}</p>
-                                  <span class="step-status ${index === 0 ? 'pending' : 'waiting'}">
-                                      ${index === 0 ? 'In corso...' : 'In attesa'}
-                                  </span>
-                              </div>
-                          </div>
-                          ${index < options.steps.length - 1 ? '<div class="workflow-arrow">→</div>' : ''}
-                      `).join('')}
-                  </div>
-                  <div class="workflow-result" style="display: none;"></div>
-              </div>
-          `;
-          
-          document.body.appendChild(overlay);
-          setTimeout(() => overlay.classList.add('active'), 10);
-          
-          // Ritorna oggetto controller
-          return {
-              updateStep: (stepIndex, status, statusText) => {
-                  updateWorkflowStep(stepIndex, status, statusText);
-              },
-              showResult: (success, message) => {
-                  showWorkflowResult(success, message);
-              },
-              close: () => {
-                  overlay.classList.remove('active');
-                  setTimeout(() => overlay.remove(), 300);
-              }
-          };
-      } else {
-          // Comportamento default - mostra il workflow standard
-          showWorkflowModal();
-          return {
-              updateStep: updateWorkflowStep,
-              showResult: showWorkflowResult,
-              close: closeAllModals
-          };
-      }
-  };
+  window.showWorkflowProgress = function(trackingData) {
+    console.log('🎯 Showing workflow progress...');
+    // Inizializza se necessario
+    if (!document.querySelector('.workflow-steps-container')) {
+        initializeWorkflowSteps();
+    }
+    // Mostra il container
+    const container = document.querySelector('.workflow-steps-container');
+    if (container) {
+        container.style.display = 'flex';
+        // Avvia il processo
+        if (typeof startWorkflowProcess === 'function') {
+            startWorkflowProcess(trackingData);
+        }
+    }
+};
 
   // 2. CREA E ESPONI TrackingErrorHandler
   window.TrackingErrorHandler = class {
@@ -5216,4 +5177,60 @@ document.addEventListener('DOMContentLoaded', function() {
        });
    }
 });
+
+// ========================================
+// WORKFLOW STEPS MODAL (NEW API)
+// ========================================
+function initializeWorkflowSteps() {
+    const stepsHTML = `
+        <div class="workflow-steps-container" style="display: none;">
+            <div class="workflow-header">
+                <h2>🚀 Elaborazione Tracking</h2>
+                <button class="close-workflow" onclick="document.querySelector('.workflow-steps-container').style.display='none';">&times;</button>
+            </div>
+            <div class="workflow-steps">
+                <div class="workflow-step" data-step="validation">
+                    <div class="step-icon">📋</div>
+                    <div class="step-content">
+                        <h3>Validazione</h3>
+                        <p class="step-description">Controllo dati inseriti</p>
+                        <div class="step-status">In attesa</div>
+                    </div>
+                </div>
+                <div class="workflow-step" data-step="api-check">
+                    <div class="step-icon">🔌</div>
+                    <div class="step-content">
+                        <h3>API Check</h3>
+                        <p class="step-description">Recupero dati live</p>
+                        <div class="step-status">In attesa</div>
+                    </div>
+                </div>
+                <div class="workflow-step" data-step="save">
+                    <div class="step-icon">💾</div>
+                    <div class="step-content">
+                        <h3>Salvataggio</h3>
+                        <p class="step-description">Registrazione tracking</p>
+                        <div class="step-status">In attesa</div>
+                    </div>
+                </div>
+            </div>
+            <div class="workflow-footer">
+                <button class="btn btn-secondary cancel-workflow" onclick="document.querySelector('.workflow-steps-container').style.display='none';">Annulla</button>
+                <button class="btn btn-primary continue-workflow" disabled>Continua</button>
+            </div>
+        </div>
+    `;
+    // Rimuovi eventuali container esistenti
+    const existing = document.querySelector('.workflow-steps-container');
+    if (existing) {
+        existing.remove();
+    }
+    // Inserisci il nuovo HTML
+    document.body.insertAdjacentHTML('beforeend', stepsHTML);
+    // Assicurati che sia nascosto
+    const container = document.querySelector('.workflow-steps-container');
+    if (container) {
+        container.style.display = 'none';
+    }
+}
 })();
