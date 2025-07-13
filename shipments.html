@@ -5296,5 +5296,34 @@ async function loadShipmentsWithTracking() {
 }
 </script>
 
+<script>
+document.addEventListener('DOMContentLoaded', async () => {
+    // Attendi che il dataManager sia pronto
+    let attempts = 0;
+    while (!window.dataManager?.initialized && attempts < 20) {
+        await new Promise(resolve => setTimeout(resolve, 500));
+        attempts++;
+    }
+    
+    if (window.dataManager?.initialized) {
+        // Carica i dati reali
+        console.log('📦 Loading real shipments for Demo Organization...');
+        
+        try {
+            const shipments = await window.dataManager.getShipments();
+            console.log(`✅ Loaded ${shipments.length} shipments`);
+            
+            // Se c'è una funzione per aggiornare la tabella, chiamala
+            if (window.ShipmentsRegistry?.renderShipmentsTable) {
+                await window.ShipmentsRegistry.renderShipmentsTable();
+            }
+            
+        } catch (error) {
+            console.error('❌ Error loading shipments:', error);
+        }
+    }
+});
+</script>
+
 </body>
 </html>

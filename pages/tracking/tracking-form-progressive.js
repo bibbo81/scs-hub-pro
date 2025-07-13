@@ -5182,11 +5182,17 @@ document.addEventListener('DOMContentLoaded', function() {
 // WORKFLOW STEPS MODAL (NEW API)
 // ========================================
 function initializeWorkflowSteps() {
+    // Rimuovi eventuali container esistenti prima
+    const existing = document.querySelector('.workflow-steps-container');
+    if (existing) {
+        existing.remove();
+    }
+    
     const stepsHTML = `
         <div class="workflow-steps-container" style="display: none;">
             <div class="workflow-header">
                 <h2>🚀 Elaborazione Tracking</h2>
-                <button class="close-workflow" onclick="document.querySelector('.workflow-steps-container').style.display='none';">&times;</button>
+                <button class="close-workflow">&times;</button>
             </div>
             <div class="workflow-steps">
                 <div class="workflow-step" data-step="validation">
@@ -5215,22 +5221,61 @@ function initializeWorkflowSteps() {
                 </div>
             </div>
             <div class="workflow-footer">
-                <button class="btn btn-secondary cancel-workflow" onclick="document.querySelector('.workflow-steps-container').style.display='none';">Annulla</button>
+                <button class="btn btn-secondary cancel-workflow">Annulla</button>
                 <button class="btn btn-primary continue-workflow" disabled>Continua</button>
             </div>
         </div>
     `;
-    // Rimuovi eventuali container esistenti
-    const existing = document.querySelector('.workflow-steps-container');
-    if (existing) {
-        existing.remove();
-    }
+    
     // Inserisci il nuovo HTML
     document.body.insertAdjacentHTML('beforeend', stepsHTML);
-    // Assicurati che sia nascosto
+    
+    // Setup event listeners
+    const container = document.querySelector('.workflow-steps-container');
+    if (container) {
+        // Close button
+        container.querySelector('.close-workflow').addEventListener('click', hideWorkflowProgress);
+        container.querySelector('.cancel-workflow').addEventListener('click', hideWorkflowProgress);
+    }
+}
+
+// Aggiungi funzione per nascondere il workflow
+function hideWorkflowProgress() {
     const container = document.querySelector('.workflow-steps-container');
     if (container) {
         container.style.display = 'none';
     }
 }
+
+// Modifica showWorkflowProgress
+window.showWorkflowProgress = function(trackingData) {
+    console.log('🎯 Showing workflow progress...');
+    
+    // Inizializza se necessario
+    if (!document.querySelector('.workflow-steps-container')) {
+        initializeWorkflowSteps();
+    }
+    
+    // Mostra il container
+    const container = document.querySelector('.workflow-steps-container');
+    if (container) {
+        container.style.display = 'flex';
+        // Reset all steps
+        container.querySelectorAll('.workflow-step').forEach(step => {
+            step.classList.remove('active', 'completed', 'error');
+            step.querySelector('.step-status').textContent = 'In attesa';
+        });
+        
+        // Avvia il processo
+        if (typeof startWorkflowProcess === 'function') {
+            startWorkflowProcess(trackingData);
+        }
+    }
+};
+
+// Assicurati che il workflow sia nascosto all'avvio
+document.addEventListener('DOMContentLoaded', () => {
+    // Inizializza ma tieni nascosto
+    initializeWorkflowSteps();
+});
 })();

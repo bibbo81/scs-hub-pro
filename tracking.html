@@ -158,9 +158,97 @@
         white-space: nowrap;
         border: 0;
     }
+
+    /* Fix per nascondere i workflow modal */
+    .workflow-steps-container {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 9999;
+        display: none !important; /* Nascosto di default */
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .workflow-steps-container.show {
+        display: flex !important; /* Visibile solo con classe show */
+    }
+    
+    /* Fix per altri elementi workflow che potrebbero essere visibili */
+    [class*="workflow"]:not(.page-header):not(.sol-container):not(button) {
+        display: none !important;
+    }
+    
+    /* Eccezione per quando sono attivi */
+    .workflow-steps-container.show,
+    .workflow-modal.show {
+        display: flex !important;
+    }
+    
+    /* Stili aggiuntivi per il workflow quando visibile */
+    .workflow-steps-container.show .workflow-steps {
+        background: white;
+        border-radius: 8px;
+        padding: 2rem;
+        min-width: 600px;
+        max-width: 90vw;
+        max-height: 90vh;
+        overflow-y: auto;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+    
+    /* Previeni che elementi workflow casuali appaiano */
+    .workflow-overlay,
+    .workflow-backdrop,
+    .workflow-modal-overlay {
+        display: none !important;
+    }
+    
+    .workflow-overlay.active,
+    .workflow-backdrop.active,
+    .workflow-modal-overlay.active {
+        display: block !important;
+    }
     </style>
 </head>
 <body>
+    <!-- Nasconde immediatamente qualsiasi workflow modal al caricamento -->
+<script>
+// Nasconde immediatamente qualsiasi workflow modal al caricamento
+(function() {
+    // Funzione per nascondere workflow
+    function hideAllWorkflows() {
+        const workflowElements = document.querySelectorAll('.workflow-steps-container, .workflow-modal, [class*="workflow-"]');
+        workflowElements.forEach(el => {
+            if (!el.classList.contains('page-header') && 
+                !el.classList.contains('sol-container') && 
+                el.tagName !== 'BUTTON') {
+                el.style.display = 'none';
+                el.style.visibility = 'hidden';
+                el.classList.remove('show', 'active', 'visible');
+            }
+        });
+    }
+    
+    // Nasconde subito
+    hideAllWorkflows();
+    
+    // Nasconde di nuovo dopo DOM ready
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', hideAllWorkflows);
+    } else {
+        hideAllWorkflows();
+    }
+    
+    // Nasconde anche dopo un breve delay per sicurezza
+    setTimeout(hideAllWorkflows, 100);
+    setTimeout(hideAllWorkflows, 500);
+})();
+</script>
+
     <!-- Header will be injected here -->
     <div id="header-root"></div>
 
@@ -1038,6 +1126,113 @@ console.log('💡 Comandi disponibili:');
 console.log('- testDataManager() - Test rapido del Data Manager');
 console.log('- testDataManagerAdvanced() - Test avanzati');
 console.log('- dmDebug() - Mostra info debug del Data Manager');
+</script>
+
+<!-- AGGIUNGI questo script PRIMA del tag </body> (dopo gli altri script di test) -->
+<script>
+// Sistema di test completo per bibbo81
+window.systemHealthCheck = async function() {
+    console.log('🏥 SYSTEM HEALTH CHECK');
+    console.log('=====================');
+    
+    try {
+        // 1. Check autenticazione
+        const { data: { user } } = await window.supabase.auth.getUser();
+        console.log('1. Auth:', user ? `✅ ${user.email}` : '❌ Not authenticated');
+        
+        // 2. Check organizzazione
+        if (user) {
+            const { data: orgMember } = await window.supabase
+                .from('organization_members')
+                .select('organization_id, organizations(name)')
+                .eq('user_id', user.id)
+                .single();
+                
+            console.log('2. Organization:', orgMember ? `✅ ${orgMember.organizations.name}` : '❌ Not found');
+            console.log('   - Org ID:', orgMember?.organization_id);
+        }
+        
+        // 3. Check data manager
+        console.log('3. DataManager:', window.dataManager?.initialized ? '✅ Ready' : '❌ Not initialized');
+        
+        // 4. Check UI elements
+        console.log('4. UI Elements:');
+        console.log('   - Header:', document.querySelector('.sol-header') ? '✅ Present' : '❌ Missing');
+        console.log('   - Workflow Modal:', (() => {
+            const modal = document.querySelector('.workflow-steps-container');
+            if (!modal) return '❌ Missing';
+            return modal.style.display === 'none' ? '✅ Hidden' : '❌ Visible (ERROR!)';
+        })());
+        
+        // 5. Check tracking count
+        if (window.dataManager?.initialized) {
+            const trackings = await window.dataManager.getTrackings();
+            console.log('5. Trackings:', `✅ ${trackings.length} found`);
+            
+            const shipments = await window.dataManager.getShipments();
+            console.log('6. Shipments:', `✅ ${shipments.length} found`);
+        }
+        
+        console.log('=====================');
+        console.log('✅ Health check completed');
+        
+    } catch (error) {
+        console.error('❌ Health check error:', error);
+    }
+};
+
+// Quick fix per nascondere subito eventuali modal visibili
+document.addEventListener('DOMContentLoaded', () => {
+    // Nascondi tutti i workflow modal
+    document.querySelectorAll('.workflow-steps-container, [class*="workflow-modal"]').forEach(el => {
+        if (!el.classList.contains('page-header') && !el.classList.contains('sol-container')) {
+            el.style.display = 'none';
+        }
+    });
+    
+    console.log('💡 Run window.systemHealthCheck() to verify system status');
+});
+
+// Test creazione tracking con org dinamica
+window.testTracking = async function() {
+    try {
+        if (!window.dataManager?.initialized) {
+            await window.dataManager.init();
+        }
+        
+        const result = await window.dataManager.addTracking({
+            tracking_number: 'BIBBO-' + new Date().toISOString().slice(0,10) + '-' + Math.floor(Math.random() * 1000),
+            carrier: 'DHL',
+            tracking_type: 'container',
+            origin: 'Genoa, Italy',
+            destination: 'New York, USA',
+            current_status: 'in_transit',
+            eta: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString() // ETA tra 7 giorni
+        });
+        
+        console.log('✅ Tracking created:', result.tracking);
+        console.log('🚢 Auto-created shipment:', result.shipment);
+        
+        window.NotificationSystem?.success('Tracking creato con successo!');
+        
+        // Refresh table
+        if (window.refreshTrackings) {
+            window.refreshTrackings();
+        }
+        
+        return result;
+        
+    } catch (error) {
+        console.error('❌ Error:', error);
+        window.NotificationSystem?.error('Errore: ' + error.message);
+    }
+};
+
+// Aggiungi ai comandi disponibili
+console.log('');
+console.log('🆕 Comandi aggiuntivi per bibbo81:');
+console.log('- systemHealthCheck() - Verifica completa del sistema');
+console.log('- testTracking() - Crea un tracking di test con prefix BIBBO');
 </script>
 </body>
 </html>
