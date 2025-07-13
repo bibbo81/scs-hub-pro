@@ -441,46 +441,21 @@ class RegistryCore {
     renderProductsColumnV20Final(shipment) {
         try {
             const hasProducts = shipment.products && shipment.products.length > 0;
-            
             if (hasProducts) {
-                const totalQuantity = shipment.products.reduce((sum, p) => sum + (p.quantity || 1), 0);
-                const uniqueProducts = shipment.products.length;
-                const totalWeight = shipment.products.reduce((sum, p) => sum + (p.weight || 0), 0);
-                const totalValue = shipment.products.reduce((sum, p) => sum + (p.value || 0), 0);
-                
                 return `
-                    <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
-                        <div style="display: flex; flex-direction: column; gap: 4px;">
-                            <span class="sol-badge sol-badge-success" style="font-size: 0.75rem; background: #d4edda; color: #155724; padding: 0.25rem 0.5rem; border-radius: 0.375rem; white-space: nowrap;">
-                                ${uniqueProducts} prodotti (${totalQuantity} pz)
-                            </span>
-                            <div style="font-size: 0.7rem; color: #6c757d; text-align: center;">
-                                ${totalWeight.toFixed(1)}kg • €${totalValue.toLocaleString('it-IT')}
-                            </div>
-                        </div>
-                        <div class="btn-group" style="display: flex; gap: 4px; flex-direction: column;">
-                            <button class="sol-btn sol-btn-sm sol-btn-glass"
-                                    data-shipment-id="${shipment.id}"
-                                    data-action="manage-products"
-                                    title="Gestisci prodotti collegati">
-                                <i class="fas fa-cogs"></i> Gestisci
-                            </button>
-                            <button class="sol-btn sol-btn-sm sol-btn-glass"
-                                    data-shipment-id="${shipment.id}" 
-                                    data-action="add-products"
-                                    title="Aggiungi altri prodotti">
-                                <i class="fas fa-plus"></i> Aggiungi
-                            </button>
-                        </div>
-                    </div>
+                    <button class="sol-btn sol-btn-sm sol-btn-info" 
+                            onclick="manageShipmentProducts('${shipment.id}')"
+                            title="Gestisci prodotti collegati">
+                        <i class="fas fa-cogs"></i>
+                        <span class="badge badge-light ml-1">${shipment.products.length}</span>
+                    </button>
                 `;
             } else {
                 return `
-                    <button class="sol-btn sol-btn-sm sol-btn-primary"
-                            data-shipment-id="${shipment.id}"
-                            data-action="link-products"
+                    <button class="sol-btn sol-btn-sm sol-btn-primary" 
+                            onclick="linkProductsToShipment('${shipment.id}')"
                             title="Collega prodotti">
-                        <i class="fas fa-link"></i> Collega
+                        <i class="fas fa-link"></i>
                     </button>
                 `;
             }

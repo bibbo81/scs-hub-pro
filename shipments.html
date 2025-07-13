@@ -53,7 +53,11 @@
         window.ModalSystem = modalSystem;
     </script>
     
-    <script src="/core/product-sync.js"></script>
+    <!-- <script src="/core/product-sync.js"></script> -->
+
+    <script src="/product-linking-system.js"></script>
+    <script src="/core/product-data-sync.js"></script>
+
 
     <script>
         (function() {
@@ -5322,6 +5326,28 @@ document.addEventListener('DOMContentLoaded', async () => {
             console.error('❌ Error loading shipments:', error);
         }
     }
+});
+</script>
+
+<script>
+// Verifica che i sistemi siano caricati
+document.addEventListener('DOMContentLoaded', async () => {
+    console.log('🔍 Verificando sistemi di collegamento prodotti...');
+    
+    // Attendi inizializzazione
+    setTimeout(() => {
+        if (window.productLinking?.initialized) {
+            console.log('✅ Product Linking System: OK');
+        } else {
+            console.error('❌ Product Linking System: NON INIZIALIZZATO');
+        }
+        
+        if (window.productDataSync?.initialized) {
+            console.log('✅ Product Data Sync: OK');
+        } else {
+            console.warn('⚠️ Product Data Sync: Non attivo (normale se non in products)');
+        }
+    }, 3000);
 });
 </script>
 
