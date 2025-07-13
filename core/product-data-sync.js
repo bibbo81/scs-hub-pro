@@ -161,9 +161,8 @@ class ProductDataSync {
 }
 
 // Inizializza solo se necessario
-if (window.location.pathname.includes('products') || 
-    window.location.pathname.includes('shipments')) {
-    
+if (window.location.pathname.includes('products')) {
+    // Solo per la pagina prodotti per ora
     window.productDataSync = new ProductDataSync();
     
     if (document.readyState === 'loading') {
