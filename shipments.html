@@ -919,15 +919,15 @@
                             </select>
                         </div>
                         <div class="sol-form-group">
-                            <label class="sol-form-label">Periodo</label>
-                            <select class="sol-form-select" id="periodFilter">
-                            <select class="sol-form-select" id="periodFilter">
-                                <option value="">Tutto</option>
-                                <option value="7">Ultimi 7 giorni</option>
-                                <option value="30">Ultimi 30 giorni</option>
-                                <option value="90">Ultimi 3 mesi</option>
-                                <option value="365">Ultimo anno</option>
-                            </select>
+                        <label class="sol-form-label">Periodo</label>
+                        <select class="sol-form-select" id="periodFilter">
+                        <option value="">Tutto</option>
+                        <option value="7">Ultimi 7 giorni</option>
+                        <option value="30">Ultimi 30 giorni</option>
+                        <option value="90">Ultimi 3 mesi</option>
+                        <option value="365">Ultimo anno</option>
+                        </select>
+                            </div>
                            
                         </div>
                         <div class="sol-form-group" style="grid-column: span 2;">
@@ -2235,7 +2235,24 @@
            }
        }
    </style>
+<style>
+/* Fix per il dropdown Periodo */
+#periodFilter {
+    appearance: auto;
+    -webkit-appearance: menulist;
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 0.7rem center;
+    background-size: 1em;
+    padding-right: 2.5rem;
+}
 
+/* Fix generale per tutti i select */
+.sol-form-select {
+    appearance: auto !important;
+    -webkit-appearance: menulist !important;
+}
+</style>
    <script>
        // ===== COLUMN MANAGER IMPLEMENTATION =====
        class ColumnManager {
@@ -5368,6 +5385,97 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }, 2000);
 });
+</script>
+<script>
+// Funzioni globali per i bottoni
+window.viewShipmentDetails = function(id) {
+    console.log('View shipment details:', id);
+    // Implementazione futura
+    if (window.ShipmentsRegistry && window.ShipmentsRegistry.viewDetails) {
+        window.ShipmentsRegistry.viewDetails(id);
+    } else {
+        alert('Funzione dettagli in sviluppo');
+    }
+};
+
+window.editShipment = function(id) {
+    console.log('Edit shipment:', id);
+    if (window.ModalSystem) {
+        window.ModalSystem.show({
+            title: 'Modifica Spedizione',
+            content: '<p>Form di modifica in sviluppo...</p>',
+            buttons: [
+                { text: 'Chiudi', class: 'sol-btn-secondary', onclick: () => true }
+            ]
+        });
+    }
+};
+
+window.viewShipmentDocuments = function(id) {
+    console.log('View shipment documents:', id);
+    alert('Gestione documenti in sviluppo');
+};
+
+// Le funzioni per i prodotti sono già nel product-linking-system.js
+// ma aggiungiamo un fallback
+if (!window.linkProductsToShipment) {
+    window.linkProductsToShipment = function(id) {
+        console.error('Product linking system not loaded yet');
+        alert('Sistema di collegamento prodotti in caricamento, riprova tra poco');
+    };
+}
+
+if (!window.manageShipmentProducts) {
+    window.manageShipmentProducts = function(id) {
+        console.error('Product management system not loaded yet');
+        alert('Sistema di gestione prodotti in caricamento, riprova tra poco');
+    };
+}
+</script>
+<script>
+// Sistema di sincronizzazione cross-tab
+(function() {
+    // Ascolta cambiamenti da altre tab
+    window.addEventListener('storage', (e) => {
+        if (e.key === 'data_sync_shipments' || e.key === 'data_sync_trackings') {
+            console.log('📦 Sincronizzazione rilevata da altra tab:', e.key);
+            
+            // Ricarica i dati appropriati
+            if (window.location.pathname.includes('shipments')) {
+                if (window.loadRealShipments) {
+                    setTimeout(() => window.loadRealShipments(), 500);
+                } else if (window.ShipmentsRegistry?.renderShipmentsTable) {
+                    setTimeout(() => window.ShipmentsRegistry.renderShipmentsTable(), 500);
+                }
+            } else if (window.location.pathname.includes('tracking')) {
+                if (window.refreshTrackings) {
+                    setTimeout(() => window.refreshTrackings(), 500);
+                } else if (window.loadTrackings) {
+                    setTimeout(() => window.loadTrackings(), 500);
+                }
+            }
+        }
+    });
+    
+    // Funzione helper per notificare altre tab
+    window.notifyDataChange = function(type) {
+        const key = `data_sync_${type}`;
+        localStorage.setItem(key, new Date().toISOString());
+        setTimeout(() => localStorage.removeItem(key), 100);
+    };
+    
+    // Hook nelle funzioni di salvataggio
+    const originalAddTracking = window.dataManager?.addTracking;
+    if (originalAddTracking) {
+        window.dataManager.addTracking = async function(...args) {
+            const result = await originalAddTracking.apply(this, args);
+            window.notifyDataChange('trackings');
+            return result;
+        };
+    }
+    
+    console.log('✅ Cross-tab sync initialized');
+})();
 </script>
 </body>
 </html>

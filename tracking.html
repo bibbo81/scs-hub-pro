@@ -1234,5 +1234,50 @@ console.log('🆕 Comandi aggiuntivi per bibbo81:');
 console.log('- systemHealthCheck() - Verifica completa del sistema');
 console.log('- testTracking() - Crea un tracking di test con prefix BIBBO');
 </script>
+<script>
+// Sistema di sincronizzazione cross-tab
+(function() {
+    // Ascolta cambiamenti da altre tab
+    window.addEventListener('storage', (e) => {
+        if (e.key === 'data_sync_shipments' || e.key === 'data_sync_trackings') {
+            console.log('📦 Sincronizzazione rilevata da altra tab:', e.key);
+            
+            // Ricarica i dati appropriati
+            if (window.location.pathname.includes('shipments')) {
+                if (window.loadRealShipments) {
+                    setTimeout(() => window.loadRealShipments(), 500);
+                } else if (window.ShipmentsRegistry?.renderShipmentsTable) {
+                    setTimeout(() => window.ShipmentsRegistry.renderShipmentsTable(), 500);
+                }
+            } else if (window.location.pathname.includes('tracking')) {
+                if (window.refreshTrackings) {
+                    setTimeout(() => window.refreshTrackings(), 500);
+                } else if (window.loadTrackings) {
+                    setTimeout(() => window.loadTrackings(), 500);
+                }
+            }
+        }
+    });
+    
+    // Funzione helper per notificare altre tab
+    window.notifyDataChange = function(type) {
+        const key = `data_sync_${type}`;
+        localStorage.setItem(key, new Date().toISOString());
+        setTimeout(() => localStorage.removeItem(key), 100);
+    };
+    
+    // Hook nelle funzioni di salvataggio
+    const originalAddTracking = window.dataManager?.addTracking;
+    if (originalAddTracking) {
+        window.dataManager.addTracking = async function(...args) {
+            const result = await originalAddTracking.apply(this, args);
+            window.notifyDataChange('trackings');
+            return result;
+        };
+    }
+    
+    console.log('✅ Cross-tab sync initialized');
+})();
+</script>
 </body>
 </html>
