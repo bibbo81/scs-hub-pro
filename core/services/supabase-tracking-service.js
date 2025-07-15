@@ -172,6 +172,9 @@ class SupabaseTrackingService {
             // Update localStorage for offline access
             this.updateLocalStorage('create', data);
             
+            // Trigger auto-sync event for Tracking ↔ Shipments integration
+            this.triggerAutoSyncEvent('trackingAdded', data);
+            
             return data;
             
         } catch (error) {
@@ -193,6 +196,7 @@ class SupabaseTrackingService {
                         if (!retryError) {
                             console.log('✅ Tracking created on retry:', data.id);
                             this.updateLocalStorage('create', data);
+                            this.triggerAutoSyncEvent('trackingAdded', data);
                             return data;
                         }
                     }
@@ -232,6 +236,9 @@ class SupabaseTrackingService {
             
             // Update localStorage
             this.updateLocalStorage('update', data);
+            
+            // Trigger auto-sync event for updates
+            this.triggerAutoSyncEvent('trackingUpdated', data);
             
             return data;
         } catch (error) {
@@ -308,6 +315,10 @@ class SupabaseTrackingService {
             localStorage.setItem('trackings_backup', JSON.stringify(existing));
             
             console.log('📱 Tracking saved to localStorage fallback:', newTracking.id);
+            
+            // Trigger auto-sync event even for offline saves
+            this.triggerAutoSyncEvent('trackingAdded', newTracking);
+            
             return newTracking;
         } catch (error) {
             console.error('[SupabaseTracking] localStorage save error:', error);
@@ -348,6 +359,29 @@ class SupabaseTrackingService {
             localStorage.setItem('trackings_backup', JSON.stringify(data));
         } catch (error) {
             console.error('[SupabaseTracking] localStorage sync error:', error);
+        }
+    }
+
+    // ========================================
+    // AUTO-SYNC INTEGRATION
+    // ========================================
+    
+    triggerAutoSyncEvent(eventType, trackingData) {
+        try {
+            // Dispatch global event for auto-sync system
+            const event = new CustomEvent(eventType, {
+                detail: {
+                    tracking: trackingData,
+                    source: 'supabase',
+                    timestamp: new Date().toISOString()
+                }
+            });
+            
+            window.dispatchEvent(event);
+            console.log(`🔄 Auto-sync event triggered: ${eventType}`, trackingData.tracking_number);
+            
+        } catch (error) {
+            console.warn('[SupabaseTracking] Auto-sync event failed:', error);
         }
     }
 
