@@ -15,34 +15,22 @@
     <link rel="stylesheet" href="/pages/tracking/tracking-complete.css">
     <link rel="stylesheet" href="/pages/tracking/tracking-table.css">
     
-    <!-- Supabase -->
+    <!-- External Libraries -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    
-    <!-- Bootstrap JS for dropdowns -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/js/bootstrap.bundle.min.js"></script>
-    
-    <!-- XLSX for Excel support -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-    
-    <!-- PapaParse for CSV support -->
     <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
-    
-    <!-- jsPDF for PDF export -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
 
-    <!-- Inline styles for critical elements -->
+    <!-- Critical Inline Styles -->
     <style>
-        /* Ensure table is visible */
         #trackingTableBody { display: table-row-group !important; }
         .table-responsive { overflow-x: auto; }
-        
-        /* Loading state */
         #loadingState { padding: 3rem; text-align: center; }
         #emptyState { padding: 3rem; text-align: center; }
         
-        /* Bulk actions bar */
         .bulk-actions-bar {
             position: sticky;
             top: 0;
@@ -60,7 +48,6 @@
             align-items: center;
         }
         
-        /* Status badges */
         .badge {
             display: inline-block;
             padding: 0.25em 0.6em;
@@ -79,22 +66,20 @@
         .badge-danger { background-color: #dc3545; color: white; }
         .badge-secondary { background-color: #6c757d; color: white; }
 
-        /* Force horizontal scroll */
-    #trackingTableContainer {
-        overflow-x: auto !important;
-        max-width: 100%;
-    }
-
+        #trackingTableContainer {
+            overflow-x: auto !important;
+            max-width: 100%;
+        }
     </style>
 </head>
 <body>
-    <!-- Header will be injected here -->
+    <!-- Header Container -->
     <div id="header-root"></div>
 
     <!-- Main Content -->
     <main class="sol-main-content">
         <div class="sol-container">
-            <!-- Page Header with Actions -->
+            <!-- Page Header -->
             <div class="page-header d-flex justify-content-between align-items-center mb-4">
                 <h1>Tracking Spedizioni</h1>
                 <div class="page-actions">
@@ -105,58 +90,55 @@
                         <i class="fas fa-file-import mr-2"></i>Importa
                     </button>
                     <button class="btn btn-secondary" onclick="showColumnEditor()">
-        <i class="fas fa-columns mr-2"></i>Colonne
-    </button>
+                        <i class="fas fa-columns mr-2"></i>Colonne
+                    </button>
                 </div>
             </div>
 
-            <!-- Stats Row -->
-<div class="stats-grid mb-4">
-    <!-- Card 1: Totale Tracking -->
-    <div class="stat-card">
-        <div class="stat-icon">
-            <i class="fas fa-box"></i>
-        </div>
-        <div class="stat-content">
-            <h2 id="totalTrackings">0</h2>
-            <p>Totale Tracking</p>
-        </div>
-    </div>
-    
-    <!-- Card 2: In Transito -->
-    <div class="stat-card">
-        <div class="stat-icon">
-            <i class="fas fa-ship"></i>
-        </div>
-        <div class="stat-content">
-            <h2 id="inTransitCount">0</h2>
-            <p>In Transito</p>
-        </div>
-    </div>
-    
-    <!-- Card 3: Consegnati -->
-    <div class="stat-card">
-        <div class="stat-icon">
-            <i class="fas fa-check-circle"></i>
-        </div>
-        <div class="stat-content">
-            <h2 id="deliveredCount">0</h2>
-            <p>Consegnati</p>
-        </div>
-    </div>
-    
-    <!-- Card 4: In Ritardo -->
-    <div class="stat-card">
-        <div class="stat-icon">
-            <i class="fas fa-exclamation-triangle"></i>
-        </div>
-        <div class="stat-content">
-            <h2 id="exceptionCount">0</h2>
-            <p>In Ritardo</p>
-        </div>
-    </div>
-</div>
-            <!-- Filters and Search -->
+            <!-- Stats Grid -->
+            <div class="stats-grid mb-4">
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-box"></i>
+                    </div>
+                    <div class="stat-content">
+                        <h2 id="totalTrackings">0</h2>
+                        <p>Totale Tracking</p>
+                    </div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-ship"></i>
+                    </div>
+                    <div class="stat-content">
+                        <h2 id="inTransitCount">0</h2>
+                        <p>In Transito</p>
+                    </div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-check-circle"></i>
+                    </div>
+                    <div class="stat-content">
+                        <h2 id="deliveredCount">0</h2>
+                        <p>Consegnati</p>
+                    </div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-exclamation-triangle"></i>
+                    </div>
+                    <div class="stat-content">
+                        <h2 id="exceptionCount">0</h2>
+                        <p>In Ritardo</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Filters Section -->
             <div class="sol-card mb-4">
                 <div class="sol-card-body">
                     <div class="row">
@@ -211,7 +193,7 @@
                 </div>
             </div>
 
-            <!-- Bulk Actions Bar (Hidden by default) -->
+            <!-- Bulk Actions Bar -->
             <div class="bulk-actions-bar" id="bulkActionsBar" style="display: none;">
                 <div class="bulk-actions-content">
                     <div class="bulk-info">
@@ -230,16 +212,14 @@
                 </div>
             </div>
 
-            <!-- Tracking Table -->
+            <!-- Table Section -->
             <div class="sol-card">
                 <div class="sol-card-body p-0">
-                    <!-- Loading State -->
                     <div id="loadingState" style="display: none;">
                         <i class="fas fa-spinner fa-spin fa-3x text-primary mb-3"></i>
                         <p>Caricamento tracking...</p>
                     </div>
 
-                    <!-- Empty State -->
                     <div id="emptyState" style="display: none;">
                         <i class="fas fa-box-open fa-3x text-muted mb-3"></i>
                         <h4>Nessun tracking trovato</h4>
@@ -249,10 +229,8 @@
                         </button>
                     </div>
 
-                    <!-- Table Container -->
                     <div id="trackingTableContainer"></div>
                     
-                    <!-- Legacy Table (Hidden) -->
                     <div class="table-responsive" style="display: none;">
                         <table class="table table-hover" id="trackingTable">
                             <thead>
@@ -279,22 +257,32 @@
         </div>
     </main>
 
-    <!-- Load Core Modules -->
+    <!-- Core Module Loading (ES6 Modules) -->
     <script type="module">
-        // Import core modules
-        import api from '/core/api-client.js';
-        import headerComponent from '/core/header-component.js';
-        import notificationSystem from '/core/notification-system.js';
-        import modalSystem from '/core/modal-system.js';
-        import { supabase } from '/core/services/supabase-client.js';
-        import supabaseTrackingService from '/core/services/supabase-tracking-service.js';
-        import organizationApiKeysService from '/core/services/organization-api-keys-service.js';
-        // Import ExportManager (might be a global or named export)
-        // import ExportManager from '/core/export-manager.js';
-        import TableManager from '/core/table-manager.js';
-        import trackingService from '/core/services/tracking-service.js';
+        console.log('🚀 Loading core modules...');
         
-        // Make modules available globally
+        // Import core modules
+        const [
+            { default: api },
+            { default: headerComponent },
+            { default: notificationSystem },
+            { default: modalSystem },
+            { supabase },
+            { default: supabaseTrackingService },
+            { default: organizationApiKeysService },
+            { default: TableManager }
+        ] = await Promise.all([
+            import('/core/api-client.js'),
+            import('/core/header-component.js'),
+            import('/core/notification-system.js'),
+            import('/core/modal-system.js'),
+            import('/core/services/supabase-client.js'),
+            import('/core/services/supabase-tracking-service.js'),
+            import('/core/services/organization-api-keys-service.js'),
+            import('/core/table-manager.js')
+        ]);
+        
+        // Make modules globally available
         window.api = api;
         window.headerComponent = headerComponent;
         window.NotificationSystem = notificationSystem;
@@ -302,10 +290,9 @@
         window.supabase = supabase;
         window.supabaseTrackingService = supabaseTrackingService;
         window.organizationApiKeysService = organizationApiKeysService;
-        // window.ExportManager = ExportManager; // Commented out until we verify export structure
         window.TableManager = TableManager;
         
-        // Register table manager globally
+        // Table manager registry
         window.registerTableManager = function(id, instance) {
             if (!window.tableManagers) {
                 window.tableManagers = {};
@@ -317,325 +304,229 @@
             return window.tableManagers?.[id];
         };
         
-        // Initialize components
+        // Initialize header
         headerComponent.init();
         
-        // Debug info
-        console.log('🚀 Core modules loaded:', {
-            api: !!window.api,
-            headerComponent: !!window.headerComponent,
-            notificationSystem: !!window.NotificationSystem,
-            modalSystem: !!window.ModalSystem,
-            supabaseClient: !!window.supabaseClient,
-            supabaseTrackingService: !!window.supabaseTrackingService,
-            organizationApiKeysService: !!window.organizationApiKeysService,
-            ExportManager: !!window.ExportManager,
-            TableManager: !!window.TableManager
-        });
+        console.log('✅ Core modules loaded successfully');
     </script>
     
-    <!-- Legacy Scripts -->
+    <!-- Legacy Authentication Scripts -->
     <script src="/core/auth.js"></script>
     <script src="/core/auth-init.js"></script>
     
-    <!-- Load Export Manager (legacy) -->
+    <!-- Utility Scripts -->
     <script src="/core/export-manager.js"></script>
-    
-    <!-- Load Import Manager (legacy) -->
     <script src="/core/import-manager.js"></script>
+    <script src="/core/performance-optimizations.js"></script>
     
-<!-- Performance Optimizations -->
-<script src="/core/performance-optimizations.js"></script>
-<script>
-document.addEventListener('DOMContentLoaded', () => {
-    console.log('🚀 Integrating performance optimizations...');
-    
-    // 1. Wrap tracking service con cache e queue
-    if (window.trackingService && window.optimizedTrackingService) {
-        // Salva riferimento all'originale
-        window.trackingService._original = window.trackingService.track;
-        
-        // Sostituisci con versione ottimizzata
-        window.trackingService.track = function(trackingNumber, type, options) {
-            return window.optimizedTrackingService.track(trackingNumber, type, options);
-        };
-        
-        console.log('✅ Tracking service optimized with cache and queue');
-    }
-    
-    // ... resto del codice di integrazione ...
-    
-    console.log('✅ Performance optimizations integrated');
-});
-
-// Aggiungi comando globale per debug performance
-window.performanceReport = function() {
-    console.log('📊 PERFORMANCE REPORT');
-    console.log('====================');
-    
-    // ... resto del codice ...
-};
-</script>
-    <!-- Page Logic -->
-    <script type="module" src="/pages/tracking/index.js"></script>
-    <!-- FIX: Assicura che showAddTrackingForm sia disponibile -->
-<script>
-// Fix per il timeout del progressive form
-window.addEventListener('DOMContentLoaded', () => {
-    // Se showAddTrackingForm non esiste, creala come fallback
-    if (!window.showAddTrackingForm) {
-        window.showAddTrackingForm = function() {
-            console.log('🔧 Using fallback showAddTrackingForm');
-            
-            // Prova prima il form enhanced
-            if (window.showEnhancedTrackingForm) {
-                window.showEnhancedTrackingForm();
-            } 
-            // Poi il workflow progress
-            else if (window.showWorkflowProgress) {
-                window.showWorkflowProgress();
-            } 
-            // Altrimenti mostra un messaggio
-            else {
-                if (window.ModalSystem) {
-                    window.ModalSystem.show({
-                        title: 'Aggiungi Tracking',
-                        content: `
-                            <div class="text-center p-4">
-                                <i class="fas fa-exclamation-triangle fa-3x text-warning mb-3"></i>
-                                <p>Il form di tracking è in caricamento...</p>
-                                <p class="text-muted">Riprova tra qualche istante</p>
-                            </div>
-                        `,
-                        buttons: [{
-                            text: 'OK',
-                            className: 'btn-primary',
-                            action: () => window.ModalSystem.hide()
-                        }]
-                    });
-                } else {
-                    alert('Form tracking non ancora disponibile, riprova tra poco');
-                }
-            }
-        };
-        
-        console.log('✅ Fallback showAddTrackingForm created');
-    }
-});
-
-// Forza il check dopo 2 secondi
-setTimeout(() => {
-    if (!window.showAddTrackingForm && window.trackingDebug) {
-        // Prova a recuperarla dal contesto di tracking
-        const trackingContext = window.trackingDebug.getData();
-        if (trackingContext.showAddTrackingForm) {
-            window.showAddTrackingForm = trackingContext.showAddTrackingForm;
-            console.log('✅ showAddTrackingForm recovered from tracking context');
-        }
-    }
-}, 2000);
-</script>
-
-    <!-- Load Tracking Service -->
-    <script type="module" src="/core/services/tracking-service.js"></script>
-    
-    <!-- Load Progressive Form -->
-    <script src="/pages/tracking/tracking-form-progressive.js"></script>
-    
-    <!-- Fix for progressive form -->
+    <!-- Performance Integration -->
     <script>
-        // Wait for all modules to be loaded
         document.addEventListener('DOMContentLoaded', () => {
-            setTimeout(() => {
-                // Ensure showEnhancedTrackingForm is available
-                if (!window.showEnhancedTrackingForm) {
-                    window.showEnhancedTrackingForm = function() {
-                        console.log('Opening tracking form...');
-                        if (window.trackingFormProgressive && window.trackingFormProgressive.show) {
-                            window.trackingFormProgressive.show();
-                        } else if (window.showWorkflowProgress) {
-                            window.showWorkflowProgress();
-                        } else {
-                            window.NotificationSystem?.error('Form non disponibile');
-                        }
-                    };
-                }
-                
-                // Add handleImport method to ImportManager for progressive form
-                if (window.ImportManager && !window.ImportManager.handleImport) {
-                    console.log('Adding handleImport to ImportManager...');
-                    window.ImportManager.handleImport = async function(file, options = {}) {
-                        console.log('Progressive form calling handleImport...');
-                        
-                        try {
-                            // Parse the file directly using ImportManager's parseFile
-                            console.log('Parsing file:', file.name);
-                            const parseResult = await this.parseFile(file);
-                            
-                            if (!parseResult || !parseResult.data || parseResult.data.length === 0) {
-                                throw new Error('Nessun dato trovato nel file');
-                            }
-                            
-                            console.log('Parsed data:', parseResult.data.length, 'rows');
-                            
-                            // Process the data
-                            const trackings = [];
-                            const errors = [];
-                            
-                            for (let i = 0; i < parseResult.data.length; i++) {
-                                const row = parseResult.data[i];
-                                
-                                try {
-                                    // Apply column mapping
-                                    const mapped = {};
-                                    const columnMapping = window.COLUMN_MAPPING || {};
-                                    
-                                    Object.entries(row).forEach(([key, value]) => {
-                                        const mappedKey = columnMapping[key] || key.toLowerCase().replace(/\s+/g, '_');
-                                        mapped[mappedKey] = value;
-                                    });
-                                    
-                                    // Ensure required fields
-                                    if (!mapped.tracking_number) {
-                                        throw new Error(`Riga ${i + 1}: Tracking number mancante`);
-                                    }
-                                    
-                                    // Map status
-                                    if (mapped.status || mapped.current_status) {
-                                        const status = (mapped.status || mapped.current_status || '').toString();
-                                        mapped.current_status = this.mapStatus ? this.mapStatus(status) : status.toLowerCase();
-                                        delete mapped.status;
-                                    }
-                                    
-                                    // Detect tracking type if not specified
-                                    if (!mapped.tracking_type && mapped.tracking_number) {
-                                        const num = mapped.tracking_number.toString();
-                                        mapped.tracking_type = /^\d{3}-?\d{8}$/.test(num) ? 'air_waybill' : 'container';
-                                    }
-                                    
-                                    // Add metadata
-                                    const tracking = {
-                                        id: crypto.randomUUID ? crypto.randomUUID() : `import-${Date.now()}-${i}`,
-                                        ...mapped,
-                                        created_at: new Date().toISOString(),
-                                        updated_at: new Date().toISOString(),
-                                        metadata: {
-                                            import_source: 'manual',
-                                            import_date: new Date().toISOString(),
-                                            original_file: file.name
-                                        }
-                                    };
-                                    
-                                    trackings.push(tracking);
-                                    
-                                } catch (error) {
-                                    errors.push({
-                                        row: i + 1,
-                                        error: error.message,
-                                        data: row
-                                    });
-                                    console.error(`Error processing row ${i + 1}:`, error);
-                                }
-                            }
-                            
-                            console.log('Processed trackings:', trackings.length, 'errors:', errors.length);
-                            
-                            // Save to Supabase
-                            let imported = 0;
-                            let failed = 0;
-                            
-                            if (window.supabaseTrackingService && trackings.length > 0) {
-                                // Show progress
-                                window.NotificationSystem?.info(`Salvataggio ${trackings.length} tracking...`);
-                                
-                                for (const tracking of trackings) {
-                                    try {
-                                        await window.supabaseTrackingService.createTracking(tracking);
-                                        imported++;
-                                    } catch (error) {
-                                        console.error('Error saving tracking:', tracking.tracking_number, error);
-                                        failed++;
-                                    }
-                                }
-                            }
-                            
-                            // Show results
-                            if (imported > 0) {
-                                window.NotificationSystem?.success(`✅ Importati ${imported} tracking`);
-                            }
-                            if (failed > 0) {
-                                window.NotificationSystem?.warning(`⚠️ ${failed} tracking non importati`);
-                            }
-                            if (errors.length > 0) {
-                                window.NotificationSystem?.warning(`⚠️ ${errors.length} righe con errori nel file`);
-                            }
-                            
-                            // Refresh the table
-                            if (window.trackingDebug?.refresh) {
-                                setTimeout(() => window.trackingDebug.refresh(), 500);
-                            }
-                            
-                            // Close the import modal
-                            const closeBtn = document.querySelector('.custom-modal-close');
-                            if (closeBtn) {
-                                closeBtn.click();
-                            }
-                            
-                            return {
-                                success: imported > 0,
-                                stats: {
-                                    imported,
-                                    failed,
-                                    errors: errors.length,
-                                    total: parseResult.data.length
-                                },
-                                errors
-                            };
-                            
-                        } catch (error) {
-                            console.error('Import handleImport error:', error);
-                            window.NotificationSystem?.error('Errore import: ' + error.message);
-                            
-                            return {
-                                success: false,
-                                error: error.message
-                            };
-                        }
-                    };
-                }
-                
-                // Also ensure column mapping is available globally
-                if (!window.COLUMN_MAPPING && window.trackingDebug) {
-                    window.COLUMN_MAPPING = window.trackingDebug.getColumnMapping();
-                }
-                
-                console.log('Progressive form fixes applied');
-            }, 2000); // Wait 2 seconds to ensure everything is loaded
+            console.log('🚀 Integrating performance optimizations...');
+            
+            if (window.trackingService && window.optimizedTrackingService) {
+                window.trackingService._original = window.trackingService.track;
+                window.trackingService.track = function(trackingNumber, type, options) {
+                    return window.optimizedTrackingService.track(trackingNumber, type, options);
+                };
+                console.log('✅ Tracking service optimized');
+            }
+            
+            console.log('✅ Performance optimizations integrated');
         });
+
+        window.performanceReport = function() {
+            console.log('📊 PERFORMANCE REPORT');
+            console.log('====================');
+            // Performance monitoring implementation
+        };
     </script>
 
-<!-- Load all fixes -->
-<script src="/pages/tracking/api-keys-permanent-fix.js"></script>
-<script src="/pages/tracking/tracking-fixes.js"></script>
-<script src="/pages/tracking/tracking-unified-mapping.js"></script>
-<script src="/pages/tracking/tracking-detect-fix.js"></script>
-<script src="/pages/tracking/tracking-submit-fix.js"></script>
-<script src="/pages/tracking/api-keys-debug.js"></script>
-<script src="/pages/tracking/shipsgo-detector.js"></script>
-<script src="/pages/tracking/tracking-checkbox-fix.js"></script>
-<script src="/pages/tracking/ocean-v2-autodetection-fix.js"></script>
-<script src="/pages/tracking/ocean-v2-mapping-fix.js"></script>
-<script src="/pages/tracking/tracking-complete-fix-v2.js"></script>
-<script>
-// Fix temporaneo per il form progressive
-document.addEventListener('DOMContentLoaded', () => {
-    // Forza il caricamento del form dopo un delay maggiore
-    setTimeout(() => {
-        if (window.showEnhancedTrackingForm && typeof window.showEnhancedTrackingForm === 'function') {
-            console.log('🔧 Form progressive pronto per l\'uso');
-        }
-    }, 3000);
-}); // <-- Questa parentesi chiude il DOMContentLoaded
-</script>
+    <!-- Main Page Logic -->
+    <script type="module" src="/pages/tracking/index.js"></script>
+    
+    <!-- Tracking Form and Fixes -->
+    <script src="/pages/tracking/tracking-form-progressive.js"></script>
+    
+    <!-- Global Function Fallbacks -->
+    <script>
+        // Ensure critical functions are available
+        window.addEventListener('DOMContentLoaded', () => {
+            // Fallback for showAddTrackingForm
+            if (!window.showAddTrackingForm) {
+                window.showAddTrackingForm = function() {
+                    console.log('🔧 Using fallback showAddTrackingForm');
+                    
+                    if (window.showEnhancedTrackingForm) {
+                        window.showEnhancedTrackingForm();
+                    } else if (window.showWorkflowProgress) {
+                        window.showWorkflowProgress();
+                    } else {
+                        if (window.ModalSystem) {
+                            window.ModalSystem.show({
+                                title: 'Aggiungi Tracking',
+                                content: `
+                                    <div class="text-center p-4">
+                                        <i class="fas fa-exclamation-triangle fa-3x text-warning mb-3"></i>
+                                        <p>Il form di tracking è in caricamento...</p>
+                                        <p class="text-muted">Riprova tra qualche istante</p>
+                                    </div>
+                                `,
+                                buttons: [{
+                                    text: 'OK',
+                                    className: 'btn-primary',
+                                    action: () => window.ModalSystem.hide()
+                                }]
+                            });
+                        } else {
+                            alert('Form tracking non ancora disponibile, riprova tra poco');
+                        }
+                    }
+                };
+            }
+            
+            // Enhanced Import Manager integration
+            if (window.ImportManager && !window.ImportManager.handleImport) {
+                window.ImportManager.handleImport = async function(file, options = {}) {
+                    try {
+                        console.log('Processing import file:', file.name);
+                        const parseResult = await this.parseFile(file);
+                        
+                        if (!parseResult?.data?.length) {
+                            throw new Error('Nessun dato trovato nel file');
+                        }
+                        
+                        const trackings = [];
+                        const errors = [];
+                        
+                        for (let i = 0; i < parseResult.data.length; i++) {
+                            const row = parseResult.data[i];
+                            
+                            try {
+                                const mapped = {};
+                                const columnMapping = window.COLUMN_MAPPING || {};
+                                
+                                Object.entries(row).forEach(([key, value]) => {
+                                    const mappedKey = columnMapping[key] || key.toLowerCase().replace(/\s+/g, '_');
+                                    mapped[mappedKey] = value;
+                                });
+                                
+                                if (!mapped.tracking_number) {
+                                    throw new Error(`Riga ${i + 1}: Tracking number mancante`);
+                                }
+                                
+                                if (mapped.status || mapped.current_status) {
+                                    const status = (mapped.status || mapped.current_status || '').toString();
+                                    mapped.current_status = this.mapStatus ? this.mapStatus(status) : status.toLowerCase();
+                                    delete mapped.status;
+                                }
+                                
+                                if (!mapped.tracking_type && mapped.tracking_number) {
+                                    const num = mapped.tracking_number.toString();
+                                    mapped.tracking_type = /^\d{3}-?\d{8}$/.test(num) ? 'air_waybill' : 'container';
+                                }
+                                
+                                const tracking = {
+                                    id: crypto.randomUUID ? crypto.randomUUID() : `import-${Date.now()}-${i}`,
+                                    ...mapped,
+                                    created_at: new Date().toISOString(),
+                                    updated_at: new Date().toISOString(),
+                                    metadata: {
+                                        import_source: 'manual',
+                                        import_date: new Date().toISOString(),
+                                        original_file: file.name
+                                    }
+                                };
+                                
+                                trackings.push(tracking);
+                                
+                            } catch (error) {
+                                errors.push({
+                                    row: i + 1,
+                                    error: error.message,
+                                    data: row
+                                });
+                            }
+                        }
+                        
+                        let imported = 0;
+                        let failed = 0;
+                        
+                        if (window.supabaseTrackingService && trackings.length > 0) {
+                            window.NotificationSystem?.info(`Salvataggio ${trackings.length} tracking...`);
+                            
+                            for (const tracking of trackings) {
+                                try {
+                                    await window.supabaseTrackingService.createTracking(tracking);
+                                    imported++;
+                                } catch (error) {
+                                    console.error('Error saving tracking:', tracking.tracking_number, error);
+                                    failed++;
+                                }
+                            }
+                        }
+                        
+                        // Show results
+                        if (imported > 0) {
+                            window.NotificationSystem?.success(`✅ Importati ${imported} tracking`);
+                        }
+                        if (failed > 0) {
+                            window.NotificationSystem?.warning(`⚠️ ${failed} tracking non importati`);
+                        }
+                        if (errors.length > 0) {
+                            window.NotificationSystem?.warning(`⚠️ ${errors.length} righe con errori nel file`);
+                        }
+                        
+                        // Refresh table
+                        setTimeout(() => {
+                            if (window.trackingDebug?.refresh) {
+                                window.trackingDebug.refresh();
+                            }
+                        }, 500);
+                        
+                        // Close modal
+                        const closeBtn = document.querySelector('.custom-modal-close');
+                        closeBtn?.click();
+                        
+                        return {
+                            success: imported > 0,
+                            stats: { imported, failed, errors: errors.length, total: parseResult.data.length },
+                            errors
+                        };
+                        
+                    } catch (error) {
+                        console.error('Import error:', error);
+                        window.NotificationSystem?.error('Errore import: ' + error.message);
+                        return { success: false, error: error.message };
+                    }
+                };
+            }
+            
+            // Global column mapping
+            if (!window.COLUMN_MAPPING && window.trackingDebug) {
+                window.COLUMN_MAPPING = window.trackingDebug.getColumnMapping();
+            }
+        });
+        
+        // Enhanced form loading check
+        setTimeout(() => {
+            if (window.showEnhancedTrackingForm && typeof window.showEnhancedTrackingForm === 'function') {
+                console.log('✅ Enhanced tracking form ready');
+            }
+        }, 3000);
+    </script>
+
+    <!-- Fix Scripts (Load Order Important) -->
+    <script src="/pages/tracking/api-keys-permanent-fix.js"></script>
+    <script src="/pages/tracking/tracking-fixes.js"></script>
+    <script src="/pages/tracking/tracking-unified-mapping.js"></script>
+    <script src="/pages/tracking/tracking-detect-fix.js"></script>
+    <script src="/pages/tracking/tracking-submit-fix.js"></script>
+    <script src="/pages/tracking/api-keys-debug.js"></script>
+    <script src="/pages/tracking/shipsgo-detector.js"></script>
+    <script src="/pages/tracking/tracking-checkbox-fix.js"></script>
+    <script src="/pages/tracking/ocean-v2-autodetection-fix.js"></script>
+    <script src="/pages/tracking/ocean-v2-mapping-fix.js"></script>
+    <script src="/pages/tracking/tracking-complete-fix-v2.js"></script>
 </body>
 </html>
