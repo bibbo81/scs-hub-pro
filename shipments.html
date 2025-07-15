@@ -38,6 +38,9 @@
     <script src="/core/auth-init.js"></script>
     <script src="/core/import-manager.js"></script>
     <script src="/core/export-manager.js"></script>
+    
+    <!-- Auto-Sync System for Tracking ↔ Shipments Integration -->
+    <script src="/core/auto-sync-system.js"></script>
     <script src="/core/product-linking-system-v20-1-final.js"></script>
     <script src="/core/products-link-filters-fix.js"></script>
     <script src="/core/reset-button-visibility-fix.js"></script>
@@ -4892,6 +4895,25 @@ MSCU7654321,container,in_transit,MSC,MSC,TIGER,CNNBO,Ningbo,ITLIV,Livorno,SGSIN,
        console.log('💡 Use window.debugShipmentsSystem() for debugging');
        
    })();
+   </script>
+
+   <!-- Auto-Sync System Initialization for Shipments -->
+   <script>
+   document.addEventListener('DOMContentLoaded', () => {
+       // Initialize Auto-Sync System for Tracking ↔ Shipments integration
+       setTimeout(() => {
+           if (window.AutoSyncSystem && !window.autoSyncSystem) {
+               const autoSync = new window.AutoSyncSystem();
+               autoSync.initialize().then(() => {
+                   window.autoSyncSystem = autoSync;
+                   console.log('✅ Auto-Sync System ready in Shipments page');
+                   console.log('🔄 Shipments will now sync automatically with Tracking data');
+               }).catch(error => {
+                   console.warn('⚠️ Auto-Sync initialization failed:', error);
+               });
+           }
+       }, 2000); // Wait 2 seconds for other systems to initialize
+   });
    </script>
 <script>
 // Enhanced Auto-Link functionality with progress tracking

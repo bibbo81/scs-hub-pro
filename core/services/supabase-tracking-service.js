@@ -8,19 +8,118 @@ class SupabaseTrackingService {
     }
 
     // ========================================
+    // DATE UTILITIES
+    // ========================================
+    
+    /**
+     * Normalize date format to ISO string
+     * Handles various date formats: DD/MM/YYYY, DD/MM/YYYY HH:mm:ss, ISO strings, Date objects
+     */
+    normalizeDateFormat(dateValue) {
+        if (!dateValue) return new Date().toISOString();
+        
+        // Already ISO string
+        if (typeof dateValue === 'string' && dateValue.includes('T') && dateValue.includes('Z')) {
+            return dateValue;
+        }
+        
+        // Date object
+        if (dateValue instanceof Date) {
+            return dateValue.toISOString();
+        }
+        
+        // DD/MM/YYYY or DD/MM/YYYY HH:mm:ss format
+        if (typeof dateValue === 'string' && dateValue.includes('/')) {
+            try {
+                const [datePart, timePart] = dateValue.split(' ');
+                const [day, month, year] = datePart.split('/');
+                
+                if (timePart) {
+                    const [hours, minutes, seconds = '00'] = timePart.split(':');
+                    return new Date(year, month - 1, day, hours, minutes, seconds).toISOString();
+                } else {
+                    return new Date(year, month - 1, day).toISOString();
+                }
+            } catch (error) {
+                console.warn('[SupabaseTracking] Invalid date format:', dateValue, error);
+                return new Date().toISOString();
+            }
+        }
+        
+        // Try to parse as regular date string
+        try {
+            return new Date(dateValue).toISOString();
+        } catch (error) {
+            console.warn('[SupabaseTracking] Could not parse date:', dateValue, error);
+            return new Date().toISOString();
+        }
+    }
+
+    /**
+     * Prepare tracking data for Supabase insertion
+     */
+    prepareTrackingData(trackingData, userId) {
+        // Normalize dates
+        const normalizedData = {
+            ...trackingData,
+            created_at: this.normalizeDateFormat(trackingData.created_at),
+            updated_at: this.normalizeDateFormat(trackingData.updated_at),
+            user_id: userId
+        };
+
+        // Ensure required fields have defaults
+        if (!normalizedData.id) {
+            normalizedData.id = crypto.randomUUID ? crypto.randomUUID() : `tracking-${Date.now()}`;
+        }
+
+        if (!normalizedData.tracking_number) {
+            throw new Error('Tracking number is required');
+        }
+
+        // Set defaults for optional fields
+        normalizedData.current_status = normalizedData.current_status || 'pending';
+        normalizedData.carrier_code = normalizedData.carrier_code || 'UNKNOWN';
+        normalizedData.tracking_type = normalizedData.tracking_type || 'container';
+
+        // Ensure metadata is an object
+        if (typeof normalizedData.metadata === 'string') {
+            try {
+                normalizedData.metadata = JSON.parse(normalizedData.metadata);
+            } catch (e) {
+                normalizedData.metadata = { raw: normalizedData.metadata };
+            }
+        }
+        
+        normalizedData.metadata = normalizedData.metadata || {};
+
+        return normalizedData;
+    }
+
+    // ========================================
     // CRUD OPERATIONS
     // ========================================
 
     async getAllTrackings() {
         try {
+            const user = await this.getCurrentUser();
+            if (!user) {
+                console.warn('[SupabaseTracking] No authenticated user, returning empty array');
+                return [];
+            }
+
             const { data, error } = await supabase
                 .from(this.table)
                 .select('*')
+                .eq('user_id', user.id)
                 .order('created_at', { ascending: false });
 
             if (error) throw error;
 
             console.log(`✅ Loaded ${data.length} trackings from Supabase`);
+            
+            // Sync to localStorage for offline access
+            this.syncToLocalStorage(data);
+            
             return data;
         } catch (error) {
             console.error('❌ Error loading trackings:', error);
@@ -46,39 +145,23 @@ class SupabaseTrackingService {
     }
 
     async createTracking(trackingData) {
-    try {
-        // FIX DATES - AGGIUNGI QUESTE RIGHE
-        if (trackingData.created_at && typeof trackingData.created_at === 'string' && trackingData.created_at.includes('/')) {
-            const [datePart, timePart] = trackingData.created_at.split(' ');
-            const [day, month, year] = datePart.split('/');
-            if (timePart) {
-                const [hours, minutes, seconds] = timePart.split(':');
-                trackingData.created_at = new Date(year, month - 1, day, hours, minutes, seconds).toISOString();
-            } else {
-                trackingData.created_at = new Date(year, month - 1, day).toISOString();
-            }
-        }
-        
-        if (trackingData.updated_at && typeof trackingData.updated_at === 'string' && trackingData.updated_at.includes('/')) {
-            const [datePart, timePart] = trackingData.updated_at.split(' ');
-            const [day, month, year] = datePart.split('/');
-            if (timePart) {
-                const [hours, minutes, seconds] = timePart.split(':');
-                trackingData.updated_at = new Date(year, month - 1, day, hours, minutes, seconds).toISOString();
-            } else {
-                trackingData.updated_at = new Date(year, month - 1, day).toISOString();
-            }
-        }
-            // Ottieni user_id corrente
+        try {
+            // Get authenticated user
             const user = await this.getCurrentUser();
             if (!user) throw new Error('User not authenticated');
 
-            // Prepara i dati per Supabase
-            const supabaseData = this.prepareForSupabase(trackingData, user.id);
+            // Prepare and validate data
+            const preparedData = this.prepareTrackingData(trackingData, user.id);
+
+            console.log('[SupabaseTracking] Creating tracking:', {
+                tracking_number: preparedData.tracking_number,
+                user_id: preparedData.user_id,
+                carrier_code: preparedData.carrier_code
+            });
 
             const { data, error } = await supabase
                 .from(this.table)
-                .insert([supabaseData])
+                .insert([preparedData])
                 .select()
                 .single();
 
@@ -86,25 +169,63 @@ class SupabaseTrackingService {
 
             console.log('✅ Tracking created in Supabase:', data.id);
             
-            // Aggiorna anche localStorage per backward compatibility
+            // Update localStorage for offline access
             this.updateLocalStorage('create', data);
             
+            // Trigger auto-sync event for Tracking ↔ Shipments integration
+            this.triggerAutoSyncEvent('trackingAdded', data);
+            
             return data;
+            
         } catch (error) {
             console.error('❌ Error creating tracking:', error);
-            // Fallback: salva solo in localStorage
+            
+            // Auth error retry
+            if (error.message?.includes('auth') || error.message?.includes('user_id')) {
+                console.log('🔄 Retrying with fresh authentication...');
+                try {
+                    const user = await this.getCurrentUser(true); // Force refresh
+                    if (user) {
+                        const preparedData = this.prepareTrackingData(trackingData, user.id);
+                        const { data, error: retryError } = await supabase
+                            .from(this.table)
+                            .insert([preparedData])
+                            .select()
+                            .single();
+                        
+                        if (!retryError) {
+                            console.log('✅ Tracking created on retry:', data.id);
+                            this.updateLocalStorage('create', data);
+                            this.triggerAutoSyncEvent('trackingAdded', data);
+                            return data;
+                        }
+                    }
+                } catch (retryError) {
+                    console.error('❌ Retry failed:', retryError);
+                }
+            }
+            
+            // Fallback to localStorage
+            console.log('📱 Falling back to localStorage storage...');
             return this.saveToLocalStorageFallback(trackingData);
         }
     }
 
     async updateTracking(id, updates) {
         try {
+            // Normalize dates in updates
+            const normalizedUpdates = {
+                ...updates,
+                updated_at: this.normalizeDateFormat(new Date())
+            };
+
+            if (normalizedUpdates.created_at) {
+                normalizedUpdates.created_at = this.normalizeDateFormat(normalizedUpdates.created_at);
+            }
+
             const { data, error } = await supabase
                 .from(this.table)
-                .update({
-                    ...updates,
-                    updated_at: new Date().toISOString()
-                })
+                .update(normalizedUpdates)
                 .eq('id', id)
                 .select()
                 .single();
@@ -113,13 +234,16 @@ class SupabaseTrackingService {
 
             console.log('✅ Tracking updated in Supabase:', id);
             
-            // Aggiorna anche localStorage
+            // Update localStorage
             this.updateLocalStorage('update', data);
+            
+            // Trigger auto-sync event for updates
+            this.triggerAutoSyncEvent('trackingUpdated', data);
             
             return data;
         } catch (error) {
             console.error('❌ Error updating tracking:', error);
-            return null;
+            throw error;
         }
     }
 
@@ -134,315 +258,140 @@ class SupabaseTrackingService {
 
             console.log('✅ Tracking deleted from Supabase:', id);
             
-            // Rimuovi anche da localStorage
+            // Update localStorage
             this.updateLocalStorage('delete', { id });
             
             return true;
         } catch (error) {
             console.error('❌ Error deleting tracking:', error);
-            return false;
+            throw error;
         }
     }
 
     // ========================================
-    // DATA PREPARATION
+    // USER MANAGEMENT
     // ========================================
 
-    prepareForSupabase(trackingData, userId) {
-        // Mappa i campi dal formato localStorage al formato Supabase
-        const prepared = {
-            user_id: userId,
-            tracking_number: trackingData.tracking_number || trackingData.trackingNumber,
-            tracking_type: trackingData.tracking_type || trackingData.trackingType,
-            carrier_code: trackingData.carrier_code || trackingData.carrier,
-            carrier_name: trackingData.carrier_name || trackingData.carrier_code,
-            reference_number: trackingData.reference_number || trackingData.reference,
-            status: trackingData.status || 'registered',
-            
-            // Campi geografici
-            origin_port: trackingData.origin_port || trackingData.origin,
-            origin_country: trackingData.origin_country || this.extractCountry(trackingData.origin),
-            destination_port: trackingData.destination_port || trackingData.destination,
-            destination_country: trackingData.destination_country || this.extractCountry(trackingData.destination),
-            
-            // Date
-            eta: this.parseDate(trackingData.eta),
-            ata: this.parseDate(trackingData.ata),
-            
-            // Eventi
-            last_event_date: this.parseDate(trackingData.last_event_date),
-            last_event_location: trackingData.last_event_location || trackingData.ultima_posizione,
-            last_event_description: trackingData.last_event_description,
-            
-            // Metadata - salva tutto il resto
-            metadata: {
-                ...trackingData.metadata,
-                // Aggiungi tutti i campi extra non mappati
-                original_data: trackingData,
-                import_source: trackingData.dataSource || 'manual',
-                shipsgo_id: trackingData.metadata?.shipsgo_id,
-                vessel_info: trackingData.vessel,
-                route_info: trackingData.route,
-                events: trackingData.events || [],
-                
-                // Campi specifici ShipsGo
-                booking: trackingData.booking,
-                container_count: trackingData.container_count,
-                co2_emission: trackingData.co2_emission,
-                transit_time: trackingData.transit_time,
-                ts_count: trackingData.ts_count,
-                airline: trackingData.airline,
-                awb_number: trackingData.awb_number,
-                date_of_loading: trackingData.date_of_loading,
-                date_of_departure: trackingData.date_of_departure,
-                date_of_arrival: trackingData.date_of_arrival,
-                date_of_discharge: trackingData.date_of_discharge
-            },
-            
-            // Timestamps
-            created_at: this.parseDate(trackingData.created_at) || new Date().toISOString(),
-            updated_at: this.parseDate(trackingData.updated_at) || new Date().toISOString()
-        };
-
-        // Rimuovi campi undefined/null
-        Object.keys(prepared).forEach(key => {
-            if (prepared[key] === undefined || prepared[key] === null) {
-                delete prepared[key];
-            }
-        });
-
-        return prepared;
-    }
-
-    parseDate(dateValue) {
-    if (!dateValue || dateValue === '-') return null;
-    
-    try {
-        // Se è già una data ISO valida
-        if (typeof dateValue === 'string' && dateValue.match(/^\d{4}-\d{2}-\d{2}/)) {
-            return new Date(dateValue).toISOString();
-        }
-        
-        // Se è formato italiano DD/MM/YYYY o DD/MM/YYYY HH:mm:ss
-        if (typeof dateValue === 'string' && dateValue.match(/^\d{2}\/\d{2}\/\d{4}/)) {
-            // Separa data e ora se presente
-            const [datePart, timePart] = dateValue.split(' ');
-            const [day, month, year] = datePart.split('/');
-            
-            if (timePart) {
-                // Se c'è l'orario HH:mm:ss
-                const [hours, minutes, seconds] = timePart.split(':');
-                return new Date(year, month - 1, day, hours || 0, minutes || 0, seconds || 0).toISOString();
-            } else {
-                // Solo data
-                return new Date(year, month - 1, day).toISOString();
-            }
-        }
-        
-        // Prova parsing generico
-        const parsed = new Date(dateValue);
-        if (!isNaN(parsed.getTime())) {
-            return parsed.toISOString();
-        }
-    } catch (e) {
-        console.warn('Date parse error:', dateValue, e);
-    }
-    
-    return null;
-}
-
-    extractCountry(location) {
-        // Estrai il paese dal nome del porto/aeroporto
-        if (!location) return null;
-        
-        // Mappa dei principali porti/aeroporti ai paesi
-        const locationToCountry = {
-            'SHANGHAI': 'China',
-            'GENOVA': 'Italy',
-            'GENOA': 'Italy',
-            'HKG': 'Hong Kong',
-            'MXP': 'Italy',
-            'FCO': 'Italy',
-            // ... aggiungi altri mapping
-        };
-        
-        return locationToCountry[location.toUpperCase()] || null;
-    }
-
-    // ========================================
-    // REALTIME SUBSCRIPTIONS
-    // ========================================
-
-    subscribeToChanges(callback) {
-        // Cancella subscription esistente
-        if (this.realtimeSubscription) {
-            this.realtimeSubscription.unsubscribe();
-        }
-
-        this.realtimeSubscription = supabase
-            .channel('trackings_changes')
-            .on('postgres_changes', 
-                { 
-                    event: '*', 
-                    schema: 'public', 
-                    table: this.table 
-                },
-                (payload) => {
-                    console.log('🔄 Realtime update:', payload.eventType);
-                    callback(payload);
-                }
-            )
-            .subscribe();
-
-        return this.realtimeSubscription;
-    }
-
-    unsubscribe() {
-        if (this.realtimeSubscription) {
-            this.realtimeSubscription.unsubscribe();
-            this.realtimeSubscription = null;
-        }
-    }
-
-    // ========================================
-    // UTILITIES
-    // ========================================
-
-    async getCurrentUser() {
-        const { data: { user } } = await supabase.auth.getUser();
-        return user;
-    }
-
-    // Backward compatibility con localStorage
-    updateLocalStorage(operation, data) {
+    async getCurrentUser(forceRefresh = false) {
         try {
-            let trackings = JSON.parse(localStorage.getItem('trackings') || '[]');
-            
-            switch(operation) {
-                case 'create':
-                    trackings.push(this.convertFromSupabase(data));
-                    break;
-                case 'update':
-                    const index = trackings.findIndex(t => t.id === data.id);
-                    if (index !== -1) {
-                        trackings[index] = this.convertFromSupabase(data);
-                    }
-                    break;
-                case 'delete':
-                    trackings = trackings.filter(t => t.id !== data.id);
-                    break;
+            if (forceRefresh || !this._cachedUser) {
+                const { data: { user }, error } = await supabase.auth.getUser();
+                if (error) throw error;
+                this._cachedUser = user;
             }
-            
-            localStorage.setItem('trackings', JSON.stringify(trackings));
-        } catch (e) {
-            console.warn('localStorage update failed:', e);
-        }
-    }
-
-    convertFromSupabase(supabaseData) {
-        // Converti dal formato Supabase al formato localStorage
-        return {
-            id: supabaseData.id,
-            tracking_number: supabaseData.tracking_number,
-            tracking_type: supabaseData.tracking_type,
-            carrier_code: supabaseData.carrier_code,
-            carrier: supabaseData.carrier_code,
-            status: supabaseData.status,
-            origin_port: supabaseData.origin_port,
-            destination_port: supabaseData.destination_port,
-            reference_number: supabaseData.reference_number,
-            eta: supabaseData.eta,
-            created_at: supabaseData.created_at,
-            updated_at: supabaseData.updated_at,
-            
-            // Estrai metadata
-            ...(supabaseData.metadata || {}),
-            
-            // Mantieni metadata originale
-            metadata: supabaseData.metadata
-        };
-    }
-
-    getLocalStorageFallback() {
-        try {
-            const stored = localStorage.getItem('trackings');
-            return stored ? JSON.parse(stored) : [];
-        } catch (e) {
-            return [];
-        }
-    }
-
-    async saveToLocalStorageFallback(trackingData) {
-        try {
-            const trackings = this.getLocalStorageFallback();
-            const newTracking = {
-                ...trackingData,
-                id: Date.now().toString(),
-                created_at: new Date().toISOString()
-            };
-            trackings.push(newTracking);
-            localStorage.setItem('trackings', JSON.stringify(trackings));
-            return newTracking;
-        } catch (e) {
-            console.error('Fallback save failed:', e);
+            return this._cachedUser;
+        } catch (error) {
+            console.error('[SupabaseTracking] Error getting current user:', error);
             return null;
         }
     }
 
     // ========================================
-    // MIGRAZIONE DATI
+    // LOCALSTORAGE FALLBACK
     // ========================================
 
-    async migrateFromLocalStorage() {
-        console.log('🔄 Starting migration from localStorage to Supabase...');
-        
+    getLocalStorageFallback() {
         try {
-            const user = await this.getCurrentUser();
-            if (!user) {
-                throw new Error('User must be authenticated to migrate data');
-            }
-
-            const localTrackings = this.getLocalStorageFallback();
-            if (localTrackings.length === 0) {
-                console.log('✅ No trackings to migrate');
-                return { success: true, migrated: 0 };
-            }
-
-            console.log(`📦 Found ${localTrackings.length} trackings to migrate`);
-
-            // Prepara tutti i tracking per l'inserimento batch
-            const supabaseData = localTrackings.map(tracking => 
-                this.prepareForSupabase(tracking, user.id)
-            );
-
-            // Inserisci in batch
-            const { data, error } = await supabase
-                .from(this.table)
-                .insert(supabaseData)
-                .select();
-
-            if (error) throw error;
-
-            console.log(`✅ Successfully migrated ${data.length} trackings`);
-
-            // Opzionale: pulisci localStorage dopo migrazione riuscita
-            // localStorage.removeItem('trackings');
-
-            return { 
-                success: true, 
-                migrated: data.length,
-                data: data
-            };
-
+            const stored = localStorage.getItem('trackings_backup');
+            return stored ? JSON.parse(stored) : [];
         } catch (error) {
-            console.error('❌ Migration failed:', error);
-            return { 
-                success: false, 
-                error: error.message 
-            };
+            console.error('[SupabaseTracking] localStorage fallback error:', error);
+            return [];
         }
+    }
+
+    saveToLocalStorageFallback(trackingData) {
+        try {
+            const existing = this.getLocalStorageFallback();
+            const newTracking = {
+                ...trackingData,
+                id: trackingData.id || `offline-${Date.now()}`,
+                created_at: this.normalizeDateFormat(trackingData.created_at),
+                updated_at: this.normalizeDateFormat(trackingData.updated_at),
+                _offline: true
+            };
+            
+            existing.unshift(newTracking);
+            localStorage.setItem('trackings_backup', JSON.stringify(existing));
+            
+            console.log('📱 Tracking saved to localStorage fallback:', newTracking.id);
+            
+            // Trigger auto-sync event even for offline saves
+            this.triggerAutoSyncEvent('trackingAdded', newTracking);
+            
+            return newTracking;
+        } catch (error) {
+            console.error('[SupabaseTracking] localStorage save error:', error);
+            throw error;
+        }
+    }
+
+    updateLocalStorage(operation, data) {
+        try {
+            const existing = this.getLocalStorageFallback();
+            
+            switch (operation) {
+                case 'create':
+                    existing.unshift(data);
+                    break;
+                case 'update':
+                    const updateIndex = existing.findIndex(t => t.id === data.id);
+                    if (updateIndex > -1) {
+                        existing[updateIndex] = data;
+                    }
+                    break;
+                case 'delete':
+                    const deleteIndex = existing.findIndex(t => t.id === data.id);
+                    if (deleteIndex > -1) {
+                        existing.splice(deleteIndex, 1);
+                    }
+                    break;
+            }
+            
+            localStorage.setItem('trackings_backup', JSON.stringify(existing));
+        } catch (error) {
+            console.error('[SupabaseTracking] localStorage update error:', error);
+        }
+    }
+
+    syncToLocalStorage(data) {
+        try {
+            localStorage.setItem('trackings_backup', JSON.stringify(data));
+        } catch (error) {
+            console.error('[SupabaseTracking] localStorage sync error:', error);
+        }
+    }
+
+    // ========================================
+    // AUTO-SYNC INTEGRATION
+    // ========================================
+    
+    triggerAutoSyncEvent(eventType, trackingData) {
+        try {
+            // Dispatch global event for auto-sync system
+            const event = new CustomEvent(eventType, {
+                detail: {
+                    tracking: trackingData,
+                    source: 'supabase',
+                    timestamp: new Date().toISOString()
+                }
+            });
+            
+            window.dispatchEvent(event);
+            console.log(`🔄 Auto-sync event triggered: ${eventType}`, trackingData.tracking_number);
+            
+        } catch (error) {
+            console.warn('[SupabaseTracking] Auto-sync event failed:', error);
+        }
+    }
+
+    // ========================================
+    // LEGACY COMPATIBILITY
+    // ========================================
+
+    prepareForSupabase(trackingData, userId) {
+        return this.prepareTrackingData(trackingData, userId);
     }
 }
 
-// Export singleton
 export default new SupabaseTrackingService();
