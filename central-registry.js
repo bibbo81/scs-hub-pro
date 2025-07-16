@@ -1,11 +1,11 @@
 const SUPABASE_URL = 'https://gnlrmnsdmpjzitsysowq.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdubHJtbnNkbXBqeml0c3lzb3dxIiwicm9zZSI6ImFub24iLCJpYXQiOjE3NDk0NjMxMzQsImV4cCI6MjA2NTAzOTEzNH0.UoJJoDUoDXGbiWnKNN48qb9PVQWOW_X_MXqAfzTHSaA';
 
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+window.supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-console.log('Supabase client:', supabase);
+console.log('Supabase client:', window.supabaseClient);
 async function fetchShipments() {
-  const { data, error } = await supabase
+  const { data, error } = await window.supabaseClient
     .from('trackings')
     .select(`
       id, tracking_number, container_number, cost,
