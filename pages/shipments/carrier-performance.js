@@ -685,9 +685,8 @@ class CarrierPerformanceAnalytics {
         if (!ctx) return;
         
         // Destroy existing chart
-        if (this.charts[canvasId]) {
-            this.charts[canvasId].destroy();
-        }
+        const existing = Chart.getChart(canvas);
+        if (existing) existing.destroy();
         
         const carriers = this.performanceMetrics.carriers.slice(0, 10);
         
@@ -732,9 +731,8 @@ class CarrierPerformanceAnalytics {
         if (!ctx) return;
         
         // Destroy existing chart
-        if (this.charts[canvasId]) {
-            this.charts[canvasId].destroy();
-        }
+        const existing = Chart.getChart(canvas);
+        if (existing) existing.destroy();
         
         const routes = this.performanceMetrics.routes.slice(0, 15);
         

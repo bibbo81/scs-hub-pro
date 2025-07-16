@@ -1346,11 +1346,10 @@ class ExecutiveBIDashboard {
         if (!canvas) return;
         
         const ctx = canvas.getContext('2d');
-        
+
         // Destroy existing chart if present
-        if (this.charts.volumeCostTrend) {
-            this.charts.volumeCostTrend.destroy();
-        }
+        const existing = Chart.getChart(canvas);
+        if (existing) existing.destroy();
         
         // Dati di esempio
         const labels = ['Gen', 'Feb', 'Mar', 'Apr', 'Mag', 'Giu', 'Lug', 'Ago', 'Set', 'Ott', 'Nov', 'Dic'];
@@ -1412,11 +1411,10 @@ class ExecutiveBIDashboard {
         if (!canvas) return;
         
         const ctx = canvas.getContext('2d');
-        
+
         // Destroy existing chart if present
-        if (this.charts.costStructure) {
-            this.charts.costStructure.destroy();
-        }
+        const existing = Chart.getChart(canvas);
+        if (existing) existing.destroy();
         
         this.charts.costStructure = new Chart(ctx, {
             type: 'doughnut',
@@ -1450,11 +1448,10 @@ class ExecutiveBIDashboard {
         if (!canvas) return;
         
         const ctx = canvas.getContext('2d');
-        
+
         // Destroy existing chart if present
-        if (this.charts.carrierPerformance) {
-            this.charts.carrierPerformance.destroy();
-        }
+        const existing = Chart.getChart(canvas);
+        if (existing) existing.destroy();
         
         this.charts.carrierPerformance = new Chart(ctx, {
             type: 'scatter',
