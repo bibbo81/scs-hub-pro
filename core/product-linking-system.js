@@ -41,8 +41,7 @@ class ProductLinkingSystem {
             
         } catch (error) {
             console.error('❌ Failed to initialize Product Linking System:', error);
-            this.showNotification('error', 'Errore durante l\'inizializzazione');
-            return false;
+            throw error;
         }
     }
 
@@ -869,11 +868,17 @@ window.productLinking = new ProductLinkingSystem();
 // Auto-inizializza quando DOM è pronto
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
-        window.productLinking.init();
+        window.productLinking.init().catch(() => {
+            window.NotificationSystem?.show('error',
+                'Impossibile inizializzare Product Linking System: dipendenze mancanti');
+        });
     });
 } else {
     // DOM già caricato
-    window.productLinking.init();
+    window.productLinking.init().catch(() => {
+        window.NotificationSystem?.show('error',
+            'Impossibile inizializzare Product Linking System: dipendenze mancanti');
+    });
 }
 
 // ===== API GLOBALI =====
