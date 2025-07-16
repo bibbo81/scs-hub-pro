@@ -1,3 +1,4 @@
+import { formatDate, formatCurrency, getShipmentStatusClass } from './table-config.js';
 console.log('[ShipmentsRegistry] Loading...');
 
 const ShipmentsRegistry = {
@@ -71,15 +72,15 @@ const ShipmentsRegistry = {
                 </td>
                 <td>${shipment.tracking_type || 'N/A'}</td>
                 <td>
-                    <span class="sol-badge sol-badge-${this.getStatusClass(shipment.status)}">
+                    <span class="sol-badge sol-badge-${getShipmentStatusClass(shipment.status)}">
                         ${shipment.status}
                     </span>
                 </td>
                 <td>${shipment.carrier_name || 'N/A'}</td>
                 <td>${shipment.origin_country || shipment.origin || 'N/A'}</td>
                 <td>${shipment.customer_country || shipment.destination || 'N/A'}</td>
-                <td>${this.formatDate(shipment.date_of_departure)}</td>
-                <td>${this.formatDate(shipment.eta)}</td>
+                <td>${formatDate(shipment.date_of_departure)}</td>
+                <td>${formatDate(shipment.eta)}</td>
                 <td>${shipment.products?.length || 0}</td>
                 <td class="documents-cell">
                     <button class="sol-btn sol-btn-sm sol-btn-glass documents-btn">
@@ -90,7 +91,7 @@ const ShipmentsRegistry = {
                 <td class="commercial-cell">
                     <span class="commercial-status missing">Missing</span>
                 </td>
-                <td>${this.formatCurrency(shipment.total_value)}</td>
+                <td>${formatCurrency(shipment.total_value)}</td>
                 <td>
                     <div class="btn-group">
                         <button class="sol-btn sol-btn-sm sol-btn-primary" onclick="viewShipment('${shipment.id}')">
@@ -125,7 +126,7 @@ const ShipmentsRegistry = {
         const costsEl = document.getElementById('totalCosts');
         if (costsEl) {
             const total = shipments.reduce((sum, s) => sum + (parseFloat(s.total_value) || 0), 0);
-            costsEl.textContent = this.formatCurrency(total);
+            costsEl.textContent = formatCurrency(total);
         }
         
         // Update count in header
@@ -156,32 +157,9 @@ const ShipmentsRegistry = {
             totalCost,
             avgTransitTime: transitCount > 0 ? Math.round(totalTransit / transitCount) : 0
         };
-    },
-    
-    getStatusClass(status) {
-        const map = {
-            'planned': 'secondary',
-            'departed': 'info',
-            'in_transit': 'primary',
-            'arrived': 'warning',
-            'delivered': 'success',
-            'cancelled': 'danger'
-        };
-        return map[status] || 'secondary';
-    },
-    
-    formatDate(date) {
-        if (!date) return 'N/A';
-        return new Date(date).toLocaleDateString('it-IT');
-    },
-    
-    formatCurrency(value, currency = 'EUR') {
-        if (!value) return '€0';
-        return new Intl.NumberFormat('it-IT', {
-            style: 'currency',
-            currency: currency
-        }).format(value);
     }
+
+    // formatting helpers provided by table-config.js
 };
 
 // Auto-init quando il DOM è pronto
