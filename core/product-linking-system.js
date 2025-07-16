@@ -62,6 +62,7 @@ class ProductLinkingSystem {
         while (true) {
             if (window.dataManager?.initialized &&
                 window.supabase &&
+                typeof window.supabase.from === 'function' &&
                 window.ModalSystem) {
                 console.log('✅ All dependencies ready');
                 return true;
@@ -756,6 +757,11 @@ class ProductLinkingSystem {
     // ===== HELPER METHODS =====
     
     async loadShipment(shipmentId) {
+        if (!this.supabase) {
+            this.showNotification('error', 'Database non disponibile');
+            return null;
+        }
+
         try {
             const { data, error } = await this.supabase
                 .from('shipments')
@@ -774,6 +780,11 @@ class ProductLinkingSystem {
     }
     
     async loadAvailableProducts() {
+        if (!this.supabase) {
+            this.showNotification('error', 'Database non disponibile');
+            return [];
+        }
+
         try {
             const { data, error } = await this.supabase
                 .from('products')
