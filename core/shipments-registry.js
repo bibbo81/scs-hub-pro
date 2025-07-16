@@ -2,6 +2,7 @@ console.log('[ShipmentsRegistry] Loading...');
 
 const ShipmentsRegistry = {
     initialized: false,
+    shipments: [],
     
     async init() {
         if (this.initialized) return;
@@ -33,6 +34,8 @@ const ShipmentsRegistry = {
             console.log('[ShipmentsRegistry] Loading real shipments...');
             const shipments = await window.dataManager.getShipments();
             console.log(`[ShipmentsRegistry] ✅ Loaded ${shipments.length} shipments`);
+            this.shipments = shipments;
+            this.updateStats(shipments);
             return shipments;
         } catch (error) {
             console.error('[ShipmentsRegistry] Error loading shipments:', error);
@@ -128,6 +131,31 @@ const ShipmentsRegistry = {
         // Update count in header
         const countEl = document.getElementById('registryCount');
         if (countEl) countEl.textContent = shipments.length;
+    },
+
+    getStatistics() {
+        const shipments = this.shipments || [];
+        const total = shipments.length;
+        const byStatus = {};
+        let totalCost = 0;
+        let totalTransit = 0;
+        let transitCount = 0;
+
+        shipments.forEach(s => {
+            byStatus[s.status] = (byStatus[s.status] || 0) + 1;
+            totalCost += s.costs?.total ?? parseFloat(s.total_value) || 0;
+            if (s.route?.estimatedTransit) {
+                totalTransit += s.route.estimatedTransit;
+                transitCount++;
+            }
+        });
+
+        return {
+            total,
+            byStatus,
+            totalCost,
+            avgTransitTime: transitCount > 0 ? Math.round(totalTransit / transitCount) : 0
+        };
     },
     
     getStatusClass(status) {
