@@ -3064,11 +3064,15 @@ MSCU7654321,PO-2024-002,22000,PI-2024-002,22000,CI-2024-002,22000,BL-2024-002,CI
            }
            
            // Initialize Shipments Registry
-           if (window.ShipmentsRegistry) {
+           if (typeof window.ShipmentsRegistry === 'function') {
                window.shipmentsRegistry = new window.ShipmentsRegistry();
+           } else if (window.ShipmentsRegistry) {
+               window.shipmentsRegistry = window.ShipmentsRegistry;
+           }
+           if (window.shipmentsRegistry && !window.shipmentsRegistry.initialized) {
                await window.shipmentsRegistry.init();
                console.log('✅ Shipments Registry initialized');
-               
+
                // Dispatch ready event for CarrierPerformance and Executive BI
                window.dispatchEvent(new Event('shipmentsRegistryReady'));
            }
@@ -4660,9 +4664,14 @@ MSCU7654321,container,in_transit,MSC,MSC,TIGER,CNNBO,Ningbo,ITLIV,Livorno,SGSIN,
                
                // Create basic registry if needed
                if (!window.shipmentsRegistry) {
-                   if (window.ShipmentsRegistry) {
+                   if (typeof window.ShipmentsRegistry === 'function') {
                        window.shipmentsRegistry = new window.ShipmentsRegistry();
                        await window.shipmentsRegistry.init();
+                   } else if (window.ShipmentsRegistry) {
+                       window.shipmentsRegistry = window.ShipmentsRegistry;
+                       if (!window.shipmentsRegistry.initialized && typeof window.shipmentsRegistry.init === 'function') {
+                           await window.shipmentsRegistry.init();
+                       }
                    } else {
                        // Create minimal stub
                        window.shipmentsRegistry = {
