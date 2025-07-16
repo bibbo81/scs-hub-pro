@@ -398,10 +398,10 @@ class AutoSyncSystem {
                 estimatedTransit: this.estimateTransitTime(trackingData.tracking_type, trackingData.origin_port, trackingData.destination_port)
             },
             schedule: {
-                etd: trackingData.departure_date || trackingData.date_of_loading || trackingData.created_at,
-                eta: trackingData.eta || trackingData.arrival_date || trackingData.date_of_discharge,
-                atd: trackingData.departure_date || null,
-                ata: trackingData.arrival_date || null
+                etd: trackingData.date_of_departure || trackingData.date_of_loading || trackingData.created_at,
+                eta: trackingData.eta || trackingData.date_of_discharge,
+                atd: trackingData.date_of_departure || null,
+                ata: trackingData.eta || null
             },
             referenceNumber: trackingData.reference_number,
             ...this.syncRules.createShipmentRules.defaultValues

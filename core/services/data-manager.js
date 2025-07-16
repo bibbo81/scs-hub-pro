@@ -97,19 +97,19 @@ class DataManager {
 
             // 2. Inserimento della spedizione correlata
             const { data: shipment, error: shipErr } = await supabase
-                .from('shipments')
-                .insert([{ 
-                    tracking_id: tracking.id,
-                    shipment_number: tracking.tracking_number,
-                    status: tracking.status,
-                    carrier_name: tracking.carrier_code,
-                    auto_created: true,
-                    products: null,
-                    organization_id: this.organizationId,
-                    user_id: this.userId,
-                    created_at: timestamp,
-                    updated_at: timestamp
-                }])
+            .from('shipments')
+            .insert([{ 
+                tracking_id: tracking.id,
+                tracking_number: tracking.tracking_number,
+                status: tracking.status,
+                carrier_name: tracking.carrier_code,
+                auto_created: true,
+                products: null,
+                organization_id: this.organizationId,
+                user_id: this.userId,
+                created_at: timestamp,
+                updated_at: timestamp
+            }])
                 .select()
                 .single();
 
@@ -128,21 +128,21 @@ class DataManager {
         if (!this.initialized) {
             throw new Error('DataManager not initialized');
         }
-        
+
         let query = supabase
             .from('trackings')
             .select('*')
             .eq('organization_id', this.organizationId) // DINAMICO
             .order('created_at', { ascending: false });
-            
+
         // Applica filtri se presenti
         if (filters.status) {
             query = query.eq('status', filters.status);
         }
-        
+
         const { data, error } = await query;
         if (error) throw error;
-        
+
         return data || [];
     }
     

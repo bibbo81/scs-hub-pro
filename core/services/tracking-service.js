@@ -1052,8 +1052,8 @@ return true;
             mappedData.ts_count = apiData.TSPorts.length;
             mappedData.transshipment_ports = apiData.TSPorts.map(port => ({
                 port_name: port.Port,
-                arrival_date: port.ArrivalDate?.Date,
-                departure_date: port.DepartureDate?.Date,
+                eta: port.ArrivalDate?.Date,
+                date_of_departure: port.DepartureDate?.Date,
                 vessel_name: port.Vessel,
                 vessel_imo: port.VesselIMO,
                 voyage: port.VesselVoyage
@@ -1106,12 +1106,12 @@ return true;
                 origin: {
                     port: mappedData.origin_port || '-',
                     country: mappedData.origin_country || '-',
-                    date: mappedData.departure_date || mappedData.loading_date
+                    date: mappedData.date_of_departure || mappedData.loading_date
                 },
                 destination: {
                     port: mappedData.destination_port || '-',
                     country: mappedData.destination_country || '-',
-                    eta: mappedData.eta || mappedData.arrival_date
+                    eta: mappedData.eta || mappedData.eta
                 }
             },
             

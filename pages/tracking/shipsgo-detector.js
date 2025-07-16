@@ -151,8 +151,8 @@ class ShipsGoStandardDetector {
             destination_country_code: (row['Destination Country Code'] || '').trim(),
             
             // Dates - Parse DD/MM/YYYY format
-            departure_date: this.parseShipsGoDate(departureDate),
-            arrival_date: this.parseShipsGoDate(arrivalDate),
+            date_of_departure: this.parseShipsGoDate(departureDate),
+            eta: this.parseShipsGoDate(arrivalDate),
             eta: this.parseShipsGoDate(arrivalDate),
             
             // Additional ShipsGo fields
@@ -235,10 +235,10 @@ class ShipsGoStandardDetector {
             
             // Dates
             date_of_loading: row['Date Of Loading'],  // Keep original format
-            departure_date: this.parseShipsGoDate(row['Date Of Loading']),
+            date_of_departure: this.parseShipsGoDate(row['Date Of Loading']),
             
             date_of_discharge: row['Date Of Discharge'],  // Keep original format
-            arrival_date: this.parseShipsGoDate(row['Date Of Discharge']),
+            eta: this.parseShipsGoDate(row['Date Of Discharge']),
             eta: this.parseShipsGoDate(row['Date Of Discharge']),
             
             // Environmental
