@@ -1,12 +1,11 @@
 const SUPABASE_URL = 'https://gnlrmnsdmpjzitsysowq.supabase.co';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdubHJtbnNkbXBqeml0c3lzb3dxIiwicm9zZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0OTQ2MzEzNCwiZXhwIjoyMDY1MDM5MTM0fQ.tUsZQliAfbsbTLwIIiY35sNwsqm-U8SQVTcjjo93kL8';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdubHJtbnNkbXBqeml0c3lzb3dxIiwicm9zZSI6ImFub24iLCJpYXQiOjE3NDk0NjMxMzQsImV4cCI6MjA2NTAzOTEzNH0.UoJJoDUoDXGbiWnKNN48qb9PVQWOW_X_MXqAfzTHSaA';
 
-// CORRETTO: crea il client e usalo direttamente
-const client = window.supabase && window.supabase.from ? window.supabase : window.supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-console.log('Supabase client:', client);
+console.log('Supabase client:', supabase);
 async function fetchShipments() {
-  const { data, error } = await client
+  const { data, error } = await supabase
     .from('trackings')
     .select(`
       id, tracking_number, container_number, cost,
