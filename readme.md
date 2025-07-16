@@ -118,3 +118,6 @@ Ensure the Netlify project defines the following variables **in the Netlify dash
 Set them in **Site settings → Environment variables**. Functions like `netlify/functions/notifications.js` rely on these values and will fail with `500` errors if missing.
 
 Real‑time features use WebSocket connections to the Supabase URL. Make sure outbound WebSocket traffic is allowed; otherwise the application will fall back to HTTP-only APIs.
+
+If the Product Linking System fails to start because required dependencies are missing,
+the page will now display a notification via `NotificationSystem`.
