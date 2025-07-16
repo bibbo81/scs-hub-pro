@@ -83,7 +83,7 @@ const AVAILABLE_COLUMNS = [
     { key: 'date_of_loading', label: 'Data Carico', sortable: true },
     { key: 'date_of_departure', label: 'Data Partenza', sortable: true },
     { key: 'departure', label: 'Partenza', sortable: true },
-    { key: 'departure_date', label: 'Departure Date', sortable: true },
+    { key: 'date_of_departure', label: 'Departure Date', sortable: true },
     { key: 'eta', label: 'ETA', sortable: true },
     { key: 'ata', label: 'ATA', sortable: true },
     { key: 'date_of_discharge', label: 'Data Scarico', sortable: true },

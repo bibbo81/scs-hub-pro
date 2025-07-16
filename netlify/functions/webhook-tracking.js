@@ -100,8 +100,8 @@ function processShipsGoWebhook(payload) {
             vessel_imo: payload.VesselIMO,
             
             // Dates
-            departure_date: payload.DepartureDate,
-            arrival_date: payload.ArrivalDate,
+            date_of_departure: payload.DepartureDate,
+            eta: payload.ArrivalDate,
             
             // Location
             last_event_location: payload.CurrentLocation,

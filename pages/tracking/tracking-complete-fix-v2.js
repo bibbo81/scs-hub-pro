@@ -339,11 +339,11 @@
         
         // Dates
         departureDate = shipmentData.route.port_of_loading?.date || 
-                       shipmentData.route.origin?.departure_date || 
+                       shipmentData.route.origin?.date_of_departure || 
                        shipmentData.route.origin?.date;
                        
         arrivalDate = shipmentData.route.port_of_discharge?.date || 
-                     shipmentData.route.destination?.arrival_date || 
+                     shipmentData.route.destination?.eta || 
                      shipmentData.route.destination?.eta;
     }
     

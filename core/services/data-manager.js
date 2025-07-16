@@ -100,7 +100,7 @@ class DataManager {
                 .from('shipments')
                 .insert([{ 
                     tracking_id: tracking.id,
-                    shipment_number: tracking.tracking_number,
+                    tracking_number: tracking.tracking_number,
                     status: tracking.status,
                     carrier_name: tracking.carrier_code,
                     auto_created: true,

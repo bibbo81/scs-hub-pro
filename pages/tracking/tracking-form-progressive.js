@@ -4088,7 +4088,7 @@ if (apiResponse.events && Array.isArray(apiResponse.events)) {
                            
                            // MODIFICA 1: AGGIUNGI QUESTI CAMPI
                            date_of_departure: departureDate,
-                           departure_date: departureDate,
+                           date_of_departure: departureDate,
                            dateOfDeparture: departureDate,
                            
                            // IMPORTANTE: Passa i dati raw per il mapping AWB
@@ -4144,7 +4144,7 @@ if (apiResponse.events && Array.isArray(apiResponse.events)) {
        console.log('🔍 DEBUG formData PRIMA di finalData:', {
            date_of_loading: formData.date_of_loading,
            date_of_departure: formData.date_of_departure,
-           departure_date: formData.departure_date,
+           date_of_departure: formData.date_of_departure,
            tutti_i_campi: Object.keys(formData)
        });
        
@@ -5103,7 +5103,7 @@ if (!window.loadTrackings && window.trackingInit) {
       console.log('\n📅 DATE OF DEPARTURE:');
       console.log('  - date_of_departure:', lastTracking.date_of_departure);
       console.log('  - dateOfDeparture:', lastTracking.dateOfDeparture);
-      console.log('  - departure_date:', lastTracking.departure_date);
+      console.log('  - date_of_departure:', lastTracking.date_of_departure);
       console.log('  - departureDate:', lastTracking.departureDate);
       console.log('  - departure (for table):', lastTracking.departure); // Check the new field
       
