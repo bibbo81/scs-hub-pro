@@ -1,6 +1,6 @@
 # Dependencies
 node_modules/
-package-lock.json
+# package-lock.json is tracked for deterministic builds
 
 # Environment
 .env
