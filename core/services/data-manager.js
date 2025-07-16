@@ -72,26 +72,77 @@ class DataManager {
         
         return { tracking };
     }
+    async addTrackingWithShipment(trackingData) {
+        if (!this.initialized) {
+            throw new Error('DataManager not initialized');
+        }
+
+        try {
+            const timestamp = new Date().toISOString();
+
+            // 1. Inserimento del tracking
+            const { data: tracking, error: trackErr } = await supabase
+                .from('trackings')
+                .insert([{ 
+                    ...trackingData,
+                    organization_id: this.organizationId,
+                    user_id: this.userId,
+                    created_at: timestamp,
+                    updated_at: timestamp
+                }])
+                .select()
+                .single();
+
+            if (trackErr) throw trackErr;
+
+            // 2. Inserimento della spedizione correlata
+            const { data: shipment, error: shipErr } = await supabase
+                .from('shipments')
+                .insert([{ 
+                    tracking_id: tracking.id,
+                    shipment_number: tracking.tracking_number,
+                    status: tracking.status,
+                    carrier_name: tracking.carrier_code,
+                    auto_created: true,
+                    products: null,
+                    organization_id: this.organizationId,
+                    user_id: this.userId,
+                    created_at: timestamp,
+                    updated_at: timestamp
+                }])
+                .select()
+                .single();
+
+            if (shipErr) throw shipErr;
+
+            console.log('✅ Tracking and shipment created:', { trackingId: tracking.id, shipmentId: shipment.id });
+
+            return { tracking, shipment };
+        } catch (error) {
+            console.error('❌ addTrackingWithShipment error:', error);
+            throw error;
+        }
+    }
     
     async getTrackings(filters = {}) {
         if (!this.initialized) {
             throw new Error('DataManager not initialized');
         }
-        
+
         let query = supabase
             .from('trackings')
             .select('*')
             .eq('organization_id', this.organizationId) // DINAMICO
             .order('created_at', { ascending: false });
-            
+
         // Applica filtri se presenti
         if (filters.status) {
             query = query.eq('status', filters.status);
         }
-        
+
         const { data, error } = await query;
         if (error) throw error;
-        
+
         return data || [];
     }
     
