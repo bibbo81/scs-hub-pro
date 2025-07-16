@@ -121,6 +121,8 @@ Set them in **Site settings → Environment variables**. Functions like `netlify
 
 Real‑time features use WebSocket connections to the Supabase URL. Make sure outbound WebSocket traffic is allowed; otherwise the application will fall back to HTTP-only APIs.
 
+Develop locally with **Node.js v18** to match `.nvmrc` (run `nvm use` if available).
+
 ## 🛡 Security notes
 
 The application uses the `xlsx` library (0.18.5) to parse Excel files in
