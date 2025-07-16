@@ -607,8 +607,6 @@ async function loadTrackings() {
     }
     return t;
 });
-            // Map data to ensure compatibility
-            trackings = trackings.map(mapTrackingData);
         } else {
             // Mock data for testing
             trackings = [
@@ -637,37 +635,6 @@ async function loadTrackings() {
     }
 }
 
-// Map tracking data for compatibility
-function mapTrackingData(tracking) {
-    return {
-        ...tracking,
-        // Ensure all required fields exist
-        carrier_name: tracking.carrier_name || 
-                     tracking.metadata?.mapped?.carrier_name || 
-                     tracking.carrier_code || 
-                     tracking.carrier || '-',
-        current_status: tracking.current_status || tracking.status || 'pending',
-        origin_port: tracking.origin_port || tracking.origin_name || '-',
-        destination_port: tracking.destination_port || tracking.destination_name || '-',
-        tracking_type: tracking.tracking_type || detectTrackingType(tracking.tracking_number),
-        
-        // FIX OCEAN V2 - ESTRAI DAI SOTTO-OGGETTI
-        vessel_name: tracking.vessel_name || 
-                    tracking.vessel_info?.name || 
-                    tracking.original_data?.vessel_name || '-',
-        vessel_imo: tracking.vessel_imo || 
-                   tracking.vessel_info?.imo || '-',
-        voyage_number: tracking.voyage_number || 
-                      tracking.vessel_info?.voyage || 
-                      tracking.original_data?.voyage_number || '-',
-        container_size: tracking.container_size || 
-                       tracking.metadata?.raw?.shipment?.containers?.[0]?.size || '-',
-        container_type: tracking.container_type || 
-                       tracking.metadata?.raw?.shipment?.containers?.[0]?.type || '-',
-        date_of_loading: tracking.date_of_loading || 
-                        tracking.metadata?.raw?.shipment?.route?.port_of_loading?.date_of_loading || '-'
-    };
-}
 
 // Detect tracking type from number format
 function detectTrackingType(trackingNumber) {

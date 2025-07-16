@@ -283,7 +283,7 @@ class AutoSyncSystem {
     async createShipmentFromTracking(trackingData) {
         console.log('🏗️ Creating shipment from tracking:', trackingData.tracking_number);
         
-        const shipmentData = this.mapTrackingToShipment(trackingData);
+        const shipmentData = { ...trackingData };
         
         // Add to shipments registry
         if (window.shipmentsRegistry) {
@@ -383,44 +383,6 @@ class AutoSyncSystem {
         return hasChanges;
     }
 
-    mapTrackingToShipment(trackingData) {
-        const mapped = {
-            shipmentNumber: trackingData.tracking_number,
-            trackingNumber: trackingData.tracking_number,
-            type: this.syncRules.trackingToShipment.tracking_type(trackingData.tracking_type),
-            status: this.syncRules.trackingToShipment.status(trackingData.status),
-            carrier: this.syncRules.trackingToShipment.carrier_code(trackingData.carrier_code, trackingData),
-            route: {
-                origin: this.syncRules.trackingToShipment.origin_port(trackingData.origin_port, trackingData),
-                destination: this.syncRules.trackingToShipment.destination_port(trackingData.destination_port, trackingData),
-                via: [],
-                distance: this.estimateDistance(trackingData.origin_port, trackingData.destination_port),
-                estimatedTransit: this.estimateTransitTime(trackingData.tracking_type, trackingData.origin_port, trackingData.destination_port)
-            },
-            schedule: {
-                etd: trackingData.date_of_departure || trackingData.date_of_loading || trackingData.created_at,
-                eta: trackingData.eta || trackingData.date_of_discharge,
-                atd: trackingData.date_of_departure || null,
-                ata: trackingData.eta || null
-            },
-            referenceNumber: trackingData.reference_number,
-            ...this.syncRules.createShipmentRules.defaultValues
-        };
-
-        // Add metadata from tracking
-        if (trackingData.metadata) {
-            mapped.metadata = {
-                ...trackingData.metadata,
-                originalTrackingData: {
-                    tracking_type: trackingData.tracking_type,
-                    carrier_code: trackingData.carrier_code,
-                    created_at: trackingData.created_at
-                }
-            };
-        }
-
-        return mapped;
-    }
 
     // Reverse sync: Handle shipment updates → tracking
     async handleShipmentUpdates(details) {
@@ -446,11 +408,8 @@ class AutoSyncSystem {
 
         // Sync status
         if (shipmentData.status !== tracking.status) {
-            const trackingStatus = this.mapShipmentStatusToTracking(shipmentData.status);
-            if (trackingStatus) {
-                updates.status = trackingStatus;
-                hasChanges = true;
-            }
+            updates.status = shipmentData.status;
+            hasChanges = true;
         }
 
         // Sync ETA
@@ -588,16 +547,6 @@ class AutoSyncSystem {
         return routes[key] || 25;
     }
 
-    mapShipmentStatusToTracking(shipmentStatus) {
-        const mapping = {
-            'planned': 'registered',
-            'departed': 'in_transit',
-            'in_transit': 'in_transit',
-            'arrived': 'arrived',
-            'delivered': 'delivered'
-        };
-        return mapping[shipmentStatus];
-    }
 
     hasValueChanged(current, newValue) {
         if (typeof current === 'object' && typeof newValue === 'object') {
