@@ -333,11 +333,17 @@ async function initializeShipmentsSystem() {
         await window.shipmentsInitManager.loadDependencies();
         
         // 2. Initialize shipments registry properly
-        if (window.ShipmentsRegistry && !window.shipmentsRegistry.initialized) {
+        if (typeof window.ShipmentsRegistry === 'function') {
             console.log('🏗️ Initializing real ShipmentsRegistry...');
             window.shipmentsRegistry = new window.ShipmentsRegistry();
             await window.shipmentsRegistry.init();
-            
+        } else if (window.ShipmentsRegistry) {
+            console.log('🔗 Using existing ShipmentsRegistry instance...');
+            window.shipmentsRegistry = window.ShipmentsRegistry;
+            if (typeof window.shipmentsRegistry.init === 'function' && !window.shipmentsRegistry.initialized) {
+                await window.shipmentsRegistry.init();
+            }
+        
             // Dispatch updated ready event
             window.dispatchEvent(new Event('shipmentsRegistryReady'));
         }
