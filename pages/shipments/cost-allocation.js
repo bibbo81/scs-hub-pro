@@ -104,8 +104,9 @@ class CostAllocationUI {
         const canvas = document.getElementById('costBreakdownChart');
         if (!canvas) return;
         
-        if (canvas && this.chartInstance) {
-            this.chartInstance.destroy();
+        if (canvas) {
+            const existing = Chart.getChart(canvas);
+            if (existing) existing.destroy();
             this.chartInstance = null;
         }
         

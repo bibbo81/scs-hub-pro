@@ -156,9 +156,8 @@ class DashboardController {
         const ctx = document.getElementById('revenueChart');
         
         // Distruggi chart esistente
-        if (this.charts.revenue) {
-            this.charts.revenue.destroy();
-        }
+        const existing = Chart.getChart(ctx);
+        if (existing) existing.destroy();
 
         // Prepara dati
         const labels = dailyData.map(d => this.formatDate(d.date));
@@ -257,9 +256,8 @@ class DashboardController {
         const ctx = document.getElementById('statusChart');
         
         // Distruggi chart esistente
-        if (this.charts.status) {
-            this.charts.status.destroy();
-        }
+        const existing = Chart.getChart(ctx);
+        if (existing) existing.destroy();
 
         // Prepara dati
         const labels = Object.keys(statusData);

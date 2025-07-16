@@ -63,11 +63,10 @@ class ProductAnalyticsCharts {
         if (!canvas) return;
         
         const ctx = canvas.getContext('2d');
-        
+
         // Destroy existing chart
-        if (this.charts.costTrends) {
-            this.charts.costTrends.destroy();
-        }
+        const existing = Chart.getChart(canvas);
+        if (existing) existing.destroy();
         
         // Get product intelligence system
         const productSystem = window.productIntelligenceSystem;
@@ -196,11 +195,10 @@ class ProductAnalyticsCharts {
         if (!canvas) return;
         
         const ctx = canvas.getContext('2d');
-        
+
         // Destroy existing chart
-        if (this.charts.costBreakdown) {
-            this.charts.costBreakdown.destroy();
-        }
+        const existing = Chart.getChart(canvas);
+        if (existing) existing.destroy();
         
         // Sample cost breakdown data
         const breakdownData = {

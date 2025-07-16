@@ -330,9 +330,8 @@ class ShipmentsAnalyticsEngine {
         if (!ctx) return;
         
         // Destroy existing chart
-        if (this.charts[canvasId]) {
-            this.charts[canvasId].destroy();
-        }
+        const existing = Chart.getChart(ctx);
+        if (existing) existing.destroy();
         
         this.charts[canvasId] = new Chart(ctx, {
             type: 'bar',
@@ -374,9 +373,8 @@ class ShipmentsAnalyticsEngine {
         if (!ctx) return;
         
         // Destroy existing chart
-        if (this.charts[canvasId]) {
-            this.charts[canvasId].destroy();
-        }
+        const existing = Chart.getChart(ctx);
+        if (existing) existing.destroy();
         
         const labels = Object.keys(costAnalysis.breakdown);
         const data = labels.map(l => costAnalysis.breakdown[l]);
@@ -427,9 +425,8 @@ class ShipmentsAnalyticsEngine {
         if (!ctx) return;
         
         // Destroy existing chart
-        if (this.charts[canvasId]) {
-            this.charts[canvasId].destroy();
-        }
+        const existing = Chart.getChart(ctx);
+        if (existing) existing.destroy();
         
         this.charts[canvasId] = new Chart(ctx, {
             type: 'line',
