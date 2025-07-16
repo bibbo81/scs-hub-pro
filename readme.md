@@ -59,6 +59,8 @@ python3 -m http.server 8000 --directory public
 
 # Open in browser
 open http://localhost:8000/tracking.html
+```
+
 ⚙️ Branch Workflow — feature/complete-update
 
 🚦 IMPORTANT: All development happens directly on the feature/complete-update branch to avoid unnecessary patch branches and PR merges.
@@ -119,5 +121,12 @@ Set them in **Site settings → Environment variables**. Functions like `netlify
 
 Real‑time features use WebSocket connections to the Supabase URL. Make sure outbound WebSocket traffic is allowed; otherwise the application will fall back to HTTP-only APIs.
 
-If the Product Linking System fails to start because required dependencies are missing,
-the page will now display a notification via `NotificationSystem`.
+## 🛡 Security notes
+
+The application uses the `xlsx` library (0.18.5) to parse Excel files in
+`netlify/functions/parse-excel.js` and on the import page. `npm audit` flags this
+version for **prototype pollution** and **ReDoS** vulnerabilities. No patched
+release is available on npm and popular alternatives such as `exceljs` still
+bundle the same library. Uploads are limited to internal, trusted users and the
+data is parsed entirely in memory without executing embedded formulas. We accept
+this risk while monitoring upstream releases.
