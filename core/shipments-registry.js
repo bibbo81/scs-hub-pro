@@ -143,7 +143,7 @@ const ShipmentsRegistry = {
 
         shipments.forEach(s => {
             byStatus[s.status] = (byStatus[s.status] || 0) + 1;
-            totalCost += s.costs?.total ?? parseFloat(s.total_value) || 0;
+            totalCost += (s.costs?.total ?? parseFloat(s.total_value)) || 0;
             if (s.route?.estimatedTransit) {
                 totalTransit += s.route.estimatedTransit;
                 transitCount++;
