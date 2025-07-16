@@ -227,7 +227,7 @@ class ProductLinkingSystem {
             const modalContent = this.generateLinkModalContent(shipment, availableProducts);
             
             window.ModalSystem.show({
-                title: `🔗 Collega Prodotti - ${shipment.shipment_number}`,
+                title: `🔗 Collega Prodotti - ${shipment.tracking_number}`,
                 content: modalContent,
                 size: 'lg',
                 buttons: [
@@ -266,11 +266,11 @@ class ProductLinkingSystem {
                     <div class="row mb-3">
                         <div class="col-md-6">
                             <label class="text-muted small">Spedizione</label>
-                            <div class="fw-bold">${shipment.shipment_number}</div>
+                            <div class="fw-bold">${shipment.tracking_number}</div>
                         </div>
                         <div class="col-md-6">
                             <label class="text-muted small">Rotta</label>
-                            <div>${shipment.supplier_country || 'N/A'} → ${shipment.metadata?.customer_country || 'N/A'}</div>
+                            <div>${shipment.origin_country || 'N/A'} → ${shipment.metadata?.customer_country || 'N/A'}</div>
                         </div>
                     </div>
                     ${hasProducts ? `
@@ -505,7 +505,7 @@ class ProductLinkingSystem {
             const modalContent = this.generateManageModalContent(shipment);
             
             window.ModalSystem.show({
-                title: `🔧 Gestisci Prodotti - ${shipment.shipment_number}`,
+                title: `🔧 Gestisci Prodotti - ${shipment.tracking_number}`,
                 content: modalContent,
                 size: 'lg',
                 buttons: [
@@ -682,7 +682,7 @@ class ProductLinkingSystem {
             const modalContent = this.generateViewModalContent(shipment);
             
             window.ModalSystem.show({
-                title: `📦 Prodotti - ${shipment.shipment_number}`,
+                title: `📦 Prodotti - ${shipment.tracking_number}`,
                 content: modalContent,
                 size: 'md',
                 buttons: [
@@ -915,7 +915,7 @@ window.autoLinkProducts = async () => {
     try {
         const { data: emptyShipments } = await window.productLinking.supabase
             .from('shipments')
-            .select('id, shipment_number')
+            .select('id, tracking_number')
             .eq('organization_id', window.productLinking.organizationId)
             .is('products', null)
             .limit(10);

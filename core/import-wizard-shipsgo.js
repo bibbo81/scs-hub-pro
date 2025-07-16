@@ -103,8 +103,8 @@ const SHIPSGO_TEMPLATES = {
             'Destination Name': 'destination_name',
             
             // Dates
-            'Date Of Departure': 'date_of_departure',  // CAMBIATO da departure_date
-            'Date Of Arrival': 'date_of_arrival',  // CAMBIATO da arrival_date
+            'Date Of Departure': 'date_of_departure',  // CAMBIATO da date_of_departure
+            'Date Of Arrival': 'date_of_arrival',  // CAMBIATO da eta
             
             // Countries
             'Origin Country': 'origin_country',

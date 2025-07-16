@@ -66,20 +66,20 @@ const ShipmentsRegistry = {
             row.innerHTML = `
                 <td><input type="checkbox" value="${shipment.id}"></td>
                 <td class="font-mono">
-                    ${shipment.shipment_number}
+                    ${shipment.tracking_number}
                     ${shipment.auto_created ? '<span class="badge badge-info ml-1">Auto</span>' : ''}
                 </td>
-                <td>${shipment.transport_mode || 'N/A'}</td>
+                <td>${shipment.tracking_type || 'N/A'}</td>
                 <td>
                     <span class="sol-badge sol-badge-${this.getStatusClass(shipment.status)}">
                         ${shipment.status}
                     </span>
                 </td>
                 <td>${shipment.carrier_name || 'N/A'}</td>
-                <td>${shipment.supplier_country || shipment.origin || 'N/A'}</td>
+                <td>${shipment.origin_country || shipment.origin || 'N/A'}</td>
                 <td>${shipment.customer_country || shipment.destination || 'N/A'}</td>
-                <td>${this.formatDate(shipment.departure_date)}</td>
-                <td>${this.formatDate(shipment.arrival_date)}</td>
+                <td>${this.formatDate(shipment.date_of_departure)}</td>
+                <td>${this.formatDate(shipment.eta)}</td>
                 <td>${shipment.products?.length || 0}</td>
                 <td class="documents-cell">
                     <button class="sol-btn sol-btn-sm sol-btn-glass documents-btn">

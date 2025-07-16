@@ -5292,7 +5292,7 @@ setTimeout(() => {
 function renderShipmentRow(shipment) {
     return `
         <tr>
-            <td>${shipment.shipment_number}</td>
+            <td>${shipment.tracking_number}</td>
             <td>
                 ${shipment.tracking_number || 'N/A'}
                 ${shipment.auto_created ? '<span class="badge badge-info ml-2">Auto</span>' : ''}
@@ -5312,7 +5312,7 @@ async function loadShipmentsWithTracking() {
         grid.innerHTML = shipments.map(shipment => `
             <div class="shipment-card ${shipment.auto_created ? 'auto-created' : ''}">
                 ${shipment.auto_created ? '<span class="auto-created-badge"><i class="fas fa-magic"></i> Auto</span>' : ''}
-                <h4>${shipment.shipment_number}</h4>
+                <h4>${shipment.tracking_number}</h4>
                 <p><strong>Tracking:</strong> ${shipment.tracking_number || 'N/A'}</p>
                 <p><strong>Status:</strong> ${shipment.status}</p>
                 <p><strong>Carrier:</strong> ${shipment.carrier_name || 'N/A'}</p>
