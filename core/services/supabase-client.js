@@ -18,6 +18,11 @@ export const supabase = createClient(supabaseUrl, supabaseKey, {
     }
 });
 
+// Rendi supabase globale solo lato frontend
+if (typeof window !== "undefined") {
+    window.supabase = supabase;
+}
+
 // --- Helper e Funzioni di Supporto (Il tuo codice originale, mantenuto) ---
 
 export const requireAuth = async () => {
