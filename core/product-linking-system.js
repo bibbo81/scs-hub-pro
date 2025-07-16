@@ -12,11 +12,14 @@ class ProductLinkingSystem {
     
     async init() {
         console.log('🔧 Initializing Product Linking System v2.0...');
-        
+
         try {
-            // Attendi dipendenze
-            await this.waitForDependencies();
-            
+            const depsReady = await this.waitForDependencies(30000);
+            if (!depsReady) {
+                this.showNotification('error', 'Impossibile avviare il sistema. Riprova manualmente.');
+                return false;
+            }
+
             // Salva riferimenti
             this.dataManager = window.dataManager;
             this.supabase = window.supabase;
@@ -38,33 +41,45 @@ class ProductLinkingSystem {
             
         } catch (error) {
             console.error('❌ Failed to initialize Product Linking System:', error);
+            this.showNotification('error', 'Errore durante l\'inizializzazione');
             return false;
         }
     }
+
+    async retryInit() {
+        if (this.initialized) {
+            return true;
+        }
+        console.log('🔄 Retrying Product Linking System initialization...');
+        return this.init();
+    }
     
-    async waitForDependencies() {
+    async waitForDependencies(timeoutMs) {
         console.log('⏳ Waiting for core dependencies...');
-        
-        const maxAttempts = 30;
+
+        const start = Date.now();
         let attempts = 0;
-        
-        while (attempts < maxAttempts) {
-            if (window.dataManager?.initialized && 
-                window.supabase && 
+
+        while (true) {
+            if (window.dataManager?.initialized &&
+                window.supabase &&
                 window.ModalSystem) {
                 console.log('✅ All dependencies ready');
                 return true;
             }
-            
+
+            if (timeoutMs && Date.now() - start >= timeoutMs) {
+                console.warn('⏳ Dependencies not ready yet');
+                return false;
+            }
+
             await this.delay(1000);
             attempts++;
-            
+
             if (attempts % 5 === 0) {
-                console.log(`⏳ Still waiting... (${attempts}/${maxAttempts})`);
+                console.log(`⏳ Still waiting... (${attempts})`);
             }
         }
-        
-        throw new Error('Required dependencies not available after 30 seconds');
     }
     
     setupEventHandlers() {
