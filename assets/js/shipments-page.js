@@ -4,7 +4,7 @@ import notificationSystem from '/core/notification-system.js';
 import modalSystem from '/core/modal-systemV2.js';
 import { HeaderComponent } from '/core/header-component.js';
 import { TableManager } from '/core/table-manager.js';
-import { ProductLinkingSystem } from '/core/product-linking-system-v20-1-final.js';
+import { ProductLinkingSystem } from '/core/product-linking-system.js';
 
 class ShipmentsPage {
     constructor() {

@@ -37,7 +37,7 @@ Untracked files:
 	core/config/
 	core/enhanced-commercial-model.js
 	core/minimal-notification-fix.js
-	core/product-linking-system-v20-1-final.js
+	core/product-linking-system.js
 	core/product-sync.js
 	core/products-link-filters-fix.js
 	core/reset-button-visibility-fix.js
