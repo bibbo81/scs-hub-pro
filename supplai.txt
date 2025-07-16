@@ -38,7 +38,7 @@
 │   ├── modal-systemV2.js
 │   ├── notification-system.js
 │   ├── performance-optimizations.js
-│   ├── product-linking-system-v20-1-final.js
+│   ├── product-linking-system.js
 │   ├── product-sync.js
 │   ├── products-link-filters-fix.js
 │   ├── reset-button-visibility-fix.js
