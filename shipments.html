@@ -2253,24 +2253,14 @@
     -webkit-appearance: menulist !important;
 }
 </style>
-   <script>
+   <script type="module">
+       import { TABLE_COLUMNS } from '/pages/tracking/table-columns-legacy.js';
        // ===== COLUMN MANAGER IMPLEMENTATION =====
        class ColumnManager {
            constructor() {
                this.columns = [
                    { id: 'checkbox', label: 'Seleziona', visible: true, locked: true },
-                   { id: 'shipmentNumber', label: 'Rif. Spedizione', visible: true },
-                   { id: 'type', label: 'Tipo', visible: true },
-                   { id: 'status', label: 'Stato', visible: true },
-                   { id: 'carrier', label: 'Vettore', visible: true },
-                   { id: 'origin', label: 'Origine', visible: true },
-                   { id: 'destination', label: 'Destinazione', visible: true },
-                   { id: 'etd', label: 'ETD', visible: true },
-                   { id: 'eta', label: 'ETA', visible: true },
-                   { id: 'products', label: 'Prodotti', visible: true },
-                   { id: 'documents', label: 'Documenti', visible: true },
-                   { id: 'commercial', label: 'PO/PI/CI', visible: true },
-                   { id: 'totalCost', label: 'Costo Tot.', visible: true },
+                   ...TABLE_COLUMNS.map(c => ({ id: c.key, label: c.label, visible: true })),
                    { id: 'actions', label: 'Azioni', visible: true, locked: true }
                ];
                
