@@ -370,6 +370,29 @@ function detectTrackingType(trackingNumber) {
 // Update table
 function updateTable() {
     try {
+        const tableBody = document.querySelector('#tracking-table tbody');
+
+        if (!window.trackingService) {
+            if (tableBody) {
+                tableBody.innerHTML = '<tr><td colspan="99">Tracking Service non disponibile</td></tr>';
+            }
+            return;
+        }
+
+        if (!window.tableManager) {
+            if (tableBody) {
+                tableBody.innerHTML = '<tr><td colspan="99">Table Manager non disponibile</td></tr>';
+            }
+            return;
+        }
+
+        if (filteredTrackings.length === 0) {
+            if (tableBody) {
+                tableBody.innerHTML = '<tr><td colspan="99">Nessun tracking trovato</td></tr>';
+            }
+            return;
+        }
+
         if (tableManager) {
             tableManager.setData(filteredTrackings);
 
