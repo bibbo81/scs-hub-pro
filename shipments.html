@@ -3224,7 +3224,7 @@ MSCU7654321,PO-2024-002,22000,PI-2024-002,22000,CI-2024-002,22000,BL-2024-002,CI
                const shipments = await loadShipments();
                
                // Update KPIs
-               updateKPIs(shipments);
+            // updateKPIs(shipments); // Deprecato: causa ReferenceError. La logica dei KPI è gestita dal componente Executive BI.
                
                // Render table
                renderShipmentsTable(shipments);
@@ -3405,7 +3405,7 @@ MSCU7654321,PO-2024-002,22000,PI-2024-002,22000,CI-2024-002,22000,BL-2024-002,CI
 
        // Fallback basic row rendering
        function renderBasicShipmentRow(shipment) {
-           const cm = windowconst;
+           const cm = window.columnManager;
            
            return `
                <tr data-id="${shipment.id}" data-shipment-id="${shipment.id}">
@@ -4747,7 +4747,7 @@ MSCU7654321,container,in_transit,MSC,MSC,TIGER,CNNBO,Ningbo,ITLIV,Livorno,SGSIN,
                const shipments = window.shipmentsRegistry.shipments || [];
                
                // Update KPIs
-               updateKPIs(shipments);
+            // updateKPIs(shipmentsData); // Deprecato: causa ReferenceError. La logica dei KPI è gestita dal componente Executive BI.
                
                // Render table if registry core is available
                if (window.registryCore) {
