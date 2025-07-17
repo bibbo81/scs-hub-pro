@@ -140,6 +140,22 @@ Real‑time features use WebSocket connections to the Supabase URL. Make sure ou
 
 Develop locally with **Node.js v18** to match `.nvmrc` (run `nvm use` if available).
 
+## 🛠 Rename fields script
+
+Run `scripts/rename-fields.js` after pulling updates to keep field names consistent:
+
+```bash
+node scripts/rename-fields.js
+```
+
+The script scans the project (excluding `node_modules`, `.history` and `.git`) and
+replaces the old field names:
+
+- `pol` → `origin_port`
+- `pod` → `destination_port`
+- `Port Of Loading` → `Origin Port`
+- `Port Of Discharge` → `Destination Port`
+
 ## 🛡 Security notes
 
 The application uses the `xlsx` library (0.18.5) to parse Excel files in
