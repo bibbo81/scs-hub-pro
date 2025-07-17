@@ -1,6 +1,6 @@
 // index.js - Clean tracking page logic with all mappings
 import TableManager from '/core/table-manager.js';
-import { trackingsColumns, formatDate, formatDateOnly, formatTrackingStatus } from '/core/table-config.js';
+import { TABLE_COLUMNS, formatStatus, formatDate, formatDateOnly } from './table-columns-legacy.js';
 
 // State
 let trackings = [];
@@ -170,10 +170,7 @@ const DEFAULT_VISIBLE_COLUMNS = [
     'last_update'
 ];
 
-// Column configuration for table
-const TABLE_COLUMNS = trackingsColumns;
-
-// Formatters provided by table-config.js
+// Column configuration for table comes from table-columns-legacy.js
 
 // Initialize
 document.addEventListener('DOMContentLoaded', async () => {
