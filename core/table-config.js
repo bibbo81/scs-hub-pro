@@ -55,22 +55,6 @@ export function formatTrackingStatus(value) {
     return `<span class="badge badge-${cfg.class}"><i class="fas ${cfg.icon} mr-1"></i>${cfg.label}</span>`;
 }
 
-export const shipmentsColumns = [
-    { key: 'checkbox', label: '', sortable: false },
-    { key: 'shipmentNumber', label: 'Rif. Spedizione', sortable: true },
-    { key: 'type', label: 'Tipo', sortable: true },
-    { key: 'status', label: 'Stato', sortable: true },
-    { key: 'carrier', label: 'Vettore', sortable: true },
-    { key: 'origin', label: 'Origine', sortable: true },
-    { key: 'destination', label: 'Destinazione', sortable: true },
-    { key: 'etd', label: 'ETD', sortable: true },
-    { key: 'eta', label: 'ETA', sortable: true },
-    { key: 'products', label: 'Prodotti', sortable: false },
-    { key: 'documents', label: 'Docs', sortable: false },
-    { key: 'commercial', label: 'PO/PI/CI', sortable: false },
-    { key: 'totalCost', label: 'Costo Tot.', sortable: true },
-    { key: 'actions', label: 'Azioni', sortable: false }
-];
 
 export const trackingsColumns = [
     {
