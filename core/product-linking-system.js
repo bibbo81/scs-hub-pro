@@ -1,3 +1,27 @@
+// File: /core/product-linking-system.js
+
+export class ProductLinkingSystem {
+  /**
+   * Costruttore per il sistema di collegamento dei prodotti.
+   * Inizializza le dipendenze necessarie.
+   */
+  constructor() {
+    // Logica del costruttore...
+    console.log("ProductLinkingSystem istanziato.");
+  }
+
+  /**
+   * Metodo per collegare un prodotto a una spedizione.
+   * @param {string} productId - L'ID del prodotto.
+   * @param {string} shipmentId - L'ID della spedizione.
+   */
+  linkProductToShipment(productId, shipmentId) {
+    // Logica di collegamento...
+    console.log(`Collegamento del prodotto ${productId} alla spedizione .`);
+  }
+
+  // ... altri metodi della classe ...
+}
 // product-linking-system.js - Sistema moderno per collegare prodotti e spedizioni
 console.log('🚀 Loading Product Linking System...');
 
