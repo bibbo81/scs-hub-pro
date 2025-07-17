@@ -446,6 +446,7 @@
 
     <!-- Load Core Modules -->
     <script type="module">
+        /// <reference path="/core/typedefs.d.ts" />
         // Import core modules
         import api from '/core/api-client.js';
         import headerComponent from '/core/header-component.js';
@@ -648,6 +649,7 @@ window.addEventListener('DOMContentLoaded', () => {
                                 id: 'saveTrackingBtn',
                                 action: async function() {
                                     try {
+                                        /** @type {TrackingLike} */
                                         const trackingData = {
                                             tracking_number: document.querySelector('#trackingNumber').value,
                                             carrier: document.querySelector('#carrier').value,

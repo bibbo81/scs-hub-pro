@@ -43,6 +43,21 @@ In today's global supply chain, **visibility is everything**. Lost shipments, de
 - Automated data synchronization
 - Smart duplicate detection
 
+### 📄 Tracking object format
+
+Trackings share a common structure across the project. See `core/typedefs.d.ts` for all fields.
+
+```js
+/** @type {TrackingLike} */
+const example = {
+    tracking_number: 'MSKU1234567',
+    tracking_type: 'container',
+    origin_port: 'SHANGHAI',
+    origin_country: 'CN',
+    eta: '2025-07-20'
+};
+```
+
 ---
 
 ## 🚀 Quick Start
