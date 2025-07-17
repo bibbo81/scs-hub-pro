@@ -29,6 +29,13 @@
     
     // New function to handle drag&drop functionality
     function enableColumnDragDrop() {
+        enableColumnDragDrop.retryCount = enableColumnDragDrop.retryCount || 0;
+        if (enableColumnDragDrop.retryCount >= 10) {
+            console.error(`servizio non disponibile dopo ${enableColumnDragDrop.retryCount} tentativi`);
+            return;
+        }
+        enableColumnDragDrop.retryCount++;
+
         console.log('🔧 Enabling column drag&drop...');
         
         // Wait for TableManager to be ready
@@ -89,6 +96,7 @@
             });
             
             console.log('✅ Column drag&drop enabled successfully');
+            enableColumnDragDrop.retryCount = 0;
             
             // Add CSS for drag&drop visual feedback
             if (!document.getElementById('sortable-drag-styles')) {
@@ -142,11 +150,19 @@
     // FIX 2: OCEAN API v2.0 IMPLEMENTATION
     // ========================================
     function implementOceanV2API() {
+        implementOceanV2API.retryCount = implementOceanV2API.retryCount || 0;
+        if (implementOceanV2API.retryCount >= 10) {
+            console.error(`servizio non disponibile dopo ${implementOceanV2API.retryCount} tentativi`);
+            return;
+        }
+
         if (!window.trackingService) {
             console.warn('⏳ Waiting for trackingService...');
+            implementOceanV2API.retryCount++;
             setTimeout(implementOceanV2API, 500);
             return;
         }
+        implementOceanV2API.retryCount = 0;
         
         console.log('🔧 Implementing Ocean v2.0 API methods...');
         
