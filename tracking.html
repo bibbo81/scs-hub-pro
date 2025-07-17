@@ -582,6 +582,8 @@ window.performanceReport = function() {
     // ... resto del codice ...
 };
 </script>
+    <!-- Load Tracking Service before page logic -->
+    <script type="module" src="/core/services/tracking-service.js"></script>
     <!-- Page Logic -->
     <script type="module" src="/pages/tracking/index.js"></script>
     <!-- FIX: Assicura che showAddTrackingForm sia disponibile -->
@@ -711,9 +713,6 @@ setTimeout(() => {
 }, 2000);
 </script>
 
-    <!-- Load Tracking Service -->
-    <script type="module" src="/core/services/tracking-service.js"></script>
-    
     <!-- Load Progressive Form -->
     <script src="/pages/tracking/tracking-form-progressive.js"></script>
     
