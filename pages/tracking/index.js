@@ -343,7 +343,8 @@ async function loadTrackings() {
                 }
             ];
         }
-        
+
+        console.log(`[DEBUG] Tracking caricati: ${trackings.length}`, trackings);
         filteredTrackings = [...trackings];
         updateTable();
         updateStats();
