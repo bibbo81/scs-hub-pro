@@ -883,9 +883,13 @@ export class HeaderComponent {
         this.lastAuthState = event;
         this.invalidateUserCache();
         
-        // Update user info
-        if (event === 'SIGNED_IN' || event === 'USER_UPDATED') {
+        // Update user info - CRITICAL FIX
+        // Aggiunto 'INITIAL_SESSION' per gestire il caricamento della pagina per utenti già loggati.
+        // Questo evento fornisce la sessione utente al primo caricamento. Senza di esso,
+        // l'header non si aggiornava con i dati dell'utente su pagine come tracking.html.
+        if (event === 'SIGNED_IN' || event === 'USER_UPDATED' || event === 'INITIAL_SESSION') {
             // CRITICAL: Solo aggiorna il display, NON re-inizializzare
+            // Il timeout è mantenuto per sicurezza, potrebbe essere un workaround per un'altra race condition.
             setTimeout(async () => {
                 const userInfo = await this.getUserInfo();
                 this.updateUserDisplay(userInfo);
