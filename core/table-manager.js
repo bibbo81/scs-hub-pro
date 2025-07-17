@@ -41,22 +41,30 @@ export class TableManager {
         this.advancedSearch = null;
         this.searchDebounceTimer = null;
         
-        this.init();
+        try {
+            this.init();
+        } catch (e) {
+            console.error('Errore table-manager:', e, e?.stack);
+        }
     }
     
     init() {
-        this.render();
-        this.attachEventListeners();
-        this.loadColumnOrder();
-        
-        // Initialize advanced search
-        if (this.options.enableAdvancedSearch) {
-            this.initAdvancedSearch();
-        }
-        
-        // Enable column drag after a small delay
-        if (this.options.enableColumnDrag) {
-            setTimeout(() => this.enableColumnDrag(), 100);
+        try {
+            this.render();
+            this.attachEventListeners();
+            this.loadColumnOrder();
+
+            // Initialize advanced search
+            if (this.options.enableAdvancedSearch) {
+                this.initAdvancedSearch();
+            }
+
+            // Enable column drag after a small delay
+            if (this.options.enableColumnDrag) {
+                setTimeout(() => this.enableColumnDrag(), 100);
+            }
+        } catch (e) {
+            console.error('Errore table-manager:', e, e?.stack);
         }
     }
     
@@ -168,36 +176,44 @@ export class TableManager {
     
     // Set data
     setData(data) {
-        this.data = Array.isArray(data) ? data : [];
-        this.filteredData = [...this.data];
-        this.currentPage = 1;
-        this.selectedRows.clear();
-        this.applyFilters();
+        try {
+            this.data = Array.isArray(data) ? data : [];
+            this.filteredData = [...this.data];
+            this.currentPage = 1;
+            this.selectedRows.clear();
+            this.applyFilters();
+        } catch (e) {
+            console.error('Errore table-manager:', e, e?.stack);
+        }
     }
     
     // Main render method
     render() {
-        const searchValue = this.container.querySelector('.sol-table-search-input')?.value || this.searchTerm;
-        
-        this.container.innerHTML = `
-            <div class="sol-table-wrapper">
-                ${this.renderControls()}
-                <div class="sol-table-container">
-                    ${this.renderTable()}
+        try {
+            const searchValue = this.container.querySelector('.sol-table-search-input')?.value || this.searchTerm;
+
+            this.container.innerHTML = `
+                <div class="sol-table-wrapper">
+                    ${this.renderControls()}
+                    <div class="sol-table-container">
+                        ${this.renderTable()}
+                    </div>
+                    ${this.options.paginate ? this.renderPagination() : ''}
                 </div>
-                ${this.options.paginate ? this.renderPagination() : ''}
-            </div>
-        `;
-        
-        // Restore search value
-        const searchInput = this.container.querySelector('.sol-table-search-input');
-        if (searchInput && searchValue) {
-            searchInput.value = searchValue;
-        }
-        
-        // Re-enable column drag if it was enabled
-        if (this.options.enableColumnDrag && this.columnSortable) {
-            setTimeout(() => this.enableColumnDrag(), 100);
+            `;
+
+            // Restore search value
+            const searchInput = this.container.querySelector('.sol-table-search-input');
+            if (searchInput && searchValue) {
+                searchInput.value = searchValue;
+            }
+
+            // Re-enable column drag if it was enabled
+            if (this.options.enableColumnDrag && this.columnSortable) {
+                setTimeout(() => this.enableColumnDrag(), 100);
+            }
+        } catch (e) {
+            console.error('Errore table-manager:', e, e?.stack);
         }
     }
     
@@ -564,25 +580,29 @@ export class TableManager {
     
     // Apply filters and search
     applyFilters() {
-        let filtered = [...this.data];
-        
-        // Apply search
-        if (this.searchTerm) {
-            filtered = this.performSearch(filtered, this.searchTerm);
-        }
-        
-        // Apply column filters
-        Object.entries(this.filters).forEach(([column, value]) => {
-            if (value) {
-                filtered = filtered.filter(row => {
-                    const cellValue = this.getCellValue(row, column);
-                    return cellValue?.toString().toLowerCase().includes(value.toLowerCase());
-                });
+        try {
+            let filtered = [...this.data];
+
+            // Apply search
+            if (this.searchTerm) {
+                filtered = this.performSearch(filtered, this.searchTerm);
             }
-        });
-        
-        this.filteredData = filtered;
-        this.sort();
+
+            // Apply column filters
+            Object.entries(this.filters).forEach(([column, value]) => {
+                if (value) {
+                    filtered = filtered.filter(row => {
+                        const cellValue = this.getCellValue(row, column);
+                        return cellValue?.toString().toLowerCase().includes(value.toLowerCase());
+                    });
+                }
+            });
+
+            this.filteredData = filtered;
+            this.sort();
+        } catch (e) {
+            console.error('Errore table-manager:', e, e?.stack);
+        }
     }
     
     // Perform search across all columns
@@ -599,48 +619,60 @@ export class TableManager {
     
     // Sort data
     sort() {
-        if (!this.sortColumn) {
+        try {
+            if (!this.sortColumn) {
+                this.paginate();
+                return;
+            }
+
+            this.filteredData.sort((a, b) => {
+                const aVal = this.getCellValue(a, this.sortColumn);
+                const bVal = this.getCellValue(b, this.sortColumn);
+
+                if (aVal === bVal) return 0;
+                if (aVal === null || aVal === undefined) return 1;
+                if (bVal === null || bVal === undefined) return -1;
+
+                const comparison = aVal < bVal ? -1 : 1;
+                return this.sortDirection === 'asc' ? comparison : -comparison;
+            });
+
             this.paginate();
-            return;
+        } catch (e) {
+            console.error('Errore table-manager:', e, e?.stack);
         }
-        
-        this.filteredData.sort((a, b) => {
-            const aVal = this.getCellValue(a, this.sortColumn);
-            const bVal = this.getCellValue(b, this.sortColumn);
-            
-            if (aVal === bVal) return 0;
-            if (aVal === null || aVal === undefined) return 1;
-            if (bVal === null || bVal === undefined) return -1;
-            
-            const comparison = aVal < bVal ? -1 : 1;
-            return this.sortDirection === 'asc' ? comparison : -comparison;
-        });
-        
-        this.paginate();
     }
     
     // Paginate data
     paginate() {
-        const start = (this.currentPage - 1) * this.options.pageSize;
-        const end = start + this.options.pageSize;
-        this.displayData = this.filteredData.slice(start, end);
-        this.render();
+        try {
+            const start = (this.currentPage - 1) * this.options.pageSize;
+            const end = start + this.options.pageSize;
+            this.displayData = this.filteredData.slice(start, end);
+            this.render();
+        } catch (e) {
+            console.error('Errore table-manager:', e, e?.stack);
+        }
     }
     
     // Search with debouncing
     search(term) {
-        clearTimeout(this.searchDebounceTimer);
-        
-        this.searchDebounceTimer = setTimeout(() => {
-            this.searchTerm = term;
-            this.currentPage = 1;
-            this.applyFilters();
-            
-            // Add to search history
-            if (this.advancedSearch && term) {
-                this.advancedSearch.addToHistory(term);
-            }
-        }, 300);
+        try {
+            clearTimeout(this.searchDebounceTimer);
+
+            this.searchDebounceTimer = setTimeout(() => {
+                this.searchTerm = term;
+                this.currentPage = 1;
+                this.applyFilters();
+
+                // Add to search history
+                if (this.advancedSearch && term) {
+                    this.advancedSearch.addToHistory(term);
+                }
+            }, 300);
+        } catch (e) {
+            console.error('Errore table-manager:', e, e?.stack);
+        }
     }
     
    attachEventListeners() {
@@ -716,46 +748,63 @@ export class TableManager {
     
     // Select all rows
     selectAll(selected) {
-        if (selected) {
-            this.displayData.forEach(row => {
-                const id = row.id || this.data.indexOf(row);
-                this.selectedRows.add(id);
-            });
-        } else {
-            this.selectedRows.clear();
+        try {
+            if (selected) {
+                this.displayData.forEach(row => {
+                    const id = row.id || this.data.indexOf(row);
+                    this.selectedRows.add(id);
+                });
+            } else {
+                this.selectedRows.clear();
+            }
+
+            this.onSelectionChange();
+            this.render();
+        } catch (e) {
+            console.error('Errore table-manager:', e, e?.stack);
         }
-        
-        this.onSelectionChange();
-        this.render();
     }
     
     // Select/deselect single row
     selectRow(rowId, selected) {
-        const id = parseInt(rowId);
-        
-        if (selected) {
-            this.selectedRows.add(id);
-        } else {
-            this.selectedRows.delete(id);
+        try {
+            const id = parseInt(rowId);
+
+            if (selected) {
+                this.selectedRows.add(id);
+            } else {
+                this.selectedRows.delete(id);
+            }
+
+            this.onSelectionChange();
+            this.render();
+        } catch (e) {
+            console.error('Errore table-manager:', e, e?.stack);
         }
-        
-        this.onSelectionChange();
-        this.render();
     }
     
     // Get selected rows data
     getSelectedRows() {
-        return this.data.filter(row => {
-            const id = row.id || this.data.indexOf(row);
-            return this.selectedRows.has(id);
-        });
+        try {
+            return this.data.filter(row => {
+                const id = row.id || this.data.indexOf(row);
+                return this.selectedRows.has(id);
+            });
+        } catch (e) {
+            console.error('Errore table-manager:', e, e?.stack);
+            return [];
+        }
     }
     
     // Clear selection
     clearSelection() {
-        this.selectedRows.clear();
-        this.onSelectionChange();
-        this.render();
+        try {
+            this.selectedRows.clear();
+            this.onSelectionChange();
+            this.render();
+        } catch (e) {
+            console.error('Errore table-manager:', e, e?.stack);
+        }
     }
     
     // Selection change callback
@@ -768,126 +817,170 @@ export class TableManager {
     
     // Change page
     goToPage(page) {
-        const totalPages = Math.ceil(this.filteredData.length / this.options.pageSize);
-        if (page >= 1 && page <= totalPages) {
-            this.currentPage = page;
-            this.paginate();
+        try {
+            const totalPages = Math.ceil(this.filteredData.length / this.options.pageSize);
+            if (page >= 1 && page <= totalPages) {
+                this.currentPage = page;
+                this.paginate();
+            }
+        } catch (e) {
+            console.error('Errore table-manager:', e, e?.stack);
         }
     }
     
     // Next page
     nextPage() {
-        const totalPages = Math.ceil(this.filteredData.length / this.options.pageSize);
-        if (this.currentPage < totalPages) {
-            this.currentPage++;
-            this.paginate();
+        try {
+            const totalPages = Math.ceil(this.filteredData.length / this.options.pageSize);
+            if (this.currentPage < totalPages) {
+                this.currentPage++;
+                this.paginate();
+            }
+        } catch (e) {
+            console.error('Errore table-manager:', e, e?.stack);
         }
     }
     
     // Previous page
     previousPage() {
-        if (this.currentPage > 1) {
-            this.currentPage--;
-            this.paginate();
+        try {
+            if (this.currentPage > 1) {
+                this.currentPage--;
+                this.paginate();
+            }
+        } catch (e) {
+            console.error('Errore table-manager:', e, e?.stack);
         }
     }
     
     // Change page size
     changePageSize(size) {
-        this.options.pageSize = parseInt(size);
-        this.currentPage = 1;
-        this.paginate();
+        try {
+            this.options.pageSize = parseInt(size);
+            this.currentPage = 1;
+            this.paginate();
+        } catch (e) {
+            console.error('Errore table-manager:', e, e?.stack);
+        }
     }
     
     // Sort by column
     sortBy(column) {
-        if (this.sortColumn === column) {
-            this.sortDirection = this.sortDirection === 'asc' ? 'desc' : 'asc';
-        } else {
-            this.sortColumn = column;
-            this.sortDirection = 'asc';
+        try {
+            if (this.sortColumn === column) {
+                this.sortDirection = this.sortDirection === 'asc' ? 'desc' : 'asc';
+            } else {
+                this.sortColumn = column;
+                this.sortDirection = 'asc';
+            }
+
+            this.sort();
+        } catch (e) {
+            console.error('Errore table-manager:', e, e?.stack);
         }
-        
-        this.sort();
     }
     
     // Export data
     export(format = 'csv') {
-        const data = this.filteredData;
-        const columns = this.getColumns();
-        
-        if (format === 'csv') {
-            this.exportCSV(data, columns);
-        } else if (format === 'excel') {
-            this.exportExcel(data, columns);
-        } else if (format === 'pdf') {
-            this.exportPDF(data, columns);
+        try {
+            const data = this.filteredData;
+            const columns = this.getColumns();
+
+            if (format === 'csv') {
+                this.exportCSV(data, columns);
+            } else if (format === 'excel') {
+                this.exportExcel(data, columns);
+            } else if (format === 'pdf') {
+                this.exportPDF(data, columns);
+            }
+        } catch (e) {
+            console.error('Errore table-manager:', e, e?.stack);
         }
     }
     
     // Export to CSV
     exportCSV(data, columns) {
-        const headers = columns.map(col => col.label || col.key).join(',');
-        const rows = data.map(row => 
-            columns.map(col => {
-                const value = this.getCellValue(row, col.key);
-                const escaped = String(value || '').replace(/"/g, '""');
-                return escaped.includes(',') ? `"${escaped}"` : escaped;
-            }).join(',')
-        );
-        
-        const csv = [headers, ...rows].join('\n');
-        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-        const link = document.createElement('a');
-        link.href = URL.createObjectURL(blob);
-        link.download = `export-${Date.now()}.csv`;
-        link.click();
+        try {
+            const headers = columns.map(col => col.label || col.key).join(',');
+            const rows = data.map(row =>
+                columns.map(col => {
+                    const value = this.getCellValue(row, col.key);
+                    const escaped = String(value || '').replace(/"/g, '""');
+                    return escaped.includes(',') ? `"${escaped}"` : escaped;
+                }).join(',')
+            );
+
+            const csv = [headers, ...rows].join('\n');
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = `export-${Date.now()}.csv`;
+            link.click();
+        } catch (e) {
+            console.error('Errore table-manager:', e, e?.stack);
+        }
     }
     
     // Export to Excel
     exportExcel(data, columns) {
-        if (!window.XLSX) {
-            window.NotificationSystem?.error('XLSX library non caricata');
-            return;
+        try {
+            if (!window.XLSX) {
+                window.NotificationSystem?.error('XLSX library non caricata');
+                return;
+            }
+
+            const ws = XLSX.utils.json_to_sheet(data);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, 'Data');
+            XLSX.writeFile(wb, `export-${Date.now()}.xlsx`);
+        } catch (e) {
+            console.error('Errore table-manager:', e, e?.stack);
         }
-        
-        const ws = XLSX.utils.json_to_sheet(data);
-        const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, 'Data');
-        XLSX.writeFile(wb, `export-${Date.now()}.xlsx`);
     }
     
     // Export to PDF
     exportPDF(data, columns) {
-        if (!window.jspdf || !window.jspdf.jsPDF) {
-            window.NotificationSystem?.error('jsPDF library non caricata');
-            return;
+        try {
+            if (!window.jspdf || !window.jspdf.jsPDF) {
+                window.NotificationSystem?.error('jsPDF library non caricata');
+                return;
+            }
+
+            const doc = new window.jspdf.jsPDF();
+            const tableColumns = columns.map(col => col.label || col.key);
+            const tableRows = data.map(row =>
+                columns.map(col => this.getCellValue(row, col.key) || '')
+            );
+
+            doc.autoTable({
+                head: [tableColumns],
+                body: tableRows,
+                startY: 20
+            });
+
+            doc.save(`export-${Date.now()}.pdf`);
+        } catch (e) {
+            console.error('Errore table-manager:', e, e?.stack);
         }
-        
-        const doc = new window.jspdf.jsPDF();
-        const tableColumns = columns.map(col => col.label || col.key);
-        const tableRows = data.map(row => 
-            columns.map(col => this.getCellValue(row, col.key) || '')
-        );
-        
-        doc.autoTable({
-            head: [tableColumns],
-            body: tableRows,
-            startY: 20
-        });
-        
-        doc.save(`export-${Date.now()}.pdf`);
     }
     
     // Refresh table
     refresh() {
-        this.applyFilters();
+        try {
+            this.applyFilters();
+        } catch (e) {
+            console.error('Errore table-manager:', e, e?.stack);
+        }
     }
     
     // Set loading state
     loading(state) {
-        this.options.loading = state;
-        this.render();
+        try {
+            this.options.loading = state;
+            this.render();
+        } catch (e) {
+            console.error('Errore table-manager:', e, e?.stack);
+        }
     }
 }
 
