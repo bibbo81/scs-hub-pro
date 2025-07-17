@@ -45,7 +45,8 @@ In today's global supply chain, **visibility is everything**. Lost shipments, de
 
 ### 📄 Tracking object format
 
-Trackings share a common structure across the project. See `core/typedefs.d.ts` for all fields.
+Trackings share a common structure across the project. See `core/typedefs.d.ts` for the base
+`TrackingLike` definition used throughout the codebase.
 
 ```js
 /** @type {TrackingLike} */
