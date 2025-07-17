@@ -1,4 +1,5 @@
 // table-config.js - shared table columns and formatters
+
 export function formatDate(value) {
     if (!value) return '-';
     const date = new Date(value);
@@ -54,7 +55,6 @@ export function formatTrackingStatus(value) {
     const cfg = statuses[value] || { label: value || 'Sconosciuto', class: 'secondary', icon: 'fa-question' };
     return `<span class="badge badge-${cfg.class}"><i class="fas ${cfg.icon} mr-1"></i>${cfg.label}</span>`;
 }
-
 
 export const trackingsColumns = [
     {

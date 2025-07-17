@@ -170,10 +170,7 @@ const DEFAULT_VISIBLE_COLUMNS = [
     'last_update'
 ];
 
-// Column configuration for table
-const TABLE_COLUMNS = trackingsColumns;
-
-// Formatters provided by table-config.js
+// Column configuration for table comes from table-columns-legacy.js
 
 // Initialize
 document.addEventListener('DOMContentLoaded', async () => {
