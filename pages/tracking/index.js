@@ -10,6 +10,7 @@ let tableManager = null;
 
 // Wait utility functions with retry limits
 function waitForGlobal(name, maxRetries = 10, delay = 250) {
+    const retries = maxRetries;
     return new Promise(resolve => {
         const check = () => {
             const parts = name.split('.');
@@ -22,7 +23,7 @@ function waitForGlobal(name, maxRetries = 10, delay = 250) {
             } else if (maxRetries-- > 0) {
                 setTimeout(check, delay);
             } else {
-                console.error(`servizio non disponibile dopo ${10} tentativi`);
+                console.error(`servizio non disponibile dopo ${retries} tentativi`);
                 resolve(false);
             }
         };
