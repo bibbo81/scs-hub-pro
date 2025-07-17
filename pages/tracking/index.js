@@ -7,6 +7,28 @@ let trackings = [];
 let filteredTrackings = [];
 let tableManager = null;
 
+
+// Wait utility functions with retry limits
+function waitForGlobal(name, maxRetries = 10, delay = 250) {
+    return new Promise(resolve => {
+        const check = () => {
+            const parts = name.split('.');
+            let obj = window;
+            for (const p of parts) {
+                obj = obj ? obj[p] : undefined;
+            }
+            if (obj !== undefined) {
+                resolve(true);
+            } else if (maxRetries-- > 0) {
+                setTimeout(check, delay);
+            } else {
+                console.error(`servizio non disponibile dopo ${10} tentativi`);
+                resolve(false);
+            }
+        };
+        check();
+    });
+}
 // Column mapping for import/export compatibility
 const COLUMN_MAPPING = {
     'Container': 'tracking_number',
@@ -223,8 +245,12 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         }
         
-        if (window.trackingService) {
-            console.log('🔧 Initializing tracking service...');
+        if (!window.trackingService) {
+            console.warn("trackingService non inizializzato");
+            return;
+        }
+        await waitForGlobal("trackingService");
+        console.log("🔧 Initializing tracking service...");
             try {
                 const initialized = await window.trackingService.initialize();
                 if (initialized) {
@@ -764,25 +790,29 @@ async function refreshTracking(id) {
     window.NotificationSystem?.info('Aggiornamento tracking...');
     
     try {
-        // Check if tracking service is available and initialized
         if (!window.trackingService) {
-            console.log('Initializing tracking service...');
-            // Try to load tracking service
-            const script = document.createElement('script');
-            script.src = '/core/services/tracking-service.js';
-            script.type = 'module';
-            document.head.appendChild(script);
-            
-            // Wait for it to load
-            await new Promise(resolve => setTimeout(resolve, 1000));
+            console.warn("trackingService non inizializzato");
+            return;
         }
-        
+        if (!window.trackingService.track) {
+            console.log("Initializing tracking service...");
+            const script = document.createElement("script");
+            script.src = "/core/services/tracking-service.js";
+            script.type = "module";
+            document.head.appendChild(script);
+            await waitForGlobal("trackingService.track");
+        }
+
         if (window.trackingService && window.trackingService.track) {
             // Initialize if needed
             if (!window.trackingService.initialized) {
                 await window.trackingService.initialize();
             }
             
+            if (!window.trackingService) {
+                console.warn("trackingService non inizializzato");
+                return;
+            }
             // Use tracking service with ShipsGo API
             const result = await window.trackingService.track(
                 tracking.tracking_number, 
