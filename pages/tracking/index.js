@@ -1,6 +1,6 @@
 // index.js - Clean tracking page logic with all mappings
 import TableManager from '/core/table-manager.js';
-import { TABLE_COLUMNS, formatStatus, formatDate, formatDateOnly } from './table-columns-legacy.js';
+import { trackingsColumns, formatDate, formatDateOnly } from '/core/table-config.js';
 
 // State
 let trackings = [];
