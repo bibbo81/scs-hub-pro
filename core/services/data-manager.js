@@ -1,4 +1,5 @@
 // Data Manager per sincronizzazione Tracking-Shipments con Supabase
+/// <reference path="../typedefs.d.ts" />
 import { supabase } from './supabase-client.js';
 
 class DataManager {
@@ -47,6 +48,10 @@ class DataManager {
     }
 
     // Assicurati che tutti i metodi usino l'organization ID dinamico
+    /**
+     * Crea un nuovo tracking.
+     * @param {TrackingLike} trackingData
+     */
     async addTracking(trackingData) {
         if (!this.initialized) {
             throw new Error('DataManager not initialized');
@@ -72,6 +77,10 @@ class DataManager {
         
         return { tracking };
     }
+    /**
+     * Crea tracking e spedizione correlata.
+     * @param {TrackingLike} trackingData
+     */
     async addTrackingWithShipment(trackingData) {
         if (!this.initialized) {
             throw new Error('DataManager not initialized');

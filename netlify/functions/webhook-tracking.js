@@ -1,5 +1,6 @@
 // FILE: netlify/functions/webhook-tracking.js
 // Webhook endpoint per ricevere aggiornamenti da ShipsGo
+/// <reference path="../../core/typedefs.d.ts" />
 
 exports.handler = async (event, context) => {
     // CORS headers
@@ -69,11 +70,17 @@ exports.handler = async (event, context) => {
 };
 
 // Processa webhook ShipsGo e normalizza i dati
+/**
+ * Normalize a ShipsGo payload to a TrackingLike object.
+ * @param {Object} payload
+ * @returns {TrackingLike}
+ */
 function processShipsGoWebhook(payload) {
     // Determina se è container o AWB
     const isContainer = !!payload.ContainerNumber;
     const isAwb = !!payload.AwbNumber;
 
+    /** @type {TrackingLike} */
     let trackingData = {
         tracking_number: payload.ContainerNumber || payload.AwbNumber,
         tracking_type: isContainer ? 'container' : 'awb',
