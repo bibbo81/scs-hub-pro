@@ -10,8 +10,8 @@ const SHIPSGO_TEMPLATES = {
         description: 'Import container tracking from ShipsGo sea shipments export',
         fileTypes: ['csv', 'xlsx'],
         requiredHeaders: [
-            'Container', 'Carrier', 'Status', 'Port Of Loading', 
-            'Port Of Discharge', 'Date Of Loading', 'Date Of Discharge'
+            'Container', 'Carrier', 'Status', 'Origin Port', 
+            'Destination Port', 'Date Of Loading', 'Date Of Discharge'
         ],
         fieldMapping: {
             // Mapping esatto dalle colonne del file Excel mostrato
@@ -20,8 +20,8 @@ const SHIPSGO_TEMPLATES = {
             'Status': 'current_status',  // CAMBIATO da status a current_status
             
             // Ports
-            'Port Of Loading': 'origin_port',
-            'Port Of Discharge': 'destination_port',
+            'Origin Port': 'origin_port',
+            'Destination Port': 'destination_port',
             
             // Countries - mapping completo
             'POL Country': 'origin_country',
@@ -278,7 +278,7 @@ function generateSeaEvents(rowData, mappedData) {
         events.push({
             event_type: 'REGISTERED',
             event_date: createdDate,
-            location: rowData['Port Of Loading'],
+            location: rowData['Origin Port'],
             description: 'Shipment registered in system',
             icon: SEA_EVENT_TYPES.REGISTERED.icon,
             color: SEA_EVENT_TYPES.REGISTERED.color
@@ -293,7 +293,7 @@ function generateSeaEvents(rowData, mappedData) {
         events.push({
             event_type: 'GATE_IN',
             event_date: gateInDate.toISOString(),
-            location: rowData['Port Of Loading'],
+            location: rowData['Origin Port'],
             description: 'Container entered terminal',
             icon: SEA_EVENT_TYPES.GATE_IN.icon,
             color: SEA_EVENT_TYPES.GATE_IN.color
@@ -303,8 +303,8 @@ function generateSeaEvents(rowData, mappedData) {
         events.push({
             event_type: 'LOADED_ON_VESSEL',
             event_date: loadingDate,
-            location: rowData['Port Of Loading'],
-            description: `Loaded on vessel at ${rowData['Port Of Loading']}`,
+            location: rowData['Origin Port'],
+            description: `Loaded on vessel at ${rowData['Origin Port']}`,
             icon: SEA_EVENT_TYPES.LOADED_ON_VESSEL.icon,
             color: SEA_EVENT_TYPES.LOADED_ON_VESSEL.color,
             details: `Carrier: ${rowData['Carrier']}`
@@ -316,7 +316,7 @@ function generateSeaEvents(rowData, mappedData) {
         events.push({
             event_type: 'VESSEL_DEPARTED',
             event_date: departDate.toISOString(),
-            location: rowData['Port Of Loading'],
+            location: rowData['Origin Port'],
             description: 'Vessel departed from port',
             icon: SEA_EVENT_TYPES.VESSEL_DEPARTED.icon,
             color: SEA_EVENT_TYPES.VESSEL_DEPARTED.color
@@ -344,7 +344,7 @@ function generateSeaEvents(rowData, mappedData) {
         events.push({
             event_type: 'VESSEL_ARRIVED',
             event_date: arriveDate.toISOString(),
-            location: rowData['Port Of Discharge'],
+            location: rowData['Destination Port'],
             description: 'Vessel arrived at port',
             icon: SEA_EVENT_TYPES.VESSEL_ARRIVED.icon,
             color: SEA_EVENT_TYPES.VESSEL_ARRIVED.color
@@ -354,8 +354,8 @@ function generateSeaEvents(rowData, mappedData) {
         events.push({
             event_type: 'DISCHARGED_FROM_VESSEL',
             event_date: dischargeDate,
-            location: rowData['Port Of Discharge'],
-            description: `Discharged at ${rowData['Port Of Discharge']}`,
+            location: rowData['Destination Port'],
+            description: `Discharged at ${rowData['Destination Port']}`,
             icon: SEA_EVENT_TYPES.DISCHARGED_FROM_VESSEL.icon,
             color: SEA_EVENT_TYPES.DISCHARGED_FROM_VESSEL.color
         });
@@ -368,7 +368,7 @@ function generateSeaEvents(rowData, mappedData) {
                 events.push({
                     event_type: 'GATE_OUT',
                     event_date: gateOutDate.toISOString(),
-                    location: rowData['Port Of Discharge'],
+                    location: rowData['Destination Port'],
                     description: 'Container left terminal',
                     icon: SEA_EVENT_TYPES.GATE_OUT.icon,
                     color: SEA_EVENT_TYPES.GATE_OUT.color
@@ -385,7 +385,7 @@ function generateSeaEvents(rowData, mappedData) {
             events.push({
                 event_type: 'DELIVERED',
                 event_date: deliveryDate.toISOString(),
-                location: rowData['Port Of Discharge'],
+                location: rowData['Destination Port'],
                 description: 'Container delivered to consignee',
                 icon: SEA_EVENT_TYPES.DELIVERED.icon,
                 color: SEA_EVENT_TYPES.DELIVERED.color
