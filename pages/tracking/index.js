@@ -198,7 +198,8 @@ const DEFAULT_VISIBLE_COLUMNS = [
 // Initialize
 document.addEventListener('DOMContentLoaded', async () => {
     console.log('🚀 Initializing tracking page...');
-    
+    await waitForGlobal('trackingService', 20);
+
     try {
         // Hide loading state
         document.getElementById('loadingState').style.display = 'none';
