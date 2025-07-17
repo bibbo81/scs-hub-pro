@@ -225,16 +225,20 @@ document.addEventListener('DOMContentLoaded', async () => {
         
         if (window.trackingService) {
             console.log('🔧 Initializing tracking service...');
-            const initialized = await window.trackingService.initialize();
-            if (initialized) {
-                console.log('✅ Tracking service initialized with org API keys');
-                
-                // Debug: check API configuration
-                if (window.trackingService.hasApiKeys()) {
-                    console.log('✅ ShipsGo API keys loaded from organization');
-                } else {
-                    console.warn('⚠️ No ShipsGo API keys found');
+            try {
+                const initialized = await window.trackingService.initialize();
+                if (initialized) {
+                    console.log('✅ Tracking service initialized with org API keys');
+
+                    // Debug: check API configuration
+                    if (window.trackingService.hasApiKeys()) {
+                        console.log('✅ ShipsGo API keys loaded from organization');
+                    } else {
+                        console.warn('⚠️ No ShipsGo API keys found');
+                    }
                 }
+            } catch (error) {
+                console.error('Error initializing tracking service:', error, error?.stack);
             }
         } else {
             console.warn('⚠️ Tracking service not available');
@@ -267,7 +271,7 @@ document.addEventListener('click', function(e) {
         console.log('✅ Checkbox event delegation added');
         
     } catch (error) {
-        console.error('❌ Initialization error:', error);
+        console.error('❌ Initialization error:', error, error?.stack);
         showError('Errore durante l\'inizializzazione');
     }
 });
@@ -319,7 +323,7 @@ async function loadTrackings() {
         updateStats();
         
     } catch (error) {
-        console.error('Error loading trackings:', error);
+        console.error('Error loading trackings:', error, error?.stack);
         showError('Errore nel caricamento dei tracking');
     }
 }
@@ -339,39 +343,47 @@ function detectTrackingType(trackingNumber) {
 
 // Update table
 function updateTable() {
-    if (tableManager) {
-        tableManager.setData(filteredTrackings);
-        
-        // Show/hide empty state
-        const emptyState = document.getElementById('emptyState');
-        const tableContainer = document.getElementById('trackingTableContainer');
-        
-        if (filteredTrackings.length === 0) {
-            emptyState.style.display = 'block';
-            tableContainer.style.display = 'none';
-        } else {
-            emptyState.style.display = 'none';
-            tableContainer.style.display = 'block';
+    try {
+        if (tableManager) {
+            tableManager.setData(filteredTrackings);
+
+            // Show/hide empty state
+            const emptyState = document.getElementById('emptyState');
+            const tableContainer = document.getElementById('trackingTableContainer');
+
+            if (filteredTrackings.length === 0) {
+                emptyState.style.display = 'block';
+                tableContainer.style.display = 'none';
+            } else {
+                emptyState.style.display = 'none';
+                tableContainer.style.display = 'block';
+            }
         }
+    } catch (error) {
+        console.error('Error updating table:', error, error?.stack);
     }
 }
 
 // Update statistics
 function updateStats() {
-    const stats = {
-        total: trackings.length,
-        delivered: trackings.filter(t => t.current_status === 'delivered').length,
-        inTransit: trackings.filter(t => t.current_status === 'in_transit').length,
-        exception: trackings.filter(t => 
-            t.current_status === 'exception' || 
-            t.current_status === 'delayed'
-        ).length
-    };
-    
-    document.getElementById('totalTrackings').textContent = stats.total;
-    document.getElementById('deliveredCount').textContent = stats.delivered;
-    document.getElementById('inTransitCount').textContent = stats.inTransit;
-    document.getElementById('exceptionCount').textContent = stats.exception;
+    try {
+        const stats = {
+            total: trackings.length,
+            delivered: trackings.filter(t => t.current_status === 'delivered').length,
+            inTransit: trackings.filter(t => t.current_status === 'in_transit').length,
+            exception: trackings.filter(t =>
+                t.current_status === 'exception' ||
+                t.current_status === 'delayed'
+            ).length
+        };
+
+        document.getElementById('totalTrackings').textContent = stats.total;
+        document.getElementById('deliveredCount').textContent = stats.delivered;
+        document.getElementById('inTransitCount').textContent = stats.inTransit;
+        document.getElementById('exceptionCount').textContent = stats.exception;
+    } catch (error) {
+        console.error('Error updating stats:', error, error?.stack);
+    }
 }
 
 // Handle selection change
@@ -390,49 +402,53 @@ function handleSelectionChange(selected) {
 
 // Setup event listeners
 function setupEventListeners() {
-    // Search
-    const searchInput = document.getElementById('searchInput');
-    if (searchInput) {
-        searchInput.addEventListener('input', (e) => {
-            const term = e.target.value.toLowerCase();
-            filteredTrackings = trackings.filter(t => 
-                t.tracking_number?.toLowerCase().includes(term) ||
-                t.carrier_name?.toLowerCase().includes(term) ||
-                t.origin_port?.toLowerCase().includes(term) ||
-                t.destination_port?.toLowerCase().includes(term) ||
-                t.reference?.toLowerCase().includes(term)
-            );
-            updateTable();
-        
-        });
-    }
-    
-    // Filters
-    document.getElementById('statusFilter')?.addEventListener('change', applyFilters);
-    document.getElementById('carrierFilter')?.addEventListener('change', applyFilters);
-    
-    // Global functions
-    window.refreshTracking = refreshTracking;
-    window.viewDetails = viewDetails;
-    window.deleteTracking = deleteTracking;
-    window.showAddTrackingForm = showAddTrackingForm;
-    window.showImportDialog = showImportDialog;
-    window.exportData = exportData;
-    window.resetFilters = resetFilters;
-    window.toggleSelectAll = toggleSelectAll;
-    window.performBulkAction = performBulkAction;
-    
-    // Export mappings for other modules
-    window.COLUMN_MAPPING = COLUMN_MAPPING;
-    window.STATUS_DISPLAY = STATUS_DISPLAY;
-    window.getStatusMapping = getStatusMapping;
- window.updateBulkActionsBar = function() {
-        // Delega a handleSelectionChange che già esiste
-        if (tableManager) {
-            const selected = tableManager.getSelectedRows();
-            handleSelectionChange(selected);
+    try {
+        // Search
+        const searchInput = document.getElementById('searchInput');
+        if (searchInput) {
+            searchInput.addEventListener('input', (e) => {
+                const term = e.target.value.toLowerCase();
+                filteredTrackings = trackings.filter(t =>
+                    t.tracking_number?.toLowerCase().includes(term) ||
+                    t.carrier_name?.toLowerCase().includes(term) ||
+                    t.origin_port?.toLowerCase().includes(term) ||
+                    t.destination_port?.toLowerCase().includes(term) ||
+                    t.reference?.toLowerCase().includes(term)
+                );
+                updateTable();
+
+            });
         }
-    };
+
+        // Filters
+        document.getElementById('statusFilter')?.addEventListener('change', applyFilters);
+        document.getElementById('carrierFilter')?.addEventListener('change', applyFilters);
+
+        // Global functions
+        window.refreshTracking = refreshTracking;
+        window.viewDetails = viewDetails;
+        window.deleteTracking = deleteTracking;
+        window.showAddTrackingForm = showAddTrackingForm;
+        window.showImportDialog = showImportDialog;
+        window.exportData = exportData;
+        window.resetFilters = resetFilters;
+        window.toggleSelectAll = toggleSelectAll;
+        window.performBulkAction = performBulkAction;
+
+        // Export mappings for other modules
+        window.COLUMN_MAPPING = COLUMN_MAPPING;
+        window.STATUS_DISPLAY = STATUS_DISPLAY;
+        window.getStatusMapping = getStatusMapping;
+        window.updateBulkActionsBar = function() {
+            // Delega a handleSelectionChange che già esiste
+            if (tableManager) {
+                const selected = tableManager.getSelectedRows();
+                handleSelectionChange(selected);
+            }
+        };
+    } catch (error) {
+        console.error('Error setting up event listeners:', error, error?.stack);
+    }
 }
 
 function showColumnEditor() {
