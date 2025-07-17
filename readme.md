@@ -54,6 +54,7 @@ const example = {
     tracking_number: 'MSKU1234567',
     tracking_type: 'container',
     origin_port: 'SHANGHAI',
+    destination_port: 'ROTTERDAM',
     origin_country: 'CN',
     eta: '2025-07-20'
 };
