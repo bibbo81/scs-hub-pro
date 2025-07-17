@@ -78,8 +78,8 @@
                 }
             },
             
-            detectTrackingType(trackingNumber) {
-                const num = trackingNumber.toUpperCase();
+            detectTrackingType(tracking_number) {
+                const num = tracking_number.toUpperCase();
                 for (const [type, pattern] of Object.entries(this.mappings.types)) {
                     if (pattern.test(num)) return type;
                 }
@@ -110,14 +110,14 @@
             },
             
             normalizeTrackingData(row) {
-                const trackingNumber = (
+                const tracking_number = (
                     row['Container'] || 
                     row['AWB Number'] || 
                     row['Tracking Number'] || 
                     ''
                 ).toString().toUpperCase().trim();
                 
-                const trackingType = this.detectTrackingType(trackingNumber);
+                const tracking_type = this.detectTrackingType(tracking_number);
                 
                 const carrierInput = (
                     row['Carrier'] || 
@@ -125,7 +125,7 @@
                     ''
                 ).toString().trim();
                 
-                const carrierCode = this.mappings.carriers[carrierInput] || 
+                const carrier_code = this.mappings.carriers[carrierInput] || 
                                   this.getCarrierCode(carrierInput) ||
                                   carrierInput.toUpperCase();
                 
@@ -133,11 +133,11 @@
                 const status = this.mappings.status[statusInput] || 'registered';
                 
                 return {
-                    trackingNumber,
-                    trackingType,
-                    carrierCode,
+                    tracking_number,
+                    tracking_type,
+                    carrier_code,
                     status,
-                    referenceNumber: row['Reference'] || null,
+                    reference_number: row['Reference'] || null,
                     metadata: {
                         pol: row['Port Of Loading'],
                         pod: row['Port Of Discharge'],
@@ -159,12 +159,12 @@
             // Test Sea Container
             const seaResult = mockImportManager.normalizeTrackingData(testDataSea);
             results.innerHTML += `
-                <div class="test ${seaResult.trackingNumber === 'MSKU1234567' ? 'success' : 'error'}">
+                <div class="test ${seaResult.tracking_number === 'MSKU1234567' ? 'success' : 'error'}">
                     <h3>Test Sea Container</h3>
                     <pre>${JSON.stringify(seaResult, null, 2)}</pre>
-                    <p>✓ Tracking: ${seaResult.trackingNumber} (expected: MSKU1234567)</p>
-                    <p>✓ Type: ${seaResult.trackingType} (expected: container)</p>
-                    <p>✓ Carrier: ${seaResult.carrierCode} (expected: MAERSK)</p>
+                    <p>✓ Tracking: ${seaResult.tracking_number} (expected: MSKU1234567)</p>
+                    <p>✓ Type: ${seaResult.tracking_type} (expected: container)</p>
+                    <p>✓ Carrier: ${seaResult.carrier_code} (expected: MAERSK)</p>
                     <p>✓ Status: ${seaResult.status} (expected: in_transit)</p>
                 </div>
             `;
@@ -172,12 +172,12 @@
             // Test Air Shipment
             const airResult = mockImportManager.normalizeTrackingData(testDataAir);
             results.innerHTML += `
-                <div class="test ${airResult.trackingNumber === '176-12345678' ? 'success' : 'error'}">
+                <div class="test ${airResult.tracking_number === '176-12345678' ? 'success' : 'error'}">
                     <h3>Test Air Shipment</h3>
                     <pre>${JSON.stringify(airResult, null, 2)}</pre>
-                    <p>✓ Tracking: ${airResult.trackingNumber} (expected: 176-12345678)</p>
-                    <p>✓ Type: ${airResult.trackingType} (expected: awb)</p>
-                    <p>✓ Carrier: ${airResult.carrierCode} (expected: CV)</p>
+                    <p>✓ Tracking: ${airResult.tracking_number} (expected: 176-12345678)</p>
+                    <p>✓ Type: ${airResult.tracking_type} (expected: awb)</p>
+                    <p>✓ Carrier: ${airResult.carrier_code} (expected: CV)</p>
                     <p>✓ Status: ${airResult.status} (expected: in_transit)</p>
                 </div>
             `;
@@ -185,11 +185,11 @@
             // Test what would be saved
             const mockTracking = {
                 id: Date.now(),
-                tracking_number: seaResult.trackingNumber,
-                tracking_type: seaResult.trackingType,
-                carrier_code: seaResult.carrierCode,
+                tracking_number: seaResult.tracking_number,
+                tracking_type: seaResult.tracking_type,
+                carrier_code: seaResult.carrier_code,
                 status: seaResult.status,
-                reference_number: seaResult.referenceNumber,
+                reference_number: seaResult.reference_number,
                 origin_port: seaResult.metadata.pol || 'N/A',
                 destination_port: seaResult.metadata.pod || 'N/A',
                 eta: seaResult.metadata.discharge_date,
