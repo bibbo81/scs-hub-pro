@@ -302,7 +302,7 @@ async init() {
                 totalCost += productEntry.totalCost;
                 
                 // Route analysis
-                const route = `${tracking.metadata?.origin_port || tracking.origin} → ${tracking.metadata?.destination_port || tracking.destination}`;
+                const route = `${tracking.metadata?.pol || tracking.origin} → ${tracking.metadata?.pod || tracking.destination}`;
                 if (!routeCosts[route]) {
                     routeCosts[route] = { totalCost: 0, totalUnits: 0 };
                 }

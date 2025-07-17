@@ -881,9 +881,9 @@ return true;
             'CurrentStatus': 'current_status',
             
             // Ports
-            'Origin Port': 'origin_port',
+            'Port Of Loading': 'origin_port',
             'Pol': 'origin_port',
-            'Destination Port': 'destination_port',
+            'Port Of Discharge': 'destination_port',
             'Pod': 'destination_port',
             
             // Countries
@@ -1167,7 +1167,7 @@ return true;
                 date: this.parseShipsGoDate(data.LoadingDate || data.loadingDate),
                 type: 'LOADED_ON_VESSEL',
                 status: 'in_transit',
-                location: data.Pol || data.origin_port || data.portOfLoading,
+                location: data.Pol || data.pol || data.portOfLoading,
                 description: 'Container loaded on vessel',
                 vessel: data.Vessel || data.vesselName
             });
@@ -1178,7 +1178,7 @@ return true;
                 date: this.parseShipsGoDate(data.DischargeDate || data.dischargeDate),
                 type: 'DISCHARGED_FROM_VESSEL',
                 status: 'arrived',
-                location: data.Pod || data.destination_port || data.portOfDischarge,
+                location: data.Pod || data.pod || data.portOfDischarge,
                 description: 'Container discharged from vessel',
                 vessel: data.Vessel || data.vesselName
             });

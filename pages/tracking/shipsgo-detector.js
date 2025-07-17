@@ -30,11 +30,11 @@ class ShipsGoStandardDetector {
         'Booking',
         'Container',
         'Container Count',
-        'Origin Port',
+        'Port Of Loading',
         'Date Of Loading',
         'POL Country',
         'POL Country Code',
-        'Destination Port',
+        'Port Of Discharge',
         'Date Of Discharge',
         'POD Country',
         'POD Country Code',
@@ -88,7 +88,7 @@ class ShipsGoStandardDetector {
             return 'shipsgo_air';
         }
         
-        if (hasAllSeaHeaders || (headers.includes('Container') && headers.includes('Origin Port'))) {
+        if (hasAllSeaHeaders || (headers.includes('Container') && headers.includes('Port Of Loading'))) {
             console.log('🚢 Detected ShipsGo SEA export format');
             return 'shipsgo_sea';
         }
@@ -222,14 +222,14 @@ class ShipsGoStandardDetector {
             container_count: (row['Container Count'] || '').toString().trim(),
             
             // Loading port
-            origin_port: (row['Origin Port'] || '').trim().toUpperCase(),
-            port_of_loading: (row['Origin Port'] || '').trim().toUpperCase(),
+            origin_port: (row['Port Of Loading'] || '').trim().toUpperCase(),
+            port_of_loading: (row['Port Of Loading'] || '').trim().toUpperCase(),
             pol_country: (row['POL Country'] || '').trim(),
             pol_country_code: (row['POL Country Code'] || '').trim(),
             
             // Discharge port
-            destination_port: (row['Destination Port'] || '').trim().toUpperCase(),
-            port_of_discharge: (row['Destination Port'] || '').trim().toUpperCase(),
+            destination_port: (row['Port Of Discharge'] || '').trim().toUpperCase(),
+            port_of_discharge: (row['Port Of Discharge'] || '').trim().toUpperCase(),
             pod_country: (row['POD Country'] || '').trim(),
             pod_country_code: (row['POD Country Code'] || '').trim(),
             
@@ -341,12 +341,12 @@ class ShipsGoStandardDetector {
     // Helper: Get last event location for Sea
     static getLastEventLocationSea(row, status) {
         if (status === 'delivered' || status === 'arrived') {
-            return row['Destination Port'] || 'Destination Port';
+            return row['Port Of Discharge'] || 'Destination Port';
         }
         if (status === 'in_transit') {
             return 'At Sea';
         }
-        return row['Origin Port'] || 'Origin Port';
+        return row['Port Of Loading'] || 'Origin Port';
     }
 
     // Helper: Normalize carrier code

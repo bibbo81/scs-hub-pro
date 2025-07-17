@@ -582,8 +582,6 @@ window.performanceReport = function() {
     // ... resto del codice ...
 };
 </script>
-    <!-- Load Tracking Service before page logic -->
-    <script type="module" src="/core/services/tracking-service.js"></script>
     <!-- Page Logic -->
     <script type="module" src="/pages/tracking/index.js"></script>
     <!-- FIX: Assicura che showAddTrackingForm sia disponibile -->
@@ -654,11 +652,9 @@ window.addEventListener('DOMContentLoaded', () => {
                                         /** @type {TrackingLike} */
                                         const trackingData = {
                                             tracking_number: document.querySelector('#trackingNumber').value,
-                                            tracking_type: document.querySelector('#trackingType').value || 'container',
-                                            origin_port: document.querySelector('#origin').value,
-                                            origin_country: '',
-                                            eta: '',
                                             carrier: document.querySelector('#carrier').value,
+                                            tracking_type: document.querySelector('#trackingType').value || 'container',
+                                            origin: document.querySelector('#origin').value,
                                             destination: document.querySelector('#destination').value,
                                             status: 'pending',
                                             // AGGIUNGI QUESTI CAMPI OBBLIGATORI:
@@ -713,6 +709,9 @@ setTimeout(() => {
 }, 2000);
 </script>
 
+    <!-- Load Tracking Service -->
+    <script type="module" src="/core/services/tracking-service.js"></script>
+    
     <!-- Load Progressive Form -->
     <script src="/pages/tracking/tracking-form-progressive.js"></script>
     

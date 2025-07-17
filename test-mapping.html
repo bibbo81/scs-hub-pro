@@ -24,8 +24,8 @@
             'Status': 'In Transit',
             'Reference': 'PO-2024-123',
             'Booking': 'BKG789',
-            'Origin Port': 'SHANGHAI',
-            'Destination Port': 'ROTTERDAM',
+            'Port Of Loading': 'SHANGHAI',
+            'Port Of Discharge': 'ROTTERDAM',
             'Date Of Loading': '15/06/2025',
             'Date Of Discharge': '30/06/2025',
             'CO₂ Emission (Tons)': '1.5',
@@ -78,8 +78,8 @@
                 }
             },
             
-            detectTrackingType(tracking_number) {
-                const num = tracking_number.toUpperCase();
+            detectTrackingType(trackingNumber) {
+                const num = trackingNumber.toUpperCase();
                 for (const [type, pattern] of Object.entries(this.mappings.types)) {
                     if (pattern.test(num)) return type;
                 }
@@ -110,14 +110,14 @@
             },
             
             normalizeTrackingData(row) {
-                const tracking_number = (
+                const trackingNumber = (
                     row['Container'] || 
                     row['AWB Number'] || 
                     row['Tracking Number'] || 
                     ''
                 ).toString().toUpperCase().trim();
                 
-                const tracking_type = this.detectTrackingType(tracking_number);
+                const trackingType = this.detectTrackingType(trackingNumber);
                 
                 const carrierInput = (
                     row['Carrier'] || 
@@ -125,7 +125,7 @@
                     ''
                 ).toString().trim();
                 
-                const carrier_code = this.mappings.carriers[carrierInput] || 
+                const carrierCode = this.mappings.carriers[carrierInput] || 
                                   this.getCarrierCode(carrierInput) ||
                                   carrierInput.toUpperCase();
                 
@@ -133,14 +133,14 @@
                 const status = this.mappings.status[statusInput] || 'registered';
                 
                 return {
-                    tracking_number,
-                    tracking_type,
-                    carrier_code,
+                    trackingNumber,
+                    trackingType,
+                    carrierCode,
                     status,
-                    reference_number: row['Reference'] || null,
+                    referenceNumber: row['Reference'] || null,
                     metadata: {
-                        origin_port: row['Origin Port'],
-                        destination_port: row['Destination Port'],
+                        pol: row['Port Of Loading'],
+                        pod: row['Port Of Discharge'],
                         origin_name: row['Origin Name'],
                         destination_name: row['Destination Name'],
                         loading_date: this.parseDate(row['Date Of Loading']),
@@ -159,12 +159,12 @@
             // Test Sea Container
             const seaResult = mockImportManager.normalizeTrackingData(testDataSea);
             results.innerHTML += `
-                <div class="test ${seaResult.tracking_number === 'MSKU1234567' ? 'success' : 'error'}">
+                <div class="test ${seaResult.trackingNumber === 'MSKU1234567' ? 'success' : 'error'}">
                     <h3>Test Sea Container</h3>
                     <pre>${JSON.stringify(seaResult, null, 2)}</pre>
-                    <p>✓ Tracking: ${seaResult.tracking_number} (expected: MSKU1234567)</p>
-                    <p>✓ Type: ${seaResult.tracking_type} (expected: container)</p>
-                    <p>✓ Carrier: ${seaResult.carrier_code} (expected: MAERSK)</p>
+                    <p>✓ Tracking: ${seaResult.trackingNumber} (expected: MSKU1234567)</p>
+                    <p>✓ Type: ${seaResult.trackingType} (expected: container)</p>
+                    <p>✓ Carrier: ${seaResult.carrierCode} (expected: MAERSK)</p>
                     <p>✓ Status: ${seaResult.status} (expected: in_transit)</p>
                 </div>
             `;
@@ -172,12 +172,12 @@
             // Test Air Shipment
             const airResult = mockImportManager.normalizeTrackingData(testDataAir);
             results.innerHTML += `
-                <div class="test ${airResult.tracking_number === '176-12345678' ? 'success' : 'error'}">
+                <div class="test ${airResult.trackingNumber === '176-12345678' ? 'success' : 'error'}">
                     <h3>Test Air Shipment</h3>
                     <pre>${JSON.stringify(airResult, null, 2)}</pre>
-                    <p>✓ Tracking: ${airResult.tracking_number} (expected: 176-12345678)</p>
-                    <p>✓ Type: ${airResult.tracking_type} (expected: awb)</p>
-                    <p>✓ Carrier: ${airResult.carrier_code} (expected: CV)</p>
+                    <p>✓ Tracking: ${airResult.trackingNumber} (expected: 176-12345678)</p>
+                    <p>✓ Type: ${airResult.trackingType} (expected: awb)</p>
+                    <p>✓ Carrier: ${airResult.carrierCode} (expected: CV)</p>
                     <p>✓ Status: ${airResult.status} (expected: in_transit)</p>
                 </div>
             `;
@@ -185,16 +185,16 @@
             // Test what would be saved
             const mockTracking = {
                 id: Date.now(),
-                tracking_number: seaResult.tracking_number,
-                tracking_type: seaResult.tracking_type,
-                carrier_code: seaResult.carrier_code,
+                tracking_number: seaResult.trackingNumber,
+                tracking_type: seaResult.trackingType,
+                carrier_code: seaResult.carrierCode,
                 status: seaResult.status,
-                reference_number: seaResult.reference_number,
-                origin_port: seaResult.metadata.origin_port || 'N/A',
-                destination_port: seaResult.metadata.destination_port || 'N/A',
+                reference_number: seaResult.referenceNumber,
+                origin_port: seaResult.metadata.pol || 'N/A',
+                destination_port: seaResult.metadata.pod || 'N/A',
                 eta: seaResult.metadata.discharge_date,
                 last_event_date: new Date().toISOString(),
-                last_event_location: seaResult.metadata.origin_port || 'Import',
+                last_event_location: seaResult.metadata.pol || 'Import',
                 created_at: new Date().toISOString(),
                 metadata: seaResult.metadata
             };

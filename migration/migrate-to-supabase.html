@@ -303,14 +303,14 @@
                     // Mappa i campi
                     return {
                         user_id: authData.user.id,
-                        tracking_number: tracking.tracking_number,
-                        tracking_type: tracking.tracking_type || 'container',
-                        carrier_code: tracking.carrier_code || 'UNKNOWN',
-                        carrier_name: tracking.carrier_name || tracking.carrier_code,
-                        reference_number: tracking.reference_number,
+                        tracking_number: tracking.tracking_number || tracking.trackingNumber,
+                        tracking_type: tracking.tracking_type || tracking.trackingType || 'container',
+                        carrier_code: tracking.carrier_code || tracking.carrier || 'UNKNOWN',
+                        carrier_name: tracking.carrier_name || tracking.carrier_code || tracking.carrier,
+                        reference_number: tracking.reference_number || tracking.reference,
                         status: tracking.status || 'registered',
-                        origin_port: tracking.origin_port,
-                        destination_port: tracking.destination_port,
+                        origin_port: tracking.origin_port || tracking.origin,
+                        destination_port: tracking.destination_port || tracking.destination,
                         metadata: {
                             ...tracking.metadata,
                             original_data: tracking,

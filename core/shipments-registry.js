@@ -1,5 +1,4 @@
-import { formatCurrency, getShipmentStatusClass } from './table-config.js';
-import { formatDate } from '../pages/tracking/table-columns-legacy.js';
+import { formatDate, formatCurrency, getShipmentStatusClass } from './table-config.js';
 console.log('[ShipmentsRegistry] Loading...');
 
 const ShipmentsRegistry = {

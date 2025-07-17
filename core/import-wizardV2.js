@@ -263,8 +263,8 @@ class ImportWizard {
                 { name: 'bl_number', label: 'B/L Number', type: 'text' },
                 { name: 'carrier', label: 'Carrier', type: 'text' },
                 { name: 'status', label: 'Status', type: 'select' },
-                { name: 'origin_port', label: 'Port of Loading', type: 'text' },
-                { name: 'destination_port', label: 'Port of Discharge', type: 'text' },
+                { name: 'pol', label: 'Port of Loading', type: 'text' },
+                { name: 'pod', label: 'Port of Discharge', type: 'text' },
                 { name: 'etd', label: 'ETD', type: 'date' },
                 { name: 'eta', label: 'ETA', type: 'date' }
             ]

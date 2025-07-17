@@ -88,10 +88,10 @@ const TABLE_COLUMNS = [
                     row.origin_port ||
                     value || '-';
             }
-            // Per SEA: usa Origin Port
+            // Per SEA: usa Port Of Loading
             return row.port_of_loading ||
                 row.metadata?.port_of_loading ||
-                row.metadata?.['Origin Port'] ||
+                row.metadata?.['Port Of Loading'] ||
                 row.origin_port ||
                 value || '-';
         }
@@ -108,10 +108,10 @@ const TABLE_COLUMNS = [
                     row.destination_port ||
                     value || '-';
             }
-            // Per SEA: usa Destination Port
+            // Per SEA: usa Port Of Discharge
             return row.port_of_discharge ||
                 row.metadata?.port_of_discharge ||
-                row.metadata?.['Destination Port'] ||
+                row.metadata?.['Port Of Discharge'] ||
                 row.destination_port ||
                 value || '-';
         }

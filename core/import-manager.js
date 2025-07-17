@@ -713,7 +713,7 @@
     
     // Fallback alla detection esistente
     if (row['AWB Number'] || row['Airline']) return 'awb';
-    if (row['Container'] || row['Origin Port']) return 'container';
+    if (row['Container'] || row['Port Of Loading']) return 'container';
     return 'container';
 }
         

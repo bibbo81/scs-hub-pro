@@ -25,11 +25,11 @@ window.TrackingUnifiedMapping = {
         'Current Status': 'current_status',
         
         // Ports
-        'Origin Port': 'origin_port',
+        'Port Of Loading': 'origin_port',
         'PortOfLoading': 'origin_port',
         'Pol': 'origin_port',
         'POL': 'origin_port',
-        'Destination Port': 'destination_port',
+        'Port Of Discharge': 'destination_port',
         'PortOfDischarge': 'destination_port',
         'Pod': 'destination_port',
         'POD': 'destination_port',

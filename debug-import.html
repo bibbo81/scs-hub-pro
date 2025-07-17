@@ -185,8 +185,8 @@
                     eta: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
                     metadata: {
                         source: 'debug_test',
-                        origin_port: 'Shanghai',
-                        destination_port: 'Rotterdam'
+                        pol: 'Shanghai',
+                        pod: 'Rotterdam'
                     }
                 };
                 
@@ -225,8 +225,8 @@
                     last_event_location: 'SHANGHAI',
                     metadata: {
                         source: 'shipsgo_import',
-                        origin_port: 'SHANGHAI',
-                        destination_port: 'ROTTERDAM',
+                        pol: 'SHANGHAI',
+                        pod: 'ROTTERDAM',
                         loading_date: '2024-12-01T00:00:00.000Z',
                         discharge_date: '2024-12-25T00:00:00.000Z',
                         co2_emissions: 1.5,
@@ -275,8 +275,8 @@
                     Container: 'MSKU' + Math.floor(Math.random() * 9000000 + 1000000),
                     Carrier: 'MAERSK LINE',
                     Status: 'In Transit',
-                    'Origin Port': 'SHANGHAI',
-                    'Destination Port': 'ROTTERDAM',
+                    'Port Of Loading': 'SHANGHAI',
+                    'Port Of Discharge': 'ROTTERDAM',
                     'Date Of Loading': '01/12/2024',
                     'Date Of Discharge': '25/12/2024',
                     Reference: 'PO-2024-' + Math.floor(Math.random() * 1000),
@@ -297,15 +297,15 @@
                     reference_number: shipsGoData.Reference,
                     created_at: new Date().toISOString(),
                     updated_at: new Date().toISOString(),
-                    origin_port: shipsGoData['Origin Port'],
-                    destination_port: shipsGoData['Destination Port'],
+                    origin_port: shipsGoData['Port Of Loading'],
+                    destination_port: shipsGoData['Port Of Discharge'],
                     eta: new Date('2024-12-25').toISOString(),
                     last_event_date: new Date().toISOString(),
-                    last_event_location: shipsGoData['Origin Port'],
+                    last_event_location: shipsGoData['Port Of Loading'],
                     metadata: {
                         source: 'shipsgo_import',
-                        origin_port: shipsGoData['Origin Port'],
-                        destination_port: shipsGoData['Destination Port'],
+                        pol: shipsGoData['Port Of Loading'],
+                        pod: shipsGoData['Port Of Discharge'],
                         loading_date: new Date('2024-12-01').toISOString(),
                         discharge_date: new Date('2024-12-25').toISOString(),
                         co2_emissions: parseFloat(shipsGoData['CO₂ Emission (Tons)']),

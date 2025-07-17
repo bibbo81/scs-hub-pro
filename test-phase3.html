@@ -521,13 +521,13 @@
         
         // Test 3: Workflow
         async function testWorkflow() {
-            const tracking_number = document.getElementById('test-container').value.trim().toUpperCase();
-            if (!tracking_number) {
+            const containerNumber = document.getElementById('test-container').value.trim().toUpperCase();
+            if (!containerNumber) {
                 alert('Inserisci un numero di container');
                 return;
             }
             
-            log(`Starting workflow test for container: ${tracking_number}`);
+            log(`Starting workflow test for container: ${containerNumber}`);
             updateStatus('workflow-status', 'pending', 'Testing workflow...');
             document.getElementById('workflow-result').innerHTML = '';
             
@@ -544,7 +544,7 @@
                         contentType: 'application/x-www-form-urlencoded',
                         data: {
                             authCode: '2dc0c6d92ccb59e7d903825c4ebeb521', // Demo key
-                            tracking_number: tracking_number,
+                            containerNumber: containerNumber,
                             shippingLine: 'OTHERS'
                         }
                     })
@@ -553,7 +553,7 @@
                 const postResult = await postResponse.json();
                 log(`POST Result: ${JSON.stringify(postResult)}`, postResult.success ? 'success' : 'error');
                 
-                let requestId = tracking_number;
+                let requestId = containerNumber;
                 
                 if (postResult.success) {
                     // Extract requestId if available
@@ -606,7 +606,7 @@
                     showResult('workflow-result', {
                         workflow: 'POST → GET Success',
                         requestId: requestId,
-                        tracking_number: tracking_number,
+                        container: containerNumber,
                         data: containerData
                     });
                     log(`✅ Workflow completed successfully`, 'success');
@@ -631,7 +631,7 @@
             log('Testing ALREADY_EXISTS error handler...');
             if (window.TrackingErrorHandler) {
                 window.TrackingErrorHandler.showError('ALREADY_EXISTS', {
-                    tracking_number: 'MSKU1234567',
+                    trackingNumber: 'MSKU1234567',
                     requestId: '5051594',
                     details: 'Container MSKU1234567 already exists with requestId: 5051594'
                 });
@@ -647,7 +647,7 @@
             log('Testing INVALID_FORMAT error handler...');
             if (window.TrackingErrorHandler) {
                 window.TrackingErrorHandler.showError('INVALID_FORMAT', {
-                    tracking_number: 'INVALID123',
+                    trackingNumber: 'INVALID123',
                     details: 'The tracking number INVALID123 is not in a recognized format'
                 });
                 updateStatus('format-status', 'success', '✅ Shown');
@@ -699,7 +699,7 @@
                             workflow.updateStep('step-fetch', 'success', 'Data retrieved');
                             workflow.showResult({
                                 success: true,
-                                tracking_number: 'TEST123456',
+                                containerNumber: 'TEST123456',
                                 requestId: '12345',
                                 status: 'In Transit',
                                 vessel: 'MSC OSCAR'

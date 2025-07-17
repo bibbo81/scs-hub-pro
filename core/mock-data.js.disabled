@@ -40,8 +40,8 @@
                     metadata: {
                         vessel_name: 'MAERSK SENTOSA',
                         voyage: 'W42',
-                        origin_port: 'SHANGHAI',
-                        destination_port: 'ROTTERDAM',
+                        pol: 'SHANGHAI',
+                        pod: 'ROTTERDAM',
                         timeline_events: [
                             {
                                 date: new Date(now - 10 * 24 * 60 * 60 * 1000).toISOString(),
@@ -91,8 +91,8 @@
                     metadata: {
                         vessel_name: 'MSC OSCAR',
                         voyage: 'AA123W',
-                        origin_port: 'NINGBO',
-                        destination_port: 'GENOVA',
+                        pol: 'NINGBO',
+                        pod: 'GENOVA',
                         timeline_events: [
                             {
                                 date: new Date(now - 20 * 24 * 60 * 60 * 1000).toISOString(),

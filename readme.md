@@ -45,8 +45,7 @@ In today's global supply chain, **visibility is everything**. Lost shipments, de
 
 ### 📄 Tracking object format
 
-Trackings share a common structure across the project. See `core/typedefs.d.ts` for the base
-`TrackingLike` definition used throughout the codebase.
+Trackings share a common structure across the project. See `core/typedefs.d.ts` for all fields.
 
 ```js
 /** @type {TrackingLike} */
@@ -54,7 +53,6 @@ const example = {
     tracking_number: 'MSKU1234567',
     tracking_type: 'container',
     origin_port: 'SHANGHAI',
-    destination_port: 'ROTTERDAM',
     origin_country: 'CN',
     eta: '2025-07-20'
 };
@@ -139,22 +137,6 @@ Set them in **Site settings → Environment variables**. Functions like `netlify
 Real‑time features use WebSocket connections to the Supabase URL. Make sure outbound WebSocket traffic is allowed; otherwise the application will fall back to HTTP-only APIs.
 
 Develop locally with **Node.js v18** to match `.nvmrc` (run `nvm use` if available).
-
-## 🛠 Rename fields script
-
-Run `scripts/rename-fields.js` after pulling updates to keep field names consistent:
-
-```bash
-node scripts/rename-fields.js
-```
-
-The script scans the project (excluding `node_modules`, `.history` and `.git`) and
-replaces the old field names:
-
-- `pol` → `origin_port`
-- `pod` → `destination_port`
-- `Port Of Loading` → `Origin Port`
-- `Port Of Discharge` → `Destination Port`
 
 ## 🛡 Security notes
 

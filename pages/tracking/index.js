@@ -1,35 +1,12 @@
 // index.js - Clean tracking page logic with all mappings
 import TableManager from '/core/table-manager.js';
-import { trackingsColumns, formatDate, formatDateOnly } from '/core/table-config.js';
+import { trackingsColumns, formatDate, formatDateOnly, formatTrackingStatus } from '/core/table-config.js';
 
 // State
 let trackings = [];
 let filteredTrackings = [];
 let tableManager = null;
 
-
-// Wait utility functions with retry limits
-function waitForGlobal(name, maxRetries = 10, delay = 250) {
-    const retries = maxRetries;
-    return new Promise(resolve => {
-        const check = () => {
-            const parts = name.split('.');
-            let obj = window;
-            for (const p of parts) {
-                obj = obj ? obj[p] : undefined;
-            }
-            if (obj !== undefined) {
-                resolve(true);
-            } else if (maxRetries-- > 0) {
-                setTimeout(check, delay);
-            } else {
-                console.error(`servizio non disponibile dopo ${retries} tentativi`);
-                resolve(false);
-            }
-        };
-        check();
-    });
-}
 // Column mapping for import/export compatibility
 const COLUMN_MAPPING = {
     'Container': 'tracking_number',
@@ -45,11 +22,11 @@ const COLUMN_MAPPING = {
     'Status': 'current_status',
     'CurrentStatus': 'current_status',
     'Current Status': 'current_status',
-    'Origin Port': 'origin_port',
+    'Port Of Loading': 'origin_port',
     'Pol': 'origin_port',
     'POL': 'origin_port',
     'Origin': 'origin_port',
-    'Destination Port': 'destination_port',
+    'Port Of Discharge': 'destination_port',
     'Pod': 'destination_port',
     'POD': 'destination_port',
     'Destination': 'destination_port',
@@ -193,13 +170,15 @@ const DEFAULT_VISIBLE_COLUMNS = [
     'last_update'
 ];
 
-// Column configuration for table comes from table-columns-legacy.js
+// Column configuration for table
+const TABLE_COLUMNS = trackingsColumns;
+
+// Formatters provided by table-config.js
 
 // Initialize
 document.addEventListener('DOMContentLoaded', async () => {
     console.log('🚀 Initializing tracking page...');
-    await waitForGlobal('trackingService', 20);
-
+    
     try {
         // Hide loading state
         document.getElementById('loadingState').style.display = 'none';
@@ -247,26 +226,18 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         }
         
-        if (!window.trackingService) {
-            console.warn("trackingService non inizializzato");
-            return;
-        }
-        await waitForGlobal("trackingService");
-        console.log("🔧 Initializing tracking service...");
-            try {
-                const initialized = await window.trackingService.initialize();
-                if (initialized) {
-                    console.log('✅ Tracking service initialized with org API keys');
-
-                    // Debug: check API configuration
-                    if (window.trackingService.hasApiKeys()) {
-                        console.log('✅ ShipsGo API keys loaded from organization');
-                    } else {
-                        console.warn('⚠️ No ShipsGo API keys found');
-                    }
+        if (window.trackingService) {
+            console.log('🔧 Initializing tracking service...');
+            const initialized = await window.trackingService.initialize();
+            if (initialized) {
+                console.log('✅ Tracking service initialized with org API keys');
+                
+                // Debug: check API configuration
+                if (window.trackingService.hasApiKeys()) {
+                    console.log('✅ ShipsGo API keys loaded from organization');
+                } else {
+                    console.warn('⚠️ No ShipsGo API keys found');
                 }
-            } catch (error) {
-                console.error('Error initializing tracking service:', error, error?.stack);
             }
         } else {
             console.warn('⚠️ Tracking service not available');
@@ -299,7 +270,7 @@ document.addEventListener('click', function(e) {
         console.log('✅ Checkbox event delegation added');
         
     } catch (error) {
-        console.error('❌ Initialization error:', error, error?.stack);
+        console.error('❌ Initialization error:', error);
         showError('Errore durante l\'inizializzazione');
     }
 });
@@ -345,14 +316,13 @@ async function loadTrackings() {
                 }
             ];
         }
-
-        console.log(`[DEBUG] Tracking caricati: ${trackings.length}`, trackings);
+        
         filteredTrackings = [...trackings];
         updateTable();
         updateStats();
         
     } catch (error) {
-        console.error('Error loading trackings:', error, error?.stack);
+        console.error('Error loading trackings:', error);
         showError('Errore nel caricamento dei tracking');
     }
 }
@@ -372,70 +342,39 @@ function detectTrackingType(trackingNumber) {
 
 // Update table
 function updateTable() {
-    try {
-        const tableBody = document.querySelector('#tracking-table tbody');
-
-        if (!window.trackingService) {
-            if (tableBody) {
-                tableBody.innerHTML = '<tr><td colspan="99">Tracking Service non disponibile</td></tr>';
-            }
-            return;
-        }
-
-        if (!window.tableManager) {
-            if (tableBody) {
-                tableBody.innerHTML = '<tr><td colspan="99">Table Manager non disponibile</td></tr>';
-            }
-            return;
-        }
-
+    if (tableManager) {
+        tableManager.setData(filteredTrackings);
+        
+        // Show/hide empty state
+        const emptyState = document.getElementById('emptyState');
+        const tableContainer = document.getElementById('trackingTableContainer');
+        
         if (filteredTrackings.length === 0) {
-            if (tableBody) {
-                tableBody.innerHTML = '<tr><td colspan="99">Nessun tracking trovato</td></tr>';
-            }
-            return;
+            emptyState.style.display = 'block';
+            tableContainer.style.display = 'none';
+        } else {
+            emptyState.style.display = 'none';
+            tableContainer.style.display = 'block';
         }
-
-        if (tableManager) {
-            tableManager.setData(filteredTrackings);
-
-            // Show/hide empty state
-            const emptyState = document.getElementById('emptyState');
-            const tableContainer = document.getElementById('trackingTableContainer');
-
-            if (filteredTrackings.length === 0) {
-                emptyState.style.display = 'block';
-                tableContainer.style.display = 'none';
-            } else {
-                emptyState.style.display = 'none';
-                tableContainer.style.display = 'block';
-            }
-        }
-    } catch (error) {
-        console.error('Error updating table:', error, error?.stack);
     }
 }
 
 // Update statistics
 function updateStats() {
-    try {
-        const stats = {
-            total: trackings.length,
-            delivered: trackings.filter(t => t.current_status === 'delivered').length,
-            inTransit: trackings.filter(t => t.current_status === 'in_transit').length,
-            exception: trackings.filter(t =>
-                t.current_status === 'exception' ||
-                t.current_status === 'delayed'
-            ).length
-        };
-
-        document.getElementById('totalTrackings').textContent = stats.total;
-        document.getElementById('deliveredCount').textContent = stats.delivered;
-        document.getElementById('inTransitCount').textContent = stats.inTransit;
-        document.getElementById('exceptionCount').textContent = stats.exception;
-    } catch (error) {
-        console.error('Error updating stats:', error, error?.stack);
-    }
+    const stats = {
+        total: trackings.length,
+        delivered: trackings.filter(t => t.current_status === 'delivered').length,
+        inTransit: trackings.filter(t => t.current_status === 'in_transit').length,
+        exception: trackings.filter(t => 
+            t.current_status === 'exception' || 
+            t.current_status === 'delayed'
+        ).length
+    };
+    
+    document.getElementById('totalTrackings').textContent = stats.total;
+    document.getElementById('deliveredCount').textContent = stats.delivered;
+    document.getElementById('inTransitCount').textContent = stats.inTransit;
+    document.getElementById('exceptionCount').textContent = stats.exception;
 }
 
 // Handle selection change
@@ -454,53 +393,49 @@ function handleSelectionChange(selected) {
 
 // Setup event listeners
 function setupEventListeners() {
-    try {
-        // Search
-        const searchInput = document.getElementById('searchInput');
-        if (searchInput) {
-            searchInput.addEventListener('input', (e) => {
-                const term = e.target.value.toLowerCase();
-                filteredTrackings = trackings.filter(t =>
-                    t.tracking_number?.toLowerCase().includes(term) ||
-                    t.carrier_name?.toLowerCase().includes(term) ||
-                    t.origin_port?.toLowerCase().includes(term) ||
-                    t.destination_port?.toLowerCase().includes(term) ||
-                    t.reference?.toLowerCase().includes(term)
-                );
-                updateTable();
-
-            });
-        }
-
-        // Filters
-        document.getElementById('statusFilter')?.addEventListener('change', applyFilters);
-        document.getElementById('carrierFilter')?.addEventListener('change', applyFilters);
-
-        // Global functions
-        window.refreshTracking = refreshTracking;
-        window.viewDetails = viewDetails;
-        window.deleteTracking = deleteTracking;
-        window.showAddTrackingForm = showAddTrackingForm;
-        window.showImportDialog = showImportDialog;
-        window.exportData = exportData;
-        window.resetFilters = resetFilters;
-        window.toggleSelectAll = toggleSelectAll;
-        window.performBulkAction = performBulkAction;
-
-        // Export mappings for other modules
-        window.COLUMN_MAPPING = COLUMN_MAPPING;
-        window.STATUS_DISPLAY = STATUS_DISPLAY;
-        window.getStatusMapping = getStatusMapping;
-        window.updateBulkActionsBar = function() {
-            // Delega a handleSelectionChange che già esiste
-            if (tableManager) {
-                const selected = tableManager.getSelectedRows();
-                handleSelectionChange(selected);
-            }
-        };
-    } catch (error) {
-        console.error('Error setting up event listeners:', error, error?.stack);
+    // Search
+    const searchInput = document.getElementById('searchInput');
+    if (searchInput) {
+        searchInput.addEventListener('input', (e) => {
+            const term = e.target.value.toLowerCase();
+            filteredTrackings = trackings.filter(t => 
+                t.tracking_number?.toLowerCase().includes(term) ||
+                t.carrier_name?.toLowerCase().includes(term) ||
+                t.origin_port?.toLowerCase().includes(term) ||
+                t.destination_port?.toLowerCase().includes(term) ||
+                t.reference?.toLowerCase().includes(term)
+            );
+            updateTable();
+        
+        });
     }
+    
+    // Filters
+    document.getElementById('statusFilter')?.addEventListener('change', applyFilters);
+    document.getElementById('carrierFilter')?.addEventListener('change', applyFilters);
+    
+    // Global functions
+    window.refreshTracking = refreshTracking;
+    window.viewDetails = viewDetails;
+    window.deleteTracking = deleteTracking;
+    window.showAddTrackingForm = showAddTrackingForm;
+    window.showImportDialog = showImportDialog;
+    window.exportData = exportData;
+    window.resetFilters = resetFilters;
+    window.toggleSelectAll = toggleSelectAll;
+    window.performBulkAction = performBulkAction;
+    
+    // Export mappings for other modules
+    window.COLUMN_MAPPING = COLUMN_MAPPING;
+    window.STATUS_DISPLAY = STATUS_DISPLAY;
+    window.getStatusMapping = getStatusMapping;
+ window.updateBulkActionsBar = function() {
+        // Delega a handleSelectionChange che già esiste
+        if (tableManager) {
+            const selected = tableManager.getSelectedRows();
+            handleSelectionChange(selected);
+        }
+    };
 }
 
 function showColumnEditor() {
@@ -790,7 +725,7 @@ function getStatusMapping() {
         // Altri stati
         'empty': 'delivered',
         'empty returned': 'delivered',
-        'destination_port': 'delivered',
+        'pod': 'delivered',
         'registered': 'registered',
         'pending': 'registered',
         'booked': 'registered',
@@ -816,29 +751,25 @@ async function refreshTracking(id) {
     window.NotificationSystem?.info('Aggiornamento tracking...');
     
     try {
+        // Check if tracking service is available and initialized
         if (!window.trackingService) {
-            console.warn("trackingService non inizializzato");
-            return;
-        }
-        if (!window.trackingService.track) {
-            console.log("Initializing tracking service...");
-            const script = document.createElement("script");
-            script.src = "/core/services/tracking-service.js";
-            script.type = "module";
+            console.log('Initializing tracking service...');
+            // Try to load tracking service
+            const script = document.createElement('script');
+            script.src = '/core/services/tracking-service.js';
+            script.type = 'module';
             document.head.appendChild(script);
-            await waitForGlobal("trackingService.track");
+            
+            // Wait for it to load
+            await new Promise(resolve => setTimeout(resolve, 1000));
         }
-
+        
         if (window.trackingService && window.trackingService.track) {
             // Initialize if needed
             if (!window.trackingService.initialized) {
                 await window.trackingService.initialize();
             }
             
-            if (!window.trackingService) {
-                console.warn("trackingService non inizializzato");
-                return;
-            }
             // Use tracking service with ShipsGo API
             const result = await window.trackingService.track(
                 tracking.tracking_number, 

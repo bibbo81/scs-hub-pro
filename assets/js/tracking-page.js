@@ -82,7 +82,6 @@ class TrackingPage {
             if (loadingEl) loadingEl.style.display = 'block';
 
             const trackings = await dataManager.getTrackings(this.filters);
-            console.log(`[DEBUG] Tracking caricati: ${trackings.length}`, trackings);
             this.renderTrackings(trackings);
 
             // Update stats

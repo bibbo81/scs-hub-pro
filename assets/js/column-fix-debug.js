@@ -8,19 +8,11 @@
     
     // Aspetta che il sistema tracking sia caricato
     function waitForTrackingSystem() {
-        waitForTrackingSystem.retryCount = waitForTrackingSystem.retryCount || 0;
-        if (waitForTrackingSystem.retryCount >= 10) {
-            console.error(`servizio non disponibile dopo ${waitForTrackingSystem.retryCount} tentativi`);
-            return;
-        }
-
         if (typeof window.getColumnFormatter === 'function') {
             console.log('✅ Tracking system found, applying fixes...');
-            waitForTrackingSystem.retryCount = 0;
             applyColumnFixes();
         } else {
             console.log('⏳ Waiting for tracking system...');
-            waitForTrackingSystem.retryCount++;
             setTimeout(waitForTrackingSystem, 500);
         }
     }
