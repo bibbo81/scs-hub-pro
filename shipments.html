@@ -5358,12 +5358,14 @@ document.addEventListener('DOMContentLoaded', async () => {
             console.log('✅ Product Linking System: OK');
         } else {
             console.error('❌ Product Linking System: NON INIZIALIZZATO');
+            // La notifica viene già mostrata dal sistema stesso se fallisce
         }
-        
-        if (window.productDataSync?.initialized) {
-            console.log('✅ Product Data Sync: OK');
-        } else {
-            console.warn('⚠️ Product Data Sync: Non attivo (normale se non in products)');
+
+        const isSyncActive = window.productDataSync && window.productDataSync.isActive;
+        // ATTIVAZIONE: Assicuriamo che il product sync sia attivo anche qui
+        if (window.productDataSync && !window.productDataSync.isActive) {
+            console.log('🚀 Attivazione forzata di Product Data Sync per la pagina spedizioni...');
+            window.productDataSync.start();
         }
     }, 3000);
 });
