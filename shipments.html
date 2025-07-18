@@ -1,29 +1,16 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="it">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Shipments</title>
-
-  <!-- Fogli di stile -->
-  <link rel="stylesheet" href="/styles/reset.css" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gestione Spedizioni</title>
   <link rel="stylesheet" href="/pages/shipments/shipments.css" />
-  <link rel="stylesheet" href="/solarium.css" />
-
-  <!-- Librerie (es. se usi qualcosa tipo dayjs o chart.js) -->
-  <script src="https://cdn.jsdelivr.net/npm/dayjs@1/dayjs.min.js"></script>
 </head>
-
 <body>
-  <!-- Header generico -->
-  <div id="app-header"></div>
+  <div id="shipments-app">Caricamento...</div>
 
-  <!-- Contenuto principale Shipments -->
-  <main id="shipments-app">
-    <!-- Caricamento dinamico via JS -->
-  </main>
-
-  <!-- Script principale -->
+  <!-- Dipendenze condivise -->
+  <script type="module" src="/components/header-component.js"></script>
   <script type="module" src="/pages/shipments/index.js"></script>
 </body>
 </html>

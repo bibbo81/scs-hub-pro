@@ -1,15 +1,29 @@
-import React, { useState } from "react";
-import KPIHeader from "./components/KPIHeader";
-import ShipmentsTabs from "./components/Tabs/ShipmentsTabs";
-import "./shipments.css"; // importa anche solarium.css se non incluso altrove
+import { renderKPIHeader } from './components/KPIHeader.js';
+import { renderShipmentsTableFilters } from './components/ShipmentsTableFilters.js';
+import { renderShipmentsTable } from './components/ShipmentsTable.js';
+import { getShipmentsForOrganization } from '../../services/shipmentsService.js';
+import { getCurrentUserWithOrganization } from '../../services/authService.js';
 
-export default function ShipmentsPage() {
-  const [activeTab, setActiveTab] = useState("registry");
+const app = document.getElementById('shipments-app');
 
-  return (
-    <main className="shipments-page">
-      <KPIHeader />
-      <ShipmentsTabs activeTab={activeTab} setActiveTab={setActiveTab} />
-    </main>
-  );
+async function initializeShipmentsPage() {
+  try {
+    const { user, organization_id } = await getCurrentUserWithOrganization();
+    if (!user || !organization_id) {
+      app.innerHTML = '<p>Errore di autenticazione. Riprova.</p>';
+      return;
+    }
+
+    const shipments = await getShipmentsForOrganization(organization_id);
+
+    // Render dei componenti
+    app.appendChild(renderKPIHeader(shipments));
+    app.appendChild(renderShipmentsTableFilters(shipments));
+    app.appendChild(renderShipmentsTable(shipments));
+  } catch (error) {
+    console.error('Errore durante il caricamento della pagina shipments:', error);
+    app.innerHTML = '<p>Si è verificato un errore durante il caricamento dei dati.</p>';
+  }
 }
+
+initializeShipmentsPage();
