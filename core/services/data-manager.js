@@ -158,6 +158,35 @@ class DataManager {
         }
         return await ShipmentsService.getShipmentsByOrganization(this.organizationId);
     }
+
+    /**
+     * Elimina un tracking (e la shipment correlata, se esiste)
+     * @param {string} trackingId
+     */
+    async deleteTracking(trackingId) {
+        if (!this.initialized) {
+            throw new Error('DataManager not initialized');
+        }
+
+        // 1. (opzionale ma consigliato) Elimina la shipment collegata
+        try {
+            await ShipmentsService.deleteShipmentByTrackingId(trackingId);
+        } catch (err) {
+            // Silenzia l'errore se la shipment non esiste, mostra solo se vuoi debug
+            // console.warn('Nessuna shipment collegata trovata:', err);
+        }
+
+        // 2. Elimina il tracking vero e proprio
+        const { error } = await supabase
+            .from('trackings')
+            .delete()
+            .eq('id', trackingId)
+            .eq('organization_id', this.organizationId); // Sicurezza extra
+
+        if (error) throw error;
+
+        return true;
+    }
 }
 
 // Export

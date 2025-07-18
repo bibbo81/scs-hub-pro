@@ -110,6 +110,20 @@ const ShipmentsService = {
       console.error('Errore nella cancellazione della spedizione:', error);
       throw error;
     }
+  },
+
+  /**
+   * Elimina le spedizioni associate a un tracking_id.
+   * @param {string} trackingId
+   */
+  async deleteShipmentByTrackingId(trackingId) {
+    if (!trackingId) return;
+    const { error } = await supabase
+      .from(TABLE_NAME)
+      .delete()
+      .eq('tracking_id', trackingId);
+
+    if (error) throw error;
   }
 };
 

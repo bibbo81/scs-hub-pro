@@ -937,8 +937,9 @@ async function deleteTracking(id) {
     if (!confirm('Eliminare questo tracking?')) return;
     
     try {
-        if (window.supabaseTrackingService) {
-            await window.supabaseTrackingService.deleteTracking(id);
+        // Usa il dataManager per eliminare tracking e spedizione associata
+        if (window.dataManager) {
+            await window.dataManager.deleteTracking(id);
         }
         
         trackings = trackings.filter(t => t.id !== id);
@@ -1369,8 +1370,8 @@ async function performBulkAction(action) {
                 let deleted = 0;
                 for (const row of selected) {
                     try {
-                        if (window.supabaseTrackingService) {
-                            await window.supabaseTrackingService.deleteTracking(row.id);
+                        if (window.dataManager) {
+                            await window.dataManager.deleteTracking(row.id);
                         }
                         deleted++;
                     } catch (error) {
