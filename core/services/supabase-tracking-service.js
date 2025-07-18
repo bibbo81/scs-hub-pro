@@ -55,25 +55,15 @@ class SupabaseTrackingService {
             // Prepara i dati per Supabase
             const supabaseData = this.prepareForSupabase(trackingData, user.id);
 
-            // Usa l'utility per gestire eventuali duplicati
-            const result = await trackingUpsertUtility.insertTrackingReplacingDeleted(supabaseData);
+            // Upsert semplice del tracking
+            const data = await trackingUpsertUtility.upsertTracking(supabaseData);
 
-            if (result.skipped) {
-                console.log('⏭️ Tracking creation skipped - active record already exists:', result.existingId);
-                // Return the existing record
-                return await this.getTracking(result.existingId);
-            }
+            console.log('✅ Tracking upserted in Supabase:', data.id);
 
-            if (result.inserted) {
-                console.log('✅ Tracking created in Supabase:', result.data.id);
-                
-                // Aggiorna anche localStorage per backward compatibility
-                this.updateLocalStorage('create', result.data);
-                
-                return result.data;
-            }
+            // Aggiorna anche localStorage per backward compatibility
+            this.updateLocalStorage('create', data);
 
-            throw new Error('Unexpected result from insertTrackingReplacingDeleted');
+            return data;
 
         } catch (error) {
             console.error('❌ Error creating tracking:', error);
@@ -402,22 +392,17 @@ class SupabaseTrackingService {
                 this.prepareForSupabase(tracking, user.id)
             );
 
-            // Usa l'utility per l'inserimento batch gestendo i duplicati
-            const results = await trackingUpsertUtility.batchInsertTrackingsReplacingDeleted(supabaseData);
+            // Upsert di tutti i tracking
+            const inserted = await trackingUpsertUtility.batchUpsertTrackings(supabaseData);
 
-            console.log(`✅ Migration completed: ${results.inserted} inserted, ${results.skipped} skipped, ${results.errors} errors`);
+            console.log(`✅ Migration completed: ${inserted.length} records processed`);
 
-            // Opzionale: pulisci localStorage dopo migrazione riuscita
-            // if (results.inserted > 0 && results.errors === 0) {
-            //     localStorage.removeItem('trackings');
-            // }
-
-            return { 
-                success: true, 
-                migrated: results.inserted,
-                skipped: results.skipped,
-                errors: results.errors,
-                details: results.details
+            return {
+                success: true,
+                migrated: inserted.length,
+                skipped: 0,
+                errors: 0,
+                details: inserted
             };
 
         } catch (error) {
