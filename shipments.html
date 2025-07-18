@@ -67,7 +67,7 @@
 
   <!-- Tabella Interattiva -->
   <script type="module">
-    import { fetchShipments } from '/pages/shipments/shipments-service.js';
+    import * as shipmentsService from '/core/services/shipments-service.js';
 
     const table = new Tabulator("#shipments-table", {
       height: "600px",
@@ -88,8 +88,11 @@
       ]
     });
 
-    const user = await dataManager.getCurrentUser();
-    const shipments = await dataManager.getShipments();
+    // Attendi che il dataManager sia pronto per avere l'organizationId
+    await new Promise(resolve => window.dataManager.initialized ? resolve() : window.addEventListener('dataManagerReady', resolve, { once: true }));
+
+    // Usa il servizio importato per caricare le spedizioni
+    const shipments = await shipmentsService.default.getShipmentsByOrganization(window.dataManager.organizationId);
 
     table.setData(shipments);
 
