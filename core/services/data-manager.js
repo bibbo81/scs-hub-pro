@@ -68,27 +68,9 @@ class DataManager {
             updated_at: new Date().toISOString()
         };
         
-        // Usa l'utility per gestire eventuali duplicati
-        const result = await trackingUpsertUtility.insertTrackingReplacingDeleted(dataWithOrg);
-        
-        if (result.skipped) {
-            console.log('⏭️ Tracking creation skipped - active record already exists:', result.existingId);
-            // Get the existing record
-            const { data: existingTracking, error } = await supabase
-                .from('trackings')
-                .select('*')
-                .eq('id', result.existingId)
-                .single();
-            
-            if (error) throw error;
-            return { tracking: existingTracking };
-        }
-
-        if (result.inserted) {
-            return { tracking: result.data };
-        }
-
-        throw new Error('Unexpected result from insertTrackingReplacingDeleted');
+        // Upsert semplice del tracking
+        const tracking = await trackingUpsertUtility.upsertTracking(dataWithOrg);
+        return { tracking };
     }
     /**
      * Crea tracking e spedizione correlata.
@@ -111,25 +93,7 @@ class DataManager {
                 updated_at: timestamp
             };
 
-            const result = await trackingUpsertUtility.insertTrackingReplacingDeleted(dataWithOrg);
-            
-            let tracking;
-            if (result.skipped) {
-                console.log('⏭️ Tracking creation skipped - active record already exists:', result.existingId);
-                // Get the existing record
-                const { data: existingTracking, error } = await supabase
-                    .from('trackings')
-                    .select('*')
-                    .eq('id', result.existingId)
-                    .single();
-                
-                if (error) throw error;
-                tracking = existingTracking;
-            } else if (result.inserted) {
-                tracking = result.data;
-            } else {
-                throw new Error('Unexpected result from insertTrackingReplacingDeleted');
-            }
+            const tracking = await trackingUpsertUtility.upsertTracking(dataWithOrg);
 
             // 2. Inserimento della spedizione correlata usando ShipmentsService
             const shipmentPayload = {
