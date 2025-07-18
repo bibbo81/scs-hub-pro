@@ -49,28 +49,6 @@ class SupabaseTrackingService {
 
     async createTracking(trackingData) {
     try {
-        // FIX DATES - AGGIUNGI QUESTE RIGHE
-        if (trackingData.created_at && typeof trackingData.created_at === 'string' && trackingData.created_at.includes('/')) {
-            const [datePart, timePart] = trackingData.created_at.split(' ');
-            const [day, month, year] = datePart.split('/');
-            if (timePart) {
-                const [hours, minutes, seconds] = timePart.split(':');
-                trackingData.created_at = new Date(year, month - 1, day, hours, minutes, seconds).toISOString();
-            } else {
-                trackingData.created_at = new Date(year, month - 1, day).toISOString();
-            }
-        }
-        
-        if (trackingData.updated_at && typeof trackingData.updated_at === 'string' && trackingData.updated_at.includes('/')) {
-            const [datePart, timePart] = trackingData.updated_at.split(' ');
-            const [day, month, year] = datePart.split('/');
-            if (timePart) {
-                const [hours, minutes, seconds] = timePart.split(':');
-                trackingData.updated_at = new Date(year, month - 1, day, hours, minutes, seconds).toISOString();
-            } else {
-                trackingData.updated_at = new Date(year, month - 1, day).toISOString();
-            }
-        }
             // Ottieni user_id corrente
             const user = await this.getCurrentUser();
             if (!user) throw new Error('User not authenticated');
