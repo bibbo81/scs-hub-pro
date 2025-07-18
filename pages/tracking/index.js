@@ -934,7 +934,7 @@ function viewDetails(id) {
 }
 
 async function deleteTracking(id) {
-    if (!confirm('Eliminare questo tracking?')) return;
+    if (!confirm('⚠️ Questa operazione eliminerà anche la spedizione collegata. Procedere?')) return;
     
     try {
         // Usa il dataManager per eliminare tracking e spedizione associata
@@ -1364,8 +1364,10 @@ async function performBulkAction(action) {
             break;
             
         case 'delete':
-            if (confirm(`Eliminare ${selected.length} tracking?`)) {
-                window.NotificationSystem?.info('Eliminazione in corso...');
+            if (!confirm('⚠️ Questa operazione eliminerà anche la spedizione collegata. Procedere?')) {
+                break;
+            }
+            window.NotificationSystem?.info('Eliminazione in corso...');
                 
                 let deleted = 0;
                 for (const row of selected) {
