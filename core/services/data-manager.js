@@ -1,6 +1,7 @@
 // Data Manager per sincronizzazione Tracking-Shipments con Supabase
 /// <reference path="../typedefs.d.ts" />
 import { supabase } from './supabase-client.js';
+import ShipmentsService from './shipments-service.js';
 
 class DataManager {
     constructor() {
@@ -104,27 +105,21 @@ class DataManager {
 
             if (trackErr) throw trackErr;
 
-        // 2. Inserimento della spedizione correlata con tracking_number
-        const { data: shipment, error: shipErr } = await supabase
-            .from('shipments')
-            .insert([
-                {
-                    tracking_id: tracking.id,
-                    tracking_number: tracking.tracking_number,
-                    status: tracking.status,
-                    carrier_name: tracking.carrier_code,
-                    auto_created: true,
-                    products: null,
-                    organization_id: this.organizationId,
-                    user_id: this.userId,
-                    created_at: timestamp,
-                    updated_at: timestamp
-                }
-            ])
-                .select()
-                .single();
+            // 2. Inserimento della spedizione correlata usando ShipmentsService
+            const shipmentPayload = {
+                tracking_id: tracking.id,
+                tracking_number: tracking.tracking_number,
+                status: tracking.status,
+                carrier_name: tracking.carrier_name || tracking.carrier_code,
+                auto_created: true,
+                products: null,
+                organization_id: this.organizationId,
+                user_id: this.userId,
+                created_at: timestamp,
+                updated_at: timestamp
+            };
 
-            if (shipErr) throw shipErr;
+            const shipment = await ShipmentsService.createShipment(shipmentPayload);
 
             console.log('✅ Tracking and shipment created:', { trackingId: tracking.id, shipmentId: shipment.id });
 
@@ -134,7 +129,7 @@ class DataManager {
             throw error;
         }
     }
-    
+
     async getTrackings(filters = {}) {
         if (!this.initialized) {
             throw new Error('DataManager not initialized');
@@ -156,30 +151,12 @@ class DataManager {
 
         return data || [];
     }
-    
-    async getShipments(filters = {}) {
+
+    async getShipments() {
         if (!this.initialized) {
             throw new Error('DataManager not initialized');
         }
-        
-        let query = supabase
-            .from('shipments')
-            .select(`
-                *,
-                tracking:tracking_id (
-                    tracking_number,
-                    carrier,
-                    status,
-                    last_event_description
-                )
-            `)
-            .eq('organization_id', this.organizationId) // DINAMICO
-            .order('created_at', { ascending: false });
-            
-        const { data, error } = await query;
-        if (error) throw error;
-        
-        return data || [];
+        return await ShipmentsService.getShipmentsByOrganization(this.organizationId);
     }
 }
 
