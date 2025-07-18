@@ -39,3 +39,14 @@ Questo documento definisce **le regole unificate** per **chiunque contribuisce**
   ```bash
   git checkout feature/complete-update
   git pull origin feature/complete-update
+  ```
+
+  Dopo le modifiche:
+  ```bash
+  npm test
+  git add .
+  git commit -m "<type>: <breve descrizione>"
+  git push origin feature/complete-update
+  ```
+
+- Un maintainer eseguirà il merge su `main` quando il codice sarà stabile.
