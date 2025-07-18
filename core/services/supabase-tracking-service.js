@@ -1,5 +1,6 @@
 // core/services/supabase-tracking-service.js
 import { supabase } from '/core/services/supabase-client.js';
+import trackingUpsertUtility from '/core/services/tracking-upsert-utility.js';
 
 class SupabaseTrackingService {
     constructor() {
@@ -48,7 +49,7 @@ class SupabaseTrackingService {
     }
 
     async createTracking(trackingData) {
-    try {
+        try {
             // Ottieni user_id corrente
             const user = await this.getCurrentUser();
             if (!user) throw new Error('User not authenticated');
@@ -56,20 +57,26 @@ class SupabaseTrackingService {
             // Prepara i dati per Supabase
             const supabaseData = this.prepareForSupabase(trackingData, user.id);
 
-            const { data, error } = await supabase
-                .from(this.table)
-                .insert([supabaseData])
-                .select()
-                .single();
+            // Use the new utility to handle soft-deleted records properly
+            const result = await trackingUpsertUtility.insertTrackingReplacingDeleted(supabaseData);
 
-            if (error) throw error;
+            if (result.skipped) {
+                console.log('⏭️ Tracking creation skipped - active record already exists:', result.existingId);
+                // Return the existing record
+                return await this.getTracking(result.existingId);
+            }
 
-            console.log('✅ Tracking created in Supabase:', data.id);
-            
-            // Aggiorna anche localStorage per backward compatibility
-            this.updateLocalStorage('create', data);
-            
-            return data;
+            if (result.inserted) {
+                console.log('✅ Tracking created in Supabase:', result.data.id);
+                
+                // Aggiorna anche localStorage per backward compatibility
+                this.updateLocalStorage('create', result.data);
+                
+                return result.data;
+            }
+
+            throw new Error('Unexpected result from insertTrackingReplacingDeleted');
+
         } catch (error) {
             console.error('❌ Error creating tracking:', error);
             // Fallback: salva solo in localStorage
@@ -407,23 +414,22 @@ class SupabaseTrackingService {
                 this.prepareForSupabase(tracking, user.id)
             );
 
-            // Inserisci in batch
-            const { data, error } = await supabase
-                .from(this.table)
-                .insert(supabaseData)
-                .select();
+            // Use the new utility for batch insert with soft-delete handling
+            const results = await trackingUpsertUtility.batchInsertTrackingsReplacingDeleted(supabaseData);
 
-            if (error) throw error;
-
-            console.log(`✅ Successfully migrated ${data.length} trackings`);
+            console.log(`✅ Migration completed: ${results.inserted} inserted, ${results.skipped} skipped, ${results.errors} errors`);
 
             // Opzionale: pulisci localStorage dopo migrazione riuscita
-            // localStorage.removeItem('trackings');
+            // if (results.inserted > 0 && results.errors === 0) {
+            //     localStorage.removeItem('trackings');
+            // }
 
             return { 
                 success: true, 
-                migrated: data.length,
-                data: data
+                migrated: results.inserted,
+                skipped: results.skipped,
+                errors: results.errors,
+                details: results.details
             };
 
         } catch (error) {

@@ -2,6 +2,7 @@
 /// <reference path="../typedefs.d.ts" />
 import { supabase } from './supabase-client.js';
 import ShipmentsService from './shipments-service.js';
+import trackingUpsertUtility from './tracking-upsert-utility.js';
 
 class DataManager {
     constructor() {
@@ -67,16 +68,27 @@ class DataManager {
             updated_at: new Date().toISOString()
         };
         
-        // Inserisci nel database
-        const { data: tracking, error } = await supabase
-            .from('trackings')
-            .insert([dataWithOrg])
-            .select()
-            .single();
-            
-        if (error) throw error;
+        // Use the new utility to handle soft-deleted records properly
+        const result = await trackingUpsertUtility.insertTrackingReplacingDeleted(dataWithOrg);
         
-        return { tracking };
+        if (result.skipped) {
+            console.log('⏭️ Tracking creation skipped - active record already exists:', result.existingId);
+            // Get the existing record
+            const { data: existingTracking, error } = await supabase
+                .from('trackings')
+                .select('*')
+                .eq('id', result.existingId)
+                .single();
+            
+            if (error) throw error;
+            return { tracking: existingTracking };
+        }
+
+        if (result.inserted) {
+            return { tracking: result.data };
+        }
+
+        throw new Error('Unexpected result from insertTrackingReplacingDeleted');
     }
     /**
      * Crea tracking e spedizione correlata.
@@ -90,20 +102,34 @@ class DataManager {
         try {
             const timestamp = new Date().toISOString();
 
-            // 1. Inserimento del tracking
-            const { data: tracking, error: trackErr } = await supabase
-                .from('trackings')
-                .insert([{ 
-                    ...trackingData,
-                    organization_id: this.organizationId,
-                    user_id: this.userId,
-                    created_at: timestamp,
-                    updated_at: timestamp
-                }])
-                .select()
-                .single();
+            // 1. Inserimento del tracking usando la nuova utility
+            const dataWithOrg = {
+                ...trackingData,
+                organization_id: this.organizationId,
+                user_id: this.userId,
+                created_at: timestamp,
+                updated_at: timestamp
+            };
 
-            if (trackErr) throw trackErr;
+            const result = await trackingUpsertUtility.insertTrackingReplacingDeleted(dataWithOrg);
+            
+            let tracking;
+            if (result.skipped) {
+                console.log('⏭️ Tracking creation skipped - active record already exists:', result.existingId);
+                // Get the existing record
+                const { data: existingTracking, error } = await supabase
+                    .from('trackings')
+                    .select('*')
+                    .eq('id', result.existingId)
+                    .single();
+                
+                if (error) throw error;
+                tracking = existingTracking;
+            } else if (result.inserted) {
+                tracking = result.data;
+            } else {
+                throw new Error('Unexpected result from insertTrackingReplacingDeleted');
+            }
 
             // 2. Inserimento della spedizione correlata usando ShipmentsService
             const shipmentPayload = {
