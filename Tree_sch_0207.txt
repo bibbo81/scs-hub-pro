@@ -32,7 +32,6 @@
 │   ├── mock-data.js.disabled
 │   ├── modal-system.css
 │   ├── modal-system.js
-│   ├── modal-systemV2.js
 │   ├── notification-system.js
 │   ├── performance-optimizations.js
 │   ├── product-linking-system.js

@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gestione Utenti</title>
+  <link rel="stylesheet" href="/styles/solarium.css" />
+</head>
+<body>
+  <div class="sol-container mt-6">
+    <h1 class="sol-title">Gestione Utenti dell'Organizzazione</h1>
+    <div id="usersTableContainer" class="sol-card mt-4 p-4">
+      <table class="sol-table" id="usersTable">
+        <thead>
+          <tr>
+            <th>Nome Utente</th>
+            <th>Email</th>
+            <th>Ruolo</th>
+            <th>Restrizione</th>
+            <th>Salva</th>
+          </tr>
+        </thead>
+        <tbody id="usersTableBody">
+          <!-- Popolato via JS -->
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <script type="module">
+    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
+
+    const SUPABASE_URL = 'hhttps://gnlrmnsdmpjzitsysowq.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdubHJtbnNkbXBqeml0c3lzb3dxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk0NjMxMzQsImV4cCI6MjA2NTAzOTEzNH0.UoJJoDUoDXGbiWnKNN48qb9PVQWOW_X_MXqAfzTHSaA'; // Usa env o JS sicuro se in produzione
+    const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    let organizationId = null;
+
+    async function fetchCurrentUserOrganization() {
+      const {
+        data: { user }
+      } = await supabase.auth.getUser();
+      
+      const { data, error } = await supabase
+        .from('organization_members')
+        .select('organization_id')
+        .eq('user_id', user.id)
+        .limit(1)
+        .single();
+
+      if (error) throw error;
+      organizationId = data.organization_id;
+    }
+
+    async function fetchMembers() {
+      const { data, error } = await supabase
+        .from('organization_members')
+        .select('id, user_id, role, restrict_to_own_records, profiles:profiles(email, full_name)')
+        .eq('organization_id', organizationId);
+
+      if (error) {
+        console.error(error);
+        return;
+      }
+
+      renderTable(data);
+    }
+
+    function renderTable(members) {
+      const tbody = document.getElementById('usersTableBody');
+      tbody.innerHTML = '';
+
+      members.forEach(member => {
+        const row = document.createElement('tr');
+
+        const name = member.profiles?.full_name || '—';
+        const email = member.profiles?.email || '—';
+        const role = member.role;
+
+        row.innerHTML = `
+          <td>${name}</td>
+          <td>${email}</td>
+          <td>${role}</td>
+          <td>
+            <label class="sol-switch">
+              <input type="checkbox" data-member-id="${member.id}" ${member.restrict_to_own_records ? 'checked' : ''}>
+              <span class="sol-slider"></span>
+            </label>
+          </td>
+          <td>
+            <button class="sol-btn sol-btn-sm" onclick="updateRestriction('${member.id}')">Salva</button>
+          </td>
+        `;
+
+        tbody.appendChild(row);
+      });
+    }
+
+    window.updateRestriction = async (memberId) => {
+      const checkbox = document.querySelector(`input[data-member-id="${memberId}"]`);
+      const newValue = checkbox.checked;
+
+      const { error } = await supabase
+        .from('organization_members')
+        .update({ restrict_to_own_records: newValue })
+        .eq('id', memberId);
+
+      if (error) {
+        alert('Errore nel salvataggio');
+        console.error(error);
+      } else {
+        alert('Salvato con successo');
+      }
+    };
+
+    async function init() {
+      try {
+        await fetchCurrentUserOrganization();
+        await fetchMembers();
+      } catch (err) {
+        console.error('Errore di inizializzazione:', err);
+      }
+    }
+
+    init();
+  </script>
+</body>
+</html>

@@ -5206,7 +5206,8 @@ document.addEventListener('DOMContentLoaded', function() {
     setTimeout(() => {
         const resetBtn = document.getElementById('resetLinkedFiltersBtn');
         if (resetBtn) {
-            resetBtn.addEventListener('click', function(e) {       
+            resetBtn.addEventListener('click', function(e) {
+                e.preventDefault();
                 
                 // Reset semplice
                 const filter = document.getElementById('linkedProductsFilter');
