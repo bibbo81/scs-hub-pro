@@ -308,7 +308,7 @@ Ultimo aggiornamento: ${tracking.last_update || tracking.updated_at || '-'}
             window.deleteTracking = async function(id) {
                 console.log('🗑️ Deleting tracking:', id);
                 
-                if (!confirm('Eliminare questo tracking?')) {
+                if (!confirm('⚠️ Questa operazione eliminerà anche la spedizione collegata. Procedere?')) {
                     return;
                 }
                 
@@ -433,10 +433,11 @@ Ultimo aggiornamento: ${tracking.last_update || tracking.updated_at || '-'}
                 
                 switch(action) {
                     case 'delete':
-                        if (confirm(`Eliminare ${selected.length} tracking?`)) {
-                            for (const id of selected) {
-                                await window.deleteTracking(id);
-                            }
+                        if (!confirm('⚠️ Questa operazione eliminerà anche la spedizione collegata. Procedere?')) {
+                            break;
+                        }
+                        for (const id of selected) {
+                            await window.deleteTracking(id);
                         }
                         break;
                         

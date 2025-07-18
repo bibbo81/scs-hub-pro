@@ -598,7 +598,7 @@
                 });
             } else {
                 // Fallback confirm
-                if (confirm(`Eliminare ${trackingNumber}?`)) {
+                if (confirm('⚠️ Questa operazione eliminerà anche la spedizione collegata. Procedere?')) {
                     await performDelete(id);
                 }
             }
