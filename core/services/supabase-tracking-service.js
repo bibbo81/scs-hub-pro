@@ -108,6 +108,7 @@ class SupabaseTrackingService {
                     updated_at: new Date().toISOString()
                 })
                 .eq('id', id)
+                .is('discarded_at', null) // <-- impedisce update su tracking eliminati
                 .select()
                 .single();
 
@@ -144,6 +145,17 @@ class SupabaseTrackingService {
             console.error('❌ Error deleting tracking:', error);
             return false;
         }
+    }
+
+    async restoreTracking(trackingId) {
+        const { error } = await supabase
+            .from(this.table)
+            .update({ discarded_at: null })
+            .eq('id', trackingId);
+
+        if (error) throw error;
+        console.log('✅ Tracking ripristinato:', trackingId);
+        return true;
     }
 
     // ========================================
