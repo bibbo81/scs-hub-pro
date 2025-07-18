@@ -16,6 +16,7 @@ class SupabaseTrackingService {
             const { data, error } = await supabase
                 .from(this.table)
                 .select('*')
+                .is('discarded_at', null) // Filtra i record eliminati
                 .order('created_at', { ascending: false });
 
             if (error) throw error;
@@ -34,6 +35,7 @@ class SupabaseTrackingService {
             const { data, error } = await supabase
                 .from(this.table)
                 .select('*')
+                .is('discarded_at', null) // Filtra i record eliminati
                 .eq('id', id)
                 .single();
 
@@ -127,7 +129,7 @@ class SupabaseTrackingService {
         try {
             const { error } = await supabase
                 .from(this.table)
-                .delete()
+                .update({ discarded_at: new Date().toISOString() })
                 .eq('id', id);
 
             if (error) throw error;

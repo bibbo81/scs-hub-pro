@@ -138,6 +138,7 @@ class DataManager {
         let query = supabase
             .from('trackings')
             .select('*')
+            .is('discarded_at', null) // Filtra i record eliminati
             .eq('organization_id', this.organizationId) // DINAMICO
             .order('created_at', { ascending: false });
 
@@ -168,18 +169,12 @@ class DataManager {
             throw new Error('DataManager not initialized');
         }
 
-        // 1. (opzionale ma consigliato) Elimina la shipment collegata
-        try {
-            await ShipmentsService.deleteShipmentByTrackingId(trackingId);
-        } catch (err) {
-            // Silenzia l'errore se la shipment non esiste, mostra solo se vuoi debug
-            // console.warn('Nessuna shipment collegata trovata:', err);
-        }
-
-        // 2. Elimina il tracking vero e proprio
+        // Esegui soft-delete sul tracking.
+        // Il trigger 'trackings_soft_delete_trigger' si occuperà di aggiornare
+        // (soft-delete) anche la spedizione collegata in modo automatico.
         const { error } = await supabase
             .from('trackings')
-            .delete()
+            .update({ discarded_at: new Date().toISOString() })
             .eq('id', trackingId)
             .eq('organization_id', this.organizationId); // Sicurezza extra
 

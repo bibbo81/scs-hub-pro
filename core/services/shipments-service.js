@@ -22,6 +22,7 @@ const ShipmentsService = {
           last_event_description
         )
       `)
+      .is('discarded_at', null) // Filtra i record eliminati
       .eq('organization_id', organizationId)
       .order('created_at', { ascending: false });
 
@@ -42,6 +43,7 @@ const ShipmentsService = {
     const { data, error } = await supabase
       .from(TABLE_NAME)
       .select('*')
+      .is('discarded_at', null) // Filtra i record eliminati
       .eq('id', shipmentId)
       .single();
 
@@ -103,27 +105,13 @@ const ShipmentsService = {
   async deleteShipment(shipmentId) {
     const { error } = await supabase
       .from(TABLE_NAME)
-      .delete()
+      .update({ discarded_at: new Date().toISOString() })
       .eq('id', shipmentId);
 
     if (error) {
       console.error('Errore nella cancellazione della spedizione:', error);
       throw error;
     }
-  },
-
-  /**
-   * Elimina le spedizioni associate a un tracking_id.
-   * @param {string} trackingId
-   */
-  async deleteShipmentByTrackingId(trackingId) {
-    if (!trackingId) return;
-    const { error } = await supabase
-      .from(TABLE_NAME)
-      .delete()
-      .eq('tracking_id', trackingId);
-
-    if (error) throw error;
   }
 };
 
