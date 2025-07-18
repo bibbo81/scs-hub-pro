@@ -68,7 +68,7 @@ class DataManager {
             updated_at: new Date().toISOString()
         };
         
-        // Use the new utility to handle soft-deleted records properly
+        // Usa l'utility per gestire eventuali duplicati
         const result = await trackingUpsertUtility.insertTrackingReplacingDeleted(dataWithOrg);
         
         if (result.skipped) {
@@ -164,7 +164,6 @@ class DataManager {
         let query = supabase
             .from('trackings')
             .select('*')
-            .is('discarded_at', null) // Filtra i record eliminati
             .eq('organization_id', this.organizationId) // DINAMICO
             .order('created_at', { ascending: false });
 
@@ -195,12 +194,9 @@ class DataManager {
             throw new Error('DataManager not initialized');
         }
 
-        // Esegui soft-delete sul tracking.
-        // Il trigger 'trackings_soft_delete_trigger' si occuperà di aggiornare
-        // (soft-delete) anche la spedizione collegata in modo automatico.
         const { error } = await supabase
             .from('trackings')
-            .update({ discarded_at: new Date().toISOString() })
+            .delete()
             .eq('id', trackingId)
             .eq('organization_id', this.organizationId); // Sicurezza extra
 

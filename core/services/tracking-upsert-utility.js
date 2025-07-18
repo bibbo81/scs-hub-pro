@@ -7,8 +7,7 @@ import { supabase } from './supabase-client.js';
 class TrackingUpsertUtility {
     /**
      * Inserisce un nuovo tracking gestendo i duplicati in base a una chiave composita.
-     * - Se esiste un record attivo (discarded_at IS NULL), salta l'inserimento.
-     * - Se esistono record soft-deleted (discarded_at IS NOT NULL), li elimina prima di inserire il nuovo record.
+     * Se esiste già un record con la stessa chiave, l'inserimento viene saltato.
      * @param {TrackingLike} trackingData - I dati del tracking da inserire. Deve includere organization_id, tracking_number, e carrier_code.
      * @returns {Promise<{inserted: boolean, skipped: boolean, data: TrackingLike|null, existingId: string|null}>}
      */
@@ -19,14 +18,13 @@ class TrackingUpsertUtility {
             throw new Error('organization_id, tracking_number, e carrier_code sono obbligatori per un inserimento sicuro.');
         }
 
-        // 1. Controlla se esiste già un record attivo (non soft-deleted)
+        // 1. Controlla se esiste già un record con la stessa chiave
         const { data: existingActive, error: selectError } = await supabase
             .from('trackings')
             .select('id')
             .eq('organization_id', organization_id)
             .eq('tracking_number', tracking_number)
             .eq('carrier_code', carrier_code)
-            .is('discarded_at', null)
             .maybeSingle();
 
         if (selectError) {
@@ -40,22 +38,21 @@ class TrackingUpsertUtility {
             return { inserted: false, skipped: true, data: null, existingId: existingActive.id };
         }
 
-        // 2. Elimina tutti i soft-deleted duplicati
+        // 2. Elimina eventuali duplicati esistenti
         const { error: deleteError } = await supabase
             .from('trackings')
             .delete()
             .eq('organization_id', organization_id)
             .eq('tracking_number', tracking_number)
-            .eq('carrier_code', carrier_code)
-            .not('discarded_at', 'is', null);
+            .eq('carrier_code', carrier_code);
 
         if (deleteError) {
             // Nota: se la foreign key su shipments blocca la DELETE, segnala errore.
             if (deleteError.code === '23503') {
-                console.error('[TrackingUpsertUtility] Impossibile eliminare i duplicati soft-deleted perché referenziati in altre tabelle (es. shipments):', deleteError);
-                throw new Error('Impossibile eliminare i duplicati soft-deleted: record ancora referenziato.');
+                console.error('[TrackingUpsertUtility] Impossibile eliminare i duplicati perché referenziati in altre tabelle (es. shipments):', deleteError);
+                throw new Error('Impossibile eliminare i duplicati: record ancora referenziato.');
             } else {
-                console.error('[TrackingUpsertUtility] Errore durante eliminazione soft-deleted:', deleteError);
+                console.error('[TrackingUpsertUtility] Errore durante eliminazione duplicati:', deleteError);
                 throw deleteError;
             }
         }

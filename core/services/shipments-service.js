@@ -22,7 +22,6 @@ const ShipmentsService = {
           last_event_description
         )
       `)
-      .is('discarded_at', null) // Filtra i record eliminati
       .eq('organization_id', organizationId)
       .order('created_at', { ascending: false });
 
@@ -43,7 +42,6 @@ const ShipmentsService = {
     const { data, error } = await supabase
       .from(TABLE_NAME)
       .select('*')
-      .is('discarded_at', null) // Filtra i record eliminati
       .eq('id', shipmentId)
       .single();
 
@@ -105,7 +103,7 @@ const ShipmentsService = {
   async deleteShipment(shipmentId) {
     const { error } = await supabase
       .from(TABLE_NAME)
-      .update({ discarded_at: new Date().toISOString() })
+      .delete()
       .eq('id', shipmentId);
 
     if (error) {

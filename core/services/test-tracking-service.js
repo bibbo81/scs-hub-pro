@@ -19,7 +19,6 @@ class SupabaseTrackingService {
             const { data, error } = await supabase
                 .from(this.table)
                 .select('*')
-                .is('discarded_at', null) // Solo record non eliminati
                 .eq('user_id', user.id) // Solo trackings dell'utente
                 .order('created_at', { ascending: false });
 
@@ -42,7 +41,6 @@ class SupabaseTrackingService {
             const { data, error } = await supabase
                 .from(this.table)
                 .select('*')
-                .is('discarded_at', null) // Solo record non eliminati
                 .eq('id', id)
                 .eq('user_id', user.id) // Sicurezza: solo trackings dell'utente
                 .single();
@@ -142,7 +140,7 @@ class SupabaseTrackingService {
             
             const { error } = await supabase
                 .from(this.table)
-                .update({ discarded_at: new Date().toISOString() }) // Esegui soft delete
+                .delete()
                 .eq('id', id)
                 .eq('user_id', user.id); // Sicurezza: solo trackings dell'utente
 
