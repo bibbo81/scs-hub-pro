@@ -1,27 +1,5 @@
 // File: /core/product-linking-system.js
 
-export class ProductLinkingSystem {
-  /**
-   * Costruttore per il sistema di collegamento dei prodotti.
-   * Inizializza le dipendenze necessarie.
-   */
-  constructor() {
-    // Logica del costruttore...
-    console.log("ProductLinkingSystem istanziato.");
-  }
-
-  /**
-   * Metodo per collegare un prodotto a una spedizione.
-   * @param {string} productId - L'ID del prodotto.
-   * @param {string} shipmentId - L'ID della spedizione.
-   */
-  linkProductToShipment(productId, shipmentId) {
-    // Logica di collegamento...
-    console.log(`Collegamento del prodotto ${productId} alla spedizione .`);
-  }
-
-  // ... altri metodi della classe ...
-}
 // product-linking-system.js - Sistema moderno per collegare prodotti e spedizioni
 console.log('🚀 Loading Product Linking System...');
 
@@ -1073,3 +1051,8 @@ if (!document.getElementById('product-linking-styles')) {
 console.log('✅ Product Linking System v2.0 loaded successfully!');
 console.log('💡 Use window.debugProductLinking() for debug info');
 console.log('🤖 Use window.autoLinkProducts() for auto-linking');
+
+// ===== TRACKING SHIPMENTS =====
+
+// (Method createShipmentFromTracking should be implemented inside ProductLinkingSystem class if needed)
+// Remove or move this method inside the class definition to avoid syntax errors.
