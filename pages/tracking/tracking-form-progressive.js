@@ -19,6 +19,20 @@
     let airlinesCacheTime = 0;
     const AIRLINES_CACHE_TTL = 24 * 60 * 60 * 1000; // 24 ore
     
+    function normalizeTrackingType(type) {
+      const mapping = {
+        sea: 'container',
+        ocean: 'container',
+        air: 'awb',
+        awb: 'awb',
+        bl: 'bl',
+        parcel: 'parcel',
+        express: 'parcel',
+        courier: 'parcel'
+      };
+      return mapping[type?.toLowerCase?.()] || 'container';
+    }
+    
     // 2. CARICA AIRLINES DA LOCALSTORAGE ALL'AVVIO
     function loadAirlinesFromStorage() {
         try {
@@ -2415,6 +2429,10 @@ async function handleEnhancedSubmit(e) {
             formData.trackingType = detectTrackingType(formData.trackingNumber);
             console.log('Auto-detected type:', formData.trackingType);
         }
+        
+        // Normalizza il tipo di tracking
+        formData.trackingType = normalizeTrackingType(formData.trackingType);
+        console.log('Normalized type:', formData.trackingType);
         
         // Se è un AWB e non ha un carrier, prova a rilevarlo
         if (formData.trackingType === 'awb' && !formData.carrier) {

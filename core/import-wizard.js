@@ -4,6 +4,20 @@ import modalSystem from '/core/modal-system.js';
 import apiClient from '/core/api-client.js';
 import { supabase } from '/core/services/supabase-client.js';
 
+function normalizeTrackingType(type) {
+  const mapping = {
+    sea: 'container',
+    ocean: 'container',
+    air: 'awb',
+    awb: 'awb',
+    bl: 'bl',
+    parcel: 'parcel',
+    express: 'parcel',
+    courier: 'parcel'
+  };
+  return mapping[type?.toLowerCase?.()] || 'container';
+}
+
 class ImportWizard {
     constructor() {
     this.currentFile = null;
@@ -815,7 +829,18 @@ if (!this.targetFields || !Array.isArray(this.targetFields) || this.targetFields
         statusEl.textContent = 'Starting import...';
         for (let i = 0; i < totalBatches; i++) {
             const batch = importData.slice(i * batchSize, (i + 1) * batchSize);
-            const { data, error } = await supa.from('products').insert(batch);
+
+            let dataToInsert = batch;
+            // Se stiamo importando tracking, normalizza il tipo
+            if (this.config.entity === 'trackings') {
+                dataToInsert = batch.map(t => ({
+                    ...t,
+                    tracking_type: normalizeTrackingType(t.tracking_type)
+                }));
+            }
+
+            // Usa l'entità configurata invece di 'products'
+            const { data, error } = await supa.from(this.config.entity).insert(dataToInsert);
             if (error) {
                 console.error('Supabase insert error:', error);
                 throw new Error(`Supabase error: ${error.message}`);
