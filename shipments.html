@@ -9,9 +9,73 @@
   <link rel="stylesheet" href="/assets/css/solarium.css">
   <link rel="stylesheet" href="/pages/shipments/shipments.css" />
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tabulator-tables@5.5.0/dist/css/tabulator.min.css" />
+
   <style>
-    .tabulator-col .tabulator-draggable-handle {
-      cursor: move;
+    /* Personalizza Tabulator per integrarsi meglio con il tema solarium */
+    .tabulator {
+      font-family: inherit;
+      border-radius: 8px;
+      box-shadow: 0 1px 5px rgba(0,0,0,0.06);
+      border: 1px solid #e0e6ed;
+    }
+    .tabulator .tabulator-header {
+      background: #f4f8fb;
+      border-radius: 8px 8px 0 0;
+    }
+    .tabulator .tabulator-header .tabulator-col {
+      background: #f4f8fb;
+      color: #253858;
+      font-weight: 600;
+      font-size: 1rem;
+      border-right: 1px solid #e0e6ed;
+      position: relative;
+    }
+    .tabulator .tabulator-header .tabulator-draggable-handle {
+      cursor: grab;
+      background: linear-gradient(to right, #e0e6ed 40%, #c8d2e1 100%);
+      width: 10px;
+      height: 100%;
+      position: absolute;
+      left: 0;
+      top: 0;
+      border-radius: 4px 0 0 4px;
+    }
+    .tabulator .tabulator-header .tabulator-col:hover .tabulator-draggable-handle {
+      background: #c8d2e1;
+    }
+    .tabulator .tabulator-row {
+      background: #fff;
+      border-bottom: 1px solid #e0e6ed;
+    }
+    .tabulator .tabulator-row:hover {
+      background: #f0f6fc;
+    }
+    .tabulator .tabulator-col[tabulator-field="status"] {
+      min-width: 120px;
+    }
+    .tabulator .tabulator-cell {
+      font-size: 0.97rem;
+      color: #374151;
+    }
+    /* Bottone coerente con solarium */
+    .sol-button, .sol-btn, button {
+      background: #007aff;
+      color: #fff;
+      border: none;
+      padding: 0.4rem 1rem;
+      border-radius: 5px;
+      transition: background 0.15s;
+      font-weight: 500;
+      cursor: pointer;
+    }
+    .sol-button:hover, .sol-btn:hover, button:hover {
+      background: #005fc1;
+    }
+    .sol-select, select {
+      padding: 0.3rem 0.7rem;
+      border-radius: 5px;
+      border: 1px solid #e0e6ed;
+      margin-left: 1rem;
     }
   </style>
 </head>
@@ -52,6 +116,9 @@
 
   <!-- Auth Guard -->
   <script type="module" src="/core/auth-guard.js"></script>
+
+  <!-- Header Component -->
+  <script type="module" src="/core/header-component.js"></script>
 
   <!-- Data Manager Init -->
   <script type="module">
