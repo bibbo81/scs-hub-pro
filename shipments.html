@@ -5206,8 +5206,7 @@ document.addEventListener('DOMContentLoaded', function() {
     setTimeout(() => {
         const resetBtn = document.getElementById('resetLinkedFiltersBtn');
         if (resetBtn) {
-            resetBtn.addEventListener('click', function(e) {
-                e.preventDefault();
+            resetBtn.addEventListener('click', function(e) {       
                 
                 // Reset semplice
                 const filter = document.getElementById('linkedProductsFilter');
@@ -5335,11 +5334,10 @@ document.addEventListener('DOMContentLoaded', async () => {
             const shipments = await window.dataManager.getShipments();
             console.log(`✅ Loaded ${shipments.length} shipments`);
             
-            // Se c'è una funzione per aggiornare la tabella, chiamala
+            // Se c'è una funzione per renderizzare la tabella, chiamala
             if (window.ShipmentsRegistry?.renderShipmentsTable) {
                 await window.ShipmentsRegistry.renderShipmentsTable();
             }
-            
         } catch (error) {
             console.error('❌ Error loading shipments:', error);
         }
