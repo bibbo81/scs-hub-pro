@@ -1392,7 +1392,6 @@ async function performBulkAction(action) {
                 tableManager.clearSelection();
                 
                 window.NotificationSystem?.success(`Eliminati ${deleted} tracking`);
-            }
             break;
     }
 }
