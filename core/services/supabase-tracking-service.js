@@ -18,14 +18,12 @@ class SupabaseTrackingService {
                 .from(this.table)
                 .select('*')
                 .order('created_at', { ascending: false });
-
+            // NON filtrare su discarded_at
             if (error) throw error;
-
-            console.log(`✅ Loaded ${data.length} trackings from Supabase`);
+            console.log('✅ Loaded trackings:', data);
             return data;
         } catch (error) {
             console.error('❌ Error loading trackings:', error);
-            // Fallback a localStorage se Supabase fallisce
             return this.getLocalStorageFallback();
         }
     }

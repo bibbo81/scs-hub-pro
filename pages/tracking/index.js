@@ -193,6 +193,42 @@ document.addEventListener('DOMContentLoaded', async () => {
             oldTable.parentElement.style.display = 'none';
         }
         
+        // Load user column preferences from localStorage before initializing the table
+        try {
+            const savedColumns = localStorage.getItem('trackingVisibleColumns');
+            if (savedColumns) {
+                const columnOrder = JSON.parse(savedColumns);
+
+                // Rebuild TABLE_COLUMNS based on saved preferences
+                const newColumns = columnOrder.map(key => {
+                    const availableCol = AVAILABLE_COLUMNS.find(c => c.key === key);
+                    const existingCol = TABLE_COLUMNS.find(c => c.key === key);
+
+                    if (existingCol) {
+                        return existingCol;
+                    } else if (availableCol) {
+                        // Create a new column definition for columns not in the default set
+                        return {
+                            key: key,
+                            label: availableCol.label,
+                            sortable: availableCol.sortable,
+                            formatter: getColumnFormatter(key)
+                        };
+                    }
+                    return null;
+                }).filter(Boolean);
+
+                // Ensure the actions column is always last
+                const actionsCol = TABLE_COLUMNS.find(c => c.key === 'actions');
+                if (actionsCol) newColumns.push(actionsCol);
+
+                TABLE_COLUMNS.splice(0, TABLE_COLUMNS.length, ...newColumns);
+                console.log('✅ Loaded user column preferences.');
+            }
+        } catch (e) {
+            console.error('Error loading column preferences:', e);
+        }
+
         // Initialize TableManager
         tableManager = new TableManager('trackingTableContainer', {
             columns: TABLE_COLUMNS,
@@ -244,30 +280,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
         
         console.log('✅ Tracking page initialized');
-/*
-// Fix event delegation per checkbox dinamici
-document.addEventListener('click', function(e) {
-    if (e.target.type === 'checkbox' && e.target.classList.contains('select-row')) {
-        e.stopPropagation();
-        
-        const rowId = e.target.value || e.target.dataset.id;
-        const checked = e.target.checked;
-        
-        // Ignora se rowId è "on" o non valido
-        if (!rowId || rowId === 'on') {
-            console.warn('Invalid checkbox rowId:', rowId);
-            return;
-        }
-        
-        console.log('Checkbox clicked:', rowId, checked);
-        
-        if (tableManager) {
-            tableManager.selectRow(rowId, checked);
-        }
-    }
-});
-*/     
-        console.log('✅ Checkbox event delegation added');
         
     } catch (error) {
         console.error('❌ Initialization error:', error);
@@ -281,24 +293,10 @@ async function loadTrackings() {
         if (window.supabaseTrackingService) {
             const data = await window.supabaseTrackingService.getAllTrackings();
             trackings = data || [];
-            trackings = trackings.map(t => {
-    if (t.metadata?.source === 'shipsgo_v2_ocean') {
-        return {
-            ...t,
-            carrier_name: t.carrier_name || t.metadata?.mapped?.carrier_name || t.carrier || '-',
-            vessel_name: t.vessel_name || t.vessel_info?.name || t.original_data?.vessel_name || '-',
-            vessel_imo: t.vessel_imo || t.vessel_info?.imo || '-',
-            voyage_number: t.voyage_number || t.vessel_info?.voyage || t.original_data?.voyage_number || '-',
-            container_size: t.container_size || t.metadata?.raw?.shipment?.containers?.[0]?.size || '-',
-            container_type: t.container_type || t.metadata?.raw?.shipment?.containers?.[0]?.type || '-',
-            date_of_loading: t.date_of_loading || 
-                            t.metadata?.raw?.shipment?.route?.port_of_loading?.date_of_loading || 
-                            t.metadata?.raw?.shipment?.containers?.[0]?.movements?.find(m => m.event === 'LOAD')?.timestamp || 
-                            '-'
-        };
-    }
-    return t;
-});
+            console.log('Loaded trackings:', trackings); // <-- DEBUG
+            filteredTrackings = [...trackings];
+            updateTable();
+            updateStats();
         } else {
             // Mock data for testing
             trackings = [
@@ -320,6 +318,8 @@ async function loadTrackings() {
         filteredTrackings = [...trackings];
         updateTable();
         updateStats();
+        
+        console.log('Loaded trackings:', trackings);
         
     } catch (error) {
         console.error('Error loading trackings:', error);
@@ -368,7 +368,7 @@ function updateStats() {
         exception: trackings.filter(t => 
             t.current_status === 'exception' || 
             t.current_status === 'delayed'
-        ).length
+        ).length,
     };
     
     document.getElementById('totalTrackings').textContent = stats.total;
@@ -378,7 +378,7 @@ function updateStats() {
 }
 
 // Handle selection change
-function handleSelectionChange(selected) {
+function handleSelectionChange(selected = []) {
     const bulkBar = document.getElementById('bulkActionsBar');
     const count = document.getElementById('selectedCount');
     
@@ -429,7 +429,7 @@ function setupEventListeners() {
     window.COLUMN_MAPPING = COLUMN_MAPPING;
     window.STATUS_DISPLAY = STATUS_DISPLAY;
     window.getStatusMapping = getStatusMapping;
- window.updateBulkActionsBar = function() {
+    window.updateBulkActionsBar = function() {
         // Delega a handleSelectionChange che già esiste
         if (tableManager) {
             const selected = tableManager.getSelectedRows();
@@ -660,20 +660,6 @@ function getColumnFormatter(key) {
     <i class="fas fa-columns mr-2"></i>Colonne
 </button>
 */
-
-// Carica preferenze colonne all'avvio
-document.addEventListener('DOMContentLoaded', () => {
-    const savedColumns = localStorage.getItem('trackingVisibleColumns');
-    if (savedColumns) {
-        try {
-            const columnOrder = JSON.parse(savedColumns);
-            // Applica l'ordine salvato
-            // ... logica per riordinare TABLE_COLUMNS ...
-        } catch (e) {
-            console.error('Error loading column preferences:', e);
-        }
-    }
-});
 
 // Apply filters
 function applyFilters() {
@@ -1392,18 +1378,12 @@ async function performBulkAction(action) {
                 tableManager.clearSelection();
                 
                 window.NotificationSystem?.success(`Eliminati ${deleted} tracking`);
-            }
-            break;
-    }
-}
-
-function showError(message) {
-    if (window.NotificationSystem) {
-        window.NotificationSystem.error(message);
-    } else {
-        alert(message);
-    }
-}
+                break;
+            default:
+                break;
+        }
+        // End of async function or block
+    } // <-- Add this closing brace to end performBulkAction
 
 // Export for debugging
 window.trackingDebug = {
@@ -1411,6 +1391,6 @@ window.trackingDebug = {
     getTable: () => tableManager,
     refresh: () => loadTrackings(),
     getColumnMapping: () => COLUMN_MAPPING,
-    getStatusMapping: () => STATUS_DISPLAY
+    getStatusMapping: () => Object.assign({}, STATUS_DISPLAY)
 };
-window.AVAILABLE_COLUMNS = AVAILABLE_COLUMNS;
+window.AVAILABLE_COLUMNS = Array.from(AVAILABLE_COLUMNS);
