@@ -22,7 +22,7 @@ SELECT
     COUNT(*) FILTER (WHERE status = 'registered') as registered,
     COUNT(*) FILTER (WHERE status = 'exception') as exception
 FROM trackings
-WHERE user_id = auth.uid() AND discarded_at IS NULL; -- Aggiunto filtro per soft delete
+WHERE user_id = auth.uid();
 
 -- Commenta la riga seguente se non vuoi grant pubblico
 GRANT SELECT ON public.dashboard_stats TO authenticated;

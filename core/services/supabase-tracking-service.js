@@ -17,7 +17,6 @@ class SupabaseTrackingService {
             const { data, error } = await supabase
                 .from(this.table)
                 .select('*')
-                .is('discarded_at', null) // Filtra i record eliminati
                 .order('created_at', { ascending: false });
 
             if (error) throw error;
@@ -36,7 +35,6 @@ class SupabaseTrackingService {
             const { data, error } = await supabase
                 .from(this.table)
                 .select('*')
-                .is('discarded_at', null) // Filtra i record eliminati
                 .eq('id', id)
                 .single();
 
@@ -57,7 +55,7 @@ class SupabaseTrackingService {
             // Prepara i dati per Supabase
             const supabaseData = this.prepareForSupabase(trackingData, user.id);
 
-            // Use the new utility to handle soft-deleted records properly
+            // Usa l'utility per gestire eventuali duplicati
             const result = await trackingUpsertUtility.insertTrackingReplacingDeleted(supabaseData);
 
             if (result.skipped) {
@@ -93,7 +91,6 @@ class SupabaseTrackingService {
                     updated_at: new Date().toISOString()
                 })
                 .eq('id', id)
-                .is('discarded_at', null) // <-- impedisce update su tracking eliminati
                 .select()
                 .single();
 
@@ -115,7 +112,7 @@ class SupabaseTrackingService {
         try {
             const { error } = await supabase
                 .from(this.table)
-                .update({ discarded_at: new Date().toISOString() })
+                .delete()
                 .eq('id', id);
 
             if (error) throw error;
@@ -132,16 +129,7 @@ class SupabaseTrackingService {
         }
     }
 
-    async restoreTracking(trackingId) {
-        const { error } = await supabase
-            .from(this.table)
-            .update({ discarded_at: null })
-            .eq('id', trackingId);
 
-        if (error) throw error;
-        console.log('✅ Tracking ripristinato:', trackingId);
-        return true;
-    }
 
     // ========================================
     // DATA PREPARATION
@@ -414,7 +402,7 @@ class SupabaseTrackingService {
                 this.prepareForSupabase(tracking, user.id)
             );
 
-            // Use the new utility for batch insert with soft-delete handling
+            // Usa l'utility per l'inserimento batch gestendo i duplicati
             const results = await trackingUpsertUtility.batchInsertTrackingsReplacingDeleted(supabaseData);
 
             console.log(`✅ Migration completed: ${results.inserted} inserted, ${results.skipped} skipped, ${results.errors} errors`);
