@@ -26,7 +26,7 @@ const ShipmentsService = {
       .order('created_at', { ascending: false });
 
     if (error) {
-      console.error('Errore nel recupero delle spedizioni:', error);
+      console.error('Errore nel recupero delle spedizioni:', error.message, error.details, error.hint);
       throw error;
     }
 
