@@ -878,8 +878,6 @@ setTimeout(() => {
         </div>
     </div>
     
-    <!-- AGGIUNGI questo script PRIMA del tag </body> -->
-    <script type="module" src="/assets/js/tracking-page.js"></script>
     
     <!-- AGGIUNGI questo script per gestire il toggle tra le viste -->
     <script>
@@ -1131,6 +1129,28 @@ console.log('🆕 Comandi aggiuntivi per bibbo81:');
 console.log('- systemHealthCheck() - Verifica completa del sistema');
 console.log('- testTracking() - Crea un tracking di test con prefix BIBBO');
 </script>
+    <!-- Core Modules Initialization -->
+    <script type="module">
+        import dataManager from '/core/services/data-manager.js';
+        import notificationSystem from '/core/notification-system.js';
+        import headerComponent from '/core/header-component.js';
+        import { TableManager } from '/core/table-manager.js';
+        import ModalSystem from '/core/modal-system.js';
+
+        window.dataManager = dataManager;
+        window.NotificationSystem = notificationSystem;
+        window.headerComponent = headerComponent;
+        window.HeaderComponent = headerComponent;
+        window.TableManager = TableManager;
+        window.ModalSystem = ModalSystem;
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', () => headerComponent.init());
+        } else {
+            headerComponent.init();
+        }
+    </script>
+    <script type="module" src="/assets/js/tracking-page.js"></script>
 <script>
 // Sistema di sincronizzazione cross-tab
 (function() {
