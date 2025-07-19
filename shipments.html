@@ -81,7 +81,7 @@
   <script type="module">
     import dataManager from '/core/services/data-manager.js';
     import notificationSystem from '/core/notification-system.js';
-    import HeaderComponent from '/core/header-component.js';
+    import headerComponent from '/core/header-component.js';
     import ModalSystem from '/core/modal-system.js';
 
     // Setup global access to systems
@@ -207,7 +207,7 @@
      * Main function to initialize the page.
      */
     async function initializePage() {
-      await new HeaderComponent().init();
+      await headerComponent.init();
       await dataManager.init();
       await loadShipments();
       setupEventListeners();
