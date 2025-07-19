@@ -9,6 +9,8 @@
   <link rel="stylesheet" href="/assets/css/solarium.css">
   <link rel="stylesheet" href="/pages/shipments/shipments.css" />
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tabulator-tables@5.5.0/dist/css/tabulator.min.css" />
+  <link rel="stylesheet" href="/assets/css/tracking-table.css">
+  <link rel="stylesheet" href="/assets/css/tracking-complete.css">
 
   <style>
     /* Personalizza Tabulator per integrarsi meglio con il tema solarium */
@@ -99,7 +101,27 @@
           </div>
         </div>
         <div class="sol-card-body">
-          <div id="shipments-table"></div>
+          <div class="table-container">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th class="sortable">Numero Spedizione</th>
+                  <th class="sortable">Tracking</th>
+                  <th class="sortable">Stato</th>
+                  <th class="sortable">Origine</th>
+                  <th class="sortable">Destinazione</th>
+                  <th class="sortable">ETA</th>
+                  <th class="sortable">Compagnia</th>
+                  <th class="sortable">Container</th>
+                  <th class="sortable">Tipo</th>
+                  <th class="no-drag">Azioni</th>
+                </tr>
+              </thead>
+              <tbody id="shipmentsTableBody">
+                <!-- righe generate dinamicamente -->
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
     </div>
@@ -136,48 +158,73 @@
   <script type="module">
     import * as shipmentsService from '/core/services/shipments-service.js';
 
-    const table = new Tabulator("#shipments-table", {
-      height: "600px",
-      layout: "fitColumns",
-      movableColumns: true,
-      resizableColumns: true,
-      placeholder: "Nessuna spedizione trovata",
-      columns: [
-        { title: "Numero Spedizione", field: "shipment_number", headerSort: true },
-        { title: "Tracking", field: "tracking_number", headerSort: true },
-        { title: "Stato", field: "status", headerSort: true },
-        { title: "Origine", field: "origin", headerSort: true },
-        { title: "Destinazione", field: "destination", headerSort: true },
-        { title: "ETA", field: "eta", headerSort: true },
-        { title: "Compagnia", field: "carrier_name", headerSort: true },
-        { title: "Container", field: "container_size", headerSort: true },
-        { title: "Tipo", field: "container_type", headerSort: true },
-      ]
-    });
+    async function loadShipments() {
+      // Attendi che il dataManager sia pronto
+      await new Promise(resolve => window.dataManager.initialized ? resolve() : window.addEventListener('dataManagerReady', resolve, { once: true }));
 
-    // Attendi che il dataManager sia pronto per avere l'organizationId
-    await new Promise(resolve => window.dataManager.initialized ? resolve() : window.addEventListener('dataManagerReady', resolve, { once: true }));
+      const shipments = await shipmentsService.default.getShipmentsByOrganization(window.dataManager.organizationId);
 
-    // Usa il servizio importato per caricare le spedizioni
-    const shipments = await shipmentsService.default.getShipmentsByOrganization(window.dataManager.organizationId);
+      const tbody = document.getElementById('shipmentsTableBody');
+      tbody.innerHTML = '';
 
-    table.setData(shipments);
+      shipments.forEach(s => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${s.shipment_number || ''}</td>
+          <td>${s.tracking_number || ''}</td>
+          <td><span class="sol-badge sol-badge-primary">${s.status || ''}</span></td>
+          <td>${s.origin || ''}</td>
+          <td>${s.destination || ''}</td>
+          <td>${s.eta ? new Date(s.eta).toLocaleDateString('it-IT') : ''}</td>
+          <td>${s.carrier_name || ''}</td>
+          <td>${s.container_size || ''}</td>
+          <td>${s.container_type || ''}</td>
+          <td>
+            <button class="sol-btn sol-btn-sm" data-id="${s.id}">Dettagli</button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
 
     // Filtro per stato
     document.getElementById("status-filter").addEventListener("change", e => {
       const value = e.target.value;
-      table.setFilter("status", "like", value || "");
+      Array.from(document.querySelectorAll("#shipmentsTableBody tr")).forEach(row => {
+        const status = row.children[2].textContent.trim();
+        row.style.display = (!value || status === value) ? "" : "none";
+      });
     });
 
     // Esporta CSV
     document.getElementById("export-csv").addEventListener("click", () => {
-      table.download("csv", "spedizioni.csv");
+      exportTableToCSV('spedizioni.csv');
     });
 
     // Esporta XLSX
     document.getElementById("export-xlsx").addEventListener("click", () => {
-      table.download("xlsx", "spedizioni.xlsx", { sheetName: "Spedizioni" });
+      exportTableToXLSX('spedizioni.xlsx');
     });
+
+    // Funzione di esportazione CSV
+    function exportTableToCSV(filename) {
+      const rows = Array.from(document.querySelectorAll('.data-table tr'));
+      const csv = rows.map(row =>
+        Array.from(row.children).map(cell => `"${cell.textContent.replace(/"/g, '""')}"`).join(',')
+      ).join('\n');
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = filename;
+      link.click();
+    }
+
+    // Funzione di esportazione XLSX (richiede una libreria esterna se vuoi supportarla realmente)
+    function exportTableToXLSX(filename) {
+      NotificationSystem.info("Funzione XLSX non implementata senza libreria esterna.");
+    }
+
+    document.addEventListener('DOMContentLoaded', loadShipments);
   </script>
 </body>
 </html>
