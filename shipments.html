@@ -78,36 +78,27 @@
     </div>
   </main>
 
-  <script type="module" src="/pages/shipments/index.js"></script>
-
   <script type="module">
     import dataManager from '/core/services/data-manager.js';
     import notificationSystem from '/core/notification-system.js';
+    import HeaderComponent from '/core/header-component.js';
+    import ModalSystem from '/core/modal-system.js';
+
+    // Setup global access to systems
     window.dataManager = dataManager;
     window.NotificationSystem = notificationSystem;
-    await dataManager.init();
-    window.dispatchEvent(new Event('dataManagerReady'));
-  </script>
+    window.ModalSystem = ModalSystem;
 
-  <script type="module">
-    import HeaderComponent from '/core/header-component.js';
-
-    // L'import di shipmentsService è stato rimosso perché ora si usa dataManager per centralizzare l'accesso ai dati.
+    /**
+     * Fetches shipments from the dataManager and populates the table.
+     * It also attaches event listeners to the details buttons.
+     */
     async function loadShipments() {
-      // Attende che dataManager sia pronto, gestendo il caso in cui sia già inizializzato.
-      await new Promise(resolve => {
-        if (window.dataManager && window.dataManager.initialized) {
-          resolve();
-        } else {
-          window.addEventListener('dataManagerReady', resolve, { once: true });
-        }
-      });
-
+      const tbody = document.getElementById('shipmentsTableBody');
       try {
-        // Usa dataManager per caricare le spedizioni, centralizzando la logica.
+        // Use dataManager to load shipments, centralizing the logic.
         const shipments = await window.dataManager.getShipments();
-        const tbody = document.getElementById('shipmentsTableBody');
-        tbody.innerHTML = ''; // Pulisce la tabella prima di popolarla.
+        tbody.innerHTML = ''; // Clear table before populating
 
         if (!shipments || shipments.length === 0) {
           tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;">Nessuna spedizione trovata.</td></tr>';
@@ -131,55 +122,64 @@
           tbody.appendChild(tr);
         });
 
-        // È necessario ri-agganciare gli eventi ai bottoni "Dettagli" dopo averli creati.
+        // Attach modal listeners to the newly created details buttons
         document.querySelectorAll(".details-btn").forEach(btn => {
           btn.addEventListener("click", () => {
-            const id = btn.getAttribute("data-id");
-            // Questa notifica può essere sostituita con l'apertura di una modale.
-            window.NotificationSystem.info(`Dettagli per spedizione ID: ${id}`);
+            const shipmentId = btn.getAttribute("data-id");
+            ModalSystem.open({
+              title: "Dettagli Spedizione",
+              content: `<p>ID Spedizione: <strong>${shipmentId}</strong></p><p>Qui potresti caricare altri dettagli con una fetch.</p>`,
+              actions: [
+                { label: "Chiudi", variant: "primary", action: () => ModalSystem.close() }
+              ]
+            });
           });
         });
       } catch (error) {
         console.error('Errore durante il caricamento delle spedizioni:', error);
         window.NotificationSystem.error('Impossibile caricare le spedizioni.');
-        const tbody = document.getElementById('shipmentsTableBody');
         tbody.innerHTML = '<tr><td colspan="10" style="text-align:center; color: red;">Errore nel caricamento dei dati.</td></tr>';
       }
     }
 
-    document.getElementById("status-filter").addEventListener("change", e => {
-      const value = e.target.value;
-      Array.from(document.querySelectorAll("#shipmentsTableBody tr")).forEach(row => {
-        const status = row.children[2].textContent.trim();
-        row.style.display = (!value || status === value) ? "" : "none";
+    /**
+     * Attaches event listeners to static elements on the page.
+     */
+    function setupEventListeners() {
+      // Status filter
+      document.getElementById("status-filter").addEventListener("change", e => {
+        const value = e.target.value;
+        Array.from(document.querySelectorAll("#shipmentsTableBody tr")).forEach(row => {
+          const statusCell = row.children[2];
+          if (statusCell) {
+            const status = statusCell.textContent.trim();
+            row.style.display = (!value || status === value) ? "" : "none";
+          }
+        });
       });
-    });
 
-    document.getElementById("export-csv").addEventListener("click", () => {
-      const rows = Array.from(document.querySelectorAll('.data-table tr'));
-      const csv = rows.map(row =>
-        Array.from(row.children).map(cell => `"${cell.textContent.replace(/"/g, '""')}"`).join(',')
-      ).join('\n');
-      const blob = new Blob([csv], { type: 'text/csv' });
-      const link = document.createElement('a');
-      link.href = URL.createObjectURL(blob);
-      link.download = 'spedizioni.csv';
-      link.click();
-    });
+      // Export to CSV
+      document.getElementById("export-csv").addEventListener("click", () => {
+        const rows = Array.from(document.querySelectorAll('.data-table tr'));
+        const csv = rows.map(row =>
+          Array.from(row.children).map(cell => `"${cell.textContent.replace(/"/g, '""')}"`).join(',')
+        ).join('\n');
+        const blob = new Blob([csv], { type: 'text/csv' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = 'spedizioni.csv';
+        link.click();
+      });
 
-    document.getElementById("export-xlsx").addEventListener("click", () => {
-      const ws = XLSX.utils.table_to_sheet(document.querySelector(".data-table"));
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, "Spedizioni");
-      XLSX.writeFile(wb, "spedizioni.xlsx");
-    });
+      // Export to XLSX
+      document.getElementById("export-xlsx").addEventListener("click", () => {
+        const ws = XLSX.utils.table_to_sheet(document.querySelector(".data-table"));
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Spedizioni");
+        XLSX.writeFile(wb, "spedizioni.xlsx");
+      });
 
-    document.addEventListener('DOMContentLoaded', async () => {
-      // Inizializza il componente header e poi carica i dati.
-      await new HeaderComponent().init();
-      await loadShipments();
-      
-      // Inizializzazione della logica di ordinamento della tabella.
+      // Table sorting
       document.querySelectorAll(".sortable").forEach(th => {
         th.style.cursor = "pointer";
         th.addEventListener("click", () => {
@@ -187,46 +187,38 @@
           const tbody = table.querySelector("tbody");
           const index = Array.from(th.parentNode.children).indexOf(th);
           const rows = Array.from(tbody.querySelectorAll("tr"));
-          const asc = !th.classList.contains("asc");
+          const isAsc = !th.classList.contains("asc");
           
           rows.sort((a, b) => {
-            const aText = a.children[index].textContent.trim();
-            const bText = b.children[index].textContent.trim();
-            return asc ? aText.localeCompare(bText) : bText.localeCompare(aText);
+            const aText = a.children[index] ? a.children[index].textContent.trim() : '';
+            const bText = b.children[index] ? b.children[index].textContent.trim() : '';
+            return isAsc ? aText.localeCompare(bText, 'en', {numeric: true}) : bText.localeCompare(aText, 'en', {numeric: true});
           });
           
           rows.forEach(row => tbody.appendChild(row));
           
           table.querySelectorAll("th").forEach(h => h.classList.remove("asc", "desc"));
-          th.classList.add(asc ? "asc" : "desc");
+          th.classList.add(isAsc ? "asc" : "desc");
         });
       });
-    });
+    }
+
+    /**
+     * Main function to initialize the page.
+     */
+    async function initializePage() {
+      await new HeaderComponent().init();
+      await dataManager.init();
+      await loadShipments();
+      setupEventListeners();
+    }
+
+    initializePage();
   </script>
 
   <div id="modal-root"></div>
 
 </body>
-
-  <script type="module">
-    import ModalSystem from '/core/modal-system.js';
-
-    window.ModalSystem = ModalSystem;
-
-    document.addEventListener('DOMContentLoaded', () => {
-      document.querySelectorAll(".sol-btn[data-id]").forEach(btn => {
-        btn.addEventListener("click", () => {
-          const shipmentId = btn.getAttribute("data-id");
-          ModalSystem.open({
-            title: "Dettagli Spedizione",
-            content: `<p>ID Spedizione: <strong>${shipmentId}</strong></p><p>Qui potresti caricare altri dettagli con una fetch.</p>`,
-            actions: [
-              { label: "Chiudi", variant: "primary", action: () => ModalSystem.close() }
-            ]
-          });
-        });
-      });
-    });
-  </script>
+</html>
 </html>
 
