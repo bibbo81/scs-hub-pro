@@ -70,6 +70,11 @@ class DataManager {
         
         // Upsert semplice del tracking
         const tracking = await trackingUpsertUtility.upsertTracking(dataWithOrg);
+
+        // Sincronizzazione dati
+        notifyDataChange('trackings');
+        notifyDataChange('shipments');
+
         return { tracking };
     }
     /**
@@ -110,6 +115,10 @@ class DataManager {
             };
 
             const shipment = await ShipmentsService.createShipment(shipmentPayload);
+
+            // Sincronizzazione dati
+            notifyDataChange('trackings');
+            notifyDataChange('shipments');
 
             console.log('✅ Tracking and shipment created:', { trackingId: tracking.id, shipmentId: shipment.id });
 
