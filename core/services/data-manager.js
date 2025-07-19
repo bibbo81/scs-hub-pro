@@ -67,6 +67,14 @@ class DataManager {
         };
 
         const tracking = await trackingUpsertUtility.upsertTracking(dataWithOrg);
+
+        // Notifica alla UI che i dati sono cambiati.
+        // Assicurati che window.notifyDataChange sia disponibile globalmente (dovrebbe essere in tracking.html)
+        if (window.notifyDataChange) {
+            window.notifyDataChange('trackings');
+            window.notifyDataChange('shipments');
+        }
+
         console.log('✅ Tracking upserted:', { trackingId: tracking.id });
         return { tracking };
     }

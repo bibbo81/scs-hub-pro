@@ -15,7 +15,7 @@ const ShipmentsService = {
       .from(TABLE_NAME)
       .select(`
         *,
-        tracking:tracking_id (
+        tracking:source_tracking_id (
           tracking_number,
           carrier_name,
           status,

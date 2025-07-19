@@ -214,6 +214,14 @@
     }
 
     initializePage();
+
+    // Aggiungi listener per la sincronizzazione cross-tab
+    window.addEventListener('storage', (e) => {
+        if (e.key === 'data_sync_shipments') {
+            console.log('📦 Sincronizzazione spedizioni rilevata da altra tab');
+            loadShipments();
+        }
+    });
   </script>
 
   <div id="modal-root"></div>
