@@ -17,8 +17,8 @@ class SupabaseTrackingService {
             const { data, error } = await supabase
                 .from(this.table)
                 .select('*')
+                .is('discarded_at', null) // Filtra i record non scartati
                 .order('created_at', { ascending: false });
-            // NON filtrare su discarded_at
             if (error) throw error;
             console.log('✅ Loaded trackings:', data);
             return data;
