@@ -630,7 +630,7 @@ setTimeout(() => {
     <script type="module" src="/core/services/tracking-service.js"></script>
     
     <!-- Load Progressive Form -->
-    <script src="/pages/tracking/tracking-form-progressive.js"></script>
+    
     
     <!-- Fix for progressive form -->
     <script>
@@ -1129,28 +1129,42 @@ console.log('🆕 Comandi aggiuntivi per bibbo81:');
 console.log('- systemHealthCheck() - Verifica completa del sistema');
 console.log('- testTracking() - Crea un tracking di test con prefix BIBBO');
 </script>
-    <!-- Core Modules Initialization -->
-    <script type="module">
-        import dataManager from '/core/services/data-manager.js';
-        import notificationSystem from '/core/notification-system.js';
-        import headerComponent from '/core/header-component.js';
-        import { TableManager } from '/core/table-manager.js';
-        import ModalSystem from '/core/modal-system.js';
+<!--
+    Blocco di inizializzazione principale (POSIZIONE E LOGICA CORRETTE)
+    Questo script assicura che i componenti core (Header, DataManager, etc.)
+    siano inizializzati nell'ordine corretto e solo dopo che il DOM è pronto.
+-->
+<script type="module">
+    import headerComponent from '/components/header-component.js';
+    import dataManager from '/core/services/data-manager.js';
+    import TableManager from '/core/table-manager.js';
+    import notificationSystem from '/core/notification-system.js';
+    import organizationApiKeysService from '/core/services/organization-api-keys-service.js'; // FIX: Import del servizio mancante
 
-        window.dataManager = dataManager;
-        window.NotificationSystem = notificationSystem;
-        window.headerComponent = headerComponent;
-        window.HeaderComponent = headerComponent;
-        window.TableManager = TableManager;
-        window.ModalSystem = ModalSystem;
+    // Espone i componenti allo scope globale per compatibilità con script legacy e per il debug
+    window.HeaderComponent = headerComponent;
+    window.dataManager = dataManager;
+    window.TableManager = TableManager;
+    window.notificationSystem = notificationSystem;
+    window.organizationApiKeysService = organizationApiKeysService;
 
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', () => headerComponent.init());
-        } else {
-            headerComponent.init();
+    // Attende il caricamento completo del DOM prima di eseguire la logica
+    document.addEventListener('DOMContentLoaded', async () => {
+        console.log('🚀 DOMContentLoaded: Inizializzazione componenti core per tracking.html...');
+        await headerComponent.init();
+        await dataManager.init();
+        
+        // FIX: Inizializza il servizio delle API keys DOPO che il dataManager ha recuperato l'org ID
+        if (dataManager.organizationId) {
+            await organizationApiKeysService.init(dataManager.organizationId);
+            console.log('✅ Servizio API keys per organizzazione inizializzato.');
         }
-    </script>
-    <script type="module" src="/assets/js/tracking-page.js"></script>
+
+        window.dispatchEvent(new Event('coreSystemsReady')); // Notifica gli altri script
+        console.log('✅ Componenti core inizializzati.');
+    });
+</script>
+    
 <script>
 // Sistema di sincronizzazione cross-tab
 (function() {
