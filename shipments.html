@@ -78,11 +78,6 @@
     </div>
   </main>
 
-  <script type="module">
-    import HeaderComponent from '/core/header-component.js';
-    await new HeaderComponent().init();
-  </script>
-
   <script type="module" src="/pages/shipments/index.js"></script>
 
   <script type="module">
@@ -95,38 +90,61 @@
   </script>
 
   <script type="module">
-    import * as shipmentsService from '/core/services/shipments-service.js';
+    import HeaderComponent from '/core/header-component.js';
 
+    // L'import di shipmentsService è stato rimosso perché ora si usa dataManager per centralizzare l'accesso ai dati.
     async function loadShipments() {
-      await new Promise(resolve => window.dataManager.initialized ? resolve() : window.addEventListener('dataManagerReady', resolve, { once: true }));
-
-      const shipments = await shipmentsService.default.getShipmentsByOrganization(window.dataManager.organizationId);
-      const tbody = document.getElementById('shipmentsTableBody');
-      tbody.innerHTML = '';
-
-      shipments.forEach(s => {
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td>${s.shipment_number || ''}</td>
-          <td>${s.tracking_number || ''}</td>
-          <td><span class="sol-badge sol-badge-primary">${s.status || ''}</span></td>
-          <td>${s.origin || ''}</td>
-          <td>${s.destination || ''}</td>
-          <td>${s.eta ? new Date(s.eta).toLocaleDateString('it-IT') : ''}</td>
-          <td>${s.carrier_name || ''}</td>
-          <td>${s.container_size || ''}</td>
-          <td>${s.container_type || ''}</td>
-          <td><button class="sol-btn sol-btn-sm details-btn" data-id="${s.id}">Dettagli</button></td>
-        `;
-        tbody.appendChild(tr);
+      // Attende che dataManager sia pronto, gestendo il caso in cui sia già inizializzato.
+      await new Promise(resolve => {
+        if (window.dataManager && window.dataManager.initialized) {
+          resolve();
+        } else {
+          window.addEventListener('dataManagerReady', resolve, { once: true });
+        }
       });
 
-      document.querySelectorAll(".details-btn").forEach(btn => {
-        btn.addEventListener("click", () => {
-          const id = btn.getAttribute("data-id");
-          NotificationSystem.info(`Apri modal per spedizione ID: ${id}`);
+      try {
+        // Usa dataManager per caricare le spedizioni, centralizzando la logica.
+        const shipments = await window.dataManager.getShipments();
+        const tbody = document.getElementById('shipmentsTableBody');
+        tbody.innerHTML = ''; // Pulisce la tabella prima di popolarla.
+
+        if (!shipments || shipments.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;">Nessuna spedizione trovata.</td></tr>';
+          return;
+        }
+
+        shipments.forEach(s => {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td>${s.shipment_number || ''}</td>
+            <td>${s.tracking_number || ''}</td>
+            <td><span class="sol-badge sol-badge-primary">${s.status || ''}</span></td>
+            <td>${s.origin || ''}</td>
+            <td>${s.destination || ''}</td>
+            <td>${s.eta ? new Date(s.eta).toLocaleDateString('it-IT') : ''}</td>
+            <td>${s.carrier_name || ''}</td>
+            <td>${s.container_size || ''}</td>
+            <td>${s.container_type || ''}</td>
+            <td><button class="sol-btn sol-btn-sm details-btn" data-id="${s.id}">Dettagli</button></td>
+          `;
+          tbody.appendChild(tr);
         });
-      });
+
+        // È necessario ri-agganciare gli eventi ai bottoni "Dettagli" dopo averli creati.
+        document.querySelectorAll(".details-btn").forEach(btn => {
+          btn.addEventListener("click", () => {
+            const id = btn.getAttribute("data-id");
+            // Questa notifica può essere sostituita con l'apertura di una modale.
+            window.NotificationSystem.info(`Dettagli per spedizione ID: ${id}`);
+          });
+        });
+      } catch (error) {
+        console.error('Errore durante il caricamento delle spedizioni:', error);
+        window.NotificationSystem.error('Impossibile caricare le spedizioni.');
+        const tbody = document.getElementById('shipmentsTableBody');
+        tbody.innerHTML = '<tr><td colspan="10" style="text-align:center; color: red;">Errore nel caricamento dei dati.</td></tr>';
+      }
     }
 
     document.getElementById("status-filter").addEventListener("change", e => {
@@ -157,8 +175,11 @@
     });
 
     document.addEventListener('DOMContentLoaded', async () => {
-      await window.dataManager.refreshShipments();
+      // Inizializza il componente header e poi carica i dati.
+      await new HeaderComponent().init();
       await loadShipments();
+      
+      // Inizializzazione della logica di ordinamento della tabella.
       document.querySelectorAll(".sortable").forEach(th => {
         th.style.cursor = "pointer";
         th.addEventListener("click", () => {
@@ -167,12 +188,15 @@
           const index = Array.from(th.parentNode.children).indexOf(th);
           const rows = Array.from(tbody.querySelectorAll("tr"));
           const asc = !th.classList.contains("asc");
+          
           rows.sort((a, b) => {
             const aText = a.children[index].textContent.trim();
             const bText = b.children[index].textContent.trim();
             return asc ? aText.localeCompare(bText) : bText.localeCompare(aText);
           });
+          
           rows.forEach(row => tbody.appendChild(row));
+          
           table.querySelectorAll("th").forEach(h => h.classList.remove("asc", "desc"));
           th.classList.add(asc ? "asc" : "desc");
         });

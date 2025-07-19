@@ -7,9 +7,9 @@ import { supabase } from './supabase-client.js';
 class TrackingUpsertUtility {
     /**
      * Esegue un upsert intelligente del tracking per evitare di riutilizzare record cancellati.
-     * - Se esiste un tracking attivo, lo restituisce.
-     * - Se esistono duplicati soft-deleted, li elimina permanentemente.
-     * - Inserisce il nuovo tracking.
+     * - Se esistono record soft-deleted, li elimina permanentemente.
+     * - Se esiste un tracking attivo, lo restituisce (salta inserimento).
+     * - Altrimenti, inserisce il nuovo tracking.
      * @param {TrackingLike} trackingData - Dati del tracking da salvare.
      * @returns {Promise<TrackingLike>} Il record attivo.
      */
@@ -33,7 +33,22 @@ class TrackingUpsertUtility {
             throw findError;
         }
 
-        // 2. Se esiste un record ATTIVO, restituiscilo.
+        // 2. Se esistono record soft-deleted, cancellali permanentemente per evitare dati sporchi.
+        const deletedIds = existingRecords?.filter(t => t.deleted_at !== null).map(t => t.id);
+        if (deletedIds && deletedIds.length > 0) {
+            console.log(`[TrackingUpsertUtility] Deleting ${deletedIds.length} soft-deleted duplicates for ${tracking_number}.`);
+            const { error: deleteError } = await supabase
+                .from('trackings')
+                .delete()
+                .in('id', deletedIds);
+
+            if (deleteError) {
+                // Non bloccare l'operazione, ma logga l'errore.
+                console.error('[TrackingUpsertUtility] Error deleting soft-deleted trackings:', deleteError);
+            }
+        }
+
+        // 3. Se esiste un record ATTIVO, salta l'inserimento e restituiscilo.
         const activeRecord = existingRecords?.find(t => t.deleted_at === null);
         if (activeRecord) {
             console.log(`[TrackingUpsertUtility] Active tracking ${tracking_number} already exists. Fetching full record.`);
@@ -50,22 +65,8 @@ class TrackingUpsertUtility {
             return fullActiveRecord;
         }
 
-        // 3. Se esistono record soft-deleted, cancellali permanentemente.
-        const deletedIds = existingRecords?.filter(t => t.deleted_at !== null).map(t => t.id);
-        if (deletedIds && deletedIds.length > 0) {
-            console.log(`[TrackingUpsertUtility] Deleting ${deletedIds.length} soft-deleted duplicates for ${tracking_number}.`);
-            const { error: deleteError } = await supabase
-                .from('trackings')
-                .delete()
-                .in('id', deletedIds);
-
-            if (deleteError) {
-                // Non bloccare l'inserimento, ma logga l'errore
-                console.error('[TrackingUpsertUtility] Error deleting soft-deleted trackings:', deleteError);
-            }
-        }
-
-        // 4. Inserisci il nuovo record.
+        // 4. Se non ci sono record attivi, inserisci il nuovo record.
+        // Il trigger su Supabase si occuperà di creare/aggiornare la riga in `shipments`.
         console.log(`[TrackingUpsertUtility] Inserting new tracking for ${tracking_number}.`);
         const { data: newTracking, error: insertError } = await supabase
             .from('trackings')

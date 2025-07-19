@@ -49,9 +49,8 @@ class DataManager {
         }
     }
 
-    // Assicurati che tutti i metodi usino l'organization ID dinamico
     /**
-     * Crea un nuovo tracking e la spedizione correlata.
+     * Crea/aggiorna un tracking. La spedizione correlata è gestita da un trigger.
      * @param {TrackingLike} trackingData
      */
     async addTracking(trackingData) {
@@ -62,7 +61,7 @@ class DataManager {
         try {
             const timestamp = new Date().toISOString();
 
-            // 1. Inserimento del tracking usando la nuova utility
+            // 1. Inserimento/aggiornamento del tracking usando l'utility
             const dataWithOrg = {
                 ...trackingData,
                 organization_id: this.organizationId,
@@ -73,29 +72,17 @@ class DataManager {
 
             const tracking = await trackingUpsertUtility.upsertTracking(dataWithOrg);
 
-            // 2. Inserimento della spedizione correlata usando ShipmentsService
-            const shipmentPayload = {
-                tracking_id: tracking.id,
-                tracking_number: tracking.tracking_number,
-                status: tracking.current_status || tracking.status,
-                carrier_name: tracking.carrier_name || tracking.carrier_code,
-                auto_created: true,
-                products: null,
-                organization_id: this.organizationId,
-                user_id: this.userId,
-                created_at: timestamp,
-                updated_at: timestamp
-            };
+            // 2. La creazione della spedizione è gestita da un trigger in Supabase.
+            // Non è più necessario creare la spedizione manualmente.
 
-            const shipment = await ShipmentsService.createShipment(shipmentPayload);
-
-            // Sincronizzazione dati
+            // Notifica alla UI che i dati sono cambiati.
             notifyDataChange('trackings');
             notifyDataChange('shipments');
 
-            console.log('✅ Tracking and shipment created:', { trackingId: tracking.id, shipmentId: shipment.id });
+            console.log('✅ Tracking upserted:', { trackingId: tracking.id });
 
-            return { tracking, shipment };
+            // Restituiamo solo il tracking. La UI si aggiornerà per le spedizioni.
+            return { tracking };
         } catch (error) {
             console.error('❌ addTracking error:', error);
             throw error;
