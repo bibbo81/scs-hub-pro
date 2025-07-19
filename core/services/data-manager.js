@@ -51,37 +51,10 @@ class DataManager {
 
     // Assicurati che tutti i metodi usino l'organization ID dinamico
     /**
-     * Crea un nuovo tracking.
+     * Crea un nuovo tracking e la spedizione correlata.
      * @param {TrackingLike} trackingData
      */
     async addTracking(trackingData) {
-        if (!this.initialized) {
-            throw new Error('DataManager not initialized');
-        }
-        
-        // Aggiungi automaticamente org_id e user_id
-        const dataWithOrg = {
-            ...trackingData,
-            organization_id: this.organizationId, // DINAMICO
-            user_id: this.userId,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-        };
-        
-        // Upsert semplice del tracking
-        const tracking = await trackingUpsertUtility.upsertTracking(dataWithOrg);
-
-        // Sincronizzazione dati
-        notifyDataChange('trackings');
-        notifyDataChange('shipments');
-
-        return { tracking };
-    }
-    /**
-     * Crea tracking e spedizione correlata.
-     * @param {TrackingLike} trackingData
-     */
-    async addTrackingWithShipment(trackingData) {
         if (!this.initialized) {
             throw new Error('DataManager not initialized');
         }
@@ -104,7 +77,7 @@ class DataManager {
             const shipmentPayload = {
                 tracking_id: tracking.id,
                 tracking_number: tracking.tracking_number,
-                status: tracking.status,
+                status: tracking.current_status || tracking.status,
                 carrier_name: tracking.carrier_name || tracking.carrier_code,
                 auto_created: true,
                 products: null,
@@ -124,7 +97,7 @@ class DataManager {
 
             return { tracking, shipment };
         } catch (error) {
-            console.error('❌ addTrackingWithShipment error:', error);
+            console.error('❌ addTracking error:', error);
             throw error;
         }
     }

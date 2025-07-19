@@ -449,7 +449,7 @@
         /// <reference path="/core/typedefs.d.ts" />
         // Import core modules
         import api from '/core/api-client.js';
-        import headerComponent from '/core/header-component.js';
+        import HeaderComponent from '/core/header-component.js';
         import notificationSystem from '/core/notification-system.js';
         import modalSystem from '/core/modal-system.js';
         import { supabase } from '/core/services/supabase-client.js';
@@ -465,7 +465,7 @@
         
         // Make modules available globally
         window.api = api;
-        window.headerComponent = headerComponent;
+        window.HeaderComponent = HeaderComponent;
         window.NotificationSystem = notificationSystem;
         window.ModalSystem = modalSystem;
         window.supabase = supabase;
@@ -490,7 +490,7 @@
         };
         
         // Initialize components
-        headerComponent.init();
+        await new HeaderComponent().init();
         
         // AGGIUNGI QUESTA INIZIALIZZAZIONE
         dataManager.init().then(() => {

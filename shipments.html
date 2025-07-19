@@ -79,8 +79,8 @@
   </main>
 
   <script type="module">
-    import headerComponent from '/core/header-component.js';
-    headerComponent.init();
+    import HeaderComponent from '/core/header-component.js';
+    await new HeaderComponent().init();
   </script>
 
   <script type="module" src="/pages/shipments/index.js"></script>
@@ -157,6 +157,7 @@
     });
 
     document.addEventListener('DOMContentLoaded', async () => {
+      await window.dataManager.refreshShipments();
       await loadShipments();
       document.querySelectorAll(".sortable").forEach(th => {
         th.style.cursor = "pointer";
