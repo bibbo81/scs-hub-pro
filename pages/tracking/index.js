@@ -230,6 +230,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
 
         // Initialize TableManager
+        const tableContainerElement = document.getElementById('trackingTableContainer');
+        if (!tableContainerElement) {
+            console.error('❌ Element #trackingTableContainer not found!');
+            throw new Error('Table container not found');
+        }
         tableManager = new TableManager('trackingTableContainer', {
             columns: TABLE_COLUMNS,
             selectable: true,

@@ -449,7 +449,7 @@
         /// <reference path="/core/typedefs.d.ts" />
         // Import core modules
         import api from '/core/api-client.js';
-        import HeaderComponent from '/core/header-component.js';
+        import headerComponent from '/core/header-component.js';
         import notificationSystem from '/core/notification-system.js';
         import modalSystem from '/core/modal-system.js';
         import { supabase } from '/core/services/supabase-client.js';
@@ -490,7 +490,7 @@
         };
         
         // Initialize components
-        await new HeaderComponent().init();
+        await headerComponent.init();
         
         // AGGIUNGI QUESTA INIZIALIZZAZIONE
         dataManager.init().then(() => {
