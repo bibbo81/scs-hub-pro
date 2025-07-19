@@ -140,7 +140,12 @@
   <script type="module" src="/core/auth-guard.js"></script>
 
   <!-- Header Component -->
-  <script type="module" src="/core/header-component.js"></script>
+<script type="module">
+    import headerComponent from '/core/header-component.js';
+    // Inizializza esplicitamente l'header per garantire che venga montato
+    headerComponent.init();
+  </script>
+  <script type="module" src="/pages/shipments/index.js"></script>
 
   <!-- Data Manager Init -->
   <script type="module">
