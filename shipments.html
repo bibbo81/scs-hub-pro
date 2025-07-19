@@ -130,6 +130,9 @@
   <!-- Libreria Tabulator -->
   <script src="https://cdn.jsdelivr.net/npm/tabulator-tables@5.5.0/dist/js/tabulator.min.js"></script>
 
+  <!-- Libreria SheetJS per XLSX -->
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
+
   <!-- Supabase Client -->
   <script type="module" src="/core/services/supabase-client.js"></script>
 
@@ -226,10 +229,36 @@
 
     // Funzione di esportazione XLSX (richiede una libreria esterna se vuoi supportarla realmente)
     function exportTableToXLSX(filename) {
-      NotificationSystem.info("Funzione XLSX non implementata senza libreria esterna.");
+      const ws = XLSX.utils.table_to_sheet(document.querySelector(".data-table"));
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Spedizioni");
+      XLSX.writeFile(wb, filename);
     }
 
-    document.addEventListener('DOMContentLoaded', loadShipments);
+    document.addEventListener('DOMContentLoaded', async () => {
+      await loadShipments();
+
+      document.querySelectorAll(".sortable").forEach(th => {
+        th.style.cursor = "pointer";
+        th.addEventListener("click", () => {
+          const table = th.closest("table");
+          const tbody = table.querySelector("tbody");
+          const index = Array.from(th.parentNode.children).indexOf(th);
+          const rows = Array.from(tbody.querySelectorAll("tr"));
+          const asc = !th.classList.contains("asc");
+
+          rows.sort((a, b) => {
+            const aText = a.children[index].textContent.trim();
+            const bText = b.children[index].textContent.trim();
+            return asc ? aText.localeCompare(bText) : bText.localeCompare(aText);
+          });
+
+          rows.forEach(row => tbody.appendChild(row));
+          table.querySelectorAll("th").forEach(h => h.classList.remove("asc", "desc"));
+          th.classList.add(asc ? "asc" : "desc");
+        });
+      });
+    });
   </script>
 </body>
 </html>
