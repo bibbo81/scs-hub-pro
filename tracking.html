@@ -1113,6 +1113,8 @@ window.testTracking = async function() {
         // Refresh table
         if (window.refreshTrackings) {
             window.refreshTrackings();
+        } else if (window.loadTrackings) {
+            window.loadTrackings();
         }
         
         return result;
@@ -1139,29 +1141,22 @@ console.log('- testTracking() - Crea un tracking di test con prefix BIBBO');
     import dataManager from '/core/services/data-manager.js';
     import TableManager from '/core/table-manager.js';
     import notificationSystem from '/core/notification-system.js';
-    import organizationApiKeysService from '/core/services/organization-api-keys-service.js'; // FIX: Import del servizio mancante
 
-    // Espone i componenti allo scope globale per compatibilità con script legacy e per il debug
     window.HeaderComponent = headerComponent;
     window.dataManager = dataManager;
     window.TableManager = TableManager;
-    window.notificationSystem = notificationSystem;
-    window.organizationApiKeysService = organizationApiKeysService;
+    window.NotificationSystem = notificationSystem;
 
-    // Attende il caricamento completo del DOM prima di eseguire la logica
     document.addEventListener('DOMContentLoaded', async () => {
-        console.log('🚀 DOMContentLoaded: Inizializzazione componenti core per tracking.html...');
         await headerComponent.init();
         await dataManager.init();
-        
-        // FIX: Inizializza il servizio delle API keys DOPO che il dataManager ha recuperato l'org ID
-        if (dataManager.organizationId) {
-            await organizationApiKeysService.init(dataManager.organizationId);
-            console.log('✅ Servizio API keys per organizzazione inizializzato.');
-        }
 
-        window.dispatchEvent(new Event('coreSystemsReady')); // Notifica gli altri script
-        console.log('✅ Componenti core inizializzati.');
+        // Inizializza TableManager dopo che la tabella è nel DOM
+        const tableContainer = document.getElementById("trackingTableContainer");
+        if (tableContainer && window.TableManager) {
+            window.tableManager = new TableManager(tableContainer, {/* config */});
+            await loadTrackings();
+        }
     });
 </script>
     
@@ -1176,8 +1171,6 @@ console.log('- testTracking() - Crea un tracking di test con prefix BIBBO');
             // Ricarica i dati appropriati
             if (window.location.pathname.includes('shipments')) {
                 if (window.loadRealShipments) {
-                    setTimeout(() => window.loadRealShipments(), 500);
-                } else if (window.ShipmentsRegistry?.renderShipmentsTable) {
                     setTimeout(() => window.ShipmentsRegistry.renderShipmentsTable(), 500);
                 }
             } else if (window.location.pathname.includes('tracking')) {
