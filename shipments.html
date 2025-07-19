@@ -3,124 +3,205 @@
 <html lang="it">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Shipments</title>
-  <link rel="stylesheet" href="/assets/css/tracking-table.css" />
-  <link rel="stylesheet" href="/assets/css/tracking-complete.css" />
-  <link rel="stylesheet" href="/assets/css/shipments.css" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <script src="/core/env-check.js"></script>
+  <title>Gestione Spedizioni - SCS Hub Pro</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23007AFF'%3E%3Cpath d='M20 8h-3V4H3c-1.1 0-2 .9-2 2v11h2c0 1.66 1.34 3 3 3s3-1.34 3-3h6c0 1.66 1.34 3 3 3s3-1.34 3-3h2v-5l-4zM6 18.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm13.5-9l1.96 2.5H17V9.5h2.5zm-1.5 9c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="/assets/css/solarium.css">
+  <link rel="stylesheet" href="/pages/tracking/tracking-complete.css">
+  <link rel="stylesheet" href="/pages/tracking/tracking-table.css">
   <script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
-  <script type="module" src="/core/header-component.js"></script>
+  <style>
+    .sol-button, .sol-btn, button {
+      background: #007aff;
+      color: #fff;
+      border: none;
+      padding: 0.4rem 1rem;
+      border-radius: 5px;
+      transition: background 0.15s;
+      font-weight: 500;
+      cursor: pointer;
+    }
+    .sol-button:hover, .sol-btn:hover, button:hover {
+      background: #005fc1;
+    }
+    .sol-select, select {
+      padding: 0.3rem 0.7rem;
+      border-radius: 5px;
+      border: 1px solid #e0e6ed;
+      margin-left: 1rem;
+    }
+  </style>
+  <link rel="stylesheet" href="/core/modal-system.css">
 </head>
 <body>
   <div id="header-root"></div>
 
-  <div class="table-container" style="padding: 1rem;">
-    <div class="export-buttons">
-      <button onclick="exportTableToXLSX('spedizioni.xlsx')">Esporta XLSX</button>
+  <main class="sol-main-content">
+    <div class="sol-container">
+      <div class="sol-card">
+        <div class="sol-card-header">
+          <h3 class="sol-card-title">Spedizioni</h3>
+          <div class="sol-card-tools">
+            <button id="export-csv" class="sol-button">Esporta CSV</button>
+            <button id="export-xlsx" class="sol-button ml-2">Esporta XLSX</button>
+            <select id="status-filter" class="sol-select ml-4">
+              <option value="">Filtra per stato</option>
+              <option value="planned">Planned</option>
+              <option value="in_transit">In Transit</option>
+              <option value="delivered">Delivered</option>
+            </select>
+          </div>
+        </div>
+        <div class="sol-card-body">
+          <div class="table-container">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th class="sortable">Numero Spedizione</th>
+                  <th class="sortable">Tracking</th>
+                  <th class="sortable">Stato</th>
+                  <th class="sortable">Origine</th>
+                  <th class="sortable">Destinazione</th>
+                  <th class="sortable">ETA</th>
+                  <th class="sortable">Compagnia</th>
+                  <th class="sortable">Container</th>
+                  <th class="sortable">Tipo</th>
+                  <th>Azioni</th>
+                </tr>
+              </thead>
+              <tbody id="shipmentsTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
     </div>
-    <table class="data-table">
-      <thead>
-        <tr>
-          <th class="sortable">Numero Spedizione</th>
-          <th class="sortable">Tracking</th>
-          <th class="sortable">Stato</th>
-          <th class="sortable">Origine</th>
-          <th class="sortable">Destinazione</th>
-          <th class="sortable">ETA</th>
-          <th class="sortable">Compagnia</th>
-          <th class="sortable">Container</th>
-          <th class="sortable">Tipo</th>
-          <th>Azioni</th>
-        </tr>
-      </thead>
-      <tbody id="shipmentsTableBody">
-        <!-- Righe dinamiche -->
-      </tbody>
-    </table>
-  </div>
+  </main>
 
   <script type="module">
-    import '/core/header-component.js';
+    import headerComponent from '/core/header-component.js';
+    headerComponent.init();
+  </script>
 
-    document.addEventListener("DOMContentLoaded", () => {
-      if (!document.getElementById("app-header")) {
-        const header = document.createElement("app-header");
-        document.getElementById("header-root").appendChild(header);
-      }
-    });
+  <script type="module" src="/pages/shipments/index.js"></script>
 
-    // Funzione export
-    function exportTableToXLSX(filename) {
-      const ws = XLSX.utils.table_to_sheet(document.querySelector(".data-table"));
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, "Spedizioni");
-      XLSX.writeFile(wb, filename);
-    }
+  <script type="module">
+    import dataManager from '/core/services/data-manager.js';
+    import notificationSystem from '/core/notification-system.js';
+    window.dataManager = dataManager;
+    window.NotificationSystem = notificationSystem;
+    await dataManager.init();
+    window.dispatchEvent(new Event('dataManagerReady'));
+  </script>
 
-    // Ordinamento colonne
-    document.querySelectorAll(".sortable").forEach(th => {
-      th.style.cursor = "pointer";
-      th.addEventListener("click", () => {
-        const table = th.closest("table");
-        const tbody = table.querySelector("tbody");
-        const index = Array.from(th.parentNode.children).indexOf(th);
-        const rows = Array.from(tbody.querySelectorAll("tr"));
-        const asc = !th.classList.contains("asc");
+  <script type="module">
+    import * as shipmentsService from '/core/services/shipments-service.js';
 
-        rows.sort((a, b) => {
-          const aText = a.children[index].textContent.trim();
-          const bText = b.children[index].textContent.trim();
-          return asc ? aText.localeCompare(bText) : bText.localeCompare(aText);
-        });
+    async function loadShipments() {
+      await new Promise(resolve => window.dataManager.initialized ? resolve() : window.addEventListener('dataManagerReady', resolve, { once: true }));
 
-        rows.forEach(row => tbody.appendChild(row));
-        table.querySelectorAll("th").forEach(h => h.classList.remove("asc", "desc"));
-        th.classList.add(asc ? "asc" : "desc");
-      });
-    });
+      const shipments = await shipmentsService.default.getShipmentsByOrganization(window.dataManager.organizationId);
+      const tbody = document.getElementById('shipmentsTableBody');
+      tbody.innerHTML = '';
 
-    // Simulazione fetch e rendering
-    document.addEventListener("DOMContentLoaded", async () => {
-      const shipments = [
-        {
-          id: 1,
-          shipment_number: "SHP001",
-          tracking_number: "TRK123",
-          status: "In transito",
-          origin: "Milano",
-          destination: "Madrid",
-          eta: "2025-07-25",
-          carrier_name: "DHL",
-          container_size: "20FT",
-          container_type: "Dry"
-        }
-      ];
-      const tbody = document.getElementById("shipmentsTableBody");
       shipments.forEach(s => {
         const tr = document.createElement('tr');
         tr.innerHTML = `
-          <td>${s.shipment_number}</td>
-          <td>${s.tracking_number}</td>
-          <td><span class="sol-badge sol-badge-primary">${s.status}</span></td>
-          <td>${s.origin}</td>
-          <td>${s.destination}</td>
-          <td>${new Date(s.eta).toLocaleDateString('it-IT')}</td>
-          <td>${s.carrier_name}</td>
-          <td>${s.container_size}</td>
-          <td>${s.container_type}</td>
+          <td>${s.shipment_number || ''}</td>
+          <td>${s.tracking_number || ''}</td>
+          <td><span class="sol-badge sol-badge-primary">${s.status || ''}</span></td>
+          <td>${s.origin || ''}</td>
+          <td>${s.destination || ''}</td>
+          <td>${s.eta ? new Date(s.eta).toLocaleDateString('it-IT') : ''}</td>
+          <td>${s.carrier_name || ''}</td>
+          <td>${s.container_size || ''}</td>
+          <td>${s.container_type || ''}</td>
           <td><button class="sol-btn sol-btn-sm details-btn" data-id="${s.id}">Dettagli</button></td>
         `;
         tbody.appendChild(tr);
       });
 
-      // Bind modale dettagli
       document.querySelectorAll(".details-btn").forEach(btn => {
         btn.addEventListener("click", () => {
           const id = btn.getAttribute("data-id");
-          alert(`Mostra dettagli per ID: ${id}`);
+          NotificationSystem.info(`Apri modal per spedizione ID: ${id}`);
+        });
+      });
+    }
+
+    document.getElementById("status-filter").addEventListener("change", e => {
+      const value = e.target.value;
+      Array.from(document.querySelectorAll("#shipmentsTableBody tr")).forEach(row => {
+        const status = row.children[2].textContent.trim();
+        row.style.display = (!value || status === value) ? "" : "none";
+      });
+    });
+
+    document.getElementById("export-csv").addEventListener("click", () => {
+      const rows = Array.from(document.querySelectorAll('.data-table tr'));
+      const csv = rows.map(row =>
+        Array.from(row.children).map(cell => `"${cell.textContent.replace(/"/g, '""')}"`).join(',')
+      ).join('\n');
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = 'spedizioni.csv';
+      link.click();
+    });
+
+    document.getElementById("export-xlsx").addEventListener("click", () => {
+      const ws = XLSX.utils.table_to_sheet(document.querySelector(".data-table"));
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Spedizioni");
+      XLSX.writeFile(wb, "spedizioni.xlsx");
+    });
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      await loadShipments();
+      document.querySelectorAll(".sortable").forEach(th => {
+        th.style.cursor = "pointer";
+        th.addEventListener("click", () => {
+          const table = th.closest("table");
+          const tbody = table.querySelector("tbody");
+          const index = Array.from(th.parentNode.children).indexOf(th);
+          const rows = Array.from(tbody.querySelectorAll("tr"));
+          const asc = !th.classList.contains("asc");
+          rows.sort((a, b) => {
+            const aText = a.children[index].textContent.trim();
+            const bText = b.children[index].textContent.trim();
+            return asc ? aText.localeCompare(bText) : bText.localeCompare(aText);
+          });
+          rows.forEach(row => tbody.appendChild(row));
+          table.querySelectorAll("th").forEach(h => h.classList.remove("asc", "desc"));
+          th.classList.add(asc ? "asc" : "desc");
         });
       });
     });
   </script>
+
+  <div id="modal-root"></div>
+
 </body>
+
+  <script type="module">
+    import ModalSystem from '/core/modal-system.js';
+
+    window.ModalSystem = ModalSystem;
+
+    document.addEventListener('DOMContentLoaded', () => {
+      document.querySelectorAll(".sol-btn[data-id]").forEach(btn => {
+        btn.addEventListener("click", () => {
+          const shipmentId = btn.getAttribute("data-id");
+          ModalSystem.open({
+            title: "Dettagli Spedizione",
+            content: `<p>ID Spedizione: <strong>${shipmentId}</strong></p><p>Qui potresti caricare altri dettagli con una fetch.</p>`,
+            actions: [
+              { label: "Chiudi", variant: "primary", action: () => ModalSystem.close() }
+            ]
+          });
+        });
+      });
+    });
+  </script>
 </html>
+
