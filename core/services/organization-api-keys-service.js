@@ -167,6 +167,40 @@ class OrganizationApiKeysService {
         }
     }
 
+    // Recupera tutte le API keys aziendali attive
+    async getOrganizationApiKeys() {
+        try {
+            const org = await this.getCurrentOrganization();
+            if (!org) return [];
+
+            const cacheKey = `list_${org.id}`;
+            if (this.cache.has(cacheKey)) {
+                return this.cache.get(cacheKey);
+            }
+
+            const { data, error } = await supabase
+                .from('organization_api_keys')
+                .select('provider, api_key')
+                .eq('organization_id', org.id)
+                .eq('is_active', true);
+
+            if (error || !data) return [];
+
+            const keys = data.map(row => ({
+                provider: row.provider,
+                api_key: atob(row.api_key)
+            }));
+
+            this.cache.set(cacheKey, keys);
+
+            return keys;
+
+        } catch (error) {
+            console.error('Errore recupero API keys organizzazione:', error);
+            return [];
+        }
+    }
+
     // Ottieni tutte le API keys (aziendali + personali)
     async getAllApiKeys() {
         const keys = {};
