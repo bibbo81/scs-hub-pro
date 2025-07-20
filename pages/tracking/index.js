@@ -1,11 +1,11 @@
 import TableManager from '/core/table-manager.js';
 import { trackingsColumns } from '/core/table-config.js';
 import supabaseTrackingService from '/core/services/supabase-tracking-service.js';
-import ModalSystem from '/core/modal-system.js';
+import trackingService from '/core/services/tracking-service.js'; // Importa il servizio
 
-// Importa i componenti dell'interfaccia utente
+// Carica gli script legacy che si aspettano variabili globali
+import '/core/import-manager.js';
 import '/pages/tracking/tracking-form-progressive.js';
-import { importWizard } from '/core/import-wizard.js';
 
 // State globale del modulo
 let tableManager = null;
@@ -19,6 +19,10 @@ async function init(dependencies) {
     
     dataManager = dependencies.dataManager;
 
+    // Inizializza i servizi e rendili disponibili globalmente per gli script legacy
+    window.trackingService = await trackingService.initialize();
+    // ImportManager è già disponibile globalmente dal suo script
+
     const tableContainer = document.getElementById(dependencies.tableContainerId);
     if (!tableContainer) {
         throw new Error(`Container #${dependencies.tableContainerId} not found`);
@@ -29,24 +33,14 @@ async function init(dependencies) {
     });
 
     await loadTrackings();
-    setupEventListeners();
-
-    // Inizializza l'import wizard
-    await importWizard.init({ entity: 'trackings' });
 
     console.log('✅ Tracking page initialized');
 
     return {
         showAddTrackingForm,
         showImportDialog,
-        showColumnEditor,
-        testDataManager,
         deleteTracking,
-        refreshTracking,
-        viewDetails,
-        performBulkAction,
-        resetFilters,
-        exportData
+        // ... (altre azioni se necessario)
     };
 }
 
@@ -80,13 +74,23 @@ function showAddTrackingForm() {
 
 // Funzione per mostrare il wizard di importazione
 function showImportDialog() {
-    if (importWizard) {
-        console.log('🚀 Opening import wizard...');
-        importWizard.show();
-    } else {
-        console.error('importWizard not found!');
-        window.NotificationSystem.error('Il modulo di importazione non è disponibile.');
-    }
+    // Crea un input file nascosto e lo clicca
+    const fileInput = document.createElement('input');
+    fileInput.type = 'file';
+    fileInput.accept = '.csv,.xls,.xlsx';
+    fileInput.style.display = 'none';
+
+    fileInput.onchange = (e) => {
+        const file = e.target.files[0];
+        if (file && window.ImportManager) {
+            console.log(`🚀 Starting import for file: ${file.name}`);
+            window.ImportManager.importFile(file, { entity: 'trackings' });
+        }
+    };
+
+    document.body.appendChild(fileInput);
+    fileInput.click();
+    document.body.removeChild(fileInput);
 }
 
 // --- Altre funzioni (placeholder) ---
