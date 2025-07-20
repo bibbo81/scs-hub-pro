@@ -270,8 +270,8 @@ export class TableManager {
     
     // Render select all checkbox header
     renderSelectAllHeader() {
-        const allSelected = this.displayData.length > 0 && 
-                          this.displayData.every(row => this.selectedRows.has(row.id || this.data.indexOf(row)));
+        const allSelected = this.displayData.length > 0 &&
+                          this.displayData.every(row => this.selectedRows.has(String(row.id ?? this.data.indexOf(row))));
         
         return `
             <th class="no-drag" style="width: 40px;">
@@ -309,7 +309,7 @@ export class TableManager {
     
     // Render table row
     renderRow(row, index) {
-        const rowId = row.id || index;
+        const rowId = String(row.id ?? index);
         const isSelected = this.selectedRows.has(rowId);
         
         return `
@@ -718,7 +718,7 @@ export class TableManager {
     selectAll(selected) {
         if (selected) {
             this.displayData.forEach(row => {
-                const id = row.id || this.data.indexOf(row);
+                const id = String(row.id ?? this.data.indexOf(row));
                 this.selectedRows.add(id);
             });
         } else {
@@ -731,7 +731,7 @@ export class TableManager {
     
     // Select/deselect single row
     selectRow(rowId, selected) {
-        const id = parseInt(rowId);
+        const id = String(rowId);
         
         if (selected) {
             this.selectedRows.add(id);
@@ -746,7 +746,7 @@ export class TableManager {
     // Get selected rows data
     getSelectedRows() {
         return this.data.filter(row => {
-            const id = row.id || this.data.indexOf(row);
+            const id = String(row.id ?? this.data.indexOf(row));
             return this.selectedRows.has(id);
         });
     }
