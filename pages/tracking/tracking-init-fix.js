@@ -7,26 +7,11 @@
     console.log('🔧 TRACKING INIT FIX V2: Starting comprehensive fixes...');
     
     // ========================================
-    // FIX 0: ORGANIZATION API KEYS SERVICE
+    // FIX 0: ORGANIZATION API KEYS SERVICE (rimosso, ora integrato nel service)
     // ========================================
-    
+
     function fixOrganizationApiKeysService() {
-        console.log('🔧 FIX 0: Fixing organization API keys service...');
-        
-        if (window.organizationApiKeysService) {
-            // Se manca il metodo getOrganizationApiKeys, crealo
-            if (!window.organizationApiKeysService.getOrganizationApiKeys) {
-                console.log('⚠️ Adding missing getOrganizationApiKeys method');
-                window.organizationApiKeysService.getOrganizationApiKeys = async function() {
-                    // Prova getApiKeys o ritorna array vuoto
-                    if (this.getApiKeys) {
-                        return await this.getApiKeys();
-                    }
-                    console.warn('No API keys method available');
-                    return [];
-                };
-            }
-        }
+        console.log('🔧 FIX 0: Organization API keys service already handled');
     }
     
     // ========================================
@@ -36,7 +21,7 @@
     async function fixTrackingService() {
         console.log('🔧 FIX 1: Fixing tracking service...');
         
-        // Prima fixa organization API keys
+        // Prima verifica organization API keys service
         fixOrganizationApiKeysService();
         
         // Attendi che il tracking service sia disponibile
