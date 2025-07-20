@@ -1,6 +1,12 @@
 // index.js - Clean tracking page logic with all mappings
 import TableManager from '/core/table-manager.js';
 import { trackingsColumns, formatDate, formatDateOnly, formatTrackingStatus } from '/core/table-config.js';
+import supabaseTrackingService from '/core/services/supabase-tracking-service.js';
+
+// Ensure global supabaseTrackingService
+if (typeof window !== 'undefined' && !window.supabaseTrackingService) {
+    window.supabaseTrackingService = supabaseTrackingService;
+}
 
 // State
 let trackings = [];
