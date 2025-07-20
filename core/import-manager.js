@@ -731,21 +731,21 @@
         async processImport(normalizedResult, progressModal, options = {}) {
             const { normalizedData } = normalizedResult;
             
-// Prima di salvare ogni tracking
-processedData = processedData.map(tracking => {
-    // Assicurati che trackingNumber sia presente
-    if (!tracking.trackingNumber || tracking.trackingNumber === '-') {
-        console.warn('Skipping tracking without number:', tracking);
-        return null;
-    }
-    
-    // Converti carrier a stringa se necessario
-    if (tracking.carrier && typeof tracking.carrier === 'object') {
-        tracking.carrier = tracking.carrier.code || tracking.carrier.name || '-';
-    }
-    
-    return tracking;
-}).filter(Boolean); // Rimuovi i null
+            // Prima di salvare ogni tracking, assicurati che i dati siano consistenti
+            const processedData = normalizedData.map(tracking => {
+                // Assicurati che trackingNumber sia presente
+                if (!tracking.tracking_number || tracking.tracking_number === '-') {
+                    console.warn('Skipping tracking without number:', tracking);
+                    return null;
+                }
+                
+                // Converti carrier a stringa se necessario
+                if (tracking.carrier && typeof tracking.carrier === 'object') {
+                    tracking.carrier = tracking.carrier.code || tracking.carrier.name || '-';
+                }
+                
+                return tracking;
+            }).filter(Boolean); // Rimuovi i null
 
             progressModal.update(90, 'Finalizzazione import...');
             await this.delay(500);

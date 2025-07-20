@@ -14,6 +14,13 @@
 
     <!-- Supabase -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <!-- FIX: Funzione segnaposto per tracking-form-progressive.js -->
+    <script>
+        // Questo script crea una funzione vuota che lo script del form progressivo
+        // si aspetta di trovare. Lo script progressivo poi la sostituirà con la sua versione avanzata.
+        window.showAddTrackingForm = () => console.log('Placeholder for progressive form...');
+    </script>
 </head>
 <body>
     <!-- Header e Contenuto Principale -->
