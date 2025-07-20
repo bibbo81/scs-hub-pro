@@ -1142,21 +1142,17 @@ console.log('- testTracking() - Crea un tracking di test con prefix BIBBO');
     import TableManager from '/core/table-manager.js';
     import notificationSystem from '/core/notification-system.js';
 
+    // Rendi i moduli disponibili globalmente per altri script legacy
     window.HeaderComponent = headerComponent;
     window.dataManager = dataManager;
     window.TableManager = TableManager;
     window.NotificationSystem = notificationSystem;
 
+    // Inizializza solo i componenti non legati alla tabella
     document.addEventListener('DOMContentLoaded', async () => {
         await headerComponent.init();
         await dataManager.init();
-
-        // Inizializza TableManager dopo che la tabella è nel DOM
-        const tableContainer = document.getElementById("trackingTableContainer");
-        if (tableContainer && window.TableManager) {
-            window.tableManager = new TableManager(tableContainer, {/* config */});
-            await loadTrackings();
-        }
+        // L'inizializzazione di TableManager è ora gestita esclusivamente da /pages/tracking/index.js
     });
 </script>
     

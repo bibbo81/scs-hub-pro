@@ -425,12 +425,13 @@ function setupEventListeners() {
     document.getElementById('statusFilter')?.addEventListener('change', applyFilters);
     document.getElementById('carrierFilter')?.addEventListener('change', applyFilters);
     
-    // Global functions
+    // Global functions for HTML onclick attributes
     window.refreshTracking = refreshTracking;
     window.viewDetails = viewDetails;
     window.deleteTracking = deleteTracking;
     window.showAddTrackingForm = showAddTrackingForm;
     window.showImportDialog = showImportDialog;
+    window.showColumnEditor = showColumnEditor; // <-- FIX: Aggiunta funzione mancante
     window.exportData = exportData;
     window.resetFilters = resetFilters;
     window.toggleSelectAll = toggleSelectAll;

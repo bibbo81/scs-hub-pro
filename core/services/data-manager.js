@@ -58,18 +58,21 @@ class DataManager {
         if (!this.initialized) await this.init();
 
         const timestamp = new Date().toISOString();
-        const dataWithOrg = {
+        
+        // Assicura che i campi richiesti da upsertTracking siano presenti.
+        const dataForUpsert = {
             ...trackingData,
             organization_id: this.organizationId,
             user_id: this.userId,
             created_at: timestamp,
-            updated_at: timestamp
+            updated_at: timestamp,
+            // Assicura che carrier_code sia presente se manca
+            carrier_code: trackingData.carrier_code || trackingData.carrier
         };
 
-        const tracking = await trackingUpsertUtility.upsertTracking(dataWithOrg);
+        const tracking = await trackingUpsertUtility.upsertTracking(dataForUpsert);
 
         // Notifica alla UI che i dati sono cambiati.
-        // Assicurati che window.notifyDataChange sia disponibile globalmente (dovrebbe essere in tracking.html)
         if (window.notifyDataChange) {
             window.notifyDataChange('trackings');
             window.notifyDataChange('shipments');
