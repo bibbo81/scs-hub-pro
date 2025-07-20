@@ -15,11 +15,21 @@
     <!-- Supabase -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-    <!-- FIX: Funzione segnaposto per tracking-form-progressive.js -->
-    <script>
-        // Questo script crea una funzione vuota che lo script del form progressivo
-        // si aspetta di trovare. Lo script progressivo poi la sostituirà con la sua versione avanzata.
-        window.showAddTrackingForm = () => console.log('Placeholder for progressive form...');
+    <!-- INIZIALIZZAZIONE PRECOCE DEI SERVIZI E FUNZIONI GLOBALI -->
+    <script type="module">
+        import trackingService from '/core/services/tracking-service.js';
+        import '/core/import-manager.js'; // Si auto-inizializza e espone window.ImportManager
+        import '/pages/tracking/tracking-form-progressive.js'; // Si auto-inizializza e espone window.showEnhancedTrackingForm
+
+        // Rendi trackingService disponibile globalmente e inizializzalo
+        window.trackingService = trackingService;
+        window.trackingService.initialize(); // Non aspettare qui, lascialo in background
+
+        // Segnaposto per showAddTrackingForm che verrà potenziato da tracking-form-progressive.js
+        if (typeof window.showAddTrackingForm === 'undefined') {
+            window.showAddTrackingForm = () => console.log('Placeholder showAddTrackingForm called.');
+        }
+        console.log('✅ Early global services and placeholder functions set up.');
     </script>
 </head>
 <body>
@@ -58,7 +68,7 @@
         </div>
     </main>
 
-    <!-- PUNTO DI INGRESSO UNIFICATO -->
+    <!-- PUNTO DI INGRESSO UNIFICATO PER LA PAGINA -->
     <script type="module">
         import headerComponent from '/core/header-component.js';
         import dataManager from '/core/services/data-manager.js';
@@ -73,7 +83,7 @@
         window.ModalSystem = ModalSystem;
 
         document.addEventListener('DOMContentLoaded', async () => {
-            console.log('🚀 Inizializzazione centralizzata...');
+            console.log('🚀 Inizializzazione centralizzata della pagina...');
             try {
                 await headerComponent.init();
                 await dataManager.init();
@@ -90,7 +100,7 @@
                 console.log('✅ Inizializzazione completata. Azioni pagina disponibili.');
 
             } catch (error) {
-                console.error('❌ Errore critico di inizializzazione:', error);
+                console.error('❌ Errore critico durante l'inizializzazione della pagina:', error);
                 notificationSystem.error('Errore critico nel caricamento della pagina.');
             }
         });

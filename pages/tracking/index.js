@@ -3,9 +3,7 @@ import { trackingsColumns } from '/core/table-config.js';
 import supabaseTrackingService from '/core/services/supabase-tracking-service.js';
 import trackingService from '/core/services/tracking-service.js'; // Importa il servizio
 
-// Carica gli script legacy che si aspettano variabili globali
-import '/core/import-manager.js';
-import '/pages/tracking/tracking-form-progressive.js';
+// NON CARICARE QUI GLI SCRIPT LEGACY, SONO CARICATI IN tracking.html
 
 // State globale del modulo
 let tableManager = null;
@@ -19,9 +17,8 @@ async function init(dependencies) {
     
     dataManager = dependencies.dataManager;
 
-    // Inizializza i servizi e rendili disponibili globalmente per gli script legacy
-    window.trackingService = await trackingService.initialize();
-    // ImportManager è già disponibile globalmente dal suo script
+    // trackingService e ImportManager sono già disponibili globalmente da tracking.html
+    // Non è necessario inizializzarli qui di nuovo.
 
     const tableContainer = document.getElementById(dependencies.tableContainerId);
     if (!tableContainer) {
@@ -33,6 +30,13 @@ async function init(dependencies) {
     });
 
     await loadTrackings();
+    setupEventListeners(); // Ripristina la chiamata a setupEventListeners
+
+    // Aggiungi listener per l'evento di aggiornamento dei tracking
+    window.addEventListener('trackingsUpdated', (event) => {
+        console.log('🔄 Trackings updated event received, reloading table...', event.detail);
+        loadTrackings();
+    });
 
     console.log('✅ Tracking page initialized');
 
@@ -113,7 +117,50 @@ function resetFilters() { console.log('Reset filters'); }
 function exportData() { console.log('Export'); }
 
 function setupEventListeners() {
-    // ... (logica per i filtri di ricerca, etc.)
+    // Search
+    const searchInput = document.getElementById('searchInput');
+    if (searchInput) {
+        searchInput.addEventListener('input', (e) => {
+            const term = e.target.value.toLowerCase();
+            filteredTrackings = trackings.filter(t => 
+                t.tracking_number?.toLowerCase().includes(term) ||
+                t.carrier_name?.toLowerCase().includes(term) ||
+                t.origin_port?.toLowerCase().includes(term) ||
+                t.destination_port?.toLowerCase().includes(term) ||
+                t.reference?.toLowerCase().includes(term)
+            );
+            updateTable();
+        
+        });
+    }
+    
+    // Filters
+    document.getElementById('statusFilter')?.addEventListener('change', applyFilters);
+    document.getElementById('carrierFilter')?.addEventListener('change', applyFilters);
+    
+    // Global functions for HTML onclick attributes
+    window.refreshTracking = refreshTracking;
+    window.viewDetails = viewDetails;
+    window.deleteTracking = deleteTracking;
+    window.showAddTrackingForm = showAddTrackingForm;
+    window.showImportDialog = showImportDialog;
+    window.showColumnEditor = showColumnEditor;
+    window.exportData = exportData;
+    window.resetFilters = resetFilters;
+    window.toggleSelectAll = toggleSelectAll;
+    window.performBulkAction = performBulkAction;
+    
+    // Export mappings for other modules
+    window.COLUMN_MAPPING = COLUMN_MAPPING;
+    window.STATUS_DISPLAY = STATUS_DISPLAY;
+    window.getStatusMapping = getStatusMapping;
+    window.updateBulkActionsBar = function() {
+        // Delega a handleSelectionChange che già esiste
+        if (tableManager) {
+            const selected = tableManager.getSelectedRows();
+            handleSelectionChange(selected);
+        }
+    };
 }
 
 // Esporta solo la funzione di inizializzazione
