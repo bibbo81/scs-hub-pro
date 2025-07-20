@@ -43,7 +43,6 @@ class TrackingUpsertUtility {
                 .in('id', deletedIds);
 
             if (deleteError) {
-                // Non bloccare l'operazione, ma logga l'errore.
                 console.error('[TrackingUpsertUtility] Error deleting soft-deleted trackings:', deleteError);
             }
         }
@@ -66,11 +65,35 @@ class TrackingUpsertUtility {
         }
 
         // 4. Se non ci sono record attivi, inserisci il nuovo record.
-        // Il trigger su Supabase si occuperà di creare/aggiornare la riga in `shipments`.
+        // **FIX**: Pulisci l'oggetto trackingData per inviare solo le colonne valide.
+        const validColumns = [
+            'id', 'user_id', 'tracking_number', 'tracking_type', 'carrier_code', 'carrier_name', 
+            'reference_number', 'status', 'origin_port', 'origin_country', 'destination_port', 
+            'destination_country', 'eta', 'ata', 'last_event_date', 'last_event_location', 
+            'last_event_description', 'metadata', 'created_at', 'updated_at', 'organization_id', 
+            'vessel_name', 'vessel_imo', 'voyage_number', 'container_size', 'container_type', 
+            'container_count', 'date_of_loading', 'date_of_departure', 'date_of_discharge', 
+            'booking_number', 'bl_number', 'transit_time', 'co2_emission', 'ts_count', 'carrier', 
+            'origin', 'destination', 'estimated_delivery', 'actual_delivery', 'shipped_date', 
+            'created_by', 'deleted_at'
+        ];
+
+        const cleanData = {};
+        for (const col of validColumns) {
+            if (trackingData[col] !== undefined && trackingData[col] !== null) {
+                cleanData[col] = trackingData[col];
+            }
+        }
+        
+        // Assicura che i campi obbligatori (NOT NULL) abbiano un valore.
+        if (!cleanData.tracking_type) {
+            cleanData.tracking_type = 'container'; // Imposta un default se mancante
+        }
+
         console.log(`[TrackingUpsertUtility] Inserting new tracking for ${tracking_number}.`);
         const { data: newTracking, error: insertError } = await supabase
             .from('trackings')
-            .insert(trackingData)
+            .insert(cleanData) // Usa l'oggetto pulito
             .select()
             .single();
 
