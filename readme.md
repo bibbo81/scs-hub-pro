@@ -68,6 +68,7 @@ Get up and running in less than 2 minutes:
 # Clone repository
 git clone https://github.com/[username]/scs-hub-pro.git
 cd scs-hub-pro
+npm install
 
 # Start development server
 python3 -m http.server 8000 --directory public
