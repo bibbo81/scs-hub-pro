@@ -105,16 +105,26 @@ class DataManager {
     async deleteTracking(trackingId) {
         if (!this.initialized) await this.init();
 
+        // La policy RLS (Row Level Security) garantisce già che un utente
+        // possa cancellare solo i record della propria organizzazione.
+        // Rimuovere il filtro esplicito .eq('organization_id', ...) risolve
+        // il problema del fallimento silenzioso e si affida alla RLS come unica fonte di verità.
         const { error } = await supabase
             .from('trackings')
             .delete()
-            .eq('id', trackingId)
-            .eq('organization_id', this.organizationId);
+            .eq('id', trackingId);
 
         if (error) {
             console.error('DataManager deleteTracking error:', error);
             throw error;
         }
+        
+        // Notifica il cambiamento per la sincronizzazione tra tab
+        if (window.notifyDataChange) {
+            window.notifyDataChange('trackings');
+            window.notifyDataChange('shipments');
+        }
+        
         return true;
     }
 }
