@@ -84,6 +84,11 @@ class TrackingUpsertUtility {
                 cleanData[col] = trackingData[col];
             }
         }
+
+        // Double-check to prevent Supabase errors
+        if (cleanData.current_status) {
+            delete cleanData.current_status;
+        }
         
         // Assicura che i campi obbligatori (NOT NULL) abbiano un valore.
         if (!cleanData.tracking_type) {
