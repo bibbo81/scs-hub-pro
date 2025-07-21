@@ -7,12 +7,10 @@
   <title>Gestione Spedizioni - SCS Hub Pro</title>
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23007AFF'%3E%3Cpath d='M20 8h-3V4H3c-1.1 0-2 .9-2 2v11h2c0 1.66 1.34 3 3 3s3-1.34 3-3h6c0 1.66 1.34 3 3 3s3-1.34 3-3h2v-5l-4zM6 18.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm13.5-9l1.96 2.5H17V9.5h2.5zm-1.5 9c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z'/%3E%3C/svg%3E">
   <link rel="stylesheet" href="/assets/css/solarium.css">
-  <!-- Aggiungi Font Awesome per le icone dei pulsanti -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
   <link rel="stylesheet" href="/pages/tracking/tracking-complete.css">
   <link rel="stylesheet" href="/pages/tracking/tracking-table.css">
   <script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
-  <!-- Load Unified Mapping for status consistency -->
   <script src="/pages/tracking/tracking-unified-mapping.js"></script>
   <style>
     .sol-button, .sol-btn, button {
@@ -34,20 +32,6 @@
       border: 1px solid #e0e6ed;
       margin-left: 1rem;
     }
-    /* Badge styles from tracking.html for consistency */
-    .sol-badge {
-        display: inline-block;
-        padding: 0.35em 0.65em;
-        font-size: .75em;
-        font-weight: 700;
-        line-height: 1;
-        color: #fff;
-        text-align: center;
-        white-space: nowrap;
-        vertical-align: baseline;
-        border-radius: 0.375rem;
-    }
-    /* Status badge styles identical to tracking.html */
     .status-badge {
         padding: 4px 12px;
         border-radius: 20px;
@@ -69,16 +53,9 @@
     .status-customs_hold { background: #ffc107; color: #000; }
     .status-customs_cleared { background: #28a745; color: #fff; }
     .status-registered { background: #6c757d; color: #fff; }
-  
-    /* Stili per coerenza con tracking.html */
-    .font-weight-bold {
-      font-weight: 600;
-    }
-    .text-muted {
-      color: #6c757d;
-    }
+    .font-weight-bold { font-weight: 600; }
+    .text-muted { color: #6c757d; }
     .mr-2 { margin-right: 0.5rem; }
-
   </style>
   <link rel="stylesheet" href="/core/modal-system.css">
 </head>
@@ -131,18 +108,11 @@
     import headerComponent from '/core/header-component.js';
     import ModalSystem from '/core/modal-system.js';
 
-    // Setup global access to systems
     window.dataManager = dataManager;
     window.NotificationSystem = notificationSystem;
     window.ModalSystem = ModalSystem;
 
-    /**
-     * Formats the shipment status using the unified mapping and consistent styling.
-     * @param {string} rawStatus - The raw status string from the data.
-     * @returns {string} HTML for the status badge.
-     */
     function formatStatus(rawStatus) {
-        // 2. Use a display configuration identical to tracking.html logic
         const statusDisplayConfig = {
             'registered':       { label: 'Registrato',       class: 'registered' },
             'in_transit':       { label: 'In Transito',      class: 'in_transit' },
@@ -155,34 +125,22 @@
             'customs_cleared':  { label: 'Sdoganato',        class: 'customs_cleared' },
             'cancelled':        { label: 'Annullato',        class: 'cancelled' },
         };
-
         let statusKey = rawStatus;
-        // FIX: If the status is not already a normalized key (like 'in_transit'),
-        // then map it from its raw value (like 'Sailing'). This prevents double-mapping.
         if (!statusDisplayConfig[statusKey]) {
             statusKey = window.TrackingUnifiedMapping.mapStatus(rawStatus);
         }
-
         const config = statusDisplayConfig[statusKey] || { label: rawStatus || 'Sconosciuto', class: 'pending' };
-        // 3. Generate HTML with the correct classes
         return `<span class="status-badge status-${config.class}">${config.label}</span>`;
     }
 
-    /**
-     * Fetches shipments from the dataManager and populates the table.
-     * It also attaches event listeners to the details buttons.
-     */
     async function loadShipments() {
       const tbody = document.getElementById('shipmentsTableBody');
       try {
-        // Fetch all trackings to get the most up-to-date status.
-        // This makes the 'trackings' table the single source of truth for status.
         const allTrackings = await window.dataManager.getTrackings();
-        const trackingStatusMap = new Map(allTrackings.map(t => [t.tracking_number, t.current_status]));
+        const trackingInfoMap = new Map(allTrackings.map(t => [t.tracking_number, { status: t.current_status, type: t.tracking_type }]));
 
-        // Use dataManager to load shipments, centralizing the logic.
         const shipments = await window.dataManager.getShipments();
-        tbody.innerHTML = ''; // Clear table before populating
+        tbody.innerHTML = '';
 
         if (!shipments || shipments.length === 0) {
           tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;">Nessuna spedizione trovata.</td></tr>';
@@ -190,13 +148,14 @@
         }
 
         shipments.forEach(s => {
-          // Get the live status from the trackings table, fallback to the shipment's own status
-          const liveStatus = trackingStatusMap.get(s.tracking_number) || s.status;
+          const trackingInfo = trackingInfoMap.get(s.tracking_number) || { type: 'container', status: s.status };
+          const liveStatus = trackingInfo.status;
+          const iconClass = trackingInfo.type === 'awb' ? 'fa-plane' : 'fa-ship';
 
           const tr = document.createElement('tr');
           tr.innerHTML = `
-            <td class="font-weight-bold">${s.shipment_number || s.reference_number || ''}</td>
-            <td class="font-weight-bold"><i class="fas fa-hashtag text-muted mr-2"></i>${s.tracking_number || ''}</td>
+            <td class="font-weight-bold">${s.shipment_number || s.id}</td>
+            <td class="font-weight-bold"><i class="fas ${iconClass} text-muted mr-2"></i>${s.tracking_number || ''}</td>
             <td>${formatStatus(liveStatus)}</td>
             <td>${s.carrier_name || ''}</td>
             <td>${s.origin || s.origin_port || ''}</td>
@@ -212,16 +171,13 @@
           tbody.appendChild(tr);
         });
 
-        // Attach modal listeners to the newly created details buttons
         document.querySelectorAll(".details-btn").forEach(btn => {
           btn.addEventListener("click", () => {
             const shipmentId = btn.getAttribute("data-id");
             ModalSystem.open({
               title: "Dettagli Spedizione",
               content: `<p>ID Spedizione: <strong>${shipmentId}</strong></p><p>Qui potresti caricare altri dettagli con una fetch.</p>`,
-              actions: [
-                { label: "Chiudi", variant: "primary", action: () => ModalSystem.close() }
-              ]
+              actions: [{ label: "Chiudi", variant: "primary", action: () => ModalSystem.close() }]
             });
           });
         });
@@ -232,10 +188,6 @@
       }
     }
 
-    
-    /**
-     * Enables sorting on table columns marked with the 'sortable' class.
-     */
     function enableTableSorting() {
         document.querySelectorAll(".data-table .sortable").forEach(th => {
             th.style.cursor = "pointer";
@@ -246,13 +198,10 @@
                 const isAsc = th.classList.contains("asc");
                 const newIsAsc = !isAsc;
 
-                // Remove sorting classes from all headers
                 table.querySelectorAll("th").forEach(h => h.classList.remove("asc", "desc"));
-                // Add new class to the clicked header
                 th.classList.toggle("asc", newIsAsc);
                 th.classList.toggle("desc", !newIsAsc);
 
-                // Sort rows
                 const rows = Array.from(tbody.querySelectorAll("tr"));
                 rows.sort((a, b) => {
                     const aText = a.children[index]?.textContent.trim() || '';
@@ -261,18 +210,12 @@
                     return newIsAsc ? comparison : -comparison;
                 });
 
-                // Re-append sorted rows
                 rows.forEach(row => tbody.appendChild(row));
             });
         });
     }
 
-
-    /**
-     * Attaches event listeners to static elements on the page.
-     */
     function setupEventListeners() {
-      // Status filter
       document.getElementById("status-filter").addEventListener("change", e => {
         const value = e.target.value;
         Array.from(document.querySelectorAll("#shipmentsTableBody tr")).forEach(row => {
@@ -284,7 +227,6 @@
         });
       });
 
-      // Export to CSV
       document.getElementById("export-csv").addEventListener("click", () => {
         const rows = Array.from(document.querySelectorAll('.data-table tr'));
         const csv = rows.map(row =>
@@ -297,31 +239,26 @@
         link.click();
       });
 
-      // Export to XLSX
       document.getElementById("export-xlsx").addEventListener("click", () => {
         const ws = XLSX.utils.table_to_sheet(document.querySelector(".data-table"));
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, "Spedizioni");
         XLSX.writeFile(wb, "spedizioni.xlsx");
       });
-    } // <-- Close setupEventListeners function
+    }
 
-    /**
-     * Main function to initialize the page.
-     */
     async function initializePage() {
       await headerComponent.init();
       await dataManager.init();
       await loadShipments();
       setupEventListeners();
-      enableTableSorting(); // Abilita l'ordinamento
+      enableTableSorting();
     }
 
     initializePage();
 
-    // Aggiungi listener per la sincronizzazione cross-tab
     window.addEventListener('storage', (e) => {
-        if (e.key === 'data_sync_shipments') {
+        if (e.key === 'data_sync_shipments' || e.key === 'data_sync_trackings') {
             console.log('📦 Sincronizzazione spedizioni rilevata da altra tab');
             loadShipments();
         }
