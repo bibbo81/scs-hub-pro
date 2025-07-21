@@ -249,20 +249,28 @@ window.TrackingUnifiedMapping = {
     
     mapStatus(sourceStatus) {
         if (!sourceStatus) return 'registered';
+
+        const statusStr = sourceStatus.toString().trim();
+
+        // Check if sourceStatus is already a valid normalized status
+        // This prevents double-mapping if the status is already e.g. 'in_transit'
+        const validNormalizedStatuses = new Set(Object.values(this.STATUS_MAPPING));
+        if (validNormalizedStatuses.has(statusStr)) {
+            return statusStr;
+        }
         
         // Prima prova exact match
-        if (this.STATUS_MAPPING[sourceStatus]) {
-            return this.STATUS_MAPPING[sourceStatus];
+        if (this.STATUS_MAPPING[statusStr]) {
+            return this.STATUS_MAPPING[statusStr];
         }
         
         // Poi prova lowercase
-        const lowerStatus = sourceStatus.toLowerCase();
+        const lowerStatus = statusStr.toLowerCase();
         for (const [key, value] of Object.entries(this.STATUS_MAPPING)) {
             if (key.toLowerCase() === lowerStatus) {
                 return value;
             }
         }
-        
         // Fallback
         return 'registered';
     },

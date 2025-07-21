@@ -329,7 +329,7 @@ function updateStats() {
 
     const stats = {
         total: trackings.length,
-        delivered: 0,
+        arrivedAndDelivered: 0,
         inTransit: 0,
         exception: 0
     };
@@ -338,13 +338,15 @@ function updateStats() {
         // Use the unified mapping function to get the normalized status
         const normalizedStatus = window.TrackingUnifiedMapping.mapStatus(t.current_status || t.status);
 
-        if (normalizedStatus === 'delivered') stats.delivered++;
+        if (normalizedStatus === 'delivered' || normalizedStatus === 'arrived') {
+            stats.arrivedAndDelivered++;
+        }
         if (normalizedStatus === 'in_transit') stats.inTransit++;
         if (normalizedStatus === 'exception' || normalizedStatus === 'delayed') stats.exception++;
     });
 
     document.getElementById('totalTrackings').textContent = stats.total;
-    document.getElementById('deliveredCount').textContent = stats.delivered;
+    document.getElementById('arrivedCount').textContent = stats.arrivedAndDelivered;
     document.getElementById('inTransitCount').textContent = stats.inTransit;
     document.getElementById('exceptionCount').textContent = stats.exception;
 }
