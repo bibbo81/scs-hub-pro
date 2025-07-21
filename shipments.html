@@ -138,7 +138,7 @@
       const tbody = document.getElementById('shipmentsTableBody');
       try {
         const allTrackings = await window.dataManager.getTrackings();
-        const trackingInfoMap = new Map(allTrackings.map(t => [t.tracking_number, { status: t.current_status, type: t.tracking_type }]));
+        const trackingInfoMap = new Map(allTrackings.map(t => [t.tracking_number, { status: t.current_status || t.status, type: t.tracking_type }]));
 
         const shipments = await window.dataManager.getShipments();
         tbody.innerHTML = '';
