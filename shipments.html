@@ -45,6 +45,28 @@
         vertical-align: baseline;
         border-radius: 0.375rem;
     }
+    /* Status badge styles identical to tracking.html */
+    .status-badge {
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 0.85em;
+        font-weight: 500;
+        color: #fff;
+        display: inline-block;
+        text-align: center;
+        white-space: nowrap;
+        vertical-align: baseline;
+    }
+    .status-pending { background: #ffc107; color: #000; }
+    .status-in_transit { background: #17a2b8; color: #fff; }
+    .status-delivered { background: #28a745; color: #fff; }
+    .status-exception { background: #dc3545; color: #fff; }
+    .status-arrived { background: #007bff; color: #fff; }
+    .status-out_for_delivery { background: #fd7e14; color: #fff; }
+    .status-cancelled { background: #6c757d; color: #fff; }
+    .status-customs_hold { background: #ffc107; color: #000; }
+    .status-customs_cleared { background: #28a745; color: #fff; }
+    .status-registered { background: #6c757d; color: #fff; }
   </style>
   <link rel="stylesheet" href="/core/modal-system.css">
 </head>
@@ -108,23 +130,25 @@
      * @returns {string} HTML for the status badge.
      */
     function formatStatus(rawStatus) {
-        // Use the unified mapping function from tracking-unified-mapping.js
+        // 1. Get the normalized status key (e.g., 'in_transit')
         const statusKey = window.TrackingUnifiedMapping.mapStatus(rawStatus);
 
+        // 2. Use a display configuration identical to tracking.html logic
         const statusDisplayConfig = {
-            'registered': { label: 'Registrato', class: 'secondary' },
-            'in_transit': { label: 'In Transito', class: 'primary' },
-            'arrived': { label: 'Arrivato', class: 'info' },
-            'out_for_delivery': { label: 'In Consegna', class: 'warning' },
-            'delivered': { label: 'Consegnato', class: 'success' },
-            'exception': { label: 'Eccezione', class: 'danger' },
-            'delayed': { label: 'In Ritardo', class: 'danger' },
-            'customs_hold': { label: 'In Dogana', class: 'warning' },
-            'customs_cleared': { label: 'Sdoganato', class: 'success' },
-            'cancelled': { label: 'Annullato', class: 'dark' },
+            'registered':       { label: 'Registrato',       class: 'registered' },
+            'in_transit':       { label: 'In Transito',      class: 'in_transit' },
+            'arrived':          { label: 'Arrivato',         class: 'arrived' },
+            'out_for_delivery': { label: 'In Consegna',      class: 'out_for_delivery' },
+            'delivered':        { label: 'Consegnato',       class: 'delivered' },
+            'exception':        { label: 'Eccezione',        class: 'exception' },
+            'delayed':          { label: 'In Ritardo',       class: 'exception' },
+            'customs_hold':     { label: 'In Dogana',        class: 'customs_hold' },
+            'customs_cleared':  { label: 'Sdoganato',        class: 'customs_cleared' },
+            'cancelled':        { label: 'Annullato',        class: 'cancelled' },
         };
-        const config = statusDisplayConfig[statusKey] || { label: rawStatus || 'Sconosciuto', class: 'secondary' };
-        return `<span class="sol-badge sol-badge-${config.class}">${config.label}</span>`;
+        const config = statusDisplayConfig[statusKey] || { label: rawStatus || 'Sconosciuto', class: 'pending' };
+        // 3. Generate HTML with the correct classes
+        return `<span class="status-badge status-${config.class}">${config.label}</span>`;
     }
 
     /**
@@ -134,6 +158,11 @@
     async function loadShipments() {
       const tbody = document.getElementById('shipmentsTableBody');
       try {
+        // Fetch all trackings to get the most up-to-date status.
+        // This makes the 'trackings' table the single source of truth for status.
+        const allTrackings = await window.dataManager.getTrackings();
+        const trackingStatusMap = new Map(allTrackings.map(t => [t.tracking_number, t.current_status]));
+
         // Use dataManager to load shipments, centralizing the logic.
         const shipments = await window.dataManager.getShipments();
         tbody.innerHTML = ''; // Clear table before populating
@@ -144,11 +173,14 @@
         }
 
         shipments.forEach(s => {
+          // Get the live status from the trackings table, fallback to the shipment's own status
+          const liveStatus = trackingStatusMap.get(s.tracking_number) || s.status;
+
           const tr = document.createElement('tr');
           tr.innerHTML = `
             <td>${s.shipment_number || s.reference_number || ''}</td>
             <td>${s.tracking_number || ''}</td>
-            <td>${formatStatus(s.status)}</td>
+            <td>${formatStatus(liveStatus)}</td>
             <td>${s.carrier_name || ''}</td>
             <td>${s.origin || s.origin_port || ''}</td>
             <td>${s.destination || s.destination_port || ''}</td>
