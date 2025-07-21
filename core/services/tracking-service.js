@@ -1803,28 +1803,6 @@ return true;
     getAWBIdCache() {
         return new Map(this.awbIdCache);
     }
-
-    // Metodo pubblico per Debug Panel
-    async getAirShipmentsList() {
-        console.log('[TrackingService] 📋 Fetching AWB list from ShipsGo...');
-        
-        const response = await this.callShipsGoAPI(
-            'v2',
-            '/air/shipments',
-            'GET'
-        );
-
-        if (!response.success) {
-            console.error('[TrackingService] ❌ Failed to get AWB list:', response);
-            return [];
-        }
-
-        const shipments = response.data?.shipments || 
-                         (Array.isArray(response.data) ? response.data : []);
-        console.log('[TrackingService] 📦 Retrieved', shipments.length, 'AWB shipments');
-        
-        return shipments;
-    }
 }
 
 // Export singleton
