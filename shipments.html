@@ -33,7 +33,6 @@
     }
   </style>
   <link rel="stylesheet" href="/core/modal-system.css">
-  <script src="/pages/tracking/tracking-unified-mapping.js"></script>
 </head>
 <body>
   <div id="header-root"></div>
@@ -79,39 +78,31 @@
     </div>
   </main>
 
-  <script type="module">
-    // Importa i moduli principali in modo asincrono
-    import('/core/header-component.js');
-    import('/core/services/data-manager.js').then(module => {
-        window.dataManager = module.default;
-        window.dataManager.init().then(() => {
-            console.log('✅ Data Manager initialized on shipments page');
-            // Una volta che il data manager è pronto, carica le spedizioni
-            if (window.loadShipments) {
-                window.loadShipments();
-            }
+  <!-- Load Core Modules -->
+    <script type="module">
+        // Importa i moduli principali in modo asincrono per non bloccare il rendering
+        import('/core/header-component.js').then(m => m.default.init());
+        import('/core/services/data-manager.js').then(m => { 
+            window.dataManager = m.default;
+            window.dataManager.init();
         });
-    });
-    import('/core/notification-system.js').then(m => window.NotificationSystem = m.default);
-    import('/core/modal-system.js').then(m => window.ModalSystem = m.default);
+        import('/core/notification-system.js').then(m => window.NotificationSystem = m.default);
+        import('/core/modal-system.js').then(m => window.ModalSystem = m.default);
+        import('/core/services/tracking-service.js').then(m => window.trackingService = m.default);
 
-    // Inizializza la pagina
-    document.addEventListener('DOMContentLoaded', () => {
-        // Il listener per la sincronizzazione cross-tab può rimanere qui
-        window.addEventListener('storage', (e) => {
-            if (e.key === 'data_sync_shipments') {
-                console.log('📦 Sincronizzazione spedizioni rilevata da altra tab');
-                if(window.loadShipments) window.loadShipments();
-            }
+        // Carica la logica specifica della pagina dopo che il DOM è pronto
+        document.addEventListener('DOMContentLoaded', () => {
+            const pageScript = document.createElement('script');
+            pageScript.type = 'module';
+            pageScript.src = '/pages/shipments/index.js'; // Carica lo script specifico per le spedizioni
+            document.body.appendChild(pageScript);
         });
+    </script>
 
-        // Le funzioni specifiche della pagina vengono caricate dal loro script
-        const pageScript = document.createElement('script');
-        pageScript.type = 'module';
-        pageScript.src = '/pages/shipments/index.js';
-        document.body.appendChild(pageScript);
-    });
-  </script>
+    <!-- Legacy Scripts and other dependencies -->
+    <script src="/core/auth-init.js"></script>
+    <script src="/core/export-manager.js"></script>
+    <script src="/core/import-manager.js"></script>
 
   <div id="modal-root"></div>
 
