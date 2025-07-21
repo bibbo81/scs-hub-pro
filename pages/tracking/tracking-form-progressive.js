@@ -4504,26 +4504,6 @@ if (finalData.status === 'sailing' || finalData.status === 'SAILING') {
                try {
                    // FIX: Rimuovi `current_status` prima di inviare a Supabase
             if (finalData.hasOwnProperty('current_status')) {
-                tracking-form-progressive.js:4507 ⚠️ Rimosso campo `current_status` non valido prima del salvataggio.
-processEnhancedTracking @ tracking-form-progressive.js:4507
-await in processEnhancedTracking
-handleEnhancedSubmit @ tracking-form-progressive.js:2453
-(anonime) @ tracking-submit-fix.js:92
-setTimeout
-(anonime) @ tracking-submit-fix.js:88
-helpers.ts:105 Fetch ha finito di caricare: GET "https://gnlrmnsdmpjzitsysowq.supabase.co/auth/v1/user".
-(anonime) @ helpers.ts:105
-ut @ fetch.ts:184
-f @ fetch.ts:157
-(anonime) @ GoTrueClient.ts:1479
-_useSession @ GoTrueClient.ts:1318
-await in _useSession
-_getUser @ GoTrueClient.ts:1468
-(anonime) @ GoTrueClient.ts:1452
-(anonime) @ GoTrueClient.ts:1248
-(anonime) @ locks.ts:107
-delete finalData.current_status;
-tracking-upsert-utility.js:98 [TrackingUpsertUtility] Inserting new tracking for MEDU7905689.
                 delete finalData.current_status;
             }
 

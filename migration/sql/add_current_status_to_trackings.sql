@@ -1,0 +1,1 @@
+ALTER TABLE public.trackings ADD COLUMN current_status TEXT;

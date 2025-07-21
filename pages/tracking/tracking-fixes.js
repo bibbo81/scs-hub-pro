@@ -90,15 +90,17 @@
         window.dispatchEvent(new CustomEvent('workflowFixApplied'));
     }
 
-    App.onReady(function() {
+    const checkInterval = setInterval(() => {
         if (window.showWorkflowModal && !isFixed) {
             applyWorkflowFix();
-        } else if (!window.showWorkflowModal) {
-            createShowWorkflowModal();
+            clearInterval(checkInterval); // Fix applicato, ferma il check
+        } else if (isFixed) {
+            clearInterval(checkInterval); // Se è già fixato, ferma il check
         }
-    });
-    
-    // Ferma il check dopo 30 secondi
+        // Se non esiste ancora, continua a ciclare
+    }, 500);
+
+    // Ferma il check dopo 30 secondi per sicurezza
     setTimeout(() => clearInterval(checkInterval), 30000);
     
     // Override updateWorkflowStep per funzionare con il nuovo container
