@@ -1,5 +1,5 @@
 // index.js - Clean tracking page logic with all mappings
-import TableManager from '/core/table-manager.js';
+// import TableManager from '/core/table-manager.js'; // Moved to dynamic import
 import { trackingsColumns, formatDate, formatDateOnly, formatTrackingStatus } from '/core/table-config.js';
 
 // State
@@ -194,6 +194,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
         
         // Initialize TableManager
+        const { default: TableManager } = await import('/core/table-manager.js');
         tableManager = new TableManager('trackingTableContainer', {
             columns: TABLE_COLUMNS,
             selectable: true,
@@ -378,7 +379,7 @@ function updateStats() {
 }
 
 // Handle selection change
-function handleSelectionChange(selected) {
+function handleSelectionChange(selected = []) {
     const bulkBar = document.getElementById('bulkActionsBar');
     const count = document.getElementById('selectedCount');
     
