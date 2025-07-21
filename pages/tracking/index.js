@@ -396,13 +396,15 @@ function setupEventListeners() {
     window.COLUMN_MAPPING = COLUMN_MAPPING;
     window.STATUS_DISPLAY = STATUS_DISPLAY;
     window.getStatusMapping = getStatusMapping;
- window.updateBulkActionsBar = function() {
+    window.updateBulkActionsBar = function() {
         // Delega a handleSelectionChange che già esiste
         if (tableManager) {
             const selected = tableManager.getSelectedRows();
             handleSelectionChange(selected);
         }
     };
+
+}
 
 function showColumnEditor() {
     if (!window.ModalSystem) return;
