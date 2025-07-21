@@ -322,21 +322,27 @@ function updateTable() {
 
 // Update statistics
 function updateStats() {
-    // Make filtering more robust to handle potential data inconsistencies (whitespace, case)
+    if (!window.TrackingUnifiedMapping) {
+        console.error("Mappatura stati non disponibile, statistiche non aggiornate.");
+        return;
+    }
+
     const stats = {
         total: trackings.length,
-        delivered: trackings.filter(t =>
-            t.current_status && t.current_status.trim().toLowerCase() === 'delivered'
-        ).length,
-        inTransit: trackings.filter(t =>
-            t.current_status && t.current_status.trim().toLowerCase() === 'in_transit'
-        ).length,
-        exception: trackings.filter(t => {
-            const status = t.current_status ? t.current_status.trim().toLowerCase() : '';
-            return status === 'exception' || status === 'delayed';
-        }).length
+        delivered: 0,
+        inTransit: 0,
+        exception: 0
     };
-    
+
+    trackings.forEach(t => {
+        // Use the unified mapping function to get the normalized status
+        const normalizedStatus = window.TrackingUnifiedMapping.mapStatus(t.current_status || t.status);
+
+        if (normalizedStatus === 'delivered') stats.delivered++;
+        if (normalizedStatus === 'in_transit') stats.inTransit++;
+        if (normalizedStatus === 'exception' || normalizedStatus === 'delayed') stats.exception++;
+    });
+
     document.getElementById('totalTrackings').textContent = stats.total;
     document.getElementById('deliveredCount').textContent = stats.delivered;
     document.getElementById('inTransitCount').textContent = stats.inTransit;
