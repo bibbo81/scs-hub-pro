@@ -1,5 +1,5 @@
 // index.js - Clean tracking page logic with all mappings
-// import TableManager from '/core/table-manager.js'; // Moved to dynamic import
+// // import TableManager from '/core/table-manager.js'; // Defer loading // Moved to dynamic import
 import { trackingsColumns, formatDate, formatDateOnly, formatTrackingStatus } from '/core/table-config.js';
 
 // State
@@ -193,7 +193,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             oldTable.parentElement.style.display = 'none';
         }
         
-        // Initialize TableManager
         const { default: TableManager } = await import('/core/table-manager.js');
         tableManager = new TableManager('trackingTableContainer', {
             columns: TABLE_COLUMNS,
