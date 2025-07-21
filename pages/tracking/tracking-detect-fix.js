@@ -431,7 +431,7 @@
     }
     
     // Pre-carica i dati all'avvio
-    App.onReady(() => {
+    window.addEventListener('load', () => {
         enhanceAutoDetection();
         // Pre-carica airlines in background
         loadAirlines().catch(console.error);
