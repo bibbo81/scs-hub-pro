@@ -51,3 +51,9 @@ git.status.txt
 *.bak.history/
 .history/
 *.patch
+# Images
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.svg
