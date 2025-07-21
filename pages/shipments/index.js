@@ -2,8 +2,6 @@
 
 let cachedShipments = []; // variabile globale locale
 
-const STATUS_MAPPING = window.TrackingUnifiedMapping?.STATUS_MAPPING || {};
-
 /**
  * Renderizza la tabella delle spedizioni.
  * @param {Array} shipments - L'array di spedizioni da visualizzare.
@@ -14,54 +12,39 @@ function renderShipmentsTable(shipments) {
     return `<div class="sol-alert sol-alert-info"><i class="fas fa-info-circle"></i> Nessun risultato per la ricerca.</div>`;
   }
 
-  // Usa la mappatura STATUS_DISPLAY da TrackingUnifiedMapping
-  const STATUS_DISPLAY = window.TrackingUnifiedMapping?.STATUS_DISPLAY || {};
-
   const tableHeaders = `
     <thead>
       <tr>
-        <th class="sortable">Numero Spedizione</th>
-        <th class="sortable">Tracking</th>
+        <th class="sortable">Numero Tracking</th>
+        <th class="sortable">Carrier</th>
         <th class="sortable">Stato</th>
         <th class="sortable">Origine</th>
         <th class="sortable">Destinazione</th>
-        <th class="sortable">ETA</th>
-        <th class="sortable">Compagnia</th>
-        <th class="sortable">Container</th>
-        <th class="sortable">Tipo</th>
-        <th>Azioni</th>
+        <th class="sortable">Ultimo Aggiornamento</th>
+        <th class="no-drag">Azioni</th>
       </tr>
     </thead>
   `;
 
-  const tableRows = shipments.map(s => {
-    const rawStatus = s.status || 'Unknown';
-    // Normalizza lo stato usando la mappatura unificata
-    const normalizedStatus = window.TrackingUnifiedMapping?.mapStatus(rawStatus) || 'registered';
-    const displayInfo = STATUS_DISPLAY[normalizedStatus] || { label: rawStatus, class: 'secondary' };
-
-    return `
+  const tableRows = shipments.map(s => `
     <tr>
-      <td>${s.shipment_number || 'N/A'}</td>
       <td>${s.tracking_number || 'N/A'}</td>
-      <td><span class="sol-badge sol-badge-${displayInfo.class}">${displayInfo.label}</span></td>
+      <td>${s.carrier_name || 'N/A'}</td>
+      <td><span class="sol-badge sol-badge-primary">${s.status || 'Unknown'}</span></td>
       <td>${s.origin || 'N/A'}</td>
       <td>${s.destination || 'N/A'}</td>
-      <td>${s.eta ? new Date(s.eta).toLocaleDateString('it-IT') : 'N/A'}</td>
-      <td>${s.carrier_name || 'N/A'}</td>
-      <td>${s.container_size || 'N/A'}</td>
-      <td>${s.container_type || 'N/A'}</td>
+      <td>${s.last_update ? new Date(s.last_update).toLocaleDateString('it-IT') : 'N/A'}</td>
       <td>
         <button class="sol-btn sol-btn-sm" data-id="${s.id}">Dettagli</button>
       </td>
     </tr>
-  `}).join('');
+  `).join('');
 
   return `
     <div class="table-container">
       <table class="data-table">
         ${tableHeaders}
-        <tbody id="shipmentsTableBody">
+        <tbody id="trackingTableBody">
           ${tableRows}
         </tbody>
       </table>
@@ -79,13 +62,6 @@ async function initializeShipmentsPage() {
 
     // Carica le spedizioni iniziali
     cachedShipments = await window.dataManager.getShipments();
-
-    // AGGIUNGI CONTROLLO DI SICUREZZA
-    if (!Array.isArray(cachedShipments)) {
-        console.error('Dati delle spedizioni non validi. Previsto un array, ricevuto:', cachedShipments);
-        document.getElementById('shipmentsTableBody').innerHTML = '<tr><td colspan="10" class="text-center text-danger">Errore: i dati delle spedizioni non sono stati caricati correttamente.</td></tr>';
-        return; // Interrompi l'esecuzione per prevenire altri errori
-    }
 
     // Renderizza la tabella iniziale
     renderShipmentsTable(cachedShipments);
@@ -160,4 +136,3 @@ async function deleteTracking(id) {
 
 // Assicurati di chiamare initializeShipmentsPage() all'avvio
 initializeShipmentsPage();
-
