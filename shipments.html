@@ -69,6 +69,16 @@
     .status-customs_hold { background: #ffc107; color: #000; }
     .status-customs_cleared { background: #28a745; color: #fff; }
     .status-registered { background: #6c757d; color: #fff; }
+  
+    /* Stili per coerenza con tracking.html */
+    .font-weight-bold {
+      font-weight: 600;
+    }
+    .text-muted {
+      color: #6c757d;
+    }
+    .mr-2 { margin-right: 0.5rem; }
+
   </style>
   <link rel="stylesheet" href="/core/modal-system.css">
 </head>
@@ -175,7 +185,7 @@
         tbody.innerHTML = ''; // Clear table before populating
 
         if (!shipments || shipments.length === 0) {
-          tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;">Nessuna spedizione trovata.</td></tr>';
+          tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;">Nessuna spedizione trovata.</td></tr>';
           return;
         }
 
@@ -185,8 +195,8 @@
 
           const tr = document.createElement('tr');
           tr.innerHTML = `
-            <td>${s.shipment_number || s.reference_number || ''}</td>
-            <td>${s.tracking_number || ''}</td>
+            <td class="font-weight-bold">${s.shipment_number || s.reference_number || ''}</td>
+            <td class="font-weight-bold"><i class="fas fa-hashtag text-muted mr-2"></i>${s.tracking_number || ''}</td>
             <td>${formatStatus(liveStatus)}</td>
             <td>${s.carrier_name || ''}</td>
             <td>${s.origin || s.origin_port || ''}</td>
@@ -218,9 +228,45 @@
       } catch (error) {
         console.error('Errore durante il caricamento delle spedizioni:', error);
         window.NotificationSystem.error('Impossibile caricare le spedizioni.');
-        tbody.innerHTML = '<tr><td colspan="10" style="text-align:center; color: red;">Errore nel caricamento dei dati.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="9" style="text-align:center; color: red;">Errore nel caricamento dei dati.</td></tr>';
       }
     }
+
+    
+    /**
+     * Enables sorting on table columns marked with the 'sortable' class.
+     */
+    function enableTableSorting() {
+        document.querySelectorAll(".data-table .sortable").forEach(th => {
+            th.style.cursor = "pointer";
+            th.addEventListener("click", () => {
+                const table = th.closest("table");
+                const tbody = table.querySelector("tbody");
+                const index = Array.from(th.parentNode.children).indexOf(th);
+                const isAsc = th.classList.contains("asc");
+                const newIsAsc = !isAsc;
+
+                // Remove sorting classes from all headers
+                table.querySelectorAll("th").forEach(h => h.classList.remove("asc", "desc"));
+                // Add new class to the clicked header
+                th.classList.toggle("asc", newIsAsc);
+                th.classList.toggle("desc", !newIsAsc);
+
+                // Sort rows
+                const rows = Array.from(tbody.querySelectorAll("tr"));
+                rows.sort((a, b) => {
+                    const aText = a.children[index]?.textContent.trim() || '';
+                    const bText = b.children[index]?.textContent.trim() || '';
+                    const comparison = aText.localeCompare(bText, 'it-IT', { numeric: true, sensitivity: 'base' });
+                    return newIsAsc ? comparison : -comparison;
+                });
+
+                // Re-append sorted rows
+                rows.forEach(row => tbody.appendChild(row));
+            });
+        });
+    }
+
 
     /**
      * Attaches event listeners to static elements on the page.
@@ -258,28 +304,7 @@
         XLSX.utils.book_append_sheet(wb, ws, "Spedizioni");
         XLSX.writeFile(wb, "spedizioni.xlsx");
       });
-
-      // Table sorting
-      document.querySelectorAll(".sortable").forEach(th => {
-        th.style.cursor = "pointer";
-        th.addEventListener("click", () => {
-          const table = th.closest("table");
-          const tbody = table.querySelector("tbody");
-          const index = Array.from(th.parentNode.children).indexOf(th);
-          const rows = Array.from(tbody.querySelectorAll("tr"));
-          const isAsc = !th.classList.contains("asc");
-          
-          rows.sort((a, b) => {
-            const aText = a.children[index] ? a.children[index].textContent.trim() : '';
-            const bText = b.children[index] ? b.children[index].textContent.trim() : '';
-            return isAsc ? aText.localeCompare(bText, 'en', {numeric: true}) : bText.localeCompare(aText, 'en', {numeric: true});
-          });
-          
-          table.querySelectorAll("th").forEach(h => h.classList.remove("asc", "desc"));
-          th.classList.add(isAsc ? "asc" : "desc");
-        });
-      });
-    }
+    } // <-- Close setupEventListeners function
 
     /**
      * Main function to initialize the page.
@@ -289,6 +314,7 @@
       await dataManager.init();
       await loadShipments();
       setupEventListeners();
+      enableTableSorting(); // Abilita l'ordinamento
     }
 
     initializePage();
