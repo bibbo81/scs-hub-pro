@@ -181,6 +181,13 @@ async function initializeShipmentsPage() {
     // Carica le spedizioni iniziali
     cachedShipments = await window.dataManager.getShipments();
 
+    // AGGIUNGI CONTROLLO DI SICUREZZA
+    if (!Array.isArray(cachedShipments)) {
+        console.error('Dati delle spedizioni non validi. Previsto un array, ricevuto:', cachedShipments);
+        document.getElementById('shipmentsTableBody').innerHTML = '<tr><td colspan="10" class="text-center text-danger">Errore: i dati delle spedizioni non sono stati caricati correttamente.</td></tr>';
+        return; // Interrompi l'esecuzione per prevenire altri errori
+    }
+
     // Renderizza la tabella iniziale
     renderShipmentsTable(cachedShipments);
 
