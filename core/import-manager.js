@@ -767,17 +767,26 @@
             };
         }
         
-        saveTrackings(trackings) {
+        async saveTrackings(trackings) {
             try {
-                const existing = JSON.parse(localStorage.getItem('trackings') || '[]');
-                const combined = [...existing, ...trackings];
-                localStorage.setItem('trackings', JSON.stringify(combined));
-                
+                if (window.supabaseTrackingService) {
+                    for (const tracking of trackings) {
+                        await window.supabaseTrackingService.createTracking(tracking);
+                    }
+                    console.log('[CompleteImportManager] 💾 Saved', trackings.length, 'trackings to Supabase');
+                    if (window.loadTrackings) {
+                        window.loadTrackings();
+                    }
+                } else {
+                    const existing = JSON.parse(localStorage.getItem('trackings') || '[]');
+                    const combined = [...existing, ...trackings];
+                    localStorage.setItem('trackings', JSON.stringify(combined));
+                    console.log('[CompleteImportManager] 💾 Saved', trackings.length, 'trackings to localStorage');
+                }
+
                 window.dispatchEvent(new CustomEvent('trackingsUpdated', {
-                    detail: { trackings: combined, source: 'import' }
+                    detail: { trackings, source: 'import' }
                 }));
-                
-                console.log('[CompleteImportManager] 💾 Saved', trackings.length, 'trackings');
             } catch (error) {
                 console.error('[CompleteImportManager] ❌ Error saving trackings:', error);
             }
