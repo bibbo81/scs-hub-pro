@@ -33,6 +33,7 @@
     }
   </style>
   <link rel="stylesheet" href="/core/modal-system.css">
+  <script src="/pages/tracking/tracking-unified-mapping.js"></script>
 </head>
 <body>
   <div id="header-root"></div>
@@ -79,148 +80,36 @@
   </main>
 
   <script type="module">
-    import dataManager from '/core/services/data-manager.js';
-    import notificationSystem from '/core/notification-system.js';
-    import headerComponent from '/core/header-component.js';
-    import ModalSystem from '/core/modal-system.js';
+    // Importa i moduli principali in modo asincrono
+    import('/core/header-component.js');
+    import('/core/services/data-manager.js').then(module => {
+        window.dataManager = module.default;
+        window.dataManager.init().then(() => {
+            console.log('✅ Data Manager initialized on shipments page');
+            // Una volta che il data manager è pronto, carica le spedizioni
+            if (window.loadShipments) {
+                window.loadShipments();
+            }
+        });
+    });
+    import('/core/notification-system.js').then(m => window.NotificationSystem = m.default);
+    import('/core/modal-system.js').then(m => window.ModalSystem = m.default);
 
-    // Setup global access to systems
-    window.dataManager = dataManager;
-    window.NotificationSystem = notificationSystem;
-    window.ModalSystem = ModalSystem;
-
-    /**
-     * Fetches shipments from the dataManager and populates the table.
-     * It also attaches event listeners to the details buttons.
-     */
-    async function loadShipments() {
-      const tbody = document.getElementById('shipmentsTableBody');
-      try {
-        // Use dataManager to load shipments, centralizing the logic.
-        const shipments = await window.dataManager.getShipments();
-        tbody.innerHTML = ''; // Clear table before populating
-
-        if (!shipments || shipments.length === 0) {
-          tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;">Nessuna spedizione trovata.</td></tr>';
-          return;
-        }
-
-        shipments.forEach(s => {
-          const tr = document.createElement('tr');
-          tr.innerHTML = `
-            <td>${s.shipment_number || ''}</td>
-            <td>${s.tracking_number || ''}</td>
-            <td><span class="sol-badge sol-badge-primary">${s.status || ''}</span></td>
-            <td>${s.origin || ''}</td>
-            <td>${s.destination || ''}</td>
-            <td>${s.eta ? new Date(s.eta).toLocaleDateString('it-IT') : ''}</td>
-            <td>${s.carrier_name || ''}</td>
-            <td>${s.container_size || ''}</td>
-            <td>${s.container_type || ''}</td>
-            <td><button class="sol-btn sol-btn-sm details-btn" data-id="${s.id}">Dettagli</button></td>
-          `;
-          tbody.appendChild(tr);
+    // Inizializza la pagina
+    document.addEventListener('DOMContentLoaded', () => {
+        // Il listener per la sincronizzazione cross-tab può rimanere qui
+        window.addEventListener('storage', (e) => {
+            if (e.key === 'data_sync_shipments') {
+                console.log('📦 Sincronizzazione spedizioni rilevata da altra tab');
+                if(window.loadShipments) window.loadShipments();
+            }
         });
 
-        // Attach modal listeners to the newly created details buttons
-        document.querySelectorAll(".details-btn").forEach(btn => {
-          btn.addEventListener("click", () => {
-            const shipmentId = btn.getAttribute("data-id");
-            ModalSystem.open({
-              title: "Dettagli Spedizione",
-              content: `<p>ID Spedizione: <strong>${shipmentId}</strong></p><p>Qui potresti caricare altri dettagli con una fetch.</p>`,
-              actions: [
-                { label: "Chiudi", variant: "primary", action: () => ModalSystem.close() }
-              ]
-            });
-          });
-        });
-      } catch (error) {
-        console.error('Errore durante il caricamento delle spedizioni:', error);
-        window.NotificationSystem.error('Impossibile caricare le spedizioni.');
-        tbody.innerHTML = '<tr><td colspan="10" style="text-align:center; color: red;">Errore nel caricamento dei dati.</td></tr>';
-      }
-    }
-
-    /**
-     * Attaches event listeners to static elements on the page.
-     */
-    function setupEventListeners() {
-      // Status filter
-      document.getElementById("status-filter").addEventListener("change", e => {
-        const value = e.target.value;
-        Array.from(document.querySelectorAll("#shipmentsTableBody tr")).forEach(row => {
-          const statusCell = row.children[2];
-          if (statusCell) {
-            const status = statusCell.textContent.trim();
-            row.style.display = (!value || status === value) ? "" : "none";
-          }
-        });
-      });
-
-      // Export to CSV
-      document.getElementById("export-csv").addEventListener("click", () => {
-        const rows = Array.from(document.querySelectorAll('.data-table tr'));
-        const csv = rows.map(row =>
-          Array.from(row.children).map(cell => `"${cell.textContent.replace(/"/g, '""')}"`).join(',')
-        ).join('\n');
-        const blob = new Blob([csv], { type: 'text/csv' });
-        const link = document.createElement('a');
-        link.href = URL.createObjectURL(blob);
-        link.download = 'spedizioni.csv';
-        link.click();
-      });
-
-      // Export to XLSX
-      document.getElementById("export-xlsx").addEventListener("click", () => {
-        const ws = XLSX.utils.table_to_sheet(document.querySelector(".data-table"));
-        const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, "Spedizioni");
-        XLSX.writeFile(wb, "spedizioni.xlsx");
-      });
-
-      // Table sorting
-      document.querySelectorAll(".sortable").forEach(th => {
-        th.style.cursor = "pointer";
-        th.addEventListener("click", () => {
-          const table = th.closest("table");
-          const tbody = table.querySelector("tbody");
-          const index = Array.from(th.parentNode.children).indexOf(th);
-          const rows = Array.from(tbody.querySelectorAll("tr"));
-          const isAsc = !th.classList.contains("asc");
-          
-          rows.sort((a, b) => {
-            const aText = a.children[index] ? a.children[index].textContent.trim() : '';
-            const bText = b.children[index] ? b.children[index].textContent.trim() : '';
-            return isAsc ? aText.localeCompare(bText, 'en', {numeric: true}) : bText.localeCompare(aText, 'en', {numeric: true});
-          });
-          
-          rows.forEach(row => tbody.appendChild(row));
-          
-          table.querySelectorAll("th").forEach(h => h.classList.remove("asc", "desc"));
-          th.classList.add(isAsc ? "asc" : "desc");
-        });
-      });
-    }
-
-    /**
-     * Main function to initialize the page.
-     */
-    async function initializePage() {
-      await headerComponent.init();
-      await dataManager.init();
-      await loadShipments();
-      setupEventListeners();
-    }
-
-    initializePage();
-
-    // Aggiungi listener per la sincronizzazione cross-tab
-    window.addEventListener('storage', (e) => {
-        if (e.key === 'data_sync_shipments') {
-            console.log('📦 Sincronizzazione spedizioni rilevata da altra tab');
-            loadShipments();
-        }
+        // Le funzioni specifiche della pagina vengono caricate dal loro script
+        const pageScript = document.createElement('script');
+        pageScript.type = 'module';
+        pageScript.src = '/pages/shipments/index.js';
+        document.body.appendChild(pageScript);
     });
   </script>
 

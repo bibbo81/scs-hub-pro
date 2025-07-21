@@ -12,39 +12,50 @@ function renderShipmentsTable(shipments) {
     return `<div class="sol-alert sol-alert-info"><i class="fas fa-info-circle"></i> Nessun risultato per la ricerca.</div>`;
   }
 
+  // Assicurati che la mappatura sia disponibile
+  const statusDisplayMap = window.TrackingUnifiedMapping?.STATUS_DISPLAY || {};
+
   const tableHeaders = `
     <thead>
       <tr>
-        <th class="sortable">Numero Tracking</th>
-        <th class="sortable">Carrier</th>
+        <th class="sortable">Numero Spedizione</th>
+        <th class="sortable">Tracking</th>
         <th class="sortable">Stato</th>
         <th class="sortable">Origine</th>
         <th class="sortable">Destinazione</th>
-        <th class="sortable">Ultimo Aggiornamento</th>
+        <th class="sortable">ETA</th>
+        <th class="sortable">Compagnia</th>
+        <th class="sortable">Container</th>
+        <th class="sortable">Tipo</th>
         <th class="no-drag">Azioni</th>
       </tr>
     </thead>
   `;
 
-  const tableRows = shipments.map(s => `
+  const tableRows = shipments.map(s => {
+    const statusInfo = statusDisplayMap[s.status] || { label: s.status || 'Unknown', class: 'secondary' };
+    return `
     <tr>
+      <td>${s.shipment_number || 'N/A'}</td>
       <td>${s.tracking_number || 'N/A'}</td>
-      <td>${s.carrier_name || 'N/A'}</td>
-      <td><span class="sol-badge sol-badge-primary">${s.status || 'Unknown'}</span></td>
+      <td><span class="sol-badge sol-badge-${statusInfo.class}">${statusInfo.label}</span></td>
       <td>${s.origin || 'N/A'}</td>
       <td>${s.destination || 'N/A'}</td>
-      <td>${s.last_update ? new Date(s.last_update).toLocaleDateString('it-IT') : 'N/A'}</td>
+      <td>${s.eta ? new Date(s.eta).toLocaleDateString('it-IT') : 'N/A'}</td>
+      <td>${s.carrier_name || 'N/A'}</td>
+      <td>${s.container_size || 'N/A'}</td>
+      <td>${s.container_type || 'N/A'}</td>
       <td>
         <button class="sol-btn sol-btn-sm" data-id="${s.id}">Dettagli</button>
       </td>
     </tr>
-  `).join('');
+  `}).join('');
 
   return `
     <div class="table-container">
       <table class="data-table">
         ${tableHeaders}
-        <tbody id="trackingTableBody">
+        <tbody id="shipmentsTableBody">
           ${tableRows}
         </tbody>
       </table>
