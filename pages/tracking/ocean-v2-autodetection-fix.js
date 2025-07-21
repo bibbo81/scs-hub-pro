@@ -126,7 +126,31 @@
                 
                 try {
                     // Cerca l'Ocean ID
-                    const oceanShipment = await searchOceanId(trackingNumber);
+                    // Funzione per cercare l'ID della spedizione Ocean v2
+    async function searchOceanId(containerNumber) {
+        console.log('🌊 Searching Ocean ID for:', containerNumber);
+        
+        if (!window.trackingService || typeof window.trackingService.getOceanShipmentsList !== 'function') {
+            console.error('❌ trackingService.getOceanShipmentsList non è una funzione!');
+            return null;
+        }
+
+        try {
+            const shipments = await window.trackingService.getOceanShipmentsList();
+            const shipment = shipments.find(s => s.container_number === containerNumber);
+            
+            if (shipment) {
+                console.log('✅ Ocean ID trovato:', shipment.id);
+                return shipment.id;
+            } else {
+                console.log('⚠️ Ocean ID non trovato per:', containerNumber);
+                return null;
+            }
+        } catch (error) {
+            console.error('❌ Error searching Ocean ID:', error);
+            return null;
+        }
+    }
                     
                     if (oceanShipment && oceanShipment.id) {
                         // ID trovato!

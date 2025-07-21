@@ -524,60 +524,24 @@ return true;
         }
     }
 
-    async addContainerToShipsGo(containerNumber) {
-        console.log('[TrackingService] ➕ Adding container to ShipsGo:', containerNumber);
-        
-        const response = await this.callShipsGoAPI(
-            'v1.2',
-            '/ContainerService/PostContainerInfo',
-            'POST',
-            null,
-            {
-                authCode: this.apiConfig.v1?.authCode || '2dc0c6d92ccb59e7d903825c4ebeb521',
-                containerNumber: containerNumber.toUpperCase(),
-                shippingLine: 'OTHERS'
-            },
-            'application/x-www-form-urlencoded'
-        );
+    async addContainerToShipsGo(containerNumber, options = {}) {
+        console.log('➕ Adding container to ShipsGo:', containerNumber);
 
-        console.log('[TrackingService] 📥 Add container response:', response);
-        
+        if (!this.apiConfig.v1 || !this.apiConfig.v1.enabled) {
+            return { success: false, message: 'ShipsGo v1 API not configured' };
+        }
+
+        const response = await this.callShipsGoAPI('v1', '/trackings/add', 'POST', null, {
+            tracking_number: containerNumber,
+            ...options
+        });
+
         if (!response.success) {
-            const data = response.data;
-            // Handle "already exists" case
-            if (data?.message?.includes('already exists')) {
-                console.log('[TrackingService] 📦 Container already exists in ShipsGo');
-                
-                // Try to extract requestId from error message
-                const requestIdMatch = data.message.match(/requestId[:\s]+(\w+)/i);
-                if (requestIdMatch) {
-                    console.log('[TrackingService] 🎯 Extracted requestId:', requestIdMatch[1]);
-                    return { 
-                        success: true, 
-                        exists: true, 
-                        requestId: requestIdMatch[1] 
-                    };
-                }
-                
-                return { success: true, exists: true };
-            }
-            
-            throw new Error(data?.message || response.error || 'Failed to add container to ShipsGo');
+            console.error('❌ Failed to add container to ShipsGo:', response.data);
+            throw new Error('Failed to add container to ShipsGo');
         }
 
-        console.log('[TrackingService] ✅ Container added successfully');
-        
-        // Extract requestId from successful response
-        const requestId = response.data?.requestId || response.data?.RequestId;
-        if (requestId) {
-            console.log('[TrackingService] 🎯 Got requestId:', requestId);
-        }
-        
-        return {
-            success: true,
-            requestId: requestId,
-            ...response.data
-        };
+        return response;
     }
 
     async getContainerInfo(containerNumber, options = {}) {

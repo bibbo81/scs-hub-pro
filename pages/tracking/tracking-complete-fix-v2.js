@@ -837,7 +837,6 @@ mappedFields: {
         
         // Critical fixes first
         injectSortableJS();
-        overrideTableManagerDragMethod();
         fixTableManagerUUID();
         fixModalButtons();
         
