@@ -130,9 +130,6 @@
      * @returns {string} HTML for the status badge.
      */
     function formatStatus(rawStatus) {
-        // 1. Get the normalized status key (e.g., 'in_transit')
-        const statusKey = window.TrackingUnifiedMapping.mapStatus(rawStatus);
-
         // 2. Use a display configuration identical to tracking.html logic
         const statusDisplayConfig = {
             'registered':       { label: 'Registrato',       class: 'registered' },
@@ -146,6 +143,14 @@
             'customs_cleared':  { label: 'Sdoganato',        class: 'customs_cleared' },
             'cancelled':        { label: 'Annullato',        class: 'cancelled' },
         };
+
+        let statusKey = rawStatus;
+        // FIX: If the status is not already a normalized key (like 'in_transit'),
+        // then map it from its raw value (like 'Sailing'). This prevents double-mapping.
+        if (!statusDisplayConfig[statusKey]) {
+            statusKey = window.TrackingUnifiedMapping.mapStatus(rawStatus);
+        }
+
         const config = statusDisplayConfig[statusKey] || { label: rawStatus || 'Sconosciuto', class: 'pending' };
         // 3. Generate HTML with the correct classes
         return `<span class="status-badge status-${config.class}">${config.label}</span>`;
