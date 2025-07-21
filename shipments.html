@@ -56,6 +56,7 @@
     .font-weight-bold { font-weight: 600; }
     .text-muted { color: #6c757d; }
     .mr-2 { margin-right: 0.5rem; }
+    .text-primary { color: #007bff; } /* Colore primario per coerenza */
   </style>
   <link rel="stylesheet" href="/core/modal-system.css">
 </head>
@@ -148,14 +149,16 @@
         }
 
         shipments.forEach(s => {
-          const trackingInfo = trackingInfoMap.get(s.tracking_number) || { type: 'container', status: s.status };
-          const liveStatus = trackingInfo.status;
-          const iconClass = trackingInfo.type === 'awb' ? 'fa-plane' : 'fa-ship';
+          const trackingInfo = trackingInfoMap.get(s.tracking_number);
+          // Logica robusta: usa lo stato del tracking se esiste, altrimenti quello della spedizione.
+          // Se entrambi sono nulli, usa 'registered' come fallback per evitare errori.
+          const liveStatus = (trackingInfo ? trackingInfo.status : s.status) || 'registered';
+          const iconClass = (trackingInfo ? trackingInfo.type : 'container') === 'awb' ? 'fa-plane' : 'fa-ship';
 
           const tr = document.createElement('tr');
           tr.innerHTML = `
-            <td class="font-weight-bold">${s.shipment_number || s.id}</td>
-            <td class="font-weight-bold"><i class="fas ${iconClass} text-muted mr-2"></i>${s.tracking_number || ''}</td>
+            <td class="font-weight-bold text-primary">${s.shipment_number || s.id}</td>
+            <td class="font-weight-bold text-primary"><i class="fas ${iconClass} text-primary mr-2"></i>${s.tracking_number || ''}</td>
             <td>${formatStatus(liveStatus)}</td>
             <td>${s.carrier_name || ''}</td>
             <td>${s.origin || s.origin_port || ''}</td>
