@@ -1,6 +1,7 @@
 // core/services/supabase-tracking-service.js
 import { supabase } from '/core/services/supabase-client.js';
 import trackingUpsertUtility from '/core/services/tracking-upsert-utility.js';
+import { organizationService } from '/core/services/organization-service.js';
 
 class SupabaseTrackingService {
     constructor() {
@@ -50,7 +51,7 @@ class SupabaseTrackingService {
             if (!user) throw new Error('User not authenticated');
 
             // Prepara i dati per Supabase
-            const supabaseData = this.prepareForSupabase(trackingData, user.id);
+            const supabaseData = await this.prepareForSupabase(trackingData, user.id);
 
             // Upsert semplice del tracking
             const data = await trackingUpsertUtility.upsertTracking(supabaseData);
@@ -122,10 +123,11 @@ class SupabaseTrackingService {
     // DATA PREPARATION
     // ========================================
 
-    prepareForSupabase(trackingData, userId) {
+    async prepareForSupabase(trackingData, userId) {
         // Mappa i campi dal formato localStorage al formato Supabase
         const prepared = {
             user_id: userId,
+            organization_id: organizationService.getCurrentOrgId(),
             tracking_number: trackingData.tracking_number || trackingData.trackingNumber,
             tracking_type: trackingData.tracking_type || trackingData.trackingType,
             carrier_code: trackingData.carrier_code || trackingData.carrier,
