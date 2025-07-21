@@ -19,51 +19,7 @@
     };
     
     // ===== STATUS MAPPING PERFETTO - FISSO IL PROBLEMA DELIVERED =====
-    const STATUS_MAPPING = {
-        // In Transit
-        'Sailing': 'in_transit',
-        'In Transit': 'in_transit',
-        'In transito': 'in_transit',
-        'Loading': 'in_transit',
-        'Loaded': 'in_transit',
-        'Gate In': 'in_transit',
-        'Transhipment': 'in_transit',
-        
-        // Arrived/Discharged
-        'Arrived': 'arrived',
-        'Arrivata': 'arrived', 
-        'Discharged': 'arrived',  // ===== FIX: Discharged → arrived, non delivered =====
-        'Scaricato': 'arrived',
-        'Discharging': 'arrived',
-        
-        // Out for Delivery
-        'On FedEx vehicle for delivery': 'out_for_delivery',
-        'In consegna': 'out_for_delivery',
-        'Gate Out': 'out_for_delivery',
-        
-        // Delivered (solo per stati veramente finali)
-        'Delivered': 'delivered',  // ===== OK: Delivered → delivered =====
-        'Consegnato': 'delivered',
-        'Empty': 'delivered',
-        'Empty Returned': 'delivered',
-        'POD': 'delivered',
-        
-        // Customs
-        'International shipment release - Import': 'customs_cleared',
-        'Sdoganata': 'customs_cleared',
-        'Customs Cleared': 'customs_cleared',
-        
-        // Registered
-        'Shipment information sent to FedEx': 'registered',
-        'Registered': 'registered',
-        'Pending': 'registered',
-        'Booked': 'registered',
-        'Booking Confirmed': 'registered',
-        
-        // Delayed/Exception
-        'Delayed': 'delayed',
-        'Exception': 'exception'
-    };
+    const STATUS_MAPPING = window.TrackingUnifiedMapping?.STATUS_MAPPING || {};
     
     const CARRIER_MAPPING = {
         'MAERSK LINE': 'MAERSK',
@@ -684,6 +640,7 @@
                 tracking_type: this.detectTrackingType(row),
                 carrier_code: (row.carrier_code || row.Carrier || row.Airline || '').toString().trim(),
                 status: this.mapStatus(row['Status'] || row['status']),
+                eta: this.parseDate(row.eta || row.ETA || row['Estimated Arrival']),
                 metadata: row
             };
         } catch (error) {
