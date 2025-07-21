@@ -79,37 +79,43 @@
   </main>
 
   <script type="module">
-    // Importa i moduli principali in modo asincrono
-    import('/core/header-component.js');
-    import('/core/services/data-manager.js').then(module => {
-        window.dataManager = module.default;
-        window.dataManager.init().then(() => {
-            console.log('✅ Data Manager initialized on shipments page');
-            // Una volta che il data manager è pronto, carica le spedizioni
-            if (window.loadShipments) {
-                window.loadShipments();
-            }
-        });
-    });
-    import('/core/notification-system.js').then(m => window.NotificationSystem = m.default);
-    import('/core/modal-system.js').then(m => window.ModalSystem = m.default);
+    // Importa tutti i moduli necessari
+    import headerComponent from '/core/header-component.js';
+    import dataManager from '/core/services/data-manager.js';
+    import notificationSystem from '/core/notification-system.js';
+    import modalSystem from '/core/modal-system.js';
+    import pageLogic from '/pages/shipments/index.js';
 
-    // Inizializza la pagina
-    document.addEventListener('DOMContentLoaded', () => {
-        // Il listener per la sincronizzazione cross-tab può rimanere qui
-        window.addEventListener('storage', (e) => {
-            if (e.key === 'data_sync_shipments') {
-                console.log('📦 Sincronizzazione spedizioni rilevata da altra tab');
-                if(window.loadShipments) window.loadShipments();
-            }
-        });
+    // Funzione di inizializzazione orchestrata
+    async function initializeApp() {
+        console.log('🚀 Initializing Shipments Page...');
+        try {
+            // 1. Rendi i sistemi globali subito disponibili
+            window.NotificationSystem = notificationSystem;
+            window.ModalSystem = modalSystem;
 
-        // Le funzioni specifiche della pagina vengono caricate dal loro script
-        const pageScript = document.createElement('script');
-        pageScript.type = 'module';
-        pageScript.src = '/pages/shipments/index.js';
-        document.body.appendChild(pageScript);
-    });
+            // 2. Inizializza il data manager e attendi che sia pronto (questo include l'auth e l'org)
+            await dataManager.init();
+            window.dataManager = dataManager;
+            console.log('✅ Data Manager ready.');
+
+            // 3. Ora che i dati ci sono, inizializza l'header
+            await headerComponent.init();
+            console.log('✅ Header Component ready.');
+
+            // 4. Infine, esegui la logica specifica della pagina
+            pageLogic.initializeShipmentsPage();
+            console.log('✅ Page logic initialized.');
+
+        } catch (error) {
+            console.error('❌ Errore critico durante l'inizializzazione della pagina:', error);
+            document.body.innerHTML = '<div style="padding: 2rem; text-align: center; color: red;">Errore critico. Impossibile caricare la pagina.</div>';
+        }
+    }
+
+    // Avvia l'applicazione quando il DOM è pronto
+    document.addEventListener('DOMContentLoaded', initializeApp);
+
   </script>
 
   <div id="modal-root"></div>
