@@ -465,6 +465,12 @@ function setupEventListeners() {
     window.resetFilters = resetFilters;
     window.toggleSelectAll = toggleSelectAll;
     window.performBulkAction = performBulkAction;
+
+    // Listen for custom events
+    window.addEventListener('trackingsUpdated', (e) => {
+        console.log('Event trackingsUpdated received, reloading trackings...');
+        loadTrackings();
+    });
     
     // Export mappings for other modules
     window.COLUMN_MAPPING = COLUMN_MAPPING;

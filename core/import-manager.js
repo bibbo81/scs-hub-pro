@@ -775,7 +775,7 @@
                     }
                     console.log('[CompleteImportManager] 💾 Saved', trackings.length, 'trackings to Supabase');
                     if (window.loadTrackings) {
-                        window.loadTrackings();
+                        await window.loadTrackings();
                     }
                 } else {
                     const existing = JSON.parse(localStorage.getItem('trackings') || '[]');
