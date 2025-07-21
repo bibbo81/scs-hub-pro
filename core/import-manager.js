@@ -864,7 +864,19 @@ MRKU1234567,MAERSK,container,PO123456,In Transit,SHANGHAI,GENOVA
         downloadTemplate: (type) => completeImportManager.downloadTemplate(type),
         processShipsGoData: (data, type) => completeImportManager.processShipsGoData(data, type),
         mapStatus: (status) => completeImportManager.mapStatus(status), // Expose per debugging
-        STATUS_MAPPING: STATUS_MAPPING // Expose mapping per debugging
+        STATUS_MAPPING: STATUS_MAPPING, // Expose mapping per debugging
+        showImportDialog: () => {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = CONFIG.supportedFormats.join(',');
+            input.onchange = (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    completeImportManager.importFile(file);
+                }
+            };
+            input.click();
+        }
     };
     
     document.addEventListener('DOMContentLoaded', async () => {

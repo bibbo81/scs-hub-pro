@@ -1021,35 +1021,12 @@ function showAddTrackingForm() {
 }
 
 function showImportDialog() {
-    console.log('Show import dialog - redirecting to progressive form import tab');
-    
-    // Open the progressive form and switch to import tab
-    if (window.showWorkflowProgress) {
-        window.showWorkflowProgress();
-        
-        // After a short delay, switch to import tab
-        setTimeout(() => {
-            const importTab = document.querySelector('[data-tab="import"]');
-            if (importTab) {
-                importTab.click();
-            }
-        }, 300);
+    console.log('Redirecting to ImportManager.showImportDialog...');
+    if (window.ImportManager && window.ImportManager.showImportDialog) {
+        window.ImportManager.showImportDialog();
     } else {
-        // Fallback: try to open form after delay
-        window.NotificationSystem?.info('Apertura import...');
-        setTimeout(() => {
-            if (window.showWorkflowProgress) {
-                window.showWorkflowProgress();
-                setTimeout(() => {
-                    const importTab = document.querySelector('[data-tab="import"]');
-                    if (importTab) {
-                        importTab.click();
-                    }
-                }, 300);
-            } else {
-                window.NotificationSystem?.error('Import non disponibile');
-            }
-        }, 500);
+        console.error('ImportManager not available!');
+        window.NotificationSystem?.error('La funzione di import non è disponibile.');
     }
 }
 
