@@ -75,7 +75,7 @@
                     
                     // Controlla anche personal API keys
                     const { data: personalKeys } = await window.supabase
-                        .from('api_keys')
+                        .from('organization_api_keys')
                         .select('*')
                         .eq('user_id', user.id);
                     
