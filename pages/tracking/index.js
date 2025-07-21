@@ -1004,27 +1004,69 @@ async function deleteTracking(id) {
 }
 
 function showAddTrackingForm() {
-    console.log('Show add form - using progressive form');
-    
-    // Prova prima il form enhanced completo
     if (window.showEnhancedTrackingForm) {
         window.showEnhancedTrackingForm();
-    } else if (window.showWorkflowProgress) {
-        // Fallback al workflow
-        window.showWorkflowProgress();
-    } else if (window.trackingFormProgressive && window.trackingFormProgressive.show) {
-        window.trackingFormProgressive.show();
-    } else {
-        // Ultimo fallback
-        window.NotificationSystem?.info('Caricamento form...');
-        setTimeout(() => {
-            if (window.showEnhancedTrackingForm) {
-                window.showEnhancedTrackingForm();
-            } else {
-                window.NotificationSystem?.error('Form tracking non disponibile');
-            }
-        }, 500);
+        return;
     }
+
+    if (!window.ModalSystem) {
+        console.error('ModalSystem not available!');
+        return;
+    }
+
+    const content = `
+        <div class="form-group">
+            <label for="tracking_number">Tracking Number</label>
+            <input type="text" id="tracking_number" class="form-control" required>
+        </div>
+        <div class="form-group">
+            <label for="carrier_name">Carrier</label>
+            <input type="text" id="carrier_name" class="form-control">
+        </div>
+        <div class="form-group">
+            <label for="eta">ETA</label>
+            <input type="date" id="eta" class="form-control">
+        </div>
+    `;
+
+    window.ModalSystem.show({
+        title: 'Aggiungi Tracking',
+        content: content,
+        buttons: [
+            {
+                text: 'Annulla',
+                className: 'btn-secondary',
+                action: () => window.ModalSystem.hide()
+            },
+            {
+                text: 'Salva',
+                className: 'btn-primary',
+                action: async () => {
+                    const newTracking = {
+                        tracking_number: document.getElementById('tracking_number').value,
+                        carrier_name: document.getElementById('carrier_name').value,
+                        eta: document.getElementById('eta').value,
+                        current_status: 'registered' // Default status
+                    };
+
+                    if (!newTracking.tracking_number) {
+                        window.NotificationSystem.error('Tracking Number is required');
+                        return;
+                    }
+
+                    try {
+                        await window.supabaseTrackingService.createTracking(newTracking);
+                        window.ModalSystem.hide();
+                        window.NotificationSystem.success('Tracking aggiunto con successo!');
+                        await loadTrackings(); // Refresh data
+                    } catch (error) {
+                        console.error('Error creating tracking:', error);
+                        window.NotificationSystem.error('Errore durante la creazione del tracking.');
+                    }
+                }
+            }
+        ]
+    });
 }
 
 function showImportDialog() {
