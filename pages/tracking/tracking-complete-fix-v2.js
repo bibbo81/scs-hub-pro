@@ -27,128 +27,59 @@
         }
     }
     
-    // New function to handle drag&drop functionality
-    function enableColumnDragDrop() {
-        console.log('🔧 Enabling column drag&drop...');
-        
-        // Wait for TableManager to be ready
-        if (!window.tableManager || !window.Sortable) {
-            console.log('⏳ Waiting for tableManager and Sortable...');
-            setTimeout(enableColumnDragDrop, 500);
-            return;
-        }
-        
-        // Find the header row
-        const headerRow = document.querySelector('#trackingTableContainer thead tr');
-        if (!headerRow) {
-            console.warn('⚠️ Header row not found, retrying...');
-            setTimeout(enableColumnDragDrop, 1000);
-            return;
-        }
-        
-        // Destroy existing instance if present
-        if (window.tableManager.columnSortable) {
-            try {
-                window.tableManager.columnSortable.destroy();
-                console.log('🗑️ Destroyed existing Sortable instance');
-            } catch (e) {
-                console.warn('Could not destroy existing Sortable:', e);
-            }
-        }
-        
-        // Create new Sortable instance
-        try {
-            window.tableManager.columnSortable = new Sortable(headerRow, {
-                animation: 150,
-                handle: 'th',
-                filter: '.no-drag, th:has(.select-all), th:first-child', // Exclude checkbox column
-                ghostClass: 'sortable-ghost',
-                dragClass: 'sortable-drag',
-                onStart: function(evt) {
-                    console.log('🎯 Drag started on column:', evt.oldIndex);
-                },
-                onEnd: function(evt) {
-                    console.log('📍 Column moved from', evt.oldIndex, 'to', evt.newIndex);
-                    
-                    // Update column order in tableManager
-                    if (window.tableManager.handleColumnReorder) {
-                        window.tableManager.handleColumnReorder(evt.oldIndex, evt.newIndex);
-                    } else {
-                        console.warn('⚠️ handleColumnReorder method not found');
-                        // Fallback: force table re-render
-                        if (window.tableManager.render) {
-                            window.tableManager.render();
-                        }
-                    }
-                    
-                    // Save column order to localStorage
-                    if (window.tableManager.saveColumnOrder) {
-                        window.tableManager.saveColumnOrder();
-                    }
+    // ========================================
+    // UTILITY: DEPENDENCY WAITER
+    // ========================================
+    function ensureDependencies(deps) {
+        return new Promise((resolve) => {
+            const check = () => {
+                const allReady = deps.every(dep => window[dep]);
+                if (allReady) {
+                    resolve();
+                } else {
+                    setTimeout(check, 100);
                 }
-            });
-            
-            console.log('✅ Column drag&drop enabled successfully');
-            
-            // Add CSS for drag&drop visual feedback
-            if (!document.getElementById('sortable-drag-styles')) {
-                const styles = document.createElement('style');
-                styles.id = 'sortable-drag-styles';
-                styles.textContent = `
-                    .sortable-ghost {
-                        opacity: 0.4;
-                        background-color: #f0f0f0;
-                    }
-                    .sortable-drag {
-                        opacity: 0.8;
-                        cursor: move !important;
-                    }
-                    #trackingTableContainer th {
-                        cursor: move;
-                        user-select: none;
-                    }
-                    #trackingTableContainer th.no-drag,
-                    #trackingTableContainer th:first-child {
-                        cursor: default;
-                    }
-                `;
-                document.head.appendChild(styles);
-            }
-            
-        } catch (error) {
-            console.error('❌ Error creating Sortable instance:', error);
-            // Retry after a delay
-            setTimeout(enableColumnDragDrop, 2000);
-        }
-    }
-    
-    // Override the original enableColumnDrag method if it exists
-    function overrideTableManagerDragMethod() {
-        if (window.tableManager && !window.tableManager._originalEnableColumnDrag) {
-            console.log('🔄 Overriding tableManager.enableColumnDrag...');
-            
-            // Save original method
-            window.tableManager._originalEnableColumnDrag = window.tableManager.enableColumnDrag;
-            
-            // Replace with our enhanced version
-            window.tableManager.enableColumnDrag = function() {
-                console.log('📊 TableManager.enableColumnDrag called');
-                enableColumnDragDrop();
             };
-        }
+            check();
+        });
     }
-    
+
+    // New function to handle drag&drop functionality
+    async function enableColumnDragDrop() {
+        console.log('🔧 Enabling column drag&drop...');
+
+        await ensureDependencies(['tableManager', 'Sortable']);
+        console.log('✅ Dependencies tableManager and Sortable are ready.');
+
+        const tableManager = window.tableManager;
+        const headerRow = tableManager.container.querySelector('thead tr');
+
+        if (!headerRow) {
+            console.warn('⚠️ Header row not found.');
+            return;
+        }
+
+        if (tableManager.columnSortable) {
+            tableManager.columnSortable.destroy();
+        }
+
+        tableManager.columnSortable = new Sortable(headerRow, {
+            animation: 150,
+            handle: 'th',
+            filter: '.no-drag',
+            onEnd: (evt) => {
+                tableManager.handleColumnReorder(evt.oldIndex, evt.newIndex);
+            }
+        });
+        console.log('✅ Column drag&drop enabled successfully');
+    }
+
     // ========================================
     // FIX 2: OCEAN API v2.0 IMPLEMENTATION
     // ========================================
-    function implementOceanV2API() {
-        if (!window.trackingService) {
-            console.warn('⏳ Waiting for trackingService...');
-            setTimeout(implementOceanV2API, 500);
-            return;
-        }
-        
-        console.log('🔧 Implementing Ocean v2.0 API methods...');
+    async function implementOceanV2API() {
+        await ensureDependencies(['trackingService']);
+        console.log('✅ Dependency trackingService is ready.');
         
         // Add preferV2Ocean property
         if (!window.trackingService.hasOwnProperty('preferV2Ocean')) {
@@ -901,7 +832,7 @@ mappedFields: {
     // ========================================
     // INITIALIZATION
     // ========================================
-    function initializeAllFixes() {
+    App.onReady(() => {
         console.log('🚀 Initializing all fixes...');
         
         // Critical fixes first
@@ -927,14 +858,7 @@ mappedFields: {
         };
         
         console.log('✅ All fixes initialized. Check window.trackingFixStatus for status.');
-    }
-    
-    // Start initialization when DOM is ready
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', initializeAllFixes);
-    } else {
-        initializeAllFixes();
-    }
+    });
     
 })();
 

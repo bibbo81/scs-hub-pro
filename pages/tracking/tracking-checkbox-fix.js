@@ -11,86 +11,78 @@
     // ma i tracking IDs sono stringhe UUID, non numeri!
     // Quando parseInt() fallisce su UUID, ritorna NaN
     
+    function waitForTableManager(callback) {
+        const containerId = 'trackingTableContainer';
+        let attempts = 0;
+
+        const interval = setInterval(() => {
+            const tableManager = window.getTableManager ? window.getTableManager(containerId) : window.tableManager;
+            if (tableManager) {
+                clearInterval(interval);
+                callback(tableManager);
+            } else if (attempts > 20) { // 10 secondi di attesa massima
+                clearInterval(interval);
+                console.error(`❌ TableManager non trovato per ${containerId} dopo 10 secondi.`);
+            } else {
+                console.log(`⏳ In attesa di TableManager per ${containerId}... tentativo ${attempts + 1}`);
+            }
+            attempts++;
+        }, 500);
+    }
+
     async function fixCheckboxSelection() {
         console.log('🔧 Fixing checkbox selection logic...');
-        
-        // Attendi che tableManager sia disponibile
-        let attempts = 0;
-        while ((!window.tableManager || !window.TableManager) && attempts < 20) {
-            await new Promise(resolve => setTimeout(resolve, 250));
-            attempts++;
-        }
-        
-        if (!window.tableManager) {
-            console.error('❌ TableManager not found after 5 seconds');
-            return;
-        }
-        
-        // OVERRIDE selectRow per gestire UUID strings
-        const originalSelectRow = window.tableManager.selectRow;
-        window.tableManager.selectRow = function(rowId, selected) {
-            console.log('🎯 Fixed selectRow called:', { rowId, selected, type: typeof rowId });
-            
-            // NON usare parseInt per UUID!
-            // Converti a stringa e usa direttamente
-            const id = String(rowId);
-            
-            if (selected) {
-                this.selectedRows.add(id);
-            } else {
-                this.selectedRows.delete(id);
-            }
-            
-            console.log('✅ Selected rows after update:', Array.from(this.selectedRows));
-            
-            // Chiama onSelectionChange
-            this.onSelectionChange();
-            
-            // NON chiamare render() qui - causa ricorsione infinita!
-            // Invece, aggiorna solo lo stato visuale della riga
-            this.updateRowVisualState(id, selected);
-        };
-        
-        // Aggiungi metodo per aggiornare stato visuale senza re-render completo
-        if (!window.tableManager.updateRowVisualState) {
-            window.tableManager.updateRowVisualState = function(rowId, selected) {
-                const row = document.querySelector(`tr[data-row-id="${rowId}"]`);
-                if (row) {
-                    if (selected) {
-                        row.classList.add('selected');
-                    } else {
-                        row.classList.remove('selected');
-                    }
+
+        waitForTableManager(tableManager => {
+            // OVERRIDE selectRow per gestire UUID strings
+            const originalSelectRow = tableManager.selectRow;
+            tableManager.selectRow = function(rowId, selected) {
+                console.log('🎯 Fixed selectRow called:', { rowId, selected, type: typeof rowId });
+
+                const id = String(rowId);
+
+                if (selected) {
+                    this.selectedRows.add(id);
+                } else {
+                    this.selectedRows.delete(id);
                 }
+
+                console.log('✅ Selected rows after update:', Array.from(this.selectedRows));
+
+                this.onSelectionChange();
+
+                // Aggiorna solo lo stato visuale della riga
+                this.updateRowVisualState(id, selected);
             };
-        }
-        
-        // OVERRIDE getSelectedRows per gestire UUID
-        const originalGetSelectedRows = window.tableManager.getSelectedRows;
-        window.tableManager.getSelectedRows = function() {
-            console.log('🔍 Getting selected rows, selectedRows Set:', this.selectedRows);
-            
-            return this.data.filter(row => {
-                // Usa l'ID come stringa, non numero!
-                const id = String(row.id || this.data.indexOf(row));
-                const isSelected = this.selectedRows.has(id);
-                if (isSelected) {
-                    console.log('✅ Row selected:', id);
-                }
-                return isSelected;
-            });
-        };
-        
-        // FIX: Assicurati che selectedRows usi stringhe, non numeri
-        if (window.tableManager.selectedRows) {
-            const newSelectedRows = new Set();
-            window.tableManager.selectedRows.forEach(id => {
-                newSelectedRows.add(String(id));
-            });
-            window.tableManager.selectedRows = newSelectedRows;
-        }
-        
-        console.log('✅ selectRow and getSelectedRows fixed for UUID support');
+
+            // Aggiungi metodo per aggiornare stato visuale senza re-render completo
+            if (!tableManager.updateRowVisualState) {
+                tableManager.updateRowVisualState = function(rowId, selected) {
+                    const row = this.container.querySelector(`tr[data-row-id="${rowId}"]`);
+                    if (row) {
+                        row.classList.toggle('selected', selected);
+                    }
+                };
+            }
+
+            // OVERRIDE getSelectedRows per gestire UUID
+            tableManager.getSelectedRows = function() {
+                console.log('🔍 Getting selected rows, selectedRows Set:', this.selectedRows);
+
+                return this.data.filter(row => {
+                    const id = String(row.id || this.data.indexOf(row));
+                    return this.selectedRows.has(id);
+                });
+            };
+
+            // FIX: Assicurati che selectedRows usi stringhe
+            if (tableManager.selectedRows) {
+                const newSelectedRows = new Set(Array.from(tableManager.selectedRows, String));
+                tableManager.selectedRows = newSelectedRows;
+            }
+
+            console.log('✅ selectRow and getSelectedRows fixed for UUID support');
+        });
     }
     
     // ========================================
@@ -314,38 +306,19 @@
     // ========================================
     // INIZIALIZZAZIONE
     // ========================================
-    
-    async function initializeCheckboxFixes() {
+    App.onReady(() => {
         console.log('🚀 Initializing checkbox fixes...');
-        
         try {
-            // Applica tutti i fix in sequenza
-            await fixCheckboxSelection();
+            fixCheckboxSelection();
             setupImprovedEventDelegation();
             fixVisualSelection();
             fixBulkActionsUpdate();
-            await forceTableReRender();
-            
+            forceTableReRender();
             console.log('✅ All checkbox fixes applied successfully!');
-            
-            // Notifica successo
-            if (window.NotificationSystem) {
-                window.NotificationSystem.success('Sistema checkbox riparato e funzionante');
-            }
-            
         } catch (error) {
             console.error('❌ Error applying checkbox fixes:', error);
         }
-    }
-    
-    // Avvia i fix quando DOM è pronto
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', () => {
-            setTimeout(initializeCheckboxFixes, 1000);
-        });
-    } else {
-        setTimeout(initializeCheckboxFixes, 1000);
-    }
+    });
     
 })();
 

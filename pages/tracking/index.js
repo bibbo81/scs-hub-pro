@@ -1,12 +1,85 @@
 // index.js - Clean tracking page logic with all mappings
-// // import TableManager from '/core/table-manager.js'; // Defer loading // Moved to dynamic import
+// import TableManager from '/core/table-manager.js'; // Defer loading // Moved to dynamic import
 import { trackingsColumns, formatDate, formatDateOnly, formatTrackingStatus } from '/core/table-config.js';
 
 // State
-// (Already declared above, do not redeclare here)
+let trackings = [];
+let filteredTrackings = [];
+let tableManager;
 
 // Column mapping for import/export compatibility
-// const COLUMN_MAPPING = { ... } // <-- Removed duplicate declaration
+const COLUMN_MAPPING = {
+    // Italian from UI
+    'Numero Tracking': 'tracking_number',
+    'Carrier': 'carrier',
+    'Stato': 'current_status',
+    'Origine': 'origin',
+    'Destinazione': 'destination',
+    'Ultimo Aggiornamento': 'last_update',
+    'Azioni': 'actions',
+
+    // English from various sources
+    'Tracking Number': 'tracking_number',
+    'Carrier Name': 'carrier_name',
+    'Status': 'current_status',
+    'Origin': 'origin',
+    'Destination': 'destination',
+    'Last Update': 'last_update',
+    'AWB Number': 'awb_number',
+    'MBL Number': 'mbl_number',
+    'HBL Number': 'hbl_number',
+    'Container Number': 'container_number',
+    'Vessel': 'vessel_name',
+    'Voyage': 'voyage_number',
+    'Reference': 'reference',
+    'Booking Number': 'booking_number',
+    'Port of Loading': 'port_of_loading',
+    'Port of Discharge': 'port_of_discharge',
+    'Departure Date': 'date_of_departure',
+    'Arrival Date': 'date_of_arrival',
+    'ETA': 'eta',
+    'ATA': 'ata',
+
+    // ShipsGo specific
+    'shipsgo_id': 'shipsgo_id',
+    'carrier_code': 'carrier_code',
+    'vessel_name': 'vessel_name',
+    'vessel_imo': 'vessel_imo',
+    'voyage_number': 'voyage_number',
+    'origin_port': 'origin_port',
+    'destination_port': 'destination_port',
+    'etd': 'date_of_departure',
+    'eta_final': 'eta',
+    'container_type': 'container_type',
+    'container_size': 'container_size',
+    'last_event_location': 'last_event_location',
+    'last_event_description': 'last_event_description',
+    'last_event_date': 'last_event_date',
+
+    // Lowercase and snake_case variants
+    'tracking_number': 'tracking_number',
+    'carrier_name': 'carrier_name',
+    'current_status': 'current_status',
+    'tracking_type': 'tracking_type',
+    'reference_number': 'reference_number',
+    'booking': 'booking',
+    'bl_number': 'bl_number',
+    'vessel': 'vessel_name',
+    'voyage': 'voyage_number',
+    'flight_number': 'flight_number',
+    'pieces': 'pieces',
+    'weight': 'weight',
+    'volume': 'volume',
+    'commodity': 'commodity',
+    'tags': 'tags',
+    'notes': 'notes',
+    'live_map_url': 'live_map_url',
+    'dataSource': 'dataSource',
+    'import_source': 'import_source',
+    'created_at': 'created_at',
+    'updated_at': 'updated_at',
+    'last_update': 'last_update'
+};
 
 // Status mapping for display
 const STATUS_DISPLAY = {
@@ -234,8 +307,9 @@ document.addEventListener('click', function(e) {
     }
 });
 */     
-        console.log('✅ Checkbox event delegation added');
-        
+        // Signal that the app is ready
+        App.isReady();
+
     } catch (error) {
         console.error('❌ Initialization error:', error);
         showError('Errore durante l\'inizializzazione');

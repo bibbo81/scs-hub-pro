@@ -431,23 +431,13 @@
     }
     
     // Pre-carica i dati all'avvio
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', () => {
-            enhanceAutoDetection();
-            // Pre-carica airlines in background
-            loadAirlines().catch(console.error);
-            // Pre-carica ocean carriers in background
-            loadOceanCarriers().catch(console.error);
-        });
-    } else {
-        setTimeout(() => {
-            enhanceAutoDetection();
-            // Pre-carica airlines in background
-            loadAirlines().catch(console.error);
-            // Pre-carica ocean carriers in background
-            loadOceanCarriers().catch(console.error);
-        }, 1000);
-    }
+    App.onReady(() => {
+        enhanceAutoDetection();
+        // Pre-carica airlines in background
+        loadAirlines().catch(console.error);
+        // Pre-carica ocean carriers in background
+        loadOceanCarriers().catch(console.error);
+    });
     
     // Carica cache da localStorage all'avvio
     try {

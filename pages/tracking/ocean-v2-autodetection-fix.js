@@ -327,8 +327,7 @@
     // ========================================
     // INITIALIZATION
     // ========================================
-    
-    function initializeOceanAutoDetection() {
+    App.onReady(() => {
         console.log('🌊 Initializing Ocean v2.0 auto-detection...');
         
         // Setup listeners
@@ -367,14 +366,7 @@
         }
         
         console.log('✅ Ocean v2.0 auto-detection initialized');
-    }
-    
-    // Start when DOM is ready
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', initializeOceanAutoDetection);
-    } else {
-        initializeOceanAutoDetection();
-    }
+    });
     
 })();
 

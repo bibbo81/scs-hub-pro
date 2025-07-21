@@ -249,6 +249,27 @@
 })();
 </script>
 
+    <!-- App Initialization Manager -->
+    <script>
+        window.App = {
+            _readyCallbacks: [],
+            _isReady: false,
+            onReady: function(callback) {
+                if (this._isReady) {
+                    callback();
+                } else {
+                    this._readyCallbacks.push(callback);
+                }
+            },
+            isReady: function() {
+                this._isReady = true;
+                this._readyCallbacks.forEach(cb => cb());
+                this._readyCallbacks = [];
+                console.log('🚀 Application is ready. Executed all queued callbacks.');
+            }
+        };
+    </script>
+
     <!-- Header will be injected here -->
     <div id="header-root"></div>
 

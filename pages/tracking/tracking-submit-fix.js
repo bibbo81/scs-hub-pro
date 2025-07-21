@@ -97,43 +97,30 @@
         }
     }
     
-    // Usa MutationObserver per rilevare quando il form viene aggiunto al DOM
-    const observer = new MutationObserver((mutations) => {
-        // Controlla se il form è stato aggiunto
-        for (const mutation of mutations) {
-            if (mutation.type === 'childList') {
-                // Controlla se il form esiste ora
-                if (document.getElementById('enhancedSingleForm')) {
-                    interceptFormWhenReady();
-                    // Possiamo fermare l'observer dopo aver intercettato
-                    if (isIntercepted) {
-                        observer.disconnect();
+    // Use App.onReady to ensure all modules are loaded before observing
+    App.onReady(() => {
+        // Usa MutationObserver per rilevare quando il form viene aggiunto al DOM
+        const observer = new MutationObserver((mutations) => {
+            for (const mutation of mutations) {
+                if (mutation.type === 'childList') {
+                    if (document.getElementById('enhancedSingleForm')) {
+                        interceptFormWhenReady();
+                        if (isIntercepted) {
+                            observer.disconnect();
+                        }
                     }
                 }
             }
-        }
-    });
-    
-    // Osserva l'intero body per cambiamenti
-    observer.observe(document.body, {
-        childList: true,
-        subtree: true
-    });
-    
-    // Reset workflow visibility when modal closes
-    window.addEventListener('click', function(e) {
-        if (e.target.classList.contains('custom-modal-close') || 
-            e.target.classList.contains('workflow-close')) {
-            window._workflowVisible = false;
-        }
-    });
-    
-    // Controlla anche subito nel caso il form esista già
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', interceptFormWhenReady);
-    } else {
+        });
+
+        observer.observe(document.body, {
+            childList: true,
+            subtree: true
+        });
+
+        // Controlla anche subito nel caso il form esista già
         interceptFormWhenReady();
-    }
+    });
     
     // Funzione di cleanup
     window.resetSubmitFix = function() {
