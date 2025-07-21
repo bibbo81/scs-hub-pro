@@ -7,12 +7,93 @@
     // Variabile per tracciare se abbiamo già applicato il fix
     let isFixed = false;
     let originalShowWorkflowModal = null;
-    
+
+    function applyWorkflowFix() {
+        if (isFixed || !window.showWorkflowModal) return;
+
+        console.log('🎯 TRACKING FIXES: Applying fix to showWorkflowModal');
+
+        const originalFn = window.showWorkflowModal;
+        originalShowWorkflowModal = originalFn;
+
+        window.showWorkflowModal = function() {
+            console.log('🚀 TRACKING FIXES: showWorkflowModal called - FIXED VERSION');
+
+            const existingModalContent = document.querySelector('.custom-modal-content');
+
+            if (existingModalContent) {
+                console.log('✅ Found existing modal content - inserting workflow inside');
+
+                const formWrapper = existingModalContent.querySelector('.fullwidth-form-wrapper');
+                if (formWrapper) {
+                    formWrapper.style.display = 'none';
+                }
+
+                const existingWorkflow = existingModalContent.querySelector('.workflow-inside-modal');
+                if (existingWorkflow) {
+                    existingWorkflow.remove();
+                }
+
+                const workflowContainer = document.createElement('div');
+                workflowContainer.className = 'workflow-inside-modal';
+                workflowContainer.innerHTML = `
+                    <div class="workflow-modal-content">
+                        <h3>🚀 Elaborazione Tracking</h3>
+                        <div class="workflow-container">
+                            <div class="workflow-step" data-step="0">
+                                <div class="step-icon">📋</div>
+                                <div class="step-content">
+                                    <h4>Validazione</h4>
+                                    <p>Controllo dati inseriti</p>
+                                    <span class="step-status pending">In corso...</span>
+                                </div>
+                            </div>
+                            <div class="workflow-arrow">→</div>
+                            <div class="workflow-step" data-step="1">
+                                <div class="step-icon">🔄</div>
+                                <div class="step-content">
+                                    <h4>API Check</h4>
+                                    <p>Recupero dati live</p>
+                                    <span class="step-status waiting">In attesa</span>
+                                </div>
+                            </div>
+                            <div class="workflow-arrow">→</div>
+                            <div class="workflow-step" data-step="2">
+                                <div class="step-icon">💾</div>
+                                <div class="step-content">
+                                    <h4>Salvataggio</h4>
+                                    <p>Registrazione tracking</p>
+                                    <span class="step-status waiting">In attesa</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="workflow-result" style="display: none;"></div>
+                    </div>
+                    <style>
+                    /* Styles remain the same */
+                    </style>
+                `;
+
+                existingModalContent.appendChild(workflowContainer);
+                window._workflowContainer = workflowContainer;
+
+            } else {
+                console.log('⚠️ No existing modal found - preventing default workflow modal');
+                console.error('Cannot show workflow - no modal container found');
+                window.NotificationSystem?.error('Errore: modal container non trovato');
+            }
+        };
+
+        window.showWorkflowModal._isFixed = true;
+        isFixed = true;
+        
+        window.dispatchEvent(new CustomEvent('workflowFixApplied'));
+    }
+
     App.onReady(function() {
         if (window.showWorkflowModal && !isFixed) {
             applyWorkflowFix();
         } else if (!window.showWorkflowModal) {
-            // If it still doesn't exist, create it.
             createShowWorkflowModal();
         }
     });

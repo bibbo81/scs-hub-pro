@@ -7,7 +7,7 @@ import { TableManager } from '/core/table-manager.js';
 
 class TrackingPage {
     constructor() {
-        this.tableManager = new TableManager();
+        this.tableManager = new TableManager('trackings-container');
         this.filters = {
             status: '',
             carrier: '',
