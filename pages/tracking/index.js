@@ -139,7 +139,7 @@ const DEFAULT_VISIBLE_COLUMNS = [
     'transit_time',         // ← Aggiungi
     'co2_emission',         // ← Aggiungi
     'last_update'
-};
+];
 
 // Column configuration for table
 const TABLE_COLUMNS = trackingsColumns;
