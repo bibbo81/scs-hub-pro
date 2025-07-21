@@ -4502,7 +4502,14 @@ if (finalData.status === 'sailing' || finalData.status === 'SAILING') {
         // Salva in Supabase se disponibile
            if (window.supabaseTrackingService) {
                try {
-                   const savedTracking = await window.supabaseTrackingService.createTracking(finalData);
+                   // FIX: Rimuovi `current_status` prima di inviare a Supabase
+            if (finalData.hasOwnProperty('current_status')) {
+                console.warn('⚠️ Rimosso campo `current_status` non valido prima del salvataggio.');
+                delete finalData.current_status;
+            }
+
+            // 4. Salva i dati finali nel database
+            const savedTracking = await window.supabaseTrackingService.createTracking(finalData);
                    if (savedTracking) {
                        return { success: true, message: 'Tracking salvato in Supabase!' };
                    }
