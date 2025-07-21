@@ -149,11 +149,10 @@
         }
 
         shipments.forEach(s => {
-          const trackingInfo = trackingInfoMap.get(s.tracking_number);
-          // Logica robusta: usa lo stato del tracking se esiste, altrimenti quello della spedizione.
-          // Se entrambi sono nulli, usa 'registered' come fallback per evitare errori.
-          const liveStatus = (trackingInfo ? trackingInfo.status : s.status) || 'registered';
-          const iconClass = (trackingInfo ? trackingInfo.type : 'container') === 'awb' ? 'fa-plane' : 'fa-ship';
+          // Logica corretta: usa un fallback object se il tracking non è trovato, per semplificare il codice.
+          const trackingInfo = trackingInfoMap.get(s.tracking_number) || { status: s.status, type: 'container' };
+          const liveStatus = trackingInfo.status; // Ora liveStatus può essere null, e viene gestito correttamente da formatStatus.
+          const iconClass = trackingInfo.type === 'awb' ? 'fa-plane' : 'fa-ship';
 
           const tr = document.createElement('tr');
           tr.innerHTML = `
