@@ -33,6 +33,22 @@
     }
   </style>
   <link rel="stylesheet" href="/core/modal-system.css">
+  <!-- Script di autenticazione - Caricati prima dei moduli per garantire la disponibilità -->
+  <script src="/core/auth-init.js"></script>
+  <script>
+    (function() {
+        const script = document.createElement('script');
+        if (window.isDemoEnv) {
+            script.src = '/core/auth.js';
+        } else {
+            script.type = 'module';
+            script.src = '/core/auth-supabase.js';
+        }
+        document.head.appendChild(script);
+    })();
+  </script>
+  <!-- Script di mapping unificato - Necessario prima della logica della pagina -->
+  <script src="/pages/tracking/tracking-unified-mapping.js"></script>
 </head>
 <body>
   <div id="header-root"></div>
@@ -78,38 +94,53 @@
     </div>
   </main>
 
+  <!-- Blocco di inizializzazione orchestrata -->
   <script type="module">
-    // Importa i moduli principali in modo asincrono
-    import('/core/header-component.js');
-    import('/core/services/data-manager.js').then(module => {
-        window.dataManager = module.default;
-        window.dataManager.init().then(() => {
-            console.log('✅ Data Manager initialized on shipments page');
-            // Una volta che il data manager è pronto, carica le spedizioni
-            if (window.loadShipments) {
-                window.loadShipments();
-            }
-        });
-    });
-    import('/core/notification-system.js').then(m => window.NotificationSystem = m.default);
-    import('/core/modal-system.js').then(m => window.ModalSystem = m.default);
+    import headerComponent from '/core/header-component.js';
+    import dataManager from '/core/services/data-manager.js';
+    import notificationSystem from '/core/notification-system.js';
+    import modalSystem from '/core/modal-system.js';
+    import { supabase } from '/core/services/supabase-client.js';
+    import supabaseTrackingService from '/core/services/supabase-tracking-service.js';
+    import organizationApiKeysService from '/core/services/organization-api-keys-service.js';
+    import shipmentsPageLogic from '/pages/shipments/index.js'; // Importa la logica della pagina
 
-    // Inizializza la pagina
-    document.addEventListener('DOMContentLoaded', () => {
-        // Il listener per la sincronizzazione cross-tab può rimanere qui
-        window.addEventListener('storage', (e) => {
-            if (e.key === 'data_sync_shipments') {
-                console.log('📦 Sincronizzazione spedizioni rilevata da altra tab');
-                if(window.loadShipments) window.loadShipments();
-            }
-        });
+    // Rendi i sistemi globali disponibili
+    window.NotificationSystem = notificationSystem;
+    window.ModalSystem = modalSystem;
+    window.supabase = supabase;
+    window.supabaseTrackingService = supabaseTrackingService;
+    window.organizationApiKeysService = organizationApiKeysService;
 
-        // Le funzioni specifiche della pagina vengono caricate dal loro script
-        const pageScript = document.createElement('script');
-        pageScript.type = 'module';
-        pageScript.src = '/pages/shipments/index.js';
-        document.body.appendChild(pageScript);
-    });
+    async function initializeApp() {
+        console.log('🚀 Inizializzazione orchestrata della pagina Spedizioni...');
+        try {
+            // 1. Inizializza il Data Manager (gestisce auth e org)
+            await dataManager.init();
+            window.dataManager = dataManager; // Rendi globale
+            console.log('✅ Data Manager inizializzato.');
+
+            // 2. Inizializza l'Header Component
+            await headerComponent.init();
+            window.headerComponent = headerComponent; // Rendi globale
+            console.log('✅ Header Component inizializzato.');
+
+            // 3. Inizializza la logica specifica della pagina
+            if (shipmentsPageLogic && shipmentsPageLogic.initializeShipmentsPage) {
+                await shipmentsPageLogic.initializeShipmentsPage();
+                console.log('✅ Logica della pagina Spedizioni inizializzata.');
+            } else {
+                console.error('❌ Funzione initializeShipmentsPage non trovata in pages/shipments/index.js');
+            }
+
+        } catch (error) {
+            console.error('❌ Errore critico durante l'inizializzazione della pagina:', error);
+            document.body.innerHTML = '<div style="padding: 2rem; text-align: center; color: red;">Errore critico. Impossibile caricare la pagina.</div>';
+        }
+    }
+
+    // Avvia l'applicazione quando il DOM è completamente caricato
+    document.addEventListener('DOMContentLoaded', initializeApp);
   </script>
 
   <div id="modal-root"></div>

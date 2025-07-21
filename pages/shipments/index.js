@@ -2,99 +2,7 @@
 
 let cachedShipments = []; // variabile globale locale
 
-const STATUS_MAPPING = {
-    // === CONTAINER/SEA STATUSES ===
-    // English
-    'Sailing': 'in_transit',
-    'In Transit': 'in_transit',
-    'Loaded': 'in_transit',
-    'Loading': 'in_transit',
-    'Gate In': 'in_transit',
-    'Transhipment': 'in_transit',
-    'Arrived': 'arrived',
-    'Discharged': 'arrived',
-    'Discharging': 'arrived',
-    'Gate Out': 'out_for_delivery',
-    'Delivered': 'delivered',
-    'Empty': 'delivered',
-    'Empty Returned': 'delivered',
-    'POD': 'delivered',
-    'Registered': 'registered',
-    'Pending': 'registered',
-    'Booked': 'registered',
-    'Booking Confirmed': 'registered',
-    
-    // Italian
-    'In transito': 'in_transit',
-    'In Transito': 'in_transit',
-    'Navigando': 'in_transit',
-    'Caricato': 'in_transit',
-    'In caricamento': 'in_transit',
-    'Arrivato': 'arrived',
-    'Arrivata': 'arrived',
-    'Scaricato': 'arrived',
-    'In scarico': 'arrived',
-    'In consegna': 'out_for_delivery',
-    'Consegnato': 'delivered',
-    'Consegnata': 'delivered',
-    'Vuoto': 'delivered',
-    'Registrato': 'registered',
-    'In attesa': 'registered',
-    'Prenotato': 'registered',
-    
-    // === AWB/AIR STATUSES ===
-    // English codes
-    'RCS': 'registered',
-    'MAN': 'in_transit',
-    'DEP': 'in_transit',
-    'ARR': 'arrived',
-    'RCF': 'arrived',
-    'NFD': 'out_for_delivery',
-    'DLV': 'delivered',
-    'DELIVERED': 'delivered',
-    'INPROGRESS': 'in_transit',
-    'IN PROGRESS': 'in_transit',
-    'PENDING': 'registered',
-    
-    // === COURIER STATUSES (Italian) ===
-    'La spedizione è stata consegnata': 'delivered',
-    'Consegnata.': 'delivered',
-    'Consegna prevista nel corso della giornata odierna.': 'out_for_delivery',
-    'La spedizione è in consegna': 'out_for_delivery',
-    'La spedizione è in transito': 'in_transit',
-    'Arrivata nella sede GLS locale.': 'in_transit',
-    'In transito.': 'in_transit',
-    'Partita dalla sede mittente. In transito.': 'in_transit',
-    'La spedizione e\' stata creata dal mittente': 'registered',
-    
-    // FedEx
-    'On FedEx vehicle for delivery': 'out_for_delivery',
-    'At local FedEx facility': 'in_transit',
-    'Departed FedEx hub': 'in_transit',
-    'On the way': 'in_transit',
-    'Arrived at FedEx hub': 'in_transit',
-    'At destination sort facility': 'in_transit',
-    'Left FedEx origin facility': 'in_transit',
-    'Picked up': 'in_transit',
-    'Shipment information sent to FedEx': 'registered',
-    'International shipment release - Import': 'customs_cleared',
-    
-    // Customs
-    'Customs Cleared': 'customs_cleared',
-    'Sdoganato': 'customs_cleared',
-    'Sdoganata': 'customs_cleared',
-    'In dogana': 'customs_hold',
-    'Customs Hold': 'customs_hold',
-    
-    // Exceptions
-    'Delayed': 'delayed',
-    'In ritardo': 'delayed',
-    'Ritardo': 'delayed',
-    'Exception': 'exception',
-    'Eccezione': 'exception',
-    'Cancelled': 'cancelled',
-    'Annullato': 'cancelled'
-};
+const STATUS_MAPPING = window.TrackingUnifiedMapping?.STATUS_MAPPING || {};
 
 /**
  * Renderizza la tabella delle spedizioni.
@@ -106,18 +14,8 @@ function renderShipmentsTable(shipments) {
     return `<div class="sol-alert sol-alert-info"><i class="fas fa-info-circle"></i> Nessun risultato per la ricerca.</div>`;
   }
 
-  // Definisci qui la mappa per la visualizzazione degli stati, per semplicità
-  const STATUS_DISPLAY = {
-    'in_transit': { label: 'In Transito', class: 'primary' },
-    'delivered': { label: 'Consegnato', class: 'success' },
-    'registered': { label: 'Registrato', class: 'info' },
-    'customs_cleared': { label: 'Sdoganato', class: 'success' },
-    'out_for_delivery': { label: 'In Consegna', class: 'warning' },
-    'arrived': { label: 'Arrivato', class: 'primary' },
-    'delayed': { label: 'In Ritardo', class: 'danger' },
-    'exception': { label: 'Eccezione', class: 'warning' },
-    'pending': { label: 'In attesa', class: 'warning' }
-  };
+  // Usa la mappatura STATUS_DISPLAY da TrackingUnifiedMapping
+  const STATUS_DISPLAY = window.TrackingUnifiedMapping?.STATUS_DISPLAY || {};
 
   const tableHeaders = `
     <thead>
@@ -138,8 +36,9 @@ function renderShipmentsTable(shipments) {
 
   const tableRows = shipments.map(s => {
     const rawStatus = s.status || 'Unknown';
-    const normalizedStatus = STATUS_MAPPING[rawStatus] || 'registered'; // Usa la mappa di normalizzazione
-    const displayInfo = STATUS_DISPLAY[normalizedStatus] || { label: rawStatus, class: 'secondary' }; // Usa la mappa di visualizzazione
+    // Normalizza lo stato usando la mappatura unificata
+    const normalizedStatus = window.TrackingUnifiedMapping?.mapStatus(rawStatus) || 'registered';
+    const displayInfo = STATUS_DISPLAY[normalizedStatus] || { label: rawStatus, class: 'secondary' };
 
     return `
     <tr>
@@ -171,32 +70,42 @@ function renderShipmentsTable(shipments) {
 }
 
 async function initializeShipmentsPage() {
-  const tableContainer = document.querySelector('.sol-card-body .table-container');
-
   try {
+    // Attendi che dataManager sia pronto
     await new Promise(resolve => {
-      if (window.dataManager?.initialized) return resolve();
-      window.addEventListener('dataManagerReady', resolve, { once: true });
-      setTimeout(() => resolve(), 2000); // Timeout di sicurezza
+      if (window.dataManager?.initialized) resolve();
+      else window.addEventListener('dataManagerReady', resolve, { once: true });
     });
 
-    if (!window.dataManager) {
-        throw new Error("Data Manager non disponibile.");
+    // Carica le spedizioni iniziali
+    cachedShipments = await window.dataManager.getShipments();
+
+    // AGGIUNGI CONTROLLO DI SICUREZZA
+    if (!Array.isArray(cachedShipments)) {
+        console.error('Dati delle spedizioni non validi. Previsto un array, ricevuto:', cachedShipments);
+        document.getElementById('shipmentsTableBody').innerHTML = '<tr><td colspan="10" class="text-center text-danger">Errore: i dati delle spedizioni non sono stati caricati correttamente.</td></tr>';
+        return; // Interrompi l'esecuzione per prevenire altri errori
     }
 
-    const shipments = await window.dataManager.getShipments();
+    // Renderizza la tabella iniziale
+    renderShipmentsTable(cachedShipments);
 
-    if (!Array.isArray(shipments)) {
-      console.error("La funzione getShipments non ha restituito un array:", shipments);
-      if(tableContainer) tableContainer.innerHTML = `<div class="sol-alert sol-alert-danger">Errore nel caricamento dei dati delle spedizioni.</div>`;
-      return;
+    // Gestione ricerca dinamica
+    const searchInput = document.getElementById('shipments-search');
+    if (searchInput) {
+      searchInput.addEventListener('input', e => {
+        const query = e.target.value.trim().toLowerCase();
+        const filtered = cachedShipments.filter(shipment =>
+          shipment.reference?.toLowerCase().includes(query) ||
+          shipment.tracking_number?.toLowerCase().includes(query) ||
+          shipment.carrier?.toLowerCase().includes(query)
+        );
+        renderShipmentsTable(filtered);
+      });
     }
-
-    if(tableContainer) tableContainer.innerHTML = renderShipmentsTable(shipments);
-
-  } catch (error) {
-    console.error('Errore critico durante l'inizializzazione delle spedizioni:', error);
-    if(tableContainer) tableContainer.innerHTML = `<div class="sol-alert sol-alert-danger">Impossibile caricare le spedizioni: ${error.message}</div>`;
+  } catch (err) {
+    console.error('Errore inizializzazione pagina spedizioni:', err);
+    document.getElementById('shipments-app').textContent = 'Errore nel caricamento delle spedizioni.';
   }
 }
 
