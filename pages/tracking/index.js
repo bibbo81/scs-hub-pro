@@ -385,6 +385,7 @@ function detectTrackingType(trackingNumber) {
 function updateTable() {
     if (tableManager) {
         tableManager.setData(filteredTrackings);
+        updateStats(); // FIX: Ensure stats are updated with the table
         
         // Show/hide empty state
         const emptyState = document.getElementById('emptyState');
