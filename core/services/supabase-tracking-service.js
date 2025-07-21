@@ -189,7 +189,7 @@ class SupabaseTrackingService {
 
         // FIX: Rimuovi `current_status` se esiste, perché la colonna non è nel DB
         if (prepared.hasOwnProperty('current_status')) {
-            console.warn('⚠️ Rimosso campo `current_status` non valido prima dell'inserimento.');
+            console.warn("⚠️ Rimosso campo `current_status` non valido prima dell'inserimento.");
             delete prepared.current_status;
         }
 

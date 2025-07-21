@@ -3,39 +3,10 @@
 import { trackingsColumns, formatDate, formatDateOnly, formatTrackingStatus } from '/core/table-config.js';
 
 // State
-let trackings = [];
-let filteredTrackings = [];
-let tableManager = null;
+// (Already declared above, do not redeclare here)
 
 // Column mapping for import/export compatibility
-const COLUMN_MAPPING = {
-    'Container': 'tracking_number',
-    'ContainerNumber': 'tracking_number',
-    'Container Number': 'tracking_number',
-    'AWB Number': 'tracking_number',
-    'Tracking Number': 'tracking_number',
-    'Carrier': 'carrier_code',
-    'ShippingLine': 'carrier_code',
-    'Shipping Line': 'carrier_code',
-    'Airline': 'carrier_code',
-    'CarrierName': 'carrier_name',
-    'Status': 'current_status',
-    'CurrentStatus': 'current_status',
-    'Current Status': 'current_status',
-    'Port Of Loading': 'origin_port',
-    'Pol': 'origin_port',
-    'POL': 'origin_port',
-    'Origin': 'origin_port',
-    'Port Of Discharge': 'destination_port',
-    'Pod': 'destination_port',
-    'POD': 'destination_port',
-    'Destination': 'destination_port',
-    'ETA': 'eta',
-    'ETD': 'etd',
-    'Reference': 'reference',
-    'Booking Number': 'booking',
-    'Type': 'tracking_type'
-};
+// const COLUMN_MAPPING = { ... } // <-- Removed duplicate declaration
 
 // Status mapping for display
 const STATUS_DISPLAY = {
@@ -168,7 +139,7 @@ const DEFAULT_VISIBLE_COLUMNS = [
     'transit_time',         // ← Aggiungi
     'co2_emission',         // ← Aggiungi
     'last_update'
-];
+};
 
 // Column configuration for table
 const TABLE_COLUMNS = trackingsColumns;
@@ -186,14 +157,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Create table container
         const tableCard = document.querySelector('.sol-card-body.p-0');
         const tableContainer = document.getElementById('trackingTableContainer');
-        
-        // Remove old table if exists
-        const oldTable = document.getElementById('trackingTable');
-        if (oldTable) {
-            oldTable.parentElement.style.display = 'none';
-        }
-        
-        const { default: TableManager } = await import('/core/table-manager.js');
+        if (!tableContainer) {
+          console.error('Elemento #trackingTableContainer non trovato!');
+          return;
+        };
         tableManager = new TableManager('trackingTableContainer', {
             columns: TABLE_COLUMNS,
             selectable: true,
@@ -436,7 +403,6 @@ function setupEventListeners() {
             handleSelectionChange(selected);
         }
     };
-}
 
 function showColumnEditor() {
     if (!window.ModalSystem) return;
@@ -1257,6 +1223,14 @@ function exportData(type = 'excel') {
             'Voyage': t.voyage_number || '-',
             'Container': t.container_number || '-',
             'Last Event': t.last_event_description || '-',
+            'Destination Port': t.destination_port || '-',
+            'Destination Country': t.destination_country || '-',
+            'ETA': t.eta ? new Date(t.eta).toLocaleDateString('it-IT') : '-',
+            'ATA': t.ata ? new Date(t.ata).toLocaleDateString('it-IT') : '-',
+            'Vessel/Flight': t.vessel_name || '-',
+            'Voyage': t.voyage_number || '-',
+            'Container': t.container_number || '-',
+            'Last Event': t.last_event_description || '-',
             'Last Update': t.last_update ? new Date(t.last_update).toLocaleString('it-IT') : '-'
         }));
         
@@ -1411,3 +1385,34 @@ window.trackingDebug = {
     getStatusMapping: () => STATUS_DISPLAY
 };
 window.AVAILABLE_COLUMNS = AVAILABLE_COLUMNS;
+
+// index.js - Clean tracking page logic with all mappings
+// // import TableManager from '/core/table-manager.js'; // Defer loading // Moved to dynamic import
+import { trackingsColumns, formatDate, formatDateOnly, formatTrackingStatus } from '/core/table-config.js';
+
+// State
+let trackings = [];
+let filteredTrackings = [];
+let tableManager = null;
+
+// Column mapping for import/export compatibility
+const COLUMN_MAPPING = {
+    'Container': 'tracking_number',
+    'ContainerNumber': 'tracking_number',
+    'Container Number': 'tracking_number',
+    'AWB Number': 'tracking_number',
+    'Tracking Number': 'tracking_number',
+    'Carrier': 'carrier_code',
+    'ShippingLine': 'carrier_code',
+    'Shipping Line': 'carrier_code',
+    'Airline': 'carrier_code',
+    'CarrierName': 'carrier_name',
+    'Status': 'current_status',
+    'CurrentStatus': 'current_status',
+    'Current Status': 'current_status',
+    'Port Of Loading': 'origin_port',
+    'Pol': 'origin_port',
+    'POL': 'origin_port',
+};
+// Column mapping for import/export compatibility
+// const COLUMN_MAPPING = { ... } // <-- Removed duplicate declaration
