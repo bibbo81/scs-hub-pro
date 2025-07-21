@@ -322,14 +322,19 @@ function updateTable() {
 
 // Update statistics
 function updateStats() {
+    // Make filtering more robust to handle potential data inconsistencies (whitespace, case)
     const stats = {
         total: trackings.length,
-        delivered: trackings.filter(t => t.current_status === 'delivered').length,
-        inTransit: trackings.filter(t => t.current_status === 'in_transit').length,
-        exception: trackings.filter(t => 
-            t.current_status === 'exception' || 
-            t.current_status === 'delayed'
-        ).length
+        delivered: trackings.filter(t =>
+            t.current_status && t.current_status.trim().toLowerCase() === 'delivered'
+        ).length,
+        inTransit: trackings.filter(t =>
+            t.current_status && t.current_status.trim().toLowerCase() === 'in_transit'
+        ).length,
+        exception: trackings.filter(t => {
+            const status = t.current_status ? t.current_status.trim().toLowerCase() : '';
+            return status === 'exception' || status === 'delayed';
+        }).length
     };
     
     document.getElementById('totalTrackings').textContent = stats.total;
@@ -1406,4 +1411,3 @@ window.trackingDebug = {
     getStatusMapping: () => STATUS_DISPLAY
 };
 window.AVAILABLE_COLUMNS = AVAILABLE_COLUMNS;
-
