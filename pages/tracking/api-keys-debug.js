@@ -73,13 +73,7 @@
                         }
                     }
                     
-                    // Controlla anche personal API keys
-                    const { data: personalKeys } = await window.supabase
-                        .from('organization_api_keys')
-                        .select('*')
-                        .eq('user_id', user.id);
                     
-                    console.log('🔑 Personal API keys:', personalKeys);
                 }
             } catch (error) {
                 console.error('❌ Supabase error:', error);
