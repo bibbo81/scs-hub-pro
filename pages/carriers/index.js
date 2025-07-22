@@ -5,46 +5,69 @@ import ModalSystem from '/core/modal-system.js';
 document.addEventListener('DOMContentLoaded', async () => {
     await headerComponent.init();
     await dataManager.init();
-
+ 
     loadCarriers();
     setupEventListeners();
+    enableTableSorting(); // Abilita l'ordinamento della tabella
 });
-
+ 
 async function loadCarriers() {
     const tbody = document.getElementById('carriersTableBody');
     tbody.innerHTML = '<tr><td colspan="5" class="text-center">Caricamento...</td></tr>';
-
+ 
     try {
-        const carriers = await dataManager.getCarriers();
+        // Usa la nuova funzione per ottenere i dati con le statistiche
+        const carriersWithStats = await dataManager.getCarriersWithStats();
         tbody.innerHTML = '';
-
-        if (!carriers || carriers.length === 0) {
+ 
+        if (!carriersWithStats || carriersWithStats.length === 0) {
             tbody.innerHTML = '<tr><td colspan="5" class="text-center">Nessuno spedizioniere trovato. Inizia aggiungendone uno.</td></tr>';
             return;
         }
-
-        carriers.forEach(carrier => {
+ 
+        carriersWithStats.forEach(carrier => {
             const tr = document.createElement('tr');
             tr.innerHTML = `
-                <td>${carrier.name || '-'}</td>
-                <td>${carrier.contact_person || '-'}</td>
-                <td>${carrier.email || '-'}</td>
-                <td>${carrier.phone || '-'}</td>
+                <td>
+                    <a href="/carrier-details.html?id=${carrier.id}" class="font-weight-bold text-primary">
+                        ${carrier.name || '-'}
+                    </a>
+                </td>
+                <td>${carrier.shipment_count || 0}</td>
+                <td>${formatCurrency(carrier.total_spent)}</td>
+                <td>${formatCurrency(carrier.average_cost)}</td>
                 <td class="table-actions">
-                    <button class="sol-btn sol-btn-secondary sol-btn-sm edit-btn" data-id="${carrier.id}"><i class="fas fa-edit"></i></button>
-                    <button class="sol-btn sol-btn-danger sol-btn-sm delete-btn" data-id="${carrier.id}"><i class="fas fa-trash"></i></button>
+                    <a href="/carrier-details.html?id=${carrier.id}" class="sol-btn sol-btn-primary sol-btn-sm" title="Vedi Dettagli">
+                        <i class="fas fa-chart-line"></i>
+                    </a>
+                    <button class="sol-btn sol-btn-secondary sol-btn-sm edit-btn" data-id="${carrier.id}" title="Modifica">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    <button class="sol-btn sol-btn-danger sol-btn-sm delete-btn" data-id="${carrier.id}" title="Elimina">
+                        <i class="fas fa-trash"></i>
+                    </button>
                 </td>
             `;
             tbody.appendChild(tr);
         });
-
+ 
     } catch (error) {
         console.error("Errore caricamento spedizionieri:", error);
         notificationSystem.error("Impossibile caricare gli spedizionieri.");
         tbody.innerHTML = '<tr><td colspan="5" class="text-center text-danger">Errore nel caricamento dei dati.</td></tr>';
     }
 }
-
+ 
+/**
+ * Formatta un numero come valuta EUR.
+ * @param {number} value - Il valore numerico.
+ * @returns {string} La stringa formattata.
+ */
+function formatCurrency(value) {
+    if (typeof value !== 'number') return '€ 0,00';
+    return value.toLocaleString('it-IT', { style: 'currency', currency: 'EUR' });
+}
+ 
 function setupEventListeners() {
     document.getElementById('addCarrierBtn').addEventListener('click', () => {
         showCarrierForm();
@@ -60,7 +83,7 @@ function setupEventListeners() {
                 showCarrierForm(carrier);
             }
         }
-
+ 
         const deleteBtn = e.target.closest('.delete-btn');
         if (deleteBtn) {
             const carrierId = deleteBtn.dataset.id;
@@ -68,7 +91,52 @@ function setupEventListeners() {
         }
     });
 }
-
+ 
+/**
+ * Abilita l'ordinamento sulle colonne della tabella.
+ */
+function enableTableSorting() {
+    document.querySelectorAll(".data-table .sortable").forEach(th => {
+        th.style.cursor = "pointer";
+        th.addEventListener("click", () => {
+            const table = th.closest("table");
+            const tbody = table.querySelector("tbody");
+            const index = Array.from(th.parentNode.children).indexOf(th);
+            const isAsc = th.classList.contains("asc");
+            const newIsAsc = !isAsc;
+ 
+            // Rimuovi classi di ordinamento da tutti gli header
+            table.querySelectorAll("th").forEach(h => h.classList.remove("asc", "desc"));
+            // Aggiungi la nuova classe all'header cliccato
+            th.classList.toggle("asc", newIsAsc);
+            th.classList.toggle("desc", !newIsAsc);
+ 
+            // Ordina le righe
+            const rows = Array.from(tbody.querySelectorAll("tr"));
+            rows.sort((a, b) => {
+                const aText = a.children[index]?.textContent.trim() || '';
+                const bText = b.children[index]?.textContent.trim() || '';
+                
+                // Gestione speciale per colonne numeriche/valuta
+                if (index > 0 && index < 4) { // Colonne # Spedizioni, Spesa, Costo Medio
+                    const aValue = parseFloat(aText.replace(/[^0-9,-]+/g, "").replace(',', '.'));
+                    const bValue = parseFloat(bText.replace(/[^0-9,-]+/g, "").replace(',', '.'));
+                    if (!isNaN(aValue) && !isNaN(bValue)) {
+                        return newIsAsc ? aValue - bValue : bValue - aValue;
+                    }
+                }
+                
+                // Ordinamento standard per testo
+                const comparison = aText.localeCompare(bText, 'it-IT', { numeric: true, sensitivity: 'base' });
+                return newIsAsc ? comparison : -comparison;
+            });
+ 
+            // Ri-appendi le righe ordinate
+            rows.forEach(row => tbody.appendChild(row));
+        });
+    });
+}
+ 
 function showCarrierForm(carrier = null) {
     const isEditing = carrier !== null;
     const title = isEditing ? 'Modifica Spedizioniere' : 'Aggiungi Spedizioniere';
