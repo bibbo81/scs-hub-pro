@@ -110,7 +110,15 @@ class DataManager {
 
         let query = supabase
             .from('products')
-            .select('*')
+            .select(`
+                id,
+                name,
+                sku,
+                unit_price,
+                weight_kg,
+                volume_cbm
+            `)
+            .eq('organization_id', this.organizationId);
         const { data, error } = await query;
         if (error) throw error;
         return data || [];
