@@ -221,7 +221,6 @@ function deleteDocument(documentId) {
 }
 
 async function addProduct() {
-    // 1. Recupera la lista completa dei prodotti una sola volta
     let allProducts = [];
     try {
         allProducts = await dataManager.getAllProducts();
@@ -231,117 +230,136 @@ async function addProduct() {
         return;
     }
 
-    let selectedProduct = null;
-
     ModalSystem.show({
-        title: 'Aggiungi Prodotto alla Spedizione',
+        title: 'Aggiungi Prodotti alla Spedizione',
+        size: 'lg', // Modale più grande per contenere la lista
         content: `
-            <form id="addProductForm" class="sol-form" onsubmit="return false;">
+            <div class="sol-form">
                 <div class="sol-form-group">
-                    <label for="searchProductInput" class="sol-form-label">Cerca Prodotto (Nome o SKU)</label>
-                    <input type="text" id="searchProductInput" class="sol-form-input" placeholder="Inizia a digitare per cercare...">
+                    <input type="text" id="productSearchInput" class="sol-form-input" placeholder="Cerca per nome, SKU o descrizione...">
                 </div>
-
-                <div id="productSearchResults" class="search-results-container">
-                    <!-- I risultati della ricerca appariranno qui -->
-                </div>
-
-                <div class="sol-form-group">
-                    <label for="quantity" class="sol-form-label">Quantità</label>
-                    <input type="number" id="quantity" class="sol-form-input" value="1" min="1" required>
-                </div>
-            </form>
+            </div>
+            <div id="productListContainer" class="product-list-container">
+                <!-- La lista dei prodotti verrà renderizzata qui -->
+            </div>
             <style>
-                .search-results-container { max-height: 200px; overflow-y: auto; border: 1px solid #e0e6ed; margin-top: -1px; border-radius: 0 0 5px 5px; }
-                .search-result-item { padding: 10px; cursor: pointer; border-bottom: 1px solid #e0e6ed; }
-                .search-result-item:last-child { border-bottom: none; }
-                .search-result-item:hover { background-color: #f8f9fa; }
-                .search-result-item.selected { background-color: #007aff; color: white; }
-                .search-result-item small { color: #6c757d; }
-                .search-result-item.selected small { color: #e0e6ed; }
+                .product-list-container { max-height: 400px; overflow-y: auto; border: 1px solid #e0e6ed; border-radius: 5px; margin-top: 1rem; }
+                .product-list-item { display: flex; align-items: center; padding: 10px; border-bottom: 1px solid #e0e6ed; }
+                .product-list-item:last-child { border-bottom: none; }
+                .product-list-item.selected { background-color: #e6f2ff; }
+                .product-info { flex-grow: 1; }
+                .product-info strong { display: block; }
+                .product-info small { color: #6c757d; }
+                .product-quantity-input { width: 80px; margin-left: 1rem; }
             </style>
         `,
         actions: [
             { label: 'Annulla', variant: 'secondary', action: () => ModalSystem.close() },
             {
-                label: 'Aggiungi',
+                label: 'Aggiungi Selezionati',
                 variant: 'primary',
-                action: async () => { // 5. Azione del pulsante "Aggiungi"
-                    if (!selectedProduct) {
-                        notificationSystem.error('Selezionare un prodotto dalla lista.');
-                        return;
-                    }
+                action: async () => {
+                    const selectedItems = [];
+                    document.querySelectorAll('.product-list-item-checkbox:checked').forEach(checkbox => {
+                        const listItem = checkbox.closest('.product-list-item');
+                        const productId = checkbox.dataset.productId;
+                        const quantityInput = listItem.querySelector('.product-quantity-input');
+                        const quantity = parseInt(quantityInput.value, 10);
 
-                    const quantity = parseInt(document.getElementById('quantity').value);
-                    if (isNaN(quantity) || quantity <= 0) {
-                        notificationSystem.error('Inserire una quantità valida.');
+                        if (quantity > 0) {
+                            const product = allProducts.find(p => p.id === productId);
+                            if (product) {
+                                selectedItems.push({ product, quantity });
+                            }
+                        }
+                    });
+
+                    if (selectedItems.length === 0) {
+                        notificationSystem.warning('Nessun prodotto selezionato o quantità non valida.');
                         return;
                     }
 
                     const shipmentId = getShipmentIdFromURL();
-                    const productData = {
-                        product_id: selectedProduct.id,
-                        name: selectedProduct.name,
-                        sku: selectedProduct.sku,
-                        quantity: quantity,
-                        unit_value: selectedProduct.unit_value || 0,
-                        weight_kg: selectedProduct.weight_kg || 0,
-                        volume_cbm: selectedProduct.volume_cbm || 0,
-                    };
 
                     try {
-                        const addedProduct = await dataManager.addShipmentItem(shipmentId, productData);
+                        notificationSystem.info(`Aggiunta di ${selectedItems.length} prodotti in corso...`);
+
+                        // Crea un array di promesse per aggiungere tutti i prodotti in parallelo
+                        const addPromises = selectedItems.map(({ product, quantity }) => {
+                            const productData = {
+                                product_id: product.id,
+                                name: product.name,
+                                sku: product.sku,
+                                quantity: quantity,
+                                unit_value: product.unit_value || 0,
+                                weight_kg: product.weight_kg || 0,
+                                volume_cbm: 0, // La colonna volume_cbm non esiste nel db
+                            };
+                            return dataManager.addShipmentItem(shipmentId, productData);
+                        });
+
+                        await Promise.all(addPromises);
+
                         ModalSystem.close();
-                        notificationSystem.success('Prodotto aggiunto alla spedizione!');
-                        // Ricarica tutto per semplicità e per aggiornare i totali
+                        notificationSystem.success(`${selectedItems.length} prodotti aggiunti con successo!`);
                         loadShipmentDetails(shipmentId);
+
                     } catch (error) {
                         console.error('Errore aggiunta prodotto:', error);
-                        notificationSystem.error('Errore durante l\'aggiunta del prodotto.');
+                        notificationSystem.error('Errore durante l\'aggiunta dei prodotti.');
                     }
                 }
             }
         ],
-        onShow: () => { // 2. Logica eseguita quando la modale appare
-            const searchInput = document.getElementById('searchProductInput');
-            const resultsContainer = document.getElementById('productSearchResults');
+        onShow: () => {
+            const searchInput = document.getElementById('productSearchInput');
+            const listContainer = document.getElementById('productListContainer');
 
-            searchInput.addEventListener('input', () => {
-                const searchTerm = searchInput.value.toLowerCase();
-                resultsContainer.innerHTML = '';
-
-                if (searchTerm.length < 2) {
-                    resultsContainer.innerHTML = '<div class="search-result-item"><small>Digita almeno 2 caratteri per cercare</small></div>';
+            const renderList = (productsToRender) => {
+                if (productsToRender.length === 0) {
+                    listContainer.innerHTML = '<div class="p-3 text-center text-muted">Nessun prodotto trovato.</div>';
                     return;
                 }
+                listContainer.innerHTML = productsToRender.map(product => `
+                    <div class="product-list-item">
+                        <input type="checkbox" class="form-check-input product-list-item-checkbox" data-product-id="${product.id}">
+                        <div class="product-info ml-3">
+                            <strong>${product.name || 'Senza nome'}</strong>
+                            <small>SKU: ${product.sku || 'N/D'}</small>
+                        </div>
+                        <input type="number" class="form-control product-quantity-input" value="1" min="1" disabled>
+                    </div>
+                `).join('');
+            };
 
-                const filtered = allProducts.filter(p =>
+            // Event listener per la ricerca
+            searchInput.addEventListener('input', () => {
+                const searchTerm = searchInput.value.toLowerCase();
+                const filteredProducts = allProducts.filter(p =>
                     (p.name && p.name.toLowerCase().includes(searchTerm)) ||
                     (p.sku && p.sku.toLowerCase().includes(searchTerm)) ||
                     (p.other_description && p.other_description.toLowerCase().includes(searchTerm))
                 );
-
-                if (filtered.length === 0) {
-                    resultsContainer.innerHTML = '<div class="search-result-item"><small>Nessun prodotto trovato</small></div>';
-                    return;
-                }
-
-                filtered.slice(0, 50).forEach(product => { // Limita a 50 risultati per performance
-                    const item = document.createElement('div');
-                    item.className = 'search-result-item';
-                    item.innerHTML = `
-                        <strong>${product.name}</strong>
-                        <small class="d-block">SKU: ${product.sku || 'N/D'}</small>
-                    `;
-                    item.addEventListener('click', () => { // 3. Azione al click su un risultato
-                        selectedProduct = product;
-                        searchInput.value = product.name; // Mostra il nome nel campo di ricerca
-                        resultsContainer.innerHTML = ''; // Nasconde la lista
-                        document.getElementById('quantity').focus(); // Sposta il focus sulla quantità
-                    });
-                    resultsContainer.appendChild(item);
-                });
+                renderList(filteredProducts);
             });
+
+            // Event listener per le checkbox (usando event delegation)
+            listContainer.addEventListener('change', (event) => {
+                if (event.target.classList.contains('product-list-item-checkbox')) {
+                    const checkbox = event.target;
+                    const listItem = checkbox.closest('.product-list-item');
+                    const quantityInput = listItem.querySelector('.product-quantity-input');
+                    quantityInput.disabled = !checkbox.checked;
+                    listItem.classList.toggle('selected', checkbox.checked);
+                    if (checkbox.checked) {
+                        quantityInput.focus();
+                        quantityInput.select();
+                    }
+                }
+            });
+
+            // Render iniziale della lista completa
+            renderList(allProducts);
         }
     });
 }
