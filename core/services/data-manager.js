@@ -300,6 +300,45 @@ class DataManager {
         return { ...shipment, products, documents };
     }
 
+    /**
+     * Aggiunge un prodotto a una spedizione.
+     * @param {string} shipmentId - L'ID della spedizione.
+     * @param {Object} productData - Dati del prodotto da aggiungere.
+     * @returns {Promise<Object>} Il prodotto aggiunto.
+     */
+    async addShipmentItem(shipmentId, productData) {
+        if (!this.initialized) await this.init();
+
+        // Calcola i campi totali lato server per maggiore consistenza
+        const { data, error } = await supabase
+            .from('shipment_items')
+            .insert([{
+                shipment_id: shipmentId,
+                ...productData,
+                total_value: productData.quantity * productData.unit_value,
+                total_weight_kg: productData.weight_kg * productData.quantity,
+                total_volume_cbm: productData.volume_cbm * productData.quantity
+            }])
+            .select('*, product:product_id (name, product_code)') // Includi dati prodotto
+            .single();
+
+        if (error) {
+            console.error("Errore nell'aggiungere prodotto alla spedizione:", error);
+            throw error;
+        }
+
+        // Aggiorna il costo totale della spedizione (se necessario)
+        // await this.updateShipmentTotalCost(shipmentId);
+
+        return data;
+    }
+
+    // Funzione di utilità (opzionale, da implementare se serve aggiornamento automatico)
+    // async updateShipmentTotalCost(shipmentId) {
+    //     // ... logica per ricalcolare il costo totale della spedizione ...
+    // }
+
+
 }
 
 const dataManager = new DataManager();
