@@ -114,7 +114,7 @@ class DataManager {
                 id,
                 product_name,
                 sku,
-                unit_price,
+                unit_value,
                 weight_kg,
                 volume_cbm
             `)

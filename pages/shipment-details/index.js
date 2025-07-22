@@ -284,7 +284,7 @@ async function addProduct() {
                         name: selectedProduct.name,
                         sku: selectedProduct.sku,
                         quantity: quantity,
-                        unit_value: selectedProduct.unit_price || 0,
+                        unit_value: selectedProduct.unit_value || 0,
                         weight_kg: selectedProduct.weight_kg || 0,
                         volume_cbm: selectedProduct.volume_cbm || 0,
                     };
