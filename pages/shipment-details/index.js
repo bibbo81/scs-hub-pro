@@ -158,3 +158,74 @@ function formatDocumentCategory(category) {
     };
     return categories[category] || category || '-';
 }
+
+function addProduct() {
+    ModalSystem.show({
+        title: 'Aggiungi Prodotto',
+        content: `
+            <form id="addProductForm" class="sol-form">
+                <div class="sol-form-group">
+                    <label for="productName" class="sol-form-label">Nome Prodotto</label>
+                    <input type="text" id="productName" class="sol-form-input" required>
+                </div>
+                <div class="sol-form-group">
+                    <label for="quantity" class="sol-form-label">Quantità</label>
+                    <input type="number" id="quantity" class="sol-form-input" value="1" min="1" required>
+                </div>
+                <div class="sol-form-group">
+                    <label for="unitValue" class="sol-form-label">Valore Unitario (€)</label>
+                    <input type="number" id="unitValue" class="sol-form-input" value="0.00" min="0" step="0.01" required>
+                </div>
+                <div class="sol-form-group">
+                    <label for="weightKg" class="sol-form-label">Peso (Kg)</label>
+                    <input type="number" id="weightKg" class="sol-form-input" value="0.000" min="0" step="0.001">
+                </div>
+                <div class="sol-form-group">
+                    <label for="volumeCbm" class="sol-form-label">Volume (m³)</label>
+                    <input type="number" id="volumeCbm" class="sol-form-input" value="0.000" min="0" step="0.001">
+                </div>
+            </form>
+        `,
+        actions: [
+            { label: 'Annulla', variant: 'secondary', action: () => ModalSystem.close() },
+            {
+                label: 'Aggiungi',
+                variant: 'primary',
+                action: async () => {
+                    const productName = document.getElementById('productName').value;
+                    const quantity = parseInt(document.getElementById('quantity').value);
+                    const unitValue = parseFloat(document.getElementById('unitValue').value);
+                    const weightKg = parseFloat(document.getElementById('weightKg').value);
+                    const volumeCbm = parseFloat(document.getElementById('volumeCbm').value);
+
+                    if (!productName || isNaN(quantity) || isNaN(unitValue)) {
+                        notificationSystem.error('Compilare tutti i campi obbligatori.');
+                        return;
+                    }
+
+                    const productData = {
+                        name: productName,
+                        quantity: quantity,
+                        unit_value: unitValue,
+                        total_value: quantity * unitValue,
+                        weight_kg: weightKg,
+                        total_weight_kg: weightKg * quantity,
+                        volume_cbm: volumeCbm,
+                        total_volume_cbm: volumeCbm * quantity
+                    };
+
+                    try {
+                        // TODO: Invia i dati al dataManager per salvare il prodotto associato alla spedizione
+                        console.log('Dati prodotto da salvare:', productData);
+                        ModalSystem.close();
+                        notificationSystem.success('Prodotto aggiunto alla spedizione!');
+                        // TODO: Aggiorna la tabella prodotti
+                    } catch (error) {
+                        console.error('Errore aggiunta prodotto:', error);
+                        notificationSystem.error('Errore durante l\'aggiunta del prodotto.');
+                    }
+                }
+            }
+        ]
+    });
+}
