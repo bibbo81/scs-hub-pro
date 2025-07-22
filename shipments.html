@@ -166,23 +166,15 @@
             <td>${s.updated_at ? new Date(s.updated_at).toLocaleString('it-IT') : ''}</td>
             <td>
               <div class="action-buttons">
-                <button class="btn-icon details-btn" data-id="${s.id}" title="Dettagli"><i class="fas fa-eye"></i></button>
+                <a href="/shipment-details.html?id=${s.id}" class="sol-btn sol-btn-sm sol-btn-primary" title="Vedi Dettagli">
+                    <i class="fas fa-eye"></i>
+                </a>
               </div>
             </td>
           `;
           tbody.appendChild(tr);
         });
 
-        document.querySelectorAll(".details-btn").forEach(btn => {
-          btn.addEventListener("click", () => {
-            const shipmentId = btn.getAttribute("data-id");
-            ModalSystem.open({
-              title: "Dettagli Spedizione",
-              content: `<p>ID Spedizione: <strong>${shipmentId}</strong></p><p>Qui potresti caricare altri dettagli con una fetch.</p>`,
-              actions: [{ label: "Chiudi", variant: "primary", action: () => ModalSystem.close() }]
-            });
-          });
-        });
       } catch (error) {
         console.error('Errore durante il caricamento delle spedizioni:', error);
         window.NotificationSystem.error('Impossibile caricare le spedizioni.');
