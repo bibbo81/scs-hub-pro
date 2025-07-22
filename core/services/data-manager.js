@@ -105,6 +105,135 @@ class DataManager {
         return await ShipmentsService.getShipmentsByOrganization(this.organizationId);
     }
 
+    // ===== CARRIER MANAGEMENT =====
+
+    async getCarriers() {
+        if (!this.initialized) await this.init();
+        const { data, error } = await this.supabase
+            .from('carriers')
+            .select('*')
+            .eq('organization_id', this.organizationId)
+            .order('name', { ascending: true });
+        if (error) throw error;
+        return data || [];
+    }
+
+    async getCarrierById(id) {
+        if (!this.initialized) await this.init();
+        const { data, error } = await this.supabase
+            .from('carriers')
+            .select('*')
+            .eq('id', id)
+            .eq('organization_id', this.organizationId)
+            .single();
+        if (error) throw error;
+        return data;
+    }
+
+    async addCarrier(carrierData) {
+        if (!this.initialized) await this.init();
+        const { data, error } = await this.supabase
+            .from('carriers')
+            .insert([{ ...carrierData, organization_id: this.organizationId }])
+            .select();
+        if (error) throw error;
+        return data[0];
+    }
+
+    async updateCarrier(id, carrierData) {
+        if (!this.initialized) await this.init();
+        const { data, error } = await this.supabase
+            .from('carriers')
+            .update(carrierData)
+            .eq('id', id)
+            .eq('organization_id', this.organizationId)
+            .select();
+        if (error) throw error;
+        return data[0];
+    }
+
+    async deleteCarrier(id) {
+        if (!this.initialized) await this.init();
+        const { error } = await this.supabase
+            .from('carriers')
+            .delete()
+            .eq('id', id)
+            .eq('organization_id', this.organizationId);
+        if (error) throw error;
+        return true;
+    }
+
+    /**
+     * Recupera tutti gli spedizionieri con statistiche aggregate (conteggio spedizioni e costo totale).
+     * @returns {Promise<Array>} Lista di spedizionieri con statistiche.
+     */
+    async getCarriersWithStats() {
+        const { data: carriers, error } = await this.supabase
+            .from('carriers')
+            .select(`
+                *,
+                shipments (
+                    id,
+                    total_cost
+                )
+            `)
+            .eq('organization_id', this.organizationId);
+
+        if (error) {
+            console.error("Errore nel recuperare spedizionieri con statistiche:", error);
+            throw error;
+        }
+
+        // Calcola le statistiche in JavaScript
+        return carriers.map(carrier => {
+            const shipment_count = carrier.shipments.length;
+            const total_spent = carrier.shipments.reduce((sum, s) => sum + (s.total_cost || 0), 0);
+            const average_cost = shipment_count > 0 ? total_spent / shipment_count : 0;
+
+            // Rimuovi l'array di spedizioni per non appesantire l'oggetto
+            delete carrier.shipments;
+
+            return {
+                ...carrier,
+                shipment_count,
+                total_spent,
+                average_cost
+            };
+        });
+    }
+
+    /**
+     * Recupera i dettagli di un singolo spedizioniere, incluse tutte le spedizioni associate.
+     * @param {string} carrierId - L'ID dello spedizioniere.
+     * @returns {Promise<Object>} Dettagli dello spedizioniere.
+     */
+    async getCarrierDetails(carrierId) {
+        const { data, error } = await this.supabase
+            .from('carriers')
+            .select(`
+                *,
+                shipments (
+                    id,
+                    shipment_number,
+                    status,
+                    total_cost,
+                    created_at,
+                    origin,
+                    destination
+                )
+            `)
+            .eq('id', carrierId)
+            .eq('organization_id', this.organizationId)
+            .single();
+
+        if (error) {
+            console.error("Errore nel recuperare i dettagli dello spedizioniere:", error);
+            throw error;
+        }
+
+        return data;
+    }
+
     async deleteTracking(trackingId) {
         if (!this.initialized) await this.init();
 
