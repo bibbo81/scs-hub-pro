@@ -105,6 +105,17 @@ class DataManager {
         return await ShipmentsService.getShipmentsByOrganization(this.organizationId);
     }
 
+    async getAllProducts() {
+        if (!this.initialized) await this.init();
+
+        let query = supabase
+            .from('products')
+            .select('*')
+        const { data, error } = await query;
+        if (error) throw error;
+        return data || [];
+    }
+
     // ===== CARRIER MANAGEMENT =====
 
     async getCarriers() {

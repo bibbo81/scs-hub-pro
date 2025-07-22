@@ -226,11 +226,25 @@ function addProduct() {
         content: `
             <form id="addProductForm" class="sol-form">
                 <div class="sol-form-group">
+                    <label for="searchProduct" class="sol-form-label">Cerca Prodotto (Nome o Codice)</label>
+                    <input type="text" id="searchProduct" class="sol-form-input" oninput="searchProducts(this.value)" placeholder="Inserisci nome o codice prodotto">
+                </div>
+
+                <div id="searchResults" style="max-height: 200px; overflow-y: auto; border: 1px solid #ccc; margin-bottom: 10px; padding: 5px;">
+                    <!-- I risultati della ricerca appariranno qui -->
+                </div>
+
+                <div class="sol-form-group">
                     <label for="productName" class="sol-form-label">Nome Prodotto</label>
                     <input type="text" id="productName" class="sol-form-input" required>
                 </div>
+
                 <div class="sol-form-group">
                     <label for="quantity" class="sol-form-label">Quantità</label>
+                    <input type="number" id="quantity" class="sol-form-input" value="1" min="1" required>
+                </div>
+                <div class="sol-form-group">
+                    <label for="sku" class="sol-form-label">SKU</label>
                     <input type="number" id="quantity" class="sol-form-input" value="1" min="1" required>
                 </div>
                 <div class="sol-form-group">
@@ -264,18 +278,21 @@ function addProduct() {
                         return;
                     }
 
+                    const shipmentId = getShipmentIdFromURL();
+
                     const productData = {
                         name: productName,
                         quantity: quantity,
                         unit_value: unitValue,
                         total_value: quantity * unitValue,
+                        sku: sku,
                         weight_kg: weightKg,
                         total_weight_kg: weightKg * quantity,
                         volume_cbm: volumeCbm,
                         total_volume_cbm: volumeCbm * quantity
                     };
 
-                    try {
+                     try {
                         const shipmentId = getShipmentIdFromURL();
                         const addedProduct = await dataManager.addShipmentItem(shipmentId, productData);
                         
@@ -283,10 +300,10 @@ function addProduct() {
                         notificationSystem.success('Prodotto aggiunto alla spedizione!');
                         
                         // Aggiungi il nuovo prodotto alla tabella
-                        renderProductRow(addedProduct);
+                        renderProductRow(addShipmentItem);
 
                         // TODO: Aggiorna la tabella prodotti
-                    } catch (error) {
+                    } catch (error)  {
                         console.error('Errore aggiunta prodotto:', error);
                         notificationSystem.error('Errore durante l\'aggiunta del prodotto.');
                     }
@@ -295,6 +312,50 @@ function addProduct() {
         ]
     });
 }
+
+async function searchProducts(searchTerm) {
+    const searchResultsDiv = document.getElementById('searchResults');
+    searchResultsDiv.innerHTML = '<em>Caricamento...</em>';
+
+    try {
+        const products = await dataManager.getAllProducts(); // Assicurati che questa funzione esista nel tuo dataManager
+
+        if (!products || products.length === 0) {
+            searchResultsDiv.innerHTML = '<em>Nessun prodotto trovato.</em>';
+            return;
+        }
+
+        const filteredProducts = products.filter(product =>
+            product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            product.sku.toLowerCase().includes(searchTerm.toLowerCase())
+        );
+
+        if (filteredProducts.length === 0) {
+            searchResultsDiv.innerHTML = '<em>Nessun prodotto corrispondente.</em>';
+            return;
+        }
+
+        searchResultsDiv.innerHTML = '';
+        filteredProducts.forEach(product => {
+            const productElement = document.createElement('div');
+            productElement.style.cursor = 'pointer';
+            productElement.style.padding = '5px';
+            productElement.textContent = `${product.name} (${product.sku})`;
+            productElement.onclick = () => {
+                document.getElementById('productName').value = product.name;
+                document.getElementById('sku').value = product.sku;
+                searchResultsDiv.innerHTML = ''; // Pulisci i risultati dopo la selezione
+            };
+            searchResultsDiv.appendChild(productElement);
+        });
+    } catch (error) {
+        console.error('Errore ricerca prodotti:', error);
+        searchResultsDiv.innerHTML = '<em>Errore durante la ricerca dei prodotti.</em>';
+    }
+}
+
+
+
 
 // Funzione per aggiungere una riga alla tabella prodotti
 function renderProductRow(product) {
