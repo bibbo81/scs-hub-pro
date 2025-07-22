@@ -296,7 +296,7 @@ class DataManager {
                 volume_cbm,
                 total_volume_cbm,
                 allocated_cost,
-                product:product_id (
+                product:products (
                     name,
                     sku
                 )
@@ -345,7 +345,7 @@ class DataManager {
                 volume_cbm,
                 total_volume_cbm,
                 allocated_cost,
-                product:product_id (
+                product:products (
                     name,
                     sku
                 )
