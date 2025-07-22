@@ -220,142 +220,130 @@ function deleteDocument(documentId) {
     notificationSystem.info(`Funzione "Elimina Documento" (ID: ${documentId}) non ancora implementata.`);
 }
 
-function addProduct() {
+async function addProduct() {
+    // 1. Recupera la lista completa dei prodotti una sola volta
+    let allProducts = [];
+    try {
+        allProducts = await dataManager.getAllProducts();
+    } catch (error) {
+        notificationSystem.error('Impossibile caricare la lista dei prodotti.');
+        console.error('Errore caricamento prodotti per la ricerca:', error);
+        return;
+    }
+
+    let selectedProduct = null;
+
     ModalSystem.show({
-        title: 'Aggiungi Prodotto',
+        title: 'Aggiungi Prodotto alla Spedizione',
         content: `
-            <form id="addProductForm" class="sol-form">
+            <form id="addProductForm" class="sol-form" onsubmit="return false;">
                 <div class="sol-form-group">
-                    <label for="searchProduct" class="sol-form-label">Cerca Prodotto (Nome o Codice)</label>
-                    <input type="text" id="searchProduct" class="sol-form-input" oninput="searchProducts(this.value)" placeholder="Inserisci nome o codice prodotto">
+                    <label for="searchProductInput" class="sol-form-label">Cerca Prodotto (Nome o SKU)</label>
+                    <input type="text" id="searchProductInput" class="sol-form-input" placeholder="Inizia a digitare per cercare...">
                 </div>
 
-                <div id="searchResults" style="max-height: 200px; overflow-y: auto; border: 1px solid #ccc; margin-bottom: 10px; padding: 5px;">
+                <div id="productSearchResults" class="search-results-container">
                     <!-- I risultati della ricerca appariranno qui -->
-                </div>
-
-                <div class="sol-form-group">
-                    <label for="productName" class="sol-form-label">Nome Prodotto</label>
-                    <input type="text" id="productName" class="sol-form-input" required>
                 </div>
 
                 <div class="sol-form-group">
                     <label for="quantity" class="sol-form-label">Quantità</label>
                     <input type="number" id="quantity" class="sol-form-input" value="1" min="1" required>
                 </div>
-                <div class="sol-form-group">
-                    <label for="sku" class="sol-form-label">SKU</label>
-                    <input type="number" id="quantity" class="sol-form-input" value="1" min="1" required>
-                </div>
-                <div class="sol-form-group">
-                    <label for="unitValue" class="sol-form-label">Valore Unitario (€)</label>
-                    <input type="number" id="unitValue" class="sol-form-input" value="0.00" min="0" step="0.01" required>
-                </div>
-                <div class="sol-form-group">
-                    <label for="weightKg" class="sol-form-label">Peso (Kg)</label>
-                    <input type="number" id="weightKg" class="sol-form-input" value="0.000" min="0" step="0.001">
-                </div>
-                <div class="sol-form-group">
-                    <label for="volumeCbm" class="sol-form-label">Volume (m³)</label>
-                    <input type="number" id="volumeCbm" class="sol-form-input" value="0.000" min="0" step="0.001">
-                </div>
             </form>
+            <style>
+                .search-results-container { max-height: 200px; overflow-y: auto; border: 1px solid #e0e6ed; margin-top: -1px; border-radius: 0 0 5px 5px; }
+                .search-result-item { padding: 10px; cursor: pointer; border-bottom: 1px solid #e0e6ed; }
+                .search-result-item:last-child { border-bottom: none; }
+                .search-result-item:hover { background-color: #f8f9fa; }
+                .search-result-item.selected { background-color: #007aff; color: white; }
+                .search-result-item small { color: #6c757d; }
+                .search-result-item.selected small { color: #e0e6ed; }
+            </style>
         `,
         actions: [
             { label: 'Annulla', variant: 'secondary', action: () => ModalSystem.close() },
             {
                 label: 'Aggiungi',
                 variant: 'primary',
-                action: async () => {
-                    const productName = document.getElementById('productName').value;
-                    const quantity = parseInt(document.getElementById('quantity').value);
-                    const unitValue = parseFloat(document.getElementById('unitValue').value);
-                    const weightKg = parseFloat(document.getElementById('weightKg').value);
-                    const volumeCbm = parseFloat(document.getElementById('volumeCbm').value);
+                action: async () => { // 5. Azione del pulsante "Aggiungi"
+                    if (!selectedProduct) {
+                        notificationSystem.error('Selezionare un prodotto dalla lista.');
+                        return;
+                    }
 
-                    if (!productName || isNaN(quantity) || isNaN(unitValue)) {
-                        notificationSystem.error('Compilare tutti i campi obbligatori.');
+                    const quantity = parseInt(document.getElementById('quantity').value);
+                    if (isNaN(quantity) || quantity <= 0) {
+                        notificationSystem.error('Inserire una quantità valida.');
                         return;
                     }
 
                     const shipmentId = getShipmentIdFromURL();
-
                     const productData = {
-                        name: productName,
+                        product_id: selectedProduct.id,
+                        name: selectedProduct.name,
+                        sku: selectedProduct.sku,
                         quantity: quantity,
-                        unit_value: unitValue,
-                        total_value: quantity * unitValue,
-                        sku: sku,
-                        weight_kg: weightKg,
-                        total_weight_kg: weightKg * quantity,
-                        volume_cbm: volumeCbm,
-                        total_volume_cbm: volumeCbm * quantity
+                        unit_value: selectedProduct.unit_price || 0,
+                        weight_kg: selectedProduct.weight_kg || 0,
+                        volume_cbm: selectedProduct.volume_cbm || 0,
                     };
 
-                     try {
-                        const shipmentId = getShipmentIdFromURL();
+                    try {
                         const addedProduct = await dataManager.addShipmentItem(shipmentId, productData);
-                        
                         ModalSystem.close();
                         notificationSystem.success('Prodotto aggiunto alla spedizione!');
-                        
-                        // Aggiungi il nuovo prodotto alla tabella
-                        renderProductRow(addShipmentItem);
-
-                        // TODO: Aggiorna la tabella prodotti
-                    } catch (error)  {
+                        // Ricarica tutto per semplicità e per aggiornare i totali
+                        loadShipmentDetails(shipmentId);
+                    } catch (error) {
                         console.error('Errore aggiunta prodotto:', error);
                         notificationSystem.error('Errore durante l\'aggiunta del prodotto.');
                     }
                 }
             }
-        ]
+        ],
+        onShow: () => { // 2. Logica eseguita quando la modale appare
+            const searchInput = document.getElementById('searchProductInput');
+            const resultsContainer = document.getElementById('productSearchResults');
+
+            searchInput.addEventListener('input', () => {
+                const searchTerm = searchInput.value.toLowerCase();
+                resultsContainer.innerHTML = '';
+
+                if (searchTerm.length < 2) {
+                    resultsContainer.innerHTML = '<div class="search-result-item"><small>Digita almeno 2 caratteri per cercare</small></div>';
+                    return;
+                }
+
+                const filtered = allProducts.filter(p =>
+                    p.name.toLowerCase().includes(searchTerm) ||
+                    (p.sku && p.sku.toLowerCase().includes(searchTerm))
+                );
+
+                if (filtered.length === 0) {
+                    resultsContainer.innerHTML = '<div class="search-result-item"><small>Nessun prodotto trovato</small></div>';
+                    return;
+                }
+
+                filtered.slice(0, 50).forEach(product => { // Limita a 50 risultati per performance
+                    const item = document.createElement('div');
+                    item.className = 'search-result-item';
+                    item.innerHTML = `
+                        <strong>${product.name}</strong>
+                        <small class="d-block">SKU: ${product.sku || 'N/D'}</small>
+                    `;
+                    item.addEventListener('click', () => { // 3. Azione al click su un risultato
+                        selectedProduct = product;
+                        searchInput.value = product.name; // Mostra il nome nel campo di ricerca
+                        resultsContainer.innerHTML = ''; // Nasconde la lista
+                        document.getElementById('quantity').focus(); // Sposta il focus sulla quantità
+                    });
+                    resultsContainer.appendChild(item);
+                });
+            });
+        }
     });
 }
-
-async function searchProducts(searchTerm) {
-    const searchResultsDiv = document.getElementById('searchResults');
-    searchResultsDiv.innerHTML = '<em>Caricamento...</em>';
-
-    try {
-        const products = await dataManager.getAllProducts(); // Assicurati che questa funzione esista nel tuo dataManager
-
-        if (!products || products.length === 0) {
-            searchResultsDiv.innerHTML = '<em>Nessun prodotto trovato.</em>';
-            return;
-        }
-
-        const filteredProducts = products.filter(product =>
-            product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            product.sku.toLowerCase().includes(searchTerm.toLowerCase())
-        );
-
-        if (filteredProducts.length === 0) {
-            searchResultsDiv.innerHTML = '<em>Nessun prodotto corrispondente.</em>';
-            return;
-        }
-
-        searchResultsDiv.innerHTML = '';
-        filteredProducts.forEach(product => {
-            const productElement = document.createElement('div');
-            productElement.style.cursor = 'pointer';
-            productElement.style.padding = '5px';
-            productElement.textContent = `${product.name} (${product.sku})`;
-            productElement.onclick = () => {
-                document.getElementById('productName').value = product.name;
-                document.getElementById('sku').value = product.sku;
-                searchResultsDiv.innerHTML = ''; // Pulisci i risultati dopo la selezione
-            };
-            searchResultsDiv.appendChild(productElement);
-        });
-    } catch (error) {
-        console.error('Errore ricerca prodotti:', error);
-        searchResultsDiv.innerHTML = '<em>Errore durante la ricerca dei prodotti.</em>';
-    }
-}
-
-
-
 
 // Funzione per aggiungere una riga alla tabella prodotti
 function renderProductRow(product) {
