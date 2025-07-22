@@ -316,8 +316,9 @@ async function addProduct() {
                 }
 
                 const filtered = allProducts.filter(p =>
-                    p.name.toLowerCase().includes(searchTerm) ||
-                    (p.sku && p.sku.toLowerCase().includes(searchTerm))
+                    (p.name && p.name.toLowerCase().includes(searchTerm)) ||
+                    (p.sku && p.sku.toLowerCase().includes(searchTerm)) ||
+                    (p.other_description && p.other_description.toLowerCase().includes(searchTerm))
                 );
 
                 if (filtered.length === 0) {

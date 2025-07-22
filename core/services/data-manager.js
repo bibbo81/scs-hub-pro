@@ -115,7 +115,8 @@ class DataManager {
                 name:description,
                 sku,
                 unit_value:unit_price,
-                weight_kg
+                weight_kg,
+                other_description
             `)
             .eq('organization_id', this.organizationId);
         const { data, error } = await query;
