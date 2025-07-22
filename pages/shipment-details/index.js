@@ -72,7 +72,10 @@ function renderProductsTable(products) {
         const tr = document.createElement('tr');
         tr.classList.add('product-row'); // Aggiungi una classe per lo stile
         tr.innerHTML = `
-            <td>${product.name || product.product_code || '-'}</td>
+            <td>
+                ${product.product?.name || product.name || '-'}
+                <small class="text-muted d-block">${product.product?.sku || ''}</small>
+            </td>
             <td>${product.quantity || 0}</td>
             <td>${formatCurrency(product.unit_value)}</td>
             <td>${formatCurrency(product.total_value)}</td>
@@ -243,7 +246,10 @@ function renderProductRow(product) {
     const tr = document.createElement('tr');
     tr.classList.add('product-row');
     tr.innerHTML = `
-        <td>${product.name || product.product_code || '-'}</td>
+        <td>
+            ${product.product?.name || product.name || '-'}
+            <small class="text-muted d-block">${product.product?.sku || ''}</small>
+        </td>
         <td>${product.quantity || 0}</td>
         <td>${formatCurrency(product.unit_value)}</td>
         <td>${formatCurrency(product.total_value)}</td>
