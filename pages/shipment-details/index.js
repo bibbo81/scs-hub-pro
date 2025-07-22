@@ -230,6 +230,9 @@ async function addProduct() {
         return;
     }
 
+    // DEBUGGING: Questo log è cruciale. Controlla la console del browser dopo aver cliccato "Aggiungi Prodotto".
+    console.log(`[addProduct] Caricati ${allProducts.length} prodotti. Se questo numero è 0, il problema è nei dati, non nel codice.`);
+
     ModalSystem.show({
         title: 'Aggiungi Prodotti alla Spedizione',
         size: 'lg', // Modale più grande per contenere la lista
