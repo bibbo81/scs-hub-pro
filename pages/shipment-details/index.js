@@ -300,11 +300,11 @@ async function addProduct() {
             title: 'Aggiungi Prodotti alla Spedizione',
             size: 'lg',
             content: modalContent,
-            actions: [
-                { label: 'Annulla', variant: 'secondary', action: () => ModalSystem.close() },
+            buttons: [
+                { text: 'Annulla', className: 'sol-btn sol-btn-secondary', action: () => ModalSystem.close() },
                 {
-                    label: 'Aggiungi Selezionati',
-                    variant: 'primary',
+                    text: 'Aggiungi Selezionati',
+                    className: 'sol-btn sol-btn-primary',
                     action: async () => {
                         const selectedItems = [];
                         document.querySelectorAll('.product-row-checkbox:checked').forEach(checkbox => {
