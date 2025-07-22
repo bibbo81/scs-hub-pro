@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="/core/env-check.js"></script>
+    <title>Dettaglio Spedizione - SCS Hub Pro</title>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23007AFF'%3E%3Cpath d='M20 8h-3V4H3c-1.1 0-2 .9-2 2v11h2c0 1.66 1.34 3 3 3s3-1.34 3-3h6c0 1.66 1.34 3 3 3s3-1.34 3-3h2v-5l-4zM6 18.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm13.5-9l1.96 2.5H17V9.5h2.5zm-1.5 9c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z'/%3E%3C/svg%3E">
+    <link rel="stylesheet" href="/assets/css/solarium.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="/core/modal-system.css">
+    <style>
+        .section-title {
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+            color: var(--sol-gray-800);
+        }
+        .data-label {
+            font-weight: 600;
+            color: var(--sol-gray-700);
+        }
+        .data-value {
+            color: var(--sol-gray-900);
+        }
+        .status-badge {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: 500;
+            color: #fff;
+            display: inline-block;
+        }
+        .status-pending, .status-registered { background: #6c757d; }
+        .status-in_transit { background: #17a2b8; }
+        .status-delivered { background: #28a745; }
+        .status-exception, .status-delayed { background: #dc3545; }
+        .status-arrived { background: #007bff; }
+        .status-out_for_delivery { background: #fd7e14; }
+        .status-customs_hold { background: #ffc107; color: #000; }
+        .status-customs_cleared { background: #28a745; }
+        .font-weight-bold { font-weight: 600; }
+        .text-primary { color: #007bff; }
+        .product-row td {
+            vertical-align: middle;
+        }
+    </style>
+</head>
+<body>
+    <div id="header-root"></div>
+
+    <main class="sol-main-content">
+        <div class="sol-container">
+            <div class="page-header d-flex justify-content-between align-items-center mb-4">
+                <h1 id="shipmentNumberTitle">Dettaglio Spedizione</h1>
+                <a href="/shipments.html" class="sol-btn sol-btn-secondary">
+                    <i class="fas fa-arrow-left mr-2"></i>Torna a Spedizioni
+                </a>
+            </div>
+
+            <div class="sol-card mb-4">
+                <div class="sol-card-header"><h2 class="sol-card-title">Informazioni Spedizione</h2></div>
+                <div class="sol-card-body">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <p><span class="data-label">Riferimento:</span> <span id="shipmentNumber" class="data-value">-</span></p>
+                            <p><span class="data-label">Stato:</span> <span id="shipmentStatus" class="data-value">-</span></p>
+                            <p><span class="data-label">Data Creazione:</span> <span id="shipmentDate" class="data-value">-</span></p>
+                        </div>
+                        <div class="col-md-4">
+                            <p><span class="data-label">Origine:</span> <span id="shipmentOrigin" class="data-value">-</span></p>
+                            <p><span class="data-label">Destinazione:</span> <span id="shipmentDestination" class="data-value">-</span></p>
+                            <p><span class="data-label">Spedizioniere:</span> <span id="shipmentCarrier" class="data-value">-</span></p>
+                        </div>
+                        <div class="col-md-4">
+                            <p><span class="data-label">Costo Totale:</span> <span id="shipmentTotalCost" class="data-value">-</span></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="sol-card mb-4">
+                <div class="sol-card-header">
+                    <h2 class="sol-card-title">Prodotti</h2>
+                    <div class="card-actions">
+                        <button class="sol-btn sol-btn-primary sol-btn-sm" id="addProductBtn">
+                            <i class="fas fa-plus mr-2"></i>Aggiungi Prodotto
+                        </button>
+                    </div>
+                </div>
+                <div class="sol-card-body">
+                    <div class="table-container">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Prodotto</th>
+                                    <th>Quantità</th>
+                                    <th>Valore Unitario</th>
+                                    <th>Valore Totale</th>
+                                    <th>Peso (kg)</th>
+                                    <th>Volume (m³)</th>
+                                    <th>Costo Allocato</th>
+                                    <th>Azioni</th>
+                                </tr>
+                            </thead>
+                            <tbody id="productsTableBody">
+                                <!-- Righe prodotto saranno inserite qui -->
+                            </tbody>
+                            <tfoot>
+                                <tr>
+                                    <th colspan="3" class="text-right">Totali:</th>
+                                    <th id="totalValue"></th>
+                                    <th id="totalWeight"></th>
+                                    <th id="totalVolume"></th>
+                                    <th id="totalAllocatedCost"></th>
+                                    <th></th>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div class="sol-card mb-4">
+                <div class="sol-card-header">
+                    <h2 class="sol-card-title">Documenti</h2>
+                    <div class="card-actions">
+                        <button class="sol-btn sol-btn-primary sol-btn-sm" onclick="uploadDocument()">
+                            <i class="fas fa-upload mr-2"></i>Carica Documento
+                        </button>
+                    </div>
+                </div>
+                <div class="sol-card-body">
+                    <div class="table-container">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Nome File</th>
+                                    <th>Categoria</th>
+                                    <th>Caricato il</th>
+                                    <th>Azioni</th>
+                                </tr>
+                            </thead>
+                            <tbody id="documentsTableBody">
+                                <!-- Righe documento saranno inserite qui -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div class="sol-card">
+                <div class="sol-card-header"><h2 class="sol-card-title">Costi Aggiuntivi</h2></div>
+                <div class="sol-card-body">
+                    <p>Funzionalità in arrivo...</p>
+                    <!-- Qui andranno i dettagli dei costi aggiuntivi -->
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <div id="modal-root"></div>
+    <script type="module" src="/shipment-details.js"></script>
+</body>
+</html>
