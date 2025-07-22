@@ -215,10 +215,15 @@ function addProduct() {
                     };
 
                     try {
-                        // TODO: Invia i dati al dataManager per salvare il prodotto associato alla spedizione
-                        console.log('Dati prodotto da salvare:', productData);
+                        const shipmentId = getShipmentIdFromURL();
+                        const addedProduct = await dataManager.addShipmentItem(shipmentId, productData);
+                        
                         ModalSystem.close();
                         notificationSystem.success('Prodotto aggiunto alla spedizione!');
+                        
+                        // Aggiungi il nuovo prodotto alla tabella
+                        renderProductRow(addedProduct);
+
                         // TODO: Aggiorna la tabella prodotti
                     } catch (error) {
                         console.error('Errore aggiunta prodotto:', error);
@@ -228,4 +233,36 @@ function addProduct() {
             }
         ]
     });
+}
+
+// Funzione per aggiungere una riga alla tabella prodotti
+function renderProductRow(product) {
+    const tbody = document.getElementById('productsTableBody');
+    if (!tbody) return;
+
+    const tr = document.createElement('tr');
+    tr.classList.add('product-row');
+    tr.innerHTML = `
+        <td>${product.name || product.product_code || '-'}</td>
+        <td>${product.quantity || 0}</td>
+        <td>${formatCurrency(product.unit_value)}</td>
+        <td>${formatCurrency(product.total_value)}</td>
+        <td>${formatWeight(product.weight_kg)}</td>
+        <td>${formatVolume(product.volume_cbm)}</td>
+        <td>${formatCurrency(product.allocated_cost)}</td>
+        <td>
+            <button class="sol-btn sol-btn-secondary sol-btn-sm" onclick="editProduct('${product.id}')"><i class="fas fa-edit"></i></button>
+            <button class="sol-btn sol-btn-danger sol-btn-sm" onclick="deleteProduct('${product.id}')"><i class="fas fa-trash"></i></button>
+        </td>
+    `;
+    tbody.appendChild(tr);
+
+    // Aggiorna i totali della tabella
+    updateProductsTableTotals();
+}
+
+// TODO: Implementa la funzione per aggiornare i totali della tabella prodotti
+function updateProductsTableTotals() {
+    // Recupera tutti i prodotti dalla tabella e ricalcola i totali
+    // ...
 }
