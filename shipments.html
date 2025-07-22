@@ -156,11 +156,7 @@
 
           const tr = document.createElement('tr');
           tr.innerHTML = `
-            <td class="font-weight-bold text-primary">${
-              (s.shipment_number && s.shipment_number !== s.tracking_number) 
-                ? s.shipment_number 
-                : (s.reference_number || s.id)
-            }</td>
+            <td class="font-weight-bold text-primary">${s.shipment_number || s.reference_number || s.id}</td>
             <td class="font-weight-bold text-primary"><i class="fas ${iconClass} text-primary mr-2"></i>${s.tracking_number || ''}</td>
             <td>${formatStatus(liveStatus)}</td>
             <td>${s.carrier_name || ''}</td>
