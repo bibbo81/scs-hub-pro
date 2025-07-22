@@ -244,14 +244,12 @@ async function addProduct() {
             </div>
             <style>
                 .product-list-container { max-height: 400px; overflow-y: auto; border: 1px solid #e0e6ed; border-radius: 5px; margin-top: 1rem; background: #fff; }
-                .product-list-item { display: flex; align-items: center; padding: 12px 15px; border-bottom: 1px solid #e0e6ed; }
-                .product-list-item:last-child { border-bottom: none; }
-                .product-list-item.selected { background-color: #e6f2ff; }
-                .product-list-item-checkbox { margin-right: 15px; width: 18px; height: 18px; flex-shrink: 0; cursor: pointer; }
-                .product-info { flex-grow: 1; margin-left: 0; } /* Rimuovi dipendenza da ml-3 */
-                .product-info strong { display: block; }
-                .product-info small { color: #6c757d; }
-                .product-quantity-input { width: 80px; margin-left: 1rem; }
+                .product-table { width: 100%; border-collapse: collapse; }
+                .product-table th, .product-table td { padding: 8px 12px; text-align: left; border-bottom: 1px solid #e0e6ed; font-size: 14px; }
+                .product-table th { background-color: #f8f9fa; font-weight: 600; }
+                .product-table tr:hover { background-color: #f1f1f1; }
+                .product-table .quantity-input { width: 70px; padding: 4px 8px; }
+                .product-table .product-row-checkbox { width: 16px; height: 16px; }
             </style>
         `,
         actions: [
@@ -261,10 +259,10 @@ async function addProduct() {
                 variant: 'primary',
                 action: async () => {
                     const selectedItems = [];
-                    document.querySelectorAll('.product-list-item-checkbox:checked').forEach(checkbox => {
-                        const listItem = checkbox.closest('.product-list-item');
+                    document.querySelectorAll('.product-row-checkbox:checked').forEach(checkbox => {
+                        const row = checkbox.closest('tr');
                         const productId = checkbox.dataset.productId;
-                        const quantityInput = listItem.querySelector('.product-quantity-input');
+                        const quantityInput = row.querySelector('.quantity-input');
                         const quantity = parseInt(quantityInput.value, 10);
 
                         if (quantity > 0) {
@@ -316,21 +314,34 @@ async function addProduct() {
             const searchInput = document.getElementById('productSearchInput');
             const listContainer = document.getElementById('productListContainer');
 
-            const renderList = (productsToRender) => {
+            const renderTable = (productsToRender) => {
                 if (productsToRender.length === 0) {
-                    listContainer.innerHTML = '<div class="p-3 text-center text-muted">Nessun prodotto trovato.</div>';
+                    listContainer.innerHTML = '<div style="padding: 20px; text-align: center; color: #6c757d;">Nessun prodotto trovato.</div>';
                     return;
                 }
-                listContainer.innerHTML = productsToRender.map(product => `
-                    <div class="product-list-item">
-                        <input type="checkbox" class="product-list-item-checkbox" data-product-id="${product.id}">
-                        <div class="product-info">
-                            <strong>${product.name || 'Senza nome'}</strong>
-                            <small>SKU: ${product.sku || 'N/D'}</small>
-                        </div>
-                        <input type="number" class="sol-form-input product-quantity-input" value="1" min="1" disabled>
-                    </div>
-                `).join('');
+                const tableHTML = `
+                    <table class="product-table">
+                        <thead>
+                            <tr>
+                                <th></th>
+                                <th>Prodotto</th>
+                                <th>SKU</th>
+                                <th>Quantità</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${productsToRender.map(product => `
+                                <tr>
+                                    <td><input type="checkbox" class="product-row-checkbox" data-product-id="${product.id}"></td>
+                                    <td>${product.name || 'Senza nome'}</td>
+                                    <td>${product.sku || 'N/D'}</td>
+                                    <td><input type="number" class="sol-form-input quantity-input" value="1" min="1" disabled></td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                `;
+                listContainer.innerHTML = tableHTML;
             };
 
             // Event listener per la ricerca
@@ -341,17 +352,16 @@ async function addProduct() {
                     (p.sku && p.sku.toLowerCase().includes(searchTerm)) ||
                     (p.other_description && p.other_description.toLowerCase().includes(searchTerm))
                 );
-                renderList(filteredProducts);
+                renderTable(filteredProducts);
             });
 
             // Event listener per le checkbox (usando event delegation)
             listContainer.addEventListener('change', (event) => {
-                if (event.target.classList.contains('product-list-item-checkbox')) {
+                if (event.target.classList.contains('product-row-checkbox')) {
                     const checkbox = event.target;
-                    const listItem = checkbox.closest('.product-list-item');
-                    const quantityInput = listItem.querySelector('.product-quantity-input');
+                    const row = checkbox.closest('tr');
+                    const quantityInput = row.querySelector('.quantity-input');
                     quantityInput.disabled = !checkbox.checked;
-                    listItem.classList.toggle('selected', checkbox.checked);
                     if (checkbox.checked) {
                         quantityInput.focus();
                         quantityInput.select();
@@ -360,7 +370,7 @@ async function addProduct() {
             });
 
             // Render iniziale della lista completa
-            renderList(allProducts);
+            renderTable(allProducts);
         }
     });
 }
