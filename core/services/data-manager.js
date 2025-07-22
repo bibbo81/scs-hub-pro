@@ -266,53 +266,69 @@ class DataManager {
      * @returns {Promise<Object>} Dettagli della spedizione.
      */
     async getShipmentDetails(shipmentId) {
-        if (!this.initialized) await this.init();
-
-        const { data: shipment, error: shipmentError } = await supabase
-            .from('shipments')
-            .select(`
-                *,
-                carrier:carrier_id (*)
-            `)
-            .eq('id', shipmentId)
-            .eq('organization_id', this.organizationId)
-            .single();
-
-        if (shipmentError) {
-            console.error("Errore nel recuperare i dettagli della spedizione:", shipmentError);
-            throw shipmentError;
-        }
-
-        const { data: products, error: productsError } = await supabase
-            .from('shipment_items')
-            .select(`
-                id,
-                name,
-                quantity,
-                unit_value,
-                total_value,
-                weight_kg,
-                total_weight_kg,
-                volume_cbm,
-                total_volume_cbm,
-                allocated_cost,
-                product:products (
-                    name,
-                    sku
-                )
-            `)
-            .eq('shipment_id', shipmentId);
-
-        if (productsError) throw productsError;
-
-        const { data: documents, error: documentsError } = await supabase
-            .from('shipment_documents')
-            .select('*')
-            .eq('shipment_id', shipmentId);
-
-        if (documentsError) throw documentsError;
-
-        return { ...shipment, products, documents };
+         if (!this.initialized) await this.init();
+ 
+         // 1. Recupera i dati base della spedizione e del carrier
+         const { data: shipment, error: shipmentError } = await supabase
+             .from('shipments')
+             .select('*, carrier:carrier_id (*)')
+             .eq('id', shipmentId)
+             .eq('organization_id', this.organizationId)
+             .single();
+ 
+         if (shipmentError) {
+             console.error("Errore nel recuperare i dettagli della spedizione:", shipmentError);
+             throw shipmentError;
+         }
+ 
+         // 2. Recupera gli items della spedizione (senza join)
+         const { data: items, error: itemsError } = await supabase
+             .from('shipment_items')
+             .select('*')
+             .eq('shipment_id', shipmentId);
+ 
+         if (itemsError) {
+             console.error("Errore nel recuperare gli items della spedizione:", itemsError);
+             throw itemsError;
+         }
+ 
+         let productsWithDetails = [];
+         if (items && items.length > 0) {
+             // 3. Colleziona gli ID dei prodotti
+             const productIds = items.map(item => item.product_id).filter(id => id);
+ 
+             if (productIds.length > 0) {
+                 // 4. Recupera i dettagli di tutti i prodotti in una sola query
+                 const { data: productDetails, error: productDetailsError } = await supabase
+                     .from('products')
+                     .select('id, name, sku')
+                     .in('id', productIds);
+ 
+                 if (productDetailsError) throw productDetailsError;
+ 
+                 // 5. Mappa i dettagli dei prodotti per un accesso rapido
+                 const productMap = new Map(productDetails.map(p => [p.id, p]));
+ 
+                 // 6. Combina gli items con i dettagli dei prodotti
+                 productsWithDetails = items.map(item => ({
+                     ...item,
+                     product: productMap.get(item.product_id) || null
+                 }));
+             } else {
+                 productsWithDetails = items;
+             }
+         }
+ 
+         // 7. Recupera i documenti
+         const { data: documents, error: documentsError } = await supabase
+             .from('shipment_documents')
+             .select('*')
+             .eq('shipment_id', shipmentId);
+ 
+         if (documentsError) throw documentsError;
+ 
+         // 8. Ritorna l'oggetto completo
+         return { ...shipment, products: productsWithDetails, documents };
     }
 
     /**
@@ -322,45 +338,41 @@ class DataManager {
      * @returns {Promise<Object>} Il prodotto aggiunto.
      */
     async addShipmentItem(shipmentId, productData) {
-        if (!this.initialized) await this.init();
-
-        // Calcola i campi totali lato server per maggiore consistenza
-        const { data, error } = await supabase
-            .from('shipment_items')
-            .insert([{
-                shipment_id: shipmentId,
-                ...productData,
-                total_value: productData.quantity * productData.unit_value,
-                total_weight_kg: productData.weight_kg * productData.quantity,
-                total_volume_cbm: productData.volume_cbm * productData.quantity
-            }])
-            .select(`
-                id,
-                name,
-                quantity,
-                unit_value,
-                total_value,
-                weight_kg,
-                total_weight_kg,
-                volume_cbm,
-                total_volume_cbm,
-                allocated_cost,
-                product:products (
-                    name,
-                    sku
-                )
-            `)
-            .single();
-
-        if (error) {
-            console.error("Errore nell'aggiungere prodotto alla spedizione:", error);
-            throw error;
-        }
-
-        // Aggiorna il costo totale della spedizione (se necessario)
-        // await this.updateShipmentTotalCost(shipmentId);
-
-        return data;
+         if (!this.initialized) await this.init();
+ 
+         // Calcola i campi totali lato server per maggiore consistenza
+         const { data: newItem, error } = await supabase
+             .from('shipment_items')
+             .insert([{
+                 shipment_id: shipmentId,
+                 ...productData,
+                 total_value: productData.quantity * productData.unit_value,
+                 total_weight_kg: productData.weight_kg * productData.quantity,
+                 total_volume_cbm: productData.volume_cbm * productData.quantity
+             }])
+             .select() // Seleziona solo l'item appena creato
+             .single();
+ 
+         if (error) {
+             console.error("Errore nell'aggiungere prodotto alla spedizione:", error);
+             throw error;
+         }
+ 
+         // Se l'item è stato creato e ha un product_id, recupera i dettagli del prodotto
+         if (newItem && newItem.product_id) {
+             const { data: productDetails, error: productError } = await supabase
+                 .from('products')
+                 .select('id, name, sku')
+                 .eq('id', newItem.product_id)
+                 .single();
+ 
+             if (productError) {
+                 console.warn(`Could not fetch product details for new item:`, productError);
+                 return newItem;
+             }
+             return { ...newItem, product: productDetails };
+         }
+         return newItem;
     }
 
     // Funzione di utilità (opzionale, da implementare se serve aggiornamento automatico)
