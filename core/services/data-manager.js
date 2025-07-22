@@ -109,7 +109,7 @@ class DataManager {
 
     async getCarriers() {
         if (!this.initialized) await this.init();
-        const { data, error } = await this.supabase
+        const { data, error } = await supabase
             .from('carriers')
             .select('*')
             .eq('organization_id', this.organizationId)
@@ -120,7 +120,7 @@ class DataManager {
 
     async getCarrierById(id) {
         if (!this.initialized) await this.init();
-        const { data, error } = await this.supabase
+        const { data, error } = await supabase
             .from('carriers')
             .select('*')
             .eq('id', id)
@@ -132,7 +132,7 @@ class DataManager {
 
     async addCarrier(carrierData) {
         if (!this.initialized) await this.init();
-        const { data, error } = await this.supabase
+        const { data, error } = await supabase
             .from('carriers')
             .insert([{ ...carrierData, organization_id: this.organizationId }])
             .select();
@@ -142,7 +142,7 @@ class DataManager {
 
     async updateCarrier(id, carrierData) {
         if (!this.initialized) await this.init();
-        const { data, error } = await this.supabase
+        const { data, error } = await supabase
             .from('carriers')
             .update(carrierData)
             .eq('id', id)
@@ -154,7 +154,7 @@ class DataManager {
 
     async deleteCarrier(id) {
         if (!this.initialized) await this.init();
-        const { error } = await this.supabase
+        const { error } = await supabase
             .from('carriers')
             .delete()
             .eq('id', id)
@@ -168,7 +168,7 @@ class DataManager {
      * @returns {Promise<Array>} Lista di spedizionieri con statistiche.
      */
     async getCarriersWithStats() {
-        const { data: carriers, error } = await this.supabase
+        const { data: carriers, error } = await supabase
             .from('carriers')
             .select(`
                 *,
@@ -208,7 +208,7 @@ class DataManager {
      * @returns {Promise<Object>} Dettagli dello spedizioniere.
      */
     async getCarrierDetails(carrierId) {
-        const { data, error } = await this.supabase
+        const { data, error } = await supabase
             .from('carriers')
             .select(`
                 *,
