@@ -112,7 +112,7 @@ class DataManager {
             .from('products')
             .select(`
                 id,
-                name,
+                name:product_name,
                 sku,
                 unit_price,
                 weight_kg,
