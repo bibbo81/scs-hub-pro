@@ -223,12 +223,11 @@ function deleteDocument(documentId) {
 async function addProduct() {
     try {
         const allProducts = await dataManager.getAllProducts();
-        // DEBUGGING: Questo log è cruciale. Controlla la console del browser dopo aver cliccato "Aggiungi Prodotto".
-        console.log(`[addProduct] Caricati ${allProducts.length} prodotti. Se questo numero è 0, il problema è nei dati, non nel codice.`);
+        console.log(`[addProduct] Caricati ${allProducts.length} prodotti.`);
 
         ModalSystem.show({
             title: 'Aggiungi Prodotti alla Spedizione',
-            size: 'lg', // Modale più grande per contenere la lista
+            size: 'lg',
             content: `
                 <div class="sol-form">
                     <div class="sol-form-group">
@@ -275,10 +274,8 @@ async function addProduct() {
                         }
 
                         const shipmentId = getShipmentIdFromURL();
-
                         try {
                             notificationSystem.info(`Aggiunta di ${selectedItems.length} prodotti in corso...`);
-
                             const addPromises = selectedItems.map(({ product, quantity }) => {
                                 const productData = {
                                     product_id: product.id,
@@ -287,17 +284,14 @@ async function addProduct() {
                                     quantity: quantity,
                                     unit_value: product.unit_value || 0,
                                     weight_kg: product.weight_kg || 0,
-                                    volume_cbm: 0, // La colonna volume_cbm non esiste nel db
+                                    volume_cbm: 0,
                                 };
                                 return dataManager.addShipmentItem(shipmentId, productData);
                             });
-
                             await Promise.all(addPromises);
-
                             ModalSystem.close();
                             notificationSystem.success(`${selectedItems.length} prodotti aggiunti con successo!`);
                             loadShipmentDetails(shipmentId);
-
                         } catch (error) {
                             console.error('Errore aggiunta prodotto:', error);
                             notificationSystem.error('Errore durante l\'aggiunta dei prodotti.');
@@ -306,73 +300,82 @@ async function addProduct() {
                 }
             ],
             onShow: () => {
-                // FIX DEFINITIVO: Usa un timeout per assicurarti che il DOM della modale sia pronto
+                // FIX DEFINITIVO: Usa un timeout più lungo e un blocco try...catch per massima robustezza.
                 setTimeout(() => {
-                    const searchInput = document.getElementById('productSearchInput');
-                    const listContainer = document.getElementById('productListContainer');
+                    try {
+                        console.log('[onShow] Timeout fired. Trying to find modal elements...');
+                        const searchInput = document.getElementById('productSearchInput');
+                        const listContainer = document.getElementById('productListContainer');
 
-                    // Aggiungi un controllo di sicurezza
-                    if (!listContainer) {
-                        console.error('FATAL: #productListContainer non trovato. Il rendering non può procedere.');
-                        notificationSystem.error('Errore interno: impossibile visualizzare la lista prodotti.');
-                        return;
-                    }
-
-                    const renderTable = (productsToRender) => {
-                        if (productsToRender.length === 0) {
-                            listContainer.innerHTML = '<div style="padding: 20px; text-align: center; color: #6c757d;">Nessun prodotto trovato.</div>';
+                        if (!listContainer || !searchInput) {
+                            console.error('FATAL: Modal elements not found. #productSearchInput:', searchInput, '#productListContainer:', listContainer);
+                            notificationSystem.error('Errore interno: impossibile visualizzare la lista prodotti.');
                             return;
                         }
-                        const tableHTML = `
-                            <table class="product-table">
-                                <thead>
-                                    <tr>
-                                        <th></th>
-                                        <th>Prodotto</th>
-                                        <th>SKU</th>
-                                        <th>Quantità</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    ${productsToRender.map(product => `
-                                        <tr>
-                                            <td><input type="checkbox" class="product-row-checkbox" data-product-id="${product.id}"></td>
-                                            <td>${product.name || 'Senza nome'}</td>
-                                            <td>${product.sku || 'N/D'}</td>
-                                            <td><input type="number" class="sol-form-input quantity-input" value="1" min="1" disabled></td>
-                                        </tr>
-                                    `).join('')}
-                                </tbody>
-                            </table>
-                        `;
-                        listContainer.innerHTML = tableHTML;
-                    };
+                        console.log('[onShow] ✅ Elements found. Setting up render logic...');
 
-                    searchInput.addEventListener('input', () => {
-                        const searchTerm = searchInput.value.toLowerCase();
-                        const filteredProducts = allProducts.filter(p =>
-                            (p.name && p.name.toLowerCase().includes(searchTerm)) ||
-                            (p.sku && p.sku.toLowerCase().includes(searchTerm)) ||
-                            (p.other_description && p.other_description.toLowerCase().includes(searchTerm))
-                        );
-                        renderTable(filteredProducts);
-                    });
-
-                    listContainer.addEventListener('change', (event) => {
-                        if (event.target.classList.contains('product-row-checkbox')) {
-                            const checkbox = event.target;
-                            const row = checkbox.closest('tr');
-                            const quantityInput = row.querySelector('.quantity-input');
-                            quantityInput.disabled = !checkbox.checked;
-                            if (checkbox.checked) {
-                                quantityInput.focus();
-                                quantityInput.select();
+                        const renderTable = (productsToRender) => {
+                            if (productsToRender.length === 0) {
+                                listContainer.innerHTML = '<div style="padding: 20px; text-align: center; color: #6c757d;">Nessun prodotto trovato.</div>';
+                                return;
                             }
-                        }
-                    });
+                            const tableHTML = `
+                                <table class="product-table">
+                                    <thead>
+                                        <tr>
+                                            <th></th>
+                                            <th>Prodotto</th>
+                                            <th>SKU</th>
+                                            <th>Quantità</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        ${productsToRender.map(product => `
+                                            <tr>
+                                                <td><input type="checkbox" class="product-row-checkbox" data-product-id="${product.id}"></td>
+                                                <td>${product.name || 'Senza nome'}</td>
+                                                <td>${product.sku || 'N/D'}</td>
+                                                <td><input type="number" class="sol-form-input quantity-input" value="1" min="1" disabled></td>
+                                            </tr>
+                                        `).join('')}
+                                    </tbody>
+                                </table>
+                            `;
+                            listContainer.innerHTML = tableHTML;
+                        };
 
-                    renderTable(allProducts);
-                }, 50); // 50ms di ritardo sono sufficienti per il rendering del DOM
+                        searchInput.addEventListener('input', () => {
+                            const searchTerm = searchInput.value.toLowerCase();
+                            const filteredProducts = allProducts.filter(p =>
+                                (p.name && p.name.toLowerCase().includes(searchTerm)) ||
+                                (p.sku && p.sku.toLowerCase().includes(searchTerm)) ||
+                                (p.other_description && p.other_description.toLowerCase().includes(searchTerm))
+                            );
+                            renderTable(filteredProducts);
+                        });
+
+                        listContainer.addEventListener('change', (event) => {
+                            if (event.target.classList.contains('product-row-checkbox')) {
+                                const checkbox = event.target;
+                                const row = checkbox.closest('tr');
+                                const quantityInput = row.querySelector('.quantity-input');
+                                quantityInput.disabled = !checkbox.checked;
+                                if (checkbox.checked) {
+                                    quantityInput.focus();
+                                    quantityInput.select();
+                                }
+                            }
+                        });
+
+                        console.log(`[onShow] Rendering initial table with ${allProducts.length} products.`);
+                        renderTable(allProducts);
+                        console.log('[onShow] ✅ Initial render complete.');
+
+                    } catch (e) {
+                        console.error('FATAL ERROR inside onShow callback:', e);
+                        notificationSystem.error('Errore critico durante il rendering della modale.');
+                    }
+                }, 150); // Aumentato a 150ms per maggiore sicurezza
             }
         });
     } catch (error) {
@@ -380,6 +383,7 @@ async function addProduct() {
         console.error('Errore caricamento prodotti per la ricerca:', error);
     }
 }
+
 
 // Funzione per aggiungere una riga alla tabella prodotti
 function renderProductRow(product) {
