@@ -112,11 +112,10 @@ class DataManager {
             .from('products')
             .select(`
                 id,
-                name,
+                name:description,
                 sku,
-                unit_value,
-                weight_kg,
-                volume_cbm
+                unit_value:unit_price,
+                weight_kg
             `)
             .eq('organization_id', this.organizationId);
         const { data, error } = await query;
@@ -321,7 +320,7 @@ class DataManager {
                  // 4. Recupera i dettagli di tutti i prodotti in una sola query
                  const { data: productDetails, error: productDetailsError } = await supabase
                      .from('products')
-                     .select('id, name, sku')
+                     .select('id, name:description, sku')
                      .in('id', productIds);
  
                  if (productDetailsError) throw productDetailsError;
