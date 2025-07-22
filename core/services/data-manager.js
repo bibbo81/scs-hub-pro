@@ -112,7 +112,7 @@ class DataManager {
             .from('products')
             .select(`
                 id,
-                name:product_name,
+                product_name,
                 sku,
                 unit_price,
                 weight_kg,
@@ -121,7 +121,12 @@ class DataManager {
             .eq('organization_id', this.organizationId);
         const { data, error } = await query;
         if (error) throw error;
-        return data || [];
+
+        // Mappa i dati per creare la proprietà 'name' attesa dall'UI
+        return (data || []).map(p => ({
+            ...p,
+            name: p.product_name
+        }));
     }
 
     // ===== CARRIER MANAGEMENT =====
@@ -320,13 +325,16 @@ class DataManager {
                  // 4. Recupera i dettagli di tutti i prodotti in una sola query
                  const { data: productDetails, error: productDetailsError } = await supabase
                      .from('products')
-                     .select('id, name, sku')
+                     .select('id, product_name, sku')
                      .in('id', productIds);
  
                  if (productDetailsError) throw productDetailsError;
  
                  // 5. Mappa i dettagli dei prodotti per un accesso rapido
-                 const productMap = new Map(productDetails.map(p => [p.id, p]));
+                 const productMap = new Map(productDetails.map(p => [p.id, {
+                     ...p,
+                     name: p.product_name // Crea la proprietà 'name'
+                 }]));
  
                  // 6. Combina gli items con i dettagli dei prodotti
                  productsWithDetails = items.map(item => ({
