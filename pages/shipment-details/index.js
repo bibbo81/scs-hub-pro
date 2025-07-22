@@ -15,6 +15,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     loadShipmentDetails(shipmentId);
+    setupEventListeners();
 });
 
 function getShipmentIdFromURL() {
@@ -83,8 +84,8 @@ function renderProductsTable(products) {
             <td>${formatVolume(product.volume_cbm)}</td>
             <td>${formatCurrency(product.allocated_cost)}</td>
             <td>
-                <button class="sol-btn sol-btn-secondary sol-btn-sm" onclick="editProduct(${product.id})"><i class="fas fa-edit"></i></button>
-                <button class="sol-btn sol-btn-danger sol-btn-sm" onclick="deleteProduct(${product.id})"><i class="fas fa-trash"></i></button>
+                <button class="sol-btn sol-btn-secondary sol-btn-sm edit-product-btn" data-product-id="${product.id}" title="Modifica Prodotto"><i class="fas fa-edit"></i></button>
+                <button class="sol-btn sol-btn-danger sol-btn-sm delete-product-btn" data-product-id="${product.id}" title="Elimina Prodotto"><i class="fas fa-trash"></i></button>
             </td>
         `;
         tbody.appendChild(tr);
@@ -117,7 +118,7 @@ function renderDocumentsTable(documents) {
             <td>${formatDocumentCategory(doc.document_category)}</td>
             <td>${formatDate(doc.created_at)}</td>
             <td>
-                <button class="sol-btn sol-btn-danger sol-btn-sm" onclick="deleteDocument('${doc.id}')"><i class="fas fa-trash"></i></button>
+                <button class="sol-btn sol-btn-danger sol-btn-sm delete-document-btn" data-document-id="${doc.id}" title="Elimina Documento"><i class="fas fa-trash"></i></button>
             </td>
         `;
         tbody.appendChild(tr);
@@ -160,6 +161,63 @@ function formatDocumentCategory(category) {
         'other': 'Altro'
     };
     return categories[category] || category || '-';
+}
+
+function setupEventListeners() {
+    // Pulsanti statici
+    const addProductBtn = document.getElementById('addProductBtn');
+    if (addProductBtn) {
+        addProductBtn.addEventListener('click', addProduct);
+    }
+
+    const uploadDocumentBtn = document.getElementById('uploadDocumentBtn');
+    if (uploadDocumentBtn) {
+        uploadDocumentBtn.addEventListener('click', uploadDocument);
+    }
+
+    // Delega eventi per pulsanti dinamici nella tabella prodotti
+    const productsTableBody = document.getElementById('productsTableBody');
+    if (productsTableBody) {
+        productsTableBody.addEventListener('click', (event) => {
+            const editBtn = event.target.closest('.edit-product-btn');
+            if (editBtn) {
+                const productId = editBtn.dataset.productId;
+                editProduct(productId);
+                return;
+            }
+
+            const deleteBtn = event.target.closest('.delete-product-btn');
+            if (deleteBtn) {
+                const productId = deleteBtn.dataset.productId;
+                deleteProduct(productId);
+                return;
+            }
+        });
+    }
+
+    // Delega eventi per pulsanti dinamici nella tabella documenti
+    const documentsTableBody = document.getElementById('documentsTableBody');
+    if (documentsTableBody) {
+        documentsTableBody.addEventListener('click', (event) => {
+            const deleteBtn = event.target.closest('.delete-document-btn');
+            if (deleteBtn) {
+                const documentId = deleteBtn.dataset.documentId;
+                deleteDocument(documentId);
+            }
+        });
+    }
+}
+
+// Funzioni placeholder per le azioni (da implementare)
+function editProduct(productId) {
+    notificationSystem.info(`Funzione "Modifica Prodotto" (ID: ${productId}) non ancora implementata.`);
+}
+function deleteProduct(productId) {
+    notificationSystem.info(`Funzione "Elimina Prodotto" (ID: ${productId}) non ancora implementata.`);
+}
+function uploadDocument() { notificationSystem.info('Funzione "Carica Documento" non ancora implementata.'); }
+function deleteDocument(documentId) {
+    notificationSystem.info(`Funzione "Elimina Documento" (ID: ${documentId}) non ancora implementata.`);
 }
 
 function addProduct() {
