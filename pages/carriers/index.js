@@ -37,8 +37,7 @@ async function loadCarriers() {
                 <td>${formatCurrency(carrier.total_spent)}</td>
                 <td>${formatCurrency(carrier.average_cost)}</td>
                 <td class="table-actions">
-                    <a href="/carrier-details.html?id=${carrier.id}" class="sol-btn sol-btn-primary sol-btn-sm" title="Vedi Dettagli">
-                        <i class="fas fa-chart-line"></i>
+                <a href="/carrier-details.html?id=${carrier.id}" class="sol-btn sol-btn-primary sol-btn-sm" title="Vedi Dettagli">                        <i class="fas fa-chart-line"></i>
                     </a>
                     <button class="sol-btn sol-btn-secondary sol-btn-sm edit-btn" data-id="${carrier.id}" title="Modifica">
                         <i class="fas fa-edit"></i>

@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="/core/env-check.js"></script>
+    <title>Dettaglio Spedizioniere - SCS Hub Pro</title>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23007AFF'%3E%3Cpath d='M20 8h-3V4H3c-1.1 0-2 .9-2 2v11h2c0 1.66 1.34 3 3 3s3-1.34 3-3h6c0 1.66 1.34 3 3 3s3-1.34 3-3h2v-5l-4zM6 18.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm13.5-9l1.96 2.5H17V9.5h2.5zm-1.5 9c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z'/%3E%3C/svg%3E">
+    <link rel="stylesheet" href="/assets/css/solarium.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="/core/modal-system.css">
+    <style>
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+        }
+        .stat-card {
+            background: var(--sol-white);
+            border-radius: var(--sol-radius-lg);
+            padding: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+            border: 1px solid var(--sol-gray-200);
+            box-shadow: var(--sol-shadow-sm);
+        }
+        .stat-icon {
+            font-size: 2rem;
+            color: var(--sol-primary);
+            background: var(--sol-primary-light);
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .stat-content h2 {
+            margin: 0 0 0.25rem 0;
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--sol-gray-900);
+        }
+        .stat-content p {
+            margin: 0;
+            color: var(--sol-gray-600);
+        }
+        .status-badge {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: 500;
+            color: #fff;
+            display: inline-block;
+        }
+        .status-pending, .status-registered { background: #6c757d; }
+        .status-in_transit { background: #17a2b8; }
+        .status-delivered { background: #28a745; }
+        .status-exception, .status-delayed { background: #dc3545; }
+        .status-arrived { background: #007bff; }
+        .status-out_for_delivery { background: #fd7e14; }
+        .status-customs_hold { background: #ffc107; color: #000; }
+        .status-customs_cleared { background: #28a745; }
+        .font-weight-bold { font-weight: 600; }
+        .text-primary { color: #007bff; }
+    </style>
+</head>
+<body>
+    <div id="header-root"></div>
+
+    <main class="sol-main-content">
+        <div class="sol-container">
+            <div class="page-header d-flex justify-content-between align-items-center mb-4">
+                <h1 id="carrierNameTitle">Dettaglio Spedizioniere</h1>
+                <a href="/carriers.html" class="sol-btn sol-btn-secondary">
+                    <i class="fas fa-arrow-left mr-2"></i>Torna a Spedizionieri
+                </a>
+            </div>
+
+            <div class="stats-grid mb-4">
+                <div class="stat-card">
+                    <div class="stat-icon"><i class="fas fa-shipping-fast"></i></div>
+                    <div class="stat-content"><h2 id="statShipmentCount">0</h2><p>Spedizioni Totali</p></div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon"><i class="fas fa-euro-sign"></i></div>
+                    <div class="stat-content"><h2 id="statTotalSpent">€ 0,00</h2><p>Spesa Totale</p></div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon"><i class="fas fa-balance-scale"></i></div>
+                    <div class="stat-content"><h2 id="statAverageCost">€ 0,00</h2><p>Costo Medio / Sped.</p></div>
+                </div>
+            </div>
+
+            <div class="sol-card">
+                <div class="sol-card-header"><h3 class="sol-card-title">Elenco Spedizioni</h3></div>
+                <div class="sol-card-body">
+                    <div class="table-container">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Riferimento Spedizione</th><th>Stato</th><th>Origine</th><th>Destinazione</th><th>Costo</th><th>Data Creazione</th>
+                                </tr>
+                            </thead>
+                            <tbody id="shipmentsTableBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <div id="modal-root"></div>
+    <script type="module" src="/pages/carrier-details/index.js"></script>
+</body>
+</html>
