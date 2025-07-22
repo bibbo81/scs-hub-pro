@@ -243,11 +243,12 @@ async function addProduct() {
                 <!-- La lista dei prodotti verrà renderizzata qui -->
             </div>
             <style>
-                .product-list-container { max-height: 400px; overflow-y: auto; border: 1px solid #e0e6ed; border-radius: 5px; margin-top: 1rem; }
-                .product-list-item { display: flex; align-items: center; padding: 10px; border-bottom: 1px solid #e0e6ed; }
+                .product-list-container { max-height: 400px; overflow-y: auto; border: 1px solid #e0e6ed; border-radius: 5px; margin-top: 1rem; background: #fff; }
+                .product-list-item { display: flex; align-items: center; padding: 12px 15px; border-bottom: 1px solid #e0e6ed; }
                 .product-list-item:last-child { border-bottom: none; }
                 .product-list-item.selected { background-color: #e6f2ff; }
-                .product-info { flex-grow: 1; }
+                .product-list-item-checkbox { margin-right: 15px; width: 18px; height: 18px; flex-shrink: 0; cursor: pointer; }
+                .product-info { flex-grow: 1; margin-left: 0; } /* Rimuovi dipendenza da ml-3 */
                 .product-info strong { display: block; }
                 .product-info small { color: #6c757d; }
                 .product-quantity-input { width: 80px; margin-left: 1rem; }
@@ -322,12 +323,12 @@ async function addProduct() {
                 }
                 listContainer.innerHTML = productsToRender.map(product => `
                     <div class="product-list-item">
-                        <input type="checkbox" class="form-check-input product-list-item-checkbox" data-product-id="${product.id}">
-                        <div class="product-info ml-3">
+                        <input type="checkbox" class="product-list-item-checkbox" data-product-id="${product.id}">
+                        <div class="product-info">
                             <strong>${product.name || 'Senza nome'}</strong>
                             <small>SKU: ${product.sku || 'N/D'}</small>
                         </div>
-                        <input type="number" class="form-control product-quantity-input" value="1" min="1" disabled>
+                        <input type="number" class="sol-form-input product-quantity-input" value="1" min="1" disabled>
                     </div>
                 `).join('');
             };
