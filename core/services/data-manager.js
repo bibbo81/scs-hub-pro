@@ -259,6 +259,47 @@ class DataManager {
         
         return true;
     }
+
+    /**
+     * Recupera i dettagli di una singola spedizione, inclusi prodotti e documenti.
+     * @param {string} shipmentId - L'ID della spedizione.
+     * @returns {Promise<Object>} Dettagli della spedizione.
+     */
+    async getShipmentDetails(shipmentId) {
+        if (!this.initialized) await this.init();
+
+        const { data: shipment, error: shipmentError } = await supabase
+            .from('shipments')
+            .select(`
+                *,
+                carrier:carrier_id (*)
+            `)
+            .eq('id', shipmentId)
+            .eq('organization_id', this.organizationId)
+            .single();
+
+        if (shipmentError) {
+            console.error("Errore nel recuperare i dettagli della spedizione:", shipmentError);
+            throw shipmentError;
+        }
+
+        const { data: products, error: productsError } = await supabase
+            .from('shipment_items')
+            .select('*, product:product_id (name, product_code)')
+            .eq('shipment_id', shipmentId);
+
+        if (productsError) throw productsError;
+
+        const { data: documents, error: documentsError } = await supabase
+            .from('shipment_documents')
+            .select('*')
+            .eq('shipment_id', shipmentId);
+
+        if (documentsError) throw documentsError;
+
+        return { ...shipment, products, documents };
+    }
+
 }
 
 const dataManager = new DataManager();
