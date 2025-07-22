@@ -285,7 +285,22 @@ class DataManager {
 
         const { data: products, error: productsError } = await supabase
             .from('shipment_items')
-            .select('*, product:product_id (name, sku)')
+            .select(`
+                id,
+                name,
+                quantity,
+                unit_value,
+                total_value,
+                weight_kg,
+                total_weight_kg,
+                volume_cbm,
+                total_volume_cbm,
+                allocated_cost,
+                product:product_id (
+                    name,
+                    sku
+                )
+            `)
             .eq('shipment_id', shipmentId);
 
         if (productsError) throw productsError;
@@ -319,7 +334,22 @@ class DataManager {
                 total_weight_kg: productData.weight_kg * productData.quantity,
                 total_volume_cbm: productData.volume_cbm * productData.quantity
             }])
-            .select('*, product:product_id (name, sku)') // Includi dati prodotto
+            .select(`
+                id,
+                name,
+                quantity,
+                unit_value,
+                total_value,
+                weight_kg,
+                total_weight_kg,
+                volume_cbm,
+                total_volume_cbm,
+                allocated_cost,
+                product:product_id (
+                    name,
+                    sku
+                )
+            `)
             .single();
 
         if (error) {
