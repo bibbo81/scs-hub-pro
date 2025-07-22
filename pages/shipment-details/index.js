@@ -24,8 +24,7 @@ function getShipmentIdFromURL() {
 
 async function loadShipmentDetails(shipmentId) {
     try {
-        // TODO: Implementa la funzione per ottenere i dettagli della spedizione dal dataManager
-        //  Dovrà recuperare anche i prodotti e i documenti associati
+        // Chiama la funzione aggiornata nel dataManager
         const shipmentDetails = await dataManager.getShipmentDetails(shipmentId);
 
         if (!shipmentDetails) {
@@ -50,7 +49,7 @@ function renderShipmentInfo(shipment) {
     document.getElementById('shipmentDate').textContent = formatDate(shipment.created_at);
     document.getElementById('shipmentOrigin').textContent = shipment.origin || '-';
     document.getElementById('shipmentDestination').textContent = shipment.destination || '-';
-    // TODO: Gestire il nome dello spedizioniere (serve la logica nel dataManager)
+    // Mostra il nome dello spedizioniere
     document.getElementById('shipmentCarrier').textContent = shipment.carrier?.name || '-';
     document.getElementById('shipmentTotalCost').textContent = formatCurrency(shipment.total_cost);
 }
