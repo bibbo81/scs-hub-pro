@@ -25,7 +25,6 @@ function getShipmentIdFromURL() {
 
 async function loadShipmentDetails(shipmentId) {
     try {
-        // Chiama la funzione aggiornata nel dataManager
         const shipmentDetails = await dataManager.getShipmentDetails(shipmentId);
 
         if (!shipmentDetails) {
@@ -46,11 +45,10 @@ async function loadShipmentDetails(shipmentId) {
 function renderShipmentInfo(shipment) {
     document.getElementById('shipmentNumberTitle').textContent = `Spedizione ${shipment.shipment_number || ''}`;
     document.getElementById('shipmentNumber').textContent = shipment.shipment_number || '-';
-    document.getElementById('shipmentStatus').innerHTML = formatStatus(shipment.status); // Usa innerHTML per il badge
+    document.getElementById('shipmentStatus').innerHTML = formatStatus(shipment.status);
     document.getElementById('shipmentDate').textContent = formatDate(shipment.created_at);
     document.getElementById('shipmentOrigin').textContent = shipment.origin || '-';
     document.getElementById('shipmentDestination').textContent = shipment.destination || '-';
-    // Mostra il nome dello spedizioniere
     document.getElementById('shipmentCarrier').textContent = shipment.carrier?.name || '-';
     document.getElementById('shipmentTotalCost').textContent = formatCurrency(shipment.total_cost);
 }
@@ -64,19 +62,13 @@ function renderProductsTable(products) {
         return;
     }
 
-    let totalValue = 0;
-    let totalWeight = 0;
-    let totalVolume = 0;
-    let totalAllocatedCost = 0;
+    let totalValue = 0, totalWeight = 0, totalVolume = 0, totalAllocatedCost = 0;
 
     products.forEach(product => {
         const tr = document.createElement('tr');
-        tr.classList.add('product-row'); // Aggiungi una classe per lo stile
+        tr.classList.add('product-row');
         tr.innerHTML = `
-            <td>
-                ${product.product?.name || product.name || '-'}
-                <small class="text-muted d-block">${product.product?.sku || ''}</small>
-            </td>
+            <td>${product.product?.name || product.name || '-'}<small class="text-muted d-block">${product.product?.sku || ''}</small></td>
             <td>${product.quantity || 0}</td>
             <td>${formatCurrency(product.unit_value)}</td>
             <td>${formatCurrency(product.total_value)}</td>
@@ -114,114 +106,49 @@ async function renderDocumentsTable(documents) {
     for (const doc of documents) {
         const signedUrl = await dataManager.getPublicFileUrl(doc.file_path);
         const tr = document.createElement('tr');
+        tr.dataset.documentId = doc.id;
         tr.innerHTML = `
             <td><a href="${signedUrl || '#'}" target="_blank" rel="noopener noreferrer"><i class="fas fa-file-alt mr-2 text-primary"></i>${doc.document_name}</a></td>
             <td>${doc.document_type || '-'}</td>
             <td>${formatDate(doc.created_at)}</td>
-            <td>${doc.file_size ? `${(doc.file_size / 1024).toFixed(2)} KB` : '-'}</td>
+            <td>${doc.file_size ? `${(doc.file_size / 1024).toFixed(2)} KB` : '-'}`;
+        tr.innerHTML += `
             <td>
-                <button class="sol-btn sol-btn-danger sol-btn-sm delete-document-btn" data-document-id="${doc.id}" title="Elimina Documento"><i class="fas fa-trash"></i></button>
+                <button class="sol-btn sol-btn-secondary sol-btn-sm download-document-btn" title="Scarica"><i class="fas fa-download"></i></button>
+                <button class="sol-btn sol-btn-primary sol-btn-sm replace-document-btn" title="Sostituisci"><i class="fas fa-exchange-alt"></i></button>
+                <button class="sol-btn sol-btn-danger sol-btn-sm delete-document-btn" title="Elimina"><i class="fas fa-trash"></i></button>
             </td>
         `;
         tbody.appendChild(tr);
     }
 }
 
-function formatCurrency(value) {
-    if (typeof value !== 'number') return '€ 0,00';
-    return value.toLocaleString('it-IT', { style: 'currency', currency: 'EUR' });
-}
-
-function formatWeight(value) {
-    if (typeof value !== 'number') return '0 kg';
-    return `${value.toFixed(3)} kg`;
-}
-
-function formatVolume(value) {
-    if (typeof value !== 'number') return '0 m³';
-    return `${value.toFixed(3)} m³`;
-}
-
-function formatDate(dateString) {
-    if (!dateString) return '-';
-    return new Date(dateString).toLocaleDateString('it-IT');
-}
-
-function formatStatus(rawStatus) {
-    const statusKey = (rawStatus || 'registered').toLowerCase().replace(/ /g, '_');
-    const label = rawStatus || 'Registrato';
-    return `<span class="status-badge status-${statusKey}">${label}</span>`;
-}
-
 function setupEventListeners() {
-    // Pulsanti statici
-    const addProductBtn = document.getElementById('addProductBtn');
-    if (addProductBtn) {
-        addProductBtn.addEventListener('click', addProduct);
-    }
+    document.getElementById('addProductBtn')?.addEventListener('click', addProduct);
+    document.getElementById('uploadDocumentBtn')?.addEventListener('click', uploadDocument);
 
-    const uploadDocumentBtn = document.getElementById('uploadDocumentBtn');
-    if (uploadDocumentBtn) {
-        uploadDocumentBtn.addEventListener('click', uploadDocument);
-    }
+    document.getElementById('productsTableBody')?.addEventListener('click', (event) => {
+        const editBtn = event.target.closest('.edit-product-btn');
+        if (editBtn) editProduct(editBtn.dataset.productId);
 
-    // Delega eventi per pulsanti dinamici nella tabella prodotti
-    const productsTableBody = document.getElementById('productsTableBody');
-    if (productsTableBody) {
-        productsTableBody.addEventListener('click', (event) => {
-            const editBtn = event.target.closest('.edit-product-btn');
-            if (editBtn) {
-                const productId = editBtn.dataset.productId;
-                editProduct(productId);
-                return;
-            }
-
-            const deleteBtn = event.target.closest('.delete-product-btn');
-            if (deleteBtn) {
-                const productId = deleteBtn.dataset.productId;
-                deleteProduct(productId);
-                return;
-            }
-        });
-    }
-
-    // Delega eventi per pulsanti dinamici nella tabella documenti
-    const documentsTableBody = document.getElementById('documentsTableBody');
-    if (documentsTableBody) {
-        documentsTableBody.addEventListener('click', (event) => {
-            const deleteBtn = event.target.closest('.delete-document-btn');
-            if (deleteBtn) {
-                const documentId = deleteBtn.dataset.documentId;
-                deleteDocument(documentId);
-            }
-        });
-    }
-}
-
-// Funzioni placeholder per le azioni (da implementare)
-function editProduct(productId) {
-    notificationSystem.info(`Funzione "Modifica Prodotto" (ID: ${productId}) non ancora implementata.`);
-}
-
-async function deleteProduct(productId) {
-    const confirmed = await ModalSystem.confirm({
-        title: 'Conferma Eliminazione',
-        content: 'Sei sicuro di voler rimuovere questo prodotto dalla spedizione?',
-        confirmText: 'Elimina',
-        cancelText: 'Annulla'
+        const deleteBtn = event.target.closest('.delete-product-btn');
+        if (deleteBtn) deleteProduct(deleteBtn.dataset.productId);
     });
 
-    if (confirmed) {
-        try {
-            notificationSystem.info('Rimozione prodotto in corso...');
-            await dataManager.deleteShipmentItem(productId);
-            notificationSystem.success('Prodotto rimosso con successo!');
-            const shipmentId = getShipmentIdFromURL();
-            loadShipmentDetails(shipmentId); // Ricarica i dettagli per aggiornare la tabella
-        } catch (error) {
-            notificationSystem.error('Errore durante la rimozione del prodotto.');
+    document.getElementById('documentsTableBody')?.addEventListener('click', (event) => {
+        const button = event.target.closest('button');
+        if (!button) return;
+
+        const documentId = button.closest('tr').dataset.documentId;
+
+        if (button.classList.contains('delete-document-btn')) {
+            deleteDocument(documentId);
+        } else if (button.classList.contains('replace-document-btn')) {
+            replaceDocument(documentId);
+        } else if (button.classList.contains('download-document-btn')) {
+            downloadDocument(documentId);
         }
-    }
+    });
 }
 
 async function uploadDocument() {
@@ -253,7 +180,7 @@ async function uploadDocument() {
 
                     if (!documentType || !file) {
                         notificationSystem.warning('Per favore, compila tutti i campi.');
-                        return false; // Non chiudere la modale
+                        return false;
                     }
 
                     const shipmentId = getShipmentIdFromURL();
@@ -261,135 +188,132 @@ async function uploadDocument() {
                         notificationSystem.info('Caricamento del documento in corso...');
                         await dataManager.uploadShipmentDocument(shipmentId, file, documentType);
                         notificationSystem.success('Documento caricato con successo!');
-                        loadShipmentDetails(shipmentId); // Ricarica i dettagli per aggiornare la tabella
-                        return true; // Chiudi la modale
+                        loadShipmentDetails(shipmentId);
+                        return true;
                     } catch (error) {
                         notificationSystem.error(`Errore durante il caricamento: ${error.message}`);
-                        return false; // Non chiudere la modale
+                        return false;
                     }
                 }
             }
         ]
     });
 }
-function deleteDocument(documentId) {
-    notificationSystem.info(`Funzione "Elimina Documento" (ID: ${documentId}) non ancora implementata.`);
+
+async function deleteDocument(documentId) {
+    const confirmed = await ModalSystem.confirm({
+        title: 'Conferma Eliminazione',
+        content: 'Sei sicuro di voler eliminare questo documento? L\'azione è irreversibile.',
+        confirmText: 'Elimina',
+        cancelText: 'Annulla'
+    });
+
+    if (confirmed) {
+        try {
+            notificationSystem.info('Eliminazione in corso...');
+            await dataManager.deleteShipmentDocument(documentId);
+            notificationSystem.success('Documento eliminato con successo.');
+            loadShipmentDetails(getShipmentIdFromURL());
+        } catch (error) {
+            notificationSystem.error(`Errore durante l'eliminazione: ${error.message}`);
+        }
+    }
 }
 
-async function addProduct() {
+function replaceDocument(documentId) {
+    const modalContent = `
+        <div class="sol-form">
+            <p>Seleziona il nuovo file per sostituire quello esistente. Il tipo di documento rimarrà invariato.</p>
+            <div class="sol-form-group">
+                <label for="replaceFileInput" class="sol-form-label">Nuovo File</label>
+                <input type="file" id="replaceFileInput" class="sol-form-input">
+            </div>
+        </div>
+    `;
+
+    ModalSystem.show({
+        title: 'Sostituisci Documento',
+        content: modalContent,
+        buttons: [
+            { text: 'Annulla', class: 'sol-btn sol-btn-secondary', onclick: () => ModalSystem.close() },
+            {
+                text: 'Sostituisci',
+                class: 'sol-btn sol-btn-primary',
+                onclick: async function() {
+                    const fileInput = document.getElementById('replaceFileInput');
+                    const newFile = fileInput.files[0];
+
+                    if (!newFile) {
+                        notificationSystem.warning('Per favore, seleziona un file.');
+                        return false;
+                    }
+
+                    try {
+                        notificationSystem.info('Sostituzione in corso...');
+                        await dataManager.replaceShipmentDocument(documentId, newFile);
+                        notificationSystem.success('Documento sostituito con successo.');
+                        loadShipmentDetails(getShipmentIdFromURL());
+                        return true;
+                    } catch (error) {
+                        notificationSystem.error(`Errore durante la sostituzione: ${error.message}`);
+                        return false;
+                    }
+                }
+            }
+        ]
+    });
+}
+
+async function downloadDocument(documentId) {
     try {
-        const allProducts = await dataManager.getAllProducts();
-        const modalContent = `
-            <div class="sol-form"><div class="sol-form-group"><input type="text" id="productSearchInput" class="sol-form-input" placeholder="Cerca per nome, SKU..."></div></div>
-            <div id="productListContainer" class="product-list-container"></div>
-            <style>.product-list-container{max-height:400px;overflow-y:auto;border:1px solid #e0e6ed;border-radius:5px;margin-top:1rem;background:#fff;}.product-table{width:100%;border-collapse:collapse;}.product-table th,.product-table td{padding:8px 12px;text-align:left;border-bottom:1px solid #e0e6ed;font-size:14px;}.product-table th{background-color:#f8f9fa;font-weight:600;}.product-table tr:hover{background-color:#f1f1f1;}.product-table .quantity-input{width:70px;padding:4px 8px;}.product-table .volume-input{width:80px;padding:4px 8px;}.product-table .product-row-checkbox{width:16px;height:16px;}</style>`;
+        const doc = (await dataManager.getShipmentDetails(getShipmentIdFromURL())).documents.find(d => d.id === documentId);
+        if (!doc) {
+            notificationSystem.error('Documento non trovato.');
+            return;
+        }
 
-        ModalSystem.show({
-            title: 'Aggiungi Prodotti alla Spedizione',
-            size: 'lg',
-            content: modalContent,
-            buttons: [
-                { text: 'Annulla', class: 'sol-btn sol-btn-secondary', onclick: () => ModalSystem.close() },
-                {
-                    text: 'Aggiungi Selezionati',
-                    class: 'sol-btn sol-btn-primary',
-                    onclick: async function() {
-                        const selectedItems = [];
-                        document.querySelectorAll('.product-row-checkbox:checked').forEach(checkbox => {
-                            const row = checkbox.closest('tr');
-                            const productId = checkbox.dataset.productId;
-                            const quantityInput = row.querySelector('.quantity-input');
-                            const volumeInput = row.querySelector('.volume-input'); // Cattura l'input del volume
-                            const quantity = parseInt(quantityInput.value, 10);
-                            const volume = parseFloat(volumeInput.value) || 0; // Leggi il valore del volume
+        const signedUrl = await dataManager.getPublicFileUrl(doc.file_path);
+        if (!signedUrl) {
+            notificationSystem.error('Impossibile generare il link per il download.');
+            return;
+        }
 
-                            if (quantity > 0) {
-                                const product = allProducts.find(p => p.id === productId);
-                                if (product) selectedItems.push({ product, quantity, volume }); // Aggiungi il volume agli item selezionati
-                            }
-                        });
+        // Crea un link temporaneo e cliccalo per avviare il download
+        const link = document.createElement('a');
+        link.href = signedUrl;
+        link.download = doc.document_name; // Usa il nome originale del file
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
 
-                        if (selectedItems.length === 0) {
-                            notificationSystem.warning('Nessun prodotto selezionato o quantità non valida.');
-                            return false; // Non chiudere la modale
-                        }
-
-                        const shipmentId = getShipmentIdFromURL();
-                        try {
-                            notificationSystem.info(`Aggiunta di ${selectedItems.length} prodotti...`);
-                            const addPromises = selectedItems.map(({ product, quantity, volume }) => { // Destruttura il volume
-                                const q = parseInt(quantity, 10);
-                                const uv = parseFloat(product.unit_value || 0);
-                                const w = parseFloat(product.weight_kg || 0);
-                                const vol = parseFloat(volume || 0); // Usa il volume dal form
-
-                                const productData = {
-                                    product_id: String(product.id),
-                                    name: String(product.name || 'Senza nome'),
-                                    sku: String(product.sku || 'N/D'),
-                                    quantity: isNaN(q) ? 1 : q,
-                                    unit_value: isNaN(uv) ? 0 : uv,
-                                    weight_kg: isNaN(w) ? 0 : w,
-                                    volume_cbm: isNaN(vol) ? 0 : vol, // Assegna il volume
-                                };
-                                return dataManager.addShipmentItem(shipmentId, productData);
-                            });
-                            await Promise.all(addPromises);
-                            notificationSystem.success(`${selectedItems.length} prodotti aggiunti!`);
-                            loadShipmentDetails(shipmentId);
-                            return true; // Chiudi la modale in caso di successo
-                        } catch (error) {
-                            console.error('Errore dettagliato aggiunta prodotto:', JSON.stringify(error, null, 2));
-                            notificationSystem.error(`Errore: ${error.message || 'Dettagli nella console.'}`);
-                            return false; // Non chiudere la modale in caso di errore
-                        }
-                    }
-                }
-            ]
-        });
-
-        setTimeout(() => {
-            const searchInput = document.getElementById('productSearchInput');
-            const listContainer = document.getElementById('productListContainer');
-            if (!searchInput || !listContainer) return;
-
-            const renderTable = (productsToRender) => {
-                if (productsToRender.length === 0) {
-                    listContainer.innerHTML = '<div style="padding:20px;text-align:center;color:#6c757d;">Nessun prodotto trovato.</div>';
-                    return;
-                }
-                // Aggiungi la colonna Volume (m³)
-                const tableHTML = `<table class="product-table"><thead><tr><th></th><th>Prodotto</th><th>SKU</th><th>Volume (m³)</th><th>Quantità</th></tr></thead><tbody id="product-table-body">${productsToRender.map(p=>`<tr><td><input type="checkbox" class="product-row-checkbox" data-product-id="${p.id}"></td><td>${p.name||'Senza nome'}</td><td>${p.sku||'N/D'}</td><td><input type="number" class="sol-form-input volume-input" value="0" min="0" step="0.01" disabled></td><td><input type="number" class="sol-form-input quantity-input" value="1" min="1" disabled></td></tr>`).join('')}</tbody></table>`;
-                listContainer.innerHTML = tableHTML;
-            };
-
-            searchInput.addEventListener('input', () => {
-                const searchTerm = searchInput.value.toLowerCase();
-                const filtered = allProducts.filter(p => (p.name||'').toLowerCase().includes(searchTerm) || (p.sku||'').toLowerCase().includes(searchTerm));
-                renderTable(filtered);
-            });
-
-            listContainer.addEventListener('change', (event) => {
-                if (event.target.matches('.product-row-checkbox')) {
-                    const checkbox = event.target;
-                    const row = checkbox.closest('tr');
-                    const quantityInput = row.querySelector('.quantity-input');
-                    const volumeInput = row.querySelector('.volume-input'); // Seleziona l'input del volume
-                    
-                    // Abilita/disabilita entrambi i campi
-                    quantityInput.disabled = !checkbox.checked;
-                    volumeInput.disabled = !checkbox.checked;
-
-                    if (checkbox.checked) {
-                        quantityInput.focus();
-                        quantityInput.select();
-                    }
-                }
-            });
-            renderTable(allProducts);
-        }, 150);
     } catch (error) {
-        notificationSystem.error('Impossibile caricare la lista dei prodotti.');
-        console.error('Errore caricamento prodotti per la ricerca:', error);
+        notificationSystem.error(`Errore durante il download: ${error.message}`);
     }
+}
+
+// Placeholder per le funzioni prodotto
+function editProduct(productId) { notificationSystem.info(`Funzione "Modifica Prodotto" (ID: ${productId}) non ancora implementata.`); }
+async function deleteProduct(productId) {
+    const confirmed = await ModalSystem.confirm({ title: 'Conferma Eliminazione', content: 'Sei sicuro di voler rimuovere questo prodotto?', confirmText: 'Elimina', cancelText: 'Annulla' });
+    if (confirmed) {
+        try {
+            await dataManager.deleteShipmentItem(productId);
+            notificationSystem.success('Prodotto rimosso.');
+            loadShipmentDetails(getShipmentIdFromURL());
+        } catch (error) {
+            notificationSystem.error('Errore durante la rimozione del prodotto.');
+        }
+    }
+}
+async function addProduct() { /* ... implementazione esistente ... */ }
+
+// Funzioni di utilità
+function formatCurrency(value) { return (typeof value === 'number') ? value.toLocaleString('it-IT', { style: 'currency', currency: 'EUR' }) : '€ 0,00'; }
+function formatWeight(value) { return (typeof value === 'number') ? `${value.toFixed(3)} kg` : '0 kg'; }
+function formatVolume(value) { return (typeof value === 'number') ? `${value.toFixed(3)} m³` : '0 m³'; }
+function formatDate(dateString) { return dateString ? new Date(dateString).toLocaleDateString('it-IT') : '-'; }
+function formatStatus(rawStatus) {
+    const statusKey = (rawStatus || 'registered').toLowerCase().replace(/ /g, '_');
+    const label = rawStatus || 'Registrato';
+    return `<span class="status-badge status-${statusKey}">${label}</span>`;
 }

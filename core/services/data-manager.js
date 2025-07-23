@@ -423,11 +423,6 @@ class DataManager {
         return true;
     }
 
-    // Funzione di utilità (opzionale, da implementare se serve aggiornamento automatico)
-    // async updateShipmentTotalCost(shipmentId) {
-    //     // ... logica per ricalcolare il costo totale della spedizione ...
-    // }
-
     /**
      * Carica un documento per una spedizione specifica.
      * @param {string} shipmentId - L'ID della spedizione.
@@ -470,10 +465,119 @@ class DataManager {
         if (error) throw error;
         return data;
     }
-/**
-     * Ottiene l'URL pubblico per un file nello storage.
+
+    /**
+     * Elimina un documento da una spedizione.
+     * @param {string} documentId - L'ID del documento da eliminare.
+     * @returns {Promise<boolean>} True se l'eliminazione ha avuto successo.
+     */
+    async deleteShipmentDocument(documentId) {
+        if (!this.initialized) await this.init();
+
+        // 1. Recupera il percorso del file dal database
+        const { data: doc, error: fetchError } = await supabase
+            .from('shipment_documents')
+            .select('file_path')
+            .eq('id', documentId)
+            .single();
+
+        if (fetchError) {
+            console.error('Errore nel recuperare il documento:', fetchError);
+            throw fetchError;
+        }
+
+        // 2. Elimina il file dallo storage
+        if (doc.file_path) {
+            const { error: storageError } = await supabase.storage
+                .from('shipment-documents')
+                .remove([doc.file_path]);
+            if (storageError) {
+                console.error('Errore nell-eliminare il file dallo storage:', storageError);
+                throw storageError;
+            }
+        }
+
+        // 3. Elimina il record dal database
+        const { error: dbError } = await supabase
+            .from('shipment_documents')
+            .delete()
+            .eq('id', documentId);
+
+        if (dbError) {
+            console.error('Errore nell-eliminare il record dal database:', dbError);
+            throw dbError;
+        }
+
+        return true;
+    }
+
+    /**
+     * Sostituisce un documento esistente con un nuovo file.
+     * @param {string} documentId - L'ID del documento da aggiornare.
+     * @param {File} newFile - Il nuovo file da caricare.
+     * @returns {Promise<Object>} Il record del documento aggiornato.
+     */
+    async replaceShipmentDocument(documentId, newFile) {
+        if (!this.initialized) await this.init();
+
+        // 1. Recupera il record del vecchio documento per ottenere il percorso del file
+        const { data: oldDoc, error: fetchError } = await supabase
+            .from('shipment_documents')
+            .select('file_path, shipment_id')
+            .eq('id', documentId)
+            .single();
+
+        if (fetchError) {
+            console.error('Errore nel recuperare il vecchio documento:', fetchError);
+            throw fetchError;
+        }
+
+        // 2. Carica il nuovo file
+        const fileExtension = newFile.name.split('.').pop();
+        const newFileName = `${crypto.randomUUID()}.${fileExtension}`;
+        const newFilePath = `${this.organizationId}/${oldDoc.shipment_id}/${newFileName}`;
+
+        const { data: uploadData, error: uploadError } = await supabase.storage
+            .from('shipment-documents')
+            .upload(newFilePath, newFile);
+
+        if (uploadError) {
+            console.error('Errore durante il caricamento del nuovo file:', uploadError);
+            throw uploadError;
+        }
+
+        // 3. Aggiorna il record nel database con i nuovi dettagli
+        const { data: updatedDoc, error: updateError } = await supabase
+            .from('shipment_documents')
+            .update({
+                document_name: newFile.name,
+                file_path: uploadData.path,
+                file_size: newFile.size,
+                updated_at: new Date().toISOString(),
+            })
+            .eq('id', documentId)
+            .select()
+            .single();
+
+        if (updateError) {
+            console.error('Errore nell-aggiornare il record del documento:', updateError);
+            // Se l'aggiornamento fallisce, elimina il nuovo file appena caricato per non lasciare orfani
+            await supabase.storage.from('shipment-documents').remove([uploadData.path]);
+            throw updateError;
+        }
+
+        // 4. Elimina il vecchio file dallo storage (solo dopo che tutto il resto è andato a buon fine)
+        if (oldDoc.file_path) {
+            await supabase.storage.from('shipment-documents').remove([oldDoc.file_path]);
+        }
+
+        return updatedDoc;
+    }
+
+    /**
+     * Ottiene l'URL firmato per un file nello storage.
      * @param {string} filePath - Il percorso del file nello storage.
-     * @returns {string | null} L'URL pubblico del file o null se il percorso non è valido.
+     * @returns {Promise<string|null>} L'URL firmato del file o null se il percorso non è valido.
      */
     async getPublicFileUrl(filePath) {
         if (!filePath) return null;
@@ -490,9 +594,7 @@ class DataManager {
 
         return data.signedUrl;
     }
-
 }
-
 
 const dataManager = new DataManager();
 export default dataManager;
