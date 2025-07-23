@@ -428,6 +428,45 @@ class DataManager {
     //     // ... logica per ricalcolare il costo totale della spedizione ...
     // }
 
+    /**
+     * Carica un documento per una spedizione specifica.
+     * @param {string} shipmentId - L'ID della spedizione.
+     * @param {File} file - Il file da caricare.
+     * @param {string} documentType - Il tipo/descrizione del documento (es. "Fattura").
+     * @returns {Promise<Object>} I dati del documento salvato nel database.
+     */
+    async uploadShipmentDocument(shipmentId, file, documentType) {
+        if (!this.initialized) await this.init();
+
+        const fileExtension = file.name.split('.').pop();
+        const fileName = `${crypto.randomUUID()}.${fileExtension}`;
+        const filePath = `${this.organizationId}/${shipmentId}/${fileName}`;
+
+        // 1. Carica il file su Supabase Storage
+        const { data: uploadData, error: uploadError } = await supabase.storage
+            .from('documents')
+            .upload(filePath, file);
+
+        if (uploadError) {
+            console.error('Errore durante l-upload del file:', uploadError);
+            throw uploadError;
+        }
+
+        // 2. Inserisci il record nella tabella shipment_documents
+        const documentRecord = {
+            shipment_id: shipmentId,
+            organization_id: this.organizationId,
+            user_id: this.userId,
+            document_name: file.name,
+            document_type: documentType,
+            file_path: uploadData.path,
+            file_size: file.size
+        };
+
+        const { data, error } = await supabase.from('shipment_documents').insert(documentRecord).select().single();
+        if (error) throw error;
+        return data;
+    }
 
 }
 
