@@ -366,9 +366,9 @@ class DataManager {
              .insert([{
                  shipment_id: shipmentId,
                  ...productData,
-                 total_value: productData.quantity * productData.unit_value,
-                 total_weight_kg: productData.weight_kg * productData.quantity,
-                 total_volume_cbm: productData.volume_cbm * productData.quantity
+                 total_value: (productData.quantity || 0) * (productData.unit_value || 0),
+                 total_weight_kg: (productData.weight_kg || 0) * (productData.quantity || 0),
+                 total_volume_cbm: (productData.volume_cbm || 0) * (productData.quantity || 0)
              }])
              .select() // Seleziona solo l'item appena creato
              .single();

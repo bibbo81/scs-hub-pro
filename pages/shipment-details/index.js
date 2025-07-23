@@ -260,7 +260,7 @@ async function addProduct() {
                 {
                     text: 'Aggiungi Selezionati',
                     class: 'sol-btn sol-btn-primary',
-                    onclick: async () => {
+                    onclick: async function() {
                         console.log('[Aggiungi Selezionati] OnClick handler fired!'); // Log di conferma
                         const selectedItems = [];
                         // Questa query viene eseguita quando il pulsante viene cliccato.
@@ -280,7 +280,7 @@ async function addProduct() {
 
                         if (selectedItems.length === 0) {
                             notificationSystem.warning('Nessun prodotto selezionato o quantità non valida.');
-                            return;
+                            return; // Non fare nulla, non chiudere la modale
                         }
 
                         const shipmentId = getShipmentIdFromURL();
@@ -289,8 +289,8 @@ async function addProduct() {
                             const addPromises = selectedItems.map(({ product, quantity }) => {
                                 const productData = {
                                     product_id: product.id,
-                                    name: product.name,
-                                    sku: product.sku,
+                                    name: product.name || 'Prodotto non specificato',
+                                    sku: product.sku || 'N/D',
                                     quantity: quantity,
                                     unit_value: product.unit_value || 0,
                                     weight_kg: product.weight_kg || 0,
@@ -299,13 +299,12 @@ async function addProduct() {
                                 return dataManager.addShipmentItem(shipmentId, productData);
                             });
                             await Promise.all(addPromises);
+                            ModalSystem.close(); // Chiudi la modale esplicitamente
                             notificationSystem.success(`${selectedItems.length} prodotti aggiunti con successo!`);
                             loadShipmentDetails(shipmentId);
-                            return true; // Indica al ModalSystem di chiudersi
                         } catch (error) {
                             console.error('Errore aggiunta prodotto:', error);
                             notificationSystem.error('Errore durante l\'aggiunta dei prodotti.');
-                            return false; // Non chiudere la modale in caso di errore
                         }
                     }
                 }
