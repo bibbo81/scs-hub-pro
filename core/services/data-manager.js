@@ -228,6 +228,7 @@ class DataManager {
     async getShipmentDetails(shipmentId) {
          if (!this.initialized) await this.init();
  
+         // 1. Recupera i dati base della spedizione e del carrier
          const { data: shipment, error: shipmentError } = await supabase
              .from('shipments')
              .select('*, carrier:carrier_id (*), freight_cost, other_costs') // Aggiunti nuovi campi
@@ -240,9 +241,48 @@ class DataManager {
              throw shipmentError;
          }
  
-         // ... (logica esistente per prodotti e documenti)
+         // 2. Recupera gli items della spedizione (senza join)
+         const { data: items, error: itemsError } = await supabase
+             .from('shipment_items')
+             .select('*')
+             .eq('shipment_id', shipmentId);
  
-         return shipment; // La logica completa è più complessa, questo è un riassunto
+         if (itemsError) {
+             console.error("Errore nel recuperare gli items della spedizione:", itemsError);
+             throw itemsError;
+         }
+ 
+         let productsWithDetails = [];
+         if (items && items.length > 0) {
+             const productIds = items.map(item => item.product_id).filter(id => id);
+             if (productIds.length > 0) {
+                 const { data: productDetails, error: productDetailsError } = await supabase
+                     .from('products')
+                     .select('id, name:description, sku')
+                     .in('id', productIds);
+ 
+                 if (productDetailsError) throw productDetailsError;
+ 
+                 const productMap = new Map(productDetails.map(p => [p.id, p]));
+                 productsWithDetails = items.map(item => ({
+                     ...item,
+                     product: productMap.get(item.product_id) || null
+                 }));
+             } else {
+                 productsWithDetails = items;
+             }
+         }
+ 
+         // 7. Recupera i documenti
+         const { data: documents, error: documentsError } = await supabase
+             .from('shipment_documents')
+             .select('*')
+             .eq('shipment_id', shipmentId);
+ 
+         if (documentsError) throw documentsError;
+ 
+         // 8. Ritorna l'oggetto completo
+         return { ...shipment, products: productsWithDetails, documents };
     }
 
     /**
