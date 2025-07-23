@@ -112,11 +112,13 @@ function renderDocumentsTable(documents) {
     }
 
     documents.forEach(doc => {
+        const publicURL = dataManager.getPublicFileUrl(doc.file_path);
         const tr = document.createElement('tr');
         tr.innerHTML = `
-            <td><a href="${doc.file_path}" target="_blank">${doc.file_name}</a></td>
-            <td>${formatDocumentCategory(doc.document_category)}</td>
+            <td><a href="${publicURL}" target="_blank" rel="noopener noreferrer"><i class="fas fa-file-alt mr-2 text-primary"></i>${doc.document_name}</a></td>
+            <td>${doc.document_type || '-'}</td>
             <td>${formatDate(doc.created_at)}</td>
+            <td>${doc.file_size ? `${(doc.file_size / 1024).toFixed(2)} KB` : '-'}</td>
             <td>
                 <button class="sol-btn sol-btn-danger sol-btn-sm delete-document-btn" data-document-id="${doc.id}" title="Elimina Documento"><i class="fas fa-trash"></i></button>
             </td>
@@ -149,18 +151,6 @@ function formatStatus(rawStatus) {
     const statusKey = (rawStatus || 'registered').toLowerCase().replace(/ /g, '_');
     const label = rawStatus || 'Registrato';
     return `<span class="status-badge status-${statusKey}">${label}</span>`;
-}
-
-function formatDocumentCategory(category) {
-    const categories = {
-        'commercial_invoice': 'Fattura Commerciale',
-        'packing_list': 'Packing List',
-        'bill_of_lading': 'Polizza di Carico',
-        'customs_clearance': 'Documento di Sdoganamento',
-        'transport_invoice': 'Fattura di Trasporto',
-        'other': 'Altro'
-    };
-    return categories[category] || category || '-';
 }
 
 function setupEventListeners() {
