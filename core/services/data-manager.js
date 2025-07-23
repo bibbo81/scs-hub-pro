@@ -466,8 +466,19 @@ class DataManager {
         if (error) throw error;
         return data;
     }
+/**
+     * Ottiene l'URL pubblico per un file nello storage.
+     * @param {string} filePath - Il percorso del file nello storage.
+     * @returns {string | null} L'URL pubblico del file o null se il percorso non è valido.
+     */
+    getPublicFileUrl(filePath) {
+        if (!filePath) return null;
+        const { data } = supabase.storage.from('documents').getPublicUrl(filePath);
+        return data.publicUrl;
+    }
 
 }
+
 
 const dataManager = new DataManager();
 export default dataManager;
