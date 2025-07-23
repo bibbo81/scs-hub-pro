@@ -169,6 +169,9 @@
                 <a href="/shipment-details.html?id=${s.id}" class="sol-btn sol-btn-sm sol-btn-primary" title="Vedi Dettagli">
                     <i class="fas fa-eye"></i>
                 </a>
+                <button class="sol-btn sol-btn-sm sol-btn-secondary" title="Carica Documento" onclick="showUploadModal('${s.id}')">
+                    <i class="fas fa-upload"></i>
+                </button>
               </div>
             </td>
           `;
@@ -181,6 +184,69 @@
         tbody.innerHTML = '<tr><td colspan="9" style="text-align:center; color: red;">Errore nel caricamento dei dati.</td></tr>';
       }
     }
+
+    function showUploadModal(shipmentId) {
+        const modalId = `upload-modal-${shipmentId}`;
+        const content = `
+            <form id="upload-form-${shipmentId}" onsubmit="return false;">
+                <div class="form-group">
+                    <label for="document-type">Tipo Documento (es. Fattura, Bolla)</label>
+                    <input type="text" id="document-type" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label for="document-file">Seleziona File</label>
+                    <input type="file" id="document-file" class="form-control-file" required>
+                </div>
+                <div class="upload-feedback" style="display:none; margin-top: 1rem;"></div>
+            </form>
+        `;
+
+        ModalSystem.show({
+            id: modalId,
+            title: 'Carica Documento per Spedizione',
+            content: content,
+            buttons: [
+                { text: 'Annulla', className: 'btn-secondary', action: () => ModalSystem.hide(modalId) },
+                { 
+                    text: 'Carica', 
+                    className: 'btn-primary', 
+                    id: 'upload-btn', 
+                    action: async (modal) => {
+                        const uploadBtn = modal.querySelector('#upload-btn');
+                        const feedbackDiv = modal.querySelector('.upload-feedback');
+                        const fileInput = modal.querySelector('#document-file');
+                        const typeInput = modal.querySelector('#document-type');
+
+                        const file = fileInput.files[0];
+                        const docType = typeInput.value.trim();
+
+                        if (!file || !docType) {
+                            NotificationSystem.error('Per favore, compila tutti i campi.');
+                            return;
+                        }
+
+                        uploadBtn.disabled = true;
+                        uploadBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Caricamento...';
+                        feedbackDiv.style.display = 'none';
+
+                        try {
+                            await dataManager.uploadShipmentDocument(shipmentId, file, docType);
+                            NotificationSystem.success('Documento caricato con successo!');
+                            ModalSystem.hide(modalId);
+                        } catch (error) {
+                            feedbackDiv.innerHTML = `<div class="sol-alert sol-alert-danger">Errore: ${error.message}</div>`;
+                            feedbackDiv.style.display = 'block';
+                        } finally {
+                            uploadBtn.disabled = false;
+                            uploadBtn.innerHTML = 'Carica';
+                        }
+                    }
+                }
+            ]
+        });
+    }
+
+    window.showUploadModal = showUploadModal;
 
     function enableTableSorting() {
         document.querySelectorAll(".data-table .sortable").forEach(th => {

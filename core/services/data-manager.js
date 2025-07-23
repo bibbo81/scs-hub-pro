@@ -460,7 +460,6 @@ class DataManager {
             document_name: file.name,
             document_type: documentType,
             file_path: uploadData.path,
-            file_size: file.size
         };
 
         const { data, error } = await supabase.from('shipment_documents').insert(documentRecord).select().single();
