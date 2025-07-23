@@ -260,9 +260,7 @@ async function addProduct() {
                             notificationSystem.info(`Aggiunta di ${selectedItems.length} prodotti...`);
                             const addPromises = selectedItems.map(({ product, quantity }) => {
                                 const productData = {
-                                    product_id: String(product.id),
-                                    name: String(product.name || 'Prodotto non specificato'),
-                                    sku: String(product.sku || 'N/D'),
+                                    product_id: product.id,
                                     quantity: parseInt(quantity, 10),
                                     unit_value: parseFloat(product.unit_value || 0),
                                     weight_kg: parseFloat(product.weight_kg || 0),
