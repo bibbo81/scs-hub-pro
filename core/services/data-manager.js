@@ -452,6 +452,9 @@ class DataManager {
             throw uploadError;
         }
 
+        // Utilizza il percorso restituito da Supabase come unica fonte di verità.
+        const finalFilePath = uploadData.path;
+
         // 2. Inserisci il record nella tabella shipment_documents
         const documentRecord = {
             shipment_id: shipmentId,
@@ -459,7 +462,7 @@ class DataManager {
             user_id: this.userId,
             document_name: file.name,
             document_type: documentType,
-            file_path: uploadData.path,
+            file_path: finalFilePath, // Usa il percorso confermato
             file_size: file.size, // Aggiungi la dimensione del file
         };
 
