@@ -225,65 +225,15 @@ async function addProduct() {
         const allProducts = await dataManager.getAllProducts();
         console.log(`[addProduct] Caricati ${allProducts.length} prodotti.`);
 
-        // 1. Definisci le funzioni helper che verranno incorporate nell'HTML.
-        // Devono essere collegate all'oggetto 'window' per essere accessibili dagli event handler inline.
-        window.filterProducts = function() {
-            const searchTerm = document.getElementById('productSearchInput').value.toLowerCase();
-            const rows = document.querySelectorAll('#product-table-body tr');
-            rows.forEach(row => {
-                const name = row.dataset.name || '';
-                const sku = row.dataset.sku || '';
-                if (name.includes(searchTerm) || sku.includes(searchTerm)) {
-                    row.style.display = '';
-                } else {
-                    row.style.display = 'none';
-                }
-            });
-        };
-
-        window.toggleProductQuantity = function(checkbox) {
-            const row = checkbox.closest('tr');
-            const quantityInput = row.querySelector('.quantity-input');
-            quantityInput.disabled = !checkbox.checked;
-            if (checkbox.checked) {
-                quantityInput.focus();
-                quantityInput.select();
-            }
-        };
-
-        // 2. Costruisci il contenuto HTML della modale come stringa
+        // 1. Costruisci la struttura HTML statica per la modale.
         const modalContent = `
             <div class="sol-form">
                 <div class="sol-form-group">
-                    <input type="text" id="productSearchInput" class="sol-form-input" 
-                           placeholder="Cerca per nome, SKU..." oninput="window.filterProducts()">
+                    <input type="text" id="productSearchInput" class="sol-form-input" placeholder="Cerca per nome, SKU...">
                 </div>
             </div>
-            <div class="product-list-container">
-                <table class="product-table">
-                    <thead>
-                        <tr>
-                            <th></th>
-                            <th>Prodotto</th>
-                            <th>SKU</th>
-                            <th>Quantità</th>
-                        </tr>
-                    </thead>
-                    <tbody id="product-table-body">
-                        ${allProducts.map(product => `
-                            <tr data-name="${(product.name || '').toLowerCase()}" data-sku="${(product.sku || '').toLowerCase()}">
-                                <td>
-                                    <input type="checkbox" class="product-row-checkbox" 
-                                           data-product-id="${product.id}" 
-                                           onchange="window.toggleProductQuantity(this)">
-                                </td>
-                                <td>${product.name || 'Senza nome'}</td>
-                                <td>${product.sku || 'N/D'}</td>
-                                <td><input type="number" class="sol-form-input quantity-input" value="1" min="1" disabled></td>
-                            </tr>
-                        `).join('')}
-                    </tbody>
-                </table>
+            <div id="productListContainer" class="product-list-container">
+                <!-- La tabella verrà renderizzata qui da JavaScript -->
             </div>
             <style>
                 .product-list-container { max-height: 400px; overflow-y: auto; border: 1px solid #e0e6ed; border-radius: 5px; margin-top: 1rem; background: #fff; }
@@ -295,7 +245,8 @@ async function addProduct() {
                 .product-table .product-row-checkbox { width: 16px; height: 16px; }
             </style>
         `;
-        // 3. Mostra la modale
+
+        // 2. Mostra la modale con il contenuto statico e i pulsanti di azione.
         ModalSystem.show({
             title: 'Aggiungi Prodotti alla Spedizione',
             size: 'lg',
@@ -307,6 +258,7 @@ async function addProduct() {
                     className: 'sol-btn sol-btn-primary',
                     action: async () => {
                         const selectedItems = [];
+                        // Questa query viene eseguita quando il pulsante viene cliccato.
                         document.querySelectorAll('.product-row-checkbox:checked').forEach(checkbox => {
                             const row = checkbox.closest('tr');
                             const productId = checkbox.dataset.productId;
@@ -353,6 +305,76 @@ async function addProduct() {
                 }
             ]
         });
+
+        // 3. Usa setTimeout per collegare gli eventi e renderizzare la tabella iniziale.
+        // Questo assicura che il DOM della modale sia pronto.
+        setTimeout(() => {
+            const searchInput = document.getElementById('productSearchInput');
+            const listContainer = document.getElementById('productListContainer');
+
+            if (!searchInput || !listContainer) {
+                console.error("Elementi della modale non trovati. Il rendering potrebbe fallire.");
+                return;
+            }
+
+            const renderTable = (productsToRender) => {
+                if (productsToRender.length === 0) {
+                    listContainer.innerHTML = '<div style="padding: 20px; text-align: center; color: #6c757d;">Nessun prodotto trovato.</div>';
+                    return;
+                }
+                const tableHTML = `
+                    <table class="product-table">
+                        <thead>
+                            <tr>
+                                <th></th>
+                                <th>Prodotto</th>
+                                <th>SKU</th>
+                                <th>Quantità</th>
+                            </tr>
+                        </thead>
+                        <tbody id="product-table-body">
+                            ${productsToRender.map(product => `
+                                <tr data-product-id="${product.id}">
+                                    <td><input type="checkbox" class="product-row-checkbox" data-product-id="${product.id}"></td>
+                                    <td>${product.name || 'Senza nome'}</td>
+                                    <td>${product.sku || 'N/D'}</td>
+                                    <td><input type="number" class="sol-form-input quantity-input" value="1" min="1" disabled></td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                `;
+                listContainer.innerHTML = tableHTML;
+            };
+
+            // Listener per la ricerca
+            searchInput.addEventListener('input', () => {
+                const searchTerm = searchInput.value.toLowerCase();
+                const filteredProducts = allProducts.filter(p =>
+                    (p.name || '').toLowerCase().includes(searchTerm) ||
+                    (p.sku || '').toLowerCase().includes(searchTerm)
+                );
+                renderTable(filteredProducts);
+            });
+
+            // Listener per le checkbox (usando la delega degli eventi sul contenitore)
+            listContainer.addEventListener('change', (event) => {
+                if (event.target.matches('.product-row-checkbox')) {
+                    const checkbox = event.target;
+                    const row = checkbox.closest('tr');
+                    const quantityInput = row.querySelector('.quantity-input');
+                    quantityInput.disabled = !checkbox.checked;
+                    if (checkbox.checked) {
+                        quantityInput.focus();
+                        quantityInput.select();
+                    }
+                }
+            });
+
+            // Renderizzazione iniziale
+            renderTable(allProducts);
+        }, 150); // Un ritardo sicuro
+
     } catch (error) {
         notificationSystem.error('Impossibile caricare la lista dei prodotti.');
         console.error('Errore caricamento prodotti per la ricerca:', error);
