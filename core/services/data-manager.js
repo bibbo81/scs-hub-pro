@@ -472,10 +472,20 @@ class DataManager {
      * @param {string} filePath - Il percorso del file nello storage.
      * @returns {string | null} L'URL pubblico del file o null se il percorso non è valido.
      */
-    getPublicFileUrl(filePath) {
+    async getPublicFileUrl(filePath) {
         if (!filePath) return null;
-        const { data } = supabase.storage.from('shipment-documents').getPublicUrl(filePath);
-        return data.publicUrl;
+
+        // The 'shipment-documents' bucket is private, so we need a signed URL.
+        const { data, error } = await supabase.storage
+            .from('shipment-documents')
+            .createSignedUrl(filePath, 60); // The URL will be valid for 60 seconds.
+
+        if (error) {
+            console.error('Error creating signed URL:', error);
+            return null;
+        }
+
+        return data.signedUrl;
     }
 
 }

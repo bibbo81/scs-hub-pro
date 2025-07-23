@@ -35,7 +35,7 @@ async function loadShipmentDetails(shipmentId) {
 
         renderShipmentInfo(shipmentDetails);
         renderProductsTable(shipmentDetails.products);
-        renderDocumentsTable(shipmentDetails.documents);
+        await renderDocumentsTable(shipmentDetails.documents);
 
     } catch (error) {
         console.error("Errore caricamento dettagli spedizione:", error);
@@ -102,20 +102,20 @@ function renderProductsTable(products) {
     document.getElementById('totalAllocatedCost').textContent = formatCurrency(totalAllocatedCost);
 }
 
-function renderDocumentsTable(documents) {
+async function renderDocumentsTable(documents) {
     const tbody = document.getElementById('documentsTableBody');
     tbody.innerHTML = '';
 
     if (!documents || documents.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="4" class="text-center">Nessun documento caricato.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="5" class="text-center">Nessun documento caricato.</td></tr>';
         return;
     }
 
-    documents.forEach(doc => {
-        const publicURL = dataManager.getPublicFileUrl(doc.file_path);
+    for (const doc of documents) {
+        const signedUrl = await dataManager.getPublicFileUrl(doc.file_path);
         const tr = document.createElement('tr');
         tr.innerHTML = `
-            <td><a href="${publicURL}" target="_blank" rel="noopener noreferrer"><i class="fas fa-file-alt mr-2 text-primary"></i>${doc.document_name}</a></td>
+            <td><a href="${signedUrl || '#'}" target="_blank" rel="noopener noreferrer"><i class="fas fa-file-alt mr-2 text-primary"></i>${doc.document_name}</a></td>
             <td>${doc.document_type || '-'}</td>
             <td>${formatDate(doc.created_at)}</td>
             <td>${doc.file_size ? `${(doc.file_size / 1024).toFixed(2)} KB` : '-'}</td>
@@ -124,7 +124,7 @@ function renderDocumentsTable(documents) {
             </td>
         `;
         tbody.appendChild(tr);
-    });
+    }
 }
 
 function formatCurrency(value) {
