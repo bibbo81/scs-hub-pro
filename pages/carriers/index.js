@@ -173,12 +173,18 @@ function showCarrierForm(carrier = null) {
                 </div>
             </form>
         `,
-        actions: [
-            { label: 'Annulla', variant: 'secondary', action: () => ModalSystem.close() },
+        buttons: [
+            { text: 'Annulla', class: 'sol-btn sol-btn-secondary', onclick: () => ModalSystem.close() },
             {
-                label: isEditing ? 'Salva Modifiche' : 'Aggiungi',
-                variant: 'primary',
-                action: async () => {
+                text: isEditing ? 'Salva Modifiche' : 'Aggiungi',
+                class: 'sol-btn sol-btn-primary',
+                onclick: async () => {
+                    const form = document.getElementById('carrierForm');
+                    if (!form.checkValidity()) {
+                        form.reportValidity();
+                        return false;
+                    }
+
                     const formData = {
                         name: document.getElementById('name').value,
                         contact_person: document.getElementById('contact_person').value,
@@ -196,10 +202,11 @@ function showCarrierForm(carrier = null) {
                             await dataManager.addCarrier(formData);
                             notificationSystem.success('Spedizioniere aggiunto!');
                         }
-                        ModalSystem.close();
                         loadCarriers();
+                        return true; // Chiude la modale
                     } catch (error) {
                         notificationSystem.error(`Errore: ${error.message}`);
+                        return false; // Non chiude la modale
                     }
                 }
             }
