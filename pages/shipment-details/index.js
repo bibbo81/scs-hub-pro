@@ -245,7 +245,7 @@ async function addProduct() {
         const modalContent = `
             <div class="sol-form"><div class="sol-form-group"><input type="text" id="productSearchInput" class="sol-form-input" placeholder="Cerca per nome, SKU..."></div></div>
             <div id="productListContainer" class="product-list-container"></div>
-            <style>.product-list-container{max-height:400px;overflow-y:auto;border:1px solid #e0e6ed;border-radius:5px;margin-top:1rem;background:#fff;}.product-table{width:100%;border-collapse:collapse;}.product-table th,.product-table td{padding:8px 12px;text-align:left;border-bottom:1px solid #e0e6ed;font-size:14px;}.product-table th{background-color:#f8f9fa;font-weight:600;}.product-table tr:hover{background-color:#f1f1f1;}.product-table .quantity-input{width:70px;padding:4px 8px;}.product-table .product-row-checkbox{width:16px;height:16px;}</style>`;
+            <style>.product-list-container{max-height:400px;overflow-y:auto;border:1px solid #e0e6ed;border-radius:5px;margin-top:1rem;background:#fff;}.product-table{width:100%;border-collapse:collapse;}.product-table th,.product-table td{padding:8px 12px;text-align:left;border-bottom:1px solid #e0e6ed;font-size:14px;}.product-table th{background-color:#f8f9fa;font-weight:600;}.product-table tr:hover{background-color:#f1f1f1;}.product-table .quantity-input{width:70px;padding:4px 8px;}.product-table .volume-input{width:80px;padding:4px 8px;}.product-table .product-row-checkbox{width:16px;height:16px;}</style>`;
 
         ModalSystem.show({
             title: 'Aggiungi Prodotti alla Spedizione',
@@ -262,10 +262,13 @@ async function addProduct() {
                             const row = checkbox.closest('tr');
                             const productId = checkbox.dataset.productId;
                             const quantityInput = row.querySelector('.quantity-input');
+                            const volumeInput = row.querySelector('.volume-input'); // Cattura l'input del volume
                             const quantity = parseInt(quantityInput.value, 10);
+                            const volume = parseFloat(volumeInput.value) || 0; // Leggi il valore del volume
+
                             if (quantity > 0) {
                                 const product = allProducts.find(p => p.id === productId);
-                                if (product) selectedItems.push({ product, quantity });
+                                if (product) selectedItems.push({ product, quantity, volume }); // Aggiungi il volume agli item selezionati
                             }
                         });
 
@@ -277,10 +280,11 @@ async function addProduct() {
                         const shipmentId = getShipmentIdFromURL();
                         try {
                             notificationSystem.info(`Aggiunta di ${selectedItems.length} prodotti...`);
-                            const addPromises = selectedItems.map(({ product, quantity }) => {
+                            const addPromises = selectedItems.map(({ product, quantity, volume }) => { // Destruttura il volume
                                 const q = parseInt(quantity, 10);
                                 const uv = parseFloat(product.unit_value || 0);
                                 const w = parseFloat(product.weight_kg || 0);
+                                const vol = parseFloat(volume || 0); // Usa il volume dal form
 
                                 const productData = {
                                     product_id: String(product.id),
@@ -289,7 +293,7 @@ async function addProduct() {
                                     quantity: isNaN(q) ? 1 : q,
                                     unit_value: isNaN(uv) ? 0 : uv,
                                     weight_kg: isNaN(w) ? 0 : w,
-                                    volume_cbm: 0,
+                                    volume_cbm: isNaN(vol) ? 0 : vol, // Assegna il volume
                                 };
                                 return dataManager.addShipmentItem(shipmentId, productData);
                             });
@@ -317,7 +321,8 @@ async function addProduct() {
                     listContainer.innerHTML = '<div style="padding:20px;text-align:center;color:#6c757d;">Nessun prodotto trovato.</div>';
                     return;
                 }
-                const tableHTML = `<table class="product-table"><thead><tr><th></th><th>Prodotto</th><th>SKU</th><th>Quantità</th></tr></thead><tbody id="product-table-body">${productsToRender.map(p=>`<tr><td><input type="checkbox" class="product-row-checkbox" data-product-id="${p.id}"></td><td>${p.name||'Senza nome'}</td><td>${p.sku||'N/D'}</td><td><input type="number" class="sol-form-input quantity-input" value="1" min="1" disabled></td></tr>`).join('')}</tbody></table>`;
+                // Aggiungi la colonna Volume (m³)
+                const tableHTML = `<table class="product-table"><thead><tr><th></th><th>Prodotto</th><th>SKU</th><th>Volume (m³)</th><th>Quantità</th></tr></thead><tbody id="product-table-body">${productsToRender.map(p=>`<tr><td><input type="checkbox" class="product-row-checkbox" data-product-id="${p.id}"></td><td>${p.name||'Senza nome'}</td><td>${p.sku||'N/D'}</td><td><input type="number" class="sol-form-input volume-input" value="0" min="0" step="0.01" disabled></td><td><input type="number" class="sol-form-input quantity-input" value="1" min="1" disabled></td></tr>`).join('')}</tbody></table>`;
                 listContainer.innerHTML = tableHTML;
             };
 
@@ -330,8 +335,14 @@ async function addProduct() {
             listContainer.addEventListener('change', (event) => {
                 if (event.target.matches('.product-row-checkbox')) {
                     const checkbox = event.target;
-                    const quantityInput = checkbox.closest('tr').querySelector('.quantity-input');
+                    const row = checkbox.closest('tr');
+                    const quantityInput = row.querySelector('.quantity-input');
+                    const volumeInput = row.querySelector('.volume-input'); // Seleziona l'input del volume
+                    
+                    // Abilita/disabilita entrambi i campi
                     quantityInput.disabled = !checkbox.checked;
+                    volumeInput.disabled = !checkbox.checked;
+
                     if (checkbox.checked) {
                         quantityInput.focus();
                         quantityInput.select();
