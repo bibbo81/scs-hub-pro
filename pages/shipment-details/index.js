@@ -251,12 +251,17 @@ async function addProduct() {
             title: 'Aggiungi Prodotti alla Spedizione',
             size: 'lg',
             content: modalContent,
-            buttons: [
-                { text: 'Annulla', className: 'sol-btn sol-btn-secondary', action: () => ModalSystem.close() },
+            buttons: [ // FIX: Usa 'onclick' e 'class' come in altri moduli
+                { 
+                    text: 'Annulla', 
+                    class: 'sol-btn sol-btn-secondary', 
+                    onclick: () => ModalSystem.close() 
+                },
                 {
                     text: 'Aggiungi Selezionati',
-                    className: 'sol-btn sol-btn-primary',
-                    action: async () => {
+                    class: 'sol-btn sol-btn-primary',
+                    onclick: async () => {
+                        console.log('[Aggiungi Selezionati] OnClick handler fired!'); // Log di conferma
                         const selectedItems = [];
                         // Questa query viene eseguita quando il pulsante viene cliccato.
                         document.querySelectorAll('.product-row-checkbox:checked').forEach(checkbox => {
@@ -294,12 +299,13 @@ async function addProduct() {
                                 return dataManager.addShipmentItem(shipmentId, productData);
                             });
                             await Promise.all(addPromises);
-                            ModalSystem.close();
                             notificationSystem.success(`${selectedItems.length} prodotti aggiunti con successo!`);
                             loadShipmentDetails(shipmentId);
+                            return true; // Indica al ModalSystem di chiudersi
                         } catch (error) {
                             console.error('Errore aggiunta prodotto:', error);
                             notificationSystem.error('Errore durante l\'aggiunta dei prodotti.');
+                            return false; // Non chiudere la modale in caso di errore
                         }
                     }
                 }
