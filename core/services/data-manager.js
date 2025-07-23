@@ -423,27 +423,6 @@ class DataManager {
         return true;
     }
 
-    /**
-     * Rimuove un prodotto da una spedizione.
-     * @param {string} shipmentItemId - L'ID dell'item da rimuovere.
-     * @returns {Promise<boolean>} True se la rimozione ha avuto successo.
-     */
-    async deleteShipmentItem(shipmentItemId) {
-        if (!this.initialized) await this.init();
-
-        const { error } = await supabase
-            .from('shipment_items')
-            .delete()
-            .eq('id', shipmentItemId)
-            .eq('organization_id', this.organizationId);
-
-        if (error) {
-            console.error("Errore nella rimozione del prodotto:", error);
-            throw error;
-        }
-        return true;
-    }
-
     // Funzione di utilità (opzionale, da implementare se serve aggiornamento automatico)
     // async updateShipmentTotalCost(shipmentId) {
     //     // ... logica per ricalcolare il costo totale della spedizione ...
