@@ -114,24 +114,14 @@
     window.ModalSystem = ModalSystem;
 
     function formatStatus(rawStatus) {
-        const statusDisplayConfig = {
-            'registered':       { label: 'Registrato',       class: 'registered' },
-            'in_transit':       { label: 'In Transito',      class: 'in_transit' },
-            'arrived':          { label: 'Arrivato',         class: 'arrived' },
-            'out_for_delivery': { label: 'In Consegna',      class: 'out_for_delivery' },
-            'delivered':        { label: 'Consegnato',       class: 'delivered' },
-            'exception':        { label: 'Eccezione',        class: 'exception' },
-            'delayed':          { label: 'In Ritardo',       class: 'exception' },
-            'customs_hold':     { label: 'In Dogana',        class: 'customs_hold' },
-            'customs_cleared':  { label: 'Sdoganato',        class: 'customs_cleared' },
-            'cancelled':        { label: 'Annullato',        class: 'cancelled' },
-        };
-        let statusKey = rawStatus;
-        if (!statusDisplayConfig[statusKey]) {
-            statusKey = window.TrackingUnifiedMapping.mapStatus(rawStatus);
-        }
-        const config = statusDisplayConfig[statusKey] || { label: rawStatus || 'Sconosciuto', class: 'pending' };
-        return `<span class="status-badge status-${config.class}">${config.label}</span>`;
+        // Utilizza la mappatura unificata per coerenza
+        const statusKey = window.TrackingUnifiedMapping.mapStatus(rawStatus || 'registered');
+        const displayConfig = window.TrackingUnifiedMapping.STATUS_DISPLAY_CONFIG;
+        const config = displayConfig[statusKey] || displayConfig['default'];
+        
+        // Usa la classe CSS corretta dal mapping (es. 'badge-info', 'badge-success')
+        // Nota: le classi 'status-*' sono deprecate, usiamo 'badge-*'
+        return `<span class="badge badge-${config.class}"><i class="fas ${config.icon} mr-2"></i>${config.label}</span>`;
     }
 
     async function loadShipments() {

@@ -88,7 +88,11 @@ function formatCurrency(value) {
 }
 
 function formatStatus(rawStatus) {
-    const statusKey = (rawStatus || 'registered').toLowerCase().replace(/ /g, '_');
-    const label = rawStatus || 'Registrato';
-    return `<span class="status-badge status-${statusKey}">${label}</span>`;
+    // Utilizza la mappatura unificata per coerenza
+    const statusKey = window.TrackingUnifiedMapping.mapStatus(rawStatus || 'registered');
+    const displayConfig = window.TrackingUnifiedMapping.STATUS_DISPLAY_CONFIG;
+    const config = displayConfig[statusKey] || displayConfig['default'];
+    
+    // Usa la classe CSS corretta dal mapping (es. 'badge-info', 'badge-success')
+    return `<span class="badge badge-${config.class}"><i class="fas ${config.icon} mr-2"></i>${config.label}</span>`;
 }

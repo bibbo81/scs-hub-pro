@@ -275,6 +275,23 @@ window.TrackingUnifiedMapping = {
         return 'registered';
     },
     
+    // Configurazione visualizzazione stati per la tabella
+    STATUS_DISPLAY_CONFIG: {
+        'in_transit': { label: 'In Transito', class: 'info', icon: 'fa-truck' },
+        'delivered': { label: 'Consegnato', class: 'success', icon: 'fa-check-circle' },
+        'arrived': { label: 'Arrivato', class: 'primary', icon: 'fa-anchor' },
+        'registered': { label: 'Registrato', class: 'secondary', icon: 'fa-clipboard-check' },
+        'out_for_delivery': { label: 'In Consegna', class: 'warning', icon: 'fa-shipping-fast' },
+        'delayed': { label: 'In Ritardo', class: 'danger', icon: 'fa-exclamation-triangle' },
+        'exception': { label: 'Eccezione', class: 'danger', icon: 'fa-exclamation' },
+        'pending': { label: 'In attesa', class: 'warning', icon: 'fa-clock' },
+        'customs_cleared': { label: 'Sdoganato', class: 'success', icon: 'fa-stamp' },
+        'customs_hold': { label: 'In Dogana', class: 'warning', icon: 'fa-gavel' },
+        'cancelled': { label: 'Annullato', class: 'secondary', icon: 'fa-times-circle' },
+        // Aggiungi un fallback per stati non mappati
+        'default': { label: 'Sconosciuto', class: 'secondary', icon: 'fa-question-circle' }
+    },
+
     // Reverse mapping per export
     getReverseColumnMapping() {
         const reverse = {};
