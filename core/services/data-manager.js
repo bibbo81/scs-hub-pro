@@ -365,7 +365,13 @@ class DataManager {
              .from('shipment_items')
              .insert([{
                  shipment_id: shipmentId,
-                 ...productData,
+                 product_id: productData.product_id,
+                 name: productData.name, // Aggiunto
+                 sku: productData.sku,   // Aggiunto
+                 quantity: productData.quantity,
+                 unit_value: productData.unit_value,
+                 weight_kg: productData.weight_kg,
+                 volume_cbm: productData.volume_cbm,
                  total_value: (productData.quantity || 0) * (productData.unit_value || 0),
                  total_weight_kg: (productData.weight_kg || 0) * (productData.quantity || 0),
                  total_volume_cbm: (productData.volume_cbm || 0) * (productData.quantity || 0)
