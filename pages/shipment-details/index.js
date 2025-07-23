@@ -224,7 +224,54 @@ async function deleteProduct(productId) {
     }
 }
 
-function uploadDocument() { notificationSystem.info('Funzione "Carica Documento" non ancora implementata.'); }
+async function uploadDocument() {
+    const modalContent = `
+        <div class="sol-form">
+            <div class="sol-form-group">
+                <label for="documentTypeInput" class="sol-form-label">Tipo di Documento</label>
+                <input type="text" id="documentTypeInput" class="sol-form-input" placeholder="Es. Fattura, Bolla di carico...">
+            </div>
+            <div class="sol-form-group">
+                <label for="fileInput" class="sol-form-label">Seleziona File</label>
+                <input type="file" id="fileInput" class="sol-form-input">
+            </div>
+        </div>
+    `;
+
+    ModalSystem.show({
+        title: 'Carica Nuovo Documento',
+        content: modalContent,
+        buttons: [
+            { text: 'Annulla', class: 'sol-btn sol-btn-secondary', onclick: () => ModalSystem.close() },
+            {
+                text: 'Carica',
+                class: 'sol-btn sol-btn-primary',
+                onclick: async function() {
+                    const documentType = document.getElementById('documentTypeInput').value.trim();
+                    const fileInput = document.getElementById('fileInput');
+                    const file = fileInput.files[0];
+
+                    if (!documentType || !file) {
+                        notificationSystem.warning('Per favore, compila tutti i campi.');
+                        return false; // Non chiudere la modale
+                    }
+
+                    const shipmentId = getShipmentIdFromURL();
+                    try {
+                        notificationSystem.info('Caricamento del documento in corso...');
+                        await dataManager.uploadShipmentDocument(shipmentId, file, documentType);
+                        notificationSystem.success('Documento caricato con successo!');
+                        loadShipmentDetails(shipmentId); // Ricarica i dettagli per aggiornare la tabella
+                        return true; // Chiudi la modale
+                    } catch (error) {
+                        notificationSystem.error(`Errore durante il caricamento: ${error.message}`);
+                        return false; // Non chiudere la modale
+                    }
+                }
+            }
+        ]
+    });
+}
 function deleteDocument(documentId) {
     notificationSystem.info(`Funzione "Elimina Documento" (ID: ${documentId}) non ancora implementata.`);
 }
