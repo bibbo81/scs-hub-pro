@@ -233,11 +233,11 @@ async function addProduct() {
             size: 'lg',
             content: modalContent,
             buttons: [
-                { text: 'Annulla', class: 'sol-btn sol-btn-secondary', onclick: () => ModalSystem.close() },
+                { text: 'Annulla', class: 'sol-btn sol-btn-secondary', action: () => ModalSystem.close() },
                 {
                     text: 'Aggiungi Selezionati',
                     class: 'sol-btn sol-btn-primary',
-                    onclick: async function() {
+                    action: async function() {
                         const selectedItems = [];
                         document.querySelectorAll('.product-row-checkbox:checked').forEach(checkbox => {
                             const row = checkbox.closest('tr');
@@ -261,6 +261,8 @@ async function addProduct() {
                             const addPromises = selectedItems.map(({ product, quantity }) => {
                                 const productData = {
                                     product_id: product.id,
+                                    name: product.name || 'Senza nome', // Aggiunto per storicizzazione
+                                    sku: product.sku || 'N/D',          // Aggiunto per storicizzazione
                                     quantity: parseInt(quantity, 10),
                                     unit_value: parseFloat(product.unit_value || 0),
                                     weight_kg: parseFloat(product.weight_kg || 0),
@@ -273,8 +275,8 @@ async function addProduct() {
                             loadShipmentDetails(shipmentId);
                             return true;
                         } catch (error) {
-                            console.error('Errore aggiunta prodotto:', error);
-                            notificationSystem.error('Errore durante l\'aggiunta dei prodotti.');
+                            console.error('Errore dettagliato aggiunta prodotto:', JSON.stringify(error, null, 2));
+                            notificationSystem.error(`Errore: ${error.message || 'Dettagli nella console.'}`);
                             return false;
                         }
                     }

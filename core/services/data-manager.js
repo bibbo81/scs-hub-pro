@@ -365,7 +365,10 @@ class DataManager {
              .from('shipment_items')
              .insert([{
                  shipment_id: shipmentId,
+                 organization_id: this.organizationId, // <-- FIX CRITICO: Aggiunge l'ID dell'organizzazione
                  product_id: productData.product_id,
+                 name: productData.name, // Storicizza il nome del prodotto
+                 sku: productData.sku,   // Storicizza lo SKU del prodotto
                  quantity: productData.quantity,
                  unit_value: productData.unit_value,
                  weight_kg: productData.weight_kg,
@@ -378,7 +381,7 @@ class DataManager {
              .single();
  
          if (error) {
-             console.error("Errore nell'aggiungere prodotto alla spedizione:", error);
+             console.error("Errore Supabase nell'aggiungere prodotto:", JSON.stringify(error, null, 2));
              throw error;
          }
  
