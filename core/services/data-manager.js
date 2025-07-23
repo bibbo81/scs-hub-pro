@@ -184,6 +184,31 @@ class DataManager {
     }
 
     /**
+     * Aggiorna il corriere associato a una spedizione.
+     * @param {string} shipmentId - L'ID della spedizione da aggiornare.
+     * @param {string} carrierId - L'ID del nuovo corriere.
+     * @returns {Promise<Object>} Il record della spedizione aggiornato.
+     */
+    async updateShipmentCarrier(shipmentId, carrierId) {
+        if (!this.initialized) await this.init();
+
+        const { data, error } = await supabase
+            .from('shipments')
+            .update({ carrier_id: carrierId })
+            .eq('id', shipmentId)
+            .eq('organization_id', this.organizationId)
+            .select('*, carrier:carrier_id (*)') // Seleziona anche i dati del nuovo corriere
+            .single();
+
+        if (error) {
+            console.error('Errore nell-aggiornare il corriere della spedizione:', error);
+            throw error;
+        }
+
+        return data;
+    }
+
+    /**
      * Recupera tutti gli spedizionieri con statistiche aggregate (conteggio spedizioni e costo totale).
      * @returns {Promise<Array>} Lista di spedizionieri con statistiche.
      */
