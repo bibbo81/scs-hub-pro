@@ -266,25 +266,30 @@ function replaceDocument(documentId) {
 
 async function downloadDocument(documentId) {
     try {
+        notificationSystem.info('Preparazione del download...');
+
         const doc = (await dataManager.getShipmentDetails(getShipmentIdFromURL())).documents.find(d => d.id === documentId);
-        if (!doc) {
-            notificationSystem.error('Documento non trovato.');
-            return;
-        }
+        if (!doc) throw new Error('Documento non trovato.');
 
         const signedUrl = await dataManager.getPublicFileUrl(doc.file_path);
-        if (!signedUrl) {
-            notificationSystem.error('Impossibile generare il link per il download.');
-            return;
-        }
+        if (!signedUrl) throw new Error('Impossibile generare il link per il download.');
 
-        // Crea un link temporaneo e cliccalo per avviare il download
+        // Usa fetch per ottenere il file come blob
+        const response = await fetch(signedUrl);
+        if (!response.ok) throw new Error(`Errore di rete: ${response.statusText}`);
+        const blob = await response.blob();
+
+        // Crea un URL oggetto dal blob e avvia il download
+        const url = window.URL.createObjectURL(blob);
         const link = document.createElement('a');
-        link.href = signedUrl;
-        link.download = doc.document_name; // Usa il nome originale del file
+        link.href = url;
+        link.download = doc.document_name;
         document.body.appendChild(link);
         link.click();
-        document.body.removeChild(link);
+
+        // Pulisci
+        link.remove();
+        window.URL.revokeObjectURL(url);
 
     } catch (error) {
         notificationSystem.error(`Errore durante il download: ${error.message}`);

@@ -553,7 +553,6 @@ class DataManager {
                 document_name: newFile.name,
                 file_path: uploadData.path,
                 file_size: newFile.size,
-                updated_at: new Date().toISOString(),
             })
             .eq('id', documentId)
             .select()
