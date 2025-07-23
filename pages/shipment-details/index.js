@@ -259,13 +259,17 @@ async function addProduct() {
                         try {
                             notificationSystem.info(`Aggiunta di ${selectedItems.length} prodotti...`);
                             const addPromises = selectedItems.map(({ product, quantity }) => {
+                                const q = parseInt(quantity, 10);
+                                const uv = parseFloat(product.unit_value || 0);
+                                const w = parseFloat(product.weight_kg || 0);
+
                                 const productData = {
-                                    product_id: product.id,
-                                    name: product.name || 'Senza nome', // Aggiunto per storicizzazione
-                                    sku: product.sku || 'N/D',          // Aggiunto per storicizzazione
-                                    quantity: parseInt(quantity, 10),
-                                    unit_value: parseFloat(product.unit_value || 0),
-                                    weight_kg: parseFloat(product.weight_kg || 0),
+                                    product_id: String(product.id),
+                                    name: String(product.name || 'Senza nome'),
+                                    sku: String(product.sku || 'N/D'),
+                                    quantity: isNaN(q) ? 1 : q,
+                                    unit_value: isNaN(uv) ? 0 : uv,
+                                    weight_kg: isNaN(w) ? 0 : w,
                                     volume_cbm: 0,
                                 };
                                 return dataManager.addShipmentItem(shipmentId, productData);
