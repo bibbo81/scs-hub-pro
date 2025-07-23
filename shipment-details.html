@@ -72,7 +72,20 @@
                             <p><span class="data-label">Spedizioniere:</span> <span id="shipmentCarrier" class="data-value">-</span> <button class="sol-btn sol-btn-icon sol-btn-sm" id="changeCarrierBtn" title="Cambia Corriere"><i class="fas fa-edit"></i></button></p>
                         </div>
                         <div class="col-md-4">
-                            <p><span class="data-label">Costo Totale:</span> <span id="shipmentTotalCost" class="data-value">-</span></p>
+                            <div class="sol-form-group">
+                                <label for="freightCost" class="sol-form-label">Costo Nolo</label>
+                                <input type="number" id="freightCost" class="sol-form-input" placeholder="0.00">
+                            </div>
+                            <div class="sol-form-group">
+                                <label for="otherCosts" class="sol-form-label">Altri Costi</label>
+                                <input type="number" id="otherCosts" class="sol-form-input" placeholder="0.00">
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <p><span class="data-label">Costo Totale:</span> <span id="shipmentTotalCost" class="data-value font-weight-bold">-</span></p>
+                            <button class="sol-btn sol-btn-primary sol-btn-sm" id="saveCostsBtn" style="margin-top: 1rem;">
+                                <i class="fas fa-save mr-2"></i>Salva Costi
+                            </button>
                         </div>
                     </div>
                 </div>
