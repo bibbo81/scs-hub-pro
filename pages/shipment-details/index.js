@@ -212,9 +212,28 @@ function setupEventListeners() {
 function editProduct(productId) {
     notificationSystem.info(`Funzione "Modifica Prodotto" (ID: ${productId}) non ancora implementata.`);
 }
-function deleteProduct(productId) {
-    notificationSystem.info(`Funzione "Elimina Prodotto" (ID: ${productId}) non ancora implementata.`);
+
+async function deleteProduct(productId) {
+    const confirmed = await ModalSystem.confirm({
+        title: 'Conferma Eliminazione',
+        content: 'Sei sicuro di voler rimuovere questo prodotto dalla spedizione?',
+        confirmText: 'Elimina',
+        cancelText: 'Annulla'
+    });
+
+    if (confirmed) {
+        try {
+            notificationSystem.info('Rimozione prodotto in corso...');
+            await dataManager.deleteShipmentItem(productId);
+            notificationSystem.success('Prodotto rimosso con successo!');
+            const shipmentId = getShipmentIdFromURL();
+            loadShipmentDetails(shipmentId); // Ricarica i dettagli per aggiornare la tabella
+        } catch (error) {
+            notificationSystem.error('Errore durante la rimozione del prodotto.');
+        }
+    }
 }
+
 function uploadDocument() { notificationSystem.info('Funzione "Carica Documento" non ancora implementata.'); }
 function deleteDocument(documentId) {
     notificationSystem.info(`Funzione "Elimina Documento" (ID: ${documentId}) non ancora implementata.`);
@@ -233,11 +252,11 @@ async function addProduct() {
             size: 'lg',
             content: modalContent,
             buttons: [
-                { text: 'Annulla', class: 'sol-btn sol-btn-secondary', action: () => ModalSystem.close() },
+                { text: 'Annulla', class: 'sol-btn sol-btn-secondary', onclick: () => ModalSystem.close() },
                 {
                     text: 'Aggiungi Selezionati',
                     class: 'sol-btn sol-btn-primary',
-                    action: async function() {
+                    onclick: async function() {
                         const selectedItems = [];
                         document.querySelectorAll('.product-row-checkbox:checked').forEach(checkbox => {
                             const row = checkbox.closest('tr');
@@ -252,7 +271,7 @@ async function addProduct() {
 
                         if (selectedItems.length === 0) {
                             notificationSystem.warning('Nessun prodotto selezionato o quantità non valida.');
-                            return false;
+                            return false; // Non chiudere la modale
                         }
 
                         const shipmentId = getShipmentIdFromURL();
@@ -277,11 +296,11 @@ async function addProduct() {
                             await Promise.all(addPromises);
                             notificationSystem.success(`${selectedItems.length} prodotti aggiunti!`);
                             loadShipmentDetails(shipmentId);
-                            return true;
+                            return true; // Chiudi la modale in caso di successo
                         } catch (error) {
                             console.error('Errore dettagliato aggiunta prodotto:', JSON.stringify(error, null, 2));
                             notificationSystem.error(`Errore: ${error.message || 'Dettagli nella console.'}`);
-                            return false;
+                            return false; // Non chiudere la modale in caso di errore
                         }
                     }
                 }
