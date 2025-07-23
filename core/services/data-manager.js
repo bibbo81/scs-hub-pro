@@ -444,7 +444,7 @@ class DataManager {
 
         // 1. Carica il file su Supabase Storage
         const { data: uploadData, error: uploadError } = await supabase.storage
-            .from('documents')
+            .from('shipment-documents')
             .upload(filePath, file);
 
         if (uploadError) {
@@ -473,7 +473,7 @@ class DataManager {
      */
     getPublicFileUrl(filePath) {
         if (!filePath) return null;
-        const { data } = supabase.storage.from('documents').getPublicUrl(filePath);
+        const { data } = supabase.storage.from('shipment-documents').getPublicUrl(filePath);
         return data.publicUrl;
     }
 
