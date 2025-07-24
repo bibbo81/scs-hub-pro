@@ -59,33 +59,37 @@ function renderProductsTable(products) {
     const tbody = document.getElementById('productsTableBody');
     tbody.innerHTML = '';
     if (!products || products.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="8" class="text-center">Nessun prodotto associato.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="6" class="text-center">Nessun prodotto associato.</td></tr>';
+        updateTotals([]); // Passa un array vuoto per azzerare i totali
         return;
     }
-    let totalValue = 0, totalWeight = 0, totalVolume = 0, totalAllocatedCost = 0;
     products.forEach(product => {
         const tr = document.createElement('tr');
         tr.classList.add('product-row');
+        tr.dataset.itemId = product.id; // Usa l'ID dell'item per un accesso più facile
         tr.innerHTML = `
             <td>${product.product?.name || product.name || '-'}<small class="text-muted d-block">${product.product?.sku || ''}</small></td>
             <td>${product.quantity || 0}</td>
-            <td>${formatCurrency(product.unit_value)}</td>
-            <td>${formatCurrency(product.total_value)}</td>
             <td>${formatWeight(product.total_weight_kg)}</td>
             <td>${formatVolume(product.total_volume_cbm)}</td>
             <td>${formatCurrency(product.allocated_cost)}</td>
             <td>
-                <button class="sol-btn sol-btn-secondary sol-btn-sm edit-product-btn" data-product-id="${product.id}" title="Modifica Prodotto"><i class="fas fa-edit"></i></button>
-                <button class="sol-btn sol-btn-danger sol-btn-sm delete-product-btn" data-product-id="${product.id}" title="Elimina Prodotto"><i class="fas fa-trash"></i></button>
+                <button class="sol-btn sol-btn-secondary sol-btn-sm edit-product-btn" data-item-id="${product.id}" title="Modifica Prodotto"><i class="fas fa-edit"></i></button>
+                <button class="sol-btn sol-btn-danger sol-btn-sm delete-product-btn" data-item-id="${product.id}" title="Elimina Prodotto"><i class="fas fa-trash"></i></button>
             </td>
         `;
         tbody.appendChild(tr);
-        totalValue += product.total_value || 0;
+    });
+    updateTotals(products);
+}
+
+function updateTotals(products) {
+    let totalWeight = 0, totalVolume = 0, totalAllocatedCost = 0;
+    products.forEach(product => {
         totalWeight += product.total_weight_kg || 0;
         totalVolume += product.total_volume_cbm || 0;
         totalAllocatedCost += product.allocated_cost || 0;
     });
-    document.getElementById('totalValue').textContent = formatCurrency(totalValue);
     document.getElementById('totalWeight').textContent = formatWeight(totalWeight);
     document.getElementById('totalVolume').textContent = formatVolume(totalVolume);
     document.getElementById('totalAllocatedCost').textContent = formatCurrency(totalAllocatedCost);
@@ -136,9 +140,13 @@ function setupEventListeners() {
 
     document.getElementById('productsTableBody')?.addEventListener('click', (event) => {
         const editBtn = event.target.closest('.edit-product-btn');
-        if (editBtn) editProduct(editBtn.dataset.productId);
+        if (editBtn) {
+            editProduct(editBtn.dataset.itemId);
+        }
         const deleteBtn = event.target.closest('.delete-product-btn');
-        if (deleteBtn) deleteProduct(deleteBtn.dataset.productId);
+        if (deleteBtn) {
+            deleteProduct(deleteBtn.dataset.itemId);
+        }
     });
 
     document.getElementById('documentsTableBody')?.addEventListener('click', (event) => {
@@ -335,13 +343,80 @@ async function downloadDocument(documentId) {
     }
 }
 
-function editProduct(productId) { notificationSystem.info(`Funzione "Modifica Prodotto" (ID: ${productId}) non ancora implementata.`); }
+async function editProduct(shipmentItemId) {
+    const shipmentId = getShipmentIdFromURL();
+    try {
+        const shipmentDetails = await dataManager.getShipmentDetails(shipmentId);
+        const itemToEdit = shipmentDetails.products.find(p => p.id === shipmentItemId);
+
+        if (!itemToEdit) {
+            notificationSystem.error('Prodotto non trovato nella spedizione.');
+            return;
+        }
+
+        const modalContent = `
+            <div class="sol-form">
+                <div class="sol-form-group">
+                    <label for="editQuantity" class="sol-form-label">Quantità</label>
+                    <input type="number" id="editQuantity" class="sol-form-input" value="${itemToEdit.quantity || 1}" min="1">
+                </div>
+                <div class="sol-form-group">
+                    <label for="editWeight" class="sol-form-label">Peso Unitario (kg)</label>
+                    <input type="number" id="editWeight" class="sol-form-input" value="${itemToEdit.weight_kg || 0}" min="0" step="0.01">
+                </div>
+                <div class="sol-form-group">
+                    <label for="editVolume" class="sol-form-label">Volume Unitario (m³)</label>
+                    <input type="number" id="editVolume" class="sol-form-input" value="${itemToEdit.volume_cbm || 0}" min="0" step="0.01">
+                </div>
+            </div>
+        `;
+
+        ModalSystem.show({
+            title: `Modifica Prodotto: ${itemToEdit.product?.name || itemToEdit.name}`,
+            content: modalContent,
+            buttons: [
+                { text: 'Annulla', class: 'sol-btn sol-btn-secondary', onclick: () => ModalSystem.close() },
+                {
+                    text: 'Salva Modifiche',
+                    class: 'sol-btn sol-btn-primary',
+                    onclick: async () => {
+                        const updatedData = {
+                            quantity: parseInt(document.getElementById('editQuantity').value, 10),
+                            weight_kg: parseFloat(document.getElementById('editWeight').value),
+                            volume_cbm: parseFloat(document.getElementById('editVolume').value)
+                        };
+
+                        if (isNaN(updatedData.quantity) || updatedData.quantity <= 0) {
+                            notificationSystem.error('La quantità deve essere un numero valido maggiore di zero.');
+                            return false;
+                        }
+
+                        try {
+                            notificationSystem.info('Salvataggio modifiche...');
+                            await dataManager.updateShipmentItem(shipmentItemId, updatedData);
+                            await dataManager.allocateCosts(shipmentId); // Ricalcola i costi
+                            notificationSystem.success('Prodotto aggiornato con successo!');
+                            loadShipmentDetails(shipmentId);
+                            return true; // Chiude la modale
+                        } catch (error) {
+                            notificationSystem.error(`Errore durante l'aggiornamento: ${error.message}`);
+                            return false; // Non chiude la modale
+                        }
+                    }
+                }
+            ]
+        });
+
+    } catch (error) {
+        notificationSystem.error('Impossibile caricare i dettagli del prodotto da modificare.');
+    }
+}
 
 async function deleteProduct(productId) {
     const confirmed = await ModalSystem.confirm({ title: 'Conferma Eliminazione', content: 'Sei sicuro di voler rimuovere questo prodotto?', confirmText: 'Elimina', cancelText: 'Annulla' });
     if (confirmed) {
         try {
-            await dataManager.deleteShipmentItem(productId);
+            await dataManager.deleteShipmentItem(productId); // Assicurati che dataManager abbia deleteShipmentItem
             notificationSystem.success('Prodotto rimosso.');
             loadShipmentDetails(getShipmentIdFromURL());
         } catch (error) {
@@ -365,6 +440,9 @@ async function addProduct() {
                     </div>
                     <div class="col-sku text-muted">${p.sku}</div>
                     <div class="col-name">${p.name}</div>
+                    <div class="col-weight">
+                        <input type="number" class="sol-form-input sol-form-input-sm product-weight-input" placeholder="kg" min="0" step="0.01" value="${p.weight_kg || ''}">
+                    </div>
                     <div class="col-volume">
                         <input type="number" class="sol-form-input sol-form-input-sm product-volume-input" placeholder="m³" min="0" step="0.01" value="${p.volume_cbm || ''}">
                     </div>
@@ -386,6 +464,7 @@ async function addProduct() {
                     <div class="col-check"></div>
                     <div class="col-sku">Cod. Prodotto</div>
                     <div class="col-name">Descrizione</div>
+                    <div class="col-weight">Peso (kg)</div>
                     <div class="col-volume">Volume (m³)</div>
                     <div class="col-qty">Quantità</div>
                 </div>
@@ -415,7 +494,8 @@ async function addProduct() {
                                 if (product) {
                                     const quantity = parseInt(row.querySelector('.product-quantity-input').value, 10) || 1;
                                     const volume = parseFloat(row.querySelector('.product-volume-input').value) || 0;
-                                    itemsToAdd.push({ ...product, quantity, volume_cbm: volume, product_id: productId });
+                                    const weight = parseFloat(row.querySelector('.product-weight-input').value) || 0;
+                                    itemsToAdd.push({ ...product, quantity, volume_cbm: volume, weight_kg: weight, product_id: productId });
                                 }
                             }
                         });

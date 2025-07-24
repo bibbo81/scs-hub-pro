@@ -432,6 +432,36 @@ class DataManager {
     }
 
     /**
+     * Aggiorna un prodotto in una spedizione.
+     * @param {string} shipmentItemId - L'ID dell'item da aggiornare.
+     * @param {Object} updateData - Dati da aggiornare (quantity, weight_kg, volume_cbm).
+     * @returns {Promise<Object>} Il prodotto aggiornato.
+     */
+    async updateShipmentItem(shipmentItemId, updateData) {
+        if (!this.initialized) await this.init();
+
+        const updatePayload = {
+            quantity: updateData.quantity,
+            weight_kg: updateData.weight_kg,
+            volume_cbm: updateData.volume_cbm,
+            total_weight_kg: (updateData.quantity || 0) * (updateData.weight_kg || 0),
+            total_volume_cbm: (updateData.quantity || 0) * (updateData.volume_cbm || 0)
+        };
+
+        const { data, error } = await supabase
+            .from('shipment_items')
+            .update(updatePayload)
+            .eq('id', shipmentItemId)
+            .eq('organization_id', this.organizationId)
+            .select()
+            .single();
+
+        if (error) throw error;
+
+        return data;
+    }
+
+    /**
      * Rimuove un prodotto da una spedizione.
      * @param {string} shipmentItemId - L'ID dell'item da rimuovere.
      * @returns {Promise<boolean>} True se la rimozione ha avuto successo.

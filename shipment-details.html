@@ -56,7 +56,8 @@
         }
         .product-selection-modal .col-check { flex: 0 0 40px; text-align: center; }
         .product-selection-modal .col-sku { flex: 1 1 20%; padding: 0 0.5rem; }
-        .product-selection-modal .col-name { flex: 1 1 45%; padding: 0 0.5rem; }
+        .product-selection-modal .col-name { flex: 1 1 35%; padding: 0 0.5rem; }
+        .product-selection-modal .col-weight { flex: 0 0 90px; text-align: center; }
         .product-selection-modal .col-volume { flex: 0 0 90px; text-align: center; }
         .product-selection-modal .col-qty { flex: 0 0 90px; text-align: center; }
     </style>
@@ -123,8 +124,6 @@
                                 <tr>
                                     <th>Prodotto</th>
                                     <th>Quantità</th>
-                                    <th>Valore Unitario</th>
-                                    <th>Valore Totale</th>
                                     <th>Peso (kg)</th>
                                     <th>Volume (m³)</th>
                                     <th>Costo Allocato</th>
@@ -136,8 +135,7 @@
                             </tbody>
                             <tfoot>
                                 <tr>
-                                    <th colspan="3" class="text-right">Totali:</th>
-                                    <th id="totalValue"></th>
+                                    <th colspan="2" class="text-right">Totali:</th>
                                     <th id="totalWeight"></th>
                                     <th id="totalVolume"></th>
                                     <th id="totalAllocatedCost"></th>
