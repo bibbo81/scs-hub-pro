@@ -212,18 +212,6 @@
     .workflow-modal-overlay.active {
         display: block !important;
     }
-
-    .sol-card-header {
-        background-color: #f8f9fa;
-        padding: 0.75rem 1.25rem;
-        border-bottom: 1px solid #dee2e6;
-    }
-
-    .table-actions {
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-    }
     </style>
     <script>
         window.App = {
@@ -433,9 +421,14 @@
                     <button class="btn btn-info" onclick="window.ImportManager.showImportDialog()">
                         <i class="fas fa-file-import mr-2"></i>Importa
                     </button>
-                    <!-- AGGIUNGI TEMPORANEAMENTE questo tasto -->
-                    <button class="btn btn-warning" onclick="testDataManager()">
-                        <i class="fas fa-flask mr-2"></i>Test Data Manager
+                    <button class="btn btn-secondary" onclick="window.tableManagerShowColumns('trackingTableContainer')">
+                        <i class="fas fa-columns mr-2"></i>Colonne
+                    </button>
+                    <button class="btn btn-secondary" onclick="window.tableManagerExport('trackingTableContainer', 'excel')">
+                        <i class="fas fa-file-excel mr-2"></i>Excel
+                    </button>
+                    <button class="btn btn-secondary" onclick="window.tableManagerExport('trackingTableContainer', 'pdf')">
+                        <i class="fas fa-file-pdf mr-2"></i>PDF
                     </button>
                 </div>
             </div>
@@ -554,24 +547,6 @@
 
             <!-- Tracking Table -->
             <div class="sol-card">
-                <div class="sol-card-header d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0">Elenco Spedizioni</h5>
-                    <div class="table-actions">
-                        <button class="btn btn-sm btn-outline-secondary" onclick="showColumnEditor()">
-                            <i class="fas fa-columns mr-1"></i> Gestione Colonne
-                        </button>
-                        <div class="dropdown">
-                            <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="exportDropdown" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                                <i class="fas fa-download mr-1"></i> Esporta
-                            </button>
-                            <div class="dropdown-menu dropdown-menu-right" aria-labelledby="exportDropdown">
-                                <a class="dropdown-item" href="#" onclick="exportData('csv')">Esporta CSV</a>
-                                <a class="dropdown-item" href="#" onclick="exportData('excel')">Esporta Excel</a>
-                                <a class="dropdown-item" href="#" onclick="exportData('pdf')">Esporta PDF</a>
-                            </div>
-                        </div>
-                    </div>
-                </div>
                 <div class="sol-card-body p-0">
                     <!-- Loading State -->
                     <div id="loadingState" style="display: none;">
@@ -1638,6 +1613,23 @@ console.log('- testTracking() - Crea un tracking di test con prefix BIBBO');
 
         window.ModalSystem.hide();
         window.NotificationSystem?.success("Colonne aggiornate");
+      };
+
+      // Wrapper functions to align with legacy calls from buttons like
+      // onclick="window.tableManagerShowColumns('trackingTableContainer')"
+      window.tableManagerShowColumns = function(tableId) {
+          console.log(`Request to show column editor for: ${tableId}`);
+          showColumnEditor();
+      };
+
+      window.tableManagerExport = function(tableId, format) {
+          console.log(`Request to export ${tableId} to ${format}`);
+          if (window.exportData) {
+              exportData(format);
+          } else {
+              console.error('Export function (exportData) not found.');
+              window.NotificationSystem?.error('Funzione di esportazione non disponibile.');
+          }
       };
     </script>
 
