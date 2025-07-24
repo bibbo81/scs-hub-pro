@@ -322,6 +322,51 @@
         return mapped;
     }
 </script>
+<script>
+    /**
+     * Processes a single tracking record, applying API response mapping if raw data is available.
+     * This ensures that all tracking objects in the application are consistently structured.
+     * @param {TrackingLike} tracking - The tracking object to process.
+     * @returns {TrackingLike} The processed and enhanced tracking object.
+     */
+    function processTrackingRecord(tracking) {
+        if (!tracking) return tracking;
+
+        // If there's raw API data stored, map it to ensure all fields are present
+        if (tracking._raw) {
+            const mappedData = mapApiResponseToTracking(tracking._raw);
+            // Merge the mapped data into the tracking object.
+            // The original tracking object (from DB) takes precedence for core fields like id, created_at.
+            // The mapped data provides additional details.
+            return { ...mappedData, ...tracking };
+        }
+        
+        return tracking;
+    }
+
+    // Enhance the DataManager to automatically process tracking data
+    App.onReady(() => {
+        if (window.dataManager) {
+            // Enhance getTrackings to process all records
+            const originalGetTrackings = window.dataManager.getTrackings;
+            window.dataManager.getTrackings = async function(...args) {
+                const trackings = await originalGetTrackings.apply(this, args);
+                return Array.isArray(trackings) ? trackings.map(processTrackingRecord) : trackings;
+            };
+
+            // Enhance addTracking to process the newly added record
+            const originalAddTracking = window.dataManager.addTracking;
+            window.dataManager.addTracking = async function(...args) {
+                const result = await originalAddTracking.apply(this, args);
+                if (result && result.tracking) {
+                    result.tracking = processTrackingRecord(result.tracking);
+                }
+                return result;
+            };
+            console.log('✅ DataManager enhanced with tracking data processor.');
+        }
+    });
+</script>
 </head>
 <body>
     <!-- Nasconde immediatamente qualsiasi workflow modal al caricamento -->
