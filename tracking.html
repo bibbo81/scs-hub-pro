@@ -1303,6 +1303,35 @@ console.log('- testTracking() - Crea un tracking di test con prefix BIBBO');
 })();
 </script>
     <script>
+      // Definizione centralizzata delle colonne disponibili per la tabella di tracking.
+      // Questo array è utilizzato dal gestore di colonne per popolare il selettore.
+      window.AVAILABLE_COLUMNS = [
+        // Informazioni generali
+        { key: 'tracking_number', label: 'Tracking Number', required: true, sortable: true },
+        { key: 'carrier', label: 'Carrier', sortable: true },
+        { key: 'current_status', label: 'Stato', sortable: true },
+        { key: 'tracking_type', label: 'Tipo', sortable: true },
+
+        // Rotta
+        { key: 'origin', label: 'Origine', sortable: true },
+        { key: 'destination', label: 'Destinazione', sortable: true },
+
+        // Date
+        { key: 'date_of_departure', label: 'Data Partenza', sortable: true },
+        { key: 'eta', label: 'ETA', sortable: true },
+        { key: 'transit_time', label: 'Transit Time', sortable: true },
+        { key: 'updated_at', label: 'Ultimo Aggiornamento', sortable: true },
+        { key: 'created_at', label: 'Data Inserimento', sortable: true },
+
+        // Dettagli container (per spedizioni marittime)
+        { key: 'vessel_name', label: 'Vessel', sortable: true },
+        { key: 'container_size', label: 'Dim. Container', sortable: true },
+        { key: 'container_type', label: 'Tipo Container', sortable: true },
+        { key: 'total_weight', label: 'Peso Totale (kg)', sortable: true },
+        { key: 'total_volume', label: 'Volume Totale (cbm)', sortable: true },
+      ];
+</script>
+    <script>
       function showColumnEditor() {
         if (!window.ModalSystem) return;
 
