@@ -252,12 +252,21 @@
         { key: 'updated_at', label: 'Ultimo Aggiornamento', sortable: true },
         { key: 'created_at', label: 'Data Inserimento', sortable: true },
 
+        // Dettagli Spedizione
+        { key: 'reference_number', label: 'Riferimento', sortable: true },
+        { key: 'bl_number', label: 'B/L Number', sortable: true },
+        { key: 'last_event_description', label: 'Ultimo Evento', sortable: true },
+
         // Dettagli container (per spedizioni marittime)
         { key: 'vessel_name', label: 'Vessel', sortable: true },
-        { key: 'container_size', label: 'Dim. Container', sortable: true },
-        { key: 'container_type', label: 'Tipo Container', sortable: true },
-        { key: 'total_weight', label: 'Peso Totale (kg)', sortable: true },
-        { key: 'total_volume', label: 'Volume Totale (cbm)', sortable: true },
+        { key: 'vessel_imo', label: 'IMO', sortable: true },
+        { key: 'voyage_number', label: 'Voyage', sortable: true },
+        { key: 'container_details', label: 'Tipo/Qtà Container', sortable: true },
+        { key: 'total_weight_kg', label: 'Peso Totale (kg)', sortable: true },
+        { key: 'total_volume_cbm', label: 'Volume Totale (cbm)', sortable: true },
+
+        // Dettagli Aereo
+        { key: 'flight_number', label: 'N. Volo', sortable: true },
       ];
 </script>
 <script>
@@ -281,8 +290,8 @@
     // Funzione per ottenere il formatter corretto per una colonna
     function getColumnFormatter(key) {
         const formatters = {
-            'total_weight': value => (value ? `${parseFloat(value).toFixed(2)} kg` : '—'),
-            'total_volume': value => (value ? `${parseFloat(value).toFixed(3)} cbm` : '—'),
+            'total_weight_kg': value => (value ? `${parseFloat(value).toFixed(2)} kg` : '—'),
+            'total_volume_cbm': value => (value ? `${parseFloat(value).toFixed(3)} cbm` : '—'),
             'date_of_departure': formatDateOnly,
             'eta': formatDateOnly,
             'updated_at': value => (value ? new Date(value).toLocaleString() : '—'),
@@ -326,13 +335,21 @@
 
             origin: apiResponse.origin,
             destination: apiResponse.destination,
-            
+
+            // Dettagli aggiuntivi
+            reference_number: apiResponse.reference_number || apiResponse.referenceNumber,
+            bl_number: apiResponse.bl_number || apiResponse.blNumber,
+            last_event_description: apiResponse.last_event_description || apiResponse.lastEventDescription,
+
             vessel_name: apiResponse.vessel_name || apiResponse.vesselName,
-            container_size: apiResponse.container_size || apiResponse.containerSize,
-            container_type: apiResponse.container_type || apiResponse.containerType,
-            total_weight: apiResponse.total_weight || apiResponse.totalWeight,
-            total_volume: apiResponse.total_volume || apiResponse.totalVolume,
-            
+            vessel_imo: apiResponse.vessel_imo || apiResponse.vesselImo,
+            voyage_number: apiResponse.voyage_number || apiResponse.voyageNumber,
+            flight_number: apiResponse.flight_number || apiResponse.flightNumber,
+
+            container_details: apiResponse.container_types || apiResponse.container_type || apiResponse.containerType,
+            total_weight_kg: apiResponse.total_weight_kg || apiResponse.total_weight || apiResponse.totalWeight,
+            total_volume_cbm: apiResponse.total_volume_cbm || apiResponse.total_volume || apiResponse.totalVolume,
+
             // Store raw response for debugging or future use
             _raw: apiResponse 
         };
