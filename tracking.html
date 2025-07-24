@@ -213,6 +213,115 @@
         display: block !important;
     }
     </style>
+    <script>
+      // Definizione centralizzata delle colonne disponibili per la tabella di tracking.
+      // Questo array è utilizzato dal gestore di colonne per popolare il selettore.
+      window.AVAILABLE_COLUMNS = [
+        // Informazioni generali
+        { key: 'tracking_number', label: 'Tracking Number', required: true, sortable: true },
+        { key: 'carrier', label: 'Carrier', sortable: true },
+        { key: 'current_status', label: 'Stato', sortable: true },
+        { key: 'tracking_type', label: 'Tipo', sortable: true },
+
+        // Rotta
+        { key: 'origin', label: 'Origine', sortable: true },
+        { key: 'destination', label: 'Destinazione', sortable: true },
+
+        // Date
+        { key: 'date_of_departure', label: 'Data Partenza', sortable: true },
+        { key: 'eta', label: 'ETA', sortable: true },
+        { key: 'transit_time', label: 'Transit Time', sortable: true },
+        { key: 'updated_at', label: 'Ultimo Aggiornamento', sortable: true },
+        { key: 'created_at', label: 'Data Inserimento', sortable: true },
+
+        // Dettagli container (per spedizioni marittime)
+        { key: 'vessel_name', label: 'Vessel', sortable: true },
+        { key: 'container_size', label: 'Dim. Container', sortable: true },
+        { key: 'container_type', label: 'Tipo Container', sortable: true },
+        { key: 'total_weight', label: 'Peso Totale (kg)', sortable: true },
+        { key: 'total_volume', label: 'Volume Totale (cbm)', sortable: true },
+      ];
+</script>
+<script>
+    // Funzione per formattare le date in formato YYYY-MM-DD
+    function formatDateOnly(dateString) {
+        if (!dateString) return '—';
+        try {
+            const date = new Date(dateString);
+            // Previene "Invalid Date"
+            if (isNaN(date.getTime())) return dateString;
+            
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        } catch (e) {
+            return dateString; // Ritorna la stringa originale se il parsing fallisce
+        }
+    }
+
+    // Funzione per ottenere il formatter corretto per una colonna
+    function getColumnFormatter(key) {
+        const formatters = {
+            'total_weight': value => (value ? `${parseFloat(value).toFixed(2)} kg` : '—'),
+            'total_volume': value => (value ? `${parseFloat(value).toFixed(3)} cbm` : '—'),
+            'date_of_departure': formatDateOnly,
+            'eta': formatDateOnly,
+            'updated_at': value => (value ? new Date(value).toLocaleString() : '—'),
+            'created_at': value => (value ? new Date(value).toLocaleString() : '—'),
+            'current_status': value => {
+                const statusInfo = window.STATUS_MAPPING?.[value] || { text: value, class: 'secondary' };
+                return `<span class="badge badge-${statusInfo.class}">${statusInfo.text}</span>`;
+            },
+        };
+
+        return formatters[key] || (value => value || '—');
+    }
+</script>
+<script>
+    /**
+     * Maps the raw API response from various sources to a standardized tracking object.
+     * This ensures that data can be handled consistently by the UI components.
+     * @param {object} apiResponse - The raw data object from the API.
+     * @returns {Partial<TrackingLike>} A standardized tracking object.
+     */
+    function mapApiResponseToTracking(apiResponse) {
+        if (!apiResponse) return null;
+
+        // Normalize carrier name
+        const carrierName = typeof apiResponse.carrier === 'object' && apiResponse.carrier !== null
+            ? apiResponse.carrier.name
+            : apiResponse.carrier;
+
+        const mapped = {
+            id: apiResponse.id || apiResponse.requestId,
+            tracking_number: apiResponse.tracking_number || apiResponse.trackingNumber || apiResponse.containerNo || apiResponse.awb,
+            carrier: carrierName,
+            current_status: apiResponse.current_status || apiResponse.currentStatus || 'pending',
+            tracking_type: apiResponse.tracking_type || apiResponse.trackingType || (apiResponse.containerNo ? 'container' : 'air_waybill'),
+            
+            date_of_departure: apiResponse.date_of_departure || apiResponse.dateOfDeparture || apiResponse.departureDate,
+            eta: apiResponse.eta,
+            transit_time: apiResponse.transit_time || apiResponse.transitTime,
+            updated_at: apiResponse.updated_at || apiResponse.updatedAt || new Date().toISOString(),
+            created_at: apiResponse.created_at || apiResponse.createdAt || new Date().toISOString(),
+
+            origin: apiResponse.origin,
+            destination: apiResponse.destination,
+            
+            vessel_name: apiResponse.vessel_name || apiResponse.vesselName,
+            container_size: apiResponse.container_size || apiResponse.containerSize,
+            container_type: apiResponse.container_type || apiResponse.containerType,
+            total_weight: apiResponse.total_weight || apiResponse.totalWeight,
+            total_volume: apiResponse.total_volume || apiResponse.totalVolume,
+            
+            // Store raw response for debugging or future use
+            _raw: apiResponse 
+        };
+
+        return mapped;
+    }
+</script>
 </head>
 <body>
     <!-- Nasconde immediatamente qualsiasi workflow modal al caricamento -->
@@ -1301,35 +1410,6 @@ console.log('- testTracking() - Crea un tracking di test con prefix BIBBO');
     
     console.log('✅ Cross-tab sync initialized');
 })();
-</script>
-    <script>
-      // Definizione centralizzata delle colonne disponibili per la tabella di tracking.
-      // Questo array è utilizzato dal gestore di colonne per popolare il selettore.
-      window.AVAILABLE_COLUMNS = [
-        // Informazioni generali
-        { key: 'tracking_number', label: 'Tracking Number', required: true, sortable: true },
-        { key: 'carrier', label: 'Carrier', sortable: true },
-        { key: 'current_status', label: 'Stato', sortable: true },
-        { key: 'tracking_type', label: 'Tipo', sortable: true },
-
-        // Rotta
-        { key: 'origin', label: 'Origine', sortable: true },
-        { key: 'destination', label: 'Destinazione', sortable: true },
-
-        // Date
-        { key: 'date_of_departure', label: 'Data Partenza', sortable: true },
-        { key: 'eta', label: 'ETA', sortable: true },
-        { key: 'transit_time', label: 'Transit Time', sortable: true },
-        { key: 'updated_at', label: 'Ultimo Aggiornamento', sortable: true },
-        { key: 'created_at', label: 'Data Inserimento', sortable: true },
-
-        // Dettagli container (per spedizioni marittime)
-        { key: 'vessel_name', label: 'Vessel', sortable: true },
-        { key: 'container_size', label: 'Dim. Container', sortable: true },
-        { key: 'container_type', label: 'Tipo Container', sortable: true },
-        { key: 'total_weight', label: 'Peso Totale (kg)', sortable: true },
-        { key: 'total_volume', label: 'Volume Totale (cbm)', sortable: true },
-      ];
 </script>
     <script>
       function showColumnEditor() {
