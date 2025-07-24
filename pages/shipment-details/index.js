@@ -357,23 +357,38 @@ async function addProduct() {
 
         const renderProductList = (productsToRender) => {
             const productListContainer = document.getElementById('productListContainer');
+            if (!productListContainer) return;
             productListContainer.innerHTML = productsToRender.map(p => `
                 <div class="product-list-item d-flex align-items-center p-2 border-bottom" data-product-id="${p.id}">
-                    <div class="sol-form-check flex-grow-1">
+                    <div style="width: 5%;" class="pe-2">
                         <input type="checkbox" class="sol-form-check-input" id="product-check-${p.id}" ${selectedProducts.has(p.id) ? 'checked' : ''}>
-                        <label class="sol-form-check-label" for="product-check-${p.id}">${p.name} (${p.sku})</label>
                     </div>
-                    <div class="d-flex" style="gap: 10px;">
-                        <input type="number" class="sol-form-input sol-form-input-sm product-quantity-input" style="width: 100px;" placeholder="Quantità" min="1" value="1">
-                        <input type="number" class="sol-form-input sol-form-input-sm product-volume-input" style="width: 100px;" placeholder="m³" min="0" step="0.01" value="${p.volume_cbm || ''}">
+                    <div style="width: 20%;" class="pe-2 text-muted">${p.sku}</div>
+                    <div style="width: 45%;" class="pe-2">${p.name}</div>
+                    <div style="width: 15%;" class="px-1">
+                        <input type="number" class="sol-form-input sol-form-input-sm product-volume-input" placeholder="m³" min="0" step="0.01" value="${p.volume_cbm || ''}">
+                    </div>
+                    <div style="width: 15%;" class="ps-1">
+                        <input type="number" class="sol-form-input sol-form-input-sm product-quantity-input" placeholder="Q.tà" min="1" value="1">
                     </div>
                 </div>
             `).join('');
         };
 
         const modalContent = `
-            <div class="sol-form"><div class="sol-form-group"><input type="text" id="productSearchInput" class="sol-form-input" placeholder="Cerca per nome, SKU..."></div></div>
-            <div id="productListContainer" style="max-height:400px;overflow-y:auto;border:1px solid #e0e6ed;border-radius:5px;margin-top:1rem;background:#fff;"></div>
+            <div class="sol-form">
+                <div class="sol-form-group">
+                    <input type="text" id="productSearchInput" class="sol-form-input" placeholder="Cerca per nome, SKU...">
+                </div>
+            </div>
+            <div class="product-list-header d-flex align-items-center p-2 border-bottom fw-bold bg-light">
+                <div style="width: 5%;"></div>
+                <div style="width: 20%;" class="pe-2">Cod. Prodotto</div>
+                <div style="width: 45%;" class="pe-2">Descrizione</div>
+                <div style="width: 15%;" class="px-1 text-center">m³</div>
+                <div style="width: 15%;" class="ps-1 text-center">Q.tà</div>
+            </div>
+            <div id="productListContainer" style="max-height:400px;overflow-y:auto;border:1px solid #e0e6ed;border-top:none;border-radius:0 0 5px 5px;background:#fff;"></div>
         `;
 
         ModalSystem.show({
@@ -426,7 +441,7 @@ async function addProduct() {
 
         document.getElementById('productListContainer').addEventListener('change', (e) => {
             if (e.target.type === 'checkbox') {
-                const productId = e.target.parentElement.dataset.productId;
+                const productId = e.target.closest('.product-list-item').dataset.productId;
                 if (e.target.checked) {
                     selectedProducts.add(productId);
                 } else {
