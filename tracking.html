@@ -421,15 +421,6 @@
                     <button class="btn btn-info" onclick="window.ImportManager.showImportDialog()">
                         <i class="fas fa-file-import mr-2"></i>Importa
                     </button>
-                    <button class="btn btn-secondary" onclick="window.tableManagerShowColumns('trackingTableContainer')">
-                        <i class="fas fa-columns mr-2"></i>Colonne
-                    </button>
-                    <button class="btn btn-secondary" onclick="window.tableManagerExport('trackingTableContainer', 'excel')">
-                        <i class="fas fa-file-excel mr-2"></i>Excel
-                    </button>
-                    <button class="btn btn-secondary" onclick="window.tableManagerExport('trackingTableContainer', 'pdf')">
-                        <i class="fas fa-file-pdf mr-2"></i>PDF
-                    </button>
                 </div>
             </div>
 
@@ -1617,20 +1608,24 @@ console.log('- testTracking() - Crea un tracking di test con prefix BIBBO');
 
       // Wrapper functions to align with legacy calls from buttons like
       // onclick="window.tableManagerShowColumns('trackingTableContainer')"
-      window.tableManagerShowColumns = function(tableId) {
-          console.log(`Request to show column editor for: ${tableId}`);
-          showColumnEditor();
-      };
-
-      window.tableManagerExport = function(tableId, format) {
-          console.log(`Request to export ${tableId} to ${format}`);
-          if (window.exportData) {
-              exportData(format);
-          } else {
-              console.error('Export function (exportData) not found.');
-              window.NotificationSystem?.error('Funzione di esportazione non disponibile.');
-          }
-      };
+      App.onReady(() => {
+          console.log('🔗 Overriding legacy table manager functions...');
+          
+          window.tableManagerShowColumns = function(tableId) {
+              console.log(`Request to show column editor for: ${tableId}`);
+              showColumnEditor();
+          };
+    
+          window.tableManagerExport = function(tableId, format) {
+              console.log(`Request to export ${tableId} to ${format}`);
+              if (window.exportData) {
+                  exportData(format);
+              } else {
+                  console.error('Export function (exportData) not found.');
+                  window.NotificationSystem?.error('Funzione di esportazione non disponibile.');
+              }
+          };
+      });
     </script>
 
     <!-- Final Application Initialization -->
