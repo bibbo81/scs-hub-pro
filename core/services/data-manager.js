@@ -640,14 +640,14 @@ class DataManager {
 
         const shipment = await this.getShipmentDetails(shipmentId);
         const totalCost = shipment.total_cost || 0;
-        const totalWeight = shipment.products.reduce((sum, p) => sum + (p.total_weight_kg || 0), 0);
+        const totalVolume = shipment.products.reduce((sum, p) => sum + (p.total_volume_cbm || 0), 0);
 
-        if (totalWeight === 0) {
+        if (totalVolume === 0) {
             return;
         }
 
         for (const product of shipment.products) {
-            const allocatedCost = (product.total_weight_kg / totalWeight) * totalCost;
+            const allocatedCost = (product.total_volume_cbm / totalVolume) * totalCost;
             await supabase
                 .from('shipment_items')
                 .update({ allocated_cost: allocatedCost })

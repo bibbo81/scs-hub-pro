@@ -71,8 +71,8 @@ function renderProductsTable(products) {
             <td>${product.quantity || 0}</td>
             <td>${formatCurrency(product.unit_value)}</td>
             <td>${formatCurrency(product.total_value)}</td>
-            <td>${formatWeight(product.weight_kg)}</td>
-            <td>${formatVolume(product.volume_cbm)}</td>
+            <td>${formatWeight(product.total_weight_kg)}</td>
+            <td>${formatVolume(product.total_volume_cbm)}</td>
             <td>${formatCurrency(product.allocated_cost)}</td>
             <td>
                 <button class="sol-btn sol-btn-secondary sol-btn-sm edit-product-btn" data-product-id="${product.id}" title="Modifica Prodotto"><i class="fas fa-edit"></i></button>
@@ -358,10 +358,10 @@ async function addProduct() {
         const renderProductList = (productsToRender) => {
             const productListContainer = document.getElementById('productListContainer');
             productListContainer.innerHTML = productsToRender.map(p => `
-                <div class="product-list-item" data-product-id="${p.id}">
-                    <input type="checkbox" id="product-check-${p.id}" ${selectedProducts.has(p.id) ? 'checked' : ''}>
-                    <label for="product-check-${p.id}">${p.name} (${p.sku})</label>
-                    <input type="number" class="product-quantity-input" placeholder="Quantità" min="1" value="1">
+                <div class="sol-form-check d-flex align-items-center" data-product-id="${p.id}">
+                    <input type="checkbox" class="sol-form-check-input" id="product-check-${p.id}" ${selectedProducts.has(p.id) ? 'checked' : ''}>
+                    <label class="sol-form-check-label" for="product-check-${p.id}">${p.name} (${p.sku})</label>
+                    <input type="number" class="sol-form-input sol-form-input-sm ml-auto" style="width: 100px;" placeholder="Quantità" min="1" value="1">
                 </div>
             `).join('');
         };
