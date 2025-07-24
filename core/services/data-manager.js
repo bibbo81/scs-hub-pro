@@ -324,7 +324,7 @@ class DataManager {
  
          const { data: shipment, error: shipmentError } = await supabase
              .from('shipments')
-             .select('*, carrier:carrier_id (*), freight_cost, other_costs')
+             .select('*, carrier:carrier_id (*), freight_cost, other_costs, tracking:tracking_id(*)')
              .eq('id', shipmentId)
              .eq('organization_id', this.organizationId)
              .single();
@@ -371,8 +371,15 @@ class DataManager {
              .eq('shipment_id', shipmentId);
  
          if (documentsError) throw documentsError;
- 
-         return { ...shipment, products: productsWithDetails, documents };
+
+         const { data: additionalCosts, error: additionalCostsError } = await supabase
+             .from('additional_costs')
+             .select('*')
+             .eq('shipment_id', shipmentId);
+
+        if (additionalCostsError) throw additionalCostsError;
+
+         return { ...shipment, products: productsWithDetails, documents, additionalCosts };
     }
 
     /**
@@ -602,6 +609,50 @@ class DataManager {
         }
 
         return data.signedUrl;
+    }
+
+    async addAdditionalCost(shipmentId, costData) {
+        if (!this.initialized) await this.init();
+
+        const { data, error } = await supabase
+            .from('additional_costs')
+            .insert([{
+                shipment_id: shipmentId,
+                organization_id: this.organizationId,
+                cost_type: costData.cost_type,
+                amount: costData.amount,
+                currency: costData.currency || 'EUR',
+                notes: costData.notes
+            }])
+            .select()
+            .single();
+
+        if (error) {
+            console.error("Errore nell'aggiungere il costo aggiuntivo:", error);
+            throw error;
+        }
+
+        return data;
+    }
+
+    async allocateCosts(shipmentId) {
+        if (!this.initialized) await this.init();
+
+        const shipment = await this.getShipmentDetails(shipmentId);
+        const totalCost = shipment.total_cost || 0;
+        const totalWeight = shipment.products.reduce((sum, p) => sum + (p.total_weight_kg || 0), 0);
+
+        if (totalWeight === 0) {
+            return;
+        }
+
+        for (const product of shipment.products) {
+            const allocatedCost = (product.total_weight_kg / totalWeight) * totalCost;
+            await supabase
+                .from('shipment_items')
+                .update({ allocated_cost: allocatedCost })
+                .eq('id', product.id);
+        }
     }
 }
 
