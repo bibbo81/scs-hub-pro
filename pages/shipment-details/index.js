@@ -405,12 +405,19 @@ async function addProduct() {
                     onclick: async function() {
                         const shipmentId = getShipmentIdFromURL();
                         const itemsToAdd = [];
-                        selectedProducts.forEach(productId => {
-                            const itemElement = document.querySelector(`.product-list-item[data-product-id="${productId}"]`);
-                            const quantity = parseInt(itemElement.querySelector('.product-quantity-input').value, 10) || 1;
-                            const volume = parseFloat(itemElement.querySelector('.product-volume-input').value) || 0;
-                            const product = allProducts.find(p => p.id === productId);
-                            itemsToAdd.push({ ...product, quantity, volume_cbm: volume, product_id: productId });
+                        
+                        // Itera solo sui prodotti visibili e selezionati per ottenere i valori corretti dagli input.
+                        document.querySelectorAll('#productListContainer .product-list-row').forEach(row => {
+                            const checkbox = row.querySelector('input[type="checkbox"]');
+                            if (checkbox && checkbox.checked) {
+                                const productId = row.dataset.productId;
+                                const product = allProducts.find(p => p.id === productId);
+                                if (product) {
+                                    const quantity = parseInt(row.querySelector('.product-quantity-input').value, 10) || 1;
+                                    const volume = parseFloat(row.querySelector('.product-volume-input').value) || 0;
+                                    itemsToAdd.push({ ...product, quantity, volume_cbm: volume, product_id: productId });
+                                }
+                            }
                         });
 
                         try {
@@ -443,11 +450,14 @@ async function addProduct() {
 
         document.getElementById('productListContainer').addEventListener('change', (e) => {
             if (e.target.type === 'checkbox') {
-                const productId = e.target.closest('.product-list-item').dataset.productId;
-                if (e.target.checked) {
-                    selectedProducts.add(productId);
-                } else {
-                    selectedProducts.delete(productId);
+                const row = e.target.closest('.product-list-row');
+                if (row) {
+                    const productId = row.dataset.productId;
+                    if (e.target.checked) {
+                        selectedProducts.add(productId);
+                    } else {
+                        selectedProducts.delete(productId);
+                    }
                 }
             }
         });
