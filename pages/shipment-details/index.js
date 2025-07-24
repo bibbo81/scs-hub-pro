@@ -358,10 +358,15 @@ async function addProduct() {
         const renderProductList = (productsToRender) => {
             const productListContainer = document.getElementById('productListContainer');
             productListContainer.innerHTML = productsToRender.map(p => `
-                <div class="sol-form-check d-flex align-items-center" data-product-id="${p.id}">
-                    <input type="checkbox" class="sol-form-check-input" id="product-check-${p.id}" ${selectedProducts.has(p.id) ? 'checked' : ''}>
-                    <label class="sol-form-check-label" for="product-check-${p.id}">${p.name} (${p.sku})</label>
-                    <input type="number" class="sol-form-input sol-form-input-sm ml-auto" style="width: 100px;" placeholder="Quantità" min="1" value="1">
+                <div class="product-list-item d-flex align-items-center p-2 border-bottom" data-product-id="${p.id}">
+                    <div class="sol-form-check flex-grow-1">
+                        <input type="checkbox" class="sol-form-check-input" id="product-check-${p.id}" ${selectedProducts.has(p.id) ? 'checked' : ''}>
+                        <label class="sol-form-check-label" for="product-check-${p.id}">${p.name} (${p.sku})</label>
+                    </div>
+                    <div class="d-flex" style="gap: 10px;">
+                        <input type="number" class="sol-form-input sol-form-input-sm product-quantity-input" style="width: 100px;" placeholder="Quantità" min="1" value="1">
+                        <input type="number" class="sol-form-input sol-form-input-sm product-volume-input" style="width: 100px;" placeholder="m³" min="0" step="0.01" value="${p.volume_cbm || ''}">
+                    </div>
                 </div>
             `).join('');
         };
@@ -386,8 +391,9 @@ async function addProduct() {
                         selectedProducts.forEach(productId => {
                             const itemElement = document.querySelector(`.product-list-item[data-product-id="${productId}"]`);
                             const quantity = parseInt(itemElement.querySelector('.product-quantity-input').value, 10) || 1;
+                            const volume = parseFloat(itemElement.querySelector('.product-volume-input').value) || 0;
                             const product = allProducts.find(p => p.id === productId);
-                            itemsToAdd.push({ ...product, quantity, product_id: productId });
+                            itemsToAdd.push({ ...product, quantity, volume_cbm: volume, product_id: productId });
                         });
 
                         try {
