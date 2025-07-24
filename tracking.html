@@ -1271,7 +1271,7 @@ console.log('- testDataManagerAdvanced() - Test avanzati');
 console.log('- dmDebug() - Mostra info debug del Data Manager');
 </script>
 
-<!-- AGGIUNGI questo script PRIMA del tag </body> (dopo gli altri script di test) -->
+<!-- AGGIUNGI questo script DOPO gli altri script di test -->
 <script>
 // Sistema di test completo per bibbo81
 window.systemHealthCheck = async function() {
@@ -1636,5 +1636,6 @@ console.log('- testTracking() - Crea un tracking di test con prefix BIBBO');
             window.App.isReady();
         });
     </script>
+    <script src="/pages/tracking/column-editor-fix.js"></script>
 </body>
 </html>
