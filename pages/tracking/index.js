@@ -15,126 +15,147 @@ const STATUS_DISPLAY = window.TrackingUnifiedMapping?.STATUS_MAPPING || {};
 
 // Available columns configuration - LISTA COMPLETA
 const AVAILABLE_COLUMNS = [
-    // Colonne Base
+    // --- Generali ---
     { key: 'tracking_number', label: 'Tracking Number', required: true, sortable: true },
     { key: 'tracking_type', label: 'Tipo', sortable: true },
     { key: 'current_status', label: 'Stato', sortable: true },
-    { key: 'status', label: 'Status (raw)', sortable: true },
-    
-    // Carrier - TUTTE LE VARIANTI
-    { key: 'carrier', label: 'Carrier', sortable: true },
-    { key: 'carrier_code', label: 'Carrier Code', sortable: true },
-    { key: 'carrier_name', label: 'Carrier Name', sortable: true },
-    { key: 'airline', label: 'Airline', sortable: true },
-    
-    // Origine - TUTTE LE VARIANTI
-    { key: 'origin', label: 'Origine', sortable: true },
+    { key: 'carrier_name', label: 'Carrier', sortable: true },
+
+    // --- Riferimenti ---
+    { key: 'reference_number', label: 'Riferimento', sortable: true },
+    { key: 'booking_number', label: 'Booking', sortable: true },
+    { key: 'bl_number', label: 'B/L Number', sortable: true },
+
+    // --- Origine / Destinazione ---
     { key: 'origin_port', label: 'Porto/Aeroporto Origine', sortable: true },
-    { key: 'origin_name', label: 'Nome Origine', sortable: true },
     { key: 'origin_country', label: 'Paese Origine', sortable: true },
-    { key: 'origin_country_code', label: 'Codice Paese Origine', sortable: true },
-    { key: 'port_of_loading', label: 'Port of Loading', sortable: true },
-    
-    // Destinazione - TUTTE LE VARIANTI
-    { key: 'destination', label: 'Destinazione', sortable: true },
     { key: 'destination_port', label: 'Porto/Aeroporto Destinazione', sortable: true },
-    { key: 'destination_name', label: 'Nome Destinazione', sortable: true },
     { key: 'destination_country', label: 'Paese Destinazione', sortable: true },
-    { key: 'destination_country_code', label: 'Codice Paese Destinazione', sortable: true },
-    { key: 'port_of_discharge', label: 'Port of Discharge', sortable: true },
-    
-    // Date - TUTTE LE VARIANTI
-    { key: 'date_of_loading', label: 'Data Carico', sortable: true },
+
+    // --- Date ---
     { key: 'date_of_departure', label: 'Data Partenza', sortable: true },
-    { key: 'departure', label: 'Partenza', sortable: true },
-    { key: 'date_of_departure', label: 'Departure Date', sortable: true },
     { key: 'eta', label: 'ETA', sortable: true },
     { key: 'ata', label: 'ATA', sortable: true },
-    { key: 'date_of_discharge', label: 'Data Scarico', sortable: true },
     { key: 'date_of_arrival', label: 'Data Arrivo', sortable: true },
-    { key: 'first_eta', label: 'Prima ETA', sortable: true },
-    
-    // Vessel/Flight
-    { key: 'vessel_name', label: 'Nome Nave', sortable: true },
-    { key: 'vessel_imo', label: 'IMO Nave', sortable: true },
-    { key: 'vessel', label: 'Vessel (object)', sortable: false },
-    { key: 'voyage_number', label: 'Numero Viaggio', sortable: true },
-    { key: 'flight_number', label: 'Numero Volo', sortable: true },
-    
-    // Container/AWB Details
-    { key: 'container_number', label: 'Numero Container', sortable: true },
-    { key: 'container_size', label: 'Dimensione Container', sortable: true },
-    { key: 'container_type', label: 'Tipo Container', sortable: true },
-    { key: 'container_count', label: 'Container Count', sortable: true },
-    { key: 'awb_number', label: 'AWB Number', sortable: true },
-    { key: 'pieces', label: 'Colli', sortable: true },
-    { key: 'weight', label: 'Peso', sortable: true },
-    { key: 'volume', label: 'Volume', sortable: true },
+    { key: 'last_update', label: 'Ultimo Aggiornamento', sortable: true },
+
+    // --- Dettagli Spedizione (Peso, Volume, Colli) ---
+    { key: 'total_weight_kg', label: 'Peso Totale (kg)', sortable: true },
+    { key: 'total_volume_cbm', label: 'Volume Totale (m³)', sortable: true },
+    { key: 'pieces', label: 'Numero Colli', sortable: true },
     { key: 'commodity', label: 'Merce', sortable: true },
-    
-    // Riferimenti
-    { key: 'reference', label: 'Reference', sortable: true },
-    { key: 'reference_number', label: 'Numero Riferimento', sortable: true },
-    { key: 'booking', label: 'Booking', sortable: true },
-    { key: 'booking_number', label: 'Booking Number', sortable: true },
-    { key: 'bl_number', label: 'Bill of Lading', sortable: true },
-    
-    // Eventi
+
+    // --- Dettagli Container (Richiesti dall'utente) ---
+    { key: 'container_count', label: 'Q.tà Container Totale', sortable: true },
+    { key: 'container_types', label: 'Tipi Container', sortable: true },
+    { key: 'container_count_20', label: 'Q.tà 20\'', sortable: true },
+    { key: 'container_count_40', label: 'Q.tà 40\'', sortable: true },
+    { key: 'container_count_40hc', label: 'Q.tà 40\'HC', sortable: true },
+    { key: 'container_count_45hc', label: 'Q.tà 45\'HC', sortable: true },
+    { key: 'container_count_lcl', label: 'Q.tà LCL', sortable: true },
+
+    // --- Dettagli Mezzo (Nave/Aereo) ---
+    { key: 'vessel_name', label: 'Nave', sortable: true },
+    { key: 'voyage_number', label: 'Viaggio', sortable: true },
+    { key: 'flight_number', label: 'Volo', sortable: true },
+
+    // --- Metriche e Info Aggiuntive ---
+    { key: 'transit_time', label: 'Tempo di Transito', sortable: true },
+    { key: 'co2_emission', label: 'Emissioni CO₂ (T)', sortable: true },
     { key: 'last_event_location', label: 'Ultima Posizione', sortable: true },
     { key: 'last_event_description', label: 'Ultimo Evento', sortable: true },
-    { key: 'last_event_date', label: 'Data Ultimo Evento', sortable: true },
-    { key: 'ultima_posizione', label: 'Ultima Posizione (it)', sortable: true },
-    
-    // Metriche
-    { key: 'transit_time', label: 'Tempo Transito', sortable: true },
-    { key: 'ts_count', label: 'TS Count', sortable: true },
-    { key: 'co2_emission', label: 'CO₂ Emission', sortable: true },
-    { key: 'transit_percentage', label: 'Transit %', sortable: true },
-    
-    // Metadata
-    { key: 'shipsgo_id', label: 'ShipsGo ID', sortable: true },
-    { key: 'ocean_id', label: 'Ocean ID', sortable: true },
-    { key: 'created_at_shipsgo', label: 'Created at ShipsGo', sortable: true },
-    { key: 'checked_at', label: 'Checked At', sortable: true },
-    
-    // Extra
     { key: 'tags', label: 'Tags', sortable: true },
-    { key: 'notes', label: 'Note', sortable: false },
-    { key: 'live_map_url', label: 'Live Map', sortable: false },
+
+    // --- Campi Tecnici/Debug (utili ma meno comuni) ---
+    { key: 'status', label: 'Status (Raw)', sortable: true },
     { key: 'dataSource', label: 'Data Source', sortable: true },
-    { key: 'import_source', label: 'Import Source', sortable: true },
-    
-    // Timestamps
-    { key: 'created_at', label: 'Data Creazione', sortable: true },
-    { key: 'updated_at', label: 'Data Aggiornamento', sortable: true },
-    { key: 'last_update', label: 'Ultimo Aggiornamento', sortable: true },
-    { key: 'createdAt', label: 'Created At', sortable: true },
-    { key: 'updatedAt', label: 'Updated At', sortable: true }
+    { key: 'created_at', label: 'Data Creazione DB', sortable: true },
 ];
 
 const DEFAULT_VISIBLE_COLUMNS = [
     'tracking_number',
-    'tracking_type', 
     'current_status',
     'carrier_name',
     'origin_port',
     'destination_port',
-    'vessel_name',          // ← Aggiungi
-    'voyage_number',        // ← Aggiungi
-    'date_of_departure',
     'eta',
+    'last_update',
+    'total_weight_kg',
+    'total_volume_cbm',
+    'container_types',
     'reference_number',
-    'booking',
-    'container_size',       // ← Aggiungi
-    'container_type',       // ← Aggiungi
-    'last_event_location',  // ← Aggiungi
-    'transit_time',         // ← Aggiungi
-    'co2_emission',         // ← Aggiungi
-    'last_update'
 ];
 
 // Column configuration for table
 const TABLE_COLUMNS = trackingsColumns;
+
+/**
+ * Processa un singolo record di tracking per calcolare campi derivati.
+ * @param {object} tracking - L'oggetto di tracking originale.
+ * @returns {object} L'oggetto di tracking processato con i nuovi campi.
+ */
+function processTrackingData(tracking) {
+    const processed = { ...tracking };
+
+    // --- 1. Normalizzazione dati esistenti (se necessario) ---
+    if (tracking.metadata?.source === 'shipsgo_v2_ocean' || tracking.metadata?.source === 'shipsgo_v2_air') {
+        const raw = tracking.metadata?.raw;
+        const mapped = tracking.metadata?.mapped;
+
+        processed.carrier_name = processed.carrier_name || mapped?.carrier_name || raw?.shipment?.carrier?.name || processed.carrier || '-';
+        processed.vessel_name = processed.vessel_name || raw?.shipment?.vessel?.name || '-';
+        processed.voyage_number = processed.voyage_number || raw?.shipment?.vessel?.voyage || '-';
+        processed.flight_number = processed.flight_number || raw?.shipment?.flight_no || '-';
+    }
+
+    // --- 2. Calcolo nuovi campi (peso, volume, tipi container) ---
+    const containerCounts = { '20': 0, '40': 0, '40hc': 0, '45hc': 0, 'lcl': 0 };
+    const typeSummary = {};
+    const containers = tracking.metadata?.raw?.shipment?.containers || [];
+
+    if (Array.isArray(containers) && containers.length > 0) {
+        containers.forEach(container => {
+            const type = (container.type || '').toUpperCase();
+            const size = container.size || 0;
+
+            if (type.includes('20') || size === 20) containerCounts['20']++;
+            else if (type.includes('40HC') || type.includes('40HQ')) containerCounts['40hc']++;
+            else if (type.includes('40') || size === 40) containerCounts['40']++;
+            else if (type.includes('45')) containerCounts['45hc']++;
+            else if (type.toLowerCase().includes('lcl')) containerCounts['lcl']++;
+
+            const summaryType = container.type || 'N/A';
+            typeSummary[summaryType] = (typeSummary[summaryType] || 0) + 1;
+        });
+    }
+
+    // Assegna i conteggi calcolati
+    processed.container_count_20 = containerCounts['20'];
+    processed.container_count_40 = containerCounts['40'];
+    processed.container_count_40hc = containerCounts['40hc'];
+    processed.container_count_45hc = containerCounts['45hc'];
+    processed.container_count_lcl = containerCounts['lcl'];
+
+    // Crea una stringa riassuntiva dei tipi di container
+    processed.container_types = Object.entries(typeSummary)
+        .map(([type, count]) => `${count}x${type}`)
+        .join(', ') || (processed.container_count ? `${processed.container_count} container(s)` : '-');
+
+    // Calcola peso e volume totali
+    const cargo = tracking.metadata?.raw?.shipment?.cargo;
+    let totalWeight = parseFloat(cargo?.weight) || parseFloat(tracking.weight) || 0;
+    let totalVolume = parseFloat(cargo?.volume) || parseFloat(tracking.volume) || 0;
+
+    // Se non ci sono dati sul cargo, prova a sommare dai singoli container
+    if (totalWeight === 0 && Array.isArray(containers) && containers.length > 0) {
+        totalWeight = containers.reduce((sum, c) => sum + (parseFloat(c.weight) || 0), 0);
+        totalVolume = containers.reduce((sum, c) => sum + (parseFloat(c.volume) || 0), 0);
+    }
+    processed.total_weight_kg = totalWeight;
+    processed.total_volume_cbm = totalVolume;
+
+    return processed;
+}
 
 // Formatters provided by table-config.js
 
@@ -240,25 +261,7 @@ async function loadTrackings() {
     try {
         if (window.supabaseTrackingService) {
             const data = await window.supabaseTrackingService.getAllTrackings();
-            trackings = data || [];
-            trackings = trackings.map(t => {
-    if (t.metadata?.source === 'shipsgo_v2_ocean') {
-        return {
-            ...t,
-            carrier_name: t.carrier_name || t.metadata?.mapped?.carrier_name || t.carrier || '-',
-            vessel_name: t.vessel_name || t.vessel_info?.name || t.original_data?.vessel_name || '-',
-            vessel_imo: t.vessel_imo || t.vessel_info?.imo || '-',
-            voyage_number: t.voyage_number || t.vessel_info?.voyage || t.original_data?.voyage_number || '-',
-            container_size: t.container_size || t.metadata?.raw?.shipment?.containers?.[0]?.size || '-',
-            container_type: t.container_type || t.metadata?.raw?.shipment?.containers?.[0]?.type || '-',
-            date_of_loading: t.date_of_loading || 
-                            t.metadata?.raw?.shipment?.route?.port_of_loading?.date_of_loading || 
-                            t.metadata?.raw?.shipment?.containers?.[0]?.movements?.find(m => m.event === 'LOAD')?.timestamp || 
-                            '-'
-        };
-    }
-    return t;
-});
+            trackings = (data || []).map(processTrackingData);
         } else {
             // Mock data for testing
             trackings = [
@@ -274,7 +277,7 @@ async function loadTrackings() {
                     eta: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString(),
                     last_update: new Date().toISOString()
                 }
-            ];
+            ].map(processTrackingData);
         }
         
         filteredTrackings = [...trackings];
@@ -572,63 +575,54 @@ window.applyColumnChanges = function() {
 };
 
 // Aggiungi formatter per le nuove colonne
+// This function is now more comprehensive and handles all new column types.
 function getColumnFormatter(key) {
     switch(key) {
+        // --- Status ---
+        case 'current_status':
+            return formatTrackingStatus;
+
+        // --- Dates ---
+        case 'date_of_departure':
+        case 'eta':
+        case 'ata':
+        case 'date_of_arrival':
+        case 'last_update':
+        case 'created_at':
+            return formatDate; // Use the full date-time formatter
+
+        // --- Numeric values with units ---
+        case 'total_weight_kg':
+            return (value) => (typeof value === 'number' && value > 0) ? `${value.toFixed(2)} kg` : '-';
+        case 'total_volume_cbm':
+            return (value) => (typeof value === 'number' && value > 0) ? `${value.toFixed(3)} m³` : '-';
+        case 'co2_emission':
+            return (value) => (typeof value === 'number' && value > 0) ? `${value.toFixed(2)} T` : '-';
+        case 'pieces':
+            return (value) => (value > 0) ? `${value} pz` : '-';
+        
+        // --- Container Counts ---
+        case 'container_count':
+        case 'container_count_20':
+        case 'container_count_40':
+        case 'container_count_40hc':
+        case 'container_count_45hc':
+        case 'container_count_lcl':
+             return (value) => (value > 0) ? `<span class="badge badge-info">${value}</span>` : '0';
+
+        // --- Special Text ---
+        case 'container_types':
+            return (value) => value || '-';
         case 'vessel_name':
             return (value, row) => {
                 if (!value) return '-';
                 const icon = row.tracking_type === 'awb' ? 'fa-plane' : 'fa-ship';
                 return `<i class="fas ${icon} text-primary mr-1"></i> ${value}`;
             };
-        
-        case 'container_size':
-            return (value) => value ? `<span class="badge badge-info">${value}</span>` : '-';
-        
-        case 'last_event_location':
-            return (value, row) => {
-                if (!value) return '-';
-                return `<i class="fas fa-map-marker-alt text-danger mr-1"></i> ${value}`;
-            };
-        
-        case 'co2_emission':
-            return (value) => {
-                if (!value) return '-';
-                const num = parseFloat(value);
-                if (isNaN(num)) return value;
-                return `<span class="text-success">${num.toFixed(2)} tons</span>`;
-            };
-        
         case 'transit_time':
-            return (value) => {
-                if (!value) return '-';
-                return `<span class="badge badge-secondary">${value} giorni</span>`;
-            };
-        
-        case 'pieces':
-        case 'weight':
-            return (value, row) => {
-                if (!value) return '-';
-                const unit = key === 'weight' ? 'kg' : 'pz';
-                return `${value} ${unit}`;
-            };
-        
-        case 'date_of_loading':
-        case 'date_of_departure':
-        case 'date_of_arrival':
-        case 'date_of_discharge':
-        case 'ata':
-        case 'last_event_date':
-            return formatDateOnly;
-        
-        case 'tags':
-            return (value) => {
-                if (!value) return '-';
-                const tags = value.split(',').map(tag => 
-                    `<span class="badge badge-secondary mr-1">${tag.trim()}</span>`
-                ).join('');
-                return tags;
-            };
-        
+            return (value) => value ? `<span class="badge badge-secondary">${value} giorni</span>` : '-';
+
+        // --- Default ---
         default:
             return (value) => value || '-';
     }
