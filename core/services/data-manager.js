@@ -199,6 +199,31 @@ class DataManager {
             throw error;
         }
 
+        """        return data;
+    }
+
+    async updateShipmentCosts(shipmentId, freightCost, otherCosts) {
+        if (!this.initialized) await this.init();
+
+        const totalCost = (freightCost || 0) + (otherCosts || 0);
+
+        const { data, error } = await supabase
+            .from('shipments')
+            .update({
+                freight_cost: freightCost,
+                other_costs: otherCosts,
+                total_cost: totalCost
+            })
+            .eq('id', shipmentId)
+            .eq('organization_id', this.organizationId)
+            .select()
+            .single();
+
+        if (error) {
+            console.error('Errore durante l-aggiornamento dei costi:', error);
+            throw error;
+        }
+
         return data;
     }
 
@@ -207,7 +232,7 @@ class DataManager {
      */
     async getCarriersWithStats() {
         const { data: carriers, error } = await supabase
-            .from('carriers')
+            .from('carriers')""
             .select(`
                 *,
                 shipments (
