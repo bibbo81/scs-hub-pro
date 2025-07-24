@@ -1604,5 +1604,14 @@ console.log('- testTracking() - Crea un tracking di test con prefix BIBBO');
         window.NotificationSystem?.success("Colonne aggiornate");
       };
     </script>
+
+    <!-- Final Application Initialization -->
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Esegue tutti i callback in attesa una volta che la pagina è pronta
+            console.log('🚀 DOM ready. Initializing application...');
+            window.App.isReady();
+        });
+    </script>
 </body>
 </html>
