@@ -353,10 +353,24 @@ async function deleteProduct(productId) {
 async function addProduct() {
     try {
         const allProducts = await dataManager.getAllProducts();
+        let selectedProducts = new Set();
+
+        const renderProductList = (productsToRender) => {
+            const productListContainer = document.getElementById('productListContainer');
+            productListContainer.innerHTML = productsToRender.map(p => `
+                <div class="product-list-item" data-product-id="${p.id}">
+                    <input type="checkbox" id="product-check-${p.id}" ${selectedProducts.has(p.id) ? 'checked' : ''}>
+                    <label for="product-check-${p.id}">${p.name} (${p.sku})</label>
+                    <input type="number" class="product-quantity-input" placeholder="Quantità" min="1" value="1">
+                </div>
+            `).join('');
+        };
+
         const modalContent = `
             <div class="sol-form"><div class="sol-form-group"><input type="text" id="productSearchInput" class="sol-form-input" placeholder="Cerca per nome, SKU..."></div></div>
             <div id="productListContainer" style="max-height:400px;overflow-y:auto;border:1px solid #e0e6ed;border-radius:5px;margin-top:1rem;background:#fff;"></div>
         `;
+
         ModalSystem.show({
             title: 'Aggiungi Prodotti alla Spedizione',
             size: 'lg',
@@ -367,12 +381,54 @@ async function addProduct() {
                     text: 'Aggiungi Selezionati',
                     class: 'sol-btn sol-btn-primary',
                     onclick: async function() {
-                        // ... (logica esistente)
+                        const shipmentId = getShipmentIdFromURL();
+                        const itemsToAdd = [];
+                        selectedProducts.forEach(productId => {
+                            const itemElement = document.querySelector(`.product-list-item[data-product-id="${productId}"]`);
+                            const quantity = parseInt(itemElement.querySelector('.product-quantity-input').value, 10) || 1;
+                            const product = allProducts.find(p => p.id === productId);
+                            itemsToAdd.push({ ...product, quantity, product_id: productId });
+                        });
+
+                        try {
+                            notificationSystem.info('Aggiunta prodotti in corso...');
+                            for (const item of itemsToAdd) {
+                                await dataManager.addShipmentItem(shipmentId, item);
+                            }
+                            notificationSystem.success('Prodotti aggiunti con successo!');
+                            loadShipmentDetails(shipmentId);
+                            return true;
+                        } catch (error) {
+                            notificationSystem.error(`Errore: ${error.message}`);
+                            return false;
+                        }
                     }
                 }
             ]
         });
-        // ... (logica esistente)
+
+        renderProductList(allProducts);
+
+        document.getElementById('productSearchInput').addEventListener('input', (e) => {
+            const searchTerm = e.target.value.toLowerCase();
+            const filteredProducts = allProducts.filter(p => 
+                p.name.toLowerCase().includes(searchTerm) || 
+                p.sku.toLowerCase().includes(searchTerm)
+            );
+            renderProductList(filteredProducts);
+        });
+
+        document.getElementById('productListContainer').addEventListener('change', (e) => {
+            if (e.target.type === 'checkbox') {
+                const productId = e.target.parentElement.dataset.productId;
+                if (e.target.checked) {
+                    selectedProducts.add(productId);
+                } else {
+                    selectedProducts.delete(productId);
+                }
+            }
+        });
+
     } catch (error) {
         notificationSystem.error('Impossibile caricare la lista dei prodotti.');
     }
