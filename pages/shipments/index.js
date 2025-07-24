@@ -1,3 +1,5 @@
+import TableManager from '/core/table-manager.js';
+
 // /pages/shipments/index.js
 
 let cachedShipments = []; // variabile globale locale

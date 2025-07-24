@@ -199,7 +199,7 @@ class DataManager {
             throw error;
         }
 
-        """        return data;
+        return data;
     }
 
     async updateShipmentCosts(shipmentId, freightCost, otherCosts) {
@@ -232,7 +232,7 @@ class DataManager {
      */
     async getCarriersWithStats() {
         const { data: carriers, error } = await supabase
-            .from('carriers')""
+            .from('carriers')
             .select(`
                 *,
                 shipments (
