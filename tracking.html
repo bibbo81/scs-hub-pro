@@ -214,6 +214,24 @@
     }
     </style>
     <script>
+        window.App = {
+            _readyCallbacks: [],
+            _isReady: false,
+            onReady: function(callback) {
+                if (this._isReady) {
+                    callback();
+                } else {
+                    this._readyCallbacks.push(callback);
+                }
+            },
+            isReady: function() {
+                this._isReady = true;
+                this._readyCallbacks.forEach(cb => cb());
+                this._readyCallbacks = [];
+            }
+        };
+    </script>
+    <script>
       // Definizione centralizzata delle colonne disponibili per la tabella di tracking.
       // Questo array è utilizzato dal gestore di colonne per popolare il selettore.
       window.AVAILABLE_COLUMNS = [
@@ -369,60 +387,6 @@
 </script>
 </head>
 <body>
-    <!-- Nasconde immediatamente qualsiasi workflow modal al caricamento -->
-<script>
-// Nasconde immediatamente qualsiasi workflow modal al caricamento
-(function() {
-    // Funzione per nascondere workflow
-    function hideAllWorkflows() {
-        const workflowElements = document.querySelectorAll('.workflow-steps-container, .workflow-modal, [class*="workflow-"]');
-        workflowElements.forEach(el => {
-            if (!el.classList.contains('page-header') && 
-                !el.classList.contains('sol-container') && 
-                el.tagName !== 'BUTTON') {
-                el.style.display = 'none';
-                el.style.visibility = 'hidden';
-                el.classList.remove('show', 'active', 'visible');
-            }
-        });
-    }
-    
-    // Nasconde subito
-    hideAllWorkflows();
-    
-    // Nasconde di nuovo dopo DOM ready
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', hideAllWorkflows);
-    } else {
-        hideAllWorkflows();
-    }
-    
-    // Nasconde anche dopo un breve delay per sicurezza
-    setTimeout(hideAllWorkflows, 100);
-    setTimeout(hideAllWorkflows, 500);
-})();
-</script>
-
-    <!-- App Initialization Manager -->
-    <script>
-        window.App = {
-            _readyCallbacks: [],
-            _isReady: false,
-            onReady: function(callback) {
-                if (this._isReady) {
-                    callback();
-                } else {
-                    this._readyCallbacks.push(callback);
-                }
-            },
-            isReady: function() {
-                this._isReady = true;
-                this._readyCallbacks.forEach(cb => cb());
-                this._readyCallbacks = [];
-                console.log('🚀 Application is ready. Executed all queued callbacks.');
-            }
-        };
-    </script>
 
     <!-- Header will be injected here -->
     <div id="header-root"></div>
