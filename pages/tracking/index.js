@@ -1,6 +1,6 @@
 // index.js - Clean tracking page logic with all mappings
 import TableManager from '/core/table-manager.js';
-import { TABLE_COLUMNS } from '/pages/tracking/table-columns.js'; // NUOVO IMPORT
+import { TABLE_COLUMNS, formatStatus } from '/pages/tracking/table-columns.js';
 import ModalSystem from '/core/modal-system.js';
 import { showNotification } from '/core/notification-system.js';
 import userPreferencesService from '/core/services/user-preferences-service.js';
@@ -159,8 +159,20 @@ async function initializeTrackingPage() {
         const savedPreferences = await userPreferencesService.getPreferences('tracking');
         const defaultVisibleKeys = ['tracking_number', 'current_status', 'carrier_name', 'origin', 'destination', 'eta', 'updated_at', 'actions'];
         const visibleColumnKeys = savedPreferences?.preferences?.column_keys || defaultVisibleKeys;
+        
+        // INIEZIONE DINAMICA DEL FORMATTER PER LO STATO
         const initialColumns = visibleColumnKeys
-            .map(key => TABLE_COLUMNS.find(c => c.key === key))
+            .map(key => {
+                const column = TABLE_COLUMNS.find(c => c.key === key);
+                if (column && column.key === 'current_status') {
+                    // Clona la colonna per non modificare l'originale
+                    return {
+                        ...column,
+                        formatter: (value) => formatStatus(value, STATUS_DISPLAY_CONFIG)
+                    };
+                }
+                return column;
+            })
             .filter(Boolean);
 
         // Inizializza TableManager

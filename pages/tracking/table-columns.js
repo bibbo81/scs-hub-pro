@@ -32,7 +32,7 @@ function formatDateTime(value) {
 }
 
 // Helper per visualizzare lo stato con un badge
-function formatStatus(status, allStatusStyles) {
+export function formatStatus(status, allStatusStyles) {
     if (!status) return '';
     const style = allStatusStyles[status] || { label: status, class: 'secondary', icon: 'fa-question-circle' };
     return `<span class="badge badge-${style.class}"><i class="fas ${style.icon} mr-1"></i>${style.label}</span>`;
@@ -59,8 +59,7 @@ export const TABLE_COLUMNS = [
         key: 'current_status',
         label: 'Stato',
         sortable: true,
-        // Il formattatore riceve i dati della riga e la configurazione degli stili
-        formatter: (value, row, config) => formatStatus(value, config.statusDisplay)
+        // Il formattatore viene iniettato dinamicamente da index.js
     },
     {
         key: 'carrier_name',
