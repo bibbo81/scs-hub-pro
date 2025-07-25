@@ -136,10 +136,17 @@ document.addEventListener('DOMContentLoaded', async () => {
     try {
         console.log('🚀 Initializing tracking page...');
 
-        // 1. Load column preferences
-        const savedPreferences = await userPreferencesService.getPreferences('tracking');
+        // 1. Load column preferences robustly
+        let savedPreferences = null;
+        try {
+            savedPreferences = await userPreferencesService.getPreferences('tracking');
+        } catch (prefError) {
+            console.warn('⚠️ Could not load user column preferences, using defaults.', prefError);
+            showNotification('Impossibile caricare le preferenze delle colonne, verranno usate quelle di default.', 'info');
+        }
+
         const defaultVisibleKeys = ['tracking_number', 'current_status', 'carrier_name', 'origin_port', 'destination_port', 'eta', 'last_update'];
-        const visibleColumnKeys = savedPreferences?.column_keys || defaultVisibleKeys;
+        const visibleColumnKeys = savedPreferences?.preferences?.column_keys || defaultVisibleKeys;
 
         // 2. Build initial columns based on preferences
         const initialColumns = visibleColumnKeys
