@@ -438,8 +438,18 @@ function showColumnEditor() {
                     const { success } = await userPreferencesService.savePreferences('tracking', { column_keys: newVisibleKeys });
                     if (success) {
                         const newColumns = newVisibleKeys
-                            .map(key => TABLE_COLUMNS.find(c => c.key === key))
+                            .map(key => {
+                                const column = TABLE_COLUMNS.find(c => c.key === key);
+                                if (column && column.key === 'current_status') {
+                                    return {
+                                        ...column,
+                                        formatter: (value) => formatStatus(value, STATUS_DISPLAY_CONFIG)
+                                    };
+                                }
+                                return column;
+                            })
                             .filter(Boolean);
+
                         tableManager.updateColumns(newColumns);
                         modal.hide();
                         showNotification('Preferenze colonne salvate.', 'success');
