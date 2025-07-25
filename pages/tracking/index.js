@@ -163,16 +163,25 @@ async function initializeTrackingPage() {
             showError('Errore critico: container della tabella non trovato.');
             return;
         }
-        tableManager = new TableManager('trackingTableContainer', {
-            columns: initialColumns,
-            selectable: true,
-            searchable: false, // We use external search
-            paginate: true,
-            pageSize: 20,
-            enableColumnDrag: false, // FIX: Ensure column drag is disabled on init to prevent constructor error.
-            onSelectionChange: handleSelectionChange,
-        });
 
+        // FIX: Wrap TableManager instantiation in a try-catch to prevent page crash
+        try {
+            tableManager = new TableManager('trackingTableContainer', {
+                columns: initialColumns,
+                selectable: true,
+                searchable: false, // We use external search
+                paginate: true,
+                pageSize: 20,
+                // ROOT CAUSE FIX: This MUST be false to prevent a crash inside the TableManager constructor
+                // which tries to access the table header before it's rendered.
+                enableColumnDrag: false, 
+                onSelectionChange: handleSelectionChange,
+            });
+        } catch (tmError) {
+            console.error('❌ CRITICAL: TableManager failed to initialize!', tmError);
+            showError('Errore critico durante l\'inizializzazione della tabella. Controllare la console.');
+            return; // Stop execution if the table fails
+        }
         window.tableManager = tableManager;
 
         // FIX STRUTTURALE: Inizializza gli "enhancements" solo DOPO che tableManager è stato creato.
