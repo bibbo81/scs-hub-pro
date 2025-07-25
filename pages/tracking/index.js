@@ -139,13 +139,18 @@ async function initializeTrackingPage() {
     try {
         console.log('🚀 Initializing tracking page...');
 
-        // 1. Load column preferences robustly
+        // 1. Load column preferences with maximum safety
         let savedPreferences = null;
         try {
-            savedPreferences = await userPreferencesService.getPreferences('tracking');
+            const result = await userPreferencesService.getPreferences('tracking');
+            // Check for a valid response structure, not just the absence of an error.
+            if (result && result.preferences) {
+                savedPreferences = result;
+            } else {
+                console.warn('⚠️ Could not load valid user column preferences, using defaults. Response:', result);
+            }
         } catch (prefError) {
-            console.warn('⚠️ Could not load user column preferences, using defaults.', prefError);
-            showNotification('Impossibile caricare le preferenze delle colonne, verranno usate quelle di default.', 'info');
+            console.warn('⚠️ An error occurred while loading preferences, using defaults.', prefError);
         }
 
         const defaultVisibleKeys = ['tracking_number', 'current_status', 'carrier_name', 'origin_port', 'destination_port', 'eta', 'last_update'];
