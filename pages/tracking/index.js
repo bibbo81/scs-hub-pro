@@ -1,7 +1,7 @@
 // index.js - Clean tracking page logic with all mappings
 import TableManager from '/core/table-manager.js';
 import { TABLE_COLUMNS as trackingsColumns, formatDate, formatDateOnly, formatStatus as formatTrackingStatus } from '/pages/tracking/table-columns-legacy.js';
-import Modal from '/core/modal-system.js';
+import ModalSystem from '/core/modal-system.js'; // Corrected import for clarity
 import { showNotification } from '/core/notification-system.js';
 import userPreferencesService from '/core/services/user-preferences-service.js';
 
@@ -166,7 +166,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             searchable: false, // We use external search
             paginate: true,
             pageSize: 20,
-            enableColumnDrag: true,
+            enableColumnDrag: false, // FIX: Disabilitato temporaneamente per permettere l'init. Verrà riattivato in un secondo momento.
             onSelectionChange: handleSelectionChange,
         });
 
@@ -1172,66 +1172,71 @@ function showColumnEditor() {
         return;
     }
 
-    const modal = new Modal({
+    // FIX: Use the global ModalSystem singleton instead of `new Modal()`
+    ModalSystem.show({
         title: 'Gestisci Colonne',
-        body: `
+        content: `
             <p class="text-muted">Seleziona le colonne da visualizzare e trascinale per riordinarle.</p>
             <ul class="list-group" id="column-editor-list"></ul>
         `,
+        size: 'large',
         buttons: [
-            { label: 'Annulla', action: 'cancel', type: 'secondary' },
-            { label: 'Salva', action: 'save', type: 'primary' }
+            {
+                text: 'Annulla',
+                className: 'btn-secondary',
+                action: (modal) => modal.hide()
+            },
+            {
+                text: 'Salva',
+                className: 'btn-primary',
+                action: async (modal) => {
+                    const list = modal.element.querySelector('#column-editor-list');
+                    const newVisibleKeys = Array.from(list.querySelectorAll('li'))
+                        .filter(li => li.querySelector('input[type="checkbox"]').checked)
+                        .map(li => li.dataset.columnKey);
+
+                    const { success } = await userPreferencesService.savePreferences('tracking', { column_keys: newVisibleKeys });
+
+                    if (success) {
+                        const newColumns = newVisibleKeys
+                            .map(key => AVAILABLE_COLUMNS.find(c => c.key === key))
+                            .filter(Boolean);
+
+                        tableManager.updateColumns(newColumns);
+                        modal.hide();
+                        showNotification('Preferenze colonne salvate con successo.', 'success');
+                    } else {
+                        showNotification('Errore durante il salvataggio delle preferenze. Riprova.', 'error');
+                    }
+                }
+            }
         ],
-        size: 'large'
-    });
+        onMounted: (modal) => {
+            const list = modal.element.querySelector('#column-editor-list');
+            const currentVisibleKeys = tableManager.getColumns().map(c => c.key);
 
-    const list = modal.element.querySelector('#column-editor-list');
-    const currentVisibleKeys = tableManager.getColumns().map(c => c.key);
+            // Populate with all available columns
+            AVAILABLE_COLUMNS.forEach(col => {
+                const isVisible = currentVisibleKeys.includes(col.key);
+                const listItem = document.createElement('li');
+                listItem.className = 'list-group-item d-flex justify-content-between align-items-center';
+                listItem.dataset.columnKey = col.key;
+                listItem.innerHTML = `
+                    <div>
+                        <span class="drag-handle" style="cursor: move; margin-right: 10px;">&#9776;</span>
+                        <span>${col.label}</span>
+                    </div>
+                    <input class="form-check-input" type="checkbox" ${isVisible ? 'checked' : ''}>
+                `;
+                list.appendChild(listItem);
+            });
 
-    // Populate with all available columns, checking which are currently visible
-    AVAILABLE_COLUMNS.forEach(col => {
-        const isVisible = currentVisibleKeys.includes(col.key);
-        const listItem = document.createElement('li');
-        listItem.className = 'list-group-item d-flex justify-content-between align-items-center';
-        listItem.dataset.columnKey = col.key;
-        listItem.innerHTML = `
-            <div>
-                <span class="drag-handle" style="cursor: move; margin-right: 10px;">&#9776;</span>
-                <span>${col.label}</span>
-            </div>
-            <input class="form-check-input" type="checkbox" ${isVisible ? 'checked' : ''}>
-        `;
-        list.appendChild(listItem);
-    });
-
-    // Make the list sortable
-    new Sortable(list, {
-        animation: 150,
-        handle: '.drag-handle',
-        ghostClass: 'bg-light'
-    });
-
-    // Save button action (for this session only)
-    modal.element.querySelector('[data-action="save"]').onclick = async () => {
-        const newVisibleKeys = Array.from(list.querySelectorAll('li'))
-            .filter(li => li.querySelector('input[type="checkbox"]').checked)
-            .map(li => li.dataset.columnKey);
-
-        const preferencesToSave = { column_keys: newVisibleKeys };
-        const { success } = await userPreferencesService.savePreferences('tracking', preferencesToSave);
-
-        if (success) {
-            const newColumns = newVisibleKeys
-                .map(key => AVAILABLE_COLUMNS.find(c => c.key === key))
-                .filter(Boolean);
-
-            tableManager.updateColumns(newColumns);
-            modal.close();
-            showNotification('Preferenze colonne salvate con successo.', 'success');
-        } else {
-            showNotification('Errore durante il salvataggio delle preferenze. Riprova.', 'error');
+            // Make the list sortable
+            new Sortable(list, {
+                animation: 150,
+                handle: '.drag-handle',
+                ghostClass: 'bg-light'
+            });
         }
-    };
-
-    modal.show();
+    });
 }
