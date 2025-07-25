@@ -268,8 +268,8 @@
         // Dettagli Aereo
         { key: 'flight_number', label: 'N. Volo', sortable: true },
       ];
-</script>
-<script>
+    </script>
+    <script>
     // Funzione per formattare le date in formato YYYY-MM-DD
     function formatDateOnly(dateString) {
         if (!dateString) return '—';
@@ -304,8 +304,8 @@
 
         return formatters[key] || (value => value || '—');
     }
-</script>
-<script>
+    </script>
+    <script>
     /**
      * Maps the raw API response from various sources to a standardized tracking object.
      * This ensures that data can be handled consistently by the UI components.
@@ -356,8 +356,8 @@
 
         return mapped;
     }
-</script>
-<script>
+    </script>
+    <script>
     /**
      * Processes a single tracking record, applying API response mapping if raw data is available.
      * This ensures that all tracking objects in the application are consistently structured.
@@ -401,7 +401,7 @@
             console.log('✅ DataManager enhanced with tracking data processor.');
         }
     });
-</script>
+    </script>
 </head>
 <body>
 
@@ -1422,212 +1422,7 @@ console.log('- testTracking() - Crea un tracking di test con prefix BIBBO');
     console.log('✅ Cross-tab sync initialized');
 })();
 </script>
-    <script>
-      function showColumnEditor() {
-        if (!window.ModalSystem) return;
-
-        const currentVisible =
-          window.tableManager?.options?.columns
-            ?.filter((c) => !c.hidden)
-            .map((c) => c.key) || window.DEFAULT_VISIBLE_COLUMNS;
-
-        const content = `
-        <div class="column-editor">
-            <div class="column-editor-header">
-                <p>Seleziona le colonne da visualizzare e trascinale per riordinarle</p>
-                <div class="column-actions">
-                    <button class="btn btn-sm btn-secondary" onclick="selectAllColumns()">
-                        Seleziona Tutto
-                    </button>
-                    <button class="btn btn-sm btn-secondary" onclick="resetDefaultColumns()">
-                        Ripristina Default
-                    </button>
-                </div>
-            </div>
-            
-            <div class="column-list" id="columnEditorList">
-                ${window.AVAILABLE_COLUMNS.map(
-                  (col) => `
-                    <div class="column-item ${
-                      col.required ? "required" : ""
-                    }" 
-                         data-column="${col.key}"
-                         draggable="${!col.required}">
-                        <div class="column-drag-handle">
-                            <i class="fas fa-grip-vertical"></i>
-                        </div>
-                        <label class="column-checkbox">
-                            <input type="checkbox" 
-                                   value="${col.key}" 
-                                   ${
-                                     currentVisible.includes(col.key)
-                                       ? "checked"
-                                       : ""
-                                   }
-                                   ${col.required ? "disabled" : ""}
-                                   onchange="updateColumnPreview()">
-                            <span class="column-label">${col.label}</span>
-                            ${
-                              col.required
-                                ? '<span class="badge badge-info ml-2">Obbligatorio</span>'
-                                : ""
-                            }
-                        </label>
-                    </div>
-                `
-                ).join("")}
-            </div>
-            
-            <div class="column-preview mt-3">
-                <small class="text-muted">
-                    <span id="selectedColumnsCount">${
-                      currentVisible.length
-                    }</span> colonne selezionate
-                </small>
-            </div>
-        </div>
-    `;
-
-        window.ModalSystem.show({
-          title: "Gestione Colonne",
-          content: content,
-          size: "md",
-          buttons: [
-            {
-              text: "Annulla",
-              className: "btn-secondary",
-              action: () => window.ModalSystem.hide(),
-            },
-            {
-              text: "Applica",
-              className: "btn-primary",
-              action: () => applyColumnChanges(),
-            },
-          ],
-        });
-
-        // Enable drag&drop
-        setTimeout(() => {
-          const list = document.getElementById("columnEditorList");
-          if (list && window.Sortable) {
-            new Sortable(list, {
-              animation: 150,
-              handle: ".column-drag-handle",
-              filter: ".required",
-              onEnd: () => updateColumnPreview(),
-            });
-          }
-        }, 100);
-      }
-
-      // Funzioni helper per column editor
-      window.selectAllColumns = function () {
-        document
-          .querySelectorAll(
-            '#columnEditorList input[type="checkbox"]:not(:disabled)'
-          )
-          .forEach((cb) => {
-            cb.checked = true;
-          });
-        updateColumnPreview();
-      };
-
-      window.resetDefaultColumns = function () {
-        document
-          .querySelectorAll('#columnEditorList input[type="checkbox"]')
-          .forEach((cb) => {
-            cb.checked =
-              DEFAULT_VISIBLE_COLUMNS.includes(cb.value) || cb.disabled;
-          });
-        updateColumnPreview();
-      };
-
-      window.updateColumnPreview = function () {
-        const checked = document.querySelectorAll(
-          '#columnEditorList input[type="checkbox"]:checked'
-        ).length;
-        document.getElementById("selectedColumnsCount").textContent = checked;
-      };
-
-      window.applyColumnChanges = function () {
-        // Ottieni l'ordine delle colonne
-        const columnOrder = [];
-        document
-          .querySelectorAll("#columnEditorList .column-item")
-          .forEach((item) => {
-            const key = item.dataset.column;
-            const checked = item.querySelector('input[type="checkbox"]').checked;
-            if (checked) {
-              columnOrder.push(key);
-            }
-          });
-
-        // Ricostruisci TABLE_COLUMNS con il nuovo ordine
-        const newColumns = columnOrder.map((key) => {
-          const availableCol = AVAILABLE_COLUMNS.find((c) => c.key === key);
-          const existingCol = TABLE_COLUMNS.find((c) => c.key === key);
-
-          if (existingCol) {
-            return existingCol;
-          } else {
-            // Crea formatter per le nuove colonne
-            return {
-              key: key,
-              label: availableCol.label,
-              sortable: availableCol.sortable,
-              formatter: getColumnFormatter(key),
-            };
-          }
-        });
-
-        // Aggiungi sempre la colonna actions alla fine
-        const actionsCol = TABLE_COLUMNS.find((c) => c.key === "actions");
-        if (actionsCol) {
-          newColumns.push(actionsCol);
-        }
-
-        // Applica le modifiche
-        TABLE_COLUMNS.length = 0;
-        TABLE_COLUMNS.push(...newColumns);
-
-        // Salva preferenze
-        localStorage.setItem(
-          "trackingVisibleColumns",
-          JSON.stringify(columnOrder)
-        );
-
-        // Ricrea table manager con nuove colonne
-        if (tableManager) {
-          tableManager.options.columns = newColumns;
-          updateTable();
-        }
-
-        window.ModalSystem.hide();
-        window.NotificationSystem?.success("Colonne aggiornate");
-      };
-
-      // Wrapper functions to align with legacy calls from buttons like
-      // onclick="window.tableManagerShowColumns('trackingTableContainer')"
-      App.onReady(() => {
-          console.log('🔗 Overriding legacy table manager functions...');
-          
-          window.tableManagerShowColumns = function(tableId) {
-              console.log(`Request to show column editor for: ${tableId}`);
-              showColumnEditor();
-          };
     
-          window.tableManagerExport = function(tableId, format) {
-              console.log(`Request to export ${tableId} to ${format}`);
-              if (window.exportData) {
-                  exportData(format);
-              } else {
-                  console.error('Export function (exportData) not found.');
-                  window.NotificationSystem?.error('Funzione di esportazione non disponibile.');
-              }
-          };
-      });
-    </script>
-
     <!-- Final Application Initialization -->
     <script>
         document.addEventListener('DOMContentLoaded', () => {

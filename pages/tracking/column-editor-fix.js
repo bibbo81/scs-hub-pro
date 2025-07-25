@@ -1,200 +1,307 @@
 // Fixed Column Editor - Risolve i problemi con i pulsanti della modale
 
-function showColumnEditor() {
-    if (!window.ModalSystem) {
-        console.error('ModalSystem not available');
-        return;
-    }
-
-    const currentVisible = tableManager?.options?.columns?.filter(c => !c.hidden).map(c => c.key) || window.DEFAULT_VISIBLE_COLUMNS;
+(function() {
+    'use strict';
     
-    const content = `
-        <div class="column-editor">
-            <div class="column-editor-header">
-                <p>Seleziona le colonne da visualizzare e trascinale per riordinarle</p>
-                <div class="column-actions">
-                    <button type="button" class="btn btn-sm btn-secondary" id="selectAllColumnsBtn">
-                        Seleziona Tutto
-                    </button>
-                    <button type="button" class="btn btn-sm btn-secondary" id="resetDefaultColumnsBtn">
-                        Ripristina Default
-                    </button>
+    console.log('🔧 Loading Column Editor - Clean Implementation');
+    
+    // Aspetta che tutto sia caricato
+    function waitForDependencies() {
+        return new Promise((resolve) => {
+            const checkDeps = () => {
+                if (window.ModalSystem && window.AVAILABLE_COLUMNS && window.DEFAULT_VISIBLE_COLUMNS) {
+                    resolve();
+                } else {
+                    setTimeout(checkDeps, 100);
+                }
+            };
+            checkDeps();
+        });
+    }
+    
+    // Implementazione principale dell'editor colonne
+    async function showColumnEditor() {
+        try {
+            await waitForDependencies();
+            
+            console.log('📋 Opening column editor...');
+            
+            if (!window.ModalSystem) {
+                throw new Error('ModalSystem not available');
+            }
+            
+            const currentVisible = getCurrentVisibleColumns();
+            const modalContent = generateColumnEditorHTML(currentVisible);
+            
+            // Mostra la modale
+            window.ModalSystem.show({
+                title: 'Gestione Colonne',
+                content: modalContent,
+                size: 'md',
+                buttons: [
+                    {
+                        text: 'Annulla',
+                        className: 'btn-secondary',
+                        action: function() {
+                            console.log('❌ Column editor cancelled');
+                            window.ModalSystem.hide();
+                        }
+                    },
+                    {
+                        text: 'Applica',
+                        className: 'btn-primary',
+                        action: function() {
+                            console.log('✅ Applying column changes...');
+                            applyColumnChanges();
+                        }
+                    }
+                ]
+            });
+            
+            // Setup degli event listeners dopo il rendering
+            setTimeout(() => {
+                setupColumnEditorEvents();
+            }, 200);
+            
+        } catch (error) {
+            console.error('❌ Error opening column editor:', error);
+            if (window.NotificationSystem) {
+                window.NotificationSystem.error('Errore nell\'apertura dell\'editor colonne');
+            }
+        }
+    }
+    
+    // Ottiene le colonne attualmente visibili
+    function getCurrentVisibleColumns() {
+        // Prova diverse fonti per le colonne visibili
+        if (window.tableManager?.options?.columns) {
+            return window.tableManager.options.columns
+                .filter(c => !c.hidden)
+                .map(c => c.key);
+        }
+        
+        if (window.TABLE_COLUMNS) {
+            return window.TABLE_COLUMNS
+                .filter(c => c.key !== 'actions')
+                .map(c => c.key);
+        }
+        
+        // Fallback alle colonne di default
+        return window.DEFAULT_VISIBLE_COLUMNS || [
+            'tracking_number',
+            'current_status', 
+            'carrier_name',
+            'origin_port',
+            'destination_port',
+            'eta'
+        ];
+    }
+    
+    // Genera l'HTML della modale
+    function generateColumnEditorHTML(currentVisible) {
+        const availableColumns = window.AVAILABLE_COLUMNS || [];
+        
+        return `
+            <div class="column-editor">
+                <div class="column-editor-header mb-3">
+                    <p class="mb-2">Seleziona le colonne da visualizzare e trascinale per riordinarle</p>
+                    <div class="column-actions">
+                        <button type="button" class="btn btn-sm btn-outline-secondary" id="selectAllColumnsBtn">
+                            <i class="fas fa-check-square mr-1"></i> Seleziona Tutto
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary ml-2" id="resetDefaultColumnsBtn">
+                            <i class="fas fa-undo mr-1"></i> Ripristina Default
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="column-list border rounded p-2" id="columnEditorList" style="max-height: 400px; overflow-y: auto;">
+                    ${availableColumns.map(col => `
+                        <div class="column-item d-flex align-items-center p-2 border-bottom ${col.required ? 'required bg-light' : ''}" 
+                             data-column="${col.key}"
+                             ${!col.required ? 'draggable="true"' : ''}>
+                            <div class="column-drag-handle mr-2" style="cursor: ${col.required ? 'not-allowed' : 'grab'};">
+                                <i class="fas fa-grip-vertical text-muted"></i>
+                            </div>
+                            <label class="column-checkbox mb-0 d-flex align-items-center flex-grow-1">
+                                <input type="checkbox" 
+                                       value="${col.key}" 
+                                       class="column-checkbox-input mr-2"
+                                       ${currentVisible.includes(col.key) ? 'checked' : ''}
+                                       ${col.required ? 'disabled' : ''}>
+                                <span class="column-label">${col.label}</span>
+                                ${col.required ? '<span class="badge badge-info ml-2">Obbligatorio</span>' : ''}
+                            </label>
+                        </div>
+                    `).join('')}
+                </div>
+                
+                <div class="column-preview mt-3 p-2 bg-light rounded">
+                    <small class="text-muted">
+                        <i class="fas fa-info-circle mr-1"></i>
+                        <span id="selectedColumnsCount">${currentVisible.length}</span> colonne selezionate
+                    </small>
                 </div>
             </div>
-            
-            <div class="column-list" id="columnEditorList">
-                ${window.AVAILABLE_COLUMNS.map(col => `
-                    <div class="column-item ${col.required ? 'required' : ''}" 
-                         data-column="${col.key}"
-                         draggable="${!col.required}">
-                        <div class="column-drag-handle">
-                            <i class="fas fa-grip-vertical"></i>
-                        </div>
-                        <label class="column-checkbox">
-                            <input type="checkbox" 
-                                   value="${col.key}" 
-                                   ${currentVisible.includes(col.key) ? 'checked' : ''}
-                                   ${col.required ? 'disabled' : ''}
-                                   class="column-checkbox-input">
-                            <span class="column-label">${col.label}</span>
-                            ${col.required ? '<span class="badge badge-info ml-2">Obbligatorio</span>' : ''}
-                        </label>
-                    </div>
-                `).join('')}
-            </div>
-            
-            <div class="column-preview mt-3">
-                <small class="text-muted">
-                    <span id="selectedColumnsCount">${currentVisible.length}</span> colonne selezionate
-                </small>
-            </div>
-        </div>
-    `;
-
-    // Mostra la modale
-    window.ModalSystem.show({
-        title: 'Gestione Colonne',
-        content: content,
-        size: 'md',
-        buttons: [
-            {
-                text: 'Annulla',
-                className: 'btn-secondary',
-                action: function() {
-                    console.log('Annulla clicked');
-                    window.ModalSystem.hide();
-                }
-            },
-            {
-                text: 'Applica',
-                className: 'btn-primary',
-                action: function() {
-                    console.log('Applica clicked');
-                    applyColumnChangesFixed();
-                }
-            }
-        ]
-    });
-
-    // Aggiungi event listeners DOPO che la modale è stata creata
-    setTimeout(() => {
-        setupColumnEditorEventListeners();
-        setupDragAndDrop();
-    }, 200);
-}
-
-// Funzione separata per configurare gli event listeners
-function setupColumnEditorEventListeners() {
-    // Seleziona tutto
-    const selectAllBtn = document.getElementById('selectAllColumnsBtn');
-    if (selectAllBtn) {
-        selectAllBtn.addEventListener('click', function(e) {
-            e.preventDefault();
-            console.log('Select all clicked');
-            document.querySelectorAll('#columnEditorList input[type="checkbox"]:not(:disabled)').forEach(cb => {
-                cb.checked = true;
-            });
-            updateColumnPreviewFixed();
-        });
+        `;
     }
-
-    // Reset default
-    const resetBtn = document.getElementById('resetDefaultColumnsBtn');
-    if (resetBtn) {
-        resetBtn.addEventListener('click', function(e) {
-            e.preventDefault();
-            console.log('Reset default clicked');
-            document.querySelectorAll('#columnEditorList input[type="checkbox"]').forEach(cb => {
-                cb.checked = window.DEFAULT_VISIBLE_COLUMNS.includes(cb.value) || cb.disabled;
-            });
-            updateColumnPreviewFixed();
-        });
-    }
-
-    // Checkbox change events
-    const checkboxes = document.querySelectorAll('.column-checkbox-input');
-    checkboxes.forEach(cb => {
-        cb.addEventListener('change', function() {
-            updateColumnPreviewFixed();
-        });
-    });
-
-    console.log('Column editor event listeners setup complete');
-}
-
-// Setup drag and drop
-function setupDragAndDrop() {
-    const list = document.getElementById('columnEditorList');
-    if (list && window.Sortable) {
-        new Sortable(list, {
-            animation: 150,
-            handle: '.column-drag-handle',
-            filter: '.required',
-            onEnd: function() {
-                updateColumnPreviewFixed();
-            }
-        });
-        console.log('Drag and drop initialized');
-    }
-}
-
-// Fixed update preview function
-function updateColumnPreviewFixed() {
-    const checked = document.querySelectorAll('#columnEditorList input[type="checkbox"]:checked').length;
-    const countElement = document.getElementById('selectedColumnsCount');
-    if (countElement) {
-        countElement.textContent = checked;
-    }
-}
-
-// Fixed apply changes function
-function applyColumnChangesFixed() {
-    try {
-        console.log('Applying column changes...');
+    
+    // Setup degli event listeners
+    function setupColumnEditorEvents() {
+        console.log('🔧 Setting up column editor events...');
         
-        // Ottieni l'ordine delle colonne dalla DOM
-        const columnOrder = [];
-        const columnItems = document.querySelectorAll('#columnEditorList .column-item');
-        
-        columnItems.forEach(item => {
-            const key = item.dataset.column;
-            const checkbox = item.querySelector('input[type="checkbox"]');
-            
-            if (checkbox && checkbox.checked) {
-                columnOrder.push(key);
-            }
-        });
-
-        console.log('Selected columns:', columnOrder);
-
-        if (columnOrder.length === 0) {
-            window.NotificationSystem?.error('Seleziona almeno una colonna');
-            return;
+        // Bottone "Seleziona Tutto"
+        const selectAllBtn = document.getElementById('selectAllColumnsBtn');
+        if (selectAllBtn) {
+            selectAllBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                console.log('🔘 Select all columns');
+                
+                document.querySelectorAll('#columnEditorList input[type="checkbox"]:not(:disabled)').forEach(cb => {
+                    cb.checked = true;
+                });
+                updateColumnPreview();
+            });
         }
-
-        // Trova le definizioni delle colonne disponibili
-        const availableColumns = window.AVAILABLE_COLUMNS || [];
-        const tableColumns = window.TABLE_COLUMNS || [];
-
-        // Ricostruisci le colonne con il nuovo ordine
-        const newColumns = columnOrder.map(key => {
-            // Prima cerca nelle colonne esistenti
-            const existingCol = tableColumns.find(c => c.key === key);
-            if (existingCol) {
-                return existingCol;
+        
+        // Bottone "Ripristina Default"
+        const resetBtn = document.getElementById('resetDefaultColumnsBtn');
+        if (resetBtn) {
+            resetBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                console.log('🔄 Reset to default columns');
+                
+                const defaultColumns = window.DEFAULT_VISIBLE_COLUMNS || [];
+                document.querySelectorAll('#columnEditorList input[type="checkbox"]').forEach(cb => {
+                    cb.checked = defaultColumns.includes(cb.value) || cb.disabled;
+                });
+                updateColumnPreview();
+            });
+        }
+        
+        // Checkbox change events
+        const checkboxes = document.querySelectorAll('.column-checkbox-input');
+        checkboxes.forEach(cb => {
+            cb.addEventListener('change', function() {
+                updateColumnPreview();
+            });
+        });
+        
+        // Drag and drop (se Sortable è disponibile)
+        setupDragAndDrop();
+        
+        // Aggiorna il conteggio iniziale
+        updateColumnPreview();
+        
+        console.log('✅ Column editor events setup completed');
+    }
+    
+    // Setup drag and drop
+    function setupDragAndDrop() {
+        const list = document.getElementById('columnEditorList');
+        if (list && window.Sortable) {
+            new Sortable(list, {
+                animation: 150,
+                handle: '.column-drag-handle',
+                filter: '.required',
+                onStart: function(evt) {
+                    evt.item.style.cursor = 'grabbing';
+                },
+                onEnd: function(evt) {
+                    evt.item.style.cursor = 'grab';
+                    updateColumnPreview();
+                }
+            });
+            console.log('🔄 Drag and drop initialized');
+        } else {
+            console.warn('⚠️ Sortable.js not available, drag and drop disabled');
+        }
+    }
+    
+    // Aggiorna il preview del conteggio
+    function updateColumnPreview() {
+        const checked = document.querySelectorAll('#columnEditorList input[type="checkbox"]:checked').length;
+        const countElement = document.getElementById('selectedColumnsCount');
+        if (countElement) {
+            countElement.textContent = checked;
+        }
+    }
+    
+    // Applica le modifiche alle colonne
+    function applyColumnChanges() {
+        try {
+            console.log('📝 Applying column changes...');
+            
+            // Raccogli le colonne selezionate nell'ordine corretto
+            const selectedColumns = [];
+            const columnItems = document.querySelectorAll('#columnEditorList .column-item');
+            
+            columnItems.forEach(item => {
+                const key = item.dataset.column;
+                const checkbox = item.querySelector('input[type="checkbox"]');
+                
+                if (checkbox && checkbox.checked) {
+                    selectedColumns.push(key);
+                }
+            });
+            
+            console.log('📋 Selected columns:', selectedColumns);
+            
+            if (selectedColumns.length === 0) {
+                throw new Error('Seleziona almeno una colonna');
             }
-
+            
+            // Costruisci la nuova configurazione delle colonne
+            const newColumns = buildNewColumnsConfig(selectedColumns);
+            console.log('🔧 New columns config:', newColumns);
+            
+            // Applica le modifiche
+            applyNewColumns(newColumns, selectedColumns);
+            
+            // Salva le preferenze
+            saveColumnPreferences(selectedColumns);
+            
+            // Chiudi la modale
+            window.ModalSystem.hide();
+            
+            // Mostra conferma
+            if (window.NotificationSystem) {
+                window.NotificationSystem.success(`✅ Colonne aggiornate (${selectedColumns.length} visibili)`);
+            }
+            
+            console.log('✅ Column changes applied successfully');
+            
+        } catch (error) {
+            console.error('❌ Error applying column changes:', error);
+            if (window.NotificationSystem) {
+                window.NotificationSystem.error('Errore: ' + error.message);
+            }
+        }
+    }
+    
+    // Costruisce la nuova configurazione delle colonne
+    function buildNewColumnsConfig(selectedColumns) {
+        const availableColumns = window.AVAILABLE_COLUMNS || [];
+        const existingColumns = window.TABLE_COLUMNS || [];
+        
+        const newColumns = selectedColumns.map(key => {
+            // Prima cerca nelle colonne esistenti
+            const existing = existingColumns.find(c => c.key === key);
+            if (existing) {
+                return existing;
+            }
+            
             // Poi cerca nelle colonne disponibili
-            const availableCol = availableColumns.find(c => c.key === key);
-            if (availableCol) {
+            const available = availableColumns.find(c => c.key === key);
+            if (available) {
                 return {
                     key: key,
-                    label: availableCol.label,
-                    sortable: availableCol.sortable,
+                    label: available.label,
+                    sortable: available.sortable !== false,
                     formatter: window.getColumnFormatter ? window.getColumnFormatter(key) : (value => value || '-')
                 };
             }
-
+            
             // Fallback
             return {
                 key: key,
@@ -203,120 +310,128 @@ function applyColumnChangesFixed() {
                 formatter: (value => value || '-')
             };
         });
-
-        // Aggiungi sempre la colonna azioni alla fine (se esiste)
-        const actionsCol = tableColumns.find(c => c.key === 'actions');
+        
+        // Aggiungi la colonna azioni se non presente e se esiste
+        const actionsCol = existingColumns.find(c => c.key === 'actions');
         if (actionsCol && !newColumns.find(c => c.key === 'actions')) {
             newColumns.push(actionsCol);
         }
-
-        console.log('New columns configuration:', newColumns);
-
-        // Aggiorna TABLE_COLUMNS se disponibile
+        
+        return newColumns;
+    }
+    
+    // Applica le nuove colonne
+    function applyNewColumns(newColumns, selectedColumns) {
+        // Aggiorna TABLE_COLUMNS globale
         if (window.TABLE_COLUMNS) {
             window.TABLE_COLUMNS.length = 0;
             window.TABLE_COLUMNS.push(...newColumns);
         }
-
-        // Salva le preferenze nel localStorage
-        try {
-            localStorage.setItem('trackingVisibleColumns', JSON.stringify(columnOrder));
-            console.log('Column preferences saved');
-        } catch (e) {
-            console.warn('Could not save column preferences:', e);
-        }
-
-        // Aggiorna il table manager se disponibile
+        
+        // Aggiorna il table manager
         if (window.tableManager) {
-            console.log('Updating table manager...');
             window.tableManager.options.columns = newColumns;
             
-            // Forza il refresh della tabella
+            // Forza il refresh
             if (window.updateTable) {
                 window.updateTable();
             } else if (window.tableManager.render) {
                 window.tableManager.render();
             } else if (window.tableManager.setData) {
-                // Re-imposta i dati per forzare il re-render
                 const currentData = window.filteredTrackings || window.trackings || [];
                 window.tableManager.setData(currentData);
             }
         }
-
-        // Chiudi la modale
-        window.ModalSystem.hide();
-        
-        // Mostra messaggio di successo
-        if (window.NotificationSystem) {
-            window.NotificationSystem.success('Colonne aggiornate con successo');
-        }
-
-        console.log('Column changes applied successfully');
-
-    } catch (error) {
-        console.error('Error applying column changes:', error);
-        if (window.NotificationSystem) {
-            window.NotificationSystem.error('Errore nell\'applicazione delle modifiche: ' + error.message);
-        }
-    }
-}
-
-// Esporta le funzioni per uso globale (mantieni compatibilità)
-window.showColumnEditor = showColumnEditor;
-window.updateColumnPreviewFixed = updateColumnPreviewFixed;
-window.applyColumnChangesFixed = applyColumnChangesFixed;
-
-// Override delle funzioni legacy per evitare conflitti
-window.selectAllColumns = function() {
-    console.log('Legacy selectAllColumns called - using fixed version');
-    const selectAllBtn = document.getElementById('selectAllColumnsBtn');
-    if (selectAllBtn) {
-        selectAllBtn.click();
-    }
-};
-
-window.resetDefaultColumns = function() {
-    console.log('Legacy resetDefaultColumns called - using fixed version');
-    const resetBtn = document.getElementById('resetDefaultColumnsBtn');
-    if (resetBtn) {
-        resetBtn.click();
-    }
-};
-
-window.updateColumnPreview = function() {
-    console.log('Legacy updateColumnPreview called - using fixed version');
-    updateColumnPreviewFixed();
-};
-
-window.applyColumnChanges = function() {
-    console.log('Legacy applyColumnChanges called - using fixed version');
-    applyColumnChangesFixed();
-};
-
-// Debug helper
-window.debugColumnEditor = function() {
-    console.log('=== COLUMN EDITOR DEBUG ===');
-    console.log('ModalSystem available:', !!window.ModalSystem);
-    console.log('TABLE_COLUMNS available:', !!window.TABLE_COLUMNS);
-    console.log('AVAILABLE_COLUMNS available:', !!window.AVAILABLE_COLUMNS);
-    console.log('tableManager available:', !!window.tableManager);
-    console.log('Current modal visible:', !!document.querySelector('.modal.show'));
-    
-    if (document.querySelector('.modal.show')) {
-        console.log('Modal buttons:', {
-            selectAll: !!document.getElementById('selectAllColumnsBtn'),
-            reset: !!document.getElementById('resetDefaultColumnsBtn'),
-            checkboxes: document.querySelectorAll('.column-checkbox-input').length
-        });
     }
     
-    return {
-        modalSystem: !!window.ModalSystem,
-        tableColumns: !!window.TABLE_COLUMNS,
-        availableColumns: !!window.AVAILABLE_COLUMNS,
-        tableManager: !!window.tableManager,
-        modalVisible: !!document.querySelector('.modal.show')
+    // Salva le preferenze nel localStorage
+    function saveColumnPreferences(selectedColumns) {
+        try {
+            localStorage.setItem('trackingVisibleColumns', JSON.stringify(selectedColumns));
+            console.log('💾 Column preferences saved');
+        } catch (e) {
+            console.warn('⚠️ Could not save column preferences:', e);
+        }
+    }
+    
+    // Carica le preferenze salvate
+    function loadColumnPreferences() {
+        try {
+            const saved = localStorage.getItem('trackingVisibleColumns');
+            if (saved) {
+                const columns = JSON.parse(saved);
+                console.log('📂 Loaded column preferences:', columns);
+                return columns;
+            }
+        } catch (e) {
+            console.warn('⚠️ Could not load column preferences:', e);
+        }
+        return null;
+    }
+    
+    // Esponi le funzioni globalmente
+    window.showColumnEditor = showColumnEditor;
+    
+    // Override delle funzioni legacy per evitare conflitti
+    window.selectAllColumns = function() {
+        console.log('🔄 Legacy selectAllColumns redirected');
+        const btn = document.getElementById('selectAllColumnsBtn');
+        if (btn) btn.click();
     };
-};
-
-console.log('✅ Fixed Column Editor loaded');
+    
+    window.resetDefaultColumns = function() {
+        console.log('🔄 Legacy resetDefaultColumns redirected');
+        const btn = document.getElementById('resetDefaultColumnsBtn');
+        if (btn) btn.click();
+    };
+    
+    window.updateColumnPreview = updateColumnPreview;
+    window.applyColumnChanges = applyColumnChanges;
+    
+    // Funzione di debug
+    window.debugColumnEditor = function() {
+        console.log('🔍 COLUMN EDITOR DEBUG INFO');
+        console.log('============================');
+        
+        const info = {
+            dependencies: {
+                modalSystem: !!window.ModalSystem,
+                availableColumns: !!window.AVAILABLE_COLUMNS && window.AVAILABLE_COLUMNS.length,
+                defaultColumns: !!window.DEFAULT_VISIBLE_COLUMNS && window.DEFAULT_VISIBLE_COLUMNS.length,
+                tableColumns: !!window.TABLE_COLUMNS && window.TABLE_COLUMNS.length,
+                tableManager: !!window.tableManager
+            },
+            modal: {
+                visible: !!document.querySelector('.modal.show'),
+                editorElements: {
+                    list: !!document.getElementById('columnEditorList'),
+                    selectAllBtn: !!document.getElementById('selectAllColumnsBtn'),
+                    resetBtn: !!document.getElementById('resetDefaultColumnsBtn'),
+                    checkboxes: document.querySelectorAll('.column-checkbox-input').length
+                }
+            },
+            preferences: {
+                saved: !!localStorage.getItem('trackingVisibleColumns'),
+                current: loadColumnPreferences()
+            }
+        };
+        
+        console.table(info.dependencies);
+        console.table(info.modal);
+        console.log('Preferences:', info.preferences);
+        
+        return info;
+    };
+    
+    // Auto-load delle preferenze all'avvio (se necessario)
+    document.addEventListener('DOMContentLoaded', function() {
+        const savedPrefs = loadColumnPreferences();
+        if (savedPrefs && window.TABLE_COLUMNS) {
+            console.log('🔄 Auto-applying saved column preferences...');
+            // Logica per applicare le preferenze salvate se necessario
+        }
+    });
+    
+    console.log('✅ Column Editor - Clean Implementation loaded');
+    
+})();
