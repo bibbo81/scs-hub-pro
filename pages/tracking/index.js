@@ -39,7 +39,7 @@ const AVAILABLE_COLUMNS = [
     { key: 'booking_number', label: 'Booking Number', sortable: true },
     { key: 'vessel_name', label: 'Nave', sortable: true },
     { key: 'voyage_number', label: 'Viaggio', sortable: true },
-    { key: 'container_types', label: 'Tipi Container', sortable: true },
+    { key: 'container_type', label: 'Tipo Container', sortable: true },
     { key: 'total_weight_kg', label: 'Peso Totale (kg)', sortable: true },
     { key: 'total_volume_cbm', label: 'Volume Totale (cbm)', sortable: true },
 
@@ -94,7 +94,9 @@ function normalizeTrackingData(rawTracking) {
         vessel_name: mapped.vessel_name,
         voyage_number: mapped.voyage_number,
         flight_number: mapped.flight_number,
-        container_types: containerTypes || mapped.container_details, // Aggiunto campo calcolato
+        container_type: containerTypes || mapped.container_details, // Aggiunto campo calcolato
+        date_of_departure: mapped.date_of_departure,
+        date_of_arrival: mapped.date_of_arrival,
         total_weight_kg: mapped.total_weight_kg || mapped._raw?.shipment?.cargo?.weight || 0,
         total_volume_cbm: mapped.total_volume_cbm || mapped._raw?.shipment?.cargo?.volume || 0,
         _raw: rawTracking,
