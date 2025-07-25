@@ -1,8 +1,8 @@
 // index.js - Clean tracking page logic with all mappings
-// import TableManager from '/core/table-manager.js'; // Defer loading // Moved to dynamic import
+import TableManager from '/core/table-manager.js';
 import { trackingsColumns, formatDate, formatDateOnly, formatTrackingStatus } from '/core/table-config.js';
-import { Modal } from '/core/ui/modal-system.js';
-import { showNotification } from '/core/ui/notification-system.js';
+import { Modal } from '/assets/js/modal-system.js';
+import { showNotification } from '/assets/js/notification-system.js';
 import userPreferencesService from '/core/services/user-preferences-service.js';
 
 // State
@@ -142,7 +142,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         // 2. Build initial columns based on preferences
         const initialColumns = visibleColumnKeys
-            .map(key => TABLE_COLUMNS.find(c => c.key === key))
+            .map(key => AVAILABLE_COLUMNS.find(c => c.key === key))
             .filter(Boolean); // Rimuove eventuali colonne non più valide
 
         // 3. Initialize TableManager with the correct columns
@@ -1198,16 +1198,25 @@ function showColumnEditor() {
     });
 
     // Save button action (for this session only)
-    modal.element.querySelector('[data-action="save"]').onclick = () => {
+    modal.element.querySelector('[data-action="save"]').onclick = async () => {
         const newVisibleKeys = Array.from(list.querySelectorAll('li'))
             .filter(li => li.querySelector('input[type="checkbox"]').checked)
             .map(li => li.dataset.columnKey);
 
-        const newColumns = newVisibleKeys.map(key => TABLE_COLUMNS.find(c => c.key === key)).filter(Boolean);
+        const preferencesToSave = { column_keys: newVisibleKeys };
+        const { success } = await userPreferencesService.savePreferences('tracking', preferencesToSave);
 
-        tableManager.updateColumns(newColumns);
-        modal.close();
-        showNotification('Visualizzazione colonne aggiornata.', 'info');
+        if (success) {
+            const newColumns = newVisibleKeys
+                .map(key => AVAILABLE_COLUMNS.find(c => c.key === key))
+                .filter(Boolean);
+
+            tableManager.updateColumns(newColumns);
+            modal.close();
+            showNotification('Preferenze colonne salvate con successo.', 'success');
+        } else {
+            showNotification('Errore durante il salvataggio delle preferenze. Riprova.', 'error');
+        }
     };
 
     modal.show();
