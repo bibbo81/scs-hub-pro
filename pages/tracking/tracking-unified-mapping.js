@@ -319,3 +319,12 @@ window.TrackingUnifiedMapping = {
 
 // Esporta globalmente
 window.UnifiedMapping = window.TrackingUnifiedMapping;
+
+// FIX STRUTTURALE: Esponi i mapping principali globalmente e immediatamente.
+// Questo risolve una race condition in cui altri script (es. tracking-form-progressive.js)
+// tentano di accedere a window.COLUMN_MAPPING prima che il modulo principale (index.js)
+// abbia avuto il tempo di inizializzare e popolarlo.
+// Rendendo i mapping disponibili subito, si garantisce che qualsiasi script caricato dopo
+// questo file possa accedervi senza errori.
+window.COLUMN_MAPPING = window.TrackingUnifiedMapping.COLUMN_MAPPING;
+window.STATUS_MAPPING = window.TrackingUnifiedMapping.STATUS_MAPPING;
