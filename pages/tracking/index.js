@@ -10,12 +10,6 @@ let trackings = [];
 let filteredTrackings = [];
 let tableManager;
 
-// Column mapping for import/export compatibility
-const COLUMN_MAPPING = window.TrackingUnifiedMapping?.COLUMN_MAPPING || {};
-
-// Status mapping for display
-const STATUS_DISPLAY = window.TrackingUnifiedMapping?.STATUS_MAPPING || {};
-
 const AVAILABLE_COLUMNS = [
     // General
     { key: 'tracking_number', label: 'Tracking Number', required: true, sortable: true },
@@ -138,6 +132,24 @@ window.TABLE_COLUMNS = TABLE_COLUMNS;
 async function initializeTrackingPage() {
     try {
         console.log('🚀 Initializing tracking page...');
+
+        // FIX: Wait for critical dependencies to be loaded by other scripts.
+        // This prevents a race condition where index.js (module) runs before
+        // tracking-unified-mapping.js (regular script).
+        let retries = 0;
+        while (!window.TrackingUnifiedMapping && retries < 50) { // Wait up to 5 seconds
+            await new Promise(resolve => setTimeout(resolve, 100));
+            retries++;
+        }
+        if (!window.TrackingUnifiedMapping) {
+            console.error('❌ Critical dependency TrackingUnifiedMapping not found!');
+            showError('Errore critico: Mappatura stati non trovata.');
+            return;
+        }
+
+        // Define constants now that dependencies are ready
+        const COLUMN_MAPPING = window.TrackingUnifiedMapping?.COLUMN_MAPPING || {};
+        const STATUS_DISPLAY = window.TrackingUnifiedMapping?.STATUS_MAPPING || {};
 
         // 1. Load column preferences robustly
         let savedPreferences = null;
