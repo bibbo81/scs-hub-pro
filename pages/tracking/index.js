@@ -1,7 +1,7 @@
 // index.js - Clean tracking page logic with all mappings
 import TableManager from '/core/table-manager.js';
 import { TABLE_COLUMNS as trackingsColumns, formatDate, formatDateOnly, formatStatus as formatTrackingStatus } from '/pages/tracking/table-columns-legacy.js';
-import { Modal } from '/core/modal-system.js';
+import Modal from '/core/modal-system.js';
 import { showNotification } from '/core/notification-system.js';
 import userPreferencesService from '/core/services/user-preferences-service.js';
 
