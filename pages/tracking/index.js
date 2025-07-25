@@ -13,88 +13,7 @@ const COLUMN_MAPPING = window.TrackingUnifiedMapping?.COLUMN_MAPPING || {};
 // Status mapping for display
 const STATUS_DISPLAY = window.TrackingUnifiedMapping?.STATUS_MAPPING || {};
 
-// Available columns configuration - LISTA COMPLETA
-const AVAILABLE_COLUMNS = [
-    // --- Generali ---
-    { key: 'tracking_number', label: 'Tracking Number', required: true, sortable: true },
-    { key: 'tracking_type', label: 'Tipo', sortable: true },
-    { key: 'current_status', label: 'Stato', sortable: true },
-    { key: 'carrier_name', label: 'Carrier', sortable: true },
 
-    // --- Riferimenti ---
-    { key: 'reference_number', label: 'Riferimento', sortable: true },
-    { key: 'booking_number', label: 'Booking', sortable: true },
-    { key: 'bl_number', label: 'B/L Number', sortable: true },
-
-    // --- Origine / Destinazione ---
-    { key: 'origin_port', label: 'Porto/Aeroporto Origine', sortable: true },
-    { key: 'origin_country', label: 'Paese Origine', sortable: true },
-    { key: 'destination_port', label: 'Porto/Aeroporto Destinazione', sortable: true },
-    { key: 'destination_country', label: 'Paese Destinazione', sortable: true },
-
-    // --- Date ---
-    { key: 'date_of_departure', label: 'Data Partenza', sortable: true },
-    { key: 'eta', label: 'ETA', sortable: true },
-    { key: 'ata', label: 'ATA', sortable: true },
-    { key: 'date_of_arrival', label: 'Data Arrivo', sortable: true },
-    { key: 'last_update', label: 'Ultimo Aggiornamento', sortable: true },
-
-    // --- Dettagli Spedizione (Peso, Volume, Colli) ---
-    { key: 'total_weight_kg', label: 'Peso Totale (kg)', sortable: true },
-    { key: 'total_volume_cbm', label: 'Volume Totale (m³)', sortable: true },
-    { key: 'pieces', label: 'Numero Colli', sortable: true },
-    { key: 'commodity', label: 'Merce', sortable: true },
-
-    // --- Dettagli Container (Richiesti dall'utente) ---
-    { key: 'container_count', label: 'Q.tà Container Totale', sortable: true },
-    { key: 'container_types', label: 'Tipi Container', sortable: true },
-    { key: 'container_count_20', label: 'Q.tà 20\'', sortable: true },
-    { key: 'container_count_40', label: 'Q.tà 40\'', sortable: true },
-    { key: 'container_count_40hc', label: 'Q.tà 40\'HC', sortable: true },
-    { key: 'container_count_45hc', label: 'Q.tà 45\'HC', sortable: true },
-    { key: 'container_count_lcl', label: 'Q.tà LCL', sortable: true },
-
-    // --- Dettagli Mezzo (Nave/Aereo) ---
-    { key: 'vessel_name', label: 'Nave', sortable: true },
-    { key: 'voyage_number', label: 'Viaggio', sortable: true },
-    { key: 'flight_number', label: 'Volo', sortable: true },
-
-    // --- Metriche e Info Aggiuntive ---
-    { key: 'transit_time', label: 'Tempo di Transito', sortable: true },
-    { key: 'co2_emission', label: 'Emissioni CO₂ (T)', sortable: true },
-    { key: 'last_event_location', label: 'Ultima Posizione', sortable: true },
-    { key: 'last_event_description', label: 'Ultimo Evento', sortable: true },
-    { key: 'tags', label: 'Tags', sortable: true },
-
-    // --- Campi Tecnici/Debug (utili ma meno comuni) ---
-    { key: 'status', label: 'Status (Raw)', sortable: true },
-    { key: 'dataSource', label: 'Data Source', sortable: true },
-    { key: 'created_at', label: 'Data Creazione DB', sortable: true },
-];
-
-const DEFAULT_VISIBLE_COLUMNS = [
-    'tracking_number',
-    'current_status',
-    'carrier_name',
-    'origin_port',
-    'destination_port',
-    'eta',
-    'last_update',
-    'total_weight_kg',
-    'total_volume_cbm',
-    'container_types',
-    'reference_number',
-];
-
-// Column configuration for table
-const TABLE_COLUMNS = trackingsColumns;
-
-// EXPOSE TO GLOBAL SCOPE for column-editor-fix.js and other legacy scripts
-window.AVAILABLE_COLUMNS = AVAILABLE_COLUMNS;
-window.DEFAULT_VISIBLE_COLUMNS = DEFAULT_VISIBLE_COLUMNS;
-window.TABLE_COLUMNS = TABLE_COLUMNS;
-window.trackings = trackings;
-window.filteredTrackings = filteredTrackings;
 
 /**
  * Processa un singolo record di tracking per calcolare campi derivati.
@@ -174,46 +93,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Hide loading state
         document.getElementById('loadingState').style.display = 'none';
         
-        // Load saved column preferences and apply them
-        const savedColumns = localStorage.getItem('trackingVisibleColumns');
-        if (savedColumns) {
-            try {
-                const visibleKeys = JSON.parse(savedColumns);
-                if (Array.isArray(visibleKeys) && visibleKeys.length > 0) {
-                    const newColumns = visibleKeys.map(key => {
-                        // Find the full column definition from the master list
-                        const availableCol = AVAILABLE_COLUMNS.find(c => c.key === key);
-                        // Check if it's a special, pre-configured column (like 'actions')
-                        const existingCol = trackingsColumns.find(c => c.key === key);
-
-                        if (existingCol) {
-                            return existingCol;
-                        }
-
-                        if (availableCol) {
-                            return {
-                                key: availableCol.key,
-                                label: availableCol.label,
-                                sortable: availableCol.sortable,
-                                formatter: getColumnFormatter(availableCol.key) // Use the correct formatter
-                            };
-                        }
-                        return null;
-                    }).filter(Boolean); // Remove any nulls if a column was not found
-
-                    // Ensure the 'actions' column is always present if it was in the original config
-                    const actionsCol = trackingsColumns.find(c => c.key === 'actions');
-                    if (actionsCol && !newColumns.find(c => c.key === 'actions')) {
-                        newColumns.push(actionsCol);
-                    }
-
-                    TABLE_COLUMNS.splice(0, TABLE_COLUMNS.length, ...newColumns);
-                    console.log('✅ Loaded and applied custom column preferences.');
-                }
-            } catch (e) {
-                console.error('Error loading/applying column preferences:', e);
-            }
-        }
+        
 
         // Create table container
         const tableCard = document.querySelector('.sol-card-body.p-0');
@@ -470,62 +350,7 @@ function setupEventListeners() {
 
 }
 
-// Aggiungi formatter per le nuove colonne
-// This function is now more comprehensive and handles all new column types.
-function getColumnFormatter(key) {
-    switch(key) {
-        // --- Status ---
-        case 'current_status':
-            return formatTrackingStatus;
 
-        // --- Dates ---
-        case 'date_of_departure':
-        case 'eta':
-        case 'ata':
-        case 'date_of_arrival':
-        case 'last_update':
-        case 'created_at':
-            return formatDate; // Use the full date-time formatter
-
-        // --- Numeric values with units ---
-        case 'total_weight_kg':
-            return (value) => (typeof value === 'number' && value > 0) ? `${value.toFixed(2)} kg` : '-';
-        case 'total_volume_cbm':
-            return (value) => (typeof value === 'number' && value > 0) ? `${value.toFixed(3)} m³` : '-';
-        case 'co2_emission':
-            return (value) => (typeof value === 'number' && value > 0) ? `${value.toFixed(2)} T` : '-';
-        case 'pieces':
-            return (value) => (value > 0) ? `${value} pz` : '-';
-        
-        // --- Container Counts ---
-        case 'container_count':
-        case 'container_count_20':
-        case 'container_count_40':
-        case 'container_count_40hc':
-        case 'container_count_45hc':
-        case 'container_count_lcl':
-             return (value) => (value > 0) ? `<span class="badge badge-info">${value}</span>` : '0';
-
-        // --- Special Text ---
-        case 'container_types':
-            return (value) => value || '-';
-        case 'vessel_name':
-            return (value, row) => {
-                if (!value) return '-';
-                const icon = row.tracking_type === 'awb' ? 'fa-plane' : 'fa-ship';
-                return `<i class="fas ${icon} text-primary mr-1"></i> ${value}`;
-            };
-        case 'transit_time':
-            return (value) => value ? `<span class="badge badge-secondary">${value} giorni</span>` : '-';
-
-        // --- Default ---
-        default:
-            return (value) => value || '-';
-    }
-}
-
-// EXPOSE TO GLOBAL SCOPE
-window.getColumnFormatter = getColumnFormatter;
 
 // Aggiungi bottone per editor colonne nell'UI
 // Modifica la sezione page-actions in tracking.html per aggiungere:

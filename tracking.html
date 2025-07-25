@@ -344,8 +344,8 @@
                     <button class="btn btn-success" onclick="showAddTrackingForm()">
                         <i class="fas fa-plus mr-2"></i>Aggiungi Tracking
                     </button>
-                    <button class="btn btn-secondary" onclick="showColumnEditor()">
-                        <i class="fas fa-columns mr-2"></i>Gestisci Colonne
+                    <button class="btn btn-secondary" onclick="openColumnEditor()">
+                        <i class="fas fa-columns mr-2"></i>Colonne
                     </button>
                     <button class="btn btn-info" onclick="window.ImportManager.showImportDialog()">
                         <i class="fas fa-file-import mr-2"></i>Importa
@@ -654,6 +654,7 @@ window.performanceReport = function() {
 </script>
     <!-- Page Logic -->
     <script type="module" src="/pages/tracking/index.js"></script>
+    <script type="module" src="/pages/tracking/column-editor.js"></script>
     <!-- FIX: Assicura che showAddTrackingForm sia disponibile -->
 <script>
 // Fix per il timeout del progressive form
