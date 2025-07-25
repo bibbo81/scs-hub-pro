@@ -140,6 +140,7 @@ async function initializeTableManager() {
         columns: initialColumns,
         selectable: true,
         searchable: false,
+        enableColumnManager: false,
         paginate: true,
         pageSize: 25,
         onSelectionChange: handleSelectionChange,
