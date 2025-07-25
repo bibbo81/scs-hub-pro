@@ -64,6 +64,17 @@ function normalizeTrackingData(rawTracking) {
     const origin = isAir ? (mapped.origin_name || mapped.origin_port) : (mapped.origin_port || mapped.origin);
     const destination = isAir ? (mapped.destination_name || mapped.destination_port) : (mapped.destination_port || mapped.destination);
 
+    // Calcola i tipi di container
+    const containers = mapped.containers || mapped._raw?.shipment?.containers || [];
+    const typeSummary = {};
+    if (Array.isArray(containers) && containers.length > 0) {
+        containers.forEach(c => {
+            const type = c.type || 'N/A';
+            typeSummary[type] = (typeSummary[type] || 0) + 1;
+        });
+    }
+    const containerTypes = Object.entries(typeSummary).map(([type, count]) => `${count}x${type}`).join(', ');
+
     return {
         id: mapped.id,
         tracking_number: mapped.tracking_number || 'N/A',
@@ -83,6 +94,9 @@ function normalizeTrackingData(rawTracking) {
         vessel_name: mapped.vessel_name,
         voyage_number: mapped.voyage_number,
         flight_number: mapped.flight_number,
+        container_types: containerTypes || mapped.container_details, // Aggiunto campo calcolato
+        total_weight_kg: mapped.total_weight_kg || mapped._raw?.shipment?.cargo?.weight || 0,
+        total_volume_cbm: mapped.total_volume_cbm || mapped._raw?.shipment?.cargo?.volume || 0,
         _raw: rawTracking,
     };
 }
