@@ -27,6 +27,17 @@ export class TableManager {
         // Alias for compatibility
         this.config = this.options;
         
+        // FIX: Bind formatters to this instance to provide context.
+        // This allows formatters (e.g., for status) to access `this.options`
+        // and any configurations passed in, like `columnConfiguration`.
+        if (this.options.columns && Array.isArray(this.options.columns)) {
+            this.options.columns.forEach(col => {
+                if (typeof col.formatter === 'function') {
+                    col.formatter = col.formatter.bind(this);
+                }
+            });
+        }
+        
         // State
         this.data = [];
         this.filteredData = [];
