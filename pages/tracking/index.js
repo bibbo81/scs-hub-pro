@@ -132,7 +132,10 @@ window.TABLE_COLUMNS = TABLE_COLUMNS;
 // Formatters provided by table-config.js
 
 // Initialize
-document.addEventListener('DOMContentLoaded', async () => {
+/**
+ * Initializes the entire tracking page logic.
+ */
+async function initializeTrackingPage() {
     try {
         console.log('🚀 Initializing tracking page...');
 
@@ -219,7 +222,15 @@ document.addEventListener('DOMContentLoaded', async () => {
         console.error('❌ Initialization error:', error);
         showError('Errore durante l\'inizializzazione');
     }
-});
+}
+
+// Wait for the main application to be ready before initializing the page.
+// This is the definitive fix for the race condition with TableManager.
+if (window.App && typeof window.App.onReady === 'function') {
+    window.App.onReady(initializeTrackingPage);
+} else {
+    document.addEventListener('DOMContentLoaded', initializeTrackingPage);
+}
 
 // Load trackings from Supabase
 async function loadTrackings() {
