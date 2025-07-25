@@ -140,62 +140,18 @@ async function initializeTrackingPage() {
     try {
         console.log('🚀 Inizializzazione pagina tracking...');
 
-        // Attende le dipendenze critiche (mappe di normalizzazione)
-        let retries = 0;
-        while (!window.TrackingUnifiedMapping && retries < 50) {
-            await new Promise(resolve => setTimeout(resolve, 100));
-            retries++;
-        }
-        if (!window.TrackingUnifiedMapping) {
-            throw new Error('Dipendenza critica non trovata: TrackingUnifiedMapping.');
-        }
+        // Attende le dipendenze critiche
+        await waitForDependencies();
 
         // Popola le mappature globali
         COLUMN_MAPPING = window.TrackingUnifiedMapping.COLUMN_MAPPING;
         STATUS_MAPPING = window.TrackingUnifiedMapping.STATUS_MAPPING;
         STATUS_DISPLAY_CONFIG = window.TrackingUnifiedMapping.STATUS_DISPLAY_CONFIG;
 
-        // Carica le preferenze delle colonne
-        const savedPreferences = await userPreferencesService.getPreferences('tracking');
-        const defaultVisibleKeys = ['tracking_number', 'current_status', 'carrier_name', 'origin', 'destination', 'eta', 'updated_at', 'actions'];
-        const visibleColumnKeys = savedPreferences?.preferences?.column_keys || defaultVisibleKeys;
-        
-        // INIEZIONE DINAMICA DEL FORMATTER PER LO STATO
-        const initialColumns = visibleColumnKeys
-            .map(key => {
-                const column = TABLE_COLUMNS.find(c => c.key === key);
-                if (column && column.key === 'current_status') {
-                    // Clona la colonna per non modificare l'originale
-                    return {
-                        ...column,
-                        formatter: (value) => formatStatus(value, STATUS_DISPLAY_CONFIG)
-                    };
-                }
-                return column;
-            })
-            .filter(Boolean);
-
         // Inizializza TableManager
-        const tableContainer = document.getElementById('trackingTableContainer');
-        if (!tableContainer) throw new Error('Contenitore tabella non trovato.');
+        await initializeTableManager();
 
-        tableManager = new TableManager('trackingTableContainer', {
-            columns: initialColumns,
-            columnConfiguration: {
-                statusDisplay: STATUS_DISPLAY_CONFIG // Passa la configurazione degli stili
-            },
-            selectable: true,
-            searchable: false,
-            paginate: true,
-            pageSize: 25,
-            onSelectionChange: handleSelectionChange,
-        });
-        window.tableManager = tableManager;
-        if (window.registerTableManager) {
-            window.registerTableManager('trackingTableContainer', tableManager);
-        }
-
-        // Carica i dati
+        // Carica i dati e aggiorna la UI
         await loadAndProcessTrackings();
         
         // Imposta gli event listener
@@ -207,8 +163,57 @@ async function initializeTrackingPage() {
 
     } catch (error) {
         console.error('❌ Errore inizializzazione:', error);
-        showError(error.message || "Errore durante l'inizializzazione");
+        showError(error.message || "Errore fatale durante l'inizializzazione");
     }
+}
+
+async function waitForDependencies() {
+    let retries = 0;
+    while (!window.TrackingUnifiedMapping && retries < 50) {
+        await new Promise(resolve => setTimeout(resolve, 100));
+        retries++;
+    }
+    if (!window.TrackingUnifiedMapping) {
+        throw new Error('Dipendenza critica non trovata: TrackingUnifiedMapping.');
+    }
+}
+
+async function initializeTableManager() {
+    const tableContainer = document.getElementById('trackingTableContainer');
+    if (!tableContainer) throw new Error('Contenitore tabella non trovato.');
+
+    const savedPreferences = await userPreferencesService.getPreferences('tracking');
+    const defaultVisibleKeys = ['tracking_number', 'current_status', 'carrier_name', 'origin', 'destination', 'eta', 'updated_at', 'actions'];
+    const visibleColumnKeys = savedPreferences?.preferences?.column_keys || defaultVisibleKeys;
+
+    const initialColumns = getFormattedColumns(visibleColumnKeys);
+
+    tableManager = new TableManager('trackingTableContainer', {
+        columns: initialColumns,
+        selectable: true,
+        searchable: false,
+        paginate: true,
+        pageSize: 25,
+        onSelectionChange: handleSelectionChange,
+    });
+
+    window.tableManager = tableManager;
+    if (window.registerTableManager) {
+        window.registerTableManager('trackingTableContainer', tableManager);
+    }
+}
+
+function getFormattedColumns(visibleKeys) {
+    return visibleKeys.map(key => {
+        const column = TABLE_COLUMNS.find(c => c.key === key);
+        if (column && column.key === 'current_status') {
+            return {
+                ...column,
+                formatter: (value) => formatStatus(value, STATUS_DISPLAY_CONFIG)
+            };
+        }
+        return column;
+    }).filter(Boolean);
 }
 
 // Attende che l'app sia pronta
@@ -425,33 +430,25 @@ function showColumnEditor() {
         content: `<p class="text-muted">Seleziona e riordina le colonne da visualizzare.</p><ul class="list-group" id="column-editor-list">${listContent}</ul>`,
         size: 'large',
         buttons: [
-            { text: 'Annulla', className: 'btn-secondary', action: (modal) => modal.hide() },
+            { text: 'Annulla', className: 'btn-secondary', action: () => window.ModalSystem.hide() },
             {
                 text: 'Salva',
                 className: 'btn-primary',
-                action: async (modal) => {
-                    const list = modal.element.querySelector('#column-editor-list');
+                action: async () => {
+                    const list = document.querySelector('#column-editor-list');
+                    if (!list) {
+                        showError("Errore interno del modale: lista colonne non trovata.");
+                        return;
+                    }
                     const newVisibleKeys = Array.from(list.querySelectorAll('li'))
                         .filter(li => li.querySelector('input:checked'))
                         .map(li => li.dataset.columnKey);
 
                     const { success } = await userPreferencesService.savePreferences('tracking', { column_keys: newVisibleKeys });
                     if (success) {
-                        const newColumns = newVisibleKeys
-                            .map(key => {
-                                const column = TABLE_COLUMNS.find(c => c.key === key);
-                                if (column && column.key === 'current_status') {
-                                    return {
-                                        ...column,
-                                        formatter: (value) => formatStatus(value, STATUS_DISPLAY_CONFIG)
-                                    };
-                                }
-                                return column;
-                            })
-                            .filter(Boolean);
-
+                        const newColumns = getFormattedColumns(newVisibleKeys);
                         tableManager.updateColumns(newColumns);
-                        modal.hide();
+                        window.ModalSystem.hide();
                         showNotification('Preferenze colonne salvate.', 'success');
                     } else {
                         showError('Errore nel salvataggio delle preferenze.');
