@@ -377,7 +377,7 @@ function showColumnEditor() {
         content: `<p class="text-muted">Seleziona e riordina le colonne da visualizzare.</p><ul class="list-group" id="column-editor-list">${listContent}</ul>`,
         size: 'large',
         buttons: [
-            { text: 'Annulla', className: 'btn-secondary', action: () => ModalSystem.hide() },
+            { text: 'Annulla', className: 'btn-secondary', action: () => ModalSystem.close() },
             {
                 text: 'Salva',
                 className: 'btn-primary',
@@ -395,7 +395,7 @@ function showColumnEditor() {
                     if (success) {
                         const newColumns = getFormattedColumns(newVisibleKeys);
                         tableManager.updateColumns(newColumns);
-                        ModalSystem.hide();
+                        ModalSystem.close();
                         showNotification('Preferenze colonne salvate.', 'success');
                     } else {
                         showError('Errore nel salvataggio delle preferenze.');
