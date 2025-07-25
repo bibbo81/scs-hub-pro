@@ -236,100 +236,11 @@
         };
     </script>
     <script>
-    /**
-     * Maps the raw API response from various sources to a standardized tracking object.
-     * This ensures that data can be handled consistently by the UI components.
-     * @param {object} apiResponse - The raw data object from the API.
-     * @returns {Partial<TrackingLike>} A standardized tracking object.
-     */
-    function mapApiResponseToTracking(apiResponse) {
-        if (!apiResponse) return null;
-
-        // Normalize carrier name
-        const carrierName = typeof apiResponse.carrier === 'object' && apiResponse.carrier !== null
-            ? apiResponse.carrier.name
-            : apiResponse.carrier;
-
-        const mapped = {
-            id: apiResponse.id || apiResponse.requestId,
-            tracking_number: apiResponse.tracking_number || apiResponse.trackingNumber || apiResponse.containerNo || apiResponse.awb,
-            carrier: carrierName,
-            current_status: apiResponse.current_status || apiResponse.currentStatus || 'pending',
-            tracking_type: apiResponse.tracking_type || apiResponse.trackingType || (apiResponse.containerNo ? 'container' : 'air_waybill'),
-            
-            date_of_departure: apiResponse.date_of_departure || apiResponse.dateOfDeparture || apiResponse.departureDate,
-            eta: apiResponse.eta,
-            transit_time: apiResponse.transit_time || apiResponse.transitTime,
-            updated_at: apiResponse.updated_at || apiResponse.updatedAt || new Date().toISOString(),
-            created_at: apiResponse.created_at || apiResponse.createdAt || new Date().toISOString(),
-
-            origin: apiResponse.origin,
-            destination: apiResponse.destination,
-
-            // Dettagli aggiuntivi
-            reference_number: apiResponse.reference_number || apiResponse.referenceNumber,
-            bl_number: apiResponse.bl_number || apiResponse.blNumber,
-            last_event_description: apiResponse.last_event_description || apiResponse.lastEventDescription,
-
-            vessel_name: apiResponse.vessel_name || apiResponse.vesselName,
-            vessel_imo: apiResponse.vessel_imo || apiResponse.vesselImo,
-            voyage_number: apiResponse.voyage_number || apiResponse.voyageNumber,
-            flight_number: apiResponse.flight_number || apiResponse.flightNumber,
-
-            container_details: apiResponse.container_types || apiResponse.container_type || apiResponse.containerType,
-            total_weight_kg: apiResponse.total_weight_kg || apiResponse.total_weight || apiResponse.totalWeight,
-            total_volume_cbm: apiResponse.total_volume_cbm || apiResponse.total_volume || apiResponse.totalVolume,
-
-            // Store raw response for debugging or future use
-            _raw: apiResponse 
-        };
-
-        return mapped;
-    }
-    </script>
-    <script>
-    /**
-     * Processes a single tracking record, applying API response mapping if raw data is available.
-     * This ensures that all tracking objects in the application are consistently structured.
-     * @param {TrackingLike} tracking - The tracking object to process.
-     * @returns {TrackingLike} The processed and enhanced tracking object.
-     */
-    function processTrackingRecord(tracking) {
-        if (!tracking) return tracking;
-
-        // If there's raw API data stored, map it to ensure all fields are present
-        if (tracking._raw) {
-            const mappedData = mapApiResponseToTracking(tracking._raw);
-            // Merge the mapped data into the tracking object.
-            // The original tracking object (from DB) takes precedence for core fields like id, created_at.
-            // The mapped data provides additional details.
-            return { ...mappedData, ...tracking };
-        }
-        
-        return tracking;
-    }
-
     // Enhance the DataManager to automatically process tracking data
     App.onReady(() => {
-        if (window.dataManager) {
-            // Enhance getTrackings to process all records
-            const originalGetTrackings = window.dataManager.getTrackings;
-            window.dataManager.getTrackings = async function(...args) {
-                const trackings = await originalGetTrackings.apply(this, args);
-                return Array.isArray(trackings) ? trackings.map(processTrackingRecord) : trackings;
-            };
-
-            // Enhance addTracking to process the newly added record
-            const originalAddTracking = window.dataManager.addTracking;
-            window.dataManager.addTracking = async function(...args) {
-                const result = await originalAddTracking.apply(this, args);
-                if (result && result.tracking) {
-                    result.tracking = processTrackingRecord(result.tracking);
-                }
-                return result;
-            };
-            console.log('✅ DataManager enhanced with tracking data processor.');
-        }
+        // This is a placeholder for any future enhancements.
+        // The primary data processing is now handled in /pages/tracking/index.js
+        console.log('✅ App is ready. Tracking page logic will take over.');
     });
     </script>
 </head>

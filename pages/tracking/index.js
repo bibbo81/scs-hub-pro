@@ -11,8 +11,6 @@ let processedTrackings = []; // Dati normalizzati e pronti per la UI
 let tableManager;
 
 // Mappature (verranno popolate all'inizializzazione)
-let COLUMN_MAPPING;
-let STATUS_MAPPING;
 let STATUS_DISPLAY_CONFIG;
 
 // Colonne disponibili per la selezione dell'utente
@@ -25,6 +23,7 @@ const AVAILABLE_COLUMNS = [
     { key: 'destination', label: 'Destinazione', sortable: true },
     { key: 'eta', label: 'ETA', sortable: true },
     { key: 'updated_at', label: 'Ultimo Aggiornamento', sortable: true },
+    { key: 'actions', label: 'Azioni', sortable: false },
     
     // Colonne aggiuntive
     { key: 'tracking_type', label: 'Tipo', sortable: true },
@@ -57,79 +56,35 @@ const AVAILABLE_COLUMNS = [
 function normalizeTrackingData(rawTracking) {
     if (!rawTracking) return null;
 
-    // Usa la funzione di mapping globale se esiste, altrimenti un fallback
-    const mapped = window.mapApiResponseToTracking ? 
-        window.mapApiResponseToTracking(rawTracking) : 
-        { ...rawTracking, ...rawTracking._raw }; // Fallback basico
+    const mapped = { ...rawTracking, ...(rawTracking._raw || {}) };
 
-    // 1. Normalizzazione dello stato
-    const normalizedStatus = STATUS_MAPPING ? 
-        window.TrackingUnifiedMapping.mapStatus(mapped.current_status) :
-        mapped.current_status?.toLowerCase() || 'pending';
+    const normalizedStatus = window.TrackingUnifiedMapping.mapStatus(mapped.current_status || mapped.status);
 
-    // 2. Normalizzazione Origine e Destinazione
     const isAir = mapped.tracking_type === 'air_waybill';
     const origin = isAir ? (mapped.origin_name || mapped.origin_port) : (mapped.origin_port || mapped.origin);
     const destination = isAir ? (mapped.destination_name || mapped.destination_port) : (mapped.destination_port || mapped.destination);
 
-    // 3. Arricchimento e calcoli
-    const containers = mapped._raw?.shipment?.containers || [];
-    const typeSummary = {};
-    if (Array.isArray(containers)) {
-        containers.forEach(c => {
-            const type = c.type || 'N/A';
-            typeSummary[type] = (typeSummary[type] || 0) + 1;
-        });
-    }
-    const containerTypes = Object.entries(typeSummary).map(([type, count]) => `${count}x${type}`).join(', ');
-
-    const totalWeight = mapped.total_weight_kg || mapped._raw?.shipment?.cargo?.weight || 0;
-    const totalVolume = mapped.total_volume_cbm || mapped._raw?.shipment?.cargo?.volume || 0;
-
-    // 4. Costruzione dell'oggetto finale standardizzato
-    const finalTracking = {
-        // Identificativi
+    return {
         id: mapped.id,
         tracking_number: mapped.tracking_number || 'N/A',
         tracking_type: mapped.tracking_type,
-        
-        // Stato e Carrier
         current_status: normalizedStatus,
-        carrier_name: mapped.carrier,
-
-        // Rotta
+        carrier_name: mapped.carrier_name || mapped.carrier,
         origin: origin || 'N/A',
         destination: destination || 'N/A',
-
-        // Date principali
         eta: mapped.eta,
-        date_of_departure: mapped.date_of_departure,
-        date_of_arrival: mapped.date_of_arrival, // Potrebbe essere diverso da ETA
         updated_at: mapped.updated_at,
         created_at: mapped.created_at,
-
-        // Dati aggiuntivi
         reference_number: mapped.reference_number,
         bl_number: mapped.bl_number,
-        booking_number: mapped.booking_number, // Aggiunto per completezza
+        booking_number: mapped.booking_number,
         tags: Array.isArray(mapped.tags) ? mapped.tags.join(', ') : mapped.tags,
         transit_time: mapped.transit_time,
-        
-        // Dettagli specifici
         vessel_name: mapped.vessel_name,
         voyage_number: mapped.voyage_number,
         flight_number: mapped.flight_number,
-        
-        // Dati calcolati
-        container_types: containerTypes,
-        total_weight_kg: totalWeight,
-        total_volume_cbm: totalVolume,
-
-        // Dati grezzi per debug
-        _raw: rawTracking 
+        _raw: rawTracking,
     };
-
-    return finalTracking;
 }
 
 
@@ -140,21 +95,14 @@ async function initializeTrackingPage() {
     try {
         console.log('🚀 Inizializzazione pagina tracking...');
 
-        // Attende le dipendenze critiche
         await waitForDependencies();
 
-        // Popola le mappature globali
-        COLUMN_MAPPING = window.TrackingUnifiedMapping.COLUMN_MAPPING;
-        STATUS_MAPPING = window.TrackingUnifiedMapping.STATUS_MAPPING;
         STATUS_DISPLAY_CONFIG = window.TrackingUnifiedMapping.STATUS_DISPLAY_CONFIG;
 
-        // Inizializza TableManager
         await initializeTableManager();
 
-        // Carica i dati e aggiorna la UI
         await loadAndProcessTrackings();
         
-        // Imposta gli event listener
         setupEventListeners();
 
         document.getElementById('loadingState').style.display = 'none';
@@ -205,7 +153,7 @@ async function initializeTableManager() {
 
 function getFormattedColumns(visibleKeys) {
     return visibleKeys.map(key => {
-        const column = TABLE_COLUMNS.find(c => c.key === key);
+        const column = AVAILABLE_COLUMNS.find(c => c.key === key);
         if (column && column.key === 'current_status') {
             return {
                 ...column,
@@ -227,7 +175,6 @@ async function loadAndProcessTrackings() {
         const rawData = await window.supabaseTrackingService.getAllTrackings();
         allTrackings = rawData || [];
         
-        // Normalizza tutti i dati
         processedTrackings = allTrackings.map(normalizeTrackingData).filter(Boolean);
         
         updateUI();
