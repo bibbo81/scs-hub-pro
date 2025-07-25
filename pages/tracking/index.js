@@ -1,8 +1,9 @@
 // index.js - Clean tracking page logic with all mappings
 // import TableManager from '/core/table-manager.js'; // Defer loading // Moved to dynamic import
 import { trackingsColumns, formatDate, formatDateOnly, formatTrackingStatus } from '/core/table-config.js';
-import { Modal } from '/assets/js/modal-system.js';
-import { showNotification } from '/assets/js/notification-system.js';
+import { Modal } from '/core/ui/modal-system.js';
+import { showNotification } from '/core/ui/notification-system.js';
+import userPreferencesService from '/core/services/user-preferences-service.js';
 
 // State
 let trackings = [];
@@ -131,35 +132,38 @@ window.TABLE_COLUMNS = TABLE_COLUMNS;
 
 // Initialize
 document.addEventListener('DOMContentLoaded', async () => {
-    console.log('🚀 Initializing tracking page...');
-    
     try {
-        // Hide loading state
-        document.getElementById('loadingState').style.display = 'none';
-        
-        
+        console.log('🚀 Initializing tracking page...');
 
-        // Create table container
-        const tableCard = document.querySelector('.sol-card-body.p-0');
+        // 1. Load column preferences
+        const savedPreferences = await userPreferencesService.getPreferences('tracking');
+        const defaultVisibleKeys = ['tracking_number', 'current_status', 'carrier_name', 'origin_port', 'destination_port', 'eta', 'last_update'];
+        const visibleColumnKeys = savedPreferences?.column_keys || defaultVisibleKeys;
+
+        // 2. Build initial columns based on preferences
+        const initialColumns = visibleColumnKeys
+            .map(key => TABLE_COLUMNS.find(c => c.key === key))
+            .filter(Boolean); // Rimuove eventuali colonne non più valide
+
+        // 3. Initialize TableManager with the correct columns
         const tableContainer = document.getElementById('trackingTableContainer');
         if (!tableContainer) {
-          console.error('Elemento #trackingTableContainer non trovato!');
-          return;
-        };
+            console.error('Elemento #trackingTableContainer non trovato!');
+            showError('Errore critico: container della tabella non trovato.');
+            return;
+        }
         tableManager = new TableManager('trackingTableContainer', {
-            columns: TABLE_COLUMNS,
+            columns: initialColumns,
             selectable: true,
             searchable: false, // We use external search
             paginate: true,
             pageSize: 20,
             enableColumnDrag: true,
-            onSelectionChange: handleSelectionChange
+            onSelectionChange: handleSelectionChange,
         });
-        // Rendi tableManager disponibile globalmente
+
         window.tableManager = tableManager;
-        // Register globally
-        window.registerTableManager('trackingTableContainer', tableManager);
-        
+
         // Load data
         await loadTrackings();
         
@@ -167,7 +171,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         setupEventListeners();
 
         // Collega il pulsante per la gestione colonne
-        document.getElementById('manageColumnsBtn').addEventListener('click', showColumnEditor);
+        document.getElementById('manageColumnsBtn')?.addEventListener('click', showColumnEditor);
         
         // Initialize tracking service if available
         if (!window.trackingService) {
@@ -197,31 +201,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         } else {
             console.warn('⚠️ Tracking service not available');
         }
-        
+
+        document.getElementById('loadingState').style.display = 'none';
         console.log('✅ Tracking page initialized');
-/*
-// Fix event delegation per checkbox dinamici
-document.addEventListener('click', function(e) {
-    if (e.target.type === 'checkbox' && e.target.classList.contains('select-row')) {
-        e.stopPropagation();
-        
-        const rowId = e.target.value || e.target.dataset.id;
-        const checked = e.target.checked;
-        
-        // Ignora se rowId è "on" o non valido
-        if (!rowId || rowId === 'on') {
-            console.warn('Invalid checkbox rowId:', rowId);
-            return;
-        }
-        
-        console.log('Checkbox clicked:', rowId, checked);
-        
-        if (tableManager) {
-            tableManager.selectRow(rowId, checked);
-        }
-    }
-});
-*/     
         // Signal that the app is ready
         App.isReady();
 
