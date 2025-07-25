@@ -9,6 +9,8 @@ import userPreferencesService from '/core/services/user-preferences-service.js';
 let trackings = [];
 let filteredTrackings = [];
 let tableManager;
+let COLUMN_MAPPING;
+let STATUS_DISPLAY;
 
 const AVAILABLE_COLUMNS = [
     // General
@@ -148,8 +150,8 @@ async function initializeTrackingPage() {
         }
 
         // Define constants now that dependencies are ready
-        const COLUMN_MAPPING = window.TrackingUnifiedMapping?.COLUMN_MAPPING || {};
-        const STATUS_DISPLAY = window.TrackingUnifiedMapping?.STATUS_MAPPING || {};
+        COLUMN_MAPPING = window.TrackingUnifiedMapping?.COLUMN_MAPPING || {};
+        STATUS_DISPLAY = window.TrackingUnifiedMapping?.STATUS_MAPPING || {};
 
         // 1. Load column preferences robustly
         let savedPreferences = null;
@@ -195,6 +197,11 @@ async function initializeTrackingPage() {
             return; // Stop execution if the table fails
         }
         window.tableManager = tableManager;
+        // FIX: Register the instance so other scripts can find it reliably.
+        if (window.registerTableManager) {
+            window.registerTableManager('trackingTableContainer', tableManager);
+            console.log('✅ TableManager instance registered.');
+        }
 
         // FIX STRUTTURALE: Inizializza gli "enhancements" solo DOPO che tableManager è stato creato.
         // Questo risolve la race condition che causava "TableManager not found".
