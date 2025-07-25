@@ -71,6 +71,29 @@ export class TableManager {
         }
     }
     
+    /**
+     * Updates the table columns and re-renders the table.
+     * This is the FIX for the `statusDisplay` error when changing columns.
+     * @param {Array<object>} newColumns - The new array of column definitions.
+     */
+    updateColumns(newColumns) {
+        console.log('[TableManager] Updating columns...');
+
+        // FIX: Bind formatters for the new columns to provide context.
+        // This is crucial when columns are changed dynamically, e.g., via a column manager.
+        if (Array.isArray(newColumns)) {
+            newColumns.forEach(col => {
+                // Check if formatter exists and is not already bound
+                if (typeof col.formatter === 'function' && !col.formatter.name.startsWith('bound')) {
+                    col.formatter = col.formatter.bind(this);
+                }
+            });
+        }
+
+        this.options.columns = newColumns;
+        this.render(); // Re-render the table with the new columns
+    }
+
     // Initialize advanced search functionality
     initAdvancedSearch() {
         this.advancedSearch = {
