@@ -1166,13 +1166,20 @@ window.AVAILABLE_COLUMNS = AVAILABLE_COLUMNS;
  * The changes are applied to the table for the current session.
  */
 function showColumnEditor() {
+    // 1. Check for Sortable.js dependency
     if (typeof Sortable === 'undefined') {
         console.warn('Sortable.js not loaded yet.');
         showNotification('Funzionalità di riordino non ancora pronta. Riprova tra un istante.', 'warning');
         return;
     }
 
-    // FIX: Use the global ModalSystem singleton instead of `new Modal()`
+    // 2. Check for TableManager dependency
+    if (!tableManager) {
+        console.error('TableManager is not available yet.');
+        showNotification('La tabella non è ancora pronta. Riprova tra un istante.', 'error');
+        return;
+    }
+
     ModalSystem.show({
         title: 'Gestisci Colonne',
         content: `
@@ -1190,53 +1197,67 @@ function showColumnEditor() {
                 text: 'Salva',
                 className: 'btn-primary',
                 action: async (modal) => {
-                    const list = modal.element.querySelector('#column-editor-list');
-                    const newVisibleKeys = Array.from(list.querySelectorAll('li'))
-                        .filter(li => li.querySelector('input[type="checkbox"]').checked)
-                        .map(li => li.dataset.columnKey);
+                    try {
+                        const list = modal.element.querySelector('#column-editor-list');
+                        if (!list) throw new Error("Column list not found in modal.");
 
-                    const { success } = await userPreferencesService.savePreferences('tracking', { column_keys: newVisibleKeys });
+                        const newVisibleKeys = Array.from(list.querySelectorAll('li'))
+                            .filter(li => li.querySelector('input[type="checkbox"]').checked)
+                            .map(li => li.dataset.columnKey);
 
-                    if (success) {
-                        const newColumns = newVisibleKeys
-                            .map(key => AVAILABLE_COLUMNS.find(c => c.key === key))
-                            .filter(Boolean);
+                        const { success } = await userPreferencesService.savePreferences('tracking', { column_keys: newVisibleKeys });
 
-                        tableManager.updateColumns(newColumns);
-                        modal.hide();
-                        showNotification('Preferenze colonne salvate con successo.', 'success');
-                    } else {
-                        showNotification('Errore durante il salvataggio delle preferenze. Riprova.', 'error');
+                        if (success) {
+                            const newColumns = newVisibleKeys
+                                .map(key => AVAILABLE_COLUMNS.find(c => c.key === key))
+                                .filter(Boolean);
+
+                            tableManager.updateColumns(newColumns);
+                            modal.hide();
+                            showNotification('Preferenze colonne salvate con successo.', 'success');
+                        } else {
+                            showNotification('Errore durante il salvataggio delle preferenze. Riprova.', 'error');
+                        }
+                    } catch (error) {
+                        console.error("Error saving columns:", error);
+                        showNotification('Si è verificato un errore imprevisto durante il salvataggio.', 'error');
                     }
                 }
             }
         ],
         onMounted: (modal) => {
-            const list = modal.element.querySelector('#column-editor-list');
-            const currentVisibleKeys = tableManager.getColumns().map(c => c.key);
+            // 3. Add a try-catch inside onMounted for maximum safety
+            try {
+                const list = modal.element.querySelector('#column-editor-list');
+                if (!list) throw new Error("Could not find #column-editor-list in the modal.");
 
-            // Populate with all available columns
-            AVAILABLE_COLUMNS.forEach(col => {
-                const isVisible = currentVisibleKeys.includes(col.key);
-                const listItem = document.createElement('li');
-                listItem.className = 'list-group-item d-flex justify-content-between align-items-center';
-                listItem.dataset.columnKey = col.key;
-                listItem.innerHTML = `
-                    <div>
-                        <span class="drag-handle" style="cursor: move; margin-right: 10px;">&#9776;</span>
-                        <span>${col.label}</span>
-                    </div>
-                    <input class="form-check-input" type="checkbox" ${isVisible ? 'checked' : ''}>
-                `;
-                list.appendChild(listItem);
-            });
+                const currentVisibleKeys = tableManager.getColumns().map(c => c.key);
 
-            // Make the list sortable
-            new Sortable(list, {
-                animation: 150,
-                handle: '.drag-handle',
-                ghostClass: 'bg-light'
-            });
+                AVAILABLE_COLUMNS.forEach(col => {
+                    const isVisible = currentVisibleKeys.includes(col.key);
+                    const listItem = document.createElement('li');
+                    listItem.className = 'list-group-item d-flex justify-content-between align-items-center';
+                    listItem.dataset.columnKey = col.key;
+                    listItem.innerHTML = `
+                        <div>
+                            <span class="drag-handle" style="cursor: move; margin-right: 10px;">&#9776;</span>
+                            <span>${col.label}</span>
+                        </div>
+                        <input class="form-check-input" type="checkbox" ${isVisible ? 'checked' : ''}>
+                    `;
+                    list.appendChild(listItem);
+                });
+
+                new Sortable(list, {
+                    animation: 150,
+                    handle: '.drag-handle',
+                    ghostClass: 'bg-light'
+                });
+            } catch (error) {
+                console.error("Error mounting column editor modal content:", error);
+                showNotification('Errore durante l\'apertura dell\'editor. Riprova.', 'error');
+                modal.hide(); // Close the broken modal
+            }
         }
     });
 }
