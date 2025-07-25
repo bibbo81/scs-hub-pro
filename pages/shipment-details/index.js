@@ -157,6 +157,13 @@ function setupEventListeners() {
         else if (button.classList.contains('replace-document-btn')) replaceDocument(documentId);
         else if (button.classList.contains('download-document-btn')) downloadDocument(documentId);
     });
+
+    document.getElementById('additionalCostsList')?.addEventListener('click', (event) => {
+        const deleteBtn = event.target.closest('.delete-additional-cost-btn');
+        if (deleteBtn) {
+            deleteAdditionalCost(deleteBtn.dataset.costId);
+        }
+    });
 }
 
 async function saveCosts() {
