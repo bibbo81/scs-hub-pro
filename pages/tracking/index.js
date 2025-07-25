@@ -89,6 +89,13 @@ const DEFAULT_VISIBLE_COLUMNS = [
 // Column configuration for table
 const TABLE_COLUMNS = trackingsColumns;
 
+// EXPOSE TO GLOBAL SCOPE for column-editor-fix.js and other legacy scripts
+window.AVAILABLE_COLUMNS = AVAILABLE_COLUMNS;
+window.DEFAULT_VISIBLE_COLUMNS = DEFAULT_VISIBLE_COLUMNS;
+window.TABLE_COLUMNS = TABLE_COLUMNS;
+window.trackings = trackings;
+window.filteredTrackings = filteredTrackings;
+
 /**
  * Processa un singolo record di tracking per calcolare campi derivati.
  * @param {object} tracking - L'oggetto di tracking originale.
@@ -516,6 +523,9 @@ function getColumnFormatter(key) {
             return (value) => value || '-';
     }
 }
+
+// EXPOSE TO GLOBAL SCOPE
+window.getColumnFormatter = getColumnFormatter;
 
 // Aggiungi bottone per editor colonne nell'UI
 // Modifica la sezione page-actions in tracking.html per aggiungere:
