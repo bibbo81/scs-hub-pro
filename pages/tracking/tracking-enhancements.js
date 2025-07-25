@@ -1,8 +1,6 @@
 // /pages/tracking/tracking-enhancements.js
 // Consolidated fixes and enhancements for the tracking page.
 // This file replaces multiple individual fix scripts to improve performance and reliability.
-
-(function() {
     'use strict';
     console.log('🚀 TRACKING ENHANCEMENTS: Initializing consolidated module...');
 
@@ -169,7 +167,7 @@
     /**
      * Main initialization function that runs all fixes in order.
      */
-    function initializeAllEnhancements() {
+    function init() {
         console.log('⚙️ Applying all enhancements in order...');
         try {
             applyCheckboxFixes();
@@ -181,15 +179,8 @@
         }
     }
 
-    // Wait for the main application to be ready before applying fixes.
-    if (window.App && typeof window.App.onReady === 'function') {
-        window.App.onReady(initializeAllEnhancements);
-    } else {
-        // Fallback if App.onReady is not available
-        document.addEventListener('DOMContentLoaded', () => {
-            console.warn('App.onReady not found, using DOMContentLoaded with a delay.');
-            setTimeout(initializeAllEnhancements, 1500); // Wait for other scripts
-        });
-    }
-
-})();
+    // Expose the initializer on the window object so index.js can call it
+    window.TrackingEnhancements = {
+        init: init
+    };
+    console.log('✅ Tracking Enhancements module loaded and ready to be initialized.');
