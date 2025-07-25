@@ -331,7 +331,7 @@ function viewDetails(id) {
         title: 'Dettagli Tracking',
         content: content,
         size: 'large',
-        buttons: [{ text: 'Chiudi', className: 'btn-secondary', action: (modal) => modal.hide() }]
+        buttons: [{ text: 'Chiudi', className: 'btn-secondary', onclick: () => ModalSystem.close() }]
     });
 }
 
@@ -377,11 +377,11 @@ function showColumnEditor() {
         content: `<p class="text-muted">Seleziona e riordina le colonne da visualizzare.</p><ul class="list-group" id="column-editor-list">${listContent}</ul>`,
         size: 'large',
         buttons: [
-            { text: 'Annulla', className: 'btn-secondary', action: () => ModalSystem.hide() },
+            { text: 'Annulla', className: 'btn-secondary', onclick: () => ModalSystem.close() },
             {
                 text: 'Salva',
                 className: 'btn-primary',
-                action: async () => {
+                onclick: async () => {
                     const list = document.querySelector('#column-editor-list');
                     if (!list) {
                         showError("Errore interno del modale: lista colonne non trovata.");
@@ -395,7 +395,7 @@ function showColumnEditor() {
                     if (success) {
                         const newColumns = getFormattedColumns(newVisibleKeys);
                         tableManager.updateColumns(newColumns);
-                        ModalSystem.hide();
+                        ModalSystem.close();
                         showNotification('Preferenze colonne salvate.', 'success');
                     } else {
                         showError('Errore nel salvataggio delle preferenze.');
