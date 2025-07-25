@@ -1,77 +1,62 @@
-import { supabase } from './supabase-client.js';
+// /core/services/user-preferences-service.js
+import { supabase } from '/core/services/supabase-client.js';
+import authGuard from '/core/auth-guard.js';
 
-/**
- * Fetches user preferences for a specific page.
- * @param {string} page - The identifier for the page (e.g., 'tracking', 'products').
- * @returns {Promise<object|null>} The preferences object or null if not found or an error occurs.
- */
-async function getPreferences(page) {
-  try {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      console.log('User not logged in. Cannot fetch preferences.');
-      return null;
+class UserPreferencesService {
+    constructor() {
+        this.cache = new Map();
     }
 
-    const { data, error } = await supabase
-      .from('user_preferences')
-      .select('preferences')
-      .eq('user_id', user.id)
-      .eq('page', page)
-      .single();
+    /**
+     * Fetches user preferences for a specific page.
+     * @param {string} page - The identifier for the page (e.g., 'tracking').
+     * @returns {Promise<object|null>} The preferences object or null if not found.
+     */
+    async getPreferences(page) {
+        const user = await authGuard.getCurrentUser();
+        if (!user) return null;
 
-    if (error && error.code !== 'PGRST116') { // PGRST116 = 'No rows found', which is not an error here.
-      console.error('Error fetching user preferences:', error);
-      return null;
+        const cacheKey = `${user.id}-${page}`;
+        if (this.cache.has(cacheKey)) {
+            return this.cache.get(cacheKey);
+        }
+
+        const { data, error } = await supabase
+            .from('user_preferences')
+            .select('preferences')
+            .eq('user_id', user.id)
+            .eq('page', page)
+            .maybeSingle(); // FIX: Use maybeSingle() to prevent 406 error. It returns null if no row is found.
+
+        if (error) {
+            console.error('Error fetching user preferences:', error);
+            throw error;
+        }
+
+        this.cache.set(cacheKey, data);
+        return data;
     }
 
-    return data ? data.preferences : null;
-  } catch (error) {
-    console.error('Exception in getPreferences:', error);
-    return null;
-  }
+    /**
+     * Saves user preferences for a specific page.
+     * @param {string} page - The identifier for the page.
+     * @param {object} preferences - The JSON object of preferences to save.
+     * @returns {Promise<{success: boolean, data: object}>}
+     */
+    async savePreferences(page, preferences) {
+        const user = await authGuard.getCurrentUser();
+        if (!user) throw new Error('User not authenticated');
+
+        this.cache.delete(`${user.id}-${page}`); // Invalidate cache
+
+        const { data, error } = await supabase
+            .from('user_preferences')
+            .upsert({ user_id: user.id, page: page, preferences: preferences }, { onConflict: 'user_id, page' })
+            .select().single();
+
+        if (error) throw error;
+        return { success: true, data };
+    }
 }
 
-/**
- * Saves or updates user preferences for a specific page.
- * @param {string} page - The identifier for the page.
- * @param {object} preferences - The JSON object containing the preferences to save.
- * @returns {Promise<{success: boolean, error: object|null}>} An object indicating success or failure.
- */
-async function savePreferences(page, preferences) {
-  try {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      throw new Error('User not logged in. Cannot save preferences.');
-    }
-
-    const { error } = await supabase
-      .from('user_preferences')
-      .upsert({
-        user_id: user.id,
-        page: page,
-        preferences: preferences,
-        updated_at: new Date().toISOString()
-      }, {
-        onConflict: 'user_id, page'
-      });
-
-    if (error) {
-      console.error('Error saving user preferences:', error);
-      return { success: false, error };
-    }
-
-    console.log(`Preferences for page '${page}' saved successfully.`);
-    return { success: true, error: null };
-  } catch (error) {
-    console.error('Exception in savePreferences:', error);
-    return { success: false, error };
-  }
-}
-
-const userPreferencesService = {
-  getPreferences,
-  savePreferences,
-};
-
-export default userPreferencesService;
+export default new UserPreferencesService();
