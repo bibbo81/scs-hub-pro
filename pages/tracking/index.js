@@ -166,7 +166,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             searchable: false, // We use external search
             paginate: true,
             pageSize: 20,
-            enableColumnDrag: false, // FIX: Disabilitato temporaneamente per permettere l'init. Verrà riattivato in un secondo momento.
+            enableColumnDrag: false, // FIX: Ensure column drag is disabled on init to prevent constructor error.
             onSelectionChange: handleSelectionChange,
         });
 
