@@ -167,6 +167,47 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Hide loading state
         document.getElementById('loadingState').style.display = 'none';
         
+        // Load saved column preferences and apply them
+        const savedColumns = localStorage.getItem('trackingVisibleColumns');
+        if (savedColumns) {
+            try {
+                const visibleKeys = JSON.parse(savedColumns);
+                if (Array.isArray(visibleKeys) && visibleKeys.length > 0) {
+                    const newColumns = visibleKeys.map(key => {
+                        // Find the full column definition from the master list
+                        const availableCol = AVAILABLE_COLUMNS.find(c => c.key === key);
+                        // Check if it's a special, pre-configured column (like 'actions')
+                        const existingCol = trackingsColumns.find(c => c.key === key);
+
+                        if (existingCol) {
+                            return existingCol;
+                        }
+
+                        if (availableCol) {
+                            return {
+                                key: availableCol.key,
+                                label: availableCol.label,
+                                sortable: availableCol.sortable,
+                                formatter: getColumnFormatter(availableCol.key) // Use the correct formatter
+                            };
+                        }
+                        return null;
+                    }).filter(Boolean); // Remove any nulls if a column was not found
+
+                    // Ensure the 'actions' column is always present if it was in the original config
+                    const actionsCol = trackingsColumns.find(c => c.key === 'actions');
+                    if (actionsCol && !newColumns.find(c => c.key === 'actions')) {
+                        newColumns.push(actionsCol);
+                    }
+
+                    TABLE_COLUMNS.splice(0, TABLE_COLUMNS.length, ...newColumns);
+                    console.log('✅ Loaded and applied custom column preferences.');
+                }
+            } catch (e) {
+                console.error('Error loading/applying column preferences:', e);
+            }
+        }
+
         // Create table container
         const tableCard = document.querySelector('.sol-card-body.p-0');
         const tableContainer = document.getElementById('trackingTableContainer');
@@ -483,20 +524,6 @@ function getColumnFormatter(key) {
     <i class="fas fa-columns mr-2"></i>Colonne
 </button>
 */
-
-// Carica preferenze colonne all'avvio
-document.addEventListener('DOMContentLoaded', () => {
-    const savedColumns = localStorage.getItem('trackingVisibleColumns');
-    if (savedColumns) {
-        try {
-            const columnOrder = JSON.parse(savedColumns);
-            // Applica l'ordine salvato
-            // ... logica per riordinare TABLE_COLUMNS ...
-        } catch (e) {
-            console.error('Error loading column preferences:', e);
-        }
-    }
-});
 
 // Apply filters
 function applyFilters() {
