@@ -665,6 +665,23 @@ class DataManager {
         return data;
     }
 
+    async deleteAdditionalCost(costId) {
+        if (!this.initialized) await this.init();
+
+        const { error } = await supabase
+            .from('additional_costs')
+            .delete()
+            .eq('id', costId)
+            .eq('organization_id', this.organizationId);
+
+        if (error) {
+            console.error("Errore nell'eliminare il costo aggiuntivo:", error);
+            throw error;
+        }
+
+        return true;
+    }
+
     async allocateCosts(shipmentId) {
         if (!this.initialized) await this.init();
 
