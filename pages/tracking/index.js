@@ -14,6 +14,42 @@ const COLUMN_MAPPING = window.TrackingUnifiedMapping?.COLUMN_MAPPING || {};
 // Status mapping for display
 const STATUS_DISPLAY = window.TrackingUnifiedMapping?.STATUS_MAPPING || {};
 
+const AVAILABLE_COLUMNS = [
+    // General
+    { key: 'tracking_number', label: 'Tracking Number', required: true, sortable: true },
+    { key: 'tracking_type', label: 'Tipo', sortable: true },
+    { key: 'current_status', label: 'Stato', sortable: true },
+    { key: 'carrier_name', label: 'Carrier', sortable: true },
+    { key: 'reference_number', label: 'Riferimento', sortable: true },
+    { key: 'tags', label: 'Tags', sortable: true },
+
+    // Route
+    { key: 'origin_port', label: 'Origine', sortable: true },
+    { key: 'destination_port', label: 'Destinazione', sortable: true },
+    { key: 'origin_country', label: 'Paese Origine', sortable: true },
+    { key: 'destination_country', label: 'Paese Destinazione', sortable: true },
+
+    // Dates
+    { key: 'date_of_departure', label: 'Data Partenza', sortable: true },
+    { key: 'eta', label: 'ETA', sortable: true },
+    { key: 'date_of_arrival', label: 'Data Arrivo', sortable: true },
+    { key: 'transit_time', label: 'Transit Time', sortable: true },
+    { key: 'last_update', label: 'Ultimo Aggiornamento', sortable: true },
+    { key: 'created_at', label: 'Data Inserimento', sortable: true },
+
+    // Sea/Container Details
+    { key: 'bl_number', label: 'B/L Number', sortable: true },
+    { key: 'booking', label: 'Booking Number', sortable: true },
+    { key: 'vessel_name', label: 'Nave', sortable: true },
+    { key: 'voyage_number', label: 'Viaggio', sortable: true },
+    { key: 'container_types', label: 'Tipi Container', sortable: true },
+    { key: 'total_weight_kg', label: 'Peso Totale (kg)', sortable: true },
+    { key: 'total_volume_cbm', label: 'Volume Totale (cbm)', sortable: true },
+
+    // Air Details
+    { key: 'flight_number', label: 'N. Volo', sortable: true },
+    { key: 'airline', label: 'Compagnia Aerea', sortable: true },
+];
 
 
 /**
@@ -83,6 +119,12 @@ function processTrackingData(tracking) {
 
     return processed;
 }
+
+const TABLE_COLUMNS = trackingsColumns;
+
+// EXPOSE TO GLOBAL SCOPE for column-editor.js
+window.AVAILABLE_COLUMNS = AVAILABLE_COLUMNS;
+window.TABLE_COLUMNS = TABLE_COLUMNS;
 
 // Formatters provided by table-config.js
 
