@@ -1,5 +1,6 @@
 // index.js - Clean tracking page logic with all mappings
 // import TableManager from '/core/table-manager.js'; // Defer loading // Moved to dynamic import
+import { openColumnEditor } from '/pages/tracking/column-editor.js';
 import { trackingsColumns, formatDate, formatDateOnly, formatTrackingStatus } from '/core/table-config.js';
 
 // State
@@ -121,6 +122,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         
         // Setup event listeners
         setupEventListeners();
+
+        // Collega il pulsante per la gestione colonne
+        document.getElementById('manageColumnsBtn').addEventListener('click', openColumnEditor);
         
         // Initialize tracking service if available
         if (!window.trackingService) {
