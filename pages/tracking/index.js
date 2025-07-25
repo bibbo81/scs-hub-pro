@@ -1,6 +1,6 @@
 // index.js - Clean tracking page logic with all mappings
 import TableManager from '/core/table-manager.js';
-import { trackingsColumns, formatDate, formatDateOnly, formatTrackingStatus } from '/core/table-config.js';
+import { TABLE_COLUMNS as trackingsColumns, formatDate, formatDateOnly, formatStatus as formatTrackingStatus } from '/pages/tracking/table-columns-legacy.js';
 import { Modal } from '/core/modal-system.js';
 import { showNotification } from '/core/notification-system.js';
 import userPreferencesService from '/core/services/user-preferences-service.js';
@@ -90,7 +90,7 @@ function processTrackingData(tracking) {
             else if (type.toLowerCase().includes('lcl')) containerCounts['lcl']++;
 
             const summaryType = container.type || 'N/A';
-            
+
             typeSummary[summaryType] = (typeSummary[summaryType] || 0) + 1;
         });
     }
@@ -1159,6 +1159,12 @@ window.AVAILABLE_COLUMNS = AVAILABLE_COLUMNS;
  * The changes are applied to the table for the current session.
  */
 function showColumnEditor() {
+    if (typeof Sortable === 'undefined') {
+        console.warn('Sortable.js not loaded yet.');
+        showNotification('Funzionalità di riordino non ancora pronta. Riprova tra un istante.', 'warning');
+        return;
+    }
+
     const modal = new Modal({
         title: 'Gestisci Colonne',
         body: `
