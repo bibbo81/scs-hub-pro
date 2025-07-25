@@ -47,12 +47,16 @@ window.TrackingUnifiedMapping = {
         // Dates
         'Date Of Loading': 'date_of_loading',
         'LoadingDate': 'date_of_loading',
+        'Data Carico': 'date_of_loading',
         'Date Of Departure': 'date_of_departure',
         'DepartureDate': 'date_of_departure',
+        'Data Partenza': 'date_of_departure',
         'Date Of Arrival': 'date_of_arrival',
         'ArrivalDate': 'date_of_arrival',
+        'Data Arrivo': 'date_of_arrival',
         'Date Of Discharge': 'date_of_discharge',
         'DischargeDate': 'date_of_discharge',
+        'Data Scarico': 'date_of_discharge',
         'ETA': 'eta',
         'FirstETA': 'eta',
         'ATA': 'ata',
@@ -61,14 +65,21 @@ window.TrackingUnifiedMapping = {
         // Vessel
         'Vessel': 'vessel_name',
         'VesselName': 'vessel_name',
+        'Nome Nave': 'vessel_name',
         'Voyage': 'voyage_number',
         'VesselVoyage': 'voyage_number',
+        'Numero Viaggio': 'voyage_number',
         'VesselIMO': 'vessel_imo',
         'IMO': 'vessel_imo',
         
         // Container details
         'Container Type': 'container_type',
         'ContainerType': 'container_type',
+        'Container Types': 'container_type',
+        'ContainerTypes': 'container_type',
+        'Tipi Container': 'container_type',
+        'Tipo Container': 'container_type',
+        'Numero Container': 'tracking_number',
         'Container Size': 'container_size',
         'ContainerTEU': 'container_size',
         'Container Count': 'container_count',
@@ -80,27 +91,42 @@ window.TrackingUnifiedMapping = {
         'Airline': 'carrier_code',
         'AirlineName': 'carrier_name',
         'Airline Name': 'carrier_name',
+        'Compagnia Aerea': 'carrier_name',
         
         // Airports
         'Origin': 'origin_port',
         'Origin Name': 'origin_name',
         'OriginAirport': 'origin_port',
+        'Nome Origine': 'origin_name',
+        'Paese Origine': 'origin_country',
+        'Code Origine': 'origin_country_code',
         'Destination': 'destination_port',
         'Destination Name': 'destination_name',
         'DestinationAirport': 'destination_port',
+        'Nome Destinazione': 'destination_name',
+        'Paese Destinazione': 'destination_country',
+        'Code Destinazione': 'destination_country_code',
         
         // Flight
         'Flight Number': 'flight_number',
         'FlightNumber': 'flight_number',
         'Flight': 'flight_number',
+        'Numero Volo': 'flight_number',
         
         // Cargo
         'Pieces': 'pieces',
         'NumberOfPieces': 'pieces',
+        'Colli': 'pieces',
         'Weight': 'weight',
         'GrossWeight': 'weight',
+        'Peso': 'weight',
+        'Peso Totale': 'total_weight_kg',
+        'Peso Totale (kg)': 'total_weight_kg',
         'Volume': 'volume',
+        'Volume Totale (cbm)': 'total_volume_cbm',
+        'Volume Totale': 'total_volume_cbm',
         'Commodity': 'commodity',
+        'Merce': 'commodity',
         'Description': 'cargo_description',
         
         // === COMMON MAPPING ===
@@ -111,7 +137,8 @@ window.TrackingUnifiedMapping = {
         'UpdatedAt': 'updated_at',
         'Last Update': 'last_update',
         'LastUpdate': 'last_update',
-        
+        'Note': 'notes',
+
         // Metrics
         'CO₂ Emission (Tons)': 'co2_emission',
         'Co2Emission': 'co2_emission',
@@ -121,14 +148,17 @@ window.TrackingUnifiedMapping = {
         'TS Count': 'ts_count',
         'TSCount': 'ts_count',
         'T5 Count': 'ts_count',
-        
+
         // Events
         'Last Event': 'last_event_description',
         'LastEvent': 'last_event_description',
+        'Ultimo Evento': 'last_event_description',
         'Last Event Location': 'last_event_location',
         'LastLocation': 'last_event_location',
+        'Ultima Posizione': 'last_event_location',
         'Last Event Date': 'last_event_date',
-        'LastEventDate': 'last_event_date'
+        'LastEventDate': 'last_event_date',
+        'Data Ultimo Evento': 'last_event_date'
     },
     
     // Status mapping completo (italiano e inglese)
