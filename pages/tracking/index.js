@@ -1,8 +1,8 @@
 // index.js - Clean tracking page logic with all mappings
 import TableManager from '/core/table-manager.js';
 import { trackingsColumns, formatDate, formatDateOnly, formatTrackingStatus } from '/core/table-config.js';
-import { Modal } from '/assets/js/modal-system.js';
-import { showNotification } from '/assets/js/notification-system.js';
+import { Modal } from '/core/modal-system.js';
+import { showNotification } from '/core/notification-system.js';
 import userPreferencesService from '/core/services/user-preferences-service.js';
 
 // State
@@ -90,6 +90,7 @@ function processTrackingData(tracking) {
             else if (type.toLowerCase().includes('lcl')) containerCounts['lcl']++;
 
             const summaryType = container.type || 'N/A';
+            
             typeSummary[summaryType] = (typeSummary[summaryType] || 0) + 1;
         });
     }
