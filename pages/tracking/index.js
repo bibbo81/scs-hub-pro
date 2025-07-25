@@ -1,7 +1,8 @@
 // index.js - Clean tracking page logic with all mappings
 // import TableManager from '/core/table-manager.js'; // Defer loading // Moved to dynamic import
-import { openColumnEditor } from '/pages/tracking/column-editor.js';
 import { trackingsColumns, formatDate, formatDateOnly, formatTrackingStatus } from '/core/table-config.js';
+import { Modal } from '/assets/js/modal-system.js';
+import { showNotification } from '/assets/js/notification-system.js';
 
 // State
 let trackings = [];
@@ -166,7 +167,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         setupEventListeners();
 
         // Collega il pulsante per la gestione colonne
-        document.getElementById('manageColumnsBtn').addEventListener('click', openColumnEditor);
+        document.getElementById('manageColumnsBtn').addEventListener('click', showColumnEditor);
         
         // Initialize tracking service if available
         if (!window.trackingService) {
@@ -1169,3 +1170,63 @@ window.trackingDebug = {
     getStatusMapping: () => STATUS_DISPLAY
 };
 window.AVAILABLE_COLUMNS = AVAILABLE_COLUMNS;
+
+/**
+ * Opens the column management modal, allowing users to select and reorder columns.
+ * The changes are applied to the table for the current session.
+ */
+function showColumnEditor() {
+    const modal = new Modal({
+        title: 'Gestisci Colonne',
+        body: `
+            <p class="text-muted">Seleziona le colonne da visualizzare e trascinale per riordinarle.</p>
+            <ul class="list-group" id="column-editor-list"></ul>
+        `,
+        buttons: [
+            { label: 'Annulla', action: 'cancel', type: 'secondary' },
+            { label: 'Salva', action: 'save', type: 'primary' }
+        ],
+        size: 'large'
+    });
+
+    const list = modal.element.querySelector('#column-editor-list');
+    const currentVisibleKeys = tableManager.getColumns().map(c => c.key);
+
+    // Populate with all available columns, checking which are currently visible
+    AVAILABLE_COLUMNS.forEach(col => {
+        const isVisible = currentVisibleKeys.includes(col.key);
+        const listItem = document.createElement('li');
+        listItem.className = 'list-group-item d-flex justify-content-between align-items-center';
+        listItem.dataset.columnKey = col.key;
+        listItem.innerHTML = `
+            <div>
+                <span class="drag-handle" style="cursor: move; margin-right: 10px;">&#9776;</span>
+                <span>${col.label}</span>
+            </div>
+            <input class="form-check-input" type="checkbox" ${isVisible ? 'checked' : ''}>
+        `;
+        list.appendChild(listItem);
+    });
+
+    // Make the list sortable
+    new Sortable(list, {
+        animation: 150,
+        handle: '.drag-handle',
+        ghostClass: 'bg-light'
+    });
+
+    // Save button action (for this session only)
+    modal.element.querySelector('[data-action="save"]').onclick = () => {
+        const newVisibleKeys = Array.from(list.querySelectorAll('li'))
+            .filter(li => li.querySelector('input[type="checkbox"]').checked)
+            .map(li => li.dataset.columnKey);
+
+        const newColumns = newVisibleKeys.map(key => TABLE_COLUMNS.find(c => c.key === key)).filter(Boolean);
+
+        tableManager.updateColumns(newColumns);
+        modal.close();
+        showNotification('Visualizzazione colonne aggiornata.', 'info');
+    };
+
+    modal.show();
+}
