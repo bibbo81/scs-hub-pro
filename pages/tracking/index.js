@@ -95,6 +95,8 @@ function normalizeTrackingData(rawTracking) {
         voyage_number: mapped.voyage_number,
         flight_number: mapped.flight_number,
         container_type: containerTypes || mapped.container_details, // Aggiunto campo calcolato
+        date_of_departure: mapped.date_of_departure,
+        date_of_arrival: mapped.date_of_arrival,
         total_weight_kg: mapped.total_weight_kg || mapped._raw?.shipment?.cargo?.weight || 0,
         total_volume_cbm: mapped.total_volume_cbm || mapped._raw?.shipment?.cargo?.volume || 0,
         _raw: rawTracking,
