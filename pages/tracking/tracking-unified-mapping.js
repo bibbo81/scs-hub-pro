@@ -277,29 +277,27 @@ window.TrackingUnifiedMapping = {
     
     mapStatus(sourceStatus) {
         if (!sourceStatus) return 'registered';
-
         const statusStr = sourceStatus.toString().trim();
 
-        // Check if sourceStatus is already a valid normalized status
-        // This prevents double-mapping if the status is already e.g. 'in_transit'
+        // 1. Check rapido se è già uno stato normalizzato valido (es. 'in_transit')
         const validNormalizedStatuses = new Set(Object.values(this.STATUS_MAPPING));
-        if (validNormalizedStatuses.has(statusStr)) {
-            return statusStr;
+        if (validNormalizedStatuses.has(statusStr.toLowerCase())) {
+            return statusStr.toLowerCase();
         }
-        
-        // Prima prova exact match
-        if (this.STATUS_MAPPING[statusStr]) {
-            return this.STATUS_MAPPING[statusStr];
-        }
-        
-        // Poi prova lowercase
-        const lowerStatus = statusStr.toLowerCase();
+
+        // 2. Normalizza l'input per un confronto robusto
+        // Converte in lowercase e rimuove spazi, trattini e underscore
+        const normalizedSource = statusStr.toLowerCase().replace(/[\s_-]/g, '');
+
+        // 3. Itera sulla mappa e normalizza ogni chiave per il confronto
         for (const [key, value] of Object.entries(this.STATUS_MAPPING)) {
-            if (key.toLowerCase() === lowerStatus) {
-                return value;
+            const normalizedKey = key.toLowerCase().replace(/[\s_-]/g, '');
+            if (normalizedKey === normalizedSource) {
+                return value; // Trovato!
             }
         }
-        // Fallback
+
+        // 4. Se nessuna corrispondenza trovata, ritorna il default
         return 'registered';
     },
     
