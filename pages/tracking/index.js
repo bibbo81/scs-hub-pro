@@ -253,6 +253,33 @@ document.addEventListener('click', function(e) {
     }
 });
 
+/**
+ * Itera su tutti i tracking e normalizza il loro stato usando i metadati.
+ * Questo assicura che lo stato più recente (es. dall'ultimo evento) sia sempre visualizzato.
+ * @param {Array<object>} trackingsToProcess - L'array di tracking da processare.
+ */
+function processAndNormalizeTrackings(trackingsToProcess) {
+    console.log('🔄 Normalizing status for all trackings...');
+    trackingsToProcess.forEach(tracking => {
+        let rawStatus = tracking.status; // Inizia con lo stato base
+        const metadata = tracking.metadata?.raw?.shipment || tracking.metadata?.raw;
+
+        // La fonte più affidabile è l'ultimo evento nei movements
+        if (metadata?.movements && metadata.movements.length > 0) {
+            const lastMovement = metadata.movements[metadata.movements.length - 1];
+            rawStatus = lastMovement.event || rawStatus;
+        } 
+        // Altrimenti, usa lo status principale dei metadati
+        else if (metadata?.status) {
+            rawStatus = metadata.status;
+        }
+
+        // Applica il mapping unificato
+        const mappedStatus = window.TrackingUnifiedMapping.mapStatus(rawStatus);
+        tracking.current_status = mappedStatus;
+    });
+}
+
 // Load trackings from Supabase
 async function loadTrackings() {
     try {
@@ -299,6 +326,9 @@ async function loadTrackings() {
             TABLE_COLUMNS.push(...newColumns);
             tableManager.options.columns = newColumns;
         }
+
+        // FIX CENTRALE: Normalizza lo stato per TUTTI i tracking dopo il caricamento
+        processAndNormalizeTrackings(trackings);
 
         updateTable();
         updateStats();
