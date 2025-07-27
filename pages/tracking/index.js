@@ -916,7 +916,7 @@ function viewDetails(id) {
     console.log('View details:', id);
     const tracking = trackings.find(t => t.id === id);
     if (tracking && window.ModalSystem) {
-        const statusDisplay = STATUS_DISPLAY[tracking.current_status] || { label: 'Sconosciuto', class: 'secondary' };
+        const statusConfig = window.TrackingUnifiedMapping.STATUS_DISPLAY_CONFIG[tracking.current_status] || window.TrackingUnifiedMapping.STATUS_DISPLAY_CONFIG['default'];
         
         window.ModalSystem.show({
             title: `Dettagli: ${tracking.tracking_number}`,
@@ -938,8 +938,8 @@ function viewDetails(id) {
                     <div class="row mb-3">
                         <div class="col-md-6">
                             <strong>Stato:</strong> 
-                            <span class="badge badge-${statusDisplay.class} ml-2">
-                                ${statusDisplay.label}
+                            <span class="badge badge-${statusConfig.class} ml-2">
+                                <i class="fas ${statusConfig.icon} mr-1"></i>${statusConfig.label}
                             </span>
                         </div>
                         <div class="col-md-6">

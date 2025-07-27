@@ -72,12 +72,27 @@ class SupabaseTrackingService {
 
     async updateTracking(id, updates) {
         try {
+            // FIX: Pulisci l'oggetto 'updates' per inviare solo colonne valide a Supabase
+            const validColumns = [
+                'tracking_number', 'tracking_type', 'carrier_code', 'carrier_name', 
+                'reference_number', 'status', 'origin_port', 'origin_country', 
+                'destination_port', 'destination_country', 'eta', 'ata', 
+                'last_event_date', 'last_event_location', 'last_event_description', 
+                'metadata', 'updated_at'
+            ];
+
+            const cleanUpdates = {};
+            for (const key in updates) {
+                if (validColumns.includes(key)) {
+                    cleanUpdates[key] = updates[key];
+                }
+            }
+            // Assicura che updated_at sia sempre presente
+            cleanUpdates.updated_at = new Date().toISOString();
+
             const { data, error } = await supabase
                 .from(this.table)
-                .update({
-                    ...updates,
-                    updated_at: new Date().toISOString()
-                })
+                .update(cleanUpdates)
                 .eq('id', id)
                 .select()
                 .single();
