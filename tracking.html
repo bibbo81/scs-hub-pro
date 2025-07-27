@@ -297,7 +297,7 @@
             'updated_at': value => (value ? new Date(value).toLocaleString() : '—'),
             'created_at': value => (value ? new Date(value).toLocaleString() : '—'),
             'current_status': value => {
-                const statusInfo = window.STATUS_MAPPING?.[value] || { text: value, class: 'secondary' };
+                const statusInfo = window.TrackingUnifiedMapping.STATUS_MAPPING?.[value] || { text: value, class: 'secondary' };
                 return `<span class="badge badge-${statusInfo.class}">${statusInfo.text}</span>`;
             },
         };
