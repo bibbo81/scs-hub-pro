@@ -134,6 +134,7 @@ class SupabaseTrackingService {
             carrier_name: trackingData.carrier_name || trackingData.carrier_code,
             reference_number: trackingData.reference_number || trackingData.reference,
             status: trackingData.status || 'registered',
+            current_status: trackingData.current_status || trackingData.status || 'registered',
             
             // Campi geografici
             origin_port: trackingData.origin_port || trackingData.origin,
