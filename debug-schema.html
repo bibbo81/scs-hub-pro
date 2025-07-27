@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Supabase Schema Debug</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+    <h1>Supabase Schema Inspector</h1>
+    <p>Open the browser console to see the schema for the 'trackings' table.</p>
+    <p>This page requires the Supabase environment variables to be set for the application to work.</p>
+
+    <script type="module">
+        import { supabase } from '/core/services/supabase-client.js';
+
+        async function inspectSchema() {
+            console.log("🔬 Inspecting 'trackings' table schema...");
+
+            if (!supabase) {
+                console.error("❌ Supabase client is not available.");
+                return;
+            }
+
+            try {
+                // Fetch a single row to infer schema from the response
+                const { data, error } = await supabase
+                    .from('trackings')
+                    .select('*')
+                    .limit(1)
+                    .single();
+
+                if (error && error.code !== 'PGRST116') { // PGRST116 = "single row not found" which is ok
+                    throw error;
+                }
+
+                if (data) {
+                    console.log("✅ Successfully fetched a sample record.");
+                    console.log("🔍 Deduced columns from the record:", Object.keys(data));
+                } else {
+                     console.log("⚠️ Table is empty, but the query was successful. The table exists.");
+                }
+
+                // A more direct way to get schema info if you have the permissions
+                // This might be restricted for anon keys.
+                const { data: columns, error: rpcError } = await supabase.rpc('get_table_columns', { p_table_name: 'trackings' });
+
+                if (rpcError) {
+                    console.warn("⚠️ Could not fetch detailed schema via RPC. This is often a permissions issue. Falling back to deduced columns.", rpcError.message);
+                } else if (columns) {
+                    console.log("✅ Successfully fetched detailed schema via RPC:");
+                    console.table(columns);
+                }
+
+            } catch (err) {
+                console.error("❌ An error occurred while inspecting the schema:", err);
+            }
+        }
+
+        // Helper function to create the RPC if it doesn't exist
+        async function setupRpc() {
+            console.log("🔧 Checking/Creating RPC function for schema inspection...");
+            // This will likely fail with anon key, but it's worth a try.
+            // The user would need to run this with a higher-privileged role in their SQL editor.
+            const createFunctionSql = `
+                CREATE OR REPLACE FUNCTION get_table_columns(p_table_name TEXT)
+                RETURNS TABLE(column_name TEXT, data_type TEXT) AS $$
+                BEGIN
+                    RETURN QUERY
+                    SELECT
+                        isc.column_name::TEXT,
+                        isc.data_type::TEXT
+                    FROM
+                        information_schema.columns AS isc
+                    WHERE
+                        isc.table_schema = 'public' AND
+                        isc.table_name = p_table_name;
+                END;
+                $$ LANGUAGE plpgsql;
+            `;
+            // We can't execute this from the browser, but we can log it for the user.
+            console.log("💡 If the RPC call fails, please run this SQL in your Supabase SQL Editor to enable detailed schema inspection:");
+            console.log(createFunctionSql);
+        }
+
+        (async () => {
+            await setupRpc();
+            await inspectSchema();
+        })();
+    </script>
+</body>
+</html>
