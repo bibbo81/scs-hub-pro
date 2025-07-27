@@ -231,12 +231,12 @@ class TrackingPage {
                 {
                     text: 'Cancel',
                     class: 'btn-secondary',
-                    action: () => modalSystem.hide()
+                    onclick: () => modalSystem.hide()
                 },
                 {
                     text: 'Add Tracking',
                     class: 'btn-primary',
-                    action: () => this.submitAddTracking()
+                    onclick: () => this.submitAddTracking()
                 }
             ]
         });

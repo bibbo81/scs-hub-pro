@@ -322,7 +322,7 @@ class ShipmentsPage {
                     {
                         text: 'Close',
                         class: 'btn-secondary',
-                        action: () => modalSystem.hide()
+                        onclick: () => modalSystem.hide()
                     }
                 ]
             });

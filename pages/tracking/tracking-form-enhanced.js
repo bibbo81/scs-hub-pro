@@ -46,7 +46,7 @@
             content: renderEnhancedForm(carriers),
             size: 'large',
             showFooter: false,
-            className: 'enhanced-tracking-modal'
+            class: 'enhanced-tracking-modal'
         });
         
         // Setup interactions dopo che il modal è renderizzato
