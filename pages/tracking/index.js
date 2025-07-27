@@ -427,7 +427,7 @@ function setupEventListeners() {
     
     // Export mappings for other modules
     window.COLUMN_MAPPING = COLUMN_MAPPING;
-    window.STATUS_DISPLAY = STATUS_DISPLAY;
+    // window.STATUS_DISPLAY = STATUS_DISPLAY; // Rimosso: STATUS_DISPLAY non è più definito in questo scope
     window.getStatusMapping = getStatusMapping;
     window.updateBulkActionsBar = function() {
         // Delega a handleSelectionChange che già esiste
