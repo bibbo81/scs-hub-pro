@@ -577,13 +577,23 @@ window.updateColumnPreview = function() {
 };
 
 window.applyColumnChanges = async function() {
+    // FIX: Esegui solo se il modal di gestione colonne è aperto
+    if (!document.getElementById('columnEditorList')) {
+        console.warn('⚠️ applyColumnChanges chiamato senza il modal corretto. Operazione annullata.');
+        // Chiudi eventuali modal aperti per sicurezza
+        if (window.ModalSystem) window.ModalSystem.closeAll();
+        return;
+    }
+
     try {
         // 1. Raccogli colonne selezionate
         const columnOrder = [];
         document.querySelectorAll('#columnEditorList .column-item').forEach(item => {
             const key = item.dataset.column;
             const checked = item.querySelector('input[type="checkbox"]').checked;
-            if (checked) {
+            // FIX: Includi sempre le colonne obbligatorie
+            const isRequired = AVAILABLE_COLUMNS.find(c => c.key === key)?.required;
+            if (checked || isRequired) {
                 columnOrder.push(key);
             }
         });
@@ -591,12 +601,8 @@ window.applyColumnChanges = async function() {
         // 2. Ricostruisci colonne
         const newColumns = columnOrder.map(key => {
             const availableCol = AVAILABLE_COLUMNS.find(c => c.key === key);
-            return {
-                key: key,
-                label: availableCol.label,
-                sortable: availableCol.sortable,
-                formatter: getColumnFormatter(key)
-            };
+            const existingCol = TABLE_COLUMNS.find(c => c.key === key);
+            return existingCol || { key: key, label: availableCol.label, sortable: availableCol.sortable, formatter: getColumnFormatter(key) };
         });
 
         const actionsCol = TABLE_COLUMNS.find(c => c.key === 'actions');
@@ -916,7 +922,7 @@ function viewDetails(id) {
     console.log('View details:', id);
     const tracking = trackings.find(t => t.id === id);
     if (tracking && window.ModalSystem) {
-        const statusConfig = window.TrackingUnifiedMapping.STATUS_DISPLAY_CONFIG[tracking.current_status] || window.TrackingUnifiedMapping.STATUS_DISPLAY_CONFIG['default'];
+        const statusConfig = window.TrackingUnifiedMapping.STATUS_DISPLAY_CONFIG[tracking.current_status] || window.TrackingUnifiedMapping.STATUS_DISPLAY_CONFIG['default'] || { label: tracking.current_status, class: 'secondary', icon: 'fa-question-circle' };
         
         window.ModalSystem.show({
             title: `Dettagli: ${tracking.tracking_number}`,
@@ -925,7 +931,7 @@ function viewDetails(id) {
                 <div class="tracking-details">
                     <div class="row mb-3">
                         <div class="col-md-6">
-                            <strong>Tipo:</strong> 
+                            <strong>Tipo:</strong>
                             <span class="ml-2">
                                 <i class="fas ${tracking.tracking_type === 'air_waybill' ? 'fa-plane' : 'fa-ship'}"></i>
                                 ${tracking.tracking_type === 'air_waybill' ? 'Aereo' : 'Container'}

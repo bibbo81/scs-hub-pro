@@ -46,36 +46,37 @@
 
     // New function to handle drag&drop functionality
     async function enableColumnDragDrop() {
-    console.log('🔧 Enabling column drag&drop (with retry)...');
+    console.log('🔧 Enabling column drag&drop (with robust retry)...');
 
         await ensureDependencies(['tableManager', 'Sortable']);
         console.log('✅ Dependencies tableManager and Sortable are ready.');
 
         const tableManager = window.tableManager;
     
-    let retries = 0;
-    const maxRetries = 20; // Aumentato a 10 secondi
-    const interval = setInterval(() => {
-        const headerRow = tableManager.container.querySelector('thead tr');
+    let retries = 0, maxRetries = 20; // 10 secondi
+    const intervalId = setInterval(() => {
+        const headerRow = tableManager.container.querySelector('.sol-table thead tr');
         
         if (headerRow) {
-            clearInterval(interval);
+            clearInterval(intervalId);
             if (tableManager.columnSortable) {
                 tableManager.columnSortable.destroy();
             }
             tableManager.columnSortable = new Sortable(headerRow, {
                 animation: 150,
                 handle: 'th',
-                filter: '.no-drag',
+                filter: '.no-drag', // Assicurati che il selettore sia corretto
                 onEnd: (evt) => {
-                    tableManager.handleColumnReorder(evt.oldIndex, evt.newIndex);
+                    if (tableManager.handleColumnReorder) {
+                        tableManager.handleColumnReorder(evt.oldIndex, evt.newIndex);
+                    }
                 }
             });
             console.log('✅ Column drag&drop enabled successfully');
         } else {
             retries++;
             if (retries >= maxRetries) {
-                clearInterval(interval);
+                clearInterval(intervalId);
                 console.warn('⚠️ Header row not found after multiple retries.');
             }
             }
