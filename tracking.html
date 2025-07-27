@@ -781,14 +781,14 @@ window.addEventListener('DOMContentLoaded', () => {
                         buttons: [
                             {
                                 text: 'Annulla',
-                                className: 'btn-secondary',
-                                action: () => window.ModalSystem.hide()
+                                class: 'sol-btn-secondary',
+                                onclick: () => window.ModalSystem.hide()
                             },
                             {
                                 text: 'Salva',
-                                className: 'btn-primary',
+                                class: 'sol-btn-primary',
                                 id: 'saveTrackingBtn',
-                                action: async function() {
+                                onclick: async function() {
                                     try {
                                         /** @type {TrackingLike} */
                                         const trackingData = {
@@ -1495,13 +1495,13 @@ console.log('- testTracking() - Crea un tracking di test con prefix BIBBO');
           buttons: [
             {
               text: "Annulla",
-              className: "btn-secondary",
-              action: () => window.ModalSystem.hide(),
+              class: "sol-btn-secondary",
+              onclick: () => window.ModalSystem.hide(),
             },
             {
               text: "Applica",
-              className: "btn-primary",
-              action: () => applyColumnChanges(),
+              class: "sol-btn-primary",
+              onclick: () => applyColumnChanges(),
             },
           ],
         });

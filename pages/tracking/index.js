@@ -477,13 +477,13 @@ function showColumnEditor() {
         buttons: [
             {
                 text: 'Annulla',
-                className: 'btn-secondary',
-                action: () => window.ModalSystem.hide()
+                class: 'sol-btn-secondary',
+                onclick: () => window.ModalSystem.hide()
             },
             {
                 text: 'Applica',
-                className: 'btn-primary',
-                action: () => applyColumnChanges()
+                class: 'sol-btn-primary',
+                onclick: () => applyColumnChanges()
             }
         ]
     });
@@ -892,16 +892,16 @@ function viewDetails(id) {
             buttons: [
                 {
                     text: 'Aggiorna',
-                    className: 'btn-primary',
-                    action: () => {
+                    class: 'sol-btn-primary',
+                    onclick: () => {
                         window.ModalSystem.hide();
                         refreshTracking(id);
                     }
                 },
                 {
                     text: 'Chiudi',
-                    className: 'btn-secondary',
-                    action: () => window.ModalSystem.hide()
+                    class: 'sol-btn-secondary',
+                    onclick: () => window.ModalSystem.hide()
                 }
             ]
         });
@@ -961,13 +961,13 @@ function showAddTrackingForm() {
         buttons: [
             {
                 text: 'Annulla',
-                className: 'btn-secondary',
-                action: () => window.ModalSystem.hide()
+                class: 'sol-btn-secondary',
+                onclick: () => window.ModalSystem.hide()
             },
             {
                 text: 'Salva',
-                className: 'btn-primary',
-                action: async () => {
+                class: 'sol-btn-primary',
+                onclick: async () => {
                     const newTracking = {
                         tracking_number: document.getElementById('tracking_number').value,
                         carrier_name: document.getElementById('carrier_name').value,
