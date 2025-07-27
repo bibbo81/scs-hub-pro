@@ -96,15 +96,12 @@
         const raw = tracking.metadata?.raw?.shipment || tracking.metadata?.raw || {};
         
         // CARRIER - Assicurati che sia visibile
-        // STATUS - The most important part!
-        if (raw.status) {
-            const mappedStatus = window.TrackingUnifiedMapping.mapStatus(raw.status);
-            tracking.current_status = mappedStatus;
-            tracking.status = mappedStatus; // Also update the raw status field for consistency
-            console.log(`[Status Mapping] Raw: "${raw.status}", Mapped: "${mappedStatus}"`);
-        } else {
-            tracking.current_status = tracking.current_status || 'registered';
-        }
+        //  FIX: Gestione diretta status ShipsGo
+        const shipsGoStatus = raw.status || 'Untracked';
+        const normalizedStatus = window.TrackingUnifiedMapping.mapStatus(shipsGoStatus);
+        tracking.current_status = normalizedStatus;
+        tracking.status = normalizedStatus;
+        console.log(`[ShipsGo→System] "${shipsGoStatus}" → "${normalizedStatus}"`);
         
         if (!tracking.carrier_name || tracking.carrier_name === '-') {
             tracking.carrier_name = tracking.metadata?.mapped?.carrier_name ||

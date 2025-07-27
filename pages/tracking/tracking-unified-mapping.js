@@ -133,28 +133,47 @@ window.TrackingUnifiedMapping = {
     
     // Status mapping completo (italiano e inglese)
     STATUS_MAPPING: {
+        // === SHIPSGO RAW STATUS (per import Excel) ===
+        'Untracked': 'registered',
+        'Delivered': 'delivered',
+        'In Transit': 'in_transit',
+        'Arrived': 'arrived',
+        'Pending': 'registered',
+        'Booked': 'registered',
+        'Manifested': 'registered',
+        'Departed': 'in_transit',
+        'Available for Pickup': 'out_for_delivery',
+        'Customs Hold': 'customs_hold',
+        'Customs Cleared': 'customs_cleared',
+        
+        // === CONTAINER SPECIFIC ===
+        'Loaded': 'in_transit',
+        'Discharged': 'arrived',
+        'Gate Out': 'out_for_delivery',
+        'Empty Returned': 'delivered',
+
         // === CONTAINER/SEA STATUSES ===
         // English
         'Sailing': 'in_transit',
-        'In Transit': 'in_transit',
-        'Loaded': 'in_transit',
+        //'In Transit': 'in_transit', // Duplicated
+        //'Loaded': 'in_transit', // Duplicated
         'Loading': 'in_transit',
         'Gate In': 'in_transit',
         'Transhipment': 'in_transit',
-        'Arrived': 'arrived',
-        'Discharged': 'arrived',
+        //'Arrived': 'arrived', // Duplicated
+        //'Discharged': 'arrived', // Duplicated
         'Discharging': 'arrived',
-        'Gate Out': 'out_for_delivery',
-        'Delivered': 'delivered',
+        //'Gate Out': 'out_for_delivery', // Duplicated
+        //'Delivered': 'delivered', // Duplicated
         'Empty': 'delivered',
-        'Empty Returned': 'delivered',
+        //'Empty Returned': 'delivered', // Duplicated
         'POD': 'delivered',
         'Registered': 'registered',
-        'Pending': 'registered',
-        'Booked': 'registered',
+        //'Pending': 'registered', // Duplicated
+        //'Booked': 'registered', // Duplicated
         'Booking Confirmed': 'registered',
         
-        // Italian
+        // === ITALIANO (già esistente, NON toccare) ===
         'In transito': 'in_transit',
         'In Transito': 'in_transit',
         'Navigando': 'in_transit',
