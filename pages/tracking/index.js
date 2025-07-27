@@ -259,6 +259,7 @@ async function loadTrackings() {
         let data;
         if (window.supabaseTrackingService) {
             data = await window.supabaseTrackingService.getAllTrackings();
+            console.log('RAW DATA FROM SUPABASE:', JSON.stringify(data, null, 2));
         } else {
             // Mock data for testing
             data = [{
