@@ -145,19 +145,31 @@
         }
         
         // DATES - ETA & ATA
+        // FIX: Logica di estrazione ETA migliorata per gestire trasbordi
         if (!tracking.eta || tracking.eta === '-') {
-            tracking.eta = raw.route?.port_of_discharge?.date_of_discharge ||
+            let finalArrivalDate = null;
+            const movements = raw.containers?.[0]?.movements;
+            const destinationPortName = raw.route?.port_of_discharge?.location?.name?.toUpperCase();
+
+            if (movements && destinationPortName) {
+                // Cerca all'indietro l'evento di arrivo o scarico nel porto di destinazione finale
+                for (let i = movements.length - 1; i >= 0; i--) {
+                    const movement = movements[i];
+                    const movementLocation = movement.location?.name?.toUpperCase();
+                    const eventType = movement.event?.toUpperCase();
+
+                    if (movementLocation === destinationPortName && (eventType === 'DISC' || eventType === 'VESSEL ARRIVAL')) {
+                        finalArrivalDate = movement.timestamp;
+                        break; // Trovato l'evento più recente e rilevante
+                    }
+                }
+            }
+
+            tracking.eta = finalArrivalDate ||
+                           raw.route?.port_of_discharge?.date_of_discharge || // Fallback
                            raw.route?.destination?.eta ||
                            raw.eta ||
                            '-';
-        }
-        if (!tracking.ata || tracking.ata === '-') {
-            if (movements) {
-                const dischargeEvent = movements.find(m => m.event === 'DISC');
-                if (dischargeEvent?.timestamp) {
-                    tracking.ata = dischargeEvent.timestamp;
-                }
-            }
         }
         
         // DATES - Estrai dal movimento LOAD se necessario
