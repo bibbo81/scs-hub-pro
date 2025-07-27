@@ -196,12 +196,12 @@
             title: 'Carica Documento per Spedizione',
             content: content,
             buttons: [
-                { text: 'Annulla', className: 'btn-secondary', action: () => ModalSystem.hide(modalId) },
-                { 
-                    text: 'Carica', 
-                    className: 'btn-primary', 
-                    id: 'upload-btn', 
-                    action: async (modal) => {
+                { text: 'Annulla', class: 'btn-secondary', onclick: () => ModalSystem.hide(modalId) },
+                {
+                    text: 'Carica',
+                    class: 'btn-primary',
+                    id: 'upload-btn',
+                    onclick: async (modal) => {
                         const uploadBtn = modal.querySelector('#upload-btn');
                         const feedbackDiv = modal.querySelector('.upload-feedback');
                         const fileInput = modal.querySelector('#document-file');

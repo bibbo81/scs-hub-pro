@@ -1113,8 +1113,8 @@ window.showColumnEditor = function() {
         content: content,
         size: 'md',
         buttons: [
-            { text: 'Cancel', className: 'sol-btn-secondary', action: () => window.ModalSystem.hide() },
-            { text: 'Apply', className: 'sol-btn-primary', action: () => applyColumnChanges() }
+            { text: 'Cancel', class: 'sol-btn-secondary', onclick: () => window.ModalSystem.hide() },
+            { text: 'Apply', class: 'sol-btn-primary', onclick: () => applyColumnChanges() }
         ]
     });
 

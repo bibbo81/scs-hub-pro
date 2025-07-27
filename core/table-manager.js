@@ -995,12 +995,12 @@ window.tableManagerShowColumns = function(containerId) {
             {
                 text: 'Annulla',
                 class: 'sol-btn-secondary',
-                action: 'close'
+                onclick: () => true
             },
             {
                 text: 'Applica',
                 class: 'sol-btn-primary',
-                action: () => {
+                onclick: () => {
                     // Apply column visibility changes
                     const checkboxes = document.querySelectorAll('#columnManagerList input[type="checkbox"]');
                     checkboxes.forEach(cb => {
