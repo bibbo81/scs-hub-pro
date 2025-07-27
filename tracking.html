@@ -1636,5 +1636,34 @@ console.log('- testTracking() - Crea un tracking di test con prefix BIBBO');
             window.App.isReady();
         });
     </script>
+    <!-- FIX: Modal buttons handler -->
+<script>
+(function() {
+    // Intercetta tutti i click su bottoni con data-modal-action
+    document.addEventListener('click', function(e) {
+        const button = e.target.closest('[data-modal-action]');
+        if (!button) return;
+        
+        e.preventDefault();
+        e.stopPropagation();
+        
+        const action = button.dataset.modalAction;
+        
+        // Gestisci gli action specifici
+        switch(action) {
+            case 'button-0': // Annulla
+                window.ModalSystem?.hide();
+                break;
+            case 'button-1': // Applica
+                if (window.applyColumnChanges) {
+                    window.applyColumnChanges();
+                }
+                break;
+        }
+    });
+    
+    console.log('✅ Modal button handlers activated');
+})();
+</script>
 </body>
 </html>
