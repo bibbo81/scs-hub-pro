@@ -172,6 +172,15 @@ window.TrackingUnifiedMapping = {
         //'Pending': 'registered', // Duplicated
         //'Booked': 'registered', // Duplicated
         'Booking Confirmed': 'registered',
+
+        // 🔧 **NEW CRITICAL MAPPINGS (Uppercase & Variants)**
+        'SAILING': 'in_transit',
+        'IN TRANSIT': 'in_transit',
+        'IN_TRANSIT': 'in_transit',
+        'INTRANSIT': 'in_transit',
+        'REGISTERED': 'registered',
+        'ARRIVED': 'arrived',
+        // Note: DELIVERED, INPROGRESS, etc. are already present in uppercase
         
         // === ITALIANO (già esistente, NON toccare) ===
         'In transito': 'in_transit',

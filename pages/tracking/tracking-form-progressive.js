@@ -3267,26 +3267,38 @@ carriers.sort((a, b) => {
        }
    }
    
-   function populateStaticCarriers(type) {
-       const select = document.getElementById('enh_carrier');
-       const carriers = getCarriersByType(type);
-       
-       if (carriers.length > 0) {
-           // Crea optgroup
-           const optgroup = document.createElement('optgroup');
-           optgroup.label = type === 'container' ? '🚢 Marittimi' : 
-                            type === 'awb' ? '✈️ Aerei' : '📦 Express';
-           
-           carriers.forEach(carrier => {
-               const option = document.createElement('option');
-               option.value = carrier.code;
-               option.textContent = `${carrier.code} - ${carrier.name}`;
-               optgroup.appendChild(option);
-           });
-           
-           select.appendChild(optgroup);
-       }
-   }
+   //  **FIX THE AIRLINE DROPDOWN POPULATION**
+function populateStaticCarriers(type) {
+    const select = document.getElementById('enh_carrier');
+    
+    if (type === 'awb') {
+        //  **USE CONSISTENT STRUCTURE**
+        const airlines = [
+            { code: '176', name: 'EMIRATES' },
+            { code: '999', name: 'AIR CHINA' },
+            { code: '074', name: 'AIR FRANCE CARGO' },
+            { code: '057', name: 'AIR FRANCE CARGO' },
+            { code: '129', name: 'AIR FRANCE CARGO' },
+            { code: '139', name: 'AEROMEXICO CARGO' },
+            { code: '390', name: 'AEGEAN AIRLINES' },
+            { code: '053', name: 'AER LINGUS' },
+            { code: '543', name: 'AERCARIBE' },
+            { code: '497', name: 'AERCARIBE' },
+            { code: '555', name: 'AEROFLOT' },
+            { code: '044', name: 'AEROLINEAS ARGENTINAS' },
+            { code: '873', name: 'AEROUNION' },
+            { code: '277', name: 'AFRIJET' }
+        ];
+        
+        select.innerHTML = '<option value="">Seleziona vettore...</option>';
+        airlines.forEach(airline => {
+            const option = document.createElement('option');
+            option.value = airline.code; //  **USE CODE for value**
+            option.textContent = `${airline.code} - ${airline.name}`; //  **PREVENT undefined**
+            select.appendChild(option);
+        });
+    }
+}
    
    function getCommonCarriers(type) {
        if (type === 'container' || type === 'bl') {
