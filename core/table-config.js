@@ -1,8 +1,7 @@
 // table-config.js - shared table columns and formatters
 export function formatDate(value) {
     if (!value) return '-';
-    const date = new Date(value);
-    return date.toLocaleDateString('it-IT');
+    return new Date(value).toLocaleDateString('it-IT'); // "22/09/2024"
 }
 
 export function formatDateOnly(dateStr) {
