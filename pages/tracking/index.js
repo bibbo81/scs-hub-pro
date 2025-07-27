@@ -10,9 +10,6 @@ let tableManager;
 // Column mapping for import/export compatibility
 const COLUMN_MAPPING = window.TrackingUnifiedMapping?.COLUMN_MAPPING || {};
 
-// Status mapping for display
-const STATUS_DISPLAY = window.TrackingUnifiedMapping?.STATUS_MAPPING || {};
-
 // Available columns configuration - LISTA COMPLETA
 const AVAILABLE_COLUMNS = [
     // --- Generali ---

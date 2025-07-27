@@ -39,18 +39,14 @@ export function getShipmentStatusClass(status) {
 }
 
 export function formatTrackingStatus(value) {
-    const statuses = {
-        in_transit: { label: 'In Transito', class: 'primary', icon: 'fa-truck' },
-        delivered: { label: 'Consegnato', class: 'success', icon: 'fa-check-circle' },
-        registered: { label: 'Registrato', class: 'info', icon: 'fa-clipboard-check' },
-        customs_cleared: { label: 'Sdoganato', class: 'success', icon: 'fa-stamp' },
-        out_for_delivery: { label: 'In Consegna', class: 'warning', icon: 'fa-truck' },
-        arrived: { label: 'Arrivato', class: 'primary', icon: 'fa-anchor' },
-        delayed: { label: 'In Ritardo', class: 'danger', icon: 'fa-exclamation-triangle' },
-        exception: { label: 'Eccezione', class: 'warning', icon: 'fa-exclamation' },
-        pending: { label: 'In attesa', class: 'warning', icon: 'fa-clock' }
-    };
-    const cfg = statuses[value] || { label: value || 'Sconosciuto', class: 'secondary', icon: 'fa-question' };
+    // Utilizza la mappatura unificata se disponibile, altrimenti usa un fallback
+    if (window.TrackingUnifiedMapping && window.TrackingUnifiedMapping.STATUS_DISPLAY_CONFIG) {
+        const statusKey = window.TrackingUnifiedMapping.mapStatus(value || 'registered');
+        const cfg = window.TrackingUnifiedMapping.STATUS_DISPLAY_CONFIG[statusKey] || window.TrackingUnifiedMapping.STATUS_DISPLAY_CONFIG['default'];
+        return `<span class="badge badge-${cfg.class}"><i class="fas ${cfg.icon} mr-1"></i>${cfg.label}</span>`;
+    }
+    // Fallback per ambienti dove la mappatura unificata non è caricata
+    const cfg = { label: value || 'Sconosciuto', class: 'secondary', icon: 'fa-question' };
     return `<span class="badge badge-${cfg.class}"><i class="fas ${cfg.icon} mr-1"></i>${cfg.label}</span>`;
 }
 
