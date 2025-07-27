@@ -46,32 +46,40 @@
 
     // New function to handle drag&drop functionality
     async function enableColumnDragDrop() {
-        console.log('🔧 Enabling column drag&drop...');
+    console.log('🔧 Enabling column drag&drop (with retry)...');
 
         await ensureDependencies(['tableManager', 'Sortable']);
         console.log('✅ Dependencies tableManager and Sortable are ready.');
 
         const tableManager = window.tableManager;
+    
+    let retries = 0;
+    const maxRetries = 20; // Aumentato a 10 secondi
+    const interval = setInterval(() => {
         const headerRow = tableManager.container.querySelector('thead tr');
-
-        if (!headerRow) {
-            console.warn('⚠️ Header row not found.');
-            return;
-        }
-
-        if (tableManager.columnSortable) {
-            tableManager.columnSortable.destroy();
-        }
-
-        tableManager.columnSortable = new Sortable(headerRow, {
-            animation: 150,
-            handle: 'th',
-            filter: '.no-drag',
-            onEnd: (evt) => {
-                tableManager.handleColumnReorder(evt.oldIndex, evt.newIndex);
+        
+        if (headerRow) {
+            clearInterval(interval);
+            if (tableManager.columnSortable) {
+                tableManager.columnSortable.destroy();
             }
-        });
-        console.log('✅ Column drag&drop enabled successfully');
+            tableManager.columnSortable = new Sortable(headerRow, {
+                animation: 150,
+                handle: 'th',
+                filter: '.no-drag',
+                onEnd: (evt) => {
+                    tableManager.handleColumnReorder(evt.oldIndex, evt.newIndex);
+                }
+            });
+            console.log('✅ Column drag&drop enabled successfully');
+        } else {
+            retries++;
+            if (retries >= maxRetries) {
+                clearInterval(interval);
+                console.warn('⚠️ Header row not found after multiple retries.');
+            }
+            }
+    }, 500);
     }
 
     // ========================================

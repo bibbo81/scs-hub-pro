@@ -149,6 +149,7 @@ window.TrackingUnifiedMapping = {
         // === CONTAINER SPECIFIC ===
         'Loaded': 'in_transit',
         'Discharged': 'arrived',
+        'DISC': 'arrived', // Abbreviazione per Discharged (Ocean v2)
         'Gate Out': 'out_for_delivery',
         'Empty Returned': 'delivered',
 

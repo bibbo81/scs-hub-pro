@@ -432,11 +432,12 @@
     
     // Pre-carica i dati all'avvio
     window.addEventListener('load', () => {
-        enhanceAutoDetection();
+        // enhanceAutoDetection(); // RIMOSSO: Questa chiamata è la causa dell'errore "Max retries reached"
         // Pre-carica airlines in background
         loadAirlines().catch(console.error);
         // Pre-carica ocean carriers in background
         loadOceanCarriers().catch(console.error);
+        console.log('✅ Pre-loading carrier data in background.');
     });
     
     // Carica cache da localStorage all'avvio
