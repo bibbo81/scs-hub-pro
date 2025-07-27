@@ -370,18 +370,15 @@ class ShipsGoStandardDetector {
 
     // Helper: Normalize status
     static normalizeStatus(status) {
-        const statusMap = {
-            'Discharged': 'arrived',
-            'Gate In': 'in_transit',
-            'Gate Out': 'delivered',
-            'Loaded': 'in_transit',
-            'Empty': 'delivered',
-            'Sailing': 'in_transit',
-            'Arrived': 'arrived',
-            'Delivered': 'delivered'
-        };
-        
-        return statusMap[status] || status.toLowerCase().replace(/\s+/g, '_');
+        // FIX: Usa il mapping unificato per coerenza
+        if (window.TrackingUnifiedMapping && typeof window.TrackingUnifiedMapping.mapStatus === 'function') {
+            return window.TrackingUnifiedMapping.mapStatus(status);
+        }
+
+        // Fallback se il mapping unificato non è disponibile
+        console.warn('[ShipsGoDetector] Fallback status mapping used');
+        const fallbackMap = { 'Discharged': 'arrived', 'Loaded': 'in_transit', 'Sailing': 'in_transit', 'Delivered': 'delivered' };
+        return fallbackMap[status] || 'registered';
     }
 }
 

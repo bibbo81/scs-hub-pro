@@ -94,14 +94,20 @@
         console.log('🗺️ Mapping Ocean v2 fields for:', tracking.tracking_number);
         
         const raw = tracking.metadata?.raw?.shipment || tracking.metadata?.raw || {};
-        
-        // CARRIER - Assicurati che sia visibile
-        //  FIX: Gestione diretta status ShipsGo
-        const shipsGoStatus = raw.status || 'Untracked';
-        const normalizedStatus = window.TrackingUnifiedMapping.mapStatus(shipsGoStatus);
-        tracking.current_status = normalizedStatus;
-        tracking.status = normalizedStatus;
-        console.log(`[ShipsGo→System] "${shipsGoStatus}" → "${normalizedStatus}"`);
+            const movements = raw.containers?.[0]?.movements;
+
+// STATUS - FIX: Estrai lo stato dall'ultimo evento nella cronologia dei movimenti.
+    if (movements && movements.length > 0) {
+        const lastMovement = movements[movements.length - 1];
+        // La descrizione dell'evento (es. "Sailing", "Discharged") è lo stato grezzo.
+        const rawStatus = lastMovement.event || raw.status; // Usa raw.status come fallback
+        const mappedStatus = window.TrackingUnifiedMapping.mapStatus(rawStatus);
+        tracking.current_status = mappedStatus;
+        tracking.status = mappedStatus; // Aggiorna anche il campo status per coerenza
+        console.log(`[Status Mapping] Raw: "${rawStatus}", Mapped: "${mappedStatus}"`);
+    } else {
+        tracking.current_status = tracking.current_status || 'registered';
+    }        
         
         if (!tracking.carrier_name || tracking.carrier_name === '-') {
             tracking.carrier_name = tracking.metadata?.mapped?.carrier_name ||
