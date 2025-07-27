@@ -253,30 +253,61 @@ document.addEventListener('click', function(e) {
     }
 });
 
-/**
- * Itera su tutti i tracking e normalizza il loro stato usando i metadati.
- * Questo assicura che lo stato più recente (es. dall'ultimo evento) sia sempre visualizzato.
- * @param {Array<object>} trackingsToProcess - L'array di tracking da processare.
- */
 function processAndNormalizeTrackings(trackingsToProcess) {
     console.log('🔄 Normalizing status for all trackings...');
     trackingsToProcess.forEach(tracking => {
-        let rawStatus = tracking.status; // Inizia con lo stato base
         const metadata = tracking.metadata?.raw?.shipment || tracking.metadata?.raw;
+        if (!metadata) return;
 
-        // La fonte più affidabile è l'ultimo evento nei movements
-        if (metadata?.movements && metadata.movements.length > 0) {
-            const lastMovement = metadata.movements[metadata.movements.length - 1];
-            rawStatus = lastMovement.event || rawStatus;
-        } 
-        // Altrimenti, usa lo status principale dei metadati
-        else if (metadata?.status) {
-            rawStatus = metadata.status;
+        const movements = metadata.movements || [];
+
+        // --- 1. STATUS MAPPING (dal più recente) ---
+        if (movements.length > 0) {
+            const lastMovement = movements[movements.length - 1];
+            const rawStatus = lastMovement.event || metadata.status || tracking.status;
+            tracking.current_status = window.TrackingUnifiedMapping.mapStatus(rawStatus);
+        } else if (metadata.status) {
+            tracking.current_status = window.TrackingUnifiedMapping.mapStatus(metadata.status);
         }
 
-        // Applica il mapping unificato
-        const mappedStatus = window.TrackingUnifiedMapping.mapStatus(rawStatus);
-        tracking.current_status = mappedStatus;
+        // --- 2. DATE EXTRACTION (Partenza e Arrivo) ---
+        if (movements.length > 0) {
+            // Data di partenza (DEP per aereo, LOAD per mare)
+            const departureEvent = movements.find(m => m.event === 'DEP' || m.event === 'LOAD');
+            if (departureEvent?.timestamp) {
+                tracking.date_of_departure = departureEvent.timestamp;
+            }
+
+            // Data di arrivo (ARR/RCF per aereo, DISC per mare)
+            const arrivalEvent = movements.find(m => m.event === 'ARR' || m.event === 'RCF' || m.event === 'DISC');
+            if (arrivalEvent?.timestamp) {
+                tracking.eta = arrivalEvent.timestamp; // Usiamo ETA per la data di arrivo prevista/effettiva
+            }
+
+            // Data di consegna effettiva (DLV)
+            const deliveredEvent = movements.find(m => m.event === 'DLV');
+            if (deliveredEvent?.timestamp) {
+                tracking.ata = deliveredEvent.timestamp; // Actual Time of Arrival
+            }
+        }
+
+        // --- 3. VESSEL / FLIGHT INFO ---
+        if (movements.length > 0) {
+            if (tracking.tracking_type === 'awb') {
+                const flightEvent = movements.find(m => m.flight);
+                if (flightEvent) tracking.flight_number = flightEvent.flight;
+            } else {
+                const vesselEvent = movements.find(m => m.vessel?.name);
+                if (vesselEvent) {
+                    tracking.vessel_name = vesselEvent.vessel.name;
+                    tracking.voyage_number = vesselEvent.voyage;
+                }
+            }
+        }
+
+        // --- 4. PORTS / LOCATIONS ---
+        tracking.origin_port = metadata.route?.origin?.location?.name || tracking.origin_port;
+        tracking.destination_port = metadata.route?.destination?.location?.name || tracking.destination_port;
     });
 }
 
