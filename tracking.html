@@ -1665,5 +1665,23 @@ console.log('- testTracking() - Crea un tracking di test con prefix BIBBO');
     console.log('✅ Modal button handlers activated');
 })();
 </script>
+<script>
+// 🛠️ FIX: ModalSystem hide method
+if (window.ModalSystem && !window.ModalSystem.hide) {
+    window.ModalSystem.hide = function() {
+        const overlay = document.querySelector('.sol-modal-overlay');
+        if (overlay) {
+            overlay.classList.remove('active');
+            setTimeout(() => {
+                if (overlay.parentNode) {
+                    overlay.parentNode.removeChild(overlay);
+                }
+            }, 300);
+        }
+    };
+    
+    console.log('✅ ModalSystem.hide() aggiunto');
+}
+</script>
 </body>
 </html>

@@ -471,22 +471,28 @@ function showColumnEditor() {
     `;
     
     window.ModalSystem.show({
-        title: 'Gestione Colonne',
-        content: content,
-        size: 'md',
-        buttons: [
-            {
-                text: 'Annulla',
-                className: 'btn-secondary',
-                action: () => window.ModalSystem.hide()
-            },
-            {
-                text: 'Applica',
-                className: 'btn-primary',
-                action: () => applyColumnChanges()
+    title: 'Gestione Colonne',
+    content: content,
+    size: 'md',
+    buttons: [
+        {
+            text: 'Annulla',
+            className: 'btn-secondary',
+            action: function() {
+                const overlay = document.querySelector('.sol-modal-overlay');
+                if (overlay) {
+                    overlay.classList.remove('active');
+                    setTimeout(() => overlay.remove(), 300);
+                }
             }
-        ]
-    });
+        },
+        {
+            text: 'Applica',
+            className: 'btn-primary',
+            action: applyColumnChanges
+        }
+    ]
+});
     
     // Enable drag&drop
     setTimeout(() => {
@@ -570,7 +576,13 @@ window.applyColumnChanges = function() {
         updateTable();
     }
     
-    window.ModalSystem.hide();
+    
+    const overlay = document.querySelector('.sol-modal-overlay');
+    if (overlay) {
+        overlay.classList.remove('active');
+        setTimeout(() => overlay.remove(), 300);
+    }
+    
     window.NotificationSystem?.success('Colonne aggiornate');
 };
 
