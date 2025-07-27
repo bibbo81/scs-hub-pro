@@ -4168,23 +4168,14 @@ if (apiResponse.events && Array.isArray(apiResponse.events)) {
        
        // Assicurati che tutti i campi abbiano un valore valido
        const finalData = {
-           // IMPORTANTE: NON includere formData all'inizio per AWB!
-           // Includiamo formData solo se NON è un AWB
-           ...(formData.trackingType !== 'awb' ? formData : {}),
+           // FIX: Includi SEMPRE i dati base del form per garantire che tracking_number sia presente
+           ...formData,
            
            // Se abbiamo dati mappati nei metadata, estraili al livello principale
            ...(formData.metadata?.mapped || {}),
            
            // POI aggiungi i dati specifici per AWB che sovrascriveranno i valori di default
            ...(formData.trackingType === 'awb' ? {
-               // PRIMA tutti i campi base di formData
-               tracking_number: formData.trackingNumber,
-    trackingNumber: formData.trackingNumber,  // <-- QUESTA È LA RIGA CRITICA!
-    tracking_type: 'awb',
-    trackingType: 'awb',  // <-- AGGIUNGI ANCHE QUESTA PER SICUREZZA
-    useApi: formData.useApi,
-    apiOperation: formData.apiOperation,
-    reference: formData.reference || '-',
                
                // POI i campi specifici AWB con i valori corretti - CORREZIONI APPLICATE
                airline: formData.carrier || formData._raw_api_response?.airline?.iata || '-',  // CORRETTO: 'CA' -> '-'
