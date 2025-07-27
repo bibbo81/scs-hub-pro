@@ -88,8 +88,6 @@ function createCarrierDropdown() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-    setTimeout(() => {
-        createCarrierDropdown();
-        initializeAutoDetection();
-    }, 1000);
+    // The initialization is now handled by the form creation flow
+    // to prevent errors on page load.
 });

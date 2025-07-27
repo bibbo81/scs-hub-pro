@@ -867,6 +867,13 @@ setTimeout(() => {
                         console.log('Opening tracking form...');
                         if (window.trackingFormProgressive && window.trackingFormProgressive.show) {
                             window.trackingFormProgressive.show();
+                            // Call createCarrierDropdown and initializeAutoDetection after the form is shown
+                            if (typeof createCarrierDropdown === 'function') {
+                                createCarrierDropdown();
+                            }
+                            if (typeof initializeAutoDetection === 'function') {
+                                initializeAutoDetection();
+                            }
                         } else if (window.showWorkflowProgress) {
                             window.showWorkflowProgress();
                         } else {
