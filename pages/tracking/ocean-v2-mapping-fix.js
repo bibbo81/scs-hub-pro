@@ -144,6 +144,22 @@
                                       '-';
         }
         
+        // DATES - ETA & ATA
+        if (!tracking.eta || tracking.eta === '-') {
+            tracking.eta = raw.route?.port_of_discharge?.date_of_discharge ||
+                           raw.route?.destination?.eta ||
+                           raw.eta ||
+                           '-';
+        }
+        if (!tracking.ata || tracking.ata === '-') {
+            if (movements) {
+                const dischargeEvent = movements.find(m => m.event === 'DISC');
+                if (dischargeEvent?.timestamp) {
+                    tracking.ata = dischargeEvent.timestamp;
+                }
+            }
+        }
+        
         // DATES - Estrai dal movimento LOAD se necessario
         if (!tracking.date_of_loading || tracking.date_of_loading === '-') {
             if (raw.containers?.[0]?.movements) {
