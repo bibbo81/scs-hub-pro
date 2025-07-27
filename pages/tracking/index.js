@@ -259,28 +259,49 @@ document.addEventListener('click', function(e) {
 // Load trackings from Supabase
 async function loadTrackings() {
     try {
+        let data;
         if (window.supabaseTrackingService) {
-            const data = await window.supabaseTrackingService.getAllTrackings();
-            trackings = (data || []).map(processTrackingData);
+            data = await window.supabaseTrackingService.getAllTrackings();
         } else {
             // Mock data for testing
-            trackings = [
-                {
-                    id: '1',
-                    tracking_number: 'TEST123',
-                    tracking_type: 'container',
-                    carrier_code: 'MSC',
-                    carrier_name: 'MSC',
-                    current_status: 'in_transit',
-                    origin_port: 'Milano',
-                    destination_port: 'Roma',
-                    eta: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString(),
-                    last_update: new Date().toISOString()
-                }
-            ].map(processTrackingData);
+            data = [{
+                id: '1',
+                tracking_number: 'TEST123',
+                tracking_type: 'container',
+                carrier_code: 'MSC',
+                carrier_name: 'MSC',
+                current_status: 'in_transit',
+                origin_port: 'Milano',
+                destination_port: 'Roma',
+                eta: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString(),
+                last_update: new Date().toISOString()
+            }];
         }
-        
+
+        trackings = (data || []).map(processTrackingData);
         filteredTrackings = [...trackings];
+
+        // ✅ Carica preferenze colonne
+        const columnOrder = await loadColumnPreferences();
+        if (columnOrder && tableManager) {
+            const newColumns = columnOrder.map(key => {
+                const availableCol = AVAILABLE_COLUMNS.find(c => c.key === key);
+                return {
+                    key: key,
+                    label: availableCol.label,
+                    sortable: availableCol.sortable,
+                    formatter: getColumnFormatter(key)
+                };
+            });
+
+            const actionsCol = TABLE_COLUMNS.find(c => c.key === 'actions');
+            if (actionsCol) newColumns.push(actionsCol);
+
+            TABLE_COLUMNS.length = 0;
+            TABLE_COLUMNS.push(...newColumns);
+            tableManager.options.columns = newColumns;
+        }
+
         updateTable();
         updateStats();
         
@@ -289,7 +310,6 @@ async function loadTrackings() {
         showError('Errore nel caricamento dei tracking');
     }
 }
-
 
 // Detect tracking type from number format
 function detectTrackingType(trackingNumber) {
@@ -528,63 +548,99 @@ window.updateColumnPreview = function() {
     document.getElementById('selectedColumnsCount').textContent = checked;
 };
 
-window.applyColumnChanges = function() {
-    // Ottieni l'ordine delle colonne
-    const columnOrder = [];
-    document.querySelectorAll('#columnEditorList .column-item').forEach(item => {
-        const key = item.dataset.column;
-        const checked = item.querySelector('input[type="checkbox"]').checked;
-        if (checked) {
-            columnOrder.push(key);
-        }
-    });
-    
-    // Ricostruisci TABLE_COLUMNS con il nuovo ordine
-    const newColumns = columnOrder.map(key => {
-        const availableCol = AVAILABLE_COLUMNS.find(c => c.key === key);
-        const existingCol = TABLE_COLUMNS.find(c => c.key === key);
-        
-        if (existingCol) {
-            return existingCol;
-        } else {
-            // Crea formatter per le nuove colonne
+window.applyColumnChanges = async function() {
+    try {
+        // 1. Raccogli colonne selezionate
+        const columnOrder = [];
+        document.querySelectorAll('#columnEditorList .column-item').forEach(item => {
+            const key = item.dataset.column;
+            const checked = item.querySelector('input[type="checkbox"]').checked;
+            if (checked) {
+                columnOrder.push(key);
+            }
+        });
+
+        // 2. Ricostruisci colonne
+        const newColumns = columnOrder.map(key => {
+            const availableCol = AVAILABLE_COLUMNS.find(c => c.key === key);
             return {
                 key: key,
                 label: availableCol.label,
                 sortable: availableCol.sortable,
                 formatter: getColumnFormatter(key)
             };
+        });
+
+        const actionsCol = TABLE_COLUMNS.find(c => c.key === 'actions');
+        if (actionsCol) newColumns.push(actionsCol);
+
+        // 3. Salva preferenze in Supabase
+        await saveColumnPreferences(columnOrder);
+
+        // 4. Aggiorna tabella
+        TABLE_COLUMNS.length = 0;
+        TABLE_COLUMNS.push(...newColumns);
+
+        if (tableManager) {
+            tableManager.options.columns = newColumns;
+            updateTable();
         }
-    });
-    
-    // Aggiungi sempre la colonna actions alla fine
-    const actionsCol = TABLE_COLUMNS.find(c => c.key === 'actions');
-    if (actionsCol) {
-        newColumns.push(actionsCol);
+
+        // 5. Chiudi modale
+        const overlay = document.querySelector('.sol-modal-overlay');
+        if (overlay) {
+            overlay.classList.remove('active');
+            setTimeout(() => overlay.remove(), 300);
+        }
+
+        window.NotificationSystem?.success('Colonne aggiornate e salvate');
+        
+    } catch (error) {
+        console.error('Errore applyColumnChanges:', error);
+        window.NotificationSystem?.error('Errore durante il salvataggio');
     }
-    
-    // Applica le modifiche
-    TABLE_COLUMNS.length = 0;
-    TABLE_COLUMNS.push(...newColumns);
-    
-    // Salva preferenze
-    localStorage.setItem('trackingVisibleColumns', JSON.stringify(columnOrder));
-    
-    // Ricrea table manager con nuove colonne
-    if (tableManager) {
-        tableManager.options.columns = newColumns;
-        updateTable();
-    }
-    
-    
-    const overlay = document.querySelector('.sol-modal-overlay');
-    if (overlay) {
-        overlay.classList.remove('active');
-        setTimeout(() => overlay.remove(), 300);
-    }
-    
-    window.NotificationSystem?.success('Colonne aggiornate');
 };
+// 🔧 Salva preferenze colonne in Supabase (con page='tracking')
+async function saveColumnPreferences(columnOrder) {
+    try {
+        const { data: { user } } = await window.supabase.auth.getUser();
+        if (!user) return;
+
+        await window.supabase
+            .from('user_preferences')
+            .upsert({
+                user_id: user.id,
+                page: 'tracking',
+                preferences: { columns: columnOrder }
+            }, { onConflict: 'user_id,page' });
+
+        console.log('✅ Colonne salvate in Supabase');
+    } catch (error) {
+        console.error('Errore salvataggio:', error);
+        // Fallback su localStorage
+        localStorage.setItem('trackingVisibleColumns', JSON.stringify(columnOrder));
+    }
+}
+
+// 🔧 Carica preferenze colonne da Supabase
+async function loadColumnPreferences() {
+    try {
+        const { data: { user } } = await window.supabase.auth.getUser();
+        if (!user) return DEFAULT_VISIBLE_COLUMNS;
+
+        const { data } = await window.supabase
+            .from('user_preferences')
+            .select('preferences')
+            .eq('user_id', user.id)
+            .eq('page', 'tracking')
+            .single();
+
+        return data?.preferences?.columns || DEFAULT_VISIBLE_COLUMNS;
+    } catch (error) {
+        console.error('Errore caricamento:', error);
+        return DEFAULT_VISIBLE_COLUMNS;
+    }
+}
 
 // Aggiungi formatter per le nuove colonne
 // This function is now more comprehensive and handles all new column types.
