@@ -4,13 +4,17 @@ class InlineFormManager {
     constructor() {
         this.elements = {
             trackingNumber: document.getElementById('inline-tracking-number'),
+            carrier: document.getElementById('inline-carrier'),
             action: document.getElementById('inline-tracking-action'),
             origin: document.getElementById('inline-origin'),
             destination: document.getElementById('inline-destination'),
             submitBtn: document.getElementById('inline-submit-btn'),
-            preview: document.getElementById('inline-live-preview')
+            preview: document.getElementById('inline-live-preview'),
+            detailsSection: document.getElementById('inline-details-section'),
         };
         this.detectionTimeout = null;
+        this.detectedType = null;
+        this.detectedOceanShipment = null;
     }
 
     init() {
@@ -18,47 +22,124 @@ class InlineFormManager {
             console.warn('Inline form elements not found. Aborting init.');
             return;
         }
-        console.log('🚀 Initializing Inline Form Manager...');
+        console.log('🚀 Initializing Inline Form Manager (v2)...');
         this.attachEventListeners();
+        this.resetForm();
     }
 
     attachEventListeners() {
         this.elements.trackingNumber.addEventListener('input', () => {
             clearTimeout(this.detectionTimeout);
-            this.detectionTimeout = setTimeout(() => this.updateLivePreview(), 500);
+            this.detectionTimeout = setTimeout(() => this.handleTrackingNumberInput(), 500);
         });
 
-        this.elements.action.addEventListener('change', () => this.updateLivePreview());
         this.elements.submitBtn.addEventListener('click', () => this.handleSubmit());
     }
 
-    async updateLivePreview() {
-        const trackingNumber = this.elements.trackingNumber.value.trim();
+    async handleTrackingNumberInput() {
+        const trackingNumber = this.elements.trackingNumber.value.trim().toUpperCase();
+        
+        // Reset state
+        this.detectedType = null;
+        this.detectedOceanShipment = null;
+        this.updatePreview('reset');
+
         if (!trackingNumber) {
-            this.elements.preview.innerHTML = '<p class="text-muted">Inserisci un numero di tracking...</p>';
+            this.populateCarriers(null);
             return;
         }
 
-        this.elements.preview.innerHTML = '<p><i class="fas fa-spinner fa-spin"></i> Rilevamento...</p>';
+        this.updatePreview('detecting');
 
         try {
-            const type = await window.detectTrackingType(trackingNumber);
-            const typeLabel = type === 'awb' ? 'Aereo (AWB)' : 'Marittimo (Container/BL)';
-            const actionLabel = this.elements.action.value === 'get' ? 'Recupera dati esistenti' : 'Registra nuovo tracking';
+            this.detectedType = await window.detectTrackingType(trackingNumber);
+            this.populateCarriers(this.detectedType);
 
-            this.elements.preview.innerHTML = `
-                <p><strong>Numero:</strong> ${trackingNumber}</p>
-                <p><strong>Tipo Rilevato:</strong> ${typeLabel}</p>
-                <p><strong>Azione:</strong> ${actionLabel}</p>
-                <p class="text-success"><i class="fas fa-check-circle"></i> Pronto per l'invio.</p>
-            `;
+            if (this.detectedType === 'container') {
+                this.detectedOceanShipment = await window.trackingService.findOceanShipmentByContainerNumber(trackingNumber);
+            }
+            
+            this.updatePreview('success');
+
         } catch (error) {
-            this.elements.preview.innerHTML = '<p class="text-danger"><i class="fas fa-exclamation-circle"></i> Errore nel rilevamento.</p>';
+            console.error('Detection error:', error);
+            this.updatePreview('error');
+            this.populateCarriers(null);
+        }
+    }
+
+    async populateCarriers(trackingType) {
+        const select = this.elements.carrier;
+        if (!select) return;
+
+        select.disabled = true;
+        select.innerHTML = '<option value="">Caricamento...</option>';
+
+        if (!trackingType || !window.trackingService) {
+            select.innerHTML = '<option value="">Inserisci un numero...</option>';
+            return;
+        }
+
+        try {
+            let carriers = [];
+            if (trackingType === 'container' || trackingType === 'bl') {
+                carriers = await window.trackingService.getShippingLines();
+            } else if (trackingType === 'awb') {
+                carriers = await window.trackingService.getAirlines();
+            }
+
+            if (carriers.length > 0) {
+                select.innerHTML = '<option value="">Seleziona carrier...</option>';
+                carriers.forEach(carrier => {
+                    const option = document.createElement('option');
+                    option.value = carrier.code;
+                    option.textContent = carrier.name;
+                    select.appendChild(option);
+                });
+                select.disabled = false;
+            } else {
+                 select.innerHTML = '<option value="">Nessun carrier trovato</option>';
+            }
+        } catch (error) {
+            console.error('Failed to load carriers:', error);
+            select.innerHTML = '<option value="">Errore caricamento</option>';
+        }
+    }
+
+    updatePreview(state) {
+        const preview = this.elements.preview;
+        switch(state) {
+            case 'reset':
+                preview.innerHTML = '<p class="text-muted">Inserisci un numero di tracking per vedere l\'anteprima.</p>';
+                break;
+            case 'detecting':
+                preview.innerHTML = '<p><i class="fas fa-spinner fa-spin"></i> Rilevamento in corso...</p>';
+                break;
+            case 'success':
+                const typeLabel = this.detectedType === 'awb' ? 'Aereo (AWB)' : 'Marittimo (Container/BL)';
+                let oceanIdInfo = '';
+                if (this.detectedOceanShipment) {
+                    oceanIdInfo = `<p class="text-info"><i class="fas fa-anchor"></i> Ocean ID trovato: <strong>${this.detectedOceanShipment.id}</strong></p>`;
+                } else if (this.detectedType === 'container') {
+                    oceanIdInfo = `<p class="text-secondary"><i class="fas fa-anchor"></i> Nessun Ocean ID esistente.</p>`;
+                }
+
+                preview.innerHTML = `
+                    <p><strong>Numero:</strong> ${this.elements.trackingNumber.value.trim().toUpperCase()}</p>
+                    <p><strong>Tipo Rilevato:</strong> ${typeLabel}</p>
+                    ${oceanIdInfo}
+                    <p class="text-success"><i class="fas fa-check-circle"></i> Pronto per l'invio.</p>
+                `;
+                break;
+            case 'error':
+                preview.innerHTML = '<p class="text-danger"><i class="fas fa-exclamation-circle"></i> Errore nel rilevamento.</p>';
+                break;
         }
     }
 
     async handleSubmit() {
-        const trackingNumber = this.elements.trackingNumber.value.trim();
+        const trackingNumber = this.elements.trackingNumber.value.trim().toUpperCase();
+        const carrier = this.elements.carrier.value;
         const action = this.elements.action.value;
         const origin = this.elements.origin.value.trim();
         const destination = this.elements.destination.value.trim();
@@ -67,20 +148,29 @@ class InlineFormManager {
             window.NotificationSystem?.error('Il numero di tracking è obbligatorio.');
             return;
         }
+        if (!carrier) {
+            window.NotificationSystem?.error('Il carrier è obbligatorio.');
+            return;
+        }
 
         this.elements.submitBtn.disabled = true;
         this.elements.submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
 
         try {
-            const type = await window.detectTrackingType(trackingNumber);
-            
             const trackingData = {
                 tracking_number: trackingNumber,
-                tracking_type: type,
+                tracking_type: this.detectedType,
+                carrier_code: carrier, // Use carrier_code for consistency
                 origin: origin,
                 destination: destination,
-                status: 'registered'
+                status: 'registered',
+                metadata: {}
             };
+
+            // Add Ocean ID to metadata if found
+            if (this.detectedOceanShipment) {
+                trackingData.metadata.shipsgo_ocean_id = this.detectedOceanShipment.id;
+            }
 
             console.log(`Submitting with action: ${action}`, trackingData);
 
@@ -88,18 +178,13 @@ class InlineFormManager {
                 throw new Error("DataManager non è disponibile.");
             }
 
-            // Usiamo il dataManager per aggiungere il tracking.
-            // La logica API (POST/GET) è gestita internamente da tracking-upsert-utility.
             const result = await window.dataManager.addTracking(trackingData, {
-                // Passiamo l'operazione desiderata all'utility di upsert
                 apiOperation: action 
             });
 
             if (result.tracking) {
                 window.NotificationSystem?.success(`Tracking ${action === 'get' ? 'recuperato' : 'aggiunto'} con successo!`);
                 this.resetForm();
-                
-                // Ricarica la tabella principale
                 if (window.loadTrackings) {
                     window.loadTrackings();
                 }
@@ -123,9 +208,13 @@ class InlineFormManager {
         this.elements.action.value = 'auto';
         this.elements.preview.innerHTML = '<p class="text-muted">Inserisci un numero di tracking per vedere l\'anteprima.</p>';
         
-        // Chiudi i dettagli se aperti
+        if (this.elements.carrier) {
+            this.elements.carrier.innerHTML = '<option value="">Inserisci un numero...</option>';
+            this.elements.carrier.disabled = true;
+        }
+        
         const collapse = document.getElementById('collapseDetails');
-        if (collapse.classList.contains('show')) {
+        if (collapse && collapse.classList.contains('show')) {
             $(collapse).collapse('hide');
         }
     }

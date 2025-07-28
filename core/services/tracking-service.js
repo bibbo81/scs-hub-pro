@@ -1726,6 +1726,40 @@ return true;
             return [];
         }
     }
+
+    async getOceanShipmentsList() {
+        if (!this.hasApiKeys()) return [];
+        try {
+            const response = await this.callShipsGoAPI(
+                'v2',
+                '/ocean/shipments',
+                'GET'
+            );
+            if (!response.success) return [];
+            return response.data?.shipments || [];
+        } catch (error) {
+            console.error('Error fetching ocean shipments list:', error);
+            return [];
+        }
+    }
+
+    async findOceanShipmentByContainerNumber(containerNumber) {
+        if (!this.hasApiKeys()) {
+            console.warn('[TrackingService] Cannot find Ocean shipment, no API keys.');
+            return null;
+        }
+        try {
+            const shipments = await this.getOceanShipmentsList();
+            const found = shipments.find(s => s.container_number === containerNumber.toUpperCase());
+            if (found) {
+                console.log(`[TrackingService] Found existing Ocean shipment for ${containerNumber} with ID: ${found.id}`);
+            }
+            return found || null;
+        } catch (error) {
+            console.error('[TrackingService] Error finding Ocean shipment:', error);
+            return null;
+        }
+    }
 }
 
 // Export singleton
