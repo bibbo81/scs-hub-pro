@@ -42,28 +42,52 @@ async function loadShipmentDetails(shipmentId) {
 function renderShipmentInfo(shipment) {
     console.log("Dettagli spedizione ricevuti:", shipment);
 
-    // Dati di tracking (se presenti)
     const trackingData = shipment.tracking;
 
     document.getElementById('shipmentNumberTitle').textContent = `Spedizione ${shipment.shipment_number || ''}`;
     document.getElementById('shipmentNumber').textContent = shipment.shipment_number || '-';
-    
-    // Cerca lo stato prima nel tracking, poi nella spedizione
+
     const status = trackingData?.current_status || shipment.status || 'registered';
     document.getElementById('shipmentStatus').innerHTML = formatStatus(status);
-    
+
     document.getElementById('shipmentDate').textContent = formatDate(shipment.created_at);
-    
-    // Mappatura Origine/Destinazione
+
     document.getElementById('shipmentOrigin').textContent = trackingData?.origin_port || shipment.origin_port || shipment.origin || '-';
     document.getElementById('shipmentDestination').textContent = trackingData?.destination_port || shipment.destination_port || shipment.destination || '-';
-    
-    // Cerca i tipi di container prima nel tracking, poi nella spedizione
-    const containerTypes = trackingData?.container_type || shipment.container_types;
-    document.getElementById('shipmentContainerTypes').textContent = Array.isArray(containerTypes) && containerTypes.length > 0 ? containerTypes.join(', ') : (containerTypes || '-');
+
+    // Logica per container_types derivata da tracking/index.js
+    let containerTypesDisplay = '-';
+    const containers = trackingData?.metadata?.raw?.shipment?.containers || [];
+    if (Array.isArray(containers) && containers.length > 0) {
+        const typeSummary = {};
+        containers.forEach(container => {
+            const type = (container.type || '').toUpperCase();
+            const size = container.size || 0;
+            let summaryType = 'N/A';
+
+            if (size === 20) summaryType = "20'";
+            else if (size === 40) summaryType = (type.includes('HC') || type.includes('HQ')) ? "40'HC" : "40'";
+            else if (size === 45) summaryType = "45'HC";
+            else if (type.toLowerCase().includes('lcl')) summaryType = "LCL";
+            else if (size > 0) summaryType = `${size}'${type || ''}`.trim();
+            
+            if (summaryType !== 'N/A') {
+                typeSummary[summaryType] = (typeSummary[summaryType] || 0) + 1;
+            }
+        });
+        
+        const summaryParts = Object.entries(typeSummary).map(([type, count]) => `${count}x${type}`);
+        if (summaryParts.length > 0) {
+            containerTypesDisplay = summaryParts.join(', ');
+        }
+    } else if (shipment.container_types) {
+        // Fallback al campo esistente se non ci sono dati di tracking dettagliati
+        containerTypesDisplay = Array.isArray(shipment.container_types) ? shipment.container_types.join(', ') : shipment.container_types;
+    }
+    document.getElementById('shipmentContainerTypes').textContent = containerTypesDisplay;
 
     document.getElementById('shipmentCarrier').textContent = shipment.carrier?.name || shipment.carrier_name || 'N/A';
-    
+
     const freightCostInput = document.getElementById('freightCost');
     const otherCostsInput = document.getElementById('otherCosts');
     freightCostInput.value = shipment.freight_cost || 0;
