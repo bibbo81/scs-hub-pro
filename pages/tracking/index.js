@@ -310,8 +310,13 @@ if (actualArrival?.timestamp) tracking.ata = actualArrival.timestamp; // Actual 
                 const deliveryEvent = movements.find(m => m.event === 'DLV');
                 if (deliveryEvent?.timestamp) tracking.ata = deliveryEvent.timestamp;
 
-                const flightEvent = movements.find(m => m.flight);
-                if (deliveryEvent?.timestamp) tracking.ata = deliveryEvent.timestamp; // The final delivery event is the ultimate ATA.
+                // --- AWB Cargo Details ---
+                const cargo = rawApiData?.cargo;
+                if (cargo) {
+                    tracking.pieces = cargo.pieces;
+                    tracking.total_weight_kg = cargo.weight;
+                    tracking.total_volume_cbm = cargo.volume;
+                }
 
             } else { // Container/BL
                 // FIX: Search within ACTUAL movements
