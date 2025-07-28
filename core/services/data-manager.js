@@ -338,21 +338,21 @@ class DataManager {
              throw shipmentError;
          }
 
-         // Fallback: Se il tracking non è stato caricato, prova a cercarlo tramite reference_number
+         // Fallback: Se il tracking non è stato caricato, prova a cercarlo tramite tracking_number
          if (shipment && !shipment.tracking && shipment.shipment_number) {
-            console.log(`Tracking non trovato tramite ID, tento la ricerca per reference_number: ${shipment.shipment_number}`);
-            const { data: trackingByRef, error: trackingByRefError } = await supabase
+            console.log(`Tracking non trovato tramite ID, tento la ricerca per tracking_number: ${shipment.shipment_number}`);
+            const { data: trackingByNum, error: trackingByNumError } = await supabase
                 .from('trackings')
                 .select('*')
-                .eq('reference_number', shipment.shipment_number)
+                .eq('tracking_number', shipment.shipment_number)
                 .eq('organization_id', this.organizationId)
-                .maybeSingle(); // Usa maybeSingle per non generare errori se non trova nulla
+                .maybeSingle();
 
-            if (trackingByRefError) {
-                console.warn("Errore durante la ricerca di fallback del tracking:", trackingByRefError.message);
-            } else if (trackingByRef) {
-                console.log("Trovato tracking di fallback:", trackingByRef);
-                shipment.tracking = trackingByRef;
+            if (trackingByNumError) {
+                console.warn("Errore durante la ricerca di fallback del tracking:", trackingByNumError.message);
+            } else if (trackingByNum) {
+                console.log("Trovato tracking di fallback:", trackingByNum);
+                shipment.tracking = trackingByNum;
             }
          }
  
