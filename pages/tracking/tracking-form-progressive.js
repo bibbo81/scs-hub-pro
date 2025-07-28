@@ -3812,72 +3812,12 @@ async function processEnhancedTracking(formData) {
                    
                    if (apiResponse && apiResponse.success) {
                        console.log('✅ ENTRO nel mapping API');
-                       // FIX STATUS MAPPING - INSERISCI DOPO console.log('✅ ENTRO nel mapping API');
-if (apiResponse.status || apiResponse.metadata?.raw?.shipment?.status) {
-    const rawStatus = (apiResponse.status || apiResponse.metadata?.raw?.shipment?.status || '').toLowerCase();
-    
-    const statusMap = {
-        // MARE - Stati inglesi/ShipsGo
-        'sailing': 'in_transit',
-        'arrived': 'arrived',
-        'delivered': 'delivered',
-        'discharged': 'arrived',
-        
-        // CORRIERI - Stati italiani
-        'la spedizione è stata consegnata': 'delivered',
-        'consegnata.': 'delivered',
-        'consegna prevista nel corso della giornata odierna.': 'out_for_delivery',
-        'arrivata nella sede gls locale.': 'in_transit',
-        'in transito.': 'in_transit',
-        'partita dalla sede mittente. in transito.': 'in_transit',
-        'la spedizione e\' stata creata dal mittente, attendiamo che ci venga affidata per l\'invio a destinazione.': 'registered',
-        'la spedizione è in consegna': 'out_for_delivery',
-        'la spedizione è in transito': 'in_transit',
-        
-        // FEDEX - Stati inglesi
-        'on fedex vehicle for delivery': 'out_for_delivery',
-        'at local fedex facility': 'in_transit',
-        'departed fedex hub': 'in_transit',
-        'on the way': 'in_transit',
-        'arrived at fedex hub': 'in_transit',
-        'international shipment release - import': 'customs_cleared',
-        'at destination sort facility': 'in_transit',
-        'left fedex origin facility': 'in_transit',
-        'picked up': 'in_transit',
-        'shipment information sent to fedex': 'registered',
-        
-        // Stati generici italiani
-        'in transito': 'in_transit',
-        'arrivata': 'arrived',
-        'consegnato': 'delivered',
-        'scaricato': 'arrived',
-        'in consegna': 'out_for_delivery',
-        'sdoganata': 'customs_cleared',
-        'spedizione creata': 'registered'
-    };
-    
-    // Prova prima lowercase
-    if (statusMap[rawStatus]) {
-        apiResponse.status = statusMap[rawStatus];
-        apiResponse.current_status = statusMap[rawStatus];
-    } else {
-        // Prova uppercase per ShipsGo
-        const upperMap = {
-            'SAILING': 'in_transit',
-            'IN TRANSIT': 'in_transit',
-            'ARRIVED': 'arrived',
-            'DELIVERED': 'delivered',
-            'DISCHARGED': 'arrived',
-            'REGISTERED': 'registered',
-            'PENDING': 'registered'
-        };
-        const upperStatus = apiResponse.status?.toUpperCase() || apiResponse.metadata?.raw?.shipment?.status?.toUpperCase();
-        if (upperMap[upperStatus]) {
-            apiResponse.status = upperMap[upperStatus];
-            apiResponse.current_status = upperMap[upperStatus];
-        }
-    }
-}
+                        // FIX: Use the global unified mapping function for consistency.
+                        // This ensures API responses are mapped like imported files and other data.
+                        if (apiResponse.status || apiResponse.metadata?.raw?.shipment?.status) {
+                            const rawStatus = apiResponse.status || apiResponse.metadata?.raw?.shipment?.status;
+                            apiResponse.current_status = window.TrackingUnifiedMapping.mapStatus(rawStatus);
+                        }
                        // OCEAN V2 SPECIAL HANDLING
 if (formData.trackingType === 'container' && window.detectedOceanId && apiResponse.metadata?.source === 'shipsgo_v2_ocean') {
     console.log('🌊 Processing Ocean v2 response with proper mapping');

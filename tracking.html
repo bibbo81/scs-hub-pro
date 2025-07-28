@@ -924,8 +924,9 @@ setTimeout(() => {
                                     
                                     // Map status
                                     if (mapped.status || mapped.current_status) {
-                                        const status = (mapped.status || mapped.current_status || '').toString();
-                                        mapped.current_status = this.mapStatus ? this.mapStatus(status) : status.toLowerCase();
+                                        const rawStatus = (mapped.status || mapped.current_status || '').toString();
+                                        // FIX: Use the global unified mapping function for consistency
+                                        mapped.current_status = window.TrackingUnifiedMapping.mapStatus(rawStatus);
                                         delete mapped.status;
                                     }
                                     
