@@ -313,18 +313,24 @@ function processAndNormalizeTrackings(trackingsToProcess) {
 
         // --- 1. STATUS MAPPING (dal più recente) ---
         // FIX: Prioritize the LAST ACTUAL event, not just the last event.
-        const actualMovements = movements.filter(m => m.status === 'ACT');
         let rawStatus;
-        if (actualMovements.length > 0) {
-            // Case 1: Use the last ACTUAL movement for the current status.
-            const lastActualMovement = actualMovements[actualMovements.length - 1];
-            rawStatus = lastActualMovement.description || lastActualMovement.event || rawApiData.status || tracking.status;
-        } else if (rawApiData?.status) {
-            // Case 2: No actual events, use the overall shipment status from the API.
-            rawStatus = rawApiData.status;
-        } else {
-            // Case 2: Data from XLSX/manual entry. The status is already in the main tracking object.
-            // Use current_status first as it might have been pre-processed.
+
+        // FIX: Prioritize the overall shipment status from the API, as it's more reliable than the last event.
+        // Case 1: The most reliable source is the overall status from the API response.
+        if (rawApiData?.status || rawApiData?.Status) {
+            rawStatus = rawApiData.status || rawApiData.Status;
+        } 
+        // Case 2: If no overall status, try to infer from the last actual movement.
+        else if (movements && movements.length > 0) {
+            const actualMovements = movements.filter(m => m.status === 'ACT');
+            if (actualMovements.length > 0) {
+                const lastActualMovement = actualMovements[actualMovements.length - 1];
+                rawStatus = lastActualMovement.event || lastActualMovement.description;
+            }
+        }
+        
+        // Case 3: If still no status, use the one from our database record.
+        if (!rawStatus) {
             rawStatus = tracking.current_status || tracking.status;
         }
         
