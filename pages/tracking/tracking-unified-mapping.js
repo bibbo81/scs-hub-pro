@@ -146,6 +146,10 @@ window.TrackingUnifiedMapping = {
         'Customs Hold': 'customs_hold',
         'Customs Cleared': 'customs_cleared',
         
+        // Varianti comuni
+        'Loaded on Vessel': 'in_transit',
+        'Vessel Departed': 'in_transit',
+        
         // === CONTAINER SPECIFIC ===
         'Loaded': 'in_transit',
         'Discharged': 'arrived',
@@ -282,27 +286,40 @@ window.TrackingUnifiedMapping = {
     
     mapStatus(sourceStatus) {
         if (!sourceStatus) return 'registered';
-        const statusStr = sourceStatus.toString().trim();
+        const statusStr = sourceStatus.toString().trim().toLowerCase();
 
-        // 1. Check rapido se è già uno stato normalizzato valido (es. 'in_transit')
+        // 1. Check se è già uno stato normalizzato valido (es. 'in_transit')
         const validNormalizedStatuses = new Set(Object.values(this.STATUS_MAPPING));
-        if (validNormalizedStatuses.has(statusStr.toLowerCase())) {
-            return statusStr.toLowerCase();
+        if (validNormalizedStatuses.has(statusStr)) {
+            return statusStr;
         }
 
-        // 2. Normalizza l'input per un confronto robusto
-        // Converte in lowercase e rimuove spazi, trattini e underscore
-        const normalizedSource = statusStr.toLowerCase().replace(/[\s_-]/g, '');
-
-        // 3. Itera sulla mappa e normalizza ogni chiave per il confronto
+        // 2. Check per una corrispondenza esatta (ignorando maiuscole/minuscole)
         for (const [key, value] of Object.entries(this.STATUS_MAPPING)) {
-            const normalizedKey = key.toLowerCase().replace(/[\s_-]/g, '');
-            if (normalizedKey === normalizedSource) {
-                return value; // Trovato!
+            if (key.toLowerCase() === statusStr) {
+                return value;
             }
         }
 
-        // 4. Se nessuna corrispondenza trovata, ritorna il default
+        // 3. Check per contenuto parziale, dando priorità alle chiavi più lunghe
+        const sortedKeys = Object.keys(this.STATUS_MAPPING).sort((a, b) => b.length - a.length);
+        for (const key of sortedKeys) {
+            if (key.length > 3 && statusStr.includes(key.toLowerCase())) {
+                return this.STATUS_MAPPING[key];
+            }
+        }
+
+        // 4. Fallback alla logica di normalizzazione originale (rimuovendo spazi, etc.)
+        const normalizedSource = statusStr.replace(/[\s_-]/g, '');
+        for (const [key, value] of Object.entries(this.STATUS_MAPPING)) {
+            const normalizedKey = key.toLowerCase().replace(/[\s_-]/g, '');
+            if (normalizedKey === normalizedSource) {
+                return value;
+            }
+        }
+
+        // 5. Se ancora nessuna corrispondenza, ritorna il default e logga un avviso
+        console.warn(`[mapStatus] Stato non mappato: "${sourceStatus}". Default a 'registered'.`);
         return 'registered';
     },
     
