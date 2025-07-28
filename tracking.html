@@ -884,7 +884,9 @@ setTimeout(() => {
                 }
                 
                 // Add handleImport method to ImportManager for progressive form
-                if (window.ImportManager && !window.ImportManager.handleImport) {
+                // FIX: Unconditionally override handleImport to ensure our correct logic is used,
+                // as the one from import-manager.js is incomplete (lacks status mapping).
+                if (window.ImportManager) {
                     console.log('Adding handleImport to ImportManager...');
                     window.ImportManager.handleImport = async function(file, options = {}) {
                         console.log('Progressive form calling handleImport...');
