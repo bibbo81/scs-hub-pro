@@ -106,37 +106,49 @@ function processTrackingData(tracking) {
     }
 
     // --- 2. Calcolo nuovi campi (peso, volume, tipi container) ---
-    const containerCounts = { '20': 0, '40': 0, '40hc': 0, '45hc': 0, 'lcl': 0 };
-    const typeSummary = {};
+    const isSeaShipment = processed.tracking_type === 'container' || processed.tracking_type === 'bl';
     const containers = tracking.metadata?.raw?.shipment?.containers || [];
 
-    if (Array.isArray(containers) && containers.length > 0) {
-        containers.forEach(container => {
-            const type = (container.type || '').toUpperCase();
-            const size = container.size || 0;
+    if (isSeaShipment) {
+        const containerCounts = { '20': 0, '40': 0, '40hc': 0, '45hc': 0, 'lcl': 0 };
+        const typeSummary = {};
 
-            if (type.includes('20') || size === 20) containerCounts['20']++;
-            else if (type.includes('40HC') || type.includes('40HQ')) containerCounts['40hc']++;
-            else if (type.includes('40') || size === 40) containerCounts['40']++;
-            else if (type.includes('45')) containerCounts['45hc']++;
-            else if (type.toLowerCase().includes('lcl')) containerCounts['lcl']++;
+        if (Array.isArray(containers) && containers.length > 0) {
+            containers.forEach(container => {
+                const type = (container.type || '').toUpperCase();
+                const size = container.size || 0;
 
-            const summaryType = container.type || 'N/A';
-            typeSummary[summaryType] = (typeSummary[summaryType] || 0) + 1;
-        });
+                if (type.includes('20') || size === 20) containerCounts['20']++;
+                else if (type.includes('40HC') || type.includes('40HQ')) containerCounts['40hc']++;
+                else if (type.includes('40') || size === 40) containerCounts['40']++;
+                else if (type.includes('45')) containerCounts['45hc']++;
+                else if (type.toLowerCase().includes('lcl')) containerCounts['lcl']++;
+
+                const summaryType = container.type || 'N/A';
+                typeSummary[summaryType] = (typeSummary[summaryType] || 0) + 1;
+            });
+        }
+
+        // Assegna i conteggi calcolati
+        processed.container_count_20 = containerCounts['20'];
+        processed.container_count_40 = containerCounts['40'];
+        processed.container_count_40hc = containerCounts['40hc'];
+        processed.container_count_45hc = containerCounts['45hc'];
+        processed.container_count_lcl = containerCounts['lcl'];
+
+        // Crea una stringa riassuntiva dei tipi di container
+        processed.container_types = Object.entries(typeSummary)
+            .map(([type, count]) => `${count}x${type}`)
+            .join(', ') || (processed.container_count ? `${processed.container_count} container(s)` : '-');
+    } else {
+        // Per spedizioni aeree, questi campi non sono applicabili
+        processed.container_count_20 = 0;
+        processed.container_count_40 = 0;
+        processed.container_count_40hc = 0;
+        processed.container_count_45hc = 0;
+        processed.container_count_lcl = 0;
+        processed.container_types = '-'; // Mostra un trattino invece di "1 container(s)"
     }
-
-    // Assegna i conteggi calcolati
-    processed.container_count_20 = containerCounts['20'];
-    processed.container_count_40 = containerCounts['40'];
-    processed.container_count_40hc = containerCounts['40hc'];
-    processed.container_count_45hc = containerCounts['45hc'];
-    processed.container_count_lcl = containerCounts['lcl'];
-
-    // Crea una stringa riassuntiva dei tipi di container
-    processed.container_types = Object.entries(typeSummary)
-        .map(([type, count]) => `${count}x${type}`)
-        .join(', ') || (processed.container_count ? `${processed.container_count} container(s)` : '-');
 
     // Calcola peso e volume totali
     const cargo = tracking.metadata?.raw?.shipment?.cargo;
@@ -144,7 +156,7 @@ function processTrackingData(tracking) {
     let totalVolume = parseFloat(cargo?.volume) || parseFloat(tracking.volume) || 0;
 
     // Se non ci sono dati sul cargo, prova a sommare dai singoli container
-    if (totalWeight === 0 && Array.isArray(containers) && containers.length > 0) {
+    if (isSeaShipment && totalWeight === 0 && Array.isArray(containers) && containers.length > 0) {
         totalWeight = containers.reduce((sum, c) => sum + (parseFloat(c.weight) || 0), 0);
         totalVolume = containers.reduce((sum, c) => sum + (parseFloat(c.volume) || 0), 0);
     }
