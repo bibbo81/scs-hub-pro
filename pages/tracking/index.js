@@ -185,6 +185,22 @@ function processTrackingData(tracking) {
 
 // Formatters provided by table-config.js
 
+/**
+ * Formatta il tipo di tracking con un badge e un'icona.
+ * @param {string} value - Il tipo di tracking (es. 'container', 'awb').
+ * @returns {string} HTML per il badge.
+ */
+function formatTrackingType(value) {
+    const types = {
+        'container': { icon: 'fa-ship', text: 'MARE', color: 'primary' },
+        'bl': { icon: 'fa-file-alt', text: 'B/L', color: 'info' },
+        'awb': { icon: 'fa-plane', text: 'AEREO', color: 'warning' },
+        'air_waybill': { icon: 'fa-plane', text: 'AEREO', color: 'warning' },
+        'parcel': { icon: 'fa-box', text: 'PARCEL', color: 'success' }
+    };
+    const config = types[value] || { icon: 'fa-question-circle', text: (value || 'N/A').toUpperCase(), color: 'secondary' };
+    return `<span class="badge badge-${config.color}"><i class="fas ${config.icon} mr-1"></i>${config.text}</span>`;
+}
 // Initialize
 document.addEventListener('DOMContentLoaded', async () => {
     console.log('🚀 Initializing tracking page...');
@@ -801,6 +817,9 @@ function getColumnFormatter(key) {
         // --- Status ---
         case 'current_status':
             return formatTrackingStatus;
+        
+        case 'tracking_type':
+            return formatTrackingType;
 
         // --- Dates ---
         case 'date_of_departure':
