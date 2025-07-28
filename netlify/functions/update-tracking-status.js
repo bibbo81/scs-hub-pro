@@ -92,23 +92,30 @@ exports.handler = async function(event, context) {
             const newRawStatus = containerInfo.Status;
             const newStatus = mapStatus(newRawStatus);
 
-            // 4. Confronta e aggiorna se lo stato è cambiato
+            // 4. Prepara l'aggiornamento
+            const updatePayload = {
+                last_auto_update: new Date().toISOString(),
+                eta: containerInfo.ETA || tracking.eta // Aggiorna sempre l'ETA se disponibile
+            };
+
+            let statusChanged = false;
             if (newStatus !== tracking.status) {
-                console.log(`🔄 Updating ${tracking.tracking_number}: ${tracking.status} -> ${newStatus}`);
+                statusChanged = true;
+                updatePayload.status = newStatus;
+                updatePayload.updated_at = new Date().toISOString(); // Aggiorna anche lo 'updated_at' generale
+            }
 
-                const { error: updateError } = await supabase
-                    .from('trackings')
-                    .update({
-                        status: newStatus,
-                        updated_at: new Date().toISOString(),
-                        // Potremmo aggiornare anche altri campi qui, come l'ETA
-                        eta: containerInfo.ETA || tracking.eta
-                    })
-                    .eq('id', tracking.id);
+            // Aggiorna sempre il timestamp dell'ultimo controllo automatico
+            console.log(`[Check] ${tracking.tracking_number} - Status changed: ${statusChanged}`);
 
-                if (updateError) {
-                    throw updateError;
-                }
+            const { error: updateError } = await supabase
+                .from('trackings')
+                .update(updatePayload)
+                .eq('id', tracking.id);
+
+            if (updateError) throw updateError;
+
+            if (statusChanged) {
                 updatedCount++;
             }
 

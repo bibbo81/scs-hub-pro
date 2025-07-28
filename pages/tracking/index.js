@@ -802,9 +802,31 @@ function getColumnFormatter(key) {
         case 'eta':
         case 'ata':
         case 'date_of_arrival':
-        case 'last_update':
         case 'created_at':
             return formatDate; // Use the full date-time formatter
+        
+        case 'last_update':
+            return (value, row) => {
+                const manualUpdate = row.updated_at ? new Date(row.updated_at) : null;
+                const autoUpdate = row.last_auto_update ? new Date(row.last_auto_update) : null;
+
+                if (!manualUpdate && !autoUpdate) return '-';
+
+                let displayDate, title, icon;
+
+                // L'aggiornamento più recente è quello che conta
+                if (autoUpdate && (!manualUpdate || autoUpdate > manualUpdate)) {
+                    displayDate = formatDate(autoUpdate);
+                    title = `Controllato automaticamente il ${autoUpdate.toLocaleString('it-IT')}`;
+                    icon = `<i class="fas fa-robot text-info" title="${title}"></i>`;
+                } else {
+                    displayDate = formatDate(manualUpdate);
+                    title = `Aggiornato il ${manualUpdate.toLocaleString('it-IT')}`;
+                    icon = `<i class="fas fa-user-edit text-secondary" title="${title}"></i>`;
+                }
+
+                return `<div class="d-flex align-items-center" style="gap: 0.5rem;">${icon} <span>${displayDate}</span></div>`;
+            };
 
         // --- Numeric values with units ---
         case 'total_weight_kg':
