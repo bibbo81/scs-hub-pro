@@ -379,8 +379,10 @@ if (actualArrival?.timestamp) tracking.ata = actualArrival.timestamp; // Actual 
                 }
                 if (departureEvent?.timestamp) tracking.date_of_departure = departureEvent.timestamp;
 
-                const destinationPortName = rawApiData.route?.port_of_discharge?.location?.name?.toUpperCase();
-                if (destinationPortName) {
+               // FIX: Safely get the destination port name and convert to uppercase to prevent TypeError.
+                const destinationPortNameRaw = rawApiData?.route?.port_of_discharge?.location?.name;
+                if (destinationPortNameRaw) {
+                    const destinationPortName = destinationPortNameRaw.toUpperCase();
                     // FIX: Distinguish between ATA (Actual) and ETA (Estimated)
                     const finalActualArrival = [...actualMovements].reverse().find(m => m.location?.name?.toUpperCase() === destinationPortName && ((m.description || m.event || '').toUpperCase().includes('DISCHARGE') || (m.description || m.event || '').toUpperCase().includes('ARRIVAL') || (m.event || '').toUpperCase() === 'DISC' || (m.event || '').toUpperCase() === 'ARRV'));
                     const finalEstimatedArrival = [...movements].reverse().find(m => m.status === 'EST' && m.location?.name?.toUpperCase() === destinationPortName && ((m.description || m.event || '').toUpperCase().includes('ARRIVAL') || (m.event || '').toUpperCase() === 'ARRV'));
