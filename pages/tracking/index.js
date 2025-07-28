@@ -309,7 +309,8 @@ function processAndNormalizeTrackings(trackingsToProcess) {
     trackingsToProcess.forEach(tracking => {
         // Get raw API data if it exists
         const rawApiData = tracking.metadata?.raw?.shipment || tracking.metadata?.raw;
-        const movements = rawApiData?.movements || (rawApiData?.containers ? rawApiData.containers[0]?.movements : []);
+        // FIX: Ensure 'movements' is always an array to prevent crashes on trackings with no movement data.
+        const movements = rawApiData?.movements || (rawApiData?.containers?.[0]?.movements) || [];
 
         // --- 1. STATUS MAPPING (dal più recente) ---
         // FIX: Prioritize the LAST ACTUAL event, not just the last event.
