@@ -324,7 +324,11 @@ class DataManager {
  
          const { data: shipment, error: shipmentError } = await supabase
              .from('shipments')
-             .select('*, carrier:carrier_id (*), freight_cost, other_costs, tracking:tracking_id(*)')
+             .select(`
+                *,
+                carrier:carrier_id (*),
+                tracking:tracking_id(*)
+             `)
              .eq('id', shipmentId)
              .eq('organization_id', this.organizationId)
              .single();
