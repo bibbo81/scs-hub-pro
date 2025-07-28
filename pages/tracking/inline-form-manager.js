@@ -212,7 +212,7 @@ class InlineFormManager {
                     window.loadTrackings();
                 }
             } else {
-                throw new Error(saveResult.error || "Errore sconosciuto durante il salvataggio del tracking.");
+                throw new Error("Il salvataggio del tracking non ha restituito un risultato valido.");
             }
 
         } catch (error) {
