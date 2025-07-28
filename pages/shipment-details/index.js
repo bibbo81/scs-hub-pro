@@ -40,21 +40,20 @@ async function loadShipmentDetails(shipmentId) {
 }
 
 function renderShipmentInfo(shipment) {
+    console.log("Dettagli spedizione ricevuti:", shipment);
     document.getElementById('shipmentNumberTitle').textContent = `Spedizione ${shipment.shipment_number || ''}`;
     document.getElementById('shipmentNumber').textContent = shipment.shipment_number || '-';
-    
-    // Usa il tracking.current_status se disponibile, altrimenti lo status della spedizione
-    const statusToDisplay = shipment.tracking?.current_status || shipment.status;
-    document.getElementById('shipmentStatus').innerHTML = formatStatus(statusToDisplay);
-    
+    document.getElementById('shipmentStatus').innerHTML = formatStatus(shipment.status || shipment.current_status);
     document.getElementById('shipmentDate').textContent = formatDate(shipment.created_at);
     
     // Mappatura corretta per Origine e Destinazione
     document.getElementById('shipmentOrigin').textContent = shipment.origin_port || shipment.origin || '-';
     document.getElementById('shipmentDestination').textContent = shipment.destination_port || shipment.destination || '-';
     
-    // Calcola e mappa il Tipo Container dal record di tracking associato
-    document.getElementById('shipmentContainerTypes').textContent = getContainerTypesString(shipment.tracking);
+    // Aggiunta Tipo Container
+    const containerTypes = shipment.container_types;
+    document.getElementById('shipmentContainerTypes').textContent = Array.isArray(containerTypes) && containerTypes.length > 0 ? containerTypes.join(', ') : '-';
+    
     document.getElementById('shipmentCarrier').textContent = shipment.carrier?.name || shipment.carrier_name || 'N/A';
     
     const freightCostInput = document.getElementById('freightCost');
