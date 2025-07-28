@@ -142,6 +142,7 @@ function processTrackingData(tracking) {
             .join(', ') || (processed.container_count ? `${processed.container_count} container(s)` : '-');
     } else {
         // Per spedizioni aeree, questi campi non sono applicabili
+        processed.container_count = 0;
         processed.container_count_20 = 0;
         processed.container_count_40 = 0;
         processed.container_count_40hc = 0;
