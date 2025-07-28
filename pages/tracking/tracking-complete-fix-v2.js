@@ -226,17 +226,9 @@
     const shipmentData = data.shipment || data.data || data;
     
     // Extract carrier info - FIX: Access the correct path
-    let carrierCode = 'UNKNOWN';
-    let carrierName = 'Unknown Carrier';
-    
-    // Try different paths for carrier data
-    if (shipmentData.carrier) {
-        carrierCode = shipmentData.carrier.scac || shipmentData.carrier.code || shipmentData.carrier.name || 'UNKNOWN';
-        carrierName = shipmentData.carrier.name || shipmentData.carrier.scac || 'Unknown Carrier';
-    } else if (shipmentData.shipping_line) {
-        carrierCode = shipmentData.shipping_line.scac || shipmentData.shipping_line.code || 'UNKNOWN';
-        carrierName = shipmentData.shipping_line.name || 'Unknown Carrier';
-    }
+    const carrierInfo = shipmentData.carrier || shipmentData.shipping_line || {};
+    const carrierCode = carrierInfo.scac || carrierInfo.code || carrierInfo.name || 'UNKNOWN';
+    const carrierName = carrierInfo.name || carrierCode;
     
     // Extract route info - FIX: Access the correct nested structure
     let originPort = '-';
@@ -323,20 +315,9 @@ if (shipmentData.containers && shipmentData.containers[0]?.movements) {
     }
 }
 
-// Normalize status - FIX COMPLETO
-const status = (() => {
-    const rawStatus = (shipmentData.status || 'registered').toUpperCase();
-    const statusMap = {
-        'SAILING': 'in_transit',
-        'IN TRANSIT': 'in_transit',
-        'ARRIVED': 'arrived',
-        'DELIVERED': 'delivered',
-        'DISCHARGED': 'arrived',
-        'REGISTERED': 'registered',
-        'PENDING': 'registered'
-    };
-    return statusMap[rawStatus] || 'registered';
-})();
+    // FIX: Pass the RAW status from the API. Do not map it here.
+    // The mapping will be handled by the unified mapper in the UI layer.
+    const status = shipmentData.status || 'registered';
     
     // Build normalized response
     const normalized = {
