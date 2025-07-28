@@ -322,7 +322,7 @@ class DataManager {
     async getShipmentDetails(shipmentId) {
          if (!this.initialized) await this.init();
  
-         const { data: shipment, error: shipmentError } = await supabase
+         let { data: shipment, error: shipmentError } = await supabase
              .from('shipments')
              .select(`
                 *,
@@ -336,6 +336,24 @@ class DataManager {
          if (shipmentError) {
              console.error("Errore nel recuperare i dettagli della spedizione:", shipmentError);
              throw shipmentError;
+         }
+
+         // Fallback: Se il tracking non è stato caricato, prova a cercarlo tramite reference_number
+         if (shipment && !shipment.tracking && shipment.shipment_number) {
+            console.log(`Tracking non trovato tramite ID, tento la ricerca per reference_number: ${shipment.shipment_number}`);
+            const { data: trackingByRef, error: trackingByRefError } = await supabase
+                .from('trackings')
+                .select('*')
+                .eq('reference_number', shipment.shipment_number)
+                .eq('organization_id', this.organizationId)
+                .maybeSingle(); // Usa maybeSingle per non generare errori se non trova nulla
+
+            if (trackingByRefError) {
+                console.warn("Errore durante la ricerca di fallback del tracking:", trackingByRefError.message);
+            } else if (trackingByRef) {
+                console.log("Trovato tracking di fallback:", trackingByRef);
+                shipment.tracking = trackingByRef;
+            }
          }
  
          const { data: items, error: itemsError } = await supabase
