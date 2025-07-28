@@ -150,6 +150,8 @@ window.TrackingUnifiedMapping = {
         'Loaded': 'in_transit',
         'Discharged': 'arrived',
         'DISC': 'arrived', // Abbreviazione per Discharged (Ocean v2)
+        'DEPA': 'in_transit', // Abbreviazione per Departed (Ocean v2)
+        'ARRV': 'arrived', // Abbreviazione per Arrived (Ocean v2)
         'Gate Out': 'out_for_delivery',
         'Empty Returned': 'delivered',
 
@@ -159,7 +161,9 @@ window.TrackingUnifiedMapping = {
         //'In Transit': 'in_transit', // Duplicated
         //'Loaded': 'in_transit', // Duplicated
         'Loading': 'in_transit',
-        'Gate In': 'in_transit',
+        'Gate In': 'registered', // FIX: Gate In is before departure, so it's 'registered'
+        'GTIN': 'registered', // Abbreviazione per Gate In
+        'EMSH': 'registered', // Abbreviazione per Empty to Shipper
         'Transhipment': 'in_transit',
         //'Arrived': 'arrived', // Duplicated
         //'Discharged': 'arrived', // Duplicated
