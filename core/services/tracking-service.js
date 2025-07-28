@@ -1672,6 +1672,60 @@ return true;
     getAWBIdCache() {
         return new Map(this.awbIdCache);
     }
+
+    async getShippingLines() {
+        // Check cache
+        if (this.shippingLinesCache && (Date.now() - this.shippingLinesCache.timestamp < 3600000)) { // 1 hour cache
+            return this.shippingLinesCache.data;
+        }
+
+        if (!this.hasApiKeys()) return [];
+
+        try {
+            const response = await this.callShipsGoAPI('v1.2', '/ContainerService/GetShippingLineList', 'GET');
+            if (response.success && Array.isArray(response.data)) {
+                const lines = response.data.map(line => ({
+                    code: line.ShippingLineCode || line.Code || line,
+                    name: line.ShippingLineName || line.Name || line
+                })).sort((a, b) => (a.name || a.code).localeCompare(b.name || b.code));
+                
+                this.shippingLinesCache = { data: lines, timestamp: Date.now() };
+                return lines;
+            }
+            return [];
+        } catch (error) {
+            console.error('Error fetching shipping lines:', error);
+            return [];
+        }
+    }
+
+    async getAirlines() {
+        // Check cache
+        if (this.airlinesCache && (Date.now() - this.airlinesCache.timestamp < 3600000)) { // 1 hour cache
+            return this.airlinesCache.data;
+        }
+
+        if (!this.hasApiKeys()) return [];
+
+        try {
+            const response = await this.callShipsGoAPI('v2', '/air/airlines', 'GET');
+            if (response.success && response.data?.airlines) {
+                const airlines = response.data.airlines
+                    .filter(a => a.status === 'ACTIVE')
+                    .map(a => ({
+                        code: a.iata,
+                        name: a.name,
+                    })).sort((a, b) => a.name.localeCompare(b.name));
+
+                this.airlinesCache = { data: airlines, timestamp: Date.now() };
+                return airlines;
+            }
+            return [];
+        } catch (error) {
+            console.error('Error fetching airlines:', error);
+            return [];
+        }
+    }
 }
 
 // Export singleton

@@ -491,26 +491,32 @@
                 <div class="inline-form-column">
                     <!-- Riga Principale -->
                     <div class="form-row align-items-end">
-                        <div class="form-group col-md-6">
+                        <div class="form-group col-md-5">
                             <label for="inline-tracking-number"><strong>1. Numero Tracking</strong></label>
                             <input type="text" class="form-control form-control-lg" id="inline-tracking-number" placeholder="Inserisci numero...">
                         </div>
-                        <div class="form-group col-md-4">
-                            <label for="inline-tracking-action"><strong>2. Azione</strong></label>
+                        <div class="form-group col-md-3">
+                            <label for="inline-carrier"><strong>2. Carrier *</strong></label>
+                            <select id="inline-carrier" class="form-control" required disabled>
+                                <option value="">Inserisci un numero...</option>
+                            </select>
+                        </div>
+                        <div class="form-group col-md-2">
+                            <label for="inline-tracking-action"><strong>3. Azione</strong></label>
                             <select id="inline-tracking-action" class="form-control">
                                 <option value="auto">Nuovo Tracking (POST)</option>
                                 <option value="get">Recupera Tracking (GET)</option>
                             </select>
                         </div>
                         <div class="form-group col-md-2">
-                            <button id="inline-submit-btn" class="btn btn-primary btn-block">Aggiungi</button>
+                            <button id="inline-submit-btn" class="btn btn-primary btn-block mt-3">Aggiungi</button>
                         </div>
                     </div>
 
                     <!-- Dettagli & Geografia (Collapsible) -->
                     <div id="inline-details-section">
                         <a data-toggle="collapse" href="#collapseDetails" role="button" aria-expanded="false" aria-controls="collapseDetails">
-                            <strong>3. Dettagli & Geografia (Opzionale)</strong>
+                            <strong>4. Dettagli & Geografia (Opzionale)</strong>
                         </a>
                         <div class="collapse" id="collapseDetails">
                             <div class="form-row mt-3">
@@ -528,7 +534,7 @@
                 </div>
 
                 <div class="inline-form-column">
-                    <label><strong>4. Anteprima Live</strong></label>
+                    <label><strong>5. Anteprima Live</strong></label>
                     <div id="inline-live-preview" class="live-preview-card">
                         <p class="text-muted">Inserisci un numero di tracking per vedere l'anteprima.</p>
                     </div>
