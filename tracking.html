@@ -212,6 +212,21 @@
     .workflow-modal-overlay.active {
         display: block !important;
     }
+
+    /* Stili per il nuovo form inline */
+    #inline-tracking-form-container {
+        background: #f8f9fa;
+        border: 1px solid #dee2e6;
+        border-radius: 0.5rem;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        display: grid;
+        grid-template-columns: 2fr 1fr;
+        gap: 1.5rem;
+        align-items: start;
+    }
+    .inline-form-column { display: flex; flex-direction: column; gap: 1rem; }
+    .live-preview-card { background: white; padding: 1rem; border-radius: 0.25rem; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
     </style>
     <script>
         window.App = {
@@ -470,6 +485,56 @@
         </div>
     </div>
 </div>
+
+            <!-- NUOVO: Inline Tracking Form -->
+            <div id="inline-tracking-form-container">
+                <div class="inline-form-column">
+                    <!-- Riga Principale -->
+                    <div class="form-row align-items-end">
+                        <div class="form-group col-md-6">
+                            <label for="inline-tracking-number"><strong>1. Numero Tracking</strong></label>
+                            <input type="text" class="form-control form-control-lg" id="inline-tracking-number" placeholder="Inserisci numero...">
+                        </div>
+                        <div class="form-group col-md-4">
+                            <label for="inline-tracking-action"><strong>2. Azione</strong></label>
+                            <select id="inline-tracking-action" class="form-control">
+                                <option value="auto">Nuovo Tracking (POST)</option>
+                                <option value="get">Recupera Tracking (GET)</option>
+                            </select>
+                        </div>
+                        <div class="form-group col-md-2">
+                            <button id="inline-submit-btn" class="btn btn-primary btn-block">Aggiungi</button>
+                        </div>
+                    </div>
+
+                    <!-- Dettagli & Geografia (Collapsible) -->
+                    <div id="inline-details-section">
+                        <a data-toggle="collapse" href="#collapseDetails" role="button" aria-expanded="false" aria-controls="collapseDetails">
+                            <strong>3. Dettagli & Geografia (Opzionale)</strong>
+                        </a>
+                        <div class="collapse" id="collapseDetails">
+                            <div class="form-row mt-3">
+                                <div class="form-group col-md-6">
+                                    <label for="inline-origin">Origine</label>
+                                    <input type="text" class="form-control" id="inline-origin" placeholder="Es. SHANGHAI, MXP">
+                                </div>
+                                <div class="form-group col-md-6">
+                                    <label for="inline-destination">Destinazione</label>
+                                    <input type="text" class="form-control" id="inline-destination" placeholder="Es. GENOVA, FCO">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="inline-form-column">
+                    <label><strong>4. Anteprima Live</strong></label>
+                    <div id="inline-live-preview" class="live-preview-card">
+                        <p class="text-muted">Inserisci un numero di tracking per vedere l'anteprima.</p>
+                    </div>
+                </div>
+            </div>
+
             <!-- Filters and Search -->
             <div class="sol-card mb-4">
                 <div class="sol-card-body">

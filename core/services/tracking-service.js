@@ -406,7 +406,7 @@ return true;
     // API TRACKING PRINCIPALE
     // ========================================
 
-    async track(trackingNumber, trackingType = 'auto', options = {}) {
+    async track(trackingNumber, trackingType = 'auto', options = { operation: 'auto' }) {
         // IMPORTANTE: Assicurati che sia inizializzato prima di tracking
         if (!this.initialized || (!this.hasApiKeys() && this.useSupabase)) {
             console.log('[TrackingService] Not ready, initializing before track...');
@@ -446,15 +446,15 @@ return true;
             switch(trackingType) {
                 case 'container':
                 case 'bl':
-                    result = await this.trackContainer(trackingNumber, options);
+                    result = await this.trackOceanShipmentV2(trackingNumber, options);
                     break;
                 case 'awb':
                     result = await this.trackAirShipment(trackingNumber, options);
                     break;
                 default:
-                    // Prova container prima, poi air
+                    // Prova ocean v2 prima, poi air
                     try {
-                        result = await this.trackContainer(trackingNumber, options);
+                        result = await this.trackOceanShipmentV2(trackingNumber, options);
                     } catch (error) {
                         console.log('[TrackingService] Container failed, trying air...');
                         result = await this.trackAirShipment(trackingNumber, options);
@@ -480,110 +480,6 @@ return true;
     }
 
     // ========================================
-    // TRACKING CONTAINER (ShipsGo v1.2) - ENDPOINT CORRETTI
-    // ========================================
-
-    async trackContainer(trackingNumber, options = {}) {
-        if (!this.apiConfig.v1 || !this.apiConfig.v1.enabled) {
-            throw new Error('ShipsGo v1.2 API not configured or disabled');
-        }
-
-        console.log('[TrackingService] 🚢 Tracking container via ShipsGo v1.2:', trackingNumber);
-
-        // Check rate limit
-        if (!this.checkRateLimit('shipsgo_v1')) {
-            throw new Error('Rate limit exceeded for ShipsGo v1.2');
-        }
-
-        try {
-            let requestId = trackingNumber;
-            
-            // Step 1: Aggiungi container (se non esiste) e ottieni requestId
-            if (!options.skipAdd) {
-                const addResult = await this.addContainerToShipsGo(trackingNumber);
-                
-                // Se abbiamo ottenuto un requestId, usalo per il GET
-                if (addResult.requestId) {
-                    requestId = addResult.requestId;
-                    console.log('[TrackingService] 📌 Using requestId for GET:', requestId);
-                }
-            }
-            
-            // Step 2: Recupera informazioni usando il requestId
-            const containerInfo = await this.getContainerInfo(requestId, options);
-            
-            // Step 3: Normalizza risposta
-            const result = this.normalizeContainerResponse(containerInfo, trackingNumber);
-            
-            console.log('[TrackingService] ✅ Container tracking completed:', result.status);
-            return result;
-            
-        } catch (error) {
-            console.error('[TrackingService] ❌ Container tracking error:', error);
-            throw error;
-        }
-    }
-
-    async addContainerToShipsGo(containerNumber, options = {}) {
-        console.log('➕ Adding container to ShipsGo:', containerNumber);
-
-        if (!this.apiConfig.v1 || !this.apiConfig.v1.enabled) {
-            return { success: false, message: 'ShipsGo v1 API not configured' };
-        }
-
-        const response = await this.callShipsGoAPI('v1', '/trackings/add', 'POST', null, {
-            tracking_number: containerNumber,
-            ...options
-        });
-
-        if (!response.success) {
-            console.error('❌ Failed to add container to ShipsGo:', response.data);
-            throw new Error('Failed to add container to ShipsGo');
-        }
-
-        return response;
-    }
-
-    async getContainerInfo(containerNumber, options = {}) {
-        // ✅ FIX: Usa requestId invece di containerNumber
-        const params = {
-            requestId: containerNumber.toUpperCase()
-        };
-        
-        // ✅ FIX: Usa mappoint (lowercase) invece di mapPoint
-        params.mappoint = options.mapPoint !== undefined ? options.mapPoint : 'true';
-        
-        // Se viene passato un requestId specifico, usalo
-        if (options.requestId && options.requestId.trim()) {
-            params.requestId = options.requestId.trim();
-        }
-        
-        console.log('[TrackingService] 📦 GetContainerInfo FIXED params:', params);
-        
-        const response = await this.callShipsGoAPI(
-            'v1.2',
-            '/ContainerService/GetContainerInfo',
-            'GET',
-            params
-        );
-
-        if (!response.success) {
-            throw new Error(response.data?.message || response.error || 'Failed to get container info');
-        }
-
-        // ✅ FIX: Gestisci la risposta come array
-        let containerData = response.data;
-        
-        // Se la risposta è un array, prendi il primo elemento
-        if (Array.isArray(containerData) && containerData.length > 0) {
-            containerData = containerData[0];
-            console.log('[TrackingService] 📋 Extracted first container from array response');
-        }
-        
-        return containerData;
-    }
-
-    // ========================================
     // TRACKING AWB (ShipsGo v2.0) - FIX CON GESTIONE ID E OTTIMIZZAZIONE
     // ========================================
 
@@ -600,17 +496,21 @@ return true;
         }
 
         try {
-            // Step 0: Check se abbiamo già l'ID passato come opzione o in cache
+            // Se l'operazione è solo 'post', salta la ricerca e vai diretto all'aggiunta
+            if (options.operation === 'post') {
+                console.log('[TrackingService] ✈️ Operation is POST, adding AWB directly...');
+                const addResult = await this.addAWBToShipsGo(awbNumber, options);
+                return this.normalizeAWBResponse(addResult, awbNumber);
+            }
+
+            // Altrimenti (GET o AUTO), cerca l'ID
             let shipsgoId = options.shipsgoId || this.awbIdCache.get(awbNumber.toUpperCase());
-            
             if (shipsgoId) {
                 console.log('[TrackingService] 📋 Using provided/cached ID:', shipsgoId);
-                console.log('[TrackingService] 🚀 Skipping AWB list search, going directly to GET by ID');
-                // Salta direttamente al GET con l'ID - non serve fare altro
             } else {
                 console.log('[TrackingService] 🔍 ID not provided, fetching AWB list...');
                 
-                // Step 1: Recupera lista AWB per trovare l'ID
+                // Recupera lista AWB per trovare l'ID
                 const awbList = await this.getAirShipmentsList();
                 
                 // Cerca l'AWB nella lista
@@ -627,9 +527,9 @@ return true;
                     this.awbIdCache.set(awbNumber.toUpperCase(), shipsgoId);
                     this.saveAWBIdCache();
                 } else {
-                    console.log('[TrackingService] ⚠️ AWB not found in list, trying to add it...');
-                    
-                    // Step 2: Se non trovato, prova ad aggiungerlo
+                    // Se l'operazione è 'auto', prova ad aggiungerlo. Se è 'get', fallisce.
+                    if (options.operation === 'auto') {
+                        console.log('[TrackingService] ⚠️ AWB not found in list, trying to add it...');
                     if (!options.skipAdd) {
                         const addResult = await this.addAWBToShipsGo(awbNumber);
                         
@@ -651,11 +551,14 @@ return true;
                             this.saveAWBIdCache();
                         }
                     }
+                    } else {
+                        throw new Error(`AWB ${awbNumber} not found in ShipsGo (operation was 'get')`);
+                    }
                 }
             }
             
             if (!shipsgoId) {
-                throw new Error('Unable to find or create AWB in ShipsGo system');
+                throw new Error(`Unable to find or create AWB ${awbNumber} in ShipsGo system`);
             }
             
             // Step 3: Recupera informazioni usando l'ID numerico
@@ -698,7 +601,7 @@ return true;
         return shipments;
     }
 
-    async addAWBToShipsGo(awbNumber) {
+    async addAWBToShipsGo(awbNumber, options = {}) {
         console.log('[TrackingService] ➕ Adding AWB to ShipsGo:', awbNumber);
         
         const response = await this.callShipsGoAPI(
@@ -708,7 +611,7 @@ return true;
             null,
             {
                 awbNumber: awbNumber.toUpperCase(),
-                airline: 'CV' // Default to Cargolux, potrebbe essere migliorato
+                airline: options.carrier || 'CV' // Usa carrier fornito o default
             }
         );
 
@@ -748,6 +651,7 @@ return true;
         const result = await this.trackAirShipment(awbNumber);
         return result.metadata.raw;
     }
+
 
     normalizeAWBResponse(data, awbNumber) {
         // FIX: La struttura è { message, shipment } non { data }
@@ -819,6 +723,7 @@ return true;
             }
         };
     }
+
     // ========================================
     // API TO COLUMN MAPPING
     // ========================================

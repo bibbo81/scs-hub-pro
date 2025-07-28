@@ -1,5 +1,6 @@
 // index.js - Clean tracking page logic with all mappings
 // import TableManager from '/core/table-manager.js'; // Defer loading // Moved to dynamic import
+import '/pages/tracking/inline-form-manager.js'; // Importa il nuovo gestore del form
 import { trackingsColumns, formatDate, formatDateOnly, formatTrackingStatus } from '/core/table-config.js';
 
 // State
