@@ -833,7 +833,6 @@ MRKU1234567,MAERSK,container,PO123456,In Transit,SHANGHAI,GENOVA
         downloadTemplate: (type) => completeImportManager.downloadTemplate(type),
         processShipsGoData: (data, type) => completeImportManager.processShipsGoData(data, type),
         mapStatus: (status) => completeImportManager.mapStatus(status), // Expose per debugging
-        STATUS_MAPPING: STATUS_MAPPING, // Expose mapping per debugging
         showImportDialog: () => {
             const input = document.createElement('input');
             input.type = 'file';
