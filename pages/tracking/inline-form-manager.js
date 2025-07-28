@@ -8,6 +8,7 @@ class InlineFormManager {
             action: document.getElementById('inline-tracking-action'),
             origin: document.getElementById('inline-origin'),
             destination: document.getElementById('inline-destination'),
+            reference: document.getElementById('inline-reference'),
             submitBtn: document.getElementById('inline-submit-btn'),
             preview: document.getElementById('inline-live-preview'),
             detailsSection: document.getElementById('inline-details-section'),
@@ -143,6 +144,7 @@ class InlineFormManager {
         const action = this.elements.action.value;
         const origin = this.elements.origin.value.trim();
         const destination = this.elements.destination.value.trim();
+        const reference = this.elements.reference.value.trim();
 
         if (!trackingNumber) {
             window.NotificationSystem?.error('Il numero di tracking è obbligatorio.');
@@ -154,46 +156,63 @@ class InlineFormManager {
         }
 
         this.elements.submitBtn.disabled = true;
-        this.elements.submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+        this.elements.submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Elaborazione...';
 
         try {
-            const trackingData = {
+            // Step 1: Get enriched data from TrackingService
+            console.log('Step 1: Fetching data from TrackingService...');
+            const apiResult = await window.trackingService.track(
+                trackingNumber,
+                this.detectedType,
+                {
+                    operation: action, // 'auto', 'get', or 'post'
+                    carrier: carrier,
+                    shipsgoId: this.detectedOceanShipment?.id // Pass Ocean ID if available
+                }
+            );
+
+            if (!apiResult || !apiResult.success) {
+                throw new Error(apiResult.apiError || 'Impossibile recuperare i dati dall\'API.');
+            }
+            console.log('API Result:', apiResult);
+
+            // Step 2: Prepare data for saving. Merge API data with form data.
+            const dataToSave = {
+                ...(apiResult.metadata?.mapped || {}),
                 tracking_number: trackingNumber,
                 tracking_type: this.detectedType,
-                carrier_code: carrier, // Use carrier_code for consistency
-                origin: origin,
-                destination: destination,
-                status: 'registered',
-                metadata: {}
+                carrier_code: apiResult.carrier?.code || carrier,
+                carrier_name: apiResult.carrier?.name || carrier,
+                origin_port: origin || apiResult.route?.origin?.port,
+                destination_port: destination || apiResult.route?.destination?.port,
+                reference_number: reference || apiResult.metadata?.reference,
+                status: apiResult.status || 'registered',
+                metadata: apiResult.metadata // Store the full raw and mapped data
             };
 
-            // Add Ocean ID to metadata if found
-            if (this.detectedOceanShipment) {
-                trackingData.metadata.shipsgo_ocean_id = this.detectedOceanShipment.id;
-            }
+            console.log('Step 2: Data prepared for saving:', dataToSave);
 
-            console.log(`Submitting with action: ${action}`, trackingData);
-
+            // Step 3: Save to database via DataManager
             if (!window.dataManager) {
                 throw new Error("DataManager non è disponibile.");
             }
+            console.log('Step 3: Saving data via DataManager...');
+            const saveResult = await window.dataManager.addTracking(dataToSave);
 
-            const result = await window.dataManager.addTracking(trackingData, {
-                apiOperation: action 
-            });
-
-            if (result.tracking) {
+            if (saveResult.tracking) {
                 window.NotificationSystem?.success(`Tracking ${action === 'get' ? 'recuperato' : 'aggiunto'} con successo!`);
                 this.resetForm();
-                // FIX: Usa la nuova funzione per un aggiornamento istantaneo senza ricaricare tutto.
+                
+                // Step 4: Update UI instantly
                 if (window.addTrackingToView) {
-                    window.addTrackingToView(result.tracking);
+                    console.log('Step 4: Updating view instantly.');
+                    window.addTrackingToView(saveResult.tracking);
                 } else if (window.loadTrackings) {
-                    // Fallback al metodo lento se la nuova funzione non è disponibile
+                    console.warn('addTrackingToView not found, falling back to full reload.');
                     window.loadTrackings();
                 }
             } else {
-                throw new Error(result.error || "Errore sconosciuto durante l'aggiunta del tracking.");
+                throw new Error(saveResult.error || "Errore sconosciuto durante il salvataggio del tracking.");
             }
 
         } catch (error) {
@@ -209,6 +228,7 @@ class InlineFormManager {
         this.elements.trackingNumber.value = '';
         this.elements.origin.value = '';
         this.elements.destination.value = '';
+        this.elements.reference.value = '';
         this.elements.action.value = 'auto';
         this.elements.preview.innerHTML = '<p class="text-muted">Inserisci un numero di tracking per vedere l\'anteprima.</p>';
         
