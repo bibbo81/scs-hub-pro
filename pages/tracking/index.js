@@ -422,14 +422,19 @@ async function loadTrackings() {
         // ✅ Carica preferenze colonne
         const columnOrder = await loadColumnPreferences();
         if (columnOrder && tableManager) {
-            const newColumns = columnOrder.map(key => {
-                const availableCol = AVAILABLE_COLUMNS.find(c => c.key === key);
-                return {
-                    key: key,
-                    label: availableCol.label,
-                    sortable: availableCol.sortable,
-                    formatter: getColumnFormatter(key)
-                };
+            // FIX: Filtra le colonne salvate per assicurarsi che esistano ancora in AVAILABLE_COLUMNS
+            // Questo previene errori se una colonna viene rimossa dal codice ma è ancora nelle preferenze utente.
+            const validColumnOrder = columnOrder.filter(key => {
+                const exists = AVAILABLE_COLUMNS.some(c => c.key === key);
+                if (!exists) {
+                    console.warn(`Column key "${key}" from user preferences not found in AVAILABLE_COLUMNS. Skipping.`);
+                }
+                return exists;
+            });
+
+            const newColumns = validColumnOrder.map(key => {
+                const availableCol = AVAILABLE_COLUMNS.find(c => c.key === key); // Ora è sicuro
+                return { key: key, label: availableCol.label, sortable: availableCol.sortable, formatter: getColumnFormatter(key) };
             });
 
             const actionsCol = TABLE_COLUMNS.find(c => c.key === 'actions');
