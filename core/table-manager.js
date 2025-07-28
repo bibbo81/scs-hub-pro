@@ -53,11 +53,6 @@ export class TableManager {
         if (this.options.enableAdvancedSearch) {
             this.initAdvancedSearch();
         }
-        
-        // Enable column drag after a small delay
-        if (this.options.enableColumnDrag) {
-            setTimeout(() => this.enableColumnDrag(), 100);
-        }
     }
     
     // Initialize advanced search functionality
@@ -195,10 +190,8 @@ export class TableManager {
             searchInput.value = searchValue;
         }
         
-        // Re-enable column drag if it was enabled
-        if (this.options.enableColumnDrag && this.columnSortable) {
-            setTimeout(() => this.enableColumnDrag(), 100);
-        }
+        // Re-enable column drag after every render to handle DOM changes
+        this.enableColumnDrag();
     }
     
     // Render controls (search, column manager, etc.)
@@ -454,37 +447,24 @@ export class TableManager {
             return;
         }
 
-        let attempts = 0;
-        const maxAttempts = 20; // Wait up to 10 seconds
+        const headerRow = this.container.querySelector('.data-table thead tr, .sol-table thead tr');
 
-        const tryEnable = () => {
-            const headerRow = this.container.querySelector('.data-table thead tr, .sol-table thead tr');
-
-            if (headerRow) {
-                if (this.columnSortable) {
-                    this.columnSortable.destroy();
-                }
-                this.columnSortable = new Sortable(headerRow, {
-                    animation: 150,
-                    ghostClass: 'column-drag-ghost',
-                    chosenClass: 'column-drag-chosen',
-                    dragClass: 'column-drag-active',
-                    filter: '.no-drag',
-                    preventOnFilter: false,
-                    onEnd: (evt) => {
-                        this.handleColumnReorder(evt.oldIndex, evt.newIndex);
-                    }
-                });
-                console.log('✅ Column drag enabled');
-            } else if (attempts < maxAttempts) {
-                attempts++;
-                setTimeout(tryEnable, 500);
-            } else {
-                console.warn('Column drag: Header row not found after multiple retries.');
+        if (headerRow) {
+            if (this.columnSortable) {
+                this.columnSortable.destroy();
             }
-        };
-
-        tryEnable();
+            this.columnSortable = new Sortable(headerRow, {
+                animation: 150,
+                ghostClass: 'column-drag-ghost',
+                chosenClass: 'column-drag-chosen',
+                dragClass: 'column-drag-active',
+                filter: '.no-drag',
+                preventOnFilter: false,
+                onEnd: (evt) => {
+                    this.handleColumnReorder(evt.oldIndex, evt.newIndex);
+                }
+            });
+        }
     }
     
     // Handle column reorder
