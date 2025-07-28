@@ -274,9 +274,22 @@
                        shipmentData.route.origin?.date_of_departure || 
                        shipmentData.route.origin?.date;
                        
-        arrivalDate = shipmentData.route.port_of_discharge?.date || 
-                     shipmentData.route.destination?.eta || 
-                     shipmentData.route.destination?.eta;
+        // FIX: Correctly extract ETA from the 'date_of_discharge' field for Ocean v2
+        arrivalDate = shipmentData.route.port_of_discharge?.date_of_discharge ||
+                      shipmentData.route.destination?.eta;
+    }
+
+    // Find ATA (Actual Time of Arrival) from movements
+    let actualArrivalDate = null;
+    if (shipmentData.containers && shipmentData.containers[0]?.movements) {
+        const movements = shipmentData.containers[0].movements;
+        // Find the last actual discharge or arrival event
+        const dischargeEvent = [...movements].reverse().find(m => 
+            (m.event === 'DISC' || m.event === 'ARRV') && m.status === 'ACT'
+        );
+        if (dischargeEvent) {
+            actualArrivalDate = dischargeEvent.timestamp;
+        }
     }
     
     // Extract vessel info - FIX: prendi l'ultima nave dai movements
@@ -315,9 +328,10 @@ if (shipmentData.containers && shipmentData.containers[0]?.movements) {
     }
 }
 
-    // FIX: Pass the RAW status from the API. Do not map it here.
-    // The mapping will be handled by the unified mapper in the UI layer.
-    const status = shipmentData.status || 'registered';
+    // FIX: Use the unified mapper to get the correct status immediately.
+    // This ensures consistency across the application.
+    const rawStatus = shipmentData.Status || shipmentData.status || 'registered';
+    const status = window.TrackingUnifiedMapping.mapStatus(rawStatus);
     
     // Build normalized response
     const normalized = {
@@ -361,7 +375,7 @@ if (shipmentData.containers && shipmentData.containers[0]?.movements) {
         date_of_loading: departureDate,
         date_of_departure: departureDate,
         eta: arrivalDate,
-        ata: shipmentData.ata,
+        ata: actualArrivalDate || shipmentData.ata, // Use found ATA
         
         // Vessel info
         vessel: vesselInfo,
