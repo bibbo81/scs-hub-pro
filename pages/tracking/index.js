@@ -309,21 +309,16 @@ function processAndNormalizeTrackings(trackingsToProcess) {
     trackingsToProcess.forEach(tracking => {
         // Get raw API data if it exists
         const rawApiData = tracking.metadata?.raw?.shipment || tracking.metadata?.raw;
-        // FIX: Ensure 'movements' is always an array to prevent crashes on trackings with no movement data.
         const movements = rawApiData?.movements || (rawApiData?.containers?.[0]?.movements) || [];
+        // FIX: Define actualMovements at a higher scope to prevent ReferenceError.
+        const actualMovements = movements.filter(m => m.status === 'ACT');
 
         // --- 1. STATUS MAPPING (dal più recente) ---
-        // FIX: Prioritize the LAST ACTUAL event, not just the last event.
         let rawStatus;
 
-        // FIX: Prioritize the overall shipment status from the API, as it's more reliable than the last event.
-        // Case 1: The most reliable source is the overall status from the API response.
         if (rawApiData?.status || rawApiData?.Status) {
             rawStatus = rawApiData.status || rawApiData.Status;
-        } 
-        // Case 2: If no overall status, try to infer from the last actual movement.
-        else if (movements && movements.length > 0) {
-            const actualMovements = movements.filter(m => m.status === 'ACT');
+        } else if (actualMovements.length > 0) {
             if (actualMovements.length > 0) {
                 const lastActualMovement = actualMovements[actualMovements.length - 1];
                 rawStatus = lastActualMovement.event || lastActualMovement.description;
