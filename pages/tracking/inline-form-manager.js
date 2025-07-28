@@ -159,38 +159,33 @@ class InlineFormManager {
         this.elements.submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Elaborazione...';
 
         try {
-            // Step 1: Get enriched data from TrackingService
-            console.log('Step 1: Fetching data from TrackingService...');
-            const apiResult = await window.trackingService.track(
+            // Step 1: Get the fully normalized and enriched data from the service.
+            // The service now handles all complex mapping.
+            console.log('Step 1: Calling trackingService.track to get enriched data...');
+            const result = await window.trackingService.track(
                 trackingNumber,
                 this.detectedType,
                 {
                     operation: action, // 'auto', 'get', or 'post'
                     carrier: carrier,
-                    shipsgoId: this.detectedOceanShipment?.id // Pass Ocean ID if available
+                    shipsgoId: this.detectedOceanShipment?.id,
+                    // Pass manual fields to the service for merging
+                    origin: origin,
+                    destination: destination,
+                    reference: reference
                 }
             );
 
-            if (!apiResult || !apiResult.success) {
-                throw new Error(apiResult.apiError || 'Impossibile recuperare i dati dall\'API.');
+            if (!result || !result.success) {
+                throw new Error(result.apiError || 'Impossibile recuperare i dati dall\'API.');
             }
-            console.log('API Result:', apiResult);
+            console.log('Service Result (fully mapped):', result);
 
-            // Step 2: Prepare data for saving. Merge API data with form data.
-            const dataToSave = {
-                ...(apiResult.metadata?.mapped || {}),
-                tracking_number: trackingNumber,
-                tracking_type: this.detectedType,
-                carrier_code: apiResult.carrier?.code || carrier,
-                carrier_name: apiResult.carrier?.name || carrier,
-                origin_port: origin || apiResult.route?.origin?.port,
-                destination_port: destination || apiResult.route?.destination?.port,
-                reference_number: reference || apiResult.metadata?.reference,
-                status: apiResult.status || 'registered',
-                metadata: apiResult.metadata // Store the full raw and mapped data
-            };
+            // Step 2: The 'result' object is now the data to save. No more mapping needed here.
+            const dataToSave = { ...result };
+            delete dataToSave.success; // Remove the success flag before saving
 
-            console.log('Step 2: Data prepared for saving:', dataToSave);
+            console.log('Step 2: Data ready for saving:', dataToSave);
 
             // Step 3: Save to database via DataManager
             if (!window.dataManager) {
@@ -203,7 +198,7 @@ class InlineFormManager {
                 window.NotificationSystem?.success(`Tracking ${action === 'get' ? 'recuperato' : 'aggiunto'} con successo!`);
                 this.resetForm();
                 
-                // Step 4: Update UI instantly
+                // Step 4: Update UI instantly with the saved (and potentially updated by DB) tracking object
                 if (window.addTrackingToView) {
                     console.log('Step 4: Updating view instantly.');
                     window.addTrackingToView(saveResult.tracking);

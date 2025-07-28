@@ -407,15 +407,12 @@ return true;
     // ========================================
 
     async track(trackingNumber, trackingType = 'auto', options = { operation: 'auto' }) {
-        // IMPORTANTE: Assicurati che sia inizializzato prima di tracking
         if (!this.initialized || (!this.hasApiKeys() && this.useSupabase)) {
             console.log('[TrackingService] Not ready, initializing before track...');
             await this.initialize();
         }
 
         const cacheKey = `${trackingNumber}-${trackingType}`;
-        
-        // Check cache se non forza refresh
         if (!options.forceRefresh && this.cache.has(cacheKey)) {
             const cached = this.cache.get(cacheKey);
             if (Date.now() - cached.timestamp < 300000) { // 5 minuti
@@ -426,57 +423,85 @@ return true;
 
         console.log('[TrackingService] 🔍 Tracking:', trackingNumber, trackingType);
 
-        // Auto-detect tipo se necessario
         if (trackingType === 'auto') {
             trackingType = this.detectTrackingType(trackingNumber);
             console.log('[TrackingService] 🎯 Auto-detected type:', trackingType);
         }
 
-        // Modalità mock in sviluppo
         if (this.mockMode) {
             const result = await this.getMockTrackingData(trackingNumber, trackingType);
             this.cache.set(cacheKey, { data: result, timestamp: Date.now() });
             return result;
         }
 
+        let apiResult;
         try {
-            let result;
-            
-            // Route alla API appropriata
             switch(trackingType) {
                 case 'container':
                 case 'bl':
-                    result = await this.trackOceanShipmentV2(trackingNumber, options);
+                    apiResult = await this.trackOceanShipmentV2(trackingNumber, options);
                     break;
                 case 'awb':
-                    result = await this.trackAirShipment(trackingNumber, options);
+                    apiResult = await this.trackAirShipment(trackingNumber, options);
                     break;
                 default:
-                    // Prova ocean v2 prima, poi air
                     try {
-                        result = await this.trackOceanShipmentV2(trackingNumber, options);
+                        apiResult = await this.trackOceanShipmentV2(trackingNumber, options);
                     } catch (error) {
                         console.log('[TrackingService] Container failed, trying air...');
-                        result = await this.trackAirShipment(trackingNumber, options);
+                        apiResult = await this.trackAirShipment(trackingNumber, options);
                     }
             }
-            
-            // Cache risultato
-            this.cache.set(cacheKey, { data: result, timestamp: Date.now() });
-            
-            return result;
-            
         } catch (error) {
             console.error('[TrackingService] ❌ API Error:', error);
-            
-            // Fallback a mock data
             console.log('[TrackingService] 🔄 Falling back to mock data');
             const fallbackResult = await this.getMockTrackingData(trackingNumber, trackingType);
             fallbackResult.apiError = error.message;
             fallbackResult.fallbackMode = true;
-            
-            return fallbackResult;
+            apiResult = fallbackResult;
         }
+
+        // CENTRALIZED MAPPING LOGIC
+        const rawData = apiResult.metadata?.raw?.shipment || apiResult.metadata?.raw || {};
+        const mappedApiData = apiResult.metadata?.mapped || {};
+
+        const finalData = {
+            ...mappedApiData,
+            tracking_number: trackingNumber,
+            tracking_type: trackingType,
+            carrier_code: apiResult.carrier?.code || options.carrier,
+            carrier_name: apiResult.carrier?.name || options.carrier,
+            origin_port: options.origin || mappedApiData.origin_port || rawData.route?.origin?.location?.name,
+            destination_port: options.destination || mappedApiData.destination_port || rawData.route?.destination?.location?.name,
+            reference_number: options.reference || mappedApiData.reference_number || rawData.reference,
+            status: apiResult.status || 'registered',
+            metadata: apiResult.metadata,
+            // Ensure all relevant fields are at the top level
+            vessel_name: mappedApiData.vessel_name,
+            voyage_number: mappedApiData.voyage_number,
+            eta: mappedApiData.eta,
+            ata: mappedApiData.ata,
+            date_of_departure: mappedApiData.date_of_departure,
+            last_event_description: mappedApiData.last_event_description,
+            last_event_date: mappedApiData.last_event_date,
+            last_event_location: mappedApiData.last_event_location,
+            container_size: mappedApiData.container_size,
+            container_type: mappedApiData.container_type,
+            container_count: mappedApiData.container_count,
+            bl_number: mappedApiData.bl_number,
+            booking_number: mappedApiData.booking_number,
+            transit_time: mappedApiData.transit_time,
+            co2_emission: mappedApiData.co2_emission,
+            ts_count: mappedApiData.ts_count
+        };
+
+        const resultToReturn = {
+            success: apiResult.success,
+            ...finalData
+        };
+
+        this.cache.set(cacheKey, { data: resultToReturn, timestamp: Date.now() });
+        return resultToReturn;
     }
 
     // ========================================
