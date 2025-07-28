@@ -185,7 +185,11 @@ class InlineFormManager {
             if (result.tracking) {
                 window.NotificationSystem?.success(`Tracking ${action === 'get' ? 'recuperato' : 'aggiunto'} con successo!`);
                 this.resetForm();
-                if (window.loadTrackings) {
+                // FIX: Usa la nuova funzione per un aggiornamento istantaneo senza ricaricare tutto.
+                if (window.addTrackingToView) {
+                    window.addTrackingToView(result.tracking);
+                } else if (window.loadTrackings) {
+                    // Fallback al metodo lento se la nuova funzione non è disponibile
                     window.loadTrackings();
                 }
             } else {

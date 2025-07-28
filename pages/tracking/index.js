@@ -410,6 +410,26 @@ if (actualArrival?.timestamp) tracking.ata = actualArrival.timestamp; // Actual 
     });
 }
 
+/**
+ * Aggiunge un nuovo tracking alla vista, lo processa e aggiorna la tabella.
+ * @param {object} newTracking - Il nuovo oggetto di tracking dal database.
+ */
+function addTrackingToView(newTracking) {
+    if (!newTracking) return;
+
+    console.log('Adding new tracking to view:', newTracking.tracking_number);
+
+    // 1. Processa e normalizza il nuovo tracking
+    const processedTracking = processTrackingData(newTracking);
+    processAndNormalizeTrackings([processedTracking]); // La funzione si aspetta un array
+
+    // 2. Aggiungi all'inizio dell'array principale
+    trackings.unshift(processedTracking);
+
+    // 3. Applica i filtri correnti e aggiorna la tabella
+    applyFilters();
+}
+
 // Load trackings from Supabase
 async function loadTrackings() {
     try {
@@ -467,6 +487,9 @@ async function loadTrackings() {
 
         updateTable();
         updateStats();
+        
+        // Expose addTrackingToView for the inline form
+        window.addTrackingToView = addTrackingToView;
         
     } catch (error) {
         console.error('Error loading trackings:', error);
