@@ -338,13 +338,13 @@ class DataManager {
              throw shipmentError;
          }
 
-         // Fallback: Se il tracking non è stato caricato, prova a cercarlo tramite tracking_number
+         // Fallback: Se il tracking non è stato caricato, prova a cercarlo tramite tracking_number (case-insensitive)
          if (shipment && !shipment.tracking && shipment.shipment_number) {
-            console.log(`Tracking non trovato tramite ID, tento la ricerca per tracking_number: ${shipment.shipment_number}`);
+            console.log(`Tracking non trovato tramite ID, tento la ricerca per tracking_number (case-insensitive): ${shipment.shipment_number}`);
             const { data: trackingByNum, error: trackingByNumError } = await supabase
                 .from('trackings')
                 .select('*')
-                .eq('tracking_number', shipment.shipment_number)
+                .ilike('tracking_number', shipment.shipment_number.trim()) // Usa ilike per la ricerca case-insensitive e trim per gli spazi
                 .eq('organization_id', this.organizationId)
                 .maybeSingle();
 

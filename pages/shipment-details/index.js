@@ -40,8 +40,6 @@ async function loadShipmentDetails(shipmentId) {
 }
 
 function renderShipmentInfo(shipment) {
-    console.log("Dettagli spedizione ricevuti:", shipment);
-
     const trackingData = shipment.tracking;
 
     document.getElementById('shipmentNumberTitle').textContent = `Spedizione ${shipment.shipment_number || ''}`;
@@ -55,17 +53,10 @@ function renderShipmentInfo(shipment) {
     document.getElementById('shipmentOrigin').textContent = trackingData?.origin_port || shipment.origin_port || shipment.origin || '-';
     document.getElementById('shipmentDestination').textContent = trackingData?.destination_port || shipment.destination_port || shipment.destination || '-';
 
-    // Logica per container_types con logging di debug
-    console.log("--- Debug Mappatura Container ---");
-    console.log("Dati di tracking disponibili:", trackingData);
-    
+    // Logica per container_types derivata da tracking/index.js
     let containerTypesDisplay = '-';
     const containers = trackingData?.metadata?.raw?.shipment?.containers || [];
-    
-    console.log("Array 'containers' estratto:", containers);
-
     if (Array.isArray(containers) && containers.length > 0) {
-        console.log("Trovati container, elaborazione...");
         const typeSummary = {};
         containers.forEach(container => {
             const type = (container.type || '').toUpperCase();
@@ -87,17 +78,10 @@ function renderShipmentInfo(shipment) {
         if (summaryParts.length > 0) {
             containerTypesDisplay = summaryParts.join(', ');
         }
-        console.log("Stringa container calcolata:", containerTypesDisplay);
-    } else {
-        console.log("Nessun container trovato in trackingData.metadata.raw.shipment.containers. Controllo il fallback 'shipment.container_types'.");
-        console.log("Valore di fallback:", shipment.container_types);
-        if (shipment.container_types) {
-            containerTypesDisplay = Array.isArray(shipment.container_types) ? shipment.container_types.join(', ') : shipment.container_types;
-        }
+    } else if (shipment.container_types) {
+        // Fallback al campo esistente se non ci sono dati di tracking dettagliati
+        containerTypesDisplay = Array.isArray(shipment.container_types) ? shipment.container_types.join(', ') : shipment.container_types;
     }
-    console.log("Valore finale per 'Tipo Container':", containerTypesDisplay);
-    console.log("--- Fine Debug Mappatura Container ---");
-
     document.getElementById('shipmentContainerTypes').textContent = containerTypesDisplay;
 
     document.getElementById('shipmentCarrier').textContent = shipment.carrier?.name || shipment.carrier_name || 'N/A';
