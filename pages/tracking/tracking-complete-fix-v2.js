@@ -328,10 +328,10 @@ if (shipmentData.containers && shipmentData.containers[0]?.movements) {
     }
 }
 
-    // FIX: Use the unified mapper to get the correct status immediately.
-    // This ensures consistency across the application.
-    const rawStatus = shipmentData.Status || shipmentData.status || 'registered';
-    const status = window.TrackingUnifiedMapping.mapStatus(rawStatus);
+    // FIX: Get status from 'Status' (uppercase) or 'status' (lowercase) to handle API inconsistencies.
+    // Pass the RAW status. The mapping will be handled by the unified mapper in the UI layer.
+    const status = shipmentData.Status || shipmentData.status || 'registered';
+    
     
     // Build normalized response
     const normalized = {
