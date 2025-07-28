@@ -261,17 +261,21 @@ document.addEventListener('click', function(e) {
 function processAndNormalizeTrackings(trackingsToProcess) {
     console.log('🔄 Normalizing all tracking data...');
     trackingsToProcess.forEach(tracking => {
-   // Get raw API data if it exists
+        // Get raw API data if it exists
         const rawApiData = tracking.metadata?.raw?.shipment || tracking.metadata?.raw;
         const movements = rawApiData?.movements || (rawApiData?.containers ? rawApiData.containers[0]?.movements : []);
 
         // --- 1. STATUS MAPPING (dal più recente) ---
-         // Determine the raw status string from the best available source
+        // FIX: Prioritize the LAST ACTUAL event, not just the last event.
+        const actualMovements = movements.filter(m => m.status === 'ACT');
         let rawStatus;
-        if (movements && movements.length > 0) {
-            // Case 1: Data from API with a 'movements' history. The last event is the most current status.
-            const lastMovement = movements[movements.length - 1];
-            rawStatus = lastMovement.description || lastMovement.event || rawApiData.status || tracking.status;
+        if (actualMovements.length > 0) {
+            // Case 1: Use the last ACTUAL movement for the current status.
+            const lastActualMovement = actualMovements[actualMovements.length - 1];
+            rawStatus = lastActualMovement.description || lastActualMovement.event || rawApiData.status || tracking.status;
+        } else if (rawApiData?.status) {
+            // Case 2: No actual events, use the overall shipment status from the API.
+            rawStatus = rawApiData.status;
         } else {
             // Case 2: Data from XLSX/manual entry. The status is already in the main tracking object.
             // Use current_status first as it might have been pre-processed.
@@ -288,7 +292,12 @@ function processAndNormalizeTrackings(trackingsToProcess) {
                 if (departureEvent?.timestamp) tracking.date_of_departure = departureEvent.timestamp;
 
                 const arrivalEvent = movements.find(m => m.event === 'RCF' || m.event === 'ARR');
-                if (arrivalEvent?.timestamp) tracking.eta = arrivalEvent.timestamp;
+                // FIX: Distinguish between ATA (Actual) and ETA (Estimated)
+                const actualArrivalEvent = movements.find(m => (m.event === 'RCF' || m.event === 'ARR') && m.status === 'ACT');
+                const estimatedArrivalEvent = movements.find(m => (m.event === 'RCF' || m.event === 'ARR') && m.status === 'EST');
+
+                if (actualArrivalEvent?.timestamp) tracking.ata = actualArrivalEvent.timestamp;
+                if (estimatedArrivalEvent?.timestamp) tracking.eta = estimatedArrivalEvent.timestamp;
 
                 const deliveryEvent = movements.find(m => m.event === 'DLV');
                 if (deliveryEvent?.timestamp) tracking.ata = deliveryEvent.timestamp;
@@ -296,16 +305,21 @@ function processAndNormalizeTrackings(trackingsToProcess) {
                 const flightEvent = movements.find(m => m.flight);
                 if (flightEvent) tracking.flight_number = flightEvent.flight;
             } else { // Container/BL
-                let departureEvent = movements.find(m => (m.description || m.event || '').toLowerCase().includes('departed') || (m.event || '').toUpperCase() === 'DEPA');
+                // FIX: Search within ACTUAL movements
+                let departureEvent = actualMovements.find(m => (m.description || m.event || '').toLowerCase().includes('departed') || (m.event || '').toUpperCase() === 'DEPA');
                 if (!departureEvent) {
-                    departureEvent = movements.find(m => (m.description || m.event || '').toLowerCase().includes('load'));
+                    departureEvent = actualMovements.find(m => (m.description || m.event || '').toLowerCase().includes('load'));
                 }
                 if (departureEvent?.timestamp) tracking.date_of_departure = departureEvent.timestamp;
 
                 const destinationPortName = rawApiData.route?.port_of_discharge?.location?.name?.toUpperCase();
                 if (destinationPortName) {
-                    const finalArrivalEvent = [...movements].reverse().find(m => m.location?.name?.toUpperCase() === destinationPortName && ((m.description || m.event || '').toUpperCase().includes('DISCHARGE') || (m.description || m.event || '').toUpperCase().includes('ARRIVAL') || (m.event || '').toUpperCase() === 'DISC' || (m.event || '').toUpperCase() === 'ARRV'));
-                    if (finalArrivalEvent?.timestamp) tracking.eta = finalArrivalEvent.timestamp;
+                    // FIX: Distinguish between ATA (Actual) and ETA (Estimated)
+                    const finalActualArrival = [...actualMovements].reverse().find(m => m.location?.name?.toUpperCase() === destinationPortName && ((m.description || m.event || '').toUpperCase().includes('DISCHARGE') || (m.description || m.event || '').toUpperCase().includes('ARRIVAL') || (m.event || '').toUpperCase() === 'DISC' || (m.event || '').toUpperCase() === 'ARRV'));
+                    const finalEstimatedArrival = [...movements].reverse().find(m => m.status === 'EST' && m.location?.name?.toUpperCase() === destinationPortName && ((m.description || m.event || '').toUpperCase().includes('ARRIVAL') || (m.event || '').toUpperCase() === 'ARRV'));
+
+                    if (finalActualArrival?.timestamp) tracking.ata = finalActualArrival.timestamp;
+                    if (finalEstimatedArrival?.timestamp) tracking.eta = finalEstimatedArrival.timestamp;
                 }
 
                 const lastVesselEvent = [...movements].reverse().find(m => m.vessel?.name);
