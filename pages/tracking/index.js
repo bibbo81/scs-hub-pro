@@ -110,21 +110,37 @@ function processTrackingData(tracking) {
     const containers = tracking.metadata?.raw?.shipment?.containers || [];
 
     if (isSeaShipment) {
-        const containerCounts = { '20': 0, '40': 0, '40hc': 0, '45hc': 0, 'lcl': 0 };
-        const typeSummary = {};
+        const containerCounts = { '20': 0, '40': 0, '40hc': 0, '45hc': 0, 'lcl': 0, 'other': 0 };
+        const typeSummary = {}; // This will hold counts like: { "40'HC": 1, "20'": 2 }
 
         if (Array.isArray(containers) && containers.length > 0) {
             containers.forEach(container => {
                 const type = (container.type || '').toUpperCase();
                 const size = container.size || 0;
+                let summaryType = 'N/A';
 
-                if (type.includes('20') || size === 20) containerCounts['20']++;
-                else if (type.includes('40HC') || type.includes('40HQ')) containerCounts['40hc']++;
-                else if (type.includes('40') || size === 40) containerCounts['40']++;
-                else if (type.includes('45')) containerCounts['45hc']++;
-                else if (type.toLowerCase().includes('lcl')) containerCounts['lcl']++;
+                if (size === 20) {
+                    containerCounts['20']++;
+                    summaryType = "20'";
+                } else if (size === 40) {
+                    if (type.includes('HC') || type.includes('HQ')) {
+                        containerCounts['40hc']++;
+                        summaryType = "40'HC";
+                    } else {
+                        containerCounts['40']++;
+                        summaryType = "40'";
+                    }
+                } else if (size === 45) {
+                    containerCounts['45hc']++;
+                    summaryType = "45'HC";
+                } else if (type.toLowerCase().includes('lcl')) {
+                    containerCounts['lcl']++;
+                    summaryType = "LCL";
+                } else if (size > 0) {
+                    containerCounts['other']++;
+                    summaryType = `${size}'${type || ''}`.trim();
+                }
 
-                const summaryType = container.type || 'N/A';
                 typeSummary[summaryType] = (typeSummary[summaryType] || 0) + 1;
             });
         }
