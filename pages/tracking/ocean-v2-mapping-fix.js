@@ -94,8 +94,9 @@
         console.log('🗺️ Mapping Ocean v2 fields for:', tracking.tracking_number);
         
         const raw = tracking.metadata?.raw?.shipment || tracking.metadata?.raw || {};
-        // NOTA: La mappatura dello stato è ora gestita centralmente in index.js
-        // Questo script si concentra solo su altri campi specifici di Ocean v2.
+        // NOTA: La logica di mapping principale (stato, date, nave) è ora gestita
+        // centralmente in `pages/tracking/index.js` nella funzione `processAndNormalizeTrackings`.
+        // Questo script si concentra solo su campi specifici di Ocean v2 non coperti altrove.
         
         if (!tracking.carrier_name || tracking.carrier_name === '-') {
             tracking.carrier_name = tracking.metadata?.mapped?.carrier_name ||
@@ -144,44 +145,6 @@
                                       '-';
         }
         
-        // DATES - ETA & ATA
-        // FIX: Logica di estrazione ETA migliorata per gestire trasbordi
-        if (!tracking.eta || tracking.eta === '-') {
-            let finalArrivalDate = null;
-            const movements = raw.containers?.[0]?.movements;
-            const destinationPortName = raw.route?.port_of_discharge?.location?.name?.toUpperCase();
-
-            if (movements && destinationPortName) {
-                // Cerca all'indietro l'evento di arrivo o scarico nel porto di destinazione finale
-                for (let i = movements.length - 1; i >= 0; i--) {
-                    const movement = movements[i];
-                    const movementLocation = movement.location?.name?.toUpperCase();
-                    const eventType = movement.event?.toUpperCase();
-
-                    if (movementLocation === destinationPortName && (eventType === 'DISC' || eventType === 'VESSEL ARRIVAL')) {
-                        finalArrivalDate = movement.timestamp;
-                        break; // Trovato l'evento più recente e rilevante
-                    }
-                }
-            }
-
-            tracking.eta = finalArrivalDate ||
-                           raw.route?.port_of_discharge?.date_of_discharge || // Fallback
-                           raw.route?.destination?.eta ||
-                           raw.eta ||
-                           '-';
-        }
-        
-        // DATES - Estrai dal movimento LOAD se necessario
-        if (!tracking.date_of_loading || tracking.date_of_loading === '-') {
-            if (raw.containers?.[0]?.movements) {
-                const loadEvent = raw.containers[0].movements.find(m => m.event === 'LOAD');
-                if (loadEvent?.timestamp) {
-                    tracking.date_of_loading = loadEvent.timestamp;
-                }
-            }
-        }
-        
         // METRICS
         if (!tracking.transit_time && raw.route?.transit_time) {
             tracking.transit_time = raw.route.transit_time;
@@ -204,8 +167,7 @@
         console.log('✅ Mapped Ocean v2 data:', {
             carrier: tracking.carrier_name,
             vessel: tracking.vessel_name,
-            size: tracking.container_size,
-            ports: `${tracking.origin_port} → ${tracking.destination_port}`
+            size: tracking.container_size
         });
     }
     
