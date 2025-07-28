@@ -4,9 +4,7 @@
   "description": "> **Transform your supply chain chaos into clarity.** Real-time tracking, intelligent insights, and seamless logistics management - all in one powerful platform.",
   "main": "phase2-architecture.js",
   "scripts": {
-    // Add the build script which was missing
-    "build": "echo \"No build step - all assets are prebuilt\""
-
+    "build": "echo \"No build step - all assets are prebuilt\"",
     "test": "node tests/user-settings-service.test.mjs && node tests/org-api-keys-service.test.mjs && node tests/supabase-env-check.test.mjs && node tests/shipments-initialization.test.mjs && node tests/table-manager-select.test.mjs"
   },
   "repository": {
