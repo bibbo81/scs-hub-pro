@@ -18,9 +18,6 @@
         autoCorrectData: true
     };
     
-    // ===== STATUS MAPPING PERFETTO - FISSO IL PROBLEMA DELIVERED =====
-    const STATUS_MAPPING = window.TrackingUnifiedMapping?.STATUS_MAPPING || {};
-    
     const CARRIER_MAPPING = {
         'MAERSK LINE': 'MAERSK',
         'MAERSK': 'MAERSK',
@@ -411,15 +408,21 @@
         
         // ===== STATUS MAPPING METHOD - FIX APPLICATO =====
         
-        mapStatus(originalStatus) {
-            if (!originalStatus) return 'registered';
-            
-            const mapped = STATUS_MAPPING[originalStatus] || 'registered';
-            
-            console.log(`[StatusMapping] "${originalStatus}" → "${mapped}"`);
-            
-            return mapped;
-        }
+       mapStatus(originalStatus) {
+           // FIX: Use the robust, global mapping function for consistency across the entire app.
+           // This handles case-insensitivity, synonyms, and variations.
+           if (window.TrackingUnifiedMapping && typeof window.TrackingUnifiedMapping.mapStatus === 'function') {
+               const mapped = window.TrackingUnifiedMapping.mapStatus(originalStatus);
+               console.log(`[StatusMapping] Using global mapper: "${originalStatus}" → "${mapped}"`);
+               return mapped;
+           }
+       
+           // Fallback if the global mapper is not available for some reason.
+           console.warn('[ImportManager] Fallback status mapping used.');
+           if (!originalStatus) return 'registered';
+           const simpleStatus = originalStatus.toString().toLowerCase();
+           return simpleStatus.includes('delivered') ? 'delivered' : (simpleStatus.includes('transit') ? 'in_transit' : 'registered');
+       }
         
         // ===== SHIPSGO ROW MAPPING WITH PERFECT STATUS =====
         
