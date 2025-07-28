@@ -1,5 +1,7 @@
 [build]
   publish = "."
+  functions = "netlify/functions"
+  command = "npm run build" # o il tuo comando di build
 
 [[redirects]]
   from = "/"
@@ -34,3 +36,8 @@
 [functions]
   directory = "netlify/functions"
   node_bundler = "nft"
+
+[functions."update-tracking-status"]
+  # Esegue alle 7:00 e 13:00 UTC (corrispondenti a 9:00 e 15:00 ora di Roma con ora legale)
+  # Formato Cron: minuti ore giorno-del-mese mese giorno-della-settimana
+  schedule = "0 7,13 * * *"
