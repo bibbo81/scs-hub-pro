@@ -292,18 +292,27 @@ function processAndNormalizeTrackings(trackingsToProcess) {
                 if (departureEvent?.timestamp) tracking.date_of_departure = departureEvent.timestamp;
 
                 const arrivalEvent = movements.find(m => m.event === 'RCF' || m.event === 'ARR');
-                // FIX: Distinguish between ATA (Actual) and ETA (Estimated)
-                const actualArrivalEvent = movements.find(m => (m.event === 'RCF' || m.event === 'ARR') && m.status === 'ACT');
-                const estimatedArrivalEvent = movements.find(m => (m.event === 'RCF' || m.event === 'ARR') && m.status === 'EST');
+                // Find arrival events (RCF or ARR)
+                const arrivalEvents = movements.filter(m => m.event === 'RCF' || m.event === 'ARR');
 
-                if (actualArrivalEvent?.timestamp) tracking.ata = actualArrivalEvent.timestamp;
-                if (estimatedArrivalEvent?.timestamp) tracking.eta = estimatedArrivalEvent.timestamp;
-
+                if (arrivalEvents.length > 0) {
+                    // An event without a status or with status 'ACT' is considered actual.
+                    const actualArrival = arrivalEvents.find(m => m.status === 'ACT' || m.status === undefined);
+                    const estimatedArrival = arrivalEvents.find(m => m.status === 'EST');
+if (actualArrival?.timestamp) tracking.ata = actualArrival.timestamp; // Actual Time of Arrival at airport
+                    if (estimatedArrival?.timestamp) tracking.eta = estimatedArrival.timestamp; // Estimated Time of Arrival at airport
+                    
+                    // If we only have an actual arrival but no ETA, we can set ETA to be the same as ATA.
+                    if (actualArrival?.timestamp && !estimatedArrival?.timestamp) {
+                        tracking.eta = actualArrival.timestamp;
+                    }
+                }
                 const deliveryEvent = movements.find(m => m.event === 'DLV');
                 if (deliveryEvent?.timestamp) tracking.ata = deliveryEvent.timestamp;
 
                 const flightEvent = movements.find(m => m.flight);
-                if (flightEvent) tracking.flight_number = flightEvent.flight;
+                if (deliveryEvent?.timestamp) tracking.ata = deliveryEvent.timestamp; // The final delivery event is the ultimate ATA.
+
             } else { // Container/BL
                 // FIX: Search within ACTUAL movements
                 let departureEvent = actualMovements.find(m => (m.description || m.event || '').toLowerCase().includes('departed') || (m.event || '').toUpperCase() === 'DEPA');
