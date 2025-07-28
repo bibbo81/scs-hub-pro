@@ -42,11 +42,16 @@ async function loadShipmentDetails(shipmentId) {
 function renderShipmentInfo(shipment) {
     document.getElementById('shipmentNumberTitle').textContent = `Spedizione ${shipment.shipment_number || ''}`;
     document.getElementById('shipmentNumber').textContent = shipment.shipment_number || '-';
-    document.getElementById('shipmentStatus').innerHTML = formatStatus(shipment.status);
+    document.getElementById('shipmentStatus').innerHTML = formatStatus(shipment.status || shipment.current_status);
     document.getElementById('shipmentDate').textContent = formatDate(shipment.created_at);
-    document.getElementById('shipmentOrigin').textContent = shipment.tracking?.origin_country || shipment.origin || '-';
-    document.getElementById('shipmentDestination').textContent = shipment.tracking?.destination_country || shipment.destination || '-';
-    document.getElementById('shipmentCarrier').textContent = shipment.carrier?.name || 'N/A';
+    
+    // Mappatura corretta per Origine e Destinazione
+    document.getElementById('shipmentOrigin').textContent = shipment.origin_port || shipment.origin || '-';
+    document.getElementById('shipmentDestination').textContent = shipment.destination_port || shipment.destination || '-';
+    
+    // Aggiunta Tipo Container
+    document.getElementById('shipmentContainerTypes').textContent = shipment.container_types || '-';
+    document.getElementById('shipmentCarrier').textContent = shipment.carrier?.name || shipment.carrier_name || 'N/A';
     
     const freightCostInput = document.getElementById('freightCost');
     const otherCostsInput = document.getElementById('otherCosts');
