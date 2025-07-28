@@ -450,36 +450,41 @@ export class TableManager {
     
     // Enable column drag & drop
     enableColumnDrag() {
-        if (!this.options.enableColumnDrag || !window.Sortable) return;
-        
-        setTimeout(() => {
+        if (!this.options.enableColumnDrag || !window.Sortable) {
+            return;
+        }
+
+        let attempts = 0;
+        const maxAttempts = 20; // Wait up to 10 seconds
+
+        const tryEnable = () => {
             const headerRow = this.container.querySelector('.data-table thead tr, .sol-table thead tr');
-            
-            if (!headerRow) {
-                console.warn('Column drag: Header row not found');
-                return;
-            }
-            
-            // Destroy previous instance
-            if (this.columnSortable) {
-                this.columnSortable.destroy();
-            }
-            
-            // Create new Sortable instance
-            this.columnSortable = new Sortable(headerRow, {
-                animation: 150,
-                ghostClass: 'column-drag-ghost',
-                chosenClass: 'column-drag-chosen',
-                dragClass: 'column-drag-active',
-                filter: '.no-drag',
-                preventOnFilter: false,
-                onEnd: (evt) => {
-                    this.handleColumnReorder(evt.oldIndex, evt.newIndex);
+
+            if (headerRow) {
+                if (this.columnSortable) {
+                    this.columnSortable.destroy();
                 }
-            });
-            
-            console.log('✅ Column drag enabled');
-        }, 100);
+                this.columnSortable = new Sortable(headerRow, {
+                    animation: 150,
+                    ghostClass: 'column-drag-ghost',
+                    chosenClass: 'column-drag-chosen',
+                    dragClass: 'column-drag-active',
+                    filter: '.no-drag',
+                    preventOnFilter: false,
+                    onEnd: (evt) => {
+                        this.handleColumnReorder(evt.oldIndex, evt.newIndex);
+                    }
+                });
+                console.log('✅ Column drag enabled');
+            } else if (attempts < maxAttempts) {
+                attempts++;
+                setTimeout(tryEnable, 500);
+            } else {
+                console.warn('Column drag: Header row not found after multiple retries.');
+            }
+        };
+
+        tryEnable();
     }
     
     // Handle column reorder

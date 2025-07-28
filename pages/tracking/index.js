@@ -331,8 +331,8 @@ function processAndNormalizeTrackings(trackingsToProcess) {
         }
 
         // --- 4. PORTS / LOCATIONS ---
-        tracking.origin_port = metadata.route?.origin?.location?.name || tracking.origin_port;
-        tracking.destination_port = metadata.route?.destination?.location?.name || tracking.destination_port;
+        tracking.origin_port = rawApiData?.route?.origin?.location?.name || tracking.origin_port;
+        tracking.destination_port = rawApiData?.route?.destination?.location?.name || tracking.destination_port;
     });
 }
 
