@@ -65,6 +65,9 @@ async function loadShipmentDetails(shipmentId) {
 }
 
 function renderShipmentInfo(shipment) {
+    console.log('📦 DEBUG tracking:', shipment.tracking);
+    console.log('📦 DEBUG containers:', shipment.tracking?.metadata?.raw?.shipment?.containers);
+    
     document.getElementById('shipmentNumberTitle').textContent = `Spedizione ${shipment.shipment_number || ''}`;
     document.getElementById('shipmentNumber').textContent = shipment.shipment_number || '-';
 
