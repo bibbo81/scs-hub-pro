@@ -32,20 +32,27 @@ async function loadShipmentDetails(shipmentId) {
 
         // =================================================================
         // FIX DEFINITIVO: Assicura che i dati di tracking siano sempre caricati.
-        // Se getShipmentDetails non popola shipment.tracking (es. per record vecchi),
+        // Se getShipmentDetails non ha popolato shipment.tracking (es. per record vecchi),
         // lo forziamo qui usando il tracking_number, che è il collegamento più affidabile.
+        // Questa logica è una "rete di sicurezza" che garantisce la visualizzazione dei dati.
         // =================================================================
         if (!shipmentDetails.tracking && shipmentDetails.tracking_number) {
             console.log(`[FIX] Dati di tracking non presenti. Tento recupero manuale con tracking_number: ${shipmentDetails.tracking_number}`);
             
-            if (window.supabase) {
+            // Assicurati che dataManager sia inizializzato per avere l'organizationId
+            if (window.supabase && window.dataManager?.organizationId) {
                 const { data: trackingRecord, error: trackingError } = await window.supabase
                     .from('trackings')
                     .select('*')
-                    .eq('tracking_number', shipmentDetails.tracking_number)
+                    // FIX: Usa ilike per match case-insensitive e trim() per spazi bianchi
+                    .ilike('tracking_number', shipmentDetails.tracking_number.trim())
+                    // FIX: Aggiungi il filtro per organization_id per sicurezza e correttezza
+                    .eq('organization_id', window.dataManager.organizationId)
                     .maybeSingle(); // maybeSingle per non dare errore se non trova nulla
 
-                if (trackingRecord) {
+                if (trackingError) {
+                    console.warn('[FIX] Errore nel recupero manuale del tracking:', trackingError.message);
+                } else if (trackingRecord) {
                     console.log('[FIX] Recupero manuale del tracking riuscito!', trackingRecord);
                     shipmentDetails.tracking = trackingRecord; // Allega i dati di tracking all'oggetto spedizione
                 }
