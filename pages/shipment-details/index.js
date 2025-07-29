@@ -29,6 +29,29 @@ async function loadShipmentDetails(shipmentId) {
             notificationSystem.error("Spedizione non trovata.");
             return;
         }
+
+        // =================================================================
+        // FIX DEFINITIVO: Assicura che i dati di tracking siano sempre caricati.
+        // Se getShipmentDetails non popola shipment.tracking (es. per record vecchi),
+        // lo forziamo qui usando il tracking_number, che è il collegamento più affidabile.
+        // =================================================================
+        if (!shipmentDetails.tracking && shipmentDetails.tracking_number) {
+            console.log(`[FIX] Dati di tracking non presenti. Tento recupero manuale con tracking_number: ${shipmentDetails.tracking_number}`);
+            
+            if (window.supabase) {
+                const { data: trackingRecord, error: trackingError } = await window.supabase
+                    .from('trackings')
+                    .select('*')
+                    .eq('tracking_number', shipmentDetails.tracking_number)
+                    .maybeSingle(); // maybeSingle per non dare errore se non trova nulla
+
+                if (trackingRecord) {
+                    console.log('[FIX] Recupero manuale del tracking riuscito!', trackingRecord);
+                    shipmentDetails.tracking = trackingRecord; // Allega i dati di tracking all'oggetto spedizione
+                }
+            }
+        }
+
         renderShipmentInfo(shipmentDetails);
         renderProductsTable(shipmentDetails.products);
         await renderDocumentsTable(shipmentDetails.documents);
