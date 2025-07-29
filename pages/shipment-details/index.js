@@ -30,35 +30,6 @@ async function loadShipmentDetails(shipmentId) {
             return;
         }
 
-        // =================================================================
-        // FIX DEFINITIVO: Assicura che i dati di tracking siano sempre caricati.
-        // Se getShipmentDetails non ha popolato shipment.tracking (es. per record vecchi),
-        // lo forziamo qui usando il tracking_number, che è il collegamento più affidabile.
-        // Questa logica è una "rete di sicurezza" che garantisce la visualizzazione dei dati.
-        // =================================================================
-        if (!shipmentDetails.tracking && shipmentDetails.tracking_number) {
-            console.log(`[FIX] Dati di tracking non presenti. Tento recupero manuale con tracking_number: ${shipmentDetails.tracking_number}`);
-            
-            // Assicurati che dataManager sia inizializzato per avere l'organizationId
-            if (window.supabase && window.dataManager?.organizationId) {
-                const { data: trackingRecord, error: trackingError } = await window.supabase
-                    .from('trackings')
-                    .select('*')
-                    // FIX: Usa ilike per match case-insensitive e trim() per spazi bianchi
-                    .ilike('tracking_number', shipmentDetails.tracking_number.trim())
-                    // FIX: Aggiungi il filtro per organization_id per sicurezza e correttezza
-                    .eq('organization_id', window.dataManager.organizationId)
-                    .maybeSingle(); // maybeSingle per non dare errore se non trova nulla
-
-                if (trackingError) {
-                    console.warn('[FIX] Errore nel recupero manuale del tracking:', trackingError.message);
-                } else if (trackingRecord) {
-                    console.log('[FIX] Recupero manuale del tracking riuscito!', trackingRecord);
-                    shipmentDetails.tracking = trackingRecord; // Allega i dati di tracking all'oggetto spedizione
-                }
-            }
-        }
-
         renderShipmentInfo(shipmentDetails);
         renderProductsTable(shipmentDetails.products);
         await renderDocumentsTable(shipmentDetails.documents);

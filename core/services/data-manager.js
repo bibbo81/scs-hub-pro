@@ -392,22 +392,33 @@ class DataManager {
              throw shipmentError;
          }
 
-         // Fallback: Se il tracking non è stato caricato, prova a cercarlo tramite tracking_number (case-insensitive)
-         // FIX: Usa shipment.tracking_number (il vero numero di tracciamento) invece di shipment.shipment_number (il riferimento interno)
+         // FIX DEFINITIVO: Fallback intelligente per dati vecchi senza organization_id
          if (shipment && !shipment.tracking && shipment.tracking_number) {
-            console.log(`Tracking non trovato tramite ID, tento la ricerca per tracking_number (case-insensitive): ${shipment.tracking_number}`);
+            console.log(`[Fallback] Tracking non trovato tramite ID. Ricerca per tracking_number: ${shipment.tracking_number}`);
+            
+            // 1. Prova la ricerca sicura con organization_id
             const { data: trackingByNum, error: trackingByNumError } = await supabase
                 .from('trackings')
                 .select('*')
-                .ilike('tracking_number', shipment.tracking_number.trim()) // Usa ilike per la ricerca case-insensitive e trim per gli spazi
+                .ilike('tracking_number', shipment.tracking_number.trim())
                 .eq('organization_id', this.organizationId)
                 .maybeSingle();
 
             if (trackingByNumError) {
                 console.warn("Errore durante la ricerca di fallback del tracking:", trackingByNumError.message);
             } else if (trackingByNum) {
-                console.log("Trovato tracking di fallback:", trackingByNum);
+                console.log("[Fallback] ✅ Trovato tracking con organization_id.", trackingByNum);
                 shipment.tracking = trackingByNum;
+            } else {
+                // 2. Se non trovato, prova la ricerca per dati legacy (organization_id IS NULL)
+                console.warn(`[Fallback] Nessun tracking trovato. Tento ricerca legacy (organization_id IS NULL) per ${shipment.tracking_number}`);
+                const { data: legacyTracking } = await supabase.from('trackings').select('*').ilike('tracking_number', shipment.tracking_number.trim()).is('organization_id', null).maybeSingle();
+                if (legacyTracking) {
+                    console.log("[Fallback] ✅ Trovato record legacy. Lo collego e lo aggiorno.");
+                    shipment.tracking = legacyTracking;
+                    // Auto-riparazione: aggiorna il record legacy con l'organization_id corretto
+                    await supabase.from('trackings').update({ organization_id: this.organizationId }).eq('id', legacyTracking.id);
+                }
             }
          }
  
