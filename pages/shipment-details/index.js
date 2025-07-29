@@ -86,9 +86,27 @@ function renderShipmentInfo(shipment) {
     document.getElementById('shipmentDestination').textContent = shipment.tracking?.destination_port || shipment.destination_port || shipment.destination || '-';
 
     // 2. TIPO CONTAINER: Calcola dinamicamente dai dati di tracking
-    // Usa container_types come richiesto, che è il campo corretto nella tabella trackings
-    const containerTypes = shipment.tracking?.container_types;
-    document.getElementById('shipmentContainerTypes').textContent = Array.isArray(containerTypes) ? containerTypes.join(', ') : containerTypes || '-';
+    // FIX: Legge i dati dall'array `containers` nel metadata, che è la fonte corretta.
+    const containers = shipment.tracking?.metadata?.raw?.shipment?.containers;
+    if (Array.isArray(containers) && containers.length > 0) {
+        const typeSummary = containers.reduce((acc, container) => {
+            const size = container.size || 0;
+            const type = (container.type || '').toUpperCase();
+            let summaryType = 'N/A';
+
+            if (size === 20) summaryType = "20'";
+            else if (size === 40) summaryType = (type.includes('HC') || type.includes('HQ')) ? "40'HC" : "40'";
+            else if (size === 45) summaryType = "45'HC";
+            
+            if (summaryType !== 'N/A') {
+                acc[summaryType] = (acc[summaryType] || 0) + 1;
+            }
+            return acc;
+        }, {});
+        document.getElementById('shipmentContainerTypes').textContent = Object.entries(typeSummary).map(([type, count]) => `${count}x${type}`).join(', ') || '-';
+    } else {
+        document.getElementById('shipmentContainerTypes').textContent = shipment.tracking?.container_types || '-';
+    }
 
     // Spedizioniere (dal record shipment) e Compagnia (dal record tracking)
     document.getElementById('shipmentCarrier').textContent = shipment.carrier?.name || shipment.carrier_name || 'N/A';
