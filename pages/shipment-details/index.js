@@ -30,6 +30,30 @@ async function loadShipmentDetails(shipmentId) {
             return;
         }
 
+        // =================================================================
+        // FIX DEFINITIVO E SICURO: Assicura che i dati di tracking siano sempre caricati.
+        // Se getShipmentDetails non popola shipment.tracking (es. per record vecchi),
+        // lo forziamo qui usando il tracking_number. Questa logica è isolata
+        // e non impatta il resto dell'applicazione.
+        // =================================================================
+        if (!shipmentDetails.tracking && shipmentDetails.tracking_number) {
+            console.log(`[FIX] Dati di tracking non presenti. Tento recupero con tracking_number: ${shipmentDetails.tracking_number}`);
+            
+            if (window.supabase && window.dataManager?.organizationId) {
+                const { data: trackingRecord, error: trackingError } = await window.supabase
+                    .from('trackings')
+                    .select('*')
+                    .ilike('tracking_number', shipmentDetails.tracking_number.trim())
+                    .eq('organization_id', window.dataManager.organizationId)
+                    .maybeSingle();
+
+                if (trackingRecord) {
+                    console.log('[FIX] Recupero del tracking riuscito!', trackingRecord);
+                    shipmentDetails.tracking = trackingRecord;
+                }
+            }
+        }
+
         renderShipmentInfo(shipmentDetails);
         renderProductsTable(shipmentDetails.products);
         await renderDocumentsTable(shipmentDetails.documents);
