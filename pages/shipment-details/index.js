@@ -54,12 +54,14 @@ function renderShipmentInfo(shipment) {
     document.getElementById('shipmentDestination').textContent = shipment.tracking?.destination_port || shipment.destination_port || shipment.destination || '-';
 
     // 2. TIPO CONTAINER: Calcola dinamicamente dai dati di tracking
-    const containerTypes = shipment.tracking?.container_details;
+    // Usa container_types come richiesto, che è il campo corretto nella tabella trackings
+    const containerTypes = shipment.tracking?.container_types;
     document.getElementById('shipmentContainerTypes').textContent = Array.isArray(containerTypes) ? containerTypes.join(', ') : containerTypes || '-';
 
     // Spedizioniere (dal record shipment) e Compagnia (dal record tracking)
     document.getElementById('shipmentCarrier').textContent = shipment.carrier?.name || shipment.carrier_name || 'N/A';
-    document.getElementById('shipmentTrackingCarrier').textContent = shipment.tracking?.carrier || '-';
+    const trackingData = shipment.tracking || {};
+    document.getElementById('shipmentTrackingCarrier').textContent = trackingData.carrier || trackingData.carrier_name || trackingData.carrier_code || '-';
 
     const freightCostInput = document.getElementById('freightCost');
     const otherCostsInput = document.getElementById('otherCosts');
