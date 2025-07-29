@@ -54,9 +54,12 @@ function renderShipmentInfo(shipment) {
     document.getElementById('shipmentDestination').textContent = shipment.tracking?.destination_port || shipment.destination_port || shipment.destination || '-';
 
     // 2. TIPO CONTAINER: Calcola dinamicamente dai dati di tracking
-    document.getElementById('shipmentContainerTypes').textContent = getContainerTypesString(shipment.tracking, shipment);
+    const containerTypes = shipment.container_types;
+    document.getElementById('shipmentContainerTypes').textContent = Array.isArray(containerTypes) ? containerTypes.join(', ') : containerTypes || '-';
 
+    // Spedizioniere (dal record shipment) e Compagnia (dal record tracking)
     document.getElementById('shipmentCarrier').textContent = shipment.carrier?.name || shipment.carrier_name || 'N/A';
+    document.getElementById('shipmentTrackingCarrier').textContent = shipment.tracking?.carrier_name || '-';
 
     const freightCostInput = document.getElementById('freightCost');
     const otherCostsInput = document.getElementById('otherCosts');
@@ -437,46 +440,6 @@ async function deleteProduct(productId) {
             notificationSystem.error('Errore durante la rimozione del prodotto.');
         }
     }
-}
-
-/**
- * Calcola una stringa che riassume i tipi e le quantità dei container.
- * @param {object | null} tracking - L'oggetto di tracking associato alla spedizione.
- * @param {object} shipment - L'oggetto della spedizione per fallback.
- * @returns {string} Una stringa formattata (es. "1x40'HC, 2x20'") o '-'.
- */
-function getContainerTypesString(tracking, shipment) {
-    // La fonte primaria sono i dati grezzi del tracking
-    const containers = tracking?.metadata?.raw?.shipment?.containers;
-
-    if (Array.isArray(containers) && containers.length > 0) {
-        const typeSummary = containers.reduce((acc, container) => {
-            const type = (container.type || '').toUpperCase();
-            const size = container.size || 0;
-            let summaryType = 'N/A';
-
-            if (size === 20) summaryType = "20'";
-            else if (size === 40) summaryType = (type.includes('HC') || type.includes('HQ')) ? "40'HC" : "40'";
-            else if (size === 45) summaryType = "45'HC";
-            else if (type.toLowerCase().includes('lcl')) summaryType = "LCL";
-            else if (size > 0) summaryType = `${size}'${type || ''}`.trim();
-            
-            if (summaryType !== 'N/A') {
-                acc[summaryType] = (acc[summaryType] || 0) + 1;
-            }
-            return acc;
-        }, {});
-
-        const summaryString = Object.entries(typeSummary).map(([type, count]) => `${count}x${type}`).join(', ');
-        return summaryString || '-';
-    }
-
-    // Fallback al campo `container_types` della spedizione
-    if (shipment.container_types) {
-        return Array.isArray(shipment.container_types) ? shipment.container_types.join(', ') : shipment.container_types;
-    }
-
-    return '-';
 }
 
 async function addProduct() {
