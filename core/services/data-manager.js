@@ -72,6 +72,60 @@ class DataManager {
 
         const tracking = await trackingUpsertUtility.upsertTracking(dataForUpsert);
 
+        // Dopo aver creato/aggiornato il tracking, crea o collega la spedizione corrispondente.
+        let shipment = null;
+
+        // Cerca una spedizione esistente con lo stesso tracking number per evitare duplicati.
+        const { data: existingShipment } = await supabase
+            .from('shipments')
+            .select('id')
+            .eq('organization_id', this.organizationId)
+            .eq('tracking_number', tracking.tracking_number)
+            .maybeSingle();
+
+        if (existingShipment) {
+            // Se una spedizione esiste già, assicurati che sia collegata a questo tracking.
+            console.log(`Shipment for ${tracking.tracking_number} already exists. Updating tracking_id.`);
+            const { data: updatedShipment, error: updateError } = await supabase
+                .from('shipments')
+                .update({ tracking_id: tracking.id, status: tracking.status, updated_at: timestamp })
+                .eq('id', existingShipment.id)
+                .select()
+                .single();
+            
+            if (updateError) console.error('Error updating existing shipment:', updateError);
+            else shipment = updatedShipment;
+
+        } else {
+            // Se non esiste, crea una nuova spedizione e collegala.
+            console.log(`No shipment found for ${tracking.tracking_number}. Creating a new one.`);
+            const shipmentNumber = `SHP-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 100000)).padStart(5, '0')}`;
+            
+            const newShipmentData = {
+                organization_id: this.organizationId,
+                user_id: this.userId,
+                shipment_number: shipmentNumber,
+                tracking_number: tracking.tracking_number,
+                tracking_id: tracking.id, // Collega il tracking
+                status: tracking.status,
+                origin: tracking.origin_port,
+                destination: tracking.destination_port,
+                carrier_name: tracking.carrier_name,
+                eta: tracking.eta,
+                created_at: timestamp,
+                updated_at: timestamp
+            };
+
+            const { data: createdShipment, error: createError } = await supabase
+                .from('shipments')
+                .insert(newShipmentData)
+                .select()
+                .single();
+            
+            if (createError) console.error('Error creating new shipment:', createError);
+            else shipment = createdShipment;
+        }
+
         // Notifica alla UI che i dati sono cambiati.
         if (window.notifyDataChange) {
             window.notifyDataChange('trackings');
@@ -79,7 +133,7 @@ class DataManager {
         }
 
         console.log('✅ Tracking upserted:', { trackingId: tracking.id });
-        return { tracking };
+        return { tracking, shipment };
     }
 
     async getTrackings(filters = {}) {
