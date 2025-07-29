@@ -40,49 +40,21 @@ async function loadShipmentDetails(shipmentId) {
 }
 
 function renderShipmentInfo(shipment) {
-    const trackingData = shipment.tracking;
-
     document.getElementById('shipmentNumberTitle').textContent = `Spedizione ${shipment.shipment_number || ''}`;
     document.getElementById('shipmentNumber').textContent = shipment.shipment_number || '-';
 
-    const status = trackingData?.current_status || shipment.status || 'registered';
-    document.getElementById('shipmentStatus').innerHTML = formatStatus(status);
+    // 1. STATO: Usa la fonte più affidabile (tracking) e la mappatura unificata
+    const statusToDisplay = shipment.tracking?.current_status || shipment.status || 'registered';
+    document.getElementById('shipmentStatus').innerHTML = formatStatus(statusToDisplay);
 
     document.getElementById('shipmentDate').textContent = formatDate(shipment.created_at);
 
-    document.getElementById('shipmentOrigin').textContent = trackingData?.origin_port || shipment.origin_port || shipment.origin || '-';
-    document.getElementById('shipmentDestination').textContent = trackingData?.destination_port || shipment.destination_port || shipment.destination || '-';
+    // Origine/Destinazione: prioritizza i dati di tracking
+    document.getElementById('shipmentOrigin').textContent = shipment.tracking?.origin_port || shipment.origin_port || shipment.origin || '-';
+    document.getElementById('shipmentDestination').textContent = shipment.tracking?.destination_port || shipment.destination_port || shipment.destination || '-';
 
-    // Logica per container_types derivata da tracking/index.js
-    let containerTypesDisplay = '-';
-    const containers = trackingData?.metadata?.raw?.shipment?.containers || [];
-    if (Array.isArray(containers) && containers.length > 0) {
-        const typeSummary = {};
-        containers.forEach(container => {
-            const type = (container.type || '').toUpperCase();
-            const size = container.size || 0;
-            let summaryType = 'N/A';
-
-            if (size === 20) summaryType = "20'";
-            else if (size === 40) summaryType = (type.includes('HC') || type.includes('HQ')) ? "40'HC" : "40'";
-            else if (size === 45) summaryType = "45'HC";
-            else if (type.toLowerCase().includes('lcl')) summaryType = "LCL";
-            else if (size > 0) summaryType = `${size}'${type || ''}`.trim();
-            
-            if (summaryType !== 'N/A') {
-                typeSummary[summaryType] = (typeSummary[summaryType] || 0) + 1;
-            }
-        });
-        
-        const summaryParts = Object.entries(typeSummary).map(([type, count]) => `${count}x${type}`);
-        if (summaryParts.length > 0) {
-            containerTypesDisplay = summaryParts.join(', ');
-        }
-    } else if (shipment.container_types) {
-        // Fallback al campo esistente se non ci sono dati di tracking dettagliati
-        containerTypesDisplay = Array.isArray(shipment.container_types) ? shipment.container_types.join(', ') : shipment.container_types;
-    }
-    document.getElementById('shipmentContainerTypes').textContent = containerTypesDisplay;
+    // 2. TIPO CONTAINER: Calcola dinamicamente dai dati di tracking
+    document.getElementById('shipmentContainerTypes').textContent = getContainerTypesString(shipment.tracking, shipment);
 
     document.getElementById('shipmentCarrier').textContent = shipment.carrier?.name || shipment.carrier_name || 'N/A';
 
@@ -467,6 +439,46 @@ async function deleteProduct(productId) {
     }
 }
 
+/**
+ * Calcola una stringa che riassume i tipi e le quantità dei container.
+ * @param {object | null} tracking - L'oggetto di tracking associato alla spedizione.
+ * @param {object} shipment - L'oggetto della spedizione per fallback.
+ * @returns {string} Una stringa formattata (es. "1x40'HC, 2x20'") o '-'.
+ */
+function getContainerTypesString(tracking, shipment) {
+    // La fonte primaria sono i dati grezzi del tracking
+    const containers = tracking?.metadata?.raw?.shipment?.containers;
+
+    if (Array.isArray(containers) && containers.length > 0) {
+        const typeSummary = containers.reduce((acc, container) => {
+            const type = (container.type || '').toUpperCase();
+            const size = container.size || 0;
+            let summaryType = 'N/A';
+
+            if (size === 20) summaryType = "20'";
+            else if (size === 40) summaryType = (type.includes('HC') || type.includes('HQ')) ? "40'HC" : "40'";
+            else if (size === 45) summaryType = "45'HC";
+            else if (type.toLowerCase().includes('lcl')) summaryType = "LCL";
+            else if (size > 0) summaryType = `${size}'${type || ''}`.trim();
+            
+            if (summaryType !== 'N/A') {
+                acc[summaryType] = (acc[summaryType] || 0) + 1;
+            }
+            return acc;
+        }, {});
+
+        const summaryString = Object.entries(typeSummary).map(([type, count]) => `${count}x${type}`).join(', ');
+        return summaryString || '-';
+    }
+
+    // Fallback al campo `container_types` della spedizione
+    if (shipment.container_types) {
+        return Array.isArray(shipment.container_types) ? shipment.container_types.join(', ') : shipment.container_types;
+    }
+
+    return '-';
+}
+
 async function addProduct() {
     try {
         const allProducts = await dataManager.getAllProducts();
@@ -598,4 +610,19 @@ function formatCurrency(value) { return (typeof value === 'number') ? value.toLo
 function formatWeight(value) { return (typeof value === 'number') ? `${value.toFixed(3)} kg` : '0 kg'; }
 function formatVolume(value) { return (typeof value === 'number') ? `${value.toFixed(3)} m³` : '0 m³'; }
 function formatDate(dateString) { return dateString ? new Date(dateString).toLocaleDateString('it-IT') : '-'; }
-function formatStatus(rawStatus) {    const statusKey = (rawStatus || 'registered').toLowerCase().replace(/ /g, '_');    const label = rawStatus || 'Registrato';    return `<span class="status-badge status-${statusKey}">${label}</span>`;}function renderAdditionalCosts(costs) {    const container = document.getElementById('additionalCostsList');    container.innerHTML = '';    if (!costs || costs.length === 0) {        container.innerHTML = '<p>Nessun costo aggiuntivo.</p>';        return;    }    const table = document.createElement('table');    table.className = 'data-table';    table.innerHTML = `        <thead>            <tr>                <th>Tipo</th>                <th>Importo</th>                <th>Note</th>                <th>Azioni</th>            </tr>        </thead>        <tbody>            ${costs.map(cost => `                <tr>                    <td>${cost.cost_type}</td>                    <td>${formatCurrency(cost.amount)}</td>                    <td>${cost.notes || '-'}</td>                    <td>                        <button class="sol-btn sol-btn-danger sol-btn-sm delete-additional-cost-btn" data-cost-id="${cost.id}" title="Elimina"><i class="fas fa-trash"></i></button>                    </td>                </tr>            `).join('')}        </tbody>    `;    container.appendChild(table);}async function addAdditionalCost() {    const modalContent = `        <div class="sol-form">            <div class="sol-form-group">                <label for="costTypeSelect" class="sol-form-label">Tipo di Costo</label>                <select id="costTypeSelect" class="sol-form-input">                    <option value="detention">Detention</option>                    <option value="demurrage">Demurrage</option>                </select>            </div>            <div class="sol-form-group">                <label for="amountInput" class="sol-form-label">Importo</label>                <input type="number" id="amountInput" class="sol-form-input" placeholder="0.00">            </div>            <div class="sol-form-group">                <label for="notesInput" class="sol-form-label">Note</label>                <textarea id="notesInput" class="sol-form-input" rows="3"></textarea>            </div>        </div>    `;    ModalSystem.show({        title: 'Aggiungi Costo Aggiuntivo',        content: modalContent,        buttons: [            { text: 'Annulla', class: 'sol-btn sol-btn-secondary', onclick: () => ModalSystem.close() },            {                text: 'Aggiungi',                class: 'sol-btn sol-btn-primary',                onclick: async () => {                    const shipmentId = getShipmentIdFromURL();                    const costData = {                        cost_type: document.getElementById('costTypeSelect').value,                        amount: parseFloat(document.getElementById('amountInput').value) || 0,                        notes: document.getElementById('notesInput').value.trim()                    };                    if (costData.amount <= 0) {                        notificationSystem.warning('L\'importo deve essere maggiore di zero.');                        return false;                    }                    try {                        notificationSystem.info('Aggiunta del costo in corso...');                        await dataManager.addAdditionalCost(shipmentId, costData);                        notificationSystem.success('Costo aggiuntivo aggiunto con successo!');                        loadShipmentDetails(shipmentId);                        return true;                    } catch (error) {                        notificationSystem.error(`Errore durante l\'aggiunta del costo: ${error.message}`);                        return false;                    }                }            }        ]    });}
+function formatStatus(rawStatus) {
+    // Fallback if the unified mapping is not available on time
+    if (!window.TrackingUnifiedMapping || !window.TrackingUnifiedMapping.mapStatus) {
+        const statusKey = (rawStatus || 'registered').toLowerCase().replace(/ /g, '_');
+        const label = rawStatus || 'Registrato';
+        return `<span class="status-badge status-${statusKey}">${label}</span>`;
+    }
+
+    // Use the unified mapping for consistent status display
+    const statusKey = window.TrackingUnifiedMapping.mapStatus(rawStatus || 'registered');
+    const config = window.TrackingUnifiedMapping.STATUS_DISPLAY_CONFIG[statusKey] || window.TrackingUnifiedMapping.STATUS_DISPLAY_CONFIG['default'];
+
+    return `<span class="status-badge status-${config.class}" title="${config.label}">
+                <i class="fas ${config.icon} mr-1"></i>${config.label}
+            </span>`;
+}function renderAdditionalCosts(costs) {    const container = document.getElementById('additionalCostsList');    container.innerHTML = '';    if (!costs || costs.length === 0) {        container.innerHTML = '<p>Nessun costo aggiuntivo.</p>';        return;    }    const table = document.createElement('table');    table.className = 'data-table';    table.innerHTML = `        <thead>            <tr>                <th>Tipo</th>                <th>Importo</th>                <th>Note</th>                <th>Azioni</th>            </tr>        </thead>        <tbody>            ${costs.map(cost => `                <tr>                    <td>${cost.cost_type}</td>                    <td>${formatCurrency(cost.amount)}</td>                    <td>${cost.notes || '-'}</td>                    <td>                        <button class="sol-btn sol-btn-danger sol-btn-sm delete-additional-cost-btn" data-cost-id="${cost.id}" title="Elimina"><i class="fas fa-trash"></i></button>                    </td>                </tr>            `).join('')}        </tbody>    `;    container.appendChild(table);}async function addAdditionalCost() {    const modalContent = `        <div class="sol-form">            <div class="sol-form-group">                <label for="costTypeSelect" class="sol-form-label">Tipo di Costo</label>                <select id="costTypeSelect" class="sol-form-input">                    <option value="detention">Detention</option>                    <option value="demurrage">Demurrage</option>                </select>            </div>            <div class="sol-form-group">                <label for="amountInput" class="sol-form-label">Importo</label>                <input type="number" id="amountInput" class="sol-form-input" placeholder="0.00">            </div>            <div class="sol-form-group">                <label for="notesInput" class="sol-form-label">Note</label>                <textarea id="notesInput" class="sol-form-input" rows="3"></textarea>            </div>        </div>    `;    ModalSystem.show({        title: 'Aggiungi Costo Aggiuntivo',        content: modalContent,        buttons: [            { text: 'Annulla', class: 'sol-btn sol-btn-secondary', onclick: () => ModalSystem.close() },            {                text: 'Aggiungi',                class: 'sol-btn sol-btn-primary',                onclick: async () => {                    const shipmentId = getShipmentIdFromURL();                    const costData = {                        cost_type: document.getElementById('costTypeSelect').value,                        amount: parseFloat(document.getElementById('amountInput').value) || 0,                        notes: document.getElementById('notesInput').value.trim()                    };                    if (costData.amount <= 0) {                        notificationSystem.warning('L\'importo deve essere maggiore di zero.');                        return false;                    }                    try {                        notificationSystem.info('Aggiunta del costo in corso...');                        await dataManager.addAdditionalCost(shipmentId, costData);                        notificationSystem.success('Costo aggiuntivo aggiunto con successo!');                        loadShipmentDetails(shipmentId);                        return true;                    } catch (error) {                        notificationSystem.error(`Errore durante l\'aggiunta del costo: ${error.message}`);                        return false;                    }                }            }        ]    });}
