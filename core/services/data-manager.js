@@ -397,24 +397,28 @@ class DataManager {
             console.log(`[Fallback] Tracking non trovato tramite ID. Ricerca per tracking_number: ${shipment.tracking_number}`);
             
             // 1. Prova la ricerca sicura con organization_id
-            const { data: trackingByNum, error: trackingByNumError } = await supabase
+            const { data: trackingRecords, error: trackingByNumError } = await supabase
                 .from('trackings')
                 .select('*')
                 .ilike('tracking_number', shipment.tracking_number.trim())
                 .eq('organization_id', this.organizationId)
-                .maybeSingle();
+                .order('updated_at', { ascending: false })
+                .limit(1);
 
             if (trackingByNumError) {
                 console.warn("Errore durante la ricerca di fallback del tracking:", trackingByNumError.message);
-            } else if (trackingByNum) {
-                console.log("[Fallback] ✅ Trovato tracking con organization_id.", trackingByNum);
-                shipment.tracking = trackingByNum;
+            } else if (trackingRecords && trackingRecords.length > 0) {
+                console.log("[Fallback] ✅ Trovato tracking con organization_id (il più recente).", trackingRecords[0]);
+                shipment.tracking = trackingRecords[0];
             } else {
                 // 2. Se non trovato, prova la ricerca per dati legacy (organization_id IS NULL)
                 console.warn(`[Fallback] Nessun tracking trovato. Tento ricerca legacy (organization_id IS NULL) per ${shipment.tracking_number}`);
-                const { data: legacyTracking } = await supabase.from('trackings').select('*').ilike('tracking_number', shipment.tracking_number.trim()).is('organization_id', null).maybeSingle();
-                if (legacyTracking) {
-                    console.log("[Fallback] ✅ Trovato record legacy. Lo collego e lo aggiorno.");
+                const { data: legacyTrackings, error: legacyError } = await supabase.from('trackings').select('*').ilike('tracking_number', shipment.tracking_number.trim()).is('organization_id', null).order('updated_at', { ascending: false }).limit(1);
+                if (legacyError) {
+                    console.warn('[Fallback] Errore ricerca legacy:', legacyError.message);
+                } else if (legacyTrackings && legacyTrackings.length > 0) {
+                    const legacyTracking = legacyTrackings[0];
+                    console.log("[Fallback] ✅ Trovato record legacy (il più recente). Lo collego e lo aggiorno.");
                     shipment.tracking = legacyTracking;
                     // Auto-riparazione: aggiorna il record legacy con l'organization_id corretto
                     await supabase.from('trackings').update({ organization_id: this.organizationId }).eq('id', legacyTracking.id);

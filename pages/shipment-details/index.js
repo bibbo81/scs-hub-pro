@@ -40,14 +40,18 @@ async function loadShipmentDetails(shipmentId) {
             console.log(`[FIX] Dati di tracking non presenti. Tento recupero con tracking_number: ${shipmentDetails.tracking_number}`);
             
             if (window.supabase && window.dataManager?.organizationId) {
-                const { data: trackingRecord, error: trackingError } = await window.supabase
+                const { data: trackingRecords, error: trackingError } = await window.supabase
                     .from('trackings')
                     .select('*')
                     .ilike('tracking_number', shipmentDetails.tracking_number.trim())
                     .eq('organization_id', window.dataManager.organizationId)
-                    .maybeSingle();
+                    .order('updated_at', { ascending: false })
+                    .limit(1);
 
-                if (trackingRecord) {
+                if (trackingError) {
+                    console.warn('[FIX] Errore nel recupero del tracking:', trackingError.message);
+                } else if (trackingRecords && trackingRecords.length > 0) {
+                    const trackingRecord = trackingRecords[0];
                     console.log('[FIX] Recupero del tracking riuscito!', trackingRecord);
                     shipmentDetails.tracking = trackingRecord;
                 }
