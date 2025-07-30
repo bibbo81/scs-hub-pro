@@ -3,6 +3,13 @@ import notificationSystem from '/core/notification-system.js';
 import headerComponent from '/core/header-component.js';
 import ModalSystem from '/core/modal-system.js';
 
+const CONTAINER_CBM_CAPACITY = {
+    "20'": 33.2,
+    "40'": 67.7,
+    "40'HC": 76.4,
+    "45'HC": 86.0,
+};
+
 document.addEventListener('DOMContentLoaded', async () => {
     await headerComponent.init();
     await dataManager.init();
@@ -59,7 +66,7 @@ async function loadShipmentDetails(shipmentId) {
         }
 
         renderShipmentInfo(shipmentDetails);
-        renderProductsTable(shipmentDetails.products);
+        renderProductsTable(shipmentDetails);
         await renderDocumentsTable(shipmentDetails.documents);
         renderAdditionalCosts(shipmentDetails.additionalCosts);
     } catch (error) {
@@ -120,15 +127,52 @@ function renderShipmentInfo(shipment) {
     updateTotalCost();
 }
 
-function renderProductsTable(products) {
+function calculateTotalMaxCBM(containerTypeString) {
+    if (!containerTypeString || containerTypeString === '-') return 0;
+    let totalCBM = 0;
+    const parts = containerTypeString.split(',');
+    parts.forEach(part => {
+        const match = part.trim().match(/(\d+)x(.+)/);
+        if (match) {
+            const count = parseInt(match[1], 10);
+            const type = match[2].trim();
+            const capacity = CONTAINER_CBM_CAPACITY[type] || 0;
+            totalCBM += count * capacity;
+        }
+    });
+    return totalCBM;
+}
+
+function renderProductsTable(shipment) {
+    const products = shipment.products || [];
     const tbody = document.getElementById('productsTableBody');
     tbody.innerHTML = '';
+
+    const isSeaShipment = shipment.tracking?.tracking_type === 'container' || shipment.tracking?.tracking_type === 'bl';
+    let costPerCBM = 0;
+
+    if (isSeaShipment) {
+        const totalCost = (shipment.freight_cost || 0) + (shipment.other_costs || 0);
+        const containerTypeString = document.getElementById('shipmentContainerTypes').textContent;
+        const totalMaxCBM = calculateTotalMaxCBM(containerTypeString);
+        costPerCBM = totalMaxCBM > 0 ? totalCost / totalMaxCBM : 0;
+    }
+
     if (!products || products.length === 0) {
         tbody.innerHTML = '<tr><td colspan="6" class="text-center">Nessun prodotto associato.</td></tr>';
-        updateTotals([]); // Passa un array vuoto per azzerare i totali
+        updateTotals(shipment);
         return;
     }
+
     products.forEach(product => {
+        let allocatedUnitCost = product.allocated_cost || 0;
+        if (isSeaShipment && costPerCBM > 0) {
+            const productVolume = product.total_volume_cbm || 0;
+            const quantity = product.quantity || 1;
+            const totalAllocated = productVolume * costPerCBM;
+            allocatedUnitCost = totalAllocated / quantity;
+        }
+
         const tr = document.createElement('tr');
         tr.classList.add('product-row');
         tr.dataset.itemId = product.id; // Usa l'ID dell'item per un accesso più facile
@@ -137,7 +181,7 @@ function renderProductsTable(products) {
             <td>${product.quantity || 0}</td>
             <td>${formatWeight(product.total_weight_kg)}</td>
             <td>${formatVolume(product.total_volume_cbm)}</td>
-            <td>${formatCurrency(product.allocated_cost)}</td>
+            <td>${formatCurrency(allocatedUnitCost)}</td>
             <td>
                 <button class="sol-btn sol-btn-secondary sol-btn-sm edit-product-btn" data-item-id="${product.id}" title="Modifica Prodotto"><i class="fas fa-edit"></i></button>
                 <button class="sol-btn sol-btn-danger sol-btn-sm delete-product-btn" data-item-id="${product.id}" title="Elimina Prodotto"><i class="fas fa-trash"></i></button>
@@ -145,16 +189,35 @@ function renderProductsTable(products) {
         `;
         tbody.appendChild(tr);
     });
-    updateTotals(products);
+    updateTotals(shipment);
 }
 
-function updateTotals(products) {
+function updateTotals(shipment) {
+    const products = shipment.products || [];
     let totalWeight = 0, totalVolume = 0, totalAllocatedCost = 0;
+
+    const isSeaShipment = shipment.tracking?.tracking_type === 'container' || shipment.tracking?.tracking_type === 'bl';
+    let costPerCBM = 0;
+
+    if (isSeaShipment) {
+        const totalCost = (shipment.freight_cost || 0) + (shipment.other_costs || 0);
+        const containerTypeString = document.getElementById('shipmentContainerTypes').textContent;
+        const totalMaxCBM = calculateTotalMaxCBM(containerTypeString);
+        costPerCBM = totalMaxCBM > 0 ? totalCost / totalMaxCBM : 0;
+    }
+
     products.forEach(product => {
         totalWeight += product.total_weight_kg || 0;
         totalVolume += product.total_volume_cbm || 0;
-        totalAllocatedCost += product.allocated_cost || 0;
+
+        if (isSeaShipment && costPerCBM > 0) {
+            const productVolume = product.total_volume_cbm || 0;
+            totalAllocatedCost += productVolume * costPerCBM;
+        } else {
+            totalAllocatedCost += (product.allocated_cost || 0) * (product.quantity || 0);
+        }
     });
+
     document.getElementById('totalWeight').textContent = formatWeight(totalWeight);
     document.getElementById('totalVolume').textContent = formatVolume(totalVolume);
     document.getElementById('totalAllocatedCost').textContent = formatCurrency(totalAllocatedCost);
