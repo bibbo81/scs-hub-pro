@@ -86,13 +86,13 @@ class InlineFormManager {
 
         if (isManualAction) {
             if (trackingType === 'container') {
-                this.elements.blNumber.required = true;
+                this.elements.blNumber.required = false;
                 this.elements.flightNumber.required = false;
                 this.elements.flightNumber.value = ''; // Clear if not relevant
             } else if (trackingType === 'air_waybill') {
                 this.elements.blNumber.required = false;
                 this.elements.blNumber.value = ''; // Clear if not relevant
-                this.elements.flightNumber.required = true;
+                this.elements.flightNumber.required = false;
             } else {
                 this.elements.blNumber.required = false;
                 this.elements.flightNumber.required = false;
@@ -255,22 +255,17 @@ class InlineFormManager {
 
     handleVehicleTypeChange() {
         const vehicleTypeId = this.elements.vehicleType.value;
-        console.log(`[Debug] handleVehicleTypeChange triggered. vehicleTypeId: ${vehicleTypeId}`);
-
         const selectedVehicleType = this.vehicleTypesData.find(type => type.id == vehicleTypeId); // Use == for type coercion
-        const isManualAction = this.elements.action.value === 'manual';
 
-        console.log(`[Debug] isManualAction: ${isManualAction}`);
-        console.log('[Debug] selectedVehicleType:', selectedVehicleType);
-
-        if (isManualAction && selectedVehicleType) {
-            console.log('[Debug] Applying default values:', selectedVehicleType);
+        if (selectedVehicleType) {
             this.elements.totalWeight.value = selectedVehicleType.default_kg || '';
             this.elements.totalVolume.value = selectedVehicleType.default_cbm || '';
             this.elements.totalWeight.readOnly = true;
             this.elements.totalVolume.readOnly = true;
         } else {
-            console.log('[Debug] Clearing or ignoring default values.');
+            // If no vehicle is selected, clear the fields and make them editable
+            this.elements.totalWeight.value = '';
+            this.elements.totalVolume.value = '';
             this.elements.totalWeight.readOnly = false;
             this.elements.totalVolume.readOnly = false;
             if (!isManualAction) { // Only clear if not manual and no vehicle type selected
@@ -353,6 +348,7 @@ class InlineFormManager {
         try {
             let dataToSave = {};
 
+            const carrierName = this.elements.carrier.options[this.elements.carrier.selectedIndex]?.textContent;
             if (action === 'manual') {
                 // For manual entry, directly construct the data object
                 dataToSave = {
@@ -360,14 +356,15 @@ class InlineFormManager {
                     carrier: carrier,
                     tracking_type: trackingType || 'manual',
                     reference_number: reference,
+                    carrier_name: carrierName,
                     origin: origin,
                     destination: destination,
-                    status: 'pending', // Default status for manual entries
+                    status: 'pending',
                     eta: eta,
-                    total_weight_kg: parseFloat(totalWeight) || null,
-                    total_volume_cbm: parseFloat(totalVolume) || null,
-                    transport_mode_id: transportModeId || null,
-                    vehicle_type_id: vehicleTypeId || null,
+                    total_weight_kg: parseFloat(totalWeight) || null, // FIX: Convert to null if empty/NaN
+                    total_volume_cbm: parseFloat(totalVolume) || null, // FIX: Convert to null if empty/NaN
+                    transport_mode_id: parseInt(transportModeId) || null, // FIX: Convert to null if empty/NaN
+                    vehicle_type_id: parseInt(vehicleTypeId) || null, // FIX: Convert to null if empty/NaN
                     bl_number: blNumber,
                     flight_number: flightNumber,
                 };
@@ -375,20 +372,6 @@ class InlineFormManager {
                 // Basic validation for manual fields
                 if (!dataToSave.tracking_type) {
                     window.NotificationSystem?.error("Tipo di Tracking è obbligatorio per l'inserimento manuale.");
-                    // re-enable button
-                    this.elements.submitBtn.disabled = false;
-                    this.elements.submitBtn.innerHTML = 'Aggiungi'; // Restore button text
-                    return;
-                }
-                if (dataToSave.tracking_type === 'container' && !dataToSave.bl_number) {
-                    window.NotificationSystem?.error('B/L Number è obbligatorio per il tipo Marittimo.');
-                    // re-enable button
-                    this.elements.submitBtn.disabled = false;
-                    this.elements.submitBtn.innerHTML = 'Aggiungi'; // Restore button text
-                    return;
-                }
-                if (dataToSave.tracking_type === 'air_waybill' && !dataToSave.flight_number) {
-                    window.NotificationSystem?.error('Numero Volo è obbligatorio per il tipo Aereo.');
                     // re-enable button
                     this.elements.submitBtn.disabled = false;
                     this.elements.submitBtn.innerHTML = 'Aggiungi'; // Restore button text
@@ -406,6 +389,7 @@ class InlineFormManager {
                         carrier: carrier,
                         shipsgoId: this.detectedOceanShipment?.id,
                         // Pass manual fields to the service for merging
+                        carrier_name: carrierName,
                         origin: origin,
                         destination: destination,
                         reference: reference,

@@ -99,16 +99,6 @@ class TrackingUpsertUtility {
             cleanData.tracking_type = 'container'; // Imposta un default se mancante
         }
 
-        // Handle carrier field
-        if (trackingData.carrier) {
-            cleanData.carrier_code = trackingData.carrier;
-            // Attempt to find the carrier name from the dropdown
-            const carrierOption = document.querySelector(`#inline-carrier option[value="${trackingData.carrier}"]`);
-            if (carrierOption) {
-                cleanData.carrier_name = carrierOption.textContent;
-            }
-        }
-
         console.log(`[TrackingUpsertUtility] Inserting new tracking for ${tracking_number}.`);
         const { data: newTracking, error: insertError } = await supabase
             .from('trackings')
