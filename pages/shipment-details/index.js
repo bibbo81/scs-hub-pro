@@ -43,13 +43,20 @@ async function loadShipmentDetails(shipmentId) {
         // lo forziamo qui usando il tracking_number. Questa logica è isolata
         // e non impatta il resto dell'applicazione.
         // =================================================================
-        if (!shipmentDetails.tracking && shipmentDetails.tracking_number) {
+        if (shipmentDetails.tracking) {
+            if (shipmentDetails.tracking.transport_mode_id) {
+                shipmentDetails.tracking.transport_modes = { name: await getTransportModeName(shipmentDetails.tracking.transport_mode_id) };
+            }
+            if (shipmentDetails.tracking.vehicle_type_id) {
+                shipmentDetails.tracking.vehicle_types = { name: await getVehicleTypeName(shipmentDetails.tracking.vehicle_type_id) };
+            }
+        } else if (shipmentDetails.tracking_number) {
             console.log(`[FIX] Dati di tracking non presenti. Tento recupero con tracking_number: ${shipmentDetails.tracking_number}`);
             
             if (window.supabase && window.dataManager?.organizationId) {
                 const { data: trackingRecords, error: trackingError } = await window.supabase
                     .from('trackings')
-                    .select('*, vehicle_types(default_cbm, default_kg)') // Fetch vehicle_types data
+                    .select('*')
                     .ilike('tracking_number', shipmentDetails.tracking_number.trim())
                     .eq('organization_id', window.dataManager.organizationId)
                     .order('updated_at', { ascending: false })
@@ -61,6 +68,12 @@ async function loadShipmentDetails(shipmentId) {
                     const trackingRecord = trackingRecords[0];
                     console.log('[FIX] Recupero del tracking riuscito!', trackingRecord);
                     shipmentDetails.tracking = trackingRecord;
+                    if (shipmentDetails.tracking.transport_mode_id) {
+                        shipmentDetails.tracking.transport_modes = { name: await getTransportModeName(shipmentDetails.tracking.transport_mode_id) };
+                    }
+                    if (shipmentDetails.tracking.vehicle_type_id) {
+                        shipmentDetails.tracking.vehicle_types = { name: await getVehicleTypeName(shipmentDetails.tracking.vehicle_type_id) };
+                    }
                 }
             }
         }
