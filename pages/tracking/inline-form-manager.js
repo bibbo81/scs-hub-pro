@@ -365,8 +365,8 @@ class InlineFormManager {
                     total_volume_cbm: parseFloat(totalVolume) || null, // FIX: Convert to null if empty/NaN
                     transport_mode_id: parseInt(transportModeId) || null, // FIX: Convert to null if empty/NaN
                     vehicle_type_id: parseInt(vehicleTypeId) || null, // FIX: Convert to null if empty/NaN
-                    bl_number: blNumber,
-                    flight_number: flightNumber,
+                    bl_number: blNumber || null,
+                    flight_number: flightNumber || null,
                 };
 
                 // Basic validation for manual fields
