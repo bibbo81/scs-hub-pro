@@ -24,6 +24,7 @@ class InlineFormManager {
         this.detectionTimeout = null;
         this.detectedType = null;
         this.detectedOceanShipment = null;
+        this.vehicleTypesData = []; // Store vehicle types data
     }
 
     init() {
@@ -47,6 +48,7 @@ class InlineFormManager {
         this.elements.transportMode.addEventListener('change', () => this.handleTransportModeChange());
         this.elements.action.addEventListener('change', () => this.handleActionChange());
         this.elements.trackingType.addEventListener('change', () => this.handleTrackingTypeChange());
+        this.elements.vehicleType.addEventListener('change', () => this.handleVehicleTypeChange()); // New event listener
     }
 
     handleActionChange() {
@@ -227,16 +229,20 @@ class InlineFormManager {
 
         if (!transportModeId) {
             select.innerHTML = '<option value="">Seleziona tipo di mezzo...</option>';
+            this.vehicleTypesData = []; // Clear stored data
+            this.handleVehicleTypeChange(); // Reset weight/volume fields
             return;
         }
 
         try {
             const { data, error } = await window.supabase
                 .from('vehicle_types')
-                .select('id, name')
+                .select('id, name, default_cbm, default_kg') // Fetch default_cbm and default_kg
                 .eq('transport_mode_id', transportModeId);
 
             if (error) throw error;
+
+            this.vehicleTypesData = data; // Store fetched data
 
             select.innerHTML = '<option value="">Seleziona tipo di mezzo...</option>';
             data.forEach(type => {
@@ -249,6 +255,27 @@ class InlineFormManager {
         } catch (error) {
             console.error('Failed to load vehicle types:', error);
             select.innerHTML = '<option value="">Errore caricamento</option>';
+            this.vehicleTypesData = [];
+        }
+    }
+
+    handleVehicleTypeChange() {
+        const vehicleTypeId = this.elements.vehicleType.value;
+        const selectedVehicleType = this.vehicleTypesData.find(type => type.id == vehicleTypeId);
+        const isManualAction = this.elements.action.value === 'manual';
+
+        if (isManualAction && selectedVehicleType) {
+            this.elements.totalWeight.value = selectedVehicleType.default_kg || '';
+            this.elements.totalVolume.value = selectedVehicleType.default_cbm || '';
+            this.elements.totalWeight.readOnly = true;
+            this.elements.totalVolume.readOnly = true;
+        } else {
+            this.elements.totalWeight.readOnly = false;
+            this.elements.totalVolume.readOnly = false;
+            if (!isManualAction) { // Only clear if not manual and no vehicle type selected
+                this.elements.totalWeight.value = '';
+                this.elements.totalVolume.value = '';
+            }
         }
     }
 
@@ -329,7 +356,7 @@ class InlineFormManager {
 
                 // Basic validation for manual fields
                 if (!dataToSave.tracking_type) {
-                    window.NotificationSystem?.error('Tipo di Tracking è obbligatorio per l\'inserimento manuale.');
+                    window.NotificationSystem?.error("Tipo di Tracking è obbligatorio per l\'inserimento manuale.");
                     return;
                 }
                 if (dataToSave.tracking_type === 'container' && !dataToSave.bl_number) {
@@ -356,7 +383,7 @@ class InlineFormManager {
                         destination: destination,
                         reference: reference,
                         transport_mode_id: transportModeId,
-                        vehicle_type_id: vehicleTypeId
+                        vehicle_type_id: vehicleTypeId,
                     }
                 );
 
@@ -431,11 +458,14 @@ class InlineFormManager {
         this.elements.totalVolume.value = '';
         this.elements.blNumber.value = '';
         this.elements.flightNumber.value = '';
+        this.elements.totalWeight.readOnly = false;
+        this.elements.totalVolume.readOnly = false;
 
         const collapse = document.getElementById('collapseDetails');
         if (collapse && collapse.classList.contains('show')) {
             $(collapse).collapse('hide');
         }
+        this.handleActionChange(); // Call to reset visibility based on default 'auto'
     }
 }
 

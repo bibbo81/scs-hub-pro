@@ -315,6 +315,8 @@ function setupEventListeners() {
     document.getElementById('changeCarrierBtn')?.addEventListener('click', changeShipmentCarrier);
     document.getElementById('saveCostsBtn')?.addEventListener('click', saveCosts);
     document.getElementById('addAdditionalCostBtn')?.addEventListener('click', addAdditionalCost);
+    document.getElementById('editStatusBtn')?.addEventListener('click', toggleStatusEditMode);
+    document.getElementById('saveStatusBtn')?.addEventListener('click', saveShipmentStatus);
 
     document.getElementById('freightCost').addEventListener('input', updateTotalCost);
     document.getElementById('otherCosts').addEventListener('input', updateTotalCost);
@@ -756,4 +758,95 @@ function formatStatus(rawStatus) {
     return `<span class="badge badge-${config.class}" title="${config.label}">
                 <i class="fas ${config.icon} mr-2"></i>${config.label}
             </span>`;
-}function renderAdditionalCosts(costs) {    const container = document.getElementById('additionalCostsList');    container.innerHTML = '';    if (!costs || costs.length === 0) {        container.innerHTML = '<p>Nessun costo aggiuntivo.</p>';        return;    }    const table = document.createElement('table');    table.className = 'data-table';    table.innerHTML = `        <thead>            <tr>                <th>Tipo</th>                <th>Importo</th>                <th>Note</th>                <th>Azioni</th>            </tr>        </thead>        <tbody>            ${costs.map(cost => `                <tr>                    <td>${cost.cost_type}</td>                    <td>${formatCurrency(cost.amount)}</td>                    <td>${cost.notes || '-'}</td>                    <td>                        <button class="sol-btn sol-btn-danger sol-btn-sm delete-additional-cost-btn" data-cost-id="${cost.id}" title="Elimina"><i class="fas fa-trash"></i></button>                    </td>                </tr>            `).join('')}        </tbody>    `;    container.appendChild(table);}async function addAdditionalCost() {    const modalContent = `        <div class="sol-form">            <div class="sol-form-group">                <label for="costTypeSelect" class="sol-form-label">Tipo di Costo</label>                <select id="costTypeSelect" class="sol-form-input">                    <option value="detention">Detention</option>                    <option value="demurrage">Demurrage</option>                </select>            </div>            <div class="sol-form-group">                <label for="amountInput" class="sol-form-label">Importo</label>                <input type="number" id="amountInput" class="sol-form-input" placeholder="0.00">            </div>            <div class="sol-form-group">                <label for="notesInput" class="sol-form-label">Note</label>                <textarea id="notesInput" class="sol-form-input" rows="3"></textarea>            </div>        </div>    `;    ModalSystem.show({        title: 'Aggiungi Costo Aggiuntivo',        content: modalContent,        buttons: [            { text: 'Annulla', class: 'sol-btn sol-btn-secondary', onclick: () => ModalSystem.close() },            {                text: 'Aggiungi',                class: 'sol-btn sol-btn-primary',                onclick: async () => {                    const shipmentId = getShipmentIdFromURL();                    const costData = {                        cost_type: document.getElementById('costTypeSelect').value,                        amount: parseFloat(document.getElementById('amountInput').value) || 0,                        notes: document.getElementById('notesInput').value.trim()                    };                    if (costData.amount <= 0) {                        notificationSystem.warning('L\'importo deve essere maggiore di zero.');                        return false;                    }                    try {                        notificationSystem.info('Aggiunta del costo in corso...');                        await dataManager.addAdditionalCost(shipmentId, costData);                        notificationSystem.success('Costo aggiuntivo aggiunto con successo!');                        loadShipmentDetails(shipmentId);                        return true;                    } catch (error) {                        notificationSystem.error(`Errore durante l\'aggiunta del costo: ${error.message}`);                        return false;                    }                }            }        ]    });}
+}function renderAdditionalCosts(costs) {    const container = document.getElementById('additionalCostsList');    container.innerHTML = '';    if (!costs || costs.length === 0) {        container.innerHTML = '<p>Nessun costo aggiuntivo.</p>';        return;    }    const table = document.createElement('table');    table.className = 'data-table';    table.innerHTML = `        <thead>            <tr>                <th>Tipo</th>                <th>Importo</th>                <th>Note</th>                <th>Azioni</th>            </tr>        </thead>        <tbody>            ${costs.map(cost => `                <tr>                    <td>${cost.cost_type}</td>                    <td>${formatCurrency(cost.amount)}</td>                    <td>${cost.notes || '-'}</td>                    <td>                        <button class="sol-btn sol-btn-danger sol-btn-sm delete-additional-cost-btn" data-cost-id="${cost.id}" title="Elimina"><i class="fas fa-trash"></i></button>                    </td>                </tr>            `).join('')}        </tbody>    `;    container.appendChild(table);}async function addAdditionalCost() {
+    const modalContent = `
+        <div class="sol-form">
+            <div class="sol-form-group">
+                <label for="costTypeSelect" class="sol-form-label">Tipo di Costo</label>
+                <select id="costTypeSelect" class="sol-form-input">
+                    <option value="detention">Detention</option>
+                    <option value="demurrage">Demurrage</option>
+                </select>
+            </div>
+            <div class="sol-form-group">
+                <label for="amountInput" class="sol-form-label">Importo</label>
+                <input type="number" id="amountInput" class="sol-form-input" placeholder="0.00">
+            </div>
+            <div class="sol-form-group">
+                <label for="notesInput" class="sol-form-label">Note</label>
+                <textarea id="notesInput" class="sol-form-input" rows="3"></textarea>
+            </div>
+        </div>
+    `;
+    ModalSystem.show({
+        title: 'Aggiungi Costo Aggiuntivo',
+        content: modalContent,
+        buttons: [
+            { text: 'Annulla', class: 'sol-btn sol-btn-secondary', onclick: () => ModalSystem.close() },
+            {
+                text: 'Aggiungi',
+                class: 'sol-btn sol-btn-primary',
+                onclick: async () => {
+                    const shipmentId = getShipmentIdFromURL();
+                    const costData = {
+                        cost_type: document.getElementById('costTypeSelect').value,
+                        amount: parseFloat(document.getElementById('amountInput').value) || 0,
+                        notes: document.getElementById('notesInput').value.trim()
+                    };
+                    if (costData.amount <= 0) {
+                        notificationSystem.warning('L\'importo deve essere maggiore di zero.');
+                        return false;
+                    }
+                    try {
+                        notificationSystem.info('Aggiunta del costo in corso...');
+                        await dataManager.addAdditionalCost(shipmentId, costData);
+                        notificationSystem.success('Costo aggiuntivo aggiunto con successo!');
+                        loadShipmentDetails(shipmentId);
+                        return true;
+                    } catch (error) {
+                        notificationSystem.error(`Errore durante l\'aggiunta del costo: ${error.message}`);
+                        return false;
+                    }
+                }
+            }
+        ]
+    });
+}
+
+function toggleStatusEditMode() {
+    const shipmentStatusSpan = document.getElementById('shipmentStatus');
+    const shipmentStatusEditor = document.getElementById('shipmentStatusEditor');
+    const editStatusBtn = document.getElementById('editStatusBtn');
+    const saveStatusBtn = document.getElementById('saveStatusBtn');
+
+    shipmentStatusSpan.style.display = 'none';
+    shipmentStatusEditor.style.display = 'inline-block';
+    editStatusBtn.style.display = 'none';
+    saveStatusBtn.style.display = 'inline-block';
+
+    // Set the current status in the editor
+    const currentStatus = shipmentStatusSpan.textContent.trim();
+    // Need to map display text back to value for the select element
+    const statusMap = {
+        'In attesa': 'pending',
+        'In transito': 'in_transit',
+        'Consegnato': 'delivered',
+        'Eccezione': 'exception',
+        'Registrato': 'registered'
+    };
+    shipmentStatusEditor.value = statusMap[currentStatus] || currentStatus;
+}
+
+async function saveShipmentStatus() {
+    const shipmentId = getShipmentIdFromURL();
+    const newStatus = document.getElementById('shipmentStatusEditor').value;
+
+    try {
+        notificationSystem.info('Salvataggio stato spedizione...');
+        await dataManager.updateShipmentStatus(shipmentId, newStatus);
+        notificationSystem.success('Stato spedizione aggiornato!');
+        loadShipmentDetails(shipmentId); // Reload details to reflect changes
+    } catch (error) {
+        notificationSystem.error(`Errore durante l'aggiornamento dello stato: ${error.message}`);
+    }
+}

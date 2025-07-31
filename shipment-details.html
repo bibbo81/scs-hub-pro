@@ -81,7 +81,17 @@
                     <div class="row">
                         <div class="col-md-4">
                             <p><span class="data-label">Riferimento:</span> <span id="shipmentNumber" class="data-value">-</span></p>
-                            <p><span class="data-label">Stato:</span> <span id="shipmentStatus" class="data-value">-</span></p>
+                            <p><span class="data-label">Stato:</span> <span id="shipmentStatus" class="data-value">-</span>
+                                <select id="shipmentStatusEditor" class="form-control form-control-sm d-inline-block w-auto ml-2" style="display: none;">
+                                    <option value="pending">In attesa</option>
+                                    <option value="in_transit">In transito</option>
+                                    <option value="delivered">Consegnato</option>
+                                    <option value="exception">Eccezione</option>
+                                    <option value="registered">Registrato</option>
+                                </select>
+                                <button class="sol-btn sol-btn-icon sol-btn-sm ml-2" id="editStatusBtn" title="Modifica Stato"><i class="fas fa-edit"></i></button>
+                                <button class="sol-btn sol-btn-icon sol-btn-sm ml-2" id="saveStatusBtn" title="Salva Stato" style="display: none;"><i class="fas fa-save"></i></button>
+                            </p>
                             <p><span class="data-label">Data Creazione:</span> <span id="shipmentDate" class="data-value">-</span></p>
                         </div>
                         <div class="col-md-4">
