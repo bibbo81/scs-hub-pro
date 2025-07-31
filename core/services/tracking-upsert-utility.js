@@ -14,10 +14,10 @@ class TrackingUpsertUtility {
      * @returns {Promise<TrackingLike>} Il record attivo.
      */
     async upsertTracking(trackingData, isManual = false) {
-        const { organization_id, tracking_number, carrier_code } = trackingData;
+        const { organization_id, user_id, tracking_number, carrier } = trackingData;
 
-        if (!organization_id || !carrier_code) {
-            throw new Error('organization_id and carrier_code are required for upsert.');
+        if (!organization_id) {
+            throw new Error('organization_id is required for upsert.');
         }
 
         if (!isManual && !tracking_number) {
@@ -30,7 +30,7 @@ class TrackingUpsertUtility {
             .select('id, deleted_at')
             .eq('organization_id', organization_id)
             .eq('tracking_number', tracking_number)
-            .eq('carrier_code', carrier_code);
+            .eq('carrier_code', carrier);
 
         if (findError) {
             console.error('[TrackingUpsertUtility] Error finding existing trackings:', findError);
@@ -77,7 +77,7 @@ class TrackingUpsertUtility {
             'last_event_description', 'metadata', 'created_at', 'updated_at', 'organization_id', 
             'vessel_name', 'vessel_imo', 'voyage_number', 'container_size', 'container_type', 
             'container_count', 'date_of_loading', 'date_of_departure', 'date_of_discharge', 
-            'booking_number', 'bl_number', 'transit_time', 'co2_emission', 'ts_count', 'carrier', 
+            'booking_number', 'bl_number', 'transit_time', 'co2_emission', 'ts_count', 
             'origin', 'destination', 'estimated_delivery', 'actual_delivery', 'shipped_date', 
             'created_by', 'deleted_at', 'transport_mode_id', 'vehicle_type_id', 'total_weight_kg', 'total_volume_cbm'
         ];
@@ -97,6 +97,16 @@ class TrackingUpsertUtility {
         // Assicura che i campi obbligatori (NOT NULL) abbiano un valore.
         if (!cleanData.tracking_type) {
             cleanData.tracking_type = 'container'; // Imposta un default se mancante
+        }
+
+        // Handle carrier field
+        if (trackingData.carrier) {
+            cleanData.carrier_code = trackingData.carrier;
+            // Attempt to find the carrier name from the dropdown
+            const carrierOption = document.querySelector(`#inline-carrier option[value="${trackingData.carrier}"]`);
+            if (carrierOption) {
+                cleanData.carrier_name = carrierOption.textContent;
+            }
         }
 
         console.log(`[TrackingUpsertUtility] Inserting new tracking for ${tracking_number}.`);
