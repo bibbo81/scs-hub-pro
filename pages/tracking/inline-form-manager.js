@@ -261,7 +261,7 @@ class InlineFormManager {
 
     handleVehicleTypeChange() {
         const vehicleTypeId = this.elements.vehicleType.value;
-        const selectedVehicleType = this.vehicleTypesData.find(type => type.id == vehicleTypeId);
+        const selectedVehicleType = this.vehicleTypesData.find(type => type.id === parseInt(vehicleTypeId, 10));
         const isManualAction = this.elements.action.value === 'manual';
 
         if (isManualAction && selectedVehicleType) {
@@ -356,7 +356,7 @@ class InlineFormManager {
 
                 // Basic validation for manual fields
                 if (!dataToSave.tracking_type) {
-                    window.NotificationSystem?.error("Tipo di Tracking è obbligatorio per l\'inserimento manuale.");
+                    window.NotificationSystem?.error("Tipo di Tracking è obbligatorio per l'inserimento manuale.");
                     return;
                 }
                 if (dataToSave.tracking_type === 'container' && !dataToSave.bl_number) {
