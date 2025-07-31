@@ -381,7 +381,7 @@ class DataManager {
              .select(`
                 *,
                 carrier:carrier_id (*),
-                tracking:tracking_id(*)
+                tracking:tracking_id(*, transport_modes(*), vehicle_types(*))
              `)
              .eq('id', shipmentId)
              .eq('organization_id', this.organizationId)
@@ -775,6 +775,42 @@ class DataManager {
                 .update({ allocated_cost: allocatedCost })
                 .eq('id', product.id);
         }
+    }
+
+    async updateShipmentStatus(shipmentId, newStatus) {
+        if (!this.initialized) await this.init();
+
+        const { data, error } = await supabase
+            .from('shipments')
+            .update({ status: newStatus, updated_at: new Date().toISOString() })
+            .eq('id', shipmentId)
+            .eq('organization_id', this.organizationId)
+            .select()
+            .single();
+
+        if (error) {
+            console.error('Error updating shipment status:', error);
+            throw error;
+        }
+
+        // Also update the associated tracking status if it exists
+        if (data.tracking_id) {
+            const { error: trackingUpdateError } = await supabase
+                .from('trackings')
+                .update({ current_status: newStatus, updated_at: new Date().toISOString() })
+                .eq('id', data.tracking_id);
+
+            if (trackingUpdateError) {
+                console.warn('Warning: Could not update associated tracking status:', trackingUpdateError);
+            }
+        }
+
+        if (window.notifyDataChange) {
+            window.notifyDataChange('shipments');
+            window.notifyDataChange('trackings');
+        }
+
+        return data;
     }
 }
 

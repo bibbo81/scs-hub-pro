@@ -435,7 +435,7 @@ class InlineFormManager {
         this.elements.origin.value = '';
         this.elements.destination.value = '';
         this.elements.reference.value = '';
-        this.elements.action.value = 'auto';
+        this.elements.action.value = 'manual';
         this.elements.preview.innerHTML = '<p class="text-muted">Inserisci un numero di tracking per vedere l\'anteprima.</p>';
         
         if (this.elements.carrier) {

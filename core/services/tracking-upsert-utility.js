@@ -79,7 +79,7 @@ class TrackingUpsertUtility {
             'container_count', 'date_of_loading', 'date_of_departure', 'date_of_discharge', 
             'booking_number', 'bl_number', 'transit_time', 'co2_emission', 'ts_count', 'carrier', 
             'origin', 'destination', 'estimated_delivery', 'actual_delivery', 'shipped_date', 
-            'created_by', 'deleted_at'
+            'created_by', 'deleted_at', 'transport_mode_id', 'vehicle_type_id', 'total_weight_kg', 'total_volume_cbm'
         ];
 
         const cleanData = {};
