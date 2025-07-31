@@ -9,6 +9,8 @@ class InlineFormManager {
             origin: document.getElementById('inline-origin'),
             destination: document.getElementById('inline-destination'),
             reference: document.getElementById('inline-reference'),
+            transportMode: document.getElementById('inline-transport-mode'),
+            vehicleType: document.getElementById('inline-vehicle-type'),
             submitBtn: document.getElementById('inline-submit-btn'),
             preview: document.getElementById('inline-live-preview'),
             detailsSection: document.getElementById('inline-details-section'),
@@ -26,6 +28,7 @@ class InlineFormManager {
         console.log('🚀 Initializing Inline Form Manager (v2)...');
         this.attachEventListeners();
         this.resetForm();
+        this.loadTransportModes(); // Load transport modes on init
     }
 
     attachEventListeners() {
@@ -35,6 +38,7 @@ class InlineFormManager {
         });
 
         this.elements.submitBtn.addEventListener('click', () => this.handleSubmit());
+        this.elements.transportMode.addEventListener('change', () => this.handleTransportModeChange());
     }
 
     async handleTrackingNumberInput() {
@@ -107,6 +111,73 @@ class InlineFormManager {
         }
     }
 
+    async loadTransportModes() {
+        const select = this.elements.transportMode;
+        if (!select) return;
+
+        select.innerHTML = '<option value="">Caricamento...</option>';
+        select.disabled = true;
+
+        try {
+            const { data, error } = await window.supabase
+                .from('transport_modes')
+                .select('id, name');
+
+            if (error) throw error;
+
+            select.innerHTML = '<option value="">Seleziona modalità...</option>';
+            data.forEach(mode => {
+                const option = document.createElement('option');
+                option.value = mode.id;
+                option.textContent = mode.name;
+                select.appendChild(option);
+            });
+            select.disabled = false;
+        } catch (error) {
+            console.error('Failed to load transport modes:', error);
+            select.innerHTML = '<option value="">Errore caricamento</option>';
+        }
+    }
+
+    async handleTransportModeChange() {
+        const transportModeId = this.elements.transportMode.value;
+        this.loadVehicleTypes(transportModeId);
+    }
+
+    async loadVehicleTypes(transportModeId) {
+        const select = this.elements.vehicleType;
+        if (!select) return;
+
+        select.innerHTML = '<option value="">Caricamento...</option>';
+        select.disabled = true;
+
+        if (!transportModeId) {
+            select.innerHTML = '<option value="">Seleziona tipo di mezzo...</option>';
+            return;
+        }
+
+        try {
+            const { data, error } = await window.supabase
+                .from('vehicle_types')
+                .select('id, name')
+                .eq('transport_mode_id', transportModeId);
+
+            if (error) throw error;
+
+            select.innerHTML = '<option value="">Seleziona tipo di mezzo...</option>';
+            data.forEach(type => {
+                const option = document.createElement('option');
+                option.value = type.id;
+                option.textContent = type.name;
+                select.appendChild(option);
+            });
+            select.disabled = false;
+        } catch (error) {
+            console.error('Failed to load vehicle types:', error);
+            select.innerHTML = '<option value="">Errore caricamento</option>';
+        }
+    }
+
     updatePreview(state) {
         const preview = this.elements.preview;
         switch(state) {
@@ -129,7 +200,7 @@ class InlineFormManager {
                     <p><strong>Numero:</strong> ${this.elements.trackingNumber.value.trim().toUpperCase()}</p>
                     <p><strong>Tipo Rilevato:</strong> ${typeLabel}</p>
                     ${oceanIdInfo}
-                    <p class="text-success"><i class="fas fa-check-circle"></i> Pronto per l'invio.</p>
+                    <p class="text-success"><i class="fas fa-check-circle"></i> Pronto per l\'invio.</p>
                 `;
                 break;
             case 'error':
@@ -145,6 +216,8 @@ class InlineFormManager {
         const origin = this.elements.origin.value.trim();
         const destination = this.elements.destination.value.trim();
         const reference = this.elements.reference.value.trim();
+        const transportModeId = this.elements.transportMode.value;
+        const vehicleTypeId = this.elements.vehicleType.value;
 
         if (!trackingNumber) {
             window.NotificationSystem?.error('Il numero di tracking è obbligatorio.');
@@ -172,7 +245,9 @@ class InlineFormManager {
                     // Pass manual fields to the service for merging
                     origin: origin,
                     destination: destination,
-                    reference: reference
+                    reference: reference,
+                    transport_mode_id: transportModeId,
+                    vehicle_type_id: vehicleTypeId
                 }
             );
 
@@ -232,6 +307,14 @@ class InlineFormManager {
             this.elements.carrier.disabled = true;
         }
         
+        if (this.elements.transportMode) {
+            this.elements.transportMode.value = '';
+        }
+        if (this.elements.vehicleType) {
+            this.elements.vehicleType.innerHTML = '<option value="">Seleziona tipo di mezzo...</option>';
+            this.elements.vehicleType.disabled = true;
+        }
+
         const collapse = document.getElementById('collapseDetails');
         if (collapse && collapse.classList.contains('show')) {
             $(collapse).collapse('hide');

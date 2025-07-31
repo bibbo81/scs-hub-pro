@@ -49,7 +49,7 @@ async function loadShipmentDetails(shipmentId) {
             if (window.supabase && window.dataManager?.organizationId) {
                 const { data: trackingRecords, error: trackingError } = await window.supabase
                     .from('trackings')
-                    .select('*')
+                    .select('*, vehicle_types(default_cbm, default_kg)') // Fetch vehicle_types data
                     .ilike('tracking_number', shipmentDetails.tracking_number.trim())
                     .eq('organization_id', window.dataManager.organizationId)
                     .order('updated_at', { ascending: false })
@@ -150,12 +150,30 @@ function renderProductsTable(shipment) {
 
     const isSeaShipment = shipment.tracking?.tracking_type === 'container' || shipment.tracking?.tracking_type === 'bl';
     let costPerCBM = 0;
+    let costPerKG = 0;
+    let costPerUnit = 0; // New variable for flexible cost allocation
 
-    if (isSeaShipment) {
+    // Prioritize vehicle_types for cost allocation if available
+    if (shipment.tracking?.vehicle_types) {
+        const defaultCBM = shipment.tracking.vehicle_types.default_cbm || 0;
+        const defaultKG = shipment.tracking.vehicle_types.default_kg || 0;
+        const totalCost = (shipment.freight_cost || 0) + (shipment.other_costs || 0);
+
+        if (defaultCBM > 0) {
+            costPerCBM = totalCost / defaultCBM;
+        } else if (defaultKG > 0) {
+            costPerKG = totalCost / defaultKG;
+        }
+        // Decide which cost per unit to use based on product data or a default strategy
+        // For simplicity, if both are available, prioritize CBM.
+        costPerUnit = costPerCBM > 0 ? costPerCBM : costPerKG; 
+
+    } else if (isSeaShipment) {
         const totalCost = (shipment.freight_cost || 0) + (shipment.other_costs || 0);
         const containerTypeString = document.getElementById('shipmentContainerTypes').textContent;
         const totalMaxCBM = calculateTotalMaxCBM(containerTypeString);
         costPerCBM = totalMaxCBM > 0 ? totalCost / totalMaxCBM : 0;
+        costPerUnit = costPerCBM; // Fallback to old logic
     }
 
     if (!products || products.length === 0) {
@@ -166,11 +184,21 @@ function renderProductsTable(shipment) {
 
     products.forEach(product => {
         let allocatedUnitCost = product.allocated_cost || 0;
-        if (isSeaShipment && costPerCBM > 0) {
+        
+        if (costPerUnit > 0) {
+            // Use the new flexible cost allocation
             const productVolume = product.total_volume_cbm || 0;
-            const quantity = product.quantity || 1;
-            const totalAllocated = productVolume * costPerCBM;
-            allocatedUnitCost = totalAllocated / quantity;
+            const productWeight = product.total_weight_kg || 0;
+            
+            if (costPerCBM > 0 && productVolume > 0) {
+                allocatedUnitCost = productVolume * costPerCBM;
+            } else if (costPerKG > 0 && productWeight > 0) {
+                allocatedUnitCost = productWeight * costPerKG;
+            }
+        } else if (isSeaShipment && costPerCBM > 0) {
+            // Fallback to old sea shipment logic if no vehicle_type is defined
+            const productVolume = product.total_volume_cbm || 0;
+            allocatedUnitCost = productVolume * costPerCBM;
         }
 
         const tr = document.createElement('tr');
@@ -198,19 +226,44 @@ function updateTotals(shipment) {
 
     const isSeaShipment = shipment.tracking?.tracking_type === 'container' || shipment.tracking?.tracking_type === 'bl';
     let costPerCBM = 0;
+    let costPerKG = 0;
+    let costPerUnit = 0;
 
-    if (isSeaShipment) {
+    // Prioritize vehicle_types for cost allocation if available
+    if (shipment.tracking?.vehicle_types) {
+        const defaultCBM = shipment.tracking.vehicle_types.default_cbm || 0;
+        const defaultKG = shipment.tracking.vehicle_types.default_kg || 0;
+        const totalCost = (shipment.freight_cost || 0) + (shipment.other_costs || 0);
+
+        if (defaultCBM > 0) {
+            costPerCBM = totalCost / defaultCBM;
+        } else if (defaultKG > 0) {
+            costPerKG = totalCost / defaultKG;
+        }
+        costPerUnit = costPerCBM > 0 ? costPerCBM : costPerKG;
+
+    } else if (isSeaShipment) {
         const totalCost = (shipment.freight_cost || 0) + (shipment.other_costs || 0);
         const containerTypeString = document.getElementById('shipmentContainerTypes').textContent;
         const totalMaxCBM = calculateTotalMaxCBM(containerTypeString);
         costPerCBM = totalMaxCBM > 0 ? totalCost / totalMaxCBM : 0;
+        costPerUnit = costPerCBM;
     }
 
     products.forEach(product => {
         totalWeight += product.total_weight_kg || 0;
         totalVolume += product.total_volume_cbm || 0;
 
-        if (isSeaShipment && costPerCBM > 0) {
+        if (costPerUnit > 0) {
+            const productVolume = product.total_volume_cbm || 0;
+            const productWeight = product.total_weight_kg || 0;
+
+            if (costPerCBM > 0 && productVolume > 0) {
+                totalAllocatedCost += productVolume * costPerCBM;
+            } else if (costPerKG > 0 && productWeight > 0) {
+                totalAllocatedCost += productWeight * costPerKG;
+            }
+        } else if (isSeaShipment && costPerCBM > 0) {
             const productVolume = product.total_volume_cbm || 0;
             totalAllocatedCost += productVolume * costPerCBM;
         } else {
