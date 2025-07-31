@@ -381,7 +381,7 @@ class DataManager {
              .select(`
                 *,
                 carrier:carrier_id (*),
-                tracking:tracking_id(*)
+                                tracking:tracking_id(*, transport_modes(*), vehicle_types(*))
              `)
              .eq('id', shipmentId)
              .eq('organization_id', this.organizationId)

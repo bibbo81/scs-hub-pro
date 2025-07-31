@@ -68,17 +68,21 @@ async function loadShipmentDetails(shipmentId) {
                     const trackingRecord = trackingRecords[0];
                     console.log('[FIX] Recupero del tracking riuscito!', trackingRecord);
                     shipmentDetails.tracking = trackingRecord;
-                    if (shipmentDetails.tracking.transport_mode_id) {
-                        shipmentDetails.tracking.transport_modes = { name: await getTransportModeName(shipmentDetails.tracking.transport_mode_id) };
-                    }
-                    if (shipmentDetails.tracking.vehicle_type_id) {
-                        shipmentDetails.tracking.vehicle_types = { name: await getVehicleTypeName(shipmentDetails.tracking.vehicle_type_id) };
-                    }
                 }
             }
         }
 
-        renderShipmentInfo(shipmentDetails);
+        // Ensure transport_modes and vehicle_types are populated before rendering
+        if (shipmentDetails.tracking) {
+            if (shipmentDetails.tracking.transport_mode_id && !shipmentDetails.tracking.transport_modes) {
+                shipmentDetails.tracking.transport_modes = { name: await getTransportModeName(shipmentDetails.tracking.transport_mode_id) };
+            }
+            if (shipmentDetails.tracking.vehicle_type_id && !shipmentDetails.tracking.vehicle_types) {
+                shipmentDetails.tracking.vehicle_types = { name: await getVehicleTypeName(shipmentDetails.tracking.vehicle_type_id) };
+            }
+        }
+
+        await renderShipmentInfo(shipmentDetails);
         renderProductsTable(shipmentDetails);
         await renderDocumentsTable(shipmentDetails.documents);
         renderAdditionalCosts(shipmentDetails.additionalCosts);
@@ -88,37 +92,7 @@ async function loadShipmentDetails(shipmentId) {
     }
 }
 
-async function getTransportModeName(id) {
-    if (!id) return '-';
-    try {
-        const { data, error } = await window.supabase
-            .from('transport_modes')
-            .select('name')
-            .eq('id', id)
-            .single();
-        if (error) throw error;
-        return data ? data.name : '-';
-    } catch (error) {
-        console.error('Error fetching transport mode name:', error);
-        return '-';
-    }
-}
 
-async function getVehicleTypeName(id) {
-    if (!id) return '-';
-    try {
-        const { data, error } = await window.supabase
-            .from('vehicle_types')
-            .select('name')
-            .eq('id', id)
-            .single();
-        if (error) throw error;
-        return data ? data.name : '-';
-    } catch (error) {
-        console.error('Error fetching vehicle type name:', error);
-        return '-';
-    }
-}
 
 async function renderShipmentInfo(shipment) {
     console.log('📦 DEBUG tracking:', shipment.tracking);
