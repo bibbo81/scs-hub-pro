@@ -13,11 +13,15 @@ class TrackingUpsertUtility {
      * @param {TrackingLike} trackingData - Dati del tracking da salvare.
      * @returns {Promise<TrackingLike>} Il record attivo.
      */
-    async upsertTracking(trackingData) {
+    async upsertTracking(trackingData, isManual = false) {
         const { organization_id, tracking_number, carrier_code } = trackingData;
 
-        if (!organization_id || !tracking_number || !carrier_code) {
-            throw new Error('organization_id, tracking_number, and carrier_code are required for upsert.');
+        if (!organization_id || !carrier_code) {
+            throw new Error('organization_id and carrier_code are required for upsert.');
+        }
+
+        if (!isManual && !tracking_number) {
+            throw new Error('tracking_number is required for non-manual upserts.');
         }
 
         // 1. Cerca record esistenti (attivi e soft-deleted)

@@ -219,8 +219,8 @@ class InlineFormManager {
         const transportModeId = this.elements.transportMode.value;
         const vehicleTypeId = this.elements.vehicleType.value;
 
-        if (!trackingNumber) {
-            window.NotificationSystem?.error('Il numero di tracking è obbligatorio.');
+        if (!trackingNumber && action !== 'manual') {
+            window.NotificationSystem?.error('Il numero di tracking è obbligatorio per le azioni automatiche/recupero.');
             return;
         }
         if (!carrier) {
@@ -232,42 +232,59 @@ class InlineFormManager {
         this.elements.submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Elaborazione...';
 
         try {
-            // Step 1: Get the fully normalized and enriched data from the service.
-            // The service now handles all complex mapping.
-            console.log('Step 1: Calling trackingService.track to get enriched data...');
-            const result = await window.trackingService.track(
-                trackingNumber,
-                this.detectedType,
-                {
-                    operation: action, // 'auto', 'get', or 'post'
+            let dataToSave = {};
+
+            if (action === 'manual') {
+                // For manual entry, directly construct dataToSave
+                dataToSave = {
+                    tracking_number: trackingNumber,
                     carrier: carrier,
-                    shipsgoId: this.detectedOceanShipment?.id,
-                    // Pass manual fields to the service for merging
+                    tracking_type: this.detectedType || 'manual', // Use detected type or default to 'manual'
                     origin: origin,
                     destination: destination,
                     reference: reference,
                     transport_mode_id: transportModeId,
-                    vehicle_type_id: vehicleTypeId
+                    vehicle_type_id: vehicleTypeId,
+                    current_status: 'pending', // Default status for manual entries
+                    // Add any other fields that are part of a manual tracking entry
+                };
+                console.log('Manual entry: Data ready for saving:', dataToSave);
+            } else {
+                // For 'auto' or 'get' actions, use trackingService.track
+                console.log('Step 1: Calling trackingService.track to get enriched data...');
+                const result = await window.trackingService.track(
+                    trackingNumber,
+                    this.detectedType,
+                    {
+                        operation: action, // 'auto', 'get', or 'post'
+                        carrier: carrier,
+                        shipsgoId: this.detectedOceanShipment?.id,
+                        // Pass manual fields to the service for merging
+                        origin: origin,
+                        destination: destination,
+                        reference: reference,
+                        transport_mode_id: transportModeId,
+                        vehicle_type_id: vehicleTypeId
+                    }
+                );
+
+                if (!result || !result.success) {
+                    throw new Error(result.apiError || 'Impossibile recuperare i dati dall\'API.');
                 }
-            );
+                console.log('Service Result (fully mapped):', result);
 
-            if (!result || !result.success) {
-                throw new Error(result.apiError || 'Impossibile recuperare i dati dall\'API.');
+                // The 'result' object is now the data to save. No more mapping needed here.
+                dataToSave = { ...result };
+                delete dataToSave.success; // Remove the success flag before saving
+                console.log('Service-based entry: Data ready for saving:', dataToSave);
             }
-            console.log('Service Result (fully mapped):', result);
-
-            // Step 2: The 'result' object is now the data to save. No more mapping needed here.
-            const dataToSave = { ...result };
-            delete dataToSave.success; // Remove the success flag before saving
-
-            console.log('Step 2: Data ready for saving:', dataToSave);
 
             // Step 3: Save to database via DataManager
             if (!window.dataManager) {
                 throw new Error("DataManager non è disponibile.");
             }
             console.log('Step 3: Saving data via DataManager...');
-            const saveResult = await window.dataManager.addTracking(dataToSave);
+            const saveResult = await window.dataManager.addTracking(dataToSave, action === 'manual');
 
             if (saveResult.tracking) {
                 window.NotificationSystem?.success(`Tracking ${action === 'get' ? 'recuperato' : 'aggiunto'} con successo!`);

@@ -54,7 +54,7 @@ class DataManager {
         return this.initPromise;
     }
 
-    async addTracking(trackingData) {
+    async addTracking(trackingData, isManual = false) {
         if (!this.initialized) await this.init();
 
         const timestamp = new Date().toISOString();
@@ -70,7 +70,7 @@ class DataManager {
             carrier_code: trackingData.carrier_code || trackingData.carrier
         };
 
-        const tracking = await trackingUpsertUtility.upsertTracking(dataForUpsert);
+        const tracking = await trackingUpsertUtility.upsertTracking(dataForUpsert, isManual);
 
         // Dopo aver creato/aggiornato il tracking, crea o collega la spedizione corrispondente.
         let shipment = null;
