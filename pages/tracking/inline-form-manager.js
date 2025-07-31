@@ -249,6 +249,7 @@ class InlineFormManager {
         }
 
         try {
+            console.log(`[Debug] Fetching vehicle types for transport_mode_id: ${transportModeId}`);
             const { data, error } = await window.supabase
                 .from('vehicle_types')
                 .select('id, name, default_cbm, default_kg') // Fetch default_cbm and default_kg
@@ -256,6 +257,7 @@ class InlineFormManager {
 
             if (error) throw error;
 
+            console.log('[Debug] Fetched vehicle types data:', data);
             this.vehicleTypesData = data; // Store fetched data
 
             select.innerHTML = '<option value="">Seleziona tipo di mezzo...</option>';
@@ -275,15 +277,22 @@ class InlineFormManager {
 
     handleVehicleTypeChange() {
         const vehicleTypeId = this.elements.vehicleType.value;
+        console.log(`[Debug] handleVehicleTypeChange triggered. vehicleTypeId: ${vehicleTypeId}`);
+
         const selectedVehicleType = this.vehicleTypesData.find(type => type.id === parseInt(vehicleTypeId, 10));
         const isManualAction = this.elements.action.value === 'manual';
 
+        console.log(`[Debug] isManualAction: ${isManualAction}`);
+        console.log('[Debug] selectedVehicleType:', selectedVehicleType);
+
         if (isManualAction && selectedVehicleType) {
+            console.log('[Debug] Applying default values:', selectedVehicleType);
             this.elements.totalWeight.value = selectedVehicleType.default_kg || '';
             this.elements.totalVolume.value = selectedVehicleType.default_cbm || '';
             this.elements.totalWeight.readOnly = true;
             this.elements.totalVolume.readOnly = true;
         } else {
+            console.log('[Debug] Clearing or ignoring default values.');
             this.elements.totalWeight.readOnly = false;
             this.elements.totalVolume.readOnly = false;
             if (!isManualAction) { // Only clear if not manual and no vehicle type selected
