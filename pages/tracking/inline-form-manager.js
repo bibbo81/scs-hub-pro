@@ -344,7 +344,7 @@ class InlineFormManager {
                     reference_number: reference,
                     origin: origin,
                     destination: destination,
-                    current_status: 'pending', // Default status for manual entries
+                    status: 'pending', // Default status for manual entries
                     eta: eta,
                     total_weight_kg: parseFloat(totalWeight) || null,
                     total_volume_cbm: parseFloat(totalVolume) || null,

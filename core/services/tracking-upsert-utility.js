@@ -75,7 +75,7 @@ class TrackingUpsertUtility {
             'reference_number', 'status', 'origin_port', 'origin_country', 'destination_port', 
             'destination_country', 'eta', 'ata', 'last_event_date', 'last_event_location', 
             'last_event_description', 'metadata', 'created_at', 'updated_at', 'organization_id', 
-            'vessel_name', 'vessel_imo', 'voyage_number', 'container_size', 'container_type', 
+            'vessel_name', 'vessel_imo', 'voyage_number', 'flight_number', 'container_size', 'container_type', 
             'container_count', 'date_of_loading', 'date_of_departure', 'date_of_discharge', 
             'booking_number', 'bl_number', 'transit_time', 'co2_emission', 'ts_count', 
             'origin', 'destination', 'estimated_delivery', 'actual_delivery', 'shipped_date', 

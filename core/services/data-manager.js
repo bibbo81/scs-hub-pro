@@ -805,7 +805,7 @@ class DataManager {
         if (data.tracking_id) {
             const { error: trackingUpdateError } = await supabase
                 .from('trackings')
-                .update({ current_status: newStatus, updated_at: new Date().toISOString() })
+                .update({ status: newStatus, updated_at: new Date().toISOString() })
                 .eq('id', data.tracking_id);
 
             if (trackingUpdateError) {
