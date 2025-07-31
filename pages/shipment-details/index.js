@@ -75,7 +75,39 @@ async function loadShipmentDetails(shipmentId) {
     }
 }
 
-function renderShipmentInfo(shipment) {
+async function getTransportModeName(id) {
+    if (!id) return '-';
+    try {
+        const { data, error } = await window.supabase
+            .from('transport_modes')
+            .select('name')
+            .eq('id', id)
+            .single();
+        if (error) throw error;
+        return data ? data.name : '-';
+    } catch (error) {
+        console.error('Error fetching transport mode name:', error);
+        return '-';
+    }
+}
+
+async function getVehicleTypeName(id) {
+    if (!id) return '-';
+    try {
+        const { data, error } = await window.supabase
+            .from('vehicle_types')
+            .select('name')
+            .eq('id', id)
+            .single();
+        if (error) throw error;
+        return data ? data.name : '-';
+    } catch (error) {
+        console.error('Error fetching vehicle type name:', error);
+        return '-';
+    }
+}
+
+async function renderShipmentInfo(shipment) {
     console.log('📦 DEBUG tracking:', shipment.tracking);
     console.log('📦 DEBUG containers:', shipment.tracking?.metadata?.raw?.shipment?.containers);
     
@@ -115,23 +147,11 @@ function renderShipmentInfo(shipment) {
         document.getElementById('shipmentContainerTypes').textContent = shipment.tracking?.container_types || '-';
 
     // New fields for manual shipments
-    document.getElementById('shipmentTransportMode').textContent = shipment.tracking?.transport_modes?.name || '-';
-    document.getElementById('shipmentVehicleType').textContent = shipment.tracking?.vehicle_types?.name || '-';
+    document.getElementById('shipmentTransportMode').textContent = await getTransportModeName(shipment.tracking?.transport_mode_id);
+    document.getElementById('shipmentVehicleType').textContent = await getVehicleTypeName(shipment.tracking?.vehicle_type_id);
     document.getElementById('shipmentTotalWeight').textContent = formatWeight(shipment.tracking?.total_weight_kg);
     document.getElementById('shipmentTotalVolume').textContent = formatVolume(shipment.tracking?.total_volume_cbm);
     }
-
-    // New fields for manual shipments
-    document.getElementById('shipmentTransportMode').textContent = shipment.tracking?.transport_modes?.name || '-';
-    document.getElementById('shipmentVehicleType').textContent = shipment.tracking?.vehicle_types?.name || '-';
-    document.getElementById('shipmentTotalWeight').textContent = formatWeight(shipment.tracking?.total_weight_kg);
-    document.getElementById('shipmentTotalVolume').textContent = formatVolume(shipment.tracking?.total_volume_cbm);
-
-    // New fields for manual shipments
-    document.getElementById('shipmentTransportMode').textContent = shipment.tracking?.transport_modes?.name || '-';
-    document.getElementById('shipmentVehicleType').textContent = shipment.tracking?.vehicle_types?.name || '-';
-    document.getElementById('shipmentTotalWeight').textContent = formatWeight(shipment.tracking?.total_weight_kg);
-    document.getElementById('shipmentTotalVolume').textContent = formatVolume(shipment.tracking?.total_volume_cbm);
 
     // Spedizioniere (dal record shipment) e Compagnia (dal record tracking)
     document.getElementById('shipmentCarrier').textContent = shipment.carrier?.name || shipment.carrier_name || 'N/A';
