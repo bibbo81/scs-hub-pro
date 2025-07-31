@@ -550,6 +550,40 @@
                                     </select>
                                 </div>
                             </div>
+                            <div class="form-row">
+                                <div class="form-group col-md-6">
+                                    <label for="inline-eta">ETA</label>
+                                    <input type="date" class="form-control" id="inline-eta">
+                                </div>
+                                <div class="form-group col-md-6">
+                                    <label for="inline-tracking-type">Tipo di Tracking</label>
+                                    <select id="inline-tracking-type" class="form-control">
+                                        <option value="">Seleziona tipo...</option>
+                                        <option value="air_waybill">Air Waybill</option>
+                                        <option value="container">Container/BL</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group col-md-6">
+                                    <label for="inline-total-weight">Peso Totale (kg)</label>
+                                    <input type="number" class="form-control" id="inline-total-weight" placeholder="0.00" step="0.01">
+                                </div>
+                                <div class="form-group col-md-6">
+                                    <label for="inline-total-volume">Volume Totale (cbm)</label>
+                                    <input type="number" class="form-control" id="inline-total-volume" placeholder="0.00" step="0.01">
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group col-md-6">
+                                    <label for="inline-bl-number">B/L Number</label>
+                                    <input type="text" class="form-control" id="inline-bl-number" placeholder="Solo per Marittimo">
+                                </div>
+                                <div class="form-group col-md-6">
+                                    <label for="inline-flight-number">Numero Volo</label>
+                                    <input type="text" class="form-control" id="inline-flight-number" placeholder="Solo per Aereo">
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
