@@ -97,9 +97,20 @@ class InlineFormManager {
 
     handleTrackingTypeChange() {
         const trackingType = this.elements.trackingType.value;
-        const isManual = this.elements.action.value === 'manual';
+        const isManualAction = this.elements.action.value === 'manual';
+        const isManualType = trackingType === 'manual';
 
-        if (isManual) {
+        // When tracking type is 'manual', the tracking number is not required.
+        this.elements.trackingNumber.required = !isManualType;
+        // Also update the placeholder to inform the user
+        if (isManualType) {
+            this.elements.trackingNumber.placeholder = 'Opzionale, generato se vuoto';
+        } else {
+            this.elements.trackingNumber.placeholder = 'Inserisci numero...';
+        }
+
+
+        if (isManualAction) {
             if (trackingType === 'container') {
                 this.elements.blNumber.required = true;
                 this.elements.flightNumber.required = false;
@@ -111,8 +122,11 @@ class InlineFormManager {
             } else {
                 this.elements.blNumber.required = false;
                 this.elements.flightNumber.required = false;
-                this.elements.blNumber.value = '';
-                this.elements.flightNumber.value = '';
+                // Don't clear if we just switched to manual type
+                if (trackingType !== 'manual') {
+                    this.elements.blNumber.value = '';
+                    this.elements.flightNumber.value = '';
+                }
             }
         }
     }
@@ -311,7 +325,7 @@ class InlineFormManager {
     }
 
     async handleSubmit() {
-        const trackingNumber = this.elements.trackingNumber.value.trim().toUpperCase();
+        let trackingNumber = this.elements.trackingNumber.value.trim().toUpperCase();
         const carrier = this.elements.carrier.value;
         const action = this.elements.action.value;
         const origin = this.elements.origin.value.trim();
@@ -319,11 +333,13 @@ class InlineFormManager {
         const reference = this.elements.reference.value.trim();
         const transportModeId = this.elements.transportMode.value;
         const vehicleTypeId = this.elements.vehicleType.value;
+        const trackingType = this.elements.trackingType.value; // Get tracking type
 
-        if (!trackingNumber && action !== 'manual') {
-            window.NotificationSystem?.error('Il numero di tracking è obbligatorio per le azioni automatiche/recupero.');
+        if (action !== 'manual' && !trackingNumber) {
+            window.NotificationSystem?.error('Il numero di tracking è obbligatorio per questa azione.');
             return;
         }
+
         if (!carrier) {
             window.NotificationSystem?.error('Il carrier è obbligatorio.');
             return;
@@ -336,6 +352,18 @@ class InlineFormManager {
             let dataToSave = {};
 
             if (action === 'manual') {
+                // If type is manual and number is empty, generate one.
+                if (trackingType === 'manual' && !trackingNumber) {
+                    trackingNumber = `MAN-${Date.now()}`;
+                } else if (!trackingNumber) {
+                    // For other manual types (container/awb), number is required.
+                    window.NotificationSystem?.error('Il numero di tracking è obbligatorio per questo tipo.');
+                    // re-enable button
+                    this.elements.submitBtn.disabled = false;
+                    this.elements.submitBtn.innerHTML = 'Aggiungi';
+                    return;
+                }
+
                 // For manual entry, directly construct dataToSave
                 dataToSave = {
                     tracking_number: trackingNumber,
@@ -357,14 +385,23 @@ class InlineFormManager {
                 // Basic validation for manual fields
                 if (!dataToSave.tracking_type) {
                     window.NotificationSystem?.error("Tipo di Tracking è obbligatorio per l'inserimento manuale.");
+                    // re-enable button
+                    this.elements.submitBtn.disabled = false;
+                    this.elements.submitBtn.innerHTML = 'Aggiungi';
                     return;
                 }
                 if (dataToSave.tracking_type === 'container' && !dataToSave.bl_number) {
                     window.NotificationSystem?.error('B/L Number è obbligatorio per il tipo Marittimo.');
+                    // re-enable button
+                    this.elements.submitBtn.disabled = false;
+                    this.elements.submitBtn.innerHTML = 'Aggiungi';
                     return;
                 }
                 if (dataToSave.tracking_type === 'air_waybill' && !dataToSave.flight_number) {
                     window.NotificationSystem?.error('Numero Volo è obbligatorio per il tipo Aereo.');
+                    // re-enable button
+                    this.elements.submitBtn.disabled = false;
+                    this.elements.submitBtn.innerHTML = 'Aggiungi';
                     return;
                 }
                 console.log('Manual entry: Data ready for saving:', dataToSave);
