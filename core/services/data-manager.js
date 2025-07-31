@@ -88,7 +88,13 @@ class DataManager {
             console.log(`Shipment for ${tracking.tracking_number} already exists. Updating tracking_id.`);
             const { data: updatedShipment, error: updateError } = await supabase
                 .from('shipments')
-                .update({ tracking_id: tracking.id, status: tracking.status, updated_at: timestamp })
+                .update({
+                    tracking_id: tracking.id,
+                    status: tracking.status,
+                    updated_at: timestamp,
+                    total_volume_cbm: tracking.total_volume_cbm, // Aggiunto
+                    total_weight_kg: tracking.total_weight_kg    // Aggiunto
+                })
                 .eq('id', existingShipment.id)
                 .select()
                 .single();
@@ -112,6 +118,8 @@ class DataManager {
                 destination: tracking.destination_port,
                 carrier_name: tracking.carrier_name,
                 eta: tracking.eta,
+                total_volume_cbm: tracking.total_volume_cbm, // Aggiunto
+                total_weight_kg: tracking.total_weight_kg,   // Aggiunto
                 created_at: timestamp,
                 updated_at: timestamp
             };

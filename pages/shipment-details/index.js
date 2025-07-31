@@ -137,8 +137,8 @@ async function renderShipmentInfo(shipment) {
     // New fields for manual shipments
     document.getElementById('shipmentTransportMode').textContent = await getTransportModeName(shipment.tracking?.transport_mode_id);
     document.getElementById('shipmentVehicleType').textContent = await getVehicleTypeName(shipment.tracking?.vehicle_type_id);
-    document.getElementById('shipmentTotalWeight').textContent = formatWeight(shipment.tracking?.total_weight_kg);
-    document.getElementById('shipmentTotalVolume').textContent = formatVolume(shipment.tracking?.total_volume_cbm);
+    document.getElementById('shipmentTotalWeight').textContent = formatWeight(shipment.total_weight_kg || shipment.tracking?.total_weight_kg);
+    document.getElementById('shipmentTotalVolume').textContent = formatVolume(shipment.total_volume_cbm || shipment.tracking?.total_volume_cbm);
 
     // Spedizioniere (dal record shipment) e Compagnia (dal record tracking)
     document.getElementById('shipmentCarrier').textContent = shipment.carrier?.name || shipment.carrier_name || 'N/A';
