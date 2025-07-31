@@ -200,6 +200,16 @@ class InlineFormManager {
 
     async handleTransportModeChange() {
         const transportModeId = this.elements.transportMode.value;
+        const transportModeName = this.elements.transportMode.options[this.elements.transportMode.selectedIndex]?.text;
+
+        // If mode is 'Road', hide the tracking type selector and default it to 'manual'
+        if (transportModeName === 'Road') {
+            this.elements.trackingType.closest('.form-group').style.display = 'none';
+            this.elements.trackingType.value = 'manual';
+        } else {
+            this.elements.trackingType.closest('.form-group').style.display = 'block';
+        }
+
         this.loadVehicleTypes(transportModeId);
     }
 
@@ -221,8 +231,7 @@ class InlineFormManager {
             console.log(`[Debug] Fetching vehicle types for transport_mode_id: ${transportModeId}`);
             const { data, error } = await window.supabase
                 .from('vehicle_types')
-                .select('id, name, default_cbm, default_kg') // Fetch default_cbm and default_kg
-                .eq('transport_mode_id', transportModeId);
+                .select('id, name, default_cbm, default_kg'); // Fetch default_cbm and default_kg
 
             if (error) throw error;
 
@@ -246,19 +255,28 @@ class InlineFormManager {
 
     handleVehicleTypeChange() {
         const vehicleTypeId = this.elements.vehicleType.value;
-        const selectedVehicleType = this.vehicleTypesData.find(type => type.id == vehicleTypeId); // Use == for type coercion
+        console.log(`[Debug] handleVehicleTypeChange triggered. vehicleTypeId: ${vehicleTypeId}`);
 
-        if (selectedVehicleType) {
+        const selectedVehicleType = this.vehicleTypesData.find(type => type.id == vehicleTypeId); // Use == for type coercion
+        const isManualAction = this.elements.action.value === 'manual';
+
+        console.log(`[Debug] isManualAction: ${isManualAction}`);
+        console.log('[Debug] selectedVehicleType:', selectedVehicleType);
+
+        if (isManualAction && selectedVehicleType) {
+            console.log('[Debug] Applying default values:', selectedVehicleType);
             this.elements.totalWeight.value = selectedVehicleType.default_kg || '';
             this.elements.totalVolume.value = selectedVehicleType.default_cbm || '';
             this.elements.totalWeight.readOnly = true;
             this.elements.totalVolume.readOnly = true;
         } else {
-            // If no vehicle is selected, clear the fields and make them editable
-            this.elements.totalWeight.value = '';
-            this.elements.totalVolume.value = '';
+            console.log('[Debug] Clearing or ignoring default values.');
             this.elements.totalWeight.readOnly = false;
             this.elements.totalVolume.readOnly = false;
+            if (!isManualAction) { // Only clear if not manual and no vehicle type selected
+                this.elements.totalWeight.value = '';
+                this.elements.totalVolume.value = '';
+            }
         }
     }
 
