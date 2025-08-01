@@ -268,10 +268,6 @@ class InlineFormManager {
             this.elements.totalVolume.value = '';
             this.elements.totalWeight.readOnly = false;
             this.elements.totalVolume.readOnly = false;
-            if (!isManualAction) { // Only clear if not manual and no vehicle type selected
-                this.elements.totalWeight.value = '';
-                this.elements.totalVolume.value = '';
-            }
         }
     }
 
