@@ -202,10 +202,10 @@ class InlineFormManager {
         const transportModeId = this.elements.transportMode.value;
         const transportModeName = this.elements.transportMode.options[this.elements.transportMode.selectedIndex]?.text;
 
-        // If mode is 'Road', hide the tracking type selector and default it to 'manual'
+        // If mode is 'Road', hide the tracking type selector and default it to 'parcel'
         if (transportModeName === 'Road') {
             this.elements.trackingType.closest('.form-group').style.display = 'none';
-            this.elements.trackingType.value = 'manual';
+            this.elements.trackingType.value = 'parcel';
         } else {
             this.elements.trackingType.closest('.form-group').style.display = 'block';
         }
