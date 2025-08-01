@@ -93,7 +93,9 @@ class DataManager {
                     status: tracking.status,
                     updated_at: timestamp,
                     total_volume_cbm: tracking.total_volume_cbm, // Aggiunto
-                    total_weight_kg: tracking.total_weight_kg    // Aggiunto
+                    total_weight_kg: tracking.total_weight_kg,   // Aggiunto
+                    transport_mode_id: tracking.transport_mode_id, // Aggiunto
+                    vehicle_type_id: tracking.vehicle_type_id      // Aggiunto
                 })
                 .eq('id', existingShipment.id)
                 .select()
@@ -120,6 +122,8 @@ class DataManager {
                 eta: tracking.eta,
                 total_volume_cbm: tracking.total_volume_cbm, // Aggiunto
                 total_weight_kg: tracking.total_weight_kg,   // Aggiunto
+                transport_mode_id: tracking.transport_mode_id, // Aggiunto
+                vehicle_type_id: tracking.vehicle_type_id,   // Aggiunto
                 created_at: timestamp,
                 updated_at: timestamp
             };
@@ -389,7 +393,9 @@ class DataManager {
              .select(`
                 *,
                 carrier:carrier_id (*),
-                                tracking:tracking_id(*, transport_modes(*), vehicle_types(*))
+                transport_mode:transport_mode_id(*),
+                vehicle_type:vehicle_type_id(*),
+                tracking:tracking_id(*)
              `)
              .eq('id', shipmentId)
              .eq('organization_id', this.organizationId)
