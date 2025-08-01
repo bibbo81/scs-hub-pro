@@ -350,11 +350,14 @@ class InlineFormManager {
 
             const carrierName = this.elements.carrier.options[this.elements.carrier.selectedIndex]?.textContent;
             if (action === 'manual') {
+                // FIX: Map 'air_waybill' to 'awb' to match the database check constraint.
+                const dbTrackingType = (trackingType === 'air_waybill') ? 'awb' : trackingType;
+
                 // For manual entry, directly construct the data object
                 dataToSave = {
                     tracking_number: trackingNumber,
                     carrier: carrier,
-                    tracking_type: trackingType || 'manual',
+                    tracking_type: dbTrackingType || 'manual',
                     reference_number: reference,
                     carrier_name: carrierName,
                     origin: origin,
