@@ -334,7 +334,8 @@ class InlineFormManager {
 
     // Basic validation for manual fields
     if (!dataToSave.tracking_number || !dataToSave.carrier) {
-        throw
+        throw new Error('Tracking number e carrier sono obbligatori per le spedizioni manuali.');
+    }
 
         // Basic validation
         if (!trackingNumber) {
