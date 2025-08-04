@@ -381,112 +381,102 @@ class DataManager {
     }
 
     /**
-     * Recupera i dettagli di una singola spedizione, inclusi prodotti e documenti.
-     * @param {string} shipmentId - L'ID della spedizione.
-     * @returns {Promise<Object>} Dettagli della spedizione.
-     */
-    async getShipmentDetails(shipmentId) {
-         if (!this.initialized) await this.init();
- 
-         let { data: shipment, error: shipmentError } = await supabase
-             .from('shipments')
-             .select(`
-                *,
-                carrier:carrier_id (*),
-                transport_mode:transport_mode_id(*),
-                vehicle_type:vehicle_type_id(*),
-                tracking:tracking_id(*)
-             `)
-             .eq('id', shipmentId)
-             .eq('organization_id', this.organizationId)
-             .single();
- 
-         if (shipmentError) {
-             console.error("Errore nel recuperare i dettagli della spedizione:", shipmentError);
-             throw shipmentError;
-         }
+ * Recupera i dettagli di una singola spedizione, inclusi prodotti e documenti.
+ * @param {string} shipmentId - L'ID della spedizione.
+ * @returns {Promise<Object>} Dettagli della spedizione.
+ */
+async getShipmentDetails(shipmentId) {
+    if (!this.initialized) await this.init();
 
-         // FIX DEFINITIVO: Fallback intelligente per dati vecchi senza organization_id
-         if (shipment && !shipment.tracking && shipment.tracking_number) {
-            console.log(`[Fallback] Tracking non trovato tramite ID. Ricerca per tracking_number: ${shipment.tracking_number}`);
-            
-            // 1. Prova la ricerca sicura con organization_id
-            const { data: trackingRecords, error: trackingByNumError } = await supabase
-                .from('trackings')
-                .select('*')
-                .ilike('tracking_number', shipment.tracking_number.trim())
-                .eq('organization_id', this.organizationId)
-                .order('updated_at', { ascending: false })
-                .limit(1);
+    // Recupera la spedizione con tutte le relazioni
+    let { data: shipment, error: shipmentError } = await supabase
+        .from('shipments')
+        .select(`
+            *,
+            carrier:carrier_id (*),
+            transport_mode:transport_mode_id (*),
+            vehicle_type:vehicle_type_id (*),
+            tracking:tracking_id (*)
+        `)
+        .eq('id', shipmentId)
+        .eq('organization_id', this.organizationId)
+        .single();
 
-            if (trackingByNumError) {
-                console.warn("Errore durante la ricerca di fallback del tracking:", trackingByNumError.message);
-            } else if (trackingRecords && trackingRecords.length > 0) {
-                console.log("[Fallback] ✅ Trovato tracking con organization_id (il più recente).", trackingRecords[0]);
-                shipment.tracking = trackingRecords[0];
-            } else {
-                // 2. Se non trovato, prova la ricerca per dati legacy (organization_id IS NULL)
-                console.warn(`[Fallback] Nessun tracking trovato. Tento ricerca legacy (organization_id IS NULL) per ${shipment.tracking_number}`);
-                const { data: legacyTrackings, error: legacyError } = await supabase.from('trackings').select('*').ilike('tracking_number', shipment.tracking_number.trim()).is('organization_id', null).order('updated_at', { ascending: false }).limit(1);
-                if (legacyError) {
-                    console.warn('[Fallback] Errore ricerca legacy:', legacyError.message);
-                } else if (legacyTrackings && legacyTrackings.length > 0) {
-                    const legacyTracking = legacyTrackings[0];
-                    console.log("[Fallback] ✅ Trovato record legacy (il più recente). Lo collego e lo aggiorno.");
-                    shipment.tracking = legacyTracking;
-                    // Auto-riparazione: aggiorna il record legacy con l'organization_id corretto
-                    await supabase.from('trackings').update({ organization_id: this.organizationId }).eq('id', legacyTracking.id);
-                }
-            }
-         }
- 
-         const { data: items, error: itemsError } = await supabase
-             .from('shipment_items')
-             .select('*')
-             .eq('shipment_id', shipmentId);
- 
-         if (itemsError) {
-             console.error("Errore nel recuperare gli items della spedizione:", itemsError);
-             throw itemsError;
-         }
- 
-         let productsWithDetails = [];
-         if (items && items.length > 0) {
-             const productIds = items.map(item => item.product_id).filter(id => id);
-             if (productIds.length > 0) {
-                 const { data: productDetails, error: productDetailsError } = await supabase
-                     .from('products')
-                     .select('id, name:description, sku')
-                     .in('id', productIds);
- 
-                 if (productDetailsError) throw productDetailsError;
- 
-                 const productMap = new Map(productDetails.map(p => [p.id, p]));
-                 productsWithDetails = items.map(item => ({
-                     ...item,
-                     product: productMap.get(item.product_id) || null
-                 }));
-             } else {
-                 productsWithDetails = items;
-             }
-         }
- 
-         const { data: documents, error: documentsError } = await supabase
-             .from('shipment_documents')
-             .select('*')
-             .eq('shipment_id', shipmentId);
- 
-         if (documentsError) throw documentsError;
-
-         const { data: additionalCosts, error: additionalCostsError } = await supabase
-             .from('additional_costs')
-             .select('*')
-             .eq('shipment_id', shipmentId);
-
-        if (additionalCostsError) throw additionalCostsError;
-
-         return { ...shipment, products: productsWithDetails, documents, additionalCosts };
+    if (shipmentError) {
+        console.error("Errore nel recuperare i dettagli della spedizione:", shipmentError);
+        throw shipmentError;
     }
+
+    // FALLBACK: Se la spedizione non ha un tracking collegato ma ha un tracking_number,
+    // prova a recuperare il tracking usando il tracking_number
+    if (!shipment.tracking && shipment.tracking_number) {
+        console.log(`[Fallback] Nessun tracking collegato. Cerco per tracking_number: ${shipment.tracking_number}`);
+        
+        const { data: trackingRecords, error: trackingError } = await supabase
+            .from('trackings')
+            .select('*')
+            .ilike('tracking_number', shipment.tracking_number.trim())
+            .eq('organization_id', this.organizationId)
+            .order('updated_at', { ascending: false })
+            .limit(1);
+
+        if (!trackingError && trackingRecords && trackingRecords.length > 0) {
+            console.log('[Fallback] ✅ Tracking trovato:', trackingRecords[0]);
+            shipment.tracking = trackingRecords[0];
+            
+            // OPZIONALE: Aggiorna il tracking_id nella spedizione per la prossima volta
+            await supabase
+                .from('shipments')
+                .update({ tracking_id: trackingRecords[0].id })
+                .eq('id', shipmentId);
+        }
+    }
+
+    // Recupera prodotti associati
+    const { data: products, error: productsError } = await supabase
+        .from('shipment_items')
+        .select(`
+            *,
+            product:product_id (*)
+        `)
+        .eq('shipment_id', shipmentId);
+
+    if (productsError) {
+        console.warn("Errore nel recuperare i prodotti:", productsError);
+        shipment.products = [];
+    } else {
+        shipment.products = products || [];
+    }
+
+    // Recupera documenti associati
+    const { data: documents, error: documentsError } = await supabase
+        .from('shipment_documents')
+        .select('*')
+        .eq('shipment_id', shipmentId);
+
+    if (documentsError) {
+        console.warn("Errore nel recuperare i documenti:", documentsError);
+        shipment.documents = [];
+    } else {
+        shipment.documents = documents || [];
+    }
+
+    // Recupera costi aggiuntivi
+    const { data: additionalCosts, error: costsError } = await supabase
+        .from('additional_costs')
+        .select('*')
+        .eq('shipment_id', shipmentId);
+
+    if (costsError) {
+        console.warn("Errore nel recuperare i costi aggiuntivi:", costsError);
+        shipment.additionalCosts = [];
+    } else {
+        shipment.additionalCosts = additionalCosts || [];
+    }
+
+    console.log('✅ Spedizione caricata con successo:', shipment);
+    return shipment;
+}
 
     /**
      * Aggiunge un prodotto a una spedizione.

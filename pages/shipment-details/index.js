@@ -138,23 +138,23 @@ async function loadShipmentDetails(shipmentId) {
 
 
 async function renderShipmentInfo(shipment) {
+    console.log('📦 DEBUG shipment:', shipment);
     console.log('📦 DEBUG tracking:', shipment.tracking);
-    console.log('📦 DEBUG containers:', shipment.tracking?.metadata?.raw?.shipment?.containers);
     
     document.getElementById('shipmentNumberTitle').textContent = `Spedizione ${shipment.shipment_number || ''}`;
     document.getElementById('shipmentNumber').textContent = shipment.shipment_number || '-';
 
-    // 1. STATO: Usa la fonte più affidabile (tracking) e la mappatura unificata
-    const statusToDisplay = shipment.tracking?.current_status || shipment.status || 'registered';
+    // 1. STATO: Prioritizza i dati dalla spedizione, poi dal tracking
+    const statusToDisplay = shipment.status || shipment.tracking?.current_status || 'registered';
     document.getElementById('shipmentStatus').innerHTML = formatStatus(statusToDisplay);
 
     document.getElementById('shipmentDate').textContent = formatDate(shipment.created_at);
 
-    // Origine/Destinazione: prioritizza i dati di tracking
-    document.getElementById('shipmentOrigin').textContent = shipment.tracking?.origin_port || shipment.origin_port || shipment.origin || '-';
-    document.getElementById('shipmentDestination').textContent = shipment.tracking?.destination_port || shipment.destination_port || shipment.destination || '-';
+    // 2. ORIGINE/DESTINAZIONE: Prioritizza i dati dalla spedizione
+    document.getElementById('shipmentOrigin').textContent = shipment.origin || shipment.origin_port || shipment.tracking?.origin_port || '-';
+    document.getElementById('shipmentDestination').textContent = shipment.destination || shipment.destination_port || shipment.tracking?.destination_port || '-';
 
-    // 2. TIPO CONTAINER: Calcola dinamicamente dai dati di tracking
+    // 3. TIPO CONTAINER: Calcola dinamicamente dai dati di tracking se disponibili
     const containers = shipment.tracking?.metadata?.raw?.shipment?.containers;
     if (Array.isArray(containers) && containers.length > 0) {
         const typeSummary = containers.reduce((acc, container) => {
@@ -176,22 +176,30 @@ async function renderShipmentInfo(shipment) {
         document.getElementById('shipmentContainerTypes').textContent = shipment.tracking?.container_types || '-';
     }
 
-    // New fields for manual shipments
-    document.getElementById('shipmentTransportMode').textContent = await getTransportModeName(shipment.tracking?.transport_mode_id || shipment.transport_mode_id);
-    document.getElementById('shipmentVehicleType').textContent = await getVehicleTypeName(shipment.tracking?.vehicle_type_id || shipment.vehicle_type_id);
+    // 4. MODALITÀ DI TRASPORTO E TIPO VEICOLO: Prioritizza i dati dalla spedizione
+    const transportModeId = shipment.transport_mode_id || shipment.tracking?.transport_mode_id;
+    const vehicleTypeId = shipment.vehicle_type_id || shipment.tracking?.vehicle_type_id;
     
-    // FIX: Prioritizza i dati dal record shipment per le spedizioni manuali
+    document.getElementById('shipmentTransportMode').textContent = await getTransportModeName(transportModeId);
+    document.getElementById('shipmentVehicleType').textContent = await getVehicleTypeName(vehicleTypeId);
+    
+    // 5. PESO E VOLUME: Prioritizza i dati dalla spedizione (per spedizioni manuali)
     const totalWeight = shipment.total_weight_kg || shipment.tracking?.total_weight_kg || 0;
     const totalVolume = shipment.total_volume_cbm || shipment.tracking?.total_volume_cbm || 0;
     
     document.getElementById('shipmentTotalWeight').textContent = formatWeight(totalWeight);
     document.getElementById('shipmentTotalVolume').textContent = formatVolume(totalVolume);
 
-    // Spedizioniere (dal record shipment) e Compagnia (dal record tracking)
+    // 6. CARRIERS: Due tipi diversi
+    // - Spedizioniere: quello che gestisce fisicamente la spedizione (dal record shipment)
+    // - Compagnia: quella che trasporta (nave/aereo, dal record tracking)
     document.getElementById('shipmentCarrier').textContent = shipment.carrier?.name || shipment.carrier_name || 'N/A';
+    
     const trackingData = shipment.tracking || {};
-    document.getElementById('shipmentTrackingCarrier').textContent = trackingData.carrier || trackingData.carrier_name || trackingData.carrier_code || '-';
+    const trackingCarrier = trackingData.carrier_name || trackingData.carrier || trackingData.carrier_code || '-';
+    document.getElementById('shipmentTrackingCarrier').textContent = trackingCarrier;
 
+    // 7. COSTI
     const freightCostInput = document.getElementById('freightCost');
     const otherCostsInput = document.getElementById('otherCosts');
     freightCostInput.value = shipment.freight_cost || 0;
