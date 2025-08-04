@@ -307,38 +307,10 @@ class InlineFormManager {
     async handleSubmit() {
         const action = this.elements.action.value;
         let trackingNumber = this.elements.trackingNumber.value.trim().toUpperCase();
-
-        // If manual and no tracking number, create a placeholder to satisfy DB constraints
-        if (action === 'manual') {
-    // FIX: Map 'air_waybill' to 'awb' to match the database check constraint.
-    const dbTrackingType = (trackingType === 'air_waybill') ? 'awb' : trackingType;
-
-    // For manual entry, directly construct the data object
-    dataToSave = {
-        tracking_number: trackingNumber,
-        carrier: carrier,
-        tracking_type: dbTrackingType || 'manual',
-        reference_number: reference,
-        carrier_name: carrierName,
-        origin: origin,
-        destination: destination,
-        status: 'pending',
-        eta: eta,
-        total_weight_kg: parseFloat(totalWeight) || null, // Convert to null if empty/NaN
-        total_volume_cbm: parseFloat(totalVolume) || null, // Convert to null if empty/NaN
-        transport_mode_id: transportModeId || null,
-        vehicle_type_id: vehicleTypeId || null,
-        bl_number: blNumber || null,
-        flight_number: flightNumber || null,
-    };
-
-    // Basic validation for manual fields
-    if (!dataToSave.tracking_number || !dataToSave.carrier) {
-        throw new Error('Tracking number e carrier sono obbligatori per le spedizioni manuali.');
-    }
-
+        
         // Basic validation
-        if (!trackingNumber) {
+        // For 'auto' or 'get', tracking number is required. For 'manual', it's optional.
+        if (action !== 'manual' && !trackingNumber) {
             window.NotificationSystem?.error('Il numero di tracking è obbligatorio.');
             return;
         }
@@ -366,41 +338,7 @@ class InlineFormManager {
         this.elements.submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Elaborazione...';
 
         try {
-            let dataToSave = {};
-
-            const carrierName = this.elements.carrier.options[this.elements.carrier.selectedIndex]?.textContent;
-            if (action === 'manual') {
-                // FIX: Map 'air_waybill' to 'awb' to match the database check constraint.
-                const dbTrackingType = (trackingType === 'air_waybill') ? 'awb' : trackingType;
-
-                // For manual entry, directly construct the data object
-                dataToSave = {
-                    tracking_number: trackingNumber,
-                    carrier: carrier,
-                    tracking_type: dbTrackingType || 'manual',
-                    reference_number: reference,
-                    carrier_name: carrierName,
-                    origin: origin,
-                    destination: destination,
-                    status: 'pending',
-                    eta: eta,
-                    total_weight_kg: parseFloat(totalWeight) || null, // FIX: Convert to null if empty/NaN
-                    total_volume_cbm: parseFloat(totalVolume) || null, // FIX: Convert to null if empty/NaN
-                    transport_mode_id: transportModeId || null,
-                    vehicle_type_id: vehicleTypeId || null,
-                    bl_number: blNumber || null,
-                    flight_number: flightNumber || null,
-                };
-
-                // Basic validation for manual fields
-                if (!dataToSave.tracking_type) {
-                    window.NotificationSystem?.error("Tipo di Tracking è obbligatorio per l'inserimento manuale.");
-                    // re-enable button
-                    this.elements.submitBtn.disabled = false;
-                    this.elements.submitBtn.innerHTML = 'Aggiungi'; // Restore button text
-                    return;
-                }
-                console.log('Manual entry: Data ready for saving:', dataToSave);
+                
             } else {
                 // For 'auto' or 'get' actions, use trackingService.track
                 console.log('Step 1: Calling trackingService.track to get enriched data...');
