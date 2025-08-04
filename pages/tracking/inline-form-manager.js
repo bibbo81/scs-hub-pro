@@ -304,7 +304,7 @@ class InlineFormManager {
         }
     }
 
-    async handleSubmit() {
+  async handleSubmit() {
     const action = this.elements.action.value;
     let trackingNumber = this.elements.trackingNumber.value.trim().toUpperCase();
     
