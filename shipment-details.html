@@ -6,10 +6,21 @@
     <script src="/core/env-check.js"></script>
     <title>Dettaglio Spedizione - SCS Hub Pro</title>
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23007AFF'%3E%3Cpath d='M20 8h-3V4H3c-1.1 0-2 .9-2 2v11h2c0 1.66 1.34 3 3 3s3-1.34 3-3h6c0 1.66 1.34 3 3 3s3-1.34 3-3h2v-5l-4zM6 18.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm13.5-9l1.96 2.5H17V9.5h2.5zm-1.5 9c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z'/%3E%3C/svg%3E">
+    
+    <!-- CSS Assets -->
     <link rel="stylesheet" href="/assets/css/solarium.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link rel="stylesheet" href="/core/modal-system.css">
-     <script src="/pages/tracking/tracking-unified-mapping.js"></script>
+    
+    <!-- Bootstrap CSS per compatibilità -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- Supabase JS -->
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    
+    <!-- Core Scripts -->
+    <script src="/pages/tracking/tracking-unified-mapping.js"></script>
+    
     <style>
         .section-title {
             font-size: 1.5rem;
@@ -61,6 +72,28 @@
         .product-selection-modal .col-weight { flex: 0 0 90px; text-align: center; }
         .product-selection-modal .col-volume { flex: 0 0 90px; text-align: center; }
         .product-selection-modal .col-qty { flex: 0 0 90px; text-align: center; }
+        
+        /* Bootstrap grid compatibility */
+        .row {
+            display: flex;
+            flex-wrap: wrap;
+            margin-right: -15px;
+            margin-left: -15px;
+        }
+        .col-md-4 {
+            position: relative;
+            width: 100%;
+            padding-right: 15px;
+            padding-left: 15px;
+            flex: 0 0 33.333333%;
+            max-width: 33.333333%;
+        }
+        @media (max-width: 767.98px) {
+            .col-md-4 {
+                flex: 0 0 100%;
+                max-width: 100%;
+            }
+        }
     </style>
 </head>
 <body>
@@ -114,8 +147,6 @@
                                 <label for="otherCosts" class="sol-form-label">Altri Costi</label>
                                 <input type="number" id="otherCosts" class="sol-form-input" placeholder="0.00">
                             </div>
-                        </div>
-                        <div class="col-md-4">
                             <p><span class="data-label">Costo Totale:</span> <span id="shipmentTotalCost" class="data-value font-weight-bold">-</span></p>
                             <button class="sol-btn sol-btn-primary sol-btn-sm" id="saveCostsBtn" style="margin-top: 1rem;">
                                 <i class="fas fa-save mr-2"></i>Salva Costi
@@ -207,6 +238,37 @@
     </main>
 
     <div id="modal-root"></div>
+    
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Core Services Module -->
+    <script type="module">
+        // Inizializza Supabase client globalmente
+        if (!window.supabase) {
+            const { createClient } = supabase;
+            window.supabase = createClient(
+                'https://gnlrmnsdmpjzitsysowq.supabase.co',
+                'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdubnJtbnNkbXBqeml0c3lzb3dxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mjk3OTI3OTQsImV4cCI6MjA0NTM2ODc5NH0.nBBLNL4OGHqXcj_0qXUYx95UwjJDcZXuKvQDmjq5B3k'
+            );
+        }
+
+        // Import dei servizi core
+        const { default: dataManager } = await import('/core/services/data-manager.js');
+        const { default: notificationSystem } = await import('/core/notification-system.js');
+        const { default: headerComponent } = await import('/core/header-component.js');
+        const { default: ModalSystem } = await import('/core/modal-system.js');
+        
+        // Rendi disponibili globalmente
+        window.dataManager = dataManager;
+        window.notificationSystem = notificationSystem;
+        window.headerComponent = headerComponent;
+        window.ModalSystem = ModalSystem;
+        
+        console.log('✅ Core services loaded for shipment-details page');
+    </script>
+    
+    <!-- Script specifico della pagina -->
     <script type="module" src="/pages/shipment-details/index.js"></script>
 </body>
 </html>

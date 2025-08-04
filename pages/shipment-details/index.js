@@ -1,10 +1,3 @@
-import dataManager from '/core/services/data-manager.js';
-import notificationSystem from '/core/notification-system.js';
-import headerComponent from '/core/header-component.js';
-import ModalSystem from '/core/modal-system.js';
-import supabaseClient from '/core/supabase-client.js'; // Aggiungi questa riga
-
-
 const CONTAINER_CBM_CAPACITY = {
     "20'": 33.2,
     "40'": 67.7,
@@ -13,23 +6,56 @@ const CONTAINER_CBM_CAPACITY = {
 };
 
 document.addEventListener('DOMContentLoaded', async () => {
-    await headerComponent.init();
-    await dataManager.init();
+    try {
+        // Aspetta che i servizi siano disponibili (caricati dall'HTML)
+        await waitForServices();
+        
+        await window.headerComponent?.init();
+        await window.dataManager?.init();
 
-// Assicurati che Supabase sia disponibile globalmente
-    if (!window.supabase) {
-        window.supabase = supabaseClient.getClient();
+        // Assicurati che Supabase sia disponibile globalmente
+        if (!window.supabase) {
+            console.warn('Supabase not available globally, trying to initialize...');
+            if (typeof supabase !== 'undefined') {
+                const { createClient } = supabase;
+                window.supabase = createClient(
+                    'https://gnlrmnsdmpjzitsysowq.supabase.co',
+                    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdubnJtbnNkbXBqeml0c3lzb3dxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mjk3OTI3OTQsImV4cCI6MjA0NTM2ODc5NH0.nBBLNL4OGHqXcj_0qXUYx95UwjJDcZXuKvQDmjq5B3k'
+                );
+            }
+        }
+
+        const shipmentId = getShipmentIdFromURL();
+        if (!shipmentId) {
+            window.notificationSystem?.error("ID Spedizione non trovato nell'URL.");
+            return;
+        }
+
+        await loadShipmentDetails(shipmentId);
+        setupEventListeners();
+        
+    } catch (error) {
+        console.error('Error initializing shipment details page:', error);
+        window.notificationSystem?.error("Errore nell'inizializzazione della pagina.");
     }
-
-    const shipmentId = getShipmentIdFromURL();
-    if (!shipmentId) {
-        notificationSystem.error("ID Spedizione non trovato nell'URL.");
-        return;
-    }
-
-    loadShipmentDetails(shipmentId);
-    setupEventListeners();
 });
+
+// Aspetta che i servizi siano disponibili
+async function waitForServices() {
+    let attempts = 0;
+    const maxAttempts = 50;
+    
+    while (attempts < maxAttempts) {
+        if (window.dataManager && window.notificationSystem && window.headerComponent && window.ModalSystem) {
+            console.log('✅ All services are available');
+            return;
+        }
+        await new Promise(resolve => setTimeout(resolve, 100));
+        attempts++;
+    }
+    
+    throw new Error('Services not available after timeout');
+}
 
 function getShipmentIdFromURL() {
     const params = new URLSearchParams(window.location.search);
@@ -74,27 +100,31 @@ async function getVehicleTypeName(vehicleTypeId) {
 
 async function loadShipmentDetails(shipmentId) {
     try {
-        const shipmentDetails = await dataManager.getShipmentDetails(shipmentId);
+        console.log('🔍 Loading shipment details for ID:', shipmentId);
+        
+        const shipmentDetails = await window.dataManager.getShipmentDetails(shipmentId);
         if (!shipmentDetails) {
-            notificationSystem.error("Spedizione non trovata.");
+            window.notificationSystem?.error("Spedizione non trovata.");
             return;
         }
 
-        // =================================================================
-        // FIX DEFINITIVO E SICURO: Assicura che i dati di tracking siano sempre caricati.
-        // Se getShipmentDetails non popola shipment.tracking (es. per record vecchi),
-        // lo forziamo qui usando il tracking_number. Questa logica è isolata
-        // e non impatta il resto dell'applicazione.
-        // =================================================================
+        console.log('📦 Raw shipment details:', shipmentDetails);
+
+        // FIX: Assicura che i dati di tracking siano sempre caricati
         if (shipmentDetails.tracking) {
+            console.log('✅ Tracking data found in shipment');
             if (shipmentDetails.tracking.transport_mode_id) {
-                shipmentDetails.tracking.transport_modes = { name: await getTransportModeName(shipmentDetails.tracking.transport_mode_id) };
+                shipmentDetails.tracking.transport_modes = { 
+                    name: await getTransportModeName(shipmentDetails.tracking.transport_mode_id) 
+                };
             }
             if (shipmentDetails.tracking.vehicle_type_id) {
-                shipmentDetails.tracking.vehicle_types = { name: await getVehicleTypeName(shipmentDetails.tracking.vehicle_type_id) };
+                shipmentDetails.tracking.vehicle_types = { 
+                    name: await getVehicleTypeName(shipmentDetails.tracking.vehicle_type_id) 
+                };
             }
         } else if (shipmentDetails.tracking_number) {
-            console.log(`[FIX] Dati di tracking non presenti. Tento recupero con tracking_number: ${shipmentDetails.tracking_number}`);
+            console.log(`🔍 [FIX] No tracking data found. Attempting recovery with tracking_number: ${shipmentDetails.tracking_number}`);
             
             if (window.supabase && window.dataManager?.organizationId) {
                 const { data: trackingRecords, error: trackingError } = await window.supabase
@@ -106,22 +136,24 @@ async function loadShipmentDetails(shipmentId) {
                     .limit(1);
 
                 if (trackingError) {
-                    console.warn('[FIX] Errore nel recupero del tracking:', trackingError.message);
+                    console.warn('[FIX] Error recovering tracking:', trackingError.message);
                 } else if (trackingRecords && trackingRecords.length > 0) {
                     const trackingRecord = trackingRecords[0];
-                    console.log('[FIX] Recupero del tracking riuscito!', trackingRecord);
+                    console.log('✅ [FIX] Tracking recovery successful!', trackingRecord);
                     shipmentDetails.tracking = trackingRecord;
+                    
+                    // Populate transport and vehicle type names
+                    if (trackingRecord.transport_mode_id) {
+                        shipmentDetails.tracking.transport_modes = { 
+                            name: await getTransportModeName(trackingRecord.transport_mode_id) 
+                        };
+                    }
+                    if (trackingRecord.vehicle_type_id) {
+                        shipmentDetails.tracking.vehicle_types = { 
+                            name: await getVehicleTypeName(trackingRecord.vehicle_type_id) 
+                        };
+                    }
                 }
-            }
-        }
-
-        // Ensure transport_modes and vehicle_types are populated before rendering
-        if (shipmentDetails.tracking) {
-            if (shipmentDetails.tracking.transport_mode_id && !shipmentDetails.tracking.transport_modes) {
-                shipmentDetails.tracking.transport_modes = { name: await getTransportModeName(shipmentDetails.tracking.transport_mode_id) };
-            }
-            if (shipmentDetails.tracking.vehicle_type_id && !shipmentDetails.tracking.vehicle_types) {
-                shipmentDetails.tracking.vehicle_types = { name: await getVehicleTypeName(shipmentDetails.tracking.vehicle_type_id) };
             }
         }
 
@@ -129,13 +161,12 @@ async function loadShipmentDetails(shipmentId) {
         renderProductsTable(shipmentDetails);
         await renderDocumentsTable(shipmentDetails.documents);
         renderAdditionalCosts(shipmentDetails.additionalCosts);
+        
     } catch (error) {
-        console.error("Errore caricamento dettagli spedizione:", error);
-        notificationSystem.error("Impossibile caricare i dettagli della spedizione.");
+        console.error("Error loading shipment details:", error);
+        window.notificationSystem?.error("Impossibile caricare i dettagli della spedizione.");
     }
 }
-
-
 
 async function renderShipmentInfo(shipment) {
     console.log('📦 DEBUG shipment:', shipment);
@@ -145,7 +176,7 @@ async function renderShipmentInfo(shipment) {
     document.getElementById('shipmentNumber').textContent = shipment.shipment_number || '-';
 
     // 1. STATO: Prioritizza i dati dalla spedizione, poi dal tracking
-    const statusToDisplay = shipment.status || shipment.tracking?.current_status || 'registered';
+    const statusToDisplay = shipment.status || shipment.tracking?.current_status || shipment.tracking?.status || 'registered';
     document.getElementById('shipmentStatus').innerHTML = formatStatus(statusToDisplay);
 
     document.getElementById('shipmentDate').textContent = formatDate(shipment.created_at);
@@ -180,8 +211,11 @@ async function renderShipmentInfo(shipment) {
     const transportModeId = shipment.transport_mode_id || shipment.tracking?.transport_mode_id;
     const vehicleTypeId = shipment.vehicle_type_id || shipment.tracking?.vehicle_type_id;
     
-    document.getElementById('shipmentTransportMode').textContent = await getTransportModeName(transportModeId);
-    document.getElementById('shipmentVehicleType').textContent = await getVehicleTypeName(vehicleTypeId);
+    const transportModeName = shipment.tracking?.transport_modes?.name || await getTransportModeName(transportModeId);
+    const vehicleTypeName = shipment.tracking?.vehicle_types?.name || await getVehicleTypeName(vehicleTypeId);
+    
+    document.getElementById('shipmentTransportMode').textContent = transportModeName;
+    document.getElementById('shipmentVehicleType').textContent = vehicleTypeName;
     
     // 5. PESO E VOLUME: Prioritizza i dati dalla spedizione (per spedizioni manuali)
     const totalWeight = shipment.total_weight_kg || shipment.tracking?.total_weight_kg || 0;
@@ -191,8 +225,6 @@ async function renderShipmentInfo(shipment) {
     document.getElementById('shipmentTotalVolume').textContent = formatVolume(totalVolume);
 
     // 6. CARRIERS: Due tipi diversi
-    // - Spedizioniere: quello che gestisce fisicamente la spedizione (dal record shipment)
-    // - Compagnia: quella che trasporta (nave/aereo, dal record tracking)
     document.getElementById('shipmentCarrier').textContent = shipment.carrier?.name || shipment.carrier_name || 'N/A';
     
     const trackingData = shipment.tracking || {};
@@ -202,8 +234,8 @@ async function renderShipmentInfo(shipment) {
     // 7. COSTI
     const freightCostInput = document.getElementById('freightCost');
     const otherCostsInput = document.getElementById('otherCosts');
-    freightCostInput.value = shipment.freight_cost || 0;
-    otherCostsInput.value = shipment.other_costs || 0;
+    if (freightCostInput) freightCostInput.value = shipment.freight_cost || 0;
+    if (otherCostsInput) otherCostsInput.value = shipment.other_costs || 0;
     updateTotalCost();
 }
 
@@ -226,6 +258,8 @@ function calculateTotalMaxCBM(containerTypeString) {
 function renderProductsTable(shipment) {
     const products = shipment.products || [];
     const tbody = document.getElementById('productsTableBody');
+    if (!tbody) return;
+    
     tbody.innerHTML = '';
 
     const isSeaShipment = shipment.tracking?.tracking_type === 'container' || shipment.tracking?.tracking_type === 'bl';
@@ -233,12 +267,11 @@ function renderProductsTable(shipment) {
     let costPerKG = 0;
     let costPerUnit = 0;
 
-    // FIX: Usa i dati totali dalla shipment se disponibili
     const totalWeight = shipment.total_weight_kg || shipment.tracking?.total_weight_kg || 0;
     const totalVolume = shipment.total_volume_cbm || shipment.tracking?.total_volume_cbm || 0;
     const totalCost = (shipment.freight_cost || 0) + (shipment.other_costs || 0);
 
-    // Prioritize vehicle_types for cost allocation if available
+    // Calculate cost allocation logic
     if (shipment.tracking?.vehicle_types || shipment.vehicle_type) {
         const vehicleType = shipment.tracking?.vehicle_types || shipment.vehicle_type;
         const defaultCBM = vehicleType.default_cbm || totalVolume;
@@ -253,12 +286,12 @@ function renderProductsTable(shipment) {
         costPerUnit = costPerCBM > 0 ? costPerCBM : costPerKG;
 
     } else if (isSeaShipment) {
-        const containerTypeString = document.getElementById('shipmentContainerTypes').textContent;
+        const containerTypeElement = document.getElementById('shipmentContainerTypes');
+        const containerTypeString = containerTypeElement ? containerTypeElement.textContent : '';
         const totalMaxCBM = calculateTotalMaxCBM(containerTypeString);
         costPerCBM = totalMaxCBM > 0 ? totalCost / totalMaxCBM : 0;
         costPerUnit = costPerCBM;
     } else {
-        // Per spedizioni manuali senza tipo veicolo specifico
         if (totalVolume > 0) {
             costPerCBM = totalCost / totalVolume;
             costPerUnit = costPerCBM;
@@ -278,7 +311,6 @@ function renderProductsTable(shipment) {
         let allocatedUnitCost = product.allocated_cost || 0;
         
         if (costPerUnit > 0) {
-            // Usa volume o peso per il calcolo
             const productVolume = product.total_volume_cbm || 0;
             const productWeight = product.total_weight_kg || 0;
             
@@ -312,7 +344,6 @@ function updateTotals(shipment) {
     const products = shipment.products || [];
     let totalWeight = 0, totalVolume = 0, totalAllocatedCost = 0;
 
-    // FIX: Usa gli stessi calcoli di renderProductsTable
     const shipmentTotalWeight = shipment.total_weight_kg || shipment.tracking?.total_weight_kg || 0;
     const shipmentTotalVolume = shipment.total_volume_cbm || shipment.tracking?.total_volume_cbm || 0;
     const totalCost = (shipment.freight_cost || 0) + (shipment.other_costs || 0);
@@ -321,7 +352,6 @@ function updateTotals(shipment) {
     let costPerKG = 0;
     let costPerUnit = 0;
 
-    // Calcola i costi unitari usando la stessa logica
     if (shipmentTotalVolume > 0) {
         costPerCBM = totalCost / shipmentTotalVolume;
         costPerUnit = costPerCBM;
@@ -348,20 +378,27 @@ function updateTotals(shipment) {
         }
     });
 
-    document.getElementById('totalWeight').textContent = formatWeight(totalWeight);
-    document.getElementById('totalVolume').textContent = formatVolume(totalVolume);
-    document.getElementById('totalAllocatedCost').textContent = formatCurrency(totalAllocatedCost);
+    const totalWeightEl = document.getElementById('totalWeight');
+    const totalVolumeEl = document.getElementById('totalVolume');
+    const totalAllocatedCostEl = document.getElementById('totalAllocatedCost');
+    
+    if (totalWeightEl) totalWeightEl.textContent = formatWeight(totalWeight);
+    if (totalVolumeEl) totalVolumeEl.textContent = formatVolume(totalVolume);
+    if (totalAllocatedCostEl) totalAllocatedCostEl.textContent = formatCurrency(totalAllocatedCost);
 }
 
 async function renderDocumentsTable(documents) {
     const tbody = document.getElementById('documentsTableBody');
+    if (!tbody) return;
+    
     tbody.innerHTML = '';
     if (!documents || documents.length === 0) {
         tbody.innerHTML = '<tr><td colspan="5" class="text-center">Nessun documento caricato.</td></tr>';
         return;
     }
+    
     for (const doc of documents) {
-        const signedUrl = await dataManager.getPublicFileUrl(doc.file_path);
+        const signedUrl = await window.dataManager.getPublicFileUrl(doc.file_path);
         const tr = document.createElement('tr');
         tr.dataset.documentId = doc.id;
         tr.innerHTML = `
@@ -379,11 +416,54 @@ async function renderDocumentsTable(documents) {
     }
 }
 
+function renderAdditionalCosts(costs) {
+    const container = document.getElementById('additionalCostsList');
+    if (!container) return;
+    
+    container.innerHTML = '';
+    if (!costs || costs.length === 0) {
+        container.innerHTML = '<p>Nessun costo aggiuntivo.</p>';
+        return;
+    }
+    
+    const table = document.createElement('table');
+    table.className = 'data-table';
+    table.innerHTML = `
+        <thead>
+            <tr>
+                <th>Tipo</th>
+                <th>Importo</th>
+                <th>Note</th>
+                <th>Azioni</th>
+            </tr>
+        </thead>
+        <tbody>
+            ${costs.map(cost => `
+                <tr>
+                    <td>${cost.cost_type}</td>
+                    <td>${formatCurrency(cost.amount)}</td>
+                    <td>${cost.notes || '-'}</td>
+                    <td>
+                        <button class="sol-btn sol-btn-danger sol-btn-sm delete-additional-cost-btn" data-cost-id="${cost.id}" title="Elimina"><i class="fas fa-trash"></i></button>
+                    </td>
+                </tr>
+            `).join('')}
+        </tbody>
+    `;
+    container.appendChild(table);
+}
+
 function updateTotalCost() {
-    const freightCost = parseFloat(document.getElementById('freightCost').value) || 0;
-    const otherCosts = parseFloat(document.getElementById('otherCosts').value) || 0;
+    const freightCostEl = document.getElementById('freightCost');
+    const otherCostsEl = document.getElementById('otherCosts');
+    const totalCostEl = document.getElementById('shipmentTotalCost');
+    
+    if (!freightCostEl || !otherCostsEl || !totalCostEl) return;
+    
+    const freightCost = parseFloat(freightCostEl.value) || 0;
+    const otherCosts = parseFloat(otherCostsEl.value) || 0;
     const totalCost = freightCost + otherCosts;
-    document.getElementById('shipmentTotalCost').textContent = formatCurrency(totalCost);
+    totalCostEl.textContent = formatCurrency(totalCost);
 }
 
 function setupEventListeners() {
@@ -395,8 +475,8 @@ function setupEventListeners() {
     document.getElementById('editStatusBtn')?.addEventListener('click', toggleStatusEditMode);
     document.getElementById('saveStatusBtn')?.addEventListener('click', saveShipmentStatus);
 
-    document.getElementById('freightCost').addEventListener('input', updateTotalCost);
-    document.getElementById('otherCosts').addEventListener('input', updateTotalCost);
+    document.getElementById('freightCost')?.addEventListener('input', updateTotalCost);
+    document.getElementById('otherCosts')?.addEventListener('input', updateTotalCost);
 
     document.getElementById('productsTableBody')?.addEventListener('click', (event) => {
         const editBtn = event.target.closest('.edit-product-btn');
@@ -424,21 +504,21 @@ async function saveCosts() {
     const freightCost = parseFloat(document.getElementById('freightCost').value) || 0;
     const otherCosts = parseFloat(document.getElementById('otherCosts').value) || 0;
     try {
-        notificationSystem.info('Salvataggio dei costi in corso...');
-        await dataManager.updateShipmentCosts(shipmentId, freightCost, otherCosts);
-        await dataManager.allocateCosts(shipmentId);
-        notificationSystem.success('Costi salvati con successo!');
+        window.notificationSystem?.info('Salvataggio dei costi in corso...');
+        await window.dataManager.updateShipmentCosts(shipmentId, freightCost, otherCosts);
+        await window.dataManager.allocateCosts(shipmentId);
+        window.notificationSystem?.success('Costi salvati con successo!');
         loadShipmentDetails(shipmentId);
     } catch (error) {
-        notificationSystem.error(`Errore durante il salvataggio: ${error.message}`);
+        window.notificationSystem?.error(`Errore durante il salvataggio: ${error.message}`);
     }
 }
 
 async function changeShipmentCarrier() {
     try {
-        const carriers = await dataManager.getCarriers();
+        const carriers = await window.dataManager.getCarriers();
         if (!carriers || carriers.length === 0) {
-            notificationSystem.info('Nessun corriere disponibile.');
+            window.notificationSystem?.info('Nessun corriere disponibile.');
             return;
         }
         const modalContent = `
@@ -451,11 +531,11 @@ async function changeShipmentCarrier() {
                 </div>
             </div>
         `;
-        ModalSystem.show({
+        window.ModalSystem?.show({
             title: 'Cambia Corriere',
             content: modalContent,
             buttons: [
-                { text: 'Annulla', class: 'sol-btn sol-btn-secondary', onclick: () => ModalSystem.close() },
+                { text: 'Annulla', class: 'sol-btn sol-btn-secondary', onclick: () => window.ModalSystem.close() },
                 {
                     text: 'Salva',
                     class: 'sol-btn sol-btn-primary',
@@ -463,13 +543,13 @@ async function changeShipmentCarrier() {
                         const selectedCarrierId = document.getElementById('carrierSelect').value;
                         const shipmentId = getShipmentIdFromURL();
                         try {
-                            notificationSystem.info('Aggiornamento corriere...');
-                            await dataManager.updateShipmentCarrier(shipmentId, selectedCarrierId);
-                            notificationSystem.success('Corriere aggiornato!');
+                            window.notificationSystem?.info('Aggiornamento corriere...');
+                            await window.dataManager.updateShipmentCarrier(shipmentId, selectedCarrierId);
+                            window.notificationSystem?.success('Corriere aggiornato!');
                             loadShipmentDetails(shipmentId);
                             return true;
                         } catch (error) {
-                            notificationSystem.error(`Errore: ${error.message}`);
+                            window.notificationSystem?.error(`Errore: ${error.message}`);
                             return false;
                         }
                     }
@@ -477,7 +557,7 @@ async function changeShipmentCarrier() {
             ]
         });
     } catch (error) {
-        notificationSystem.error('Impossibile caricare la lista dei corrieri.');
+        window.notificationSystem?.error('Impossibile caricare la lista dei corrieri.');
     }
 }
 
@@ -494,11 +574,11 @@ async function uploadDocument() {
             </div>
         </div>
     `;
-    ModalSystem.show({
+    window.ModalSystem?.show({
         title: 'Carica Nuovo Documento',
         content: modalContent,
         buttons: [
-            { text: 'Annulla', class: 'sol-btn sol-btn-secondary', onclick: () => ModalSystem.close() },
+            { text: 'Annulla', class: 'sol-btn sol-btn-secondary', onclick: () => window.ModalSystem.close() },
             {
                 text: 'Carica',
                 class: 'sol-btn sol-btn-primary',
@@ -506,18 +586,18 @@ async function uploadDocument() {
                     const documentType = document.getElementById('documentTypeInput').value.trim();
                     const file = document.getElementById('fileInput').files[0];
                     if (!documentType || !file) {
-                        notificationSystem.warning('Per favore, compila tutti i campi.');
+                        window.notificationSystem?.warning('Per favore, compila tutti i campi.');
                         return false;
                     }
                     const shipmentId = getShipmentIdFromURL();
                     try {
-                        notificationSystem.info('Caricamento del documento in corso...');
-                        await dataManager.uploadShipmentDocument(shipmentId, file, documentType);
-                        notificationSystem.success('Documento caricato con successo!');
+                        window.notificationSystem?.info('Caricamento del documento in corso...');
+                        await window.dataManager.uploadShipmentDocument(shipmentId, file, documentType);
+                        window.notificationSystem?.success('Documento caricato con successo!');
                         loadShipmentDetails(shipmentId);
                         return true;
                     } catch (error) {
-                        notificationSystem.error(`Errore durante il caricamento: ${error.message}`);
+                        window.notificationSystem?.error(`Errore durante il caricamento: ${error.message}`);
                         return false;
                     }
                 }
@@ -527,15 +607,20 @@ async function uploadDocument() {
 }
 
 async function deleteDocument(documentId) {
-    const confirmed = await ModalSystem.confirm({ title: 'Conferma Eliminazione', content: 'Sei sicuro di voler eliminare questo documento?', confirmText: 'Elimina', cancelText: 'Annulla' });
+    const confirmed = await window.ModalSystem?.confirm({ 
+        title: 'Conferma Eliminazione', 
+        content: 'Sei sicuro di voler eliminare questo documento?', 
+        confirmText: 'Elimina', 
+        cancelText: 'Annulla' 
+    });
     if (confirmed) {
         try {
-            notificationSystem.info('Eliminazione in corso...');
-            await dataManager.deleteShipmentDocument(documentId);
-            notificationSystem.success('Documento eliminato.');
+            window.notificationSystem?.info('Eliminazione in corso...');
+            await window.dataManager.deleteShipmentDocument(documentId);
+            window.notificationSystem?.success('Documento eliminato.');
             loadShipmentDetails(getShipmentIdFromURL());
         } catch (error) {
-            notificationSystem.error(`Errore: ${error.message}`);
+            window.notificationSystem?.error(`Errore: ${error.message}`);
         }
     }
 }
@@ -550,28 +635,28 @@ function replaceDocument(documentId) {
             </div>
         </div>
     `;
-    ModalSystem.show({
+    window.ModalSystem?.show({
         title: 'Sostituisci Documento',
         content: modalContent,
         buttons: [
-            { text: 'Annulla', class: 'sol-btn sol-btn-secondary', onclick: () => ModalSystem.close() },
+            { text: 'Annulla', class: 'sol-btn sol-btn-secondary', onclick: () => window.ModalSystem.close() },
             {
                 text: 'Sostituisci',
                 class: 'sol-btn sol-btn-primary',
                 onclick: async function() {
                     const newFile = document.getElementById('replaceFileInput').files[0];
                     if (!newFile) {
-                        notificationSystem.warning('Seleziona un file.');
+                        window.notificationSystem?.warning('Seleziona un file.');
                         return false;
                     }
                     try {
-                        notificationSystem.info('Sostituzione in corso...');
-                        await dataManager.replaceShipmentDocument(documentId, newFile);
-                        notificationSystem.success('Documento sostituito.');
+                        window.notificationSystem?.info('Sostituzione in corso...');
+                        await window.dataManager.replaceShipmentDocument(documentId, newFile);
+                        window.notificationSystem?.success('Documento sostituito.');
                         loadShipmentDetails(getShipmentIdFromURL());
                         return true;
                     } catch (error) {
-                        notificationSystem.error(`Errore: ${error.message}`);
+                        window.notificationSystem?.error(`Errore: ${error.message}`);
                         return false;
                     }
                 }
@@ -582,10 +667,10 @@ function replaceDocument(documentId) {
 
 async function downloadDocument(documentId) {
     try {
-        notificationSystem.info('Preparazione del download...');
-        const doc = (await dataManager.getShipmentDetails(getShipmentIdFromURL())).documents.find(d => d.id === documentId);
+        window.notificationSystem?.info('Preparazione del download...');
+        const doc = (await window.dataManager.getShipmentDetails(getShipmentIdFromURL())).documents.find(d => d.id === documentId);
         if (!doc) throw new Error('Documento non trovato.');
-        const signedUrl = await dataManager.getPublicFileUrl(doc.file_path);
+        const signedUrl = await window.dataManager.getPublicFileUrl(doc.file_path);
         if (!signedUrl) throw new Error('Impossibile generare il link.');
         const response = await fetch(signedUrl);
         if (!response.ok) throw new Error(`Errore di rete: ${response.statusText}`);
@@ -599,18 +684,18 @@ async function downloadDocument(documentId) {
         link.remove();
         window.URL.revokeObjectURL(url);
     } catch (error) {
-        notificationSystem.error(`Errore durante il download: ${error.message}`);
+        window.notificationSystem?.error(`Errore durante il download: ${error.message}`);
     }
 }
 
 async function editProduct(shipmentItemId) {
     const shipmentId = getShipmentIdFromURL();
     try {
-        const shipmentDetails = await dataManager.getShipmentDetails(shipmentId);
+        const shipmentDetails = await window.dataManager.getShipmentDetails(shipmentId);
         const itemToEdit = shipmentDetails.products.find(p => p.id === shipmentItemId);
 
         if (!itemToEdit) {
-            notificationSystem.error('Prodotto non trovato nella spedizione.');
+            window.notificationSystem?.error('Prodotto non trovato nella spedizione.');
             return;
         }
 
@@ -631,11 +716,11 @@ async function editProduct(shipmentItemId) {
             </div>
         `;
 
-        ModalSystem.show({
+        window.ModalSystem?.show({
             title: `Modifica Prodotto: ${itemToEdit.product?.name || itemToEdit.name}`,
             content: modalContent,
             buttons: [
-                { text: 'Annulla', class: 'sol-btn sol-btn-secondary', onclick: () => ModalSystem.close() },
+                { text: 'Annulla', class: 'sol-btn sol-btn-secondary', onclick: () => window.ModalSystem.close() },
                 {
                     text: 'Salva Modifiche',
                     class: 'sol-btn sol-btn-primary',
@@ -645,7 +730,7 @@ async function editProduct(shipmentItemId) {
                         const totalVolume = parseFloat(document.getElementById('editVolume').value) || 0;
 
                         if (isNaN(quantity) || quantity <= 0) {
-                            notificationSystem.error('La quantità deve essere un numero valido maggiore di zero.');
+                            window.notificationSystem?.error('La quantità deve essere un numero valido maggiore di zero.');
                             return false;
                         }
 
@@ -656,15 +741,15 @@ async function editProduct(shipmentItemId) {
                         };
 
                         try {
-                            notificationSystem.info('Salvataggio modifiche...');
-                            await dataManager.updateShipmentItem(shipmentItemId, updatedData);
-                            await dataManager.allocateCosts(shipmentId); // Ricalcola i costi
-                            notificationSystem.success('Prodotto aggiornato con successo!');
+                            window.notificationSystem?.info('Salvataggio modifiche...');
+                            await window.dataManager.updateShipmentItem(shipmentItemId, updatedData);
+                            await window.dataManager.allocateCosts(shipmentId);
+                            window.notificationSystem?.success('Prodotto aggiornato con successo!');
                             loadShipmentDetails(shipmentId);
-                            return true; // Chiude la modale
+                            return true;
                         } catch (error) {
-                            notificationSystem.error(`Errore durante l'aggiornamento: ${error.message}`);
-                            return false; // Non chiude la modale
+                            window.notificationSystem?.error(`Errore durante l'aggiornamento: ${error.message}`);
+                            return false;
                         }
                     }
                 }
@@ -672,26 +757,31 @@ async function editProduct(shipmentItemId) {
         });
 
     } catch (error) {
-        notificationSystem.error('Impossibile caricare i dettagli del prodotto da modificare.');
+        window.notificationSystem?.error('Impossibile caricare i dettagli del prodotto da modificare.');
     }
 }
 
 async function deleteProduct(productId) {
-    const confirmed = await ModalSystem.confirm({ title: 'Conferma Eliminazione', content: 'Sei sicuro di voler rimuovere questo prodotto?', confirmText: 'Elimina', cancelText: 'Annulla' });
+    const confirmed = await window.ModalSystem?.confirm({ 
+        title: 'Conferma Eliminazione', 
+        content: 'Sei sicuro di voler rimuovere questo prodotto?', 
+        confirmText: 'Elimina', 
+        cancelText: 'Annulla' 
+    });
     if (confirmed) {
         try {
-            await dataManager.deleteShipmentItem(productId); // Assicurati che dataManager abbia deleteShipmentItem
-            notificationSystem.success('Prodotto rimosso.');
+            await window.dataManager.deleteShipmentItem(productId);
+            window.notificationSystem?.success('Prodotto rimosso.');
             loadShipmentDetails(getShipmentIdFromURL());
         } catch (error) {
-            notificationSystem.error('Errore durante la rimozione del prodotto.');
+            window.notificationSystem?.error('Errore durante la rimozione del prodotto.');
         }
     }
 }
 
 async function addProduct() {
     try {
-        const allProducts = await dataManager.getAllProducts();
+        const allProducts = await window.dataManager.getAllProducts();
         let selectedProducts = new Set();
 
         const renderProductList = (productsToRender) => {
@@ -736,12 +826,12 @@ async function addProduct() {
             </div>
         `;
 
-        ModalSystem.show({
+        window.ModalSystem?.show({
             title: 'Aggiungi Prodotti alla Spedizione',
             size: 'lg',
             content: modalContent,
             buttons: [
-                { text: 'Annulla', class: 'sol-btn sol-btn-secondary', onclick: () => ModalSystem.close() },
+                { text: 'Annulla', class: 'sol-btn sol-btn-secondary', onclick: () => window.ModalSystem.close() },
                 {
                     text: 'Aggiungi Selezionati',
                     class: 'sol-btn sol-btn-primary',
@@ -749,7 +839,6 @@ async function addProduct() {
                         const shipmentId = getShipmentIdFromURL();
                         const itemsToAdd = [];
                         
-                        // Itera solo sui prodotti visibili e selezionati per ottenere i valori corretti dagli input.
                         document.querySelectorAll('#productListContainer .product-list-row').forEach(row => {
                             const checkbox = row.querySelector('input[type="checkbox"]');
                             if (checkbox && checkbox.checked) {
@@ -760,7 +849,6 @@ async function addProduct() {
                                     const totalVolume = parseFloat(row.querySelector('.product-volume-input').value) || 0;
                                     const totalWeight = parseFloat(row.querySelector('.product-weight-input').value) || 0;
                                     
-                                    // Calcola i valori unitari da quelli totali
                                     const unitVolume = quantity > 0 ? totalVolume / quantity : 0;
                                     const unitWeight = quantity > 0 ? totalWeight / quantity : 0;
 
@@ -770,15 +858,15 @@ async function addProduct() {
                         });
 
                         try {
-                            notificationSystem.info('Aggiunta prodotti in corso...');
+                            window.notificationSystem?.info('Aggiunta prodotti in corso...');
                             for (const item of itemsToAdd) {
-                                await dataManager.addShipmentItem(shipmentId, item);
+                                await window.dataManager.addShipmentItem(shipmentId, item);
                             }
-                            notificationSystem.success('Prodotti aggiunti con successo!');
+                            window.notificationSystem?.success('Prodotti aggiunti con successo!');
                             loadShipmentDetails(shipmentId);
                             return true;
                         } catch (error) {
-                            notificationSystem.error(`Errore: ${error.message}`);
+                            window.notificationSystem?.error(`Errore: ${error.message}`);
                             return false;
                         }
                     }
@@ -788,7 +876,7 @@ async function addProduct() {
 
         renderProductList(allProducts);
 
-        document.getElementById('productSearchInput').addEventListener('input', (e) => {
+        document.getElementById('productSearchInput')?.addEventListener('input', (e) => {
             const searchTerm = e.target.value.toLowerCase();
             const filteredProducts = allProducts.filter(p => 
                 p.name.toLowerCase().includes(searchTerm) || 
@@ -797,7 +885,7 @@ async function addProduct() {
             renderProductList(filteredProducts);
         });
 
-        document.getElementById('productListContainer').addEventListener('change', (e) => {
+        document.getElementById('productListContainer')?.addEventListener('change', (e) => {
             if (e.target.type === 'checkbox') {
                 const row = e.target.closest('.product-list-row');
                 if (row) {
@@ -812,30 +900,11 @@ async function addProduct() {
         });
 
     } catch (error) {
-        notificationSystem.error('Impossibile caricare la lista dei prodotti.');
+        window.notificationSystem?.error('Impossibile caricare la lista dei prodotti.');
     }
 }
 
-function formatCurrency(value) { return (typeof value === 'number') ? value.toLocaleString('it-IT', { style: 'currency', currency: 'EUR' }) : '€ 0,00'; }
-function formatWeight(value) { return (typeof value === 'number') ? `${value.toFixed(3)} kg` : '0 kg'; }
-function formatVolume(value) { return (typeof value === 'number') ? `${value.toFixed(3)} m³` : '0 m³'; }
-function formatDate(dateString) { return dateString ? new Date(dateString).toLocaleDateString('it-IT') : '-'; }
-function formatStatus(rawStatus) {
-    // Fallback if the unified mapping is not available on time
-    if (!window.TrackingUnifiedMapping || !window.TrackingUnifiedMapping.mapStatus) {
-        const statusKey = (rawStatus || 'registered').toLowerCase().replace(/ /g, '_');
-        const label = rawStatus || 'Registrato';
-        return `<span class="badge status-${statusKey}">${label}</span>`;
-    }
-
-    // Use the unified mapping for consistent status display
-    const statusKey = window.TrackingUnifiedMapping.mapStatus(rawStatus || 'registered');
-    const config = window.TrackingUnifiedMapping.STATUS_DISPLAY_CONFIG[statusKey] || window.TrackingUnifiedMapping.STATUS_DISPLAY_CONFIG['default'];
-
-    return `<span class="badge badge-${config.class}" title="${config.label}">
-                <i class="fas ${config.icon} mr-2"></i>${config.label}
-            </span>`;
-}function renderAdditionalCosts(costs) {    const container = document.getElementById('additionalCostsList');    container.innerHTML = '';    if (!costs || costs.length === 0) {        container.innerHTML = '<p>Nessun costo aggiuntivo.</p>';        return;    }    const table = document.createElement('table');    table.className = 'data-table';    table.innerHTML = `        <thead>            <tr>                <th>Tipo</th>                <th>Importo</th>                <th>Note</th>                <th>Azioni</th>            </tr>        </thead>        <tbody>            ${costs.map(cost => `                <tr>                    <td>${cost.cost_type}</td>                    <td>${formatCurrency(cost.amount)}</td>                    <td>${cost.notes || '-'}</td>                    <td>                        <button class="sol-btn sol-btn-danger sol-btn-sm delete-additional-cost-btn" data-cost-id="${cost.id}" title="Elimina"><i class="fas fa-trash"></i></button>                    </td>                </tr>            `).join('')}        </tbody>    `;    container.appendChild(table);}async function addAdditionalCost() {
+async function addAdditionalCost() {
     const modalContent = `
         <div class="sol-form">
             <div class="sol-form-group">
@@ -855,11 +924,11 @@ function formatStatus(rawStatus) {
             </div>
         </div>
     `;
-    ModalSystem.show({
+    window.ModalSystem?.show({
         title: 'Aggiungi Costo Aggiuntivo',
         content: modalContent,
         buttons: [
-            { text: 'Annulla', class: 'sol-btn sol-btn-secondary', onclick: () => ModalSystem.close() },
+            { text: 'Annulla', class: 'sol-btn sol-btn-secondary', onclick: () => window.ModalSystem.close() },
             {
                 text: 'Aggiungi',
                 class: 'sol-btn sol-btn-primary',
@@ -871,17 +940,17 @@ function formatStatus(rawStatus) {
                         notes: document.getElementById('notesInput').value.trim()
                     };
                     if (costData.amount <= 0) {
-                        notificationSystem.warning('L\'importo deve essere maggiore di zero.');
+                        window.notificationSystem?.warning('L\'importo deve essere maggiore di zero.');
                         return false;
                     }
                     try {
-                        notificationSystem.info('Aggiunta del costo in corso...');
-                        await dataManager.addAdditionalCost(shipmentId, costData);
-                        notificationSystem.success('Costo aggiuntivo aggiunto con successo!');
+                        window.notificationSystem?.info('Aggiunta del costo in corso...');
+                        await window.dataManager.addAdditionalCost(shipmentId, costData);
+                        window.notificationSystem?.success('Costo aggiuntivo aggiunto con successo!');
                         loadShipmentDetails(shipmentId);
                         return true;
                     } catch (error) {
-                        notificationSystem.error(`Errore durante l\'aggiunta del costo: ${error.message}`);
+                        window.notificationSystem?.error(`Errore durante l\'aggiunta del costo: ${error.message}`);
                         return false;
                     }
                 }
@@ -896,14 +965,14 @@ function toggleStatusEditMode() {
     const editStatusBtn = document.getElementById('editStatusBtn');
     const saveStatusBtn = document.getElementById('saveStatusBtn');
 
+    if (!shipmentStatusSpan || !shipmentStatusEditor || !editStatusBtn || !saveStatusBtn) return;
+
     shipmentStatusSpan.style.display = 'none';
     shipmentStatusEditor.style.display = 'inline-block';
     editStatusBtn.style.display = 'none';
     saveStatusBtn.style.display = 'inline-block';
 
-    // Set the current status in the editor
     const currentStatus = shipmentStatusSpan.textContent.trim();
-    // Need to map display text back to value for the select element
     const statusMap = {
         'In attesa': 'pending',
         'In transito': 'in_transit',
@@ -916,14 +985,50 @@ function toggleStatusEditMode() {
 
 async function saveShipmentStatus() {
     const shipmentId = getShipmentIdFromURL();
-    const newStatus = document.getElementById('shipmentStatusEditor').value;
+    const newStatus = document.getElementById('shipmentStatusEditor')?.value;
+
+    if (!newStatus) return;
 
     try {
-        notificationSystem.info('Salvataggio stato spedizione...');
-        await dataManager.updateShipmentStatus(shipmentId, newStatus);
-        notificationSystem.success('Stato spedizione aggiornato!');
-        loadShipmentDetails(shipmentId); // Reload details to reflect changes
+        window.notificationSystem?.info('Salvataggio stato spedizione...');
+        await window.dataManager.updateShipmentStatus(shipmentId, newStatus);
+        window.notificationSystem?.success('Stato spedizione aggiornato!');
+        loadShipmentDetails(shipmentId);
     } catch (error) {
-        notificationSystem.error(`Errore durante l'aggiornamento dello stato: ${error.message}`);
+        window.notificationSystem?.error(`Errore durante l'aggiornamento dello stato: ${error.message}`);
     }
+}
+
+// Helper Functions
+function formatCurrency(value) { 
+    return (typeof value === 'number') ? value.toLocaleString('it-IT', { style: 'currency', currency: 'EUR' }) : '€ 0,00'; 
+}
+
+function formatWeight(value) { 
+    return (typeof value === 'number') ? `${value.toFixed(3)} kg` : '0 kg'; 
+}
+
+function formatVolume(value) { 
+    return (typeof value === 'number') ? `${value.toFixed(3)} m³` : '0 m³'; 
+}
+
+function formatDate(dateString) { 
+    return dateString ? new Date(dateString).toLocaleDateString('it-IT') : '-'; 
+}
+
+function formatStatus(rawStatus) {
+    // Fallback if the unified mapping is not available
+    if (!window.TrackingUnifiedMapping || !window.TrackingUnifiedMapping.mapStatus) {
+        const statusKey = (rawStatus || 'registered').toLowerCase().replace(/ /g, '_');
+        const label = rawStatus || 'Registrato';
+        return `<span class="badge status-${statusKey}">${label}</span>`;
+    }
+
+    // Use the unified mapping for consistent status display
+    const statusKey = window.TrackingUnifiedMapping.mapStatus(rawStatus || 'registered');
+    const config = window.TrackingUnifiedMapping.STATUS_DISPLAY_CONFIG[statusKey] || window.TrackingUnifiedMapping.STATUS_DISPLAY_CONFIG['default'];
+
+    return `<span class="badge badge-${config.class}" title="${config.label}">
+                <i class="fas ${config.icon} mr-2"></i>${config.label}
+            </span>`;
 }
