@@ -52,33 +52,35 @@ class InlineFormManager {
     }
 
     handleActionChange() {
-        const action = this.elements.action.value;
-        const isManual = action === 'manual';
- 
-        // Expand details for manual entry
-        const collapse = document.getElementById('collapseDetails');
-        if (isManual && collapse && !collapse.classList.contains('show')) {
-            // Using jQuery as it's available on the page for collapse
-            $(collapse).collapse('show');
-        }
- 
-        // The tracking number is optional only for manual action.
-        // The placeholder will be updated to reflect this.
-        if (isManual) {
-            this.elements.trackingNumber.placeholder = 'Opzionale, generato se vuoto';
-        } else {
-            this.elements.trackingNumber.placeholder = 'Inserisci numero...';
-        }
+    const action = this.elements.action.value;
+    const isManual = action === 'manual';
 
-        // Reset values when switching from manual to auto/get
-        if (!isManual) {
-            this.elements.eta.value = '';
-            this.elements.trackingType.value = '';
-            this.elements.totalWeight.value = '';
-            this.elements.totalVolume.value = '';
-            this.elements.blNumber.value = '';
-            this.elements.flightNumber.value = '';        }
+    // Expand details for manual entry
+    const collapse = document.getElementById('collapseDetails');
+    if (isManual && collapse && !collapse.classList.contains('show')) {
+        $(collapse).collapse('show');
     }
+
+    // The tracking number is optional only for manual action.
+    if (isManual) {
+        this.elements.trackingNumber.placeholder = 'Opzionale, generato se vuoto';
+        // FIX: Rendi obbligatorio il tipo di tracking per le spedizioni manuali
+        this.elements.trackingType.required = true;
+    } else {
+        this.elements.trackingNumber.placeholder = 'Inserisci numero...';
+        this.elements.trackingType.required = false;
+    }
+
+    // Reset values when switching from manual to auto/get
+    if (!isManual) {
+        this.elements.eta.value = '';
+        this.elements.trackingType.value = '';
+        this.elements.totalWeight.value = '';
+        this.elements.totalVolume.value = '';
+        this.elements.blNumber.value = '';
+        this.elements.flightNumber.value = '';
+    }
+}
 
     handleTrackingTypeChange() {
         const trackingType = this.elements.trackingType.value;
@@ -309,7 +311,6 @@ class InlineFormManager {
     let trackingNumber = this.elements.trackingNumber.value.trim().toUpperCase();
     
     // Basic validation
-    // For 'auto' or 'get', tracking number is required. For 'manual', it's optional.
     if (action !== 'manual' && !trackingNumber) {
         window.NotificationSystem?.error('Il numero di tracking è obbligatorio.');
         return;
@@ -327,7 +328,7 @@ class InlineFormManager {
     const reference = this.elements.reference.value.trim();
     const transportModeId = this.elements.transportMode.value;
     const vehicleTypeId = this.elements.vehicleType.value;
-    const trackingType = this.elements.trackingType.value; // Get tracking type
+    const trackingType = this.elements.trackingType.value;
     const eta = this.elements.eta.value;
     const totalWeight = this.elements.totalWeight.value;
     const totalVolume = this.elements.totalVolume.value;
@@ -341,40 +342,56 @@ class InlineFormManager {
 
     try {
         if (action === 'manual') {
-            // FIX: Map 'air_waybill' to 'awb' to match the database check constraint.
+            // FIX: Validazione e mappatura corretta per il database
             const dbTrackingType = (trackingType === 'air_waybill') ? 'awb' : trackingType;
+            
+            // Validazione campi obbligatori per spedizioni manuali
+            if (!dbTrackingType || dbTrackingType === '') {
+                throw new Error('Il tipo di tracking è obbligatorio per le spedizioni manuali.');
+            }
 
             // For manual entry, directly construct the data object
             dataToSave = {
-                tracking_number: trackingNumber || `MAN-${Date.now()}`, // Generate if empty
+                tracking_number: trackingNumber || `MAN-${Date.now()}`,
                 carrier: carrier,
-                tracking_type: dbTrackingType || 'manual',
-                reference_number: reference,
-                carrier_name: this.elements.carrier.options[this.elements.carrier.selectedIndex]?.text,
-                origin: origin,
-                destination: destination,
+                tracking_type: dbTrackingType, // Rimuovi il fallback 'manual'
+                reference_number: reference || null,
+                carrier_name: this.elements.carrier.options[this.elements.carrier.selectedIndex]?.text || null,
+                origin: origin || null,
+                destination: destination || null,
                 status: 'pending',
-                eta: eta,
-                total_weight_kg: parseFloat(totalWeight) || null,
-                total_volume_cbm: parseFloat(totalVolume) || null,
-                transport_mode_id: transportModeId || null,
-                vehicle_type_id: vehicleTypeId || null,
+                eta: eta || null,
+                // FIX: Assicurati che i valori numerici siano validati
+                total_weight_kg: totalWeight && !isNaN(parseFloat(totalWeight)) ? parseFloat(totalWeight) : null,
+                total_volume_cbm: totalVolume && !isNaN(parseFloat(totalVolume)) ? parseFloat(totalVolume) : null,
+                transport_mode_id: transportModeId && transportModeId !== '' ? parseInt(transportModeId) : null,
+                vehicle_type_id: vehicleTypeId && vehicleTypeId !== '' ? parseInt(vehicleTypeId) : null,
                 bl_number: blNumber || null,
                 flight_number: flightNumber || null,
             };
 
+            // Validazione finale prima del salvataggio
+            if (!dataToSave.tracking_number) {
+                throw new Error('Numero di tracking non valido.');
+            }
+            if (!dataToSave.carrier) {
+                throw new Error('Carrier non selezionato.');
+            }
+            if (!['container', 'awb', 'bl', 'parcel'].includes(dataToSave.tracking_type)) {
+                throw new Error(`Tipo di tracking non valido: ${dataToSave.tracking_type}`);
+            }
+
             console.log('Manual entry: Data ready for saving:', dataToSave);
         } else {
-            // For 'auto' or 'get' actions, use trackingService.track
+            // Per azioni auto/get, usa il trackingService
             console.log('Step 1: Calling trackingService.track to get enriched data...');
             const result = await window.trackingService.track(
                 trackingNumber,
                 this.detectedType,
                 {
-                    operation: action, // 'auto', 'get', or 'post'
+                    operation: action,
                     carrier: carrier,
                     shipsgoId: this.detectedOceanShipment?.id,
-                    // Pass manual fields to the service for merging
                     carrier_name: this.elements.carrier.options[this.elements.carrier.selectedIndex]?.text,
                     origin: origin,
                     destination: destination,
@@ -389,7 +406,7 @@ class InlineFormManager {
             }
             
             dataToSave = { ...result };
-            delete dataToSave.success; // Remove the success flag before saving
+            delete dataToSave.success;
             
             console.log('Service-based entry: Data ready for saving:', dataToSave);
         }
@@ -397,10 +414,11 @@ class InlineFormManager {
         if (!window.dataManager) {
             throw new Error("DataManager non è disponibile.");
         }
+        
         console.log('Step 3: Saving data via DataManager...');
         const saveResult = await window.dataManager.addTracking(dataToSave, action === 'manual');
 
-        if (saveResult.tracking) {
+        if (saveResult && saveResult.tracking) {
             window.NotificationSystem?.success(`Tracking ${action === 'get' ? 'recuperato' : 'aggiunto'} con successo!`);
             this.resetForm();
             if (window.addTrackingToView) {
@@ -415,7 +433,18 @@ class InlineFormManager {
 
     } catch (error) {
         console.error('Submit Error:', error);
-        window.NotificationSystem?.error(`Errore: ${error.message}`);
+        
+        // Mostra un messaggio di errore più dettagliato
+        let errorMessage = 'Errore sconosciuto';
+        if (error.message) {
+            errorMessage = error.message;
+        } else if (error.details) {
+            errorMessage = error.details;
+        } else if (error.hint) {
+            errorMessage = error.hint;
+        }
+        
+        window.NotificationSystem?.error(`Errore: ${errorMessage}`);
     } finally {
         this.elements.submitBtn.disabled = false;
         this.elements.submitBtn.innerHTML = 'Aggiungi';

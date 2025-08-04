@@ -557,11 +557,12 @@
                                 </div>
                                 <div class="form-group col-md-6">
                                     <label for="inline-tracking-type">Tipo di Tracking</label>
-                                    <select id="inline-tracking-type" class="form-control">
+                                    <select id="inline-tracking-type" class="form-control" required>
                                         <option value="">Seleziona tipo...</option>
-                                        <option value="air_waybill">Air Waybill</option>
-                                        <option value="container">Container/BL</option>
-                                        <option value="manual">Manuale</option>
+                                        <option value="container">Container</option>
+                                        <option value="awb">Air Waybill</option>
+                                        <option value="bl">Bill of Lading</option>
+                                        <option value="parcel">Pacco</option>
                                     </select>
                                 </div>
                             </div>
@@ -1409,9 +1410,8 @@ console.log('- testDataManagerAdvanced() - Test avanzati');
 console.log('- dmDebug() - Mostra info debug del Data Manager');
 </script>
 
-<!-- AGGIUNGI questo script PRIMA del tag </body> (dopo gli altri script di test) -->
+<!-- AGGIUNGI questo script di test DOPO gli altri script di test -->
 <script>
-// Sistema di test completo per bibbo81
 window.systemHealthCheck = async function() {
     console.log('🏥 SYSTEM HEALTH CHECK');
     console.log('=====================');
