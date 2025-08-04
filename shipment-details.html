@@ -167,30 +167,33 @@
                 </div>
                 <div class="sol-card-body">
                     <div class="table-container">
-                        <table class="data-table">
-                            <thead>
-                                <tr>
-                                    <th>Prodotto</th>
-                                    <th>Quantità</th>
-                                    <th>Peso (kg)</th>
-                                    <th>Volume (m³)</th>
-                                    <th>Costo Allocato</th>
-                                    <th>Azioni</th>
-                                </tr>
-                            </thead>
-                            <tbody id="productsTableBody">
-                                <!-- Righe prodotto saranno inserite qui -->
-                            </tbody>
-                            <tfoot>
-                                <tr>
-                                    <th colspan="2" class="text-right">Totali:</th>
-                                    <th id="totalWeight"></th>
-                                    <th id="totalVolume"></th>
-                                    <th id="totalAllocatedCost"></th>
-                                    <th></th>
-                                </tr>
-                            </tfoot>
-                        </table>
+                        table class="data-table">
+    <thead>
+        <tr>
+            <th>Prodotto</th>
+            <th>Quantità</th>
+            <th>Peso Totale</th>
+            <th>Volume Totale</th>
+            <th>Costo Allocato Totale</th>
+            <th>Costo Unitario</th>
+            <th>Azioni</th>
+        </tr>
+    </thead>
+    <tbody id="productsTableBody">
+        <!-- Popolato dinamicamente -->
+    </tbody>
+    <tfoot>
+        <tr class="totals-row">
+            <td><strong>Totali</strong></td>
+            <td><strong id="totalQuantity">0</strong></td>
+            <td><strong id="totalWeight">0 kg</strong></td>
+            <td><strong id="totalVolume">0 m³</strong></td>
+            <td><strong id="totalAllocatedCost">€ 0,00</strong></td>
+            <td><strong id="averageUnitCost">€ 0,00</strong></td>
+            <td></td>
+        </tr>
+    </tfoot>
+</table>
                     </div>
                 </div>
             </div>

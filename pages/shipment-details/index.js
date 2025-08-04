@@ -302,24 +302,29 @@ function renderProductsTable(shipment) {
     }
 
     if (!products || products.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="6" class="text-center">Nessun prodotto associato.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="7" class="text-center">Nessun prodotto associato.</td></tr>';
         updateTotals(shipment);
         return;
     }
 
     products.forEach(product => {
-        let allocatedUnitCost = product.allocated_cost || 0;
+        let allocatedTotalCost = product.allocated_cost || 0;
+        let allocatedUnitCost = 0;
         
         if (costPerUnit > 0) {
             const productVolume = product.total_volume_cbm || 0;
             const productWeight = product.total_weight_kg || 0;
             
             if (costPerCBM > 0 && productVolume > 0) {
-                allocatedUnitCost = productVolume * costPerCBM;
+                allocatedTotalCost = productVolume * costPerCBM;
             } else if (costPerKG > 0 && productWeight > 0) {
-                allocatedUnitCost = productWeight * costPerKG;
+                allocatedTotalCost = productWeight * costPerKG;
             }
         }
+        
+        // Calcola il costo unitario dividendo il costo totale allocato per la quantità
+        const quantity = product.quantity || 1;
+        allocatedUnitCost = quantity > 0 ? allocatedTotalCost / quantity : 0;
 
         const tr = document.createElement('tr');
         tr.classList.add('product-row');
@@ -329,7 +334,8 @@ function renderProductsTable(shipment) {
             <td>${product.quantity || 0}</td>
             <td>${formatWeight(product.total_weight_kg)}</td>
             <td>${formatVolume(product.total_volume_cbm)}</td>
-            <td>${formatCurrency(allocatedUnitCost)}</td>
+            <td>${formatCurrency(allocatedTotalCost)}</td>
+            <td><strong>${formatCurrency(allocatedUnitCost)}</strong></td>
             <td>
                 <button class="sol-btn sol-btn-secondary sol-btn-sm edit-product-btn" data-item-id="${product.id}" title="Modifica Prodotto"><i class="fas fa-edit"></i></button>
                 <button class="sol-btn sol-btn-danger sol-btn-sm delete-product-btn" data-item-id="${product.id}" title="Elimina Prodotto"><i class="fas fa-trash"></i></button>
@@ -342,7 +348,7 @@ function renderProductsTable(shipment) {
 
 function updateTotals(shipment) {
     const products = shipment.products || [];
-    let totalWeight = 0, totalVolume = 0, totalAllocatedCost = 0;
+    let totalWeight = 0, totalVolume = 0, totalAllocatedCost = 0, totalQuantity = 0;
 
     const shipmentTotalWeight = shipment.total_weight_kg || shipment.tracking?.total_weight_kg || 0;
     const shipmentTotalVolume = shipment.total_volume_cbm || shipment.tracking?.total_volume_cbm || 0;
@@ -361,8 +367,10 @@ function updateTotals(shipment) {
     }
 
     products.forEach(product => {
+        const quantity = product.quantity || 0;
         totalWeight += product.total_weight_kg || 0;
         totalVolume += product.total_volume_cbm || 0;
+        totalQuantity += quantity;
 
         if (costPerUnit > 0) {
             const productVolume = product.total_volume_cbm || 0;
@@ -378,13 +386,20 @@ function updateTotals(shipment) {
         }
     });
 
+    // Calcola il costo unitario medio
+    const averageUnitCost = totalQuantity > 0 ? totalAllocatedCost / totalQuantity : 0;
+
     const totalWeightEl = document.getElementById('totalWeight');
     const totalVolumeEl = document.getElementById('totalVolume');
     const totalAllocatedCostEl = document.getElementById('totalAllocatedCost');
+    const totalQuantityEl = document.getElementById('totalQuantity');
+    const averageUnitCostEl = document.getElementById('averageUnitCost');
     
     if (totalWeightEl) totalWeightEl.textContent = formatWeight(totalWeight);
     if (totalVolumeEl) totalVolumeEl.textContent = formatVolume(totalVolume);
     if (totalAllocatedCostEl) totalAllocatedCostEl.textContent = formatCurrency(totalAllocatedCost);
+    if (totalQuantityEl) totalQuantityEl.textContent = totalQuantity.toString();
+    if (averageUnitCostEl) averageUnitCostEl.textContent = formatCurrency(averageUnitCost);
 }
 
 async function renderDocumentsTable(documents) {
