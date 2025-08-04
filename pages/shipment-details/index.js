@@ -112,7 +112,6 @@ async function renderShipmentInfo(shipment) {
     document.getElementById('shipmentDestination').textContent = shipment.tracking?.destination_port || shipment.destination_port || shipment.destination || '-';
 
     // 2. TIPO CONTAINER: Calcola dinamicamente dai dati di tracking
-    // FIX: Legge i dati dall'array `containers` nel metadata, che è la fonte corretta.
     const containers = shipment.tracking?.metadata?.raw?.shipment?.containers;
     if (Array.isArray(containers) && containers.length > 0) {
         const typeSummary = containers.reduce((acc, container) => {
@@ -135,10 +134,15 @@ async function renderShipmentInfo(shipment) {
     }
 
     // New fields for manual shipments
-    document.getElementById('shipmentTransportMode').textContent = await getTransportModeName(shipment.tracking?.transport_mode_id);
-    document.getElementById('shipmentVehicleType').textContent = await getVehicleTypeName(shipment.tracking?.vehicle_type_id);
-    document.getElementById('shipmentTotalWeight').textContent = formatWeight(shipment.total_weight_kg || shipment.tracking?.total_weight_kg);
-    document.getElementById('shipmentTotalVolume').textContent = formatVolume(shipment.total_volume_cbm || shipment.tracking?.total_volume_cbm);
+    document.getElementById('shipmentTransportMode').textContent = await getTransportModeName(shipment.tracking?.transport_mode_id || shipment.transport_mode_id);
+    document.getElementById('shipmentVehicleType').textContent = await getVehicleTypeName(shipment.tracking?.vehicle_type_id || shipment.vehicle_type_id);
+    
+    // FIX: Prioritizza i dati dal record shipment per le spedizioni manuali
+    const totalWeight = shipment.total_weight_kg || shipment.tracking?.total_weight_kg || 0;
+    const totalVolume = shipment.total_volume_cbm || shipment.tracking?.total_volume_cbm || 0;
+    
+    document.getElementById('shipmentTotalWeight').textContent = formatWeight(totalWeight);
+    document.getElementById('shipmentTotalVolume').textContent = formatVolume(totalVolume);
 
     // Spedizioniere (dal record shipment) e Compagnia (dal record tracking)
     document.getElementById('shipmentCarrier').textContent = shipment.carrier?.name || shipment.carrier_name || 'N/A';
@@ -176,29 +180,41 @@ function renderProductsTable(shipment) {
     const isSeaShipment = shipment.tracking?.tracking_type === 'container' || shipment.tracking?.tracking_type === 'bl';
     let costPerCBM = 0;
     let costPerKG = 0;
-    let costPerUnit = 0; // New variable for flexible cost allocation
+    let costPerUnit = 0;
+
+    // FIX: Usa i dati totali dalla shipment se disponibili
+    const totalWeight = shipment.total_weight_kg || shipment.tracking?.total_weight_kg || 0;
+    const totalVolume = shipment.total_volume_cbm || shipment.tracking?.total_volume_cbm || 0;
+    const totalCost = (shipment.freight_cost || 0) + (shipment.other_costs || 0);
 
     // Prioritize vehicle_types for cost allocation if available
-    if (shipment.tracking?.vehicle_types) {
-        const defaultCBM = shipment.tracking.vehicle_types.default_cbm || 0;
-        const defaultKG = shipment.tracking.vehicle_types.default_kg || 0;
-        const totalCost = (shipment.freight_cost || 0) + (shipment.other_costs || 0);
+    if (shipment.tracking?.vehicle_types || shipment.vehicle_type) {
+        const vehicleType = shipment.tracking?.vehicle_types || shipment.vehicle_type;
+        const defaultCBM = vehicleType.default_cbm || totalVolume;
+        const defaultKG = vehicleType.default_kg || totalWeight;
 
         if (defaultCBM > 0) {
             costPerCBM = totalCost / defaultCBM;
-        } else if (defaultKG > 0) {
+        }
+        if (defaultKG > 0) {
             costPerKG = totalCost / defaultKG;
         }
-        // Decide which cost per unit to use based on product data or a default strategy
-        // For simplicity, if both are available, prioritize CBM.
-        costPerUnit = costPerCBM > 0 ? costPerCBM : costPerKG; 
+        costPerUnit = costPerCBM > 0 ? costPerCBM : costPerKG;
 
     } else if (isSeaShipment) {
-        const totalCost = (shipment.freight_cost || 0) + (shipment.other_costs || 0);
         const containerTypeString = document.getElementById('shipmentContainerTypes').textContent;
         const totalMaxCBM = calculateTotalMaxCBM(containerTypeString);
         costPerCBM = totalMaxCBM > 0 ? totalCost / totalMaxCBM : 0;
-        costPerUnit = costPerCBM; // Fallback to old logic
+        costPerUnit = costPerCBM;
+    } else {
+        // Per spedizioni manuali senza tipo veicolo specifico
+        if (totalVolume > 0) {
+            costPerCBM = totalCost / totalVolume;
+            costPerUnit = costPerCBM;
+        } else if (totalWeight > 0) {
+            costPerKG = totalCost / totalWeight;
+            costPerUnit = costPerKG;
+        }
     }
 
     if (!products || products.length === 0) {
@@ -211,7 +227,7 @@ function renderProductsTable(shipment) {
         let allocatedUnitCost = product.allocated_cost || 0;
         
         if (costPerUnit > 0) {
-            // Use the new flexible cost allocation
+            // Usa volume o peso per il calcolo
             const productVolume = product.total_volume_cbm || 0;
             const productWeight = product.total_weight_kg || 0;
             
@@ -220,15 +236,11 @@ function renderProductsTable(shipment) {
             } else if (costPerKG > 0 && productWeight > 0) {
                 allocatedUnitCost = productWeight * costPerKG;
             }
-        } else if (isSeaShipment && costPerCBM > 0) {
-            // Fallback to old sea shipment logic if no vehicle_type is defined
-            const productVolume = product.total_volume_cbm || 0;
-            allocatedUnitCost = productVolume * costPerCBM;
         }
 
         const tr = document.createElement('tr');
         tr.classList.add('product-row');
-        tr.dataset.itemId = product.id; // Usa l'ID dell'item per un accesso più facile
+        tr.dataset.itemId = product.id;
         tr.innerHTML = `
             <td>${product.product?.name || product.name || '-'}<small class="text-muted d-block">${product.product?.sku || ''}</small></td>
             <td>${product.quantity || 0}</td>
@@ -249,30 +261,22 @@ function updateTotals(shipment) {
     const products = shipment.products || [];
     let totalWeight = 0, totalVolume = 0, totalAllocatedCost = 0;
 
-    const isSeaShipment = shipment.tracking?.tracking_type === 'container' || shipment.tracking?.tracking_type === 'bl';
+    // FIX: Usa gli stessi calcoli di renderProductsTable
+    const shipmentTotalWeight = shipment.total_weight_kg || shipment.tracking?.total_weight_kg || 0;
+    const shipmentTotalVolume = shipment.total_volume_cbm || shipment.tracking?.total_volume_cbm || 0;
+    const totalCost = (shipment.freight_cost || 0) + (shipment.other_costs || 0);
+
     let costPerCBM = 0;
     let costPerKG = 0;
     let costPerUnit = 0;
 
-    // Prioritize vehicle_types for cost allocation if available
-    if (shipment.tracking?.vehicle_types) {
-        const defaultCBM = shipment.tracking.vehicle_types.default_cbm || 0;
-        const defaultKG = shipment.tracking.vehicle_types.default_kg || 0;
-        const totalCost = (shipment.freight_cost || 0) + (shipment.other_costs || 0);
-
-        if (defaultCBM > 0) {
-            costPerCBM = totalCost / defaultCBM;
-        } else if (defaultKG > 0) {
-            costPerKG = totalCost / defaultKG;
-        }
-        costPerUnit = costPerCBM > 0 ? costPerCBM : costPerKG;
-
-    } else if (isSeaShipment) {
-        const totalCost = (shipment.freight_cost || 0) + (shipment.other_costs || 0);
-        const containerTypeString = document.getElementById('shipmentContainerTypes').textContent;
-        const totalMaxCBM = calculateTotalMaxCBM(containerTypeString);
-        costPerCBM = totalMaxCBM > 0 ? totalCost / totalMaxCBM : 0;
+    // Calcola i costi unitari usando la stessa logica
+    if (shipmentTotalVolume > 0) {
+        costPerCBM = totalCost / shipmentTotalVolume;
         costPerUnit = costPerCBM;
+    } else if (shipmentTotalWeight > 0) {
+        costPerKG = totalCost / shipmentTotalWeight;
+        costPerUnit = costPerKG;
     }
 
     products.forEach(product => {
@@ -282,17 +286,14 @@ function updateTotals(shipment) {
         if (costPerUnit > 0) {
             const productVolume = product.total_volume_cbm || 0;
             const productWeight = product.total_weight_kg || 0;
-
+            
             if (costPerCBM > 0 && productVolume > 0) {
                 totalAllocatedCost += productVolume * costPerCBM;
             } else if (costPerKG > 0 && productWeight > 0) {
                 totalAllocatedCost += productWeight * costPerKG;
             }
-        } else if (isSeaShipment && costPerCBM > 0) {
-            const productVolume = product.total_volume_cbm || 0;
-            totalAllocatedCost += productVolume * costPerCBM;
         } else {
-            totalAllocatedCost += (product.allocated_cost || 0) * (product.quantity || 0);
+            totalAllocatedCost += product.allocated_cost || 0;
         }
     });
 

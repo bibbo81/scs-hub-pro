@@ -309,9 +309,32 @@ class InlineFormManager {
         let trackingNumber = this.elements.trackingNumber.value.trim().toUpperCase();
 
         // If manual and no tracking number, create a placeholder to satisfy DB constraints
-        if (action === 'manual' && !trackingNumber) {
-            trackingNumber = `MANUAL-${Date.now()}`;
-        }
+        if (action === 'manual') {
+    // FIX: Map 'air_waybill' to 'awb' to match the database check constraint.
+    const dbTrackingType = (trackingType === 'air_waybill') ? 'awb' : trackingType;
+
+    // For manual entry, directly construct the data object
+    dataToSave = {
+        tracking_number: trackingNumber,
+        carrier: carrier,
+        tracking_type: dbTrackingType || 'manual',
+        reference_number: reference,
+        carrier_name: carrierName,
+        origin: origin,
+        destination: destination,
+        status: 'pending',
+        eta: eta,
+        total_weight_kg: parseFloat(totalWeight) || null, // Convert to null if empty/NaN
+        total_volume_cbm: parseFloat(totalVolume) || null, // Convert to null if empty/NaN
+        transport_mode_id: transportModeId || null,
+        vehicle_type_id: vehicleTypeId || null,
+        bl_number: blNumber || null,
+        flight_number: flightNumber || null,
+    };
+
+    // Basic validation for manual fields
+    if (!dataToSave.tracking_number || !dataToSave.carrier) {
+        throw
 
         // Basic validation
         if (!trackingNumber) {
