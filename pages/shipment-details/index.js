@@ -267,37 +267,60 @@ function renderProductsTable(shipment) {
     let costPerKG = 0;
     let costPerUnit = 0;
 
-    const totalWeight = shipment.total_weight_kg || shipment.tracking?.total_weight_kg || 0;
-    const totalVolume = shipment.total_volume_cbm || shipment.tracking?.total_volume_cbm || 0;
+    // 🔥 PRIORITÀ: Usa sempre i CBM/KG effettivamente utilizzati dai prodotti
+    const actualTotalWeight = shipment.total_weight_kg || shipment.tracking?.total_weight_kg || 0;
+    const actualTotalVolume = shipment.total_volume_cbm || shipment.tracking?.total_volume_cbm || 0;
     const totalCost = (shipment.freight_cost || 0) + (shipment.other_costs || 0);
 
-    // Calculate cost allocation logic
+    console.log(`💰 DEBUG Cost Allocation:`, {
+        actualTotalWeight,
+        actualTotalVolume,
+        totalCost,
+        isSeaShipment
+    });
+
+    // Calculate cost allocation logic - SEMPRE basato sui volumi/pesi effettivi
     if (shipment.tracking?.vehicle_types || shipment.vehicle_type) {
         const vehicleType = shipment.tracking?.vehicle_types || shipment.vehicle_type;
-        const defaultCBM = vehicleType.default_cbm || totalVolume;
-        const defaultKG = vehicleType.default_kg || totalWeight;
-
-        if (defaultCBM > 0) {
-            costPerCBM = totalCost / defaultCBM;
+        
+        // 🎯 CORREZIONE: Per trasporto terrestre/aereo usa i valori effettivi, non i default del veicolo
+        if (actualTotalVolume > 0) {
+            costPerCBM = totalCost / actualTotalVolume;
+            costPerUnit = costPerCBM;
+            console.log(`📊 Vehicle-based allocation by ACTUAL volume: €${costPerCBM.toFixed(2)}/CBM`);
+        } else if (actualTotalWeight > 0) {
+            costPerKG = totalCost / actualTotalWeight;
+            costPerUnit = costPerKG;
+            console.log(`📊 Vehicle-based allocation by ACTUAL weight: €${costPerKG.toFixed(2)}/KG`);
         }
-        if (defaultKG > 0) {
-            costPerKG = totalCost / defaultKG;
-        }
-        costPerUnit = costPerCBM > 0 ? costPerCBM : costPerKG;
 
     } else if (isSeaShipment) {
-        const containerTypeElement = document.getElementById('shipmentContainerTypes');
-        const containerTypeString = containerTypeElement ? containerTypeElement.textContent : '';
-        const totalMaxCBM = calculateTotalMaxCBM(containerTypeString);
-        costPerCBM = totalMaxCBM > 0 ? totalCost / totalMaxCBM : 0;
-        costPerUnit = costPerCBM;
-    } else {
-        if (totalVolume > 0) {
-            costPerCBM = totalCost / totalVolume;
+        // 🎯 CORREZIONE: Per spedizioni marittime usa SEMPRE i CBM effettivi, mai la capacità del container
+        if (actualTotalVolume > 0) {
+            costPerCBM = totalCost / actualTotalVolume;
             costPerUnit = costPerCBM;
-        } else if (totalWeight > 0) {
-            costPerKG = totalCost / totalWeight;
+            console.log(`🚢 Sea shipment allocation by ACTUAL volume: €${costPerCBM.toFixed(2)}/CBM (not container capacity)`);
+        } else {
+            // Fallback solo se non ci sono CBM effettivi
+            const containerTypeElement = document.getElementById('shipmentContainerTypes');
+            const containerTypeString = containerTypeElement ? containerTypeElement.textContent : '';
+            const totalMaxCBM = calculateTotalMaxCBM(containerTypeString);
+            if (totalMaxCBM > 0) {
+                costPerCBM = totalCost / totalMaxCBM;
+                costPerUnit = costPerCBM;
+                console.warn(`⚠️ Fallback to container capacity: €${costPerCBM.toFixed(2)}/CBM`);
+            }
+        }
+    } else {
+        // 🎯 CORREZIONE: Sempre priorità ai volumi/pesi effettivi
+        if (actualTotalVolume > 0) {
+            costPerCBM = totalCost / actualTotalVolume;
+            costPerUnit = costPerCBM;
+            console.log(`📦 General allocation by ACTUAL volume: €${costPerCBM.toFixed(2)}/CBM`);
+        } else if (actualTotalWeight > 0) {
+            costPerKG = totalCost / actualTotalWeight;
             costPerUnit = costPerKG;
+            console.log(`📦 General allocation by ACTUAL weight: €${costPerKG.toFixed(2)}/KG`);
         }
     }
 
@@ -335,7 +358,7 @@ function renderProductsTable(shipment) {
             <td>${formatWeight(product.total_weight_kg)}</td>
             <td>${formatVolume(product.total_volume_cbm)}</td>
             <td>${formatCurrency(allocatedTotalCost)}</td>
-            <td><strong>${formatCurrency(allocatedUnitCost)}</strong></td>
+            <td class="unit-cost-column"><strong>${formatCurrency(allocatedUnitCost)}</strong></td>
             <td>
                 <button class="sol-btn sol-btn-secondary sol-btn-sm edit-product-btn" data-item-id="${product.id}" title="Modifica Prodotto"><i class="fas fa-edit"></i></button>
                 <button class="sol-btn sol-btn-danger sol-btn-sm delete-product-btn" data-item-id="${product.id}" title="Elimina Prodotto"><i class="fas fa-trash"></i></button>
@@ -350,19 +373,21 @@ function updateTotals(shipment) {
     const products = shipment.products || [];
     let totalWeight = 0, totalVolume = 0, totalAllocatedCost = 0, totalQuantity = 0;
 
-    const shipmentTotalWeight = shipment.total_weight_kg || shipment.tracking?.total_weight_kg || 0;
-    const shipmentTotalVolume = shipment.total_volume_cbm || shipment.tracking?.total_volume_cbm || 0;
+    // 🎯 CORREZIONE: Usa sempre i totali effettivi
+    const actualTotalWeight = shipment.total_weight_kg || shipment.tracking?.total_weight_kg || 0;
+    const actualTotalVolume = shipment.total_volume_cbm || shipment.tracking?.total_volume_cbm || 0;
     const totalCost = (shipment.freight_cost || 0) + (shipment.other_costs || 0);
 
     let costPerCBM = 0;
     let costPerKG = 0;
     let costPerUnit = 0;
 
-    if (shipmentTotalVolume > 0) {
-        costPerCBM = totalCost / shipmentTotalVolume;
+    // 🎯 CORREZIONE: Calcola sempre sui valori effettivi
+    if (actualTotalVolume > 0) {
+        costPerCBM = totalCost / actualTotalVolume;
         costPerUnit = costPerCBM;
-    } else if (shipmentTotalWeight > 0) {
-        costPerKG = totalCost / shipmentTotalWeight;
+    } else if (actualTotalWeight > 0) {
+        costPerKG = totalCost / actualTotalWeight;
         costPerUnit = costPerKG;
     }
 
@@ -400,6 +425,10 @@ function updateTotals(shipment) {
     if (totalAllocatedCostEl) totalAllocatedCostEl.textContent = formatCurrency(totalAllocatedCost);
     if (totalQuantityEl) totalQuantityEl.textContent = totalQuantity.toString();
     if (averageUnitCostEl) averageUnitCostEl.textContent = formatCurrency(averageUnitCost);
+
+    // 🎯 DEBUG: Verifica che i totali allocati corrispondano al costo totale
+    const allocationAccuracy = totalCost > 0 ? (totalAllocatedCost / totalCost * 100).toFixed(1) : 0;
+    console.log(`✅ Cost allocation accuracy: ${allocationAccuracy}% (€${totalAllocatedCost.toFixed(2)} / €${totalCost.toFixed(2)})`);
 }
 
 async function renderDocumentsTable(documents) {
