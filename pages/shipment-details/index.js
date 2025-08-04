@@ -2,6 +2,8 @@ import dataManager from '/core/services/data-manager.js';
 import notificationSystem from '/core/notification-system.js';
 import headerComponent from '/core/header-component.js';
 import ModalSystem from '/core/modal-system.js';
+import supabaseClient from '/core/supabase-client.js'; // Aggiungi questa riga
+
 
 const CONTAINER_CBM_CAPACITY = {
     "20'": 33.2,
@@ -13,6 +15,11 @@ const CONTAINER_CBM_CAPACITY = {
 document.addEventListener('DOMContentLoaded', async () => {
     await headerComponent.init();
     await dataManager.init();
+
+// Assicurati che Supabase sia disponibile globalmente
+    if (!window.supabase) {
+        window.supabase = supabaseClient.getClient();
+    }
 
     const shipmentId = getShipmentIdFromURL();
     if (!shipmentId) {
@@ -27,6 +34,42 @@ document.addEventListener('DOMContentLoaded', async () => {
 function getShipmentIdFromURL() {
     const params = new URLSearchParams(window.location.search);
     return params.get('id');
+}
+
+async function getTransportModeName(transportModeId) {
+    if (!transportModeId) return '-';
+    
+    try {
+        const { data, error } = await window.supabase
+            .from('transport_modes')
+            .select('name')
+            .eq('id', transportModeId)
+            .single();
+        
+        if (error) throw error;
+        return data?.name || '-';
+    } catch (error) {
+        console.warn('Error fetching transport mode name:', error);
+        return '-';
+    }
+}
+
+async function getVehicleTypeName(vehicleTypeId) {
+    if (!vehicleTypeId) return '-';
+    
+    try {
+        const { data, error } = await window.supabase
+            .from('vehicle_types')
+            .select('name')
+            .eq('id', vehicleTypeId)
+            .single();
+        
+        if (error) throw error;
+        return data?.name || '-';
+    } catch (error) {
+        console.warn('Error fetching vehicle type name:', error);
+        return '-';
+    }
 }
 
 async function loadShipmentDetails(shipmentId) {
