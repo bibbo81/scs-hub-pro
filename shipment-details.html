@@ -55,6 +55,14 @@
         .product-row td {
             vertical-align: middle;
         }
+        
+        /* Evidenzia la colonna costo unitario */
+        .unit-cost-column {
+            background-color: #f8f9fa;
+            font-weight: 600;
+            color: #007bff;
+        }
+        
         /* Stili per la modale di selezione prodotti */
         .product-selection-modal .product-list-row {
             display: flex;
@@ -167,33 +175,33 @@
                 </div>
                 <div class="sol-card-body">
                     <div class="table-container">
-                        table class="data-table">
-    <thead>
-        <tr>
-            <th>Prodotto</th>
-            <th>Quantità</th>
-            <th>Peso Totale</th>
-            <th>Volume Totale</th>
-            <th>Costo Allocato Totale</th>
-            <th>Costo Unitario</th>
-            <th>Azioni</th>
-        </tr>
-    </thead>
-    <tbody id="productsTableBody">
-        <!-- Popolato dinamicamente -->
-    </tbody>
-    <tfoot>
-        <tr class="totals-row">
-            <td><strong>Totali</strong></td>
-            <td><strong id="totalQuantity">0</strong></td>
-            <td><strong id="totalWeight">0 kg</strong></td>
-            <td><strong id="totalVolume">0 m³</strong></td>
-            <td><strong id="totalAllocatedCost">€ 0,00</strong></td>
-            <td><strong id="averageUnitCost">€ 0,00</strong></td>
-            <td></td>
-        </tr>
-    </tfoot>
-</table>
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Prodotto</th>
+                                    <th>Quantità</th>
+                                    <th>Peso Totale</th>
+                                    <th>Volume Totale</th>
+                                    <th>Costo Allocato Totale</th>
+                                    <th class="unit-cost-column">💰 Costo Unitario</th>
+                                    <th>Azioni</th>
+                                </tr>
+                            </thead>
+                            <tbody id="productsTableBody">
+                                <!-- Righe prodotto saranno inserite qui -->
+                            </tbody>
+                            <tfoot>
+                                <tr class="totals-row">
+                                    <th><strong>Totali</strong></th>
+                                    <th><strong id="totalQuantity">0</strong></th>
+                                    <th><strong id="totalWeight">0 kg</strong></th>
+                                    <th><strong id="totalVolume">0 m³</strong></th>
+                                    <th><strong id="totalAllocatedCost">€ 0,00</strong></th>
+                                    <th class="unit-cost-column"><strong id="averageUnitCost">€ 0,00</strong></th>
+                                    <th></th>
+                                </tr>
+                            </tfoot>
+                        </table>
                     </div>
                 </div>
             </div>
