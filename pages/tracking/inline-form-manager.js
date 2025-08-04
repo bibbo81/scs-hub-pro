@@ -305,8 +305,21 @@ class InlineFormManager {
                 break;
         }
     }
-
-  async handleSubmit() {
+// Aggiungi questa funzione prima di handleSubmit per debug
+debugTrackingData(data) {
+    console.log('🔍 DEBUG TRACKING DATA:');
+    console.log('======================');
+    console.table({
+        tracking_number: { value: data.tracking_number, type: typeof data.tracking_number },
+        carrier_code: { value: data.carrier_code, type: typeof data.carrier_code },
+        tracking_type: { value: data.tracking_type, type: typeof data.tracking_type },
+        current_status: { value: data.current_status, type: typeof data.current_status },
+        transport_mode_id: { value: data.transport_mode_id, type: typeof data.transport_mode_id },
+        vehicle_type_id: { value: data.vehicle_type_id, type: typeof data.vehicle_type_id },
+    });
+    console.log('Full object:', data);
+}
+ async handleSubmit() {
     const action = this.elements.action.value;
     let trackingNumber = this.elements.trackingNumber.value.trim().toUpperCase();
     
@@ -342,46 +355,55 @@ class InlineFormManager {
 
     try {
         if (action === 'manual') {
-            // FIX: Validazione e mappatura corretta per il database
+            // FIX COMPLETO: Validazione e mappatura corretta per il database
             const dbTrackingType = (trackingType === 'air_waybill') ? 'awb' : trackingType;
             
-            // Validazione campi obbligatori per spedizioni manuali
-            if (!dbTrackingType || dbTrackingType === '') {
-                throw new Error('Il tipo di tracking è obbligatorio per le spedizioni manuali.');
+            // Validazione campi obbligatori
+            if (!dbTrackingType || !['container', 'awb', 'bl', 'parcel'].includes(dbTrackingType)) {
+                throw new Error('Seleziona un tipo di tracking valido (Container, AWB, B/L, Parcel).');
             }
 
-            // For manual entry, directly construct the data object
+            // Genera tracking number se vuoto
+            if (!trackingNumber || trackingNumber.trim() === '') {
+                trackingNumber = `MAN-${Date.now()}`;
+            }
+
+            // Get carrier name from select
+            const carrierName = this.elements.carrier.options[this.elements.carrier.selectedIndex]?.text || null;
+
+            // Costruisci l'oggetto con i campi corretti per il database
             dataToSave = {
-                tracking_number: trackingNumber || `MAN-${Date.now()}`,
-                carrier: carrier,
-                tracking_type: dbTrackingType, // Rimuovi il fallback 'manual'
+                tracking_number: trackingNumber,
+                carrier_code: carrier, // FIX: Usa carrier_code invece di carrier
+                carrier_name: carrierName,
+                tracking_type: dbTrackingType,
                 reference_number: reference || null,
-                carrier_name: this.elements.carrier.options[this.elements.carrier.selectedIndex]?.text || null,
-                origin: origin || null,
-                destination: destination || null,
-                status: 'pending',
+                origin_port: origin || null, // FIX: Usa origin_port invece di origin
+                destination_port: destination || null, // FIX: Usa destination_port invece di destination
+                current_status: 'pending', // FIX: Usa current_status invece di status
                 eta: eta || null,
-                // FIX: Assicurati che i valori numerici siano validati
+                // Validazione numerica rigorosa
                 total_weight_kg: totalWeight && !isNaN(parseFloat(totalWeight)) ? parseFloat(totalWeight) : null,
                 total_volume_cbm: totalVolume && !isNaN(parseFloat(totalVolume)) ? parseFloat(totalVolume) : null,
-                transport_mode_id: transportModeId && transportModeId !== '' ? parseInt(transportModeId) : null,
-                vehicle_type_id: vehicleTypeId && vehicleTypeId !== '' ? parseInt(vehicleTypeId) : null,
+                transport_mode_id: transportModeId && transportModeId !== '' ? transportModeId : null, // Mantieni come UUID string
+                vehicle_type_id: vehicleTypeId && vehicleTypeId !== '' ? vehicleTypeId : null, // Mantieni come UUID string
                 bl_number: blNumber || null,
                 flight_number: flightNumber || null,
             };
 
-            // Validazione finale prima del salvataggio
-            if (!dataToSave.tracking_number) {
-                throw new Error('Numero di tracking non valido.');
+            // Validazione finale rigorosa
+            if (!dataToSave.tracking_number || dataToSave.tracking_number.trim() === '') {
+                throw new Error('Numero di tracking non può essere vuoto.');
             }
-            if (!dataToSave.carrier) {
+            if (!dataToSave.carrier_code || dataToSave.carrier_code.trim() === '') {
                 throw new Error('Carrier non selezionato.');
             }
-            if (!['container', 'awb', 'bl', 'parcel'].includes(dataToSave.tracking_type)) {
-                throw new Error(`Tipo di tracking non valido: ${dataToSave.tracking_type}`);
+            if (!dataToSave.tracking_type) {
+                throw new Error('Tipo di tracking non selezionato.');
             }
 
             console.log('Manual entry: Data ready for saving:', dataToSave);
+            this.debugTrackingData(dataToSave); // AGGIUNGI QUESTA RIGA QUI
         } else {
             // Per azioni auto/get, usa il trackingService
             console.log('Step 1: Calling trackingService.track to get enriched data...');
@@ -434,14 +456,27 @@ class InlineFormManager {
     } catch (error) {
         console.error('Submit Error:', error);
         
+        // Debug dell'errore per capire il problema
+        if (error.code) {
+            console.error('Database error code:', error.code);
+        }
+        if (error.details) {
+            console.error('Database error details:', error.details);
+        }
+        if (error.hint) {
+            console.error('Database error hint:', error.hint);
+        }
+        
         // Mostra un messaggio di errore più dettagliato
         let errorMessage = 'Errore sconosciuto';
         if (error.message) {
             errorMessage = error.message;
         } else if (error.details) {
-            errorMessage = error.details;
+            errorMessage = `Errore database: ${error.details}`;
         } else if (error.hint) {
-            errorMessage = error.hint;
+            errorMessage = `Suggerimento: ${error.hint}`;
+        } else if (error.code) {
+            errorMessage = `Errore ${error.code}`;
         }
         
         window.NotificationSystem?.error(`Errore: ${errorMessage}`);
