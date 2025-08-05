@@ -231,11 +231,14 @@ async function renderShipmentInfo(shipment) {
     const trackingCarrier = trackingData.carrier_name || trackingData.carrier || trackingData.carrier_code || '-';
     document.getElementById('shipmentTrackingCarrier').textContent = trackingCarrier;
 
-    // 7. COSTI: Con formattazione italiana nei campi input
+    // 🔥 CORREZIONE: Costi nei campi input - FORMATO INTERNAZIONALE per HTML
     const freightCostInput = document.getElementById('freightCost');
     const otherCostsInput = document.getElementById('otherCosts');
-    if (freightCostInput) freightCostInput.value = formatNumber(shipment.freight_cost || 0, 2);
-    if (otherCostsInput) otherCostsInput.value = formatNumber(shipment.other_costs || 0, 2);
+    
+    // Usa il formato internazionale (punto per decimali) negli input HTML
+    if (freightCostInput) freightCostInput.value = (shipment.freight_cost || 0).toString();
+    if (otherCostsInput) otherCostsInput.value = (shipment.other_costs || 0).toString();
+    
     updateTotalCost();
 }
 
@@ -517,10 +520,12 @@ function updateTotalCost() {
     
     if (!freightCostEl || !otherCostsEl || !totalCostEl) return;
     
-    // 🔥 CORREZIONE: Parse dei numeri in formato italiano
-    const freightCost = parseFloat(freightCostEl.value.replace(/\./g, '').replace(',', '.')) || 0;
-    const otherCosts = parseFloat(otherCostsEl.value.replace(/\./g, '').replace(',', '.')) || 0;
+    // 🔥 CORREZIONE: Gli input HTML usano già il formato internazionale
+    const freightCost = parseFloat(freightCostEl.value) || 0;
+    const otherCosts = parseFloat(otherCostsEl.value) || 0;
     const totalCost = freightCost + otherCosts;
+    
+    // Mostra il totale in formato italiano
     totalCostEl.textContent = formatCurrency(totalCost);
 }
 
@@ -557,15 +562,17 @@ function setupEventListeners() {
     });
 }
 
-// 🔥 CORREZIONE: Aggiorna saveCosts per parsing italiano
+// 🔥 CORREZIONE: Aggiorna saveCosts - input HTML già in formato internazionale
 async function saveCosts() {
     const shipmentId = getShipmentIdFromURL();
     const freightCostInput = document.getElementById('freightCost').value;
     const otherCostsInput = document.getElementById('otherCosts').value;
     
-    // Parse dei valori in formato italiano
-    const freightCost = parseFloat(freightCostInput.replace(/\./g, '').replace(',', '.')) || 0;
-    const otherCosts = parseFloat(otherCostsInput.replace(/\./g, '').replace(',', '.')) || 0;
+    // 🔥 CORREZIONE: Gli input HTML type="number" usano già il formato internazionale
+    const freightCost = parseFloat(freightCostInput) || 0;
+    const otherCosts = parseFloat(otherCostsInput) || 0;
+    
+    console.log('💰 Saving costs:', { freightCost, otherCosts, shipmentId });
     
     try {
         window.notificationSystem?.info('Salvataggio dei costi in corso...');
@@ -574,6 +581,7 @@ async function saveCosts() {
         window.notificationSystem?.success('Costi salvati con successo!');
         loadShipmentDetails(shipmentId);
     } catch (error) {
+        console.error('Error saving costs:', error);
         window.notificationSystem?.error(`Errore durante il salvataggio: ${error.message}`);
     }
 }
@@ -968,6 +976,7 @@ async function addProduct() {
     }
 }
 
+// 🔥 CORREZIONE: Aggiorna addAdditionalCost per input HTML
 async function addAdditionalCost() {
     const modalContent = `
         <div class="sol-form">
@@ -980,7 +989,7 @@ async function addAdditionalCost() {
             </div>
             <div class="sol-form-group">
                 <label for="amountInput" class="sol-form-label">Importo</label>
-                <input type="number" id="amountInput" class="sol-form-input" placeholder="0.00">
+                <input type="number" id="amountInput" class="sol-form-input" placeholder="0.00" step="0.01">
             </div>
             <div class="sol-form-group">
                 <label for="notesInput" class="sol-form-label">Note</label>
@@ -998,6 +1007,8 @@ async function addAdditionalCost() {
                 class: 'sol-btn sol-btn-primary',
                 onclick: async () => {
                     const shipmentId = getShipmentIdFromURL();
+                     // 🔥 CORREZIONE: Input HTML già in formato internazionale
+                    const amount = parseFloat(document.getElementById('amountInput').value) || 0;
                     const costData = {
                         cost_type: document.getElementById('costTypeSelect').value,
                         amount: parseFloat(document.getElementById('amountInput').value) || 0,
