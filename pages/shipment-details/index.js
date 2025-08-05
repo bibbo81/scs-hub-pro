@@ -231,11 +231,11 @@ async function renderShipmentInfo(shipment) {
     const trackingCarrier = trackingData.carrier_name || trackingData.carrier || trackingData.carrier_code || '-';
     document.getElementById('shipmentTrackingCarrier').textContent = trackingCarrier;
 
-    // 7. COSTI
+    // 7. COSTI: Con formattazione italiana nei campi input
     const freightCostInput = document.getElementById('freightCost');
     const otherCostsInput = document.getElementById('otherCosts');
-    if (freightCostInput) freightCostInput.value = shipment.freight_cost || 0;
-    if (otherCostsInput) otherCostsInput.value = shipment.other_costs || 0;
+    if (freightCostInput) freightCostInput.value = formatNumber(shipment.freight_cost || 0, 2);
+    if (otherCostsInput) otherCostsInput.value = formatNumber(shipment.other_costs || 0, 2);
     updateTotalCost();
 }
 
@@ -350,7 +350,6 @@ function renderProductsTable(shipment) {
             }
         }
         
-        // Calcola il costo unitario dividendo il costo totale allocato per la quantità
         const quantity = product.quantity || 1;
         allocatedUnitCost = quantity > 0 ? allocatedTotalCost / quantity : 0;
 
@@ -359,7 +358,7 @@ function renderProductsTable(shipment) {
         tr.dataset.itemId = product.id;
         tr.innerHTML = `
             <td>${product.product?.name || product.name || '-'}<small class="text-muted d-block">${product.product?.sku || ''}</small></td>
-            <td>${product.quantity || 0}</td>
+            <td>${formatQuantity(product.quantity || 0)}</td>
             <td>${formatWeight(product.total_weight_kg)}</td>
             <td>${formatVolume(product.total_volume_cbm)}</td>
             <td>${formatCurrency(allocatedTotalCost)}</td>
@@ -430,17 +429,17 @@ function updateTotals(shipment) {
     if (totalWeightEl) totalWeightEl.textContent = formatWeight(totalWeight);
     if (totalVolumeEl) totalVolumeEl.textContent = formatVolume(totalVolume);
     if (totalAllocatedCostEl) totalAllocatedCostEl.textContent = formatCurrency(totalAllocatedCost);
-    if (totalQuantityEl) totalQuantityEl.textContent = totalQuantity.toString();
+    if (totalQuantityEl) totalQuantityEl.textContent = formatQuantity(totalQuantity); // 🔥 CORREZIONE
     if (averageUnitCostEl) averageUnitCostEl.textContent = formatCurrency(averageUnitCost);
 
-    // 🎯 DEBUG: Verifica che i totali allocati corrispondano al costo totale
-    const allocationAccuracy = totalCost > 0 ? (totalAllocatedCost / totalCost * 100).toFixed(1) : 0;
-    console.log(`✅ Cost allocation accuracy: ${allocationAccuracy}% (€${totalAllocatedCost.toFixed(2)} / €${totalCost.toFixed(2)})`);
-    console.log(`📊 Products totals: ${totalVolume} CBM, ${totalWeight} KG, ${totalQuantity} units`);
+    // DEBUG: Verifica che i totali allocati corrispondano al costo totale
+    const allocationAccuracy = totalCost > 0 ? (totalAllocatedCost / totalCost * 100) : 0;
+    console.log(`✅ Cost allocation accuracy: ${formatNumber(allocationAccuracy, 1)}% (${formatCurrency(totalAllocatedCost)} / ${formatCurrency(totalCost)})`);
+    console.log(`📊 Products totals: ${formatNumber(totalVolume, 3)} CBM, ${formatNumber(totalWeight, 3)} KG, ${formatQuantity(totalQuantity)} units`); // 🔥 CORREZIONE
     
-    // 🎯 ALERT se l'accuratezza non è del 100%
+    // ALERT se l'accuratezza non è del 100%
     if (totalCost > 0 && Math.abs(totalAllocatedCost - totalCost) > 0.01) {
-        console.warn(`⚠️ Cost allocation mismatch! Expected: €${totalCost.toFixed(2)}, Allocated: €${totalAllocatedCost.toFixed(2)}`);
+        console.warn(`⚠️ Cost allocation mismatch! Expected: ${formatCurrency(totalCost)}, Allocated: ${formatCurrency(totalAllocatedCost)}`);
     }
 }
 
@@ -473,6 +472,7 @@ async function renderDocumentsTable(documents) {
     }
 }
 
+// 🔥 CORREZIONE: Aggiorna renderAdditionalCosts
 function renderAdditionalCosts(costs) {
     const container = document.getElementById('additionalCostsList');
     if (!container) return;
@@ -517,8 +517,9 @@ function updateTotalCost() {
     
     if (!freightCostEl || !otherCostsEl || !totalCostEl) return;
     
-    const freightCost = parseFloat(freightCostEl.value) || 0;
-    const otherCosts = parseFloat(otherCostsEl.value) || 0;
+    // 🔥 CORREZIONE: Parse dei numeri in formato italiano
+    const freightCost = parseFloat(freightCostEl.value.replace(/\./g, '').replace(',', '.')) || 0;
+    const otherCosts = parseFloat(otherCostsEl.value.replace(/\./g, '').replace(',', '.')) || 0;
     const totalCost = freightCost + otherCosts;
     totalCostEl.textContent = formatCurrency(totalCost);
 }
@@ -556,10 +557,16 @@ function setupEventListeners() {
     });
 }
 
+// 🔥 CORREZIONE: Aggiorna saveCosts per parsing italiano
 async function saveCosts() {
     const shipmentId = getShipmentIdFromURL();
-    const freightCost = parseFloat(document.getElementById('freightCost').value) || 0;
-    const otherCosts = parseFloat(document.getElementById('otherCosts').value) || 0;
+    const freightCostInput = document.getElementById('freightCost').value;
+    const otherCostsInput = document.getElementById('otherCosts').value;
+    
+    // Parse dei valori in formato italiano
+    const freightCost = parseFloat(freightCostInput.replace(/\./g, '').replace(',', '.')) || 0;
+    const otherCosts = parseFloat(otherCostsInput.replace(/\./g, '').replace(',', '.')) || 0;
+    
     try {
         window.notificationSystem?.info('Salvataggio dei costi in corso...');
         await window.dataManager.updateShipmentCosts(shipmentId, freightCost, otherCosts);
@@ -1057,20 +1064,58 @@ async function saveShipmentStatus() {
 }
 
 // Helper Functions
-function formatCurrency(value) { 
-    return (typeof value === 'number') ? value.toLocaleString('it-IT', { style: 'currency', currency: 'EUR' }) : '€ 0,00'; 
+function formatCurrency(value, minDecimals = 2, maxDecimals = 6) { 
+    if (typeof value !== 'number' || isNaN(value)) return '€ 0,00';
+    
+    // Se il valore è molto piccolo, usa più decimali
+    if (value > 0 && value < 0.01) {
+        maxDecimals = 6;
+    } else if (value > 0 && value < 0.1) {
+        maxDecimals = 4;
+    }
+    
+    return value.toLocaleString('it-IT', { 
+        style: 'currency', 
+        currency: 'EUR',
+        minimumFractionDigits: minDecimals,
+        maximumFractionDigits: maxDecimals
+    }); 
 }
 
 function formatWeight(value) { 
-    return (typeof value === 'number') ? `${value.toFixed(3)} kg` : '0 kg'; 
+    if (typeof value !== 'number' || isNaN(value)) return '0 kg';
+    return `${value.toLocaleString('it-IT', { minimumFractionDigits: 3, maximumFractionDigits: 3 })} kg`; 
 }
 
 function formatVolume(value) { 
-    return (typeof value === 'number') ? `${value.toFixed(3)} m³` : '0 m³'; 
+    if (typeof value !== 'number' || isNaN(value)) return '0 m³';
+    return `${value.toLocaleString('it-IT', { minimumFractionDigits: 3, maximumFractionDigits: 3 })} m³`; 
+}
+
+function formatNumber(value, decimals = 2) {
+    if (typeof value !== 'number' || isNaN(value)) return '0';
+    return value.toLocaleString('it-IT', { 
+        minimumFractionDigits: decimals, 
+        maximumFractionDigits: decimals 
+    });
+}
+
+// 🔥 NUOVA FUNZIONE: Formatta la quantità in formato italiano
+function formatQuantity(value) {
+    if (typeof value !== 'number' || isNaN(value)) return '0';
+    return value.toLocaleString('it-IT', { 
+        minimumFractionDigits: 0, 
+        maximumFractionDigits: 0 
+    });
 }
 
 function formatDate(dateString) { 
-    return dateString ? new Date(dateString).toLocaleDateString('it-IT') : '-'; 
+    if (!dateString) return '-';
+    return new Date(dateString).toLocaleDateString('it-IT', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+    }); 
 }
 
 function formatStatus(rawStatus) {
