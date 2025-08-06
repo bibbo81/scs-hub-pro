@@ -856,7 +856,7 @@ function getColumnFormatter(key) {
         case 'ata':
         case 'date_of_arrival':
         case 'created_at':
-            return formatDate; // Use the full date-time formatter
+            return formatDate;
         
         case 'last_update':
             return (value, row) => {
@@ -867,7 +867,6 @@ function getColumnFormatter(key) {
 
                 let displayDate, title, icon;
 
-                // L'aggiornamento più recente è quello che conta
                 if (autoUpdate && (!manualUpdate || autoUpdate > manualUpdate)) {
                     displayDate = formatDate(autoUpdate);
                     title = `Controllato automaticamente il ${autoUpdate.toLocaleString('it-IT')}`;
@@ -880,12 +879,50 @@ function getColumnFormatter(key) {
 
                 return `<div class="d-flex align-items-center" style="gap: 0.5rem;">${icon} <span>${displayDate}</span></div>`;
             };
-case 'updated_at':
+
+        case 'updated_at':
             return formatLastUpdateColumn;
+            
+        // --- NEW: Auto-update columns ---
+        case 'last_auto_update':
+            return value => {
+                if (!value) return '<span class="text-muted"><i class="fas fa-minus"></i> Mai</span>';
+                const date = new Date(value);
+                const now = new Date();
+                const diffHours = (now - date) / (1000 * 60 * 60);
+                
+                let timeClass = '';
+                if (diffHours < 1) timeClass = 'text-success';
+                else if (diffHours < 24) timeClass = 'text-warning';
+                else timeClass = 'text-danger';
+                
+                return `
+                    <div class="d-flex align-items-center gap-1">
+                        <i class="fas fa-robot text-primary" title="Aggiornamento automatico"></i>
+                        <span class="${timeClass}" title="${date.toLocaleString('it-IT')}">${date.toLocaleString('it-IT', { 
+                            month: '2-digit', 
+                            day: '2-digit', 
+                            hour: '2-digit', 
+                            minute: '2-digit' 
+                        })}</span>
+                    </div>
+                `;
+            };
+            
+        case 'updated_by_robot':
+            return value => {
+                if (value === true) {
+                    return '<span class="badge badge-info"><i class="fas fa-robot"></i> Automatico</span>';
+                } else if (value === false) {
+                    return '<span class="badge badge-secondary"><i class="fas fa-user"></i> Manuale</span>';
+                }
+                return '<span class="badge badge-light text-muted">N/A</span>';
+            };
             
         // --- NEW: Actions column ---
         case 'actions':
             return createTrackingActionsColumn;
+            
         // --- Numeric values with units ---
         case 'total_weight_kg':
             return (value) => (typeof value === 'number' && value > 0) ? `${value.toFixed(2)} kg` : '-';

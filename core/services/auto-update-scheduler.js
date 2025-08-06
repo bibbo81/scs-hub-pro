@@ -20,40 +20,83 @@ class AutoUpdateScheduler {
         window.autoUpdateScheduler = this;
     }
 
-    createStatusIndicator() {
-    // Prova a integrare nell'header esistente
-    const header = document.querySelector('.sol-header .container-fluid');
-    const searchSection = document.querySelector('.header-search');
+
+createStatusIndicator() {
+    // Prova a trovare l'header esistente
+    const headerContainer = document.querySelector('.sol-header .container-fluid, .header-container, .page-header');
+    const searchSection = document.querySelector('.header-search, .page-actions');
     
-    if (header && searchSection) {
+    if (headerContainer) {
+        console.log('🎯 Adding indicator to header');
+        
         // Crea l'indicatore nell'header
         const indicator = document.createElement('div');
         indicator.id = 'auto-update-status';
-        indicator.className = 'auto-update-indicator';
+        indicator.className = 'auto-update-indicator d-flex align-items-center';
         indicator.style.cssText = `
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            background: rgba(255, 255, 255, 0.1);
+            background: rgba(13, 110, 253, 0.1);
+            border: 1px solid rgba(13, 110, 253, 0.2);
             border-radius: 20px;
-            padding: 6px 12px;
-            font-size: 12px;
-            color: white;
+            padding: 4px 10px;
+            font-size: 11px;
+            color: #0d6efd;
             margin-left: 15px;
             white-space: nowrap;
+            gap: 5px;
+            cursor: pointer;
+            transition: all 0.2s ease;
         `;
         
-        // Inserisci dopo la search section
-        searchSection.parentNode.insertBefore(indicator, searchSection.nextSibling);
+        // Aggiunge hover effect
+        indicator.addEventListener('mouseenter', () => {
+            indicator.style.background = 'rgba(13, 110, 253, 0.15)';
+        });
+        indicator.addEventListener('mouseleave', () => {
+            indicator.style.background = 'rgba(13, 110, 253, 0.1)';
+        });
+        
+        // Inserisci nell'header
+        if (searchSection && searchSection.parentNode) {
+            searchSection.parentNode.insertBefore(indicator, searchSection.nextSibling);
+        } else {
+            headerContainer.appendChild(indicator);
+        }
         
         this.statusElement = indicator;
         console.log('🤖 Auto-update indicator added to header');
     } else {
-        // Fallback: Crea un indicatore minimale in basso a destra
+        console.log('⚠️ Header not found, using fallback');
         this.createMinimalIndicator();
     }
     
     this.updateStatusDisplay();
+}
+
+// AGGIUNGI questa funzione per il fallback:
+createMinimalIndicator() {
+    const indicator = document.createElement('div');
+    indicator.id = 'auto-update-status';
+    indicator.style.cssText = `
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        background: #0d6efd;
+        color: white;
+        border-radius: 25px;
+        padding: 8px 16px;
+        font-size: 11px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        z-index: 1000;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    `;
+    
+    document.body.appendChild(indicator);
+    this.statusElement = indicator;
+    console.log('🤖 Fallback auto-update indicator created');
 }
 
 createMinimalIndicator() {

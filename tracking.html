@@ -284,6 +284,7 @@
 
         // Dettagli Aereo
         { key: 'flight_number', label: 'N. Volo', sortable: true },
+        { key: 'actions', label: 'Azioni', sortable: false }
       ];
 </script>
 <script>
@@ -304,42 +305,6 @@
         }
     }
 
-    // Funzione per ottenere il formatter corretto per una colonna
-    function getColumnFormatter(key) {
-        const formatters = {
-            'total_weight_kg': value => (value ? `${parseFloat(value).toFixed(2)} kg` : '—'),
-            'total_volume_cbm': value => (value ? `${parseFloat(value).toFixed(3)} cbm` : '—'),
-            'date_of_departure': formatDateOnly,
-            'eta': formatDateOnly,
-            'updated_at': value => (value ? new Date(value).toLocaleString() : '—'),
-            'created_at': value => (value ? new Date(value).toLocaleString() : '—'),
-            'last_auto_update': value => {
-            if (!value) return '<span class="text-muted">Mai</span>';
-            const date = new Date(value);
-            return `
-                <div class="d-flex align-items-center gap-1">
-                    <i class="fas fa-robot text-primary"></i>
-                    <span class="text-success">${date.toLocaleString('it-IT')}</span>
-                </div>
-            `;
-        },
-        
-        'updated_by_robot': value => {
-            if (value === true) {
-                return '<span class="badge badge-info"><i class="fas fa-robot"></i> Robot</span>';
-            } else if (value === false) {
-                return '<span class="badge badge-secondary"><i class="fas fa-user"></i> Manuale</span>';
-            }
-            return '<span class="text-muted">N/A</span>';
-        },
-            'current_status': value => {
-                const statusInfo = window.TrackingUnifiedMapping.STATUS_MAPPING?.[value] || { text: value, class: 'secondary' };
-                return `<span class="badge badge-${statusInfo.class}">${statusInfo.text}</span>`;
-            },
-        };
-
-        return formatters[key] || (value => value || '—');
-    }
 </script>
 <script>
     /**
@@ -894,92 +859,125 @@ window.addEventListener('DOMContentLoaded', () => {
             } 
             // Altrimenti mostra un form base con data manager
             else {
-                if (window.ModalSystem) {
-                    window.ModalSystem.show({
-                        title: 'Aggiungi Tracking',
-                        content: `
-                            <div class="form-group">
-                                <label>Tracking Number *</label>
-                                <input type="text" id="trackingNumber" class="form-control" required>
-                            </div>
-                            <div class="form-group">
-                                <label>Carrier</label>
-                                <select id="carrier" class="form-control">
-                                    <option value="">Seleziona carrier...</option>
-                                    <option value="DHL">DHL</option>
-                                    <option value="FedEx">FedEx</option>
-                                    <option value="UPS">UPS</option>
-                                    <option value="TNT">TNT</option>
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <label>Tipo</label>
-                                <select id="trackingType" class="form-control">
-                                    <option value="air_waybill">Air Waybill</option>
-                                    <option value="container">Container</option>
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <label>Origine</label>
-                                <input type="text" id="origin" class="form-control" placeholder="es. MXP">
-                            </div>
-                            <div class="form-group">
-                                <label>Destinazione</label>
-                                <input type="text" id="destination" class="form-control" placeholder="es. JFK">
-                            </div>
-                        `,
-                        buttons: [
-                            {
-                                text: 'Annulla',
-                                className: 'btn-secondary',
-                                action: () => window.ModalSystem.hide()
-                            },
-                            {
-                                text: 'Salva',
-                                className: 'btn-primary',
-                                id: 'saveTrackingBtn',
-                                action: async function() {
-                                    try {
-                                        /** @type {TrackingLike} */
-                                        const trackingData = {
-                                            tracking_number: document.querySelector('#trackingNumber').value,
-                                            carrier: document.querySelector('#carrier').value,
-                                            tracking_type: document.querySelector('#trackingType').value || 'container',
-                                            origin: document.querySelector('#origin').value,
-                                            destination: document.querySelector('#destination').value,
-                                            status: 'pending',
-                                            // AGGIUNGI QUESTI CAMPI OBBLIGATORI:
-                                            organization_id: window.dataManager.organizationId,
-                                            user_id: window.dataManager.userId
-                                        };
+                // SOSTITUISCI il blocco che hai indicato con questo:
+if (window.ModalSystem) {
+    window.ModalSystem.show({
+        title: 'Aggiungi Tracking',
+        content: `
+            <div class="form-group">
+                <label>Tracking Number *</label>
+                <input type="text" id="trackingNumber" class="form-control" required>
+            </div>
+            <div class="form-group">
+                <label>Carrier</label>
+                <select id="carrier" class="form-control">
+                    <option value="">Seleziona carrier...</option>
+                    <option value="DHL">DHL</option>
+                    <option value="FedEx">FedEx</option>
+                    <option value="UPS">UPS</option>
+                    <option value="TNT">TNT</option>
+                    <option value="MSC">MSC</option>
+                    <option value="MAERSK">MAERSK</option>
+                    <option value="CMA CGM">CMA CGM</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Tipo</label>
+                <select id="trackingType" class="form-control">
+                    <option value="container">Container (Mare)</option>
+                    <option value="air_waybill">Air Waybill (Aereo)</option>
+                    <option value="bl">Bill of Lading</option>
+                    <option value="parcel">Pacco</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Origine</label>
+                <input type="text" id="origin" class="form-control" placeholder="es. SHANGHAI, MXP">
+            </div>
+            <div class="form-group">
+                <label>Destinazione</label>
+                <input type="text" id="destination" class="form-control" placeholder="es. GENOVA, JFK">
+            </div>
+            <div class="form-group">
+                <label>Riferimento (Opzionale)</label>
+                <input type="text" id="reference" class="form-control" placeholder="es. PO-123">
+            </div>
+        `,
+        buttons: [
+            {
+                text: 'Annulla',
+                className: 'btn-secondary',
+                action: () => window.ModalSystem.hide()
+            },
+            {
+                text: 'Salva',
+                className: 'btn-primary',
+                id: 'saveTrackingBtn',
+                action: async function() {
+                    try {
+                        // Raccogli dati dal form
+                        const trackingData = {
+                            tracking_number: document.querySelector('#trackingNumber').value?.trim(),
+                            carrier_name: document.querySelector('#carrier').value,
+                            tracking_type: document.querySelector('#trackingType').value || 'container',
+                            origin_port: document.querySelector('#origin').value?.trim(),
+                            destination_port: document.querySelector('#destination').value?.trim(),
+                            reference_number: document.querySelector('#reference').value?.trim(),
+                            current_status: 'registered', // Stato iniziale
+                            
+                            // Campi automatici
+                            organization_id: window.dataManager?.organizationId,
+                            user_id: window.dataManager?.userId
+                        };
 
-                                        // Validazione base
-                                        if (!trackingData.tracking_number) {
-                                            throw new Error('Tracking number obbligatorio');
-                                        }
+                        // Validazione
+                        if (!trackingData.tracking_number) {
+                            throw new Error('Tracking number è obbligatorio');
+                        }
 
-                                        const result = await window.dataManager.addTracking(trackingData);
+                        // Mostra loading
+                        const saveBtn = document.querySelector('#saveTrackingBtn');
+                        if (saveBtn) {
+                            saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Salvando...';
+                            saveBtn.disabled = true;
+                        }
 
-                                        console.log('✅ Tracking salvato:', result);
-                                        window.ModalSystem.hide();
+                        // Salva tramite data manager
+                        const result = await window.dataManager.addTracking(trackingData);
 
-                                        // Refresh tabella
-                                        if (window.refreshTrackings) {
-                                            window.refreshTrackings();
-                                        } else if (window.loadTrackings) {
-                                            window.loadTrackings();
-                                        }
-                                    } catch (error) {
-                                        console.error('❌ Errore:', error);
-                                        window.NotificationSystem.error(error.message);
-                                    }
-                                }
-                            }
-                        ]
-                    });
-                } else {
-                    alert('Form tracking non ancora disponibile, riprova tra poco');
+                        console.log('✅ Tracking salvato:', result);
+                        window.ModalSystem.hide();
+
+                        // Notifica successo
+                        window.NotificationSystem?.success(
+                            `✅ Tracking ${trackingData.tracking_number} aggiunto con successo!`
+                        );
+
+                        // Refresh tabella
+                        if (window.refreshTrackings) {
+                            window.refreshTrackings();
+                        } else if (window.loadTrackings) {
+                            window.loadTrackings();
+                        }
+
+                    } catch (error) {
+                        console.error('❌ Errore salvataggio tracking:', error);
+                        window.NotificationSystem?.error(`Errore: ${error.message}`);
+                        
+                        // Ripristina pulsante
+                        const saveBtn = document.querySelector('#saveTrackingBtn');
+                        if (saveBtn) {
+                            saveBtn.innerHTML = 'Salva';
+                            saveBtn.disabled = false;
+                        }
+                    }
                 }
+            }
+        ]
+    });
+} else {
+    alert('Modal system non disponibile, riprova tra poco');
+}
             }
         };
         
