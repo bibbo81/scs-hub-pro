@@ -925,8 +925,11 @@ function getColumnFormatter(key) {
     };
             
         // --- NEW: Actions column ---
-        case 'actions':
-            return createTrackingActionsColumn;
+       case 'actions':
+    return (value, row) => {
+        // 🔥 FIX: Passa entrambi i parametri alla funzione
+        return createTrackingActionsColumn(value, row);
+    };
             
         // --- Numeric values with units ---
         case 'total_weight_kg':
@@ -999,14 +1002,42 @@ function formatLastUpdateColumn(tracking) {
     `;
 }
 
-function createTrackingActionsColumn(tracking) {
+function createTrackingActionsColumn(value, row) {
+    // 🔥 FIX: Gestisci diversi formati di input dal TableManager
+    const tracking = row || value || {};
+    
+    // 🔥 PROTEZIONE: Se non abbiamo dati validi, ritorna azioni base
+    if (!tracking || typeof tracking !== 'object') {
+        console.warn('createTrackingActionsColumn: Invalid tracking data:', tracking);
+        return `
+            <div class="btn-group btn-group-sm" role="group">
+                <button class="btn btn-outline-secondary btn-sm" disabled title="Dati non disponibili">
+                    <i class="fas fa-exclamation-triangle"></i>
+                </button>
+            </div>
+        `;
+    }
+    
+    const trackingId = tracking.id || tracking.tracking_number;
     const isContainer = tracking.tracking_type === 'container';
-    const canUpdate = isContainer && !['delivered', 'completed', 'cancelled'].includes(tracking.status?.toLowerCase());
+    const currentStatus = (tracking.current_status || tracking.status || '').toLowerCase();
+    const canUpdate = isContainer && !['delivered', 'completed', 'cancelled'].includes(currentStatus);
+    
+    // 🔥 PROTEZIONE: Se non abbiamo ID, non mostrare azioni pericolose
+    if (!trackingId) {
+        return `
+            <div class="btn-group btn-group-sm" role="group">
+                <button class="btn btn-outline-warning btn-sm" disabled title="ID mancante">
+                    <i class="fas fa-exclamation-triangle"></i>
+                </button>
+            </div>
+        `;
+    }
     
     let actions = `
-        <div class="btn-group btn-group-sm" role="group" data-tracking-id="${tracking.id}">
+        <div class="btn-group btn-group-sm" role="group" data-tracking-id="${trackingId}">
             <button class="btn btn-outline-primary btn-sm btn-view" 
-                    onclick="viewDetails('${tracking.id}')" 
+                    onclick="viewDetails('${trackingId}')" 
                     title="Visualizza dettagli">
                 <i class="fas fa-eye"></i>
             </button>
@@ -1015,7 +1046,7 @@ function createTrackingActionsColumn(tracking) {
     if (canUpdate) {
         actions += `
             <button class="btn btn-outline-success btn-sm btn-update" 
-                    onclick="updateTrackingManually('${tracking.id}')" 
+                    onclick="updateTrackingManually('${trackingId}')" 
                     title="Aggiorna tracking">
                 <i class="fas fa-sync-alt"></i>
             </button>
@@ -1024,7 +1055,7 @@ function createTrackingActionsColumn(tracking) {
 
     actions += `
             <button class="btn btn-outline-danger btn-sm btn-delete" 
-                    onclick="deleteTracking('${tracking.id}')" 
+                    onclick="deleteTracking('${trackingId}')" 
                     title="Elimina tracking">
                 <i class="fas fa-trash"></i>
             </button>
