@@ -404,7 +404,7 @@ debugTrackingData(data) {
             if (action !== 'manual') {
                 console.log('  - Dati da trackingService.track result:', result);
             }
-            
+
             console.log('Manual entry: Data ready for saving:', dataToSave);
             this.debugTrackingData(dataToSave);
         } else {
@@ -445,14 +445,30 @@ debugTrackingData(data) {
         // 🔥 NUOVO: Usa la gestione intelligente dei duplicati
         const saveResult = await window.dataManager.addTrackingWithDuplicateCheck(dataToSave, action === 'manual');
         
-        if (saveResult.tracking) {
-            window.notificationSystem?.success(`Tracking ${action === 'get' ? 'recuperato' : 'aggiunto'} con successo!`);
+                // Nel metodo handleSubmit, modifica la parte del successo:
+                if (saveResult.tracking) {
+            const actionText = saveResult.wasUpdate ? 'aggiornato' : 
+                              action === 'get' ? 'recuperato' : 'aggiunto';
+            
+            window.notificationSystem?.success(`Tracking ${actionText} con successo!`);
             this.resetForm();
-            if (window.addTrackingToView) {
-                window.addTrackingToView(saveResult.tracking);
-            } else if (window.loadTrackings) {
-                console.warn('addTrackingToView not found, falling back to full reload.');
-                window.loadTrackings();
+            
+            // 🔥 Se è un update, forza il refresh per evitare duplicati visivi
+            if (saveResult.wasUpdate) {
+                console.log('🔄 Update rilevato - refresh automatico della tabella...');
+                setTimeout(() => {
+                    if (window.loadTrackings) {
+                        window.loadTrackings();
+                    }
+                }, 300);
+            } else {
+                // Nuovo tracking - aggiungi normalmente
+                if (window.addTrackingToView) {
+                    window.addTrackingToView(saveResult.tracking);
+                } else if (window.loadTrackings) {
+                    console.warn('addTrackingToView not found, falling back to full reload.');
+                    window.loadTrackings();
+                }
             }
         } else {
             throw new Error("Il salvataggio del tracking non ha restituito un risultato valido.");

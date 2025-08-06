@@ -468,9 +468,11 @@ class DataManager {
             
             if (duplicateCheck.isDuplicate) {
                 switch (duplicateCheck.action) {
-                    case 'update':
+                                        case 'update':
                         console.log(`🔄 ${duplicateCheck.message}`);
-                        return await this.updateExistingTracking(duplicateCheck.existing.id, trackingData);
+                        const updateResult = await this.updateExistingTracking(duplicateCheck.existing.id, trackingData);
+                        updateResult.wasUpdate = true; // 🔥 Aggiungi questo flag
+                        return updateResult;
                     
                     case 'confirm':
                         // Lancia un errore speciale che la UI può catturare per mostrare conferma
