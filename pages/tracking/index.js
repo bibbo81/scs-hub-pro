@@ -480,14 +480,7 @@ async function loadTrackings() {
                 const availableCol = AVAILABLE_COLUMNS.find(c => c.key === key); // Ora è sicuro
                 return { key: key, label: availableCol.label, sortable: availableCol.sortable, formatter: getColumnFormatter(key) };
             });
-
-            const actionsCol = TABLE_COLUMNS.find(c => c.key === 'actions');
-            if (actionsCol) newColumns.push(actionsCol);
-
-            TABLE_COLUMNS.length = 0;
-            TABLE_COLUMNS.push(...newColumns);
-            tableManager.options.columns = newColumns;
-        }
+            }
 
         // FIX CENTRALE: Normalizza lo stato per TUTTI i tracking dopo il caricamento
         processAndNormalizeTrackings(trackings);
@@ -751,7 +744,7 @@ window.applyColumnChanges = async function() {
     }
 
     try {
-        // 1. Raccogli colonne selezionate
+        // 1. Raccogli colonne selezionate nell'ordine corretto
         const columnOrder = [];
         document.querySelectorAll('#columnEditorList .column-item').forEach(item => {
             const key = item.dataset.column;
@@ -763,20 +756,30 @@ window.applyColumnChanges = async function() {
             }
         });
 
-        // 2. Ricostruisci colonne
-        const newColumns = columnOrder.map(key => {
+        // 2. 🔥 FIX: Ricostruisci colonne SENZA duplicare actions
+        const newColumns = [];
+        
+        // Aggiungi tutte le colonne selezionate (incluso actions se selezionato)
+        columnOrder.forEach(key => {
             const availableCol = AVAILABLE_COLUMNS.find(c => c.key === key);
-            const existingCol = TABLE_COLUMNS.find(c => c.key === key);
-            return existingCol || { key: key, label: availableCol.label, sortable: availableCol.sortable, formatter: getColumnFormatter(key) };
+            if (availableCol) {
+                newColumns.push({
+                    key: key, 
+                    label: availableCol.label, 
+                    sortable: availableCol.sortable, 
+                    formatter: getColumnFormatter(key)
+                });
+            }
         });
 
-        const actionsCol = TABLE_COLUMNS.find(c => c.key === 'actions');
-        if (actionsCol) newColumns.push(actionsCol);
+        // 3. 🔥 RIMUOVI QUESTO BLOCCO CHE CAUSAVA IL DUPLICATO:
+        // const actionsCol = TABLE_COLUMNS.find(c => c.key === 'actions');
+        // if (actionsCol) newColumns.push(actionsCol); // ❌ RIMUOVI QUESTA RIGA!
 
-        // 3. Salva preferenze in Supabase
+        // 4. Salva preferenze in Supabase
         await saveColumnPreferences(columnOrder);
 
-        // 4. Aggiorna tabella
+        // 5. Aggiorna tabella
         TABLE_COLUMNS.length = 0;
         TABLE_COLUMNS.push(...newColumns);
 
@@ -785,7 +788,7 @@ window.applyColumnChanges = async function() {
             updateTable();
         }
 
-        // 5. Chiudi modale
+        // 6. Chiudi modale
         const overlay = document.querySelector('.sol-modal-overlay');
         if (overlay) {
             overlay.classList.remove('active');
