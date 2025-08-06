@@ -266,7 +266,9 @@
         { key: 'transit_time', label: 'Transit Time', sortable: true },
         { key: 'updated_at', label: 'Ultimo Aggiornamento', sortable: true },
         { key: 'created_at', label: 'Data Inserimento', sortable: true },
-
+        { key: 'last_auto_update', label: 'Ultimo Auto-Update', sortable: true },
+        { key: 'updated_by_robot', label: 'Aggiornato da Robot', sortable: true },
+        
         // Dettagli Spedizione
         { key: 'reference_number', label: 'Riferimento', sortable: true },
         { key: 'bl_number', label: 'B/L Number', sortable: true },
@@ -311,6 +313,25 @@
             'eta': formatDateOnly,
             'updated_at': value => (value ? new Date(value).toLocaleString() : '—'),
             'created_at': value => (value ? new Date(value).toLocaleString() : '—'),
+            'last_auto_update': value => {
+            if (!value) return '<span class="text-muted">Mai</span>';
+            const date = new Date(value);
+            return `
+                <div class="d-flex align-items-center gap-1">
+                    <i class="fas fa-robot text-primary"></i>
+                    <span class="text-success">${date.toLocaleString('it-IT')}</span>
+                </div>
+            `;
+        },
+        
+        'updated_by_robot': value => {
+            if (value === true) {
+                return '<span class="badge badge-info"><i class="fas fa-robot"></i> Robot</span>';
+            } else if (value === false) {
+                return '<span class="badge badge-secondary"><i class="fas fa-user"></i> Manuale</span>';
+            }
+            return '<span class="text-muted">N/A</span>';
+        },
             'current_status': value => {
                 const statusInfo = window.TrackingUnifiedMapping.STATUS_MAPPING?.[value] || { text: value, class: 'secondary' };
                 return `<span class="badge badge-${statusInfo.class}">${statusInfo.text}</span>`;

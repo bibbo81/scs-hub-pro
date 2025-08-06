@@ -21,29 +21,112 @@ class AutoUpdateScheduler {
     }
 
     createStatusIndicator() {
-        // Crea indicatore di stato nella navbar o in un'area fissa
+    // Prova a integrare nell'header esistente
+    const header = document.querySelector('.sol-header .container-fluid');
+    const searchSection = document.querySelector('.header-search');
+    
+    if (header && searchSection) {
+        // Crea l'indicatore nell'header
         const indicator = document.createElement('div');
         indicator.id = 'auto-update-status';
+        indicator.className = 'auto-update-indicator';
         indicator.style.cssText = `
-            position: fixed;
-            top: 10px;
-            right: 10px;
-            background: #f8f9fa;
-            border: 1px solid #dee2e6;
-            border-radius: 8px;
-            padding: 8px 12px;
-            font-size: 12px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            z-index: 9999;
             display: flex;
             align-items: center;
-            gap: 6px;
+            gap: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 6px 12px;
+            font-size: 12px;
+            color: white;
+            margin-left: 15px;
+            white-space: nowrap;
         `;
         
-        document.body.appendChild(indicator);
+        // Inserisci dopo la search section
+        searchSection.parentNode.insertBefore(indicator, searchSection.nextSibling);
+        
         this.statusElement = indicator;
-        this.updateStatusDisplay();
+        console.log('🤖 Auto-update indicator added to header');
+    } else {
+        // Fallback: Crea un indicatore minimale in basso a destra
+        this.createMinimalIndicator();
     }
+    
+    this.updateStatusDisplay();
+}
+
+createMinimalIndicator() {
+    const indicator = document.createElement('div');
+    indicator.id = 'auto-update-status';
+    indicator.style.cssText = `
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        background: #343a40;
+        color: white;
+        border-radius: 25px;
+        padding: 8px 16px;
+        font-size: 11px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        z-index: 1000;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    `;
+    
+    // Click per espandere/ridurre
+    indicator.addEventListener('click', () => {
+        const isExpanded = indicator.dataset.expanded === 'true';
+        indicator.dataset.expanded = !isExpanded;
+        this.updateStatusDisplay();
+    });
+    
+    document.body.appendChild(indicator);
+    this.statusElement = indicator;
+    console.log('🤖 Minimal auto-update indicator created');
+}
+
+updateStatusDisplay() {
+    if (!this.statusElement) return;
+
+    const now = new Date();
+    const nextUpdateStr = this.nextUpdateTime ? 
+        this.nextUpdateTime.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' }) : 
+        'Non programmato';
+
+    const isExpanded = this.statusElement.dataset?.expanded === 'true';
+    const isInHeader = this.statusElement.parentNode?.classList?.contains('container-fluid');
+
+    if (isInHeader) {
+        // Versione per header - sempre compatta
+        this.statusElement.innerHTML = `
+            <i class="fas fa-robot" style="color: ${this.isRunning ? '#28a745' : '#6c757d'}"></i>
+            <span>Auto: ${nextUpdateStr}</span>
+        `;
+    } else {
+        // Versione floating - espandibile
+        if (isExpanded) {
+            this.statusElement.innerHTML = `
+                <i class="fas fa-robot" style="color: ${this.isRunning ? '#28a745' : '#6c757d'}"></i>
+                <div>
+                    <div style="font-weight: 600;">Auto-Update</div>
+                    <div style="font-size: 10px; opacity: 0.8;">Prossimo: ${nextUpdateStr}</div>
+                    <div style="font-size: 10px; opacity: 0.8;">
+                        ${this.isRunning ? 'In corso...' : 'Inattivo'}
+                    </div>
+                </div>
+            `;
+        } else {
+            this.statusElement.innerHTML = `
+                <i class="fas fa-robot" style="color: ${this.isRunning ? '#28a745' : '#6c757d'}"></i>
+                <span>${nextUpdateStr}</span>
+            `;
+        }
+    }
+}
 
     updateStatusDisplay() {
         if (!this.statusElement) return;
