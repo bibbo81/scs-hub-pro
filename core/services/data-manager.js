@@ -153,7 +153,7 @@ class DataManager {
      * @param {Object} trackingData - Dati del tracking da verificare
      * @returns {Promise<Object>} Risultato della verifica
      */
-    async checkTrackingDuplicate(trackingData) {
+        async checkTrackingDuplicate(trackingData) {
         if (!this.initialized) await this.init();
     
         const { tracking_number, carrier_code, origin_port, destination_port, tracking_type } = trackingData;
@@ -176,11 +176,57 @@ class DataManager {
             return { isDuplicate: false, action: 'create', existing: null };
         }
     
-        // 2. Analizza ogni tracking esistente per determinare se è un duplicato o una spedizione diversa
+        console.log(`🔍 Found ${existingTrackings.length} existing tracking(s) with number: ${tracking_number}`);
+    
+        // 2. 🔥 NUOVO: Controllo rigoroso per tracking identici
         for (const existing of existingTrackings) {
+            // 🎯 CONTROLLO ESATTO: Stesso numero + stesso carrier = sicuramente duplicato
+            if (carrier_code && existing.carrier_code && 
+                carrier_code.toLowerCase() === existing.carrier_code.toLowerCase()) {
+                console.log(`🎯 EXACT MATCH: Same tracking number + same carrier`);
+                return {
+                    isDuplicate: true,
+                    action: 'update',
+                    existing: existing,
+                    message: `Tracking ${tracking_number} già esistente con stesso carrier (${carrier_code}). Verranno aggiornati i dati.`
+                };
+            }
+    
+            // 🎯 CONTROLLO CONTAINER: Se è un container, molto probabilmente è lo stesso
+            if (tracking_type === 'container' && existing.tracking_type === 'container') {
+                console.log(`🎯 CONTAINER MATCH: Same container tracking number`);
+                return {
+                    isDuplicate: true,
+                    action: 'confirm',
+                    existing: existing,
+                    message: `⚠️ Container ${tracking_number} già presente.\n\n` +
+                            `**Esistente:** ${existing.carrier_code || 'N/A'} | ${existing.origin_port || 'N/A'} → ${existing.destination_port || 'N/A'}\n` +
+                            `**Nuovo:** ${carrier_code || 'N/A'} | ${origin_port || 'N/A'} → ${destination_port || 'N/A'}\n\n` +
+                            `È lo stesso container o uno diverso?`
+                };
+            }
+    
+            // 🎯 CONTROLLO ROTTA: Stessa rotta = probabilmente stesso tracking  
+            const sameOrigin = this.comparePorts(origin_port, existing.origin_port);
+            const sameDestination = this.comparePorts(destination_port, existing.destination_port);
+            
+            if (sameOrigin && sameDestination && origin_port && destination_port) {
+                console.log(`🎯 ROUTE MATCH: Same route detected`);
+                return {
+                    isDuplicate: true,
+                    action: 'confirm',
+                    existing: existing,
+                    message: `⚠️ Tracking ${tracking_number} già presente con stessa rotta.\n\n` +
+                            `**Rotta:** ${origin_port} → ${destination_port}\n` +
+                            `**Esistente:** Creato il ${new Date(existing.created_at).toLocaleDateString()}\n\n` +
+                            `È lo stesso tracking o uno diverso?`
+                };
+            }
+    
+            // 3. Calcolo similarità dettagliato (solo se i controlli sopra falliscono)
             const similarity = this.calculateTrackingSimilarity(trackingData, existing);
             
-            console.log(`🔍 Comparing with existing tracking:`, {
+            console.log(`🔍 Detailed similarity check:`, {
                 existing: {
                     id: existing.id,
                     carrier: existing.carrier_code,
@@ -191,40 +237,51 @@ class DataManager {
                 similarity: similarity
             });
     
-            // 3. Determina l'azione basata sulla similarità
+            // 4. Decisioni basate su similarità
             if (similarity.score >= 0.8) {
-                // Alta similarità = stesso tracking, aggiorna
                 return {
                     isDuplicate: true,
                     action: 'update',
                     existing: existing,
                     similarity: similarity,
-                    message: `Tracking ${tracking_number} già esistente. Verrà aggiornato con i nuovi dati.`
+                    message: `Tracking ${tracking_number} molto simile a uno esistente. Verrà aggiornato.`
                 };
-            } else if (similarity.score >= 0.4) {
-                // Media similarità = possibile conflitto, chiedi conferma
+            } else if (similarity.score >= 0.3) { // 🔥 ABBASSATO da 0.4 a 0.3
                 return {
                     isDuplicate: true,
                     action: 'confirm',
                     existing: existing,
                     similarity: similarity,
-                    message: `⚠️ Possibile conflitto: Tracking ${tracking_number} esiste già ma con dati diversi.\n\n` +
-                            `**Esistente:** ${existing.carrier_code} | ${existing.origin_port} → ${existing.destination_port} | ${existing.tracking_type}\n` +
-                            `**Nuovo:** ${carrier_code} | ${origin_port} → ${destination_port} | ${tracking_type}\n\n` +
-                            `Vuoi continuare comunque?`
+                    message: `⚠️ Possibile duplicato: Tracking ${tracking_number}\n\n` +
+                            `**Esistente:** ${existing.carrier_code || 'N/A'} | ${existing.origin_port || 'N/A'} → ${existing.destination_port || 'N/A'} | ${existing.tracking_type || 'N/A'}\n` +
+                            `**Nuovo:** ${carrier_code || 'N/A'} | ${origin_port || 'N/A'} → ${destination_port || 'N/A'} | ${tracking_type || 'N/A'}\n\n` +
+                            `Similarità: ${(similarity.score * 100).toFixed(1)}%\n\n` +
+                            `È lo stesso tracking?`
                 };
             }
-            // Bassa similarità = spedizione diversa con stesso numero, continua il controllo
         }
     
-        // 4. Se nessun tracking simile trovato, ma esistono tracking con stesso numero
+        // 5. 🔥 FALLBACK: Se è container/bl/awb e stesso numero = chiedi conferma sempre
+        if (['container', 'bl', 'awb'].includes(tracking_type)) {
+            console.log(`🚨 FALLBACK: ${tracking_type} with existing number - asking for confirmation`);
+            return {
+                isDuplicate: true,
+                action: 'confirm',
+                existing: existingTrackings[0],
+                message: `⚠️ Numero ${tracking_type.toUpperCase()} ${tracking_number} già utilizzato.\n\n` +
+                        `**Esistente:** Creato il ${new Date(existingTrackings[0].created_at).toLocaleDateString()}\n` +
+                        `**Carrier esistente:** ${existingTrackings[0].carrier_code || 'N/A'}\n` +
+                        `**Carrier nuovo:** ${carrier_code || 'N/A'}\n\n` +
+                        `Vuoi procedere comunque?`
+            };
+        }
+    
+        // 6. Default: diversa spedizione
         return {
             isDuplicate: true,
             action: 'different_shipment',
             existing: existingTrackings[0],
-            message: `⚠️ Numero tracking ${tracking_number} già utilizzato per una spedizione diversa.\n\n` +
-                    `Questo può accadere con tracking aerei/marittimi che riutilizzano i numeri.\n` +
-                    `Procedo con la creazione di una nuova spedizione.`
+            message: `ℹ️ Numero tracking ${tracking_number} già utilizzato per una spedizione diversa. Procedo con la creazione.`
         };
     }
     
