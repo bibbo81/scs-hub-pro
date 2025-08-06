@@ -885,8 +885,8 @@ function getColumnFormatter(key) {
             
         // --- NEW: Auto-update columns ---
         case 'last_auto_update':
-            return value => {
-                if (!value) return '<span class="text-muted"><i class="fas fa-minus"></i> Mai</span>';
+    return value => {
+        if (!value) return '<span class="text-muted"><i class="fas fa-minus"></i> Mai</span>';
                 const date = new Date(value);
                 const now = new Date();
                 const diffHours = (now - date) / (1000 * 60 * 60);
@@ -910,14 +910,14 @@ function getColumnFormatter(key) {
             };
             
         case 'updated_by_robot':
-            return value => {
-                if (value === true) {
-                    return '<span class="badge badge-info"><i class="fas fa-robot"></i> Automatico</span>';
-                } else if (value === false) {
-                    return '<span class="badge badge-secondary"><i class="fas fa-user"></i> Manuale</span>';
-                }
-                return '<span class="badge badge-light text-muted">N/A</span>';
-            };
+    return value => {
+        if (value === true) {
+            return '<span class="badge badge-info"><i class="fas fa-robot"></i> Automatico</span>';
+        } else if (value === false) {
+            return '<span class="badge badge-secondary"><i class="fas fa-user"></i> Manuale</span>';
+        }
+        return '<span class="badge badge-light text-muted">N/A</span>';
+    };
             
         // --- NEW: Actions column ---
         case 'actions':
