@@ -68,8 +68,9 @@ const AVAILABLE_COLUMNS = [
     { key: 'status', label: 'Status (Raw)', sortable: true },
     { key: 'dataSource', label: 'Data Source', sortable: true },
     { key: 'created_at', label: 'Data Creazione DB', sortable: true },
+// 🔥 AGGIUNGI QUESTA NUOVA COLONNA:
+    { key: 'actions', label: 'Azioni', sortable: false }
 ];
-
 const DEFAULT_VISIBLE_COLUMNS = [
     'tracking_number',
     'current_status',
@@ -879,7 +880,12 @@ function getColumnFormatter(key) {
 
                 return `<div class="d-flex align-items-center" style="gap: 0.5rem;">${icon} <span>${displayDate}</span></div>`;
             };
-
+case 'updated_at':
+            return formatLastUpdateColumn;
+            
+        // --- NEW: Actions column ---
+        case 'actions':
+            return createTrackingActionsColumn;
         // --- Numeric values with units ---
         case 'total_weight_kg':
             return (value) => (typeof value === 'number' && value > 0) ? `${value.toFixed(2)} kg` : '-';
@@ -916,7 +922,75 @@ function getColumnFormatter(key) {
             return (value) => value || '-';
     }
 }
+function formatLastUpdateColumn(tracking) {
+    const lastUpdate = tracking.updated_at ? new Date(tracking.updated_at) : null;
+    const wasAutoUpdated = tracking.updated_by_robot || tracking.last_auto_update;
+    
+    if (!lastUpdate) {
+        return '<span class="text-muted">Mai aggiornato</span>';
+    }
 
+    const now = new Date();
+    const diffHours = (now - lastUpdate) / (1000 * 60 * 60);
+    
+    let timeClass = '';
+    if (diffHours < 1) timeClass = 'text-success';
+    else if (diffHours < 24) timeClass = 'text-warning';
+    else timeClass = 'text-danger';
+
+    const timeStr = lastUpdate.toLocaleString('it-IT', {
+        day: '2-digit',
+        month: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit'
+    });
+
+    const robotIcon = wasAutoUpdated ? 
+        '<i class="fas fa-robot text-primary" title="Aggiornato automaticamente"></i> ' : 
+        '<i class="fas fa-user text-secondary" title="Aggiornato manualmente"></i> ';
+
+    return `
+        <div class="d-flex align-items-center gap-1">
+            ${robotIcon}
+            <span class="${timeClass}">${timeStr}</span>
+        </div>
+    `;
+}
+
+function createTrackingActionsColumn(tracking) {
+    const isContainer = tracking.tracking_type === 'container';
+    const canUpdate = isContainer && !['delivered', 'completed', 'cancelled'].includes(tracking.status?.toLowerCase());
+    
+    let actions = `
+        <div class="btn-group btn-group-sm" role="group" data-tracking-id="${tracking.id}">
+            <button class="btn btn-outline-primary btn-sm btn-view" 
+                    onclick="viewDetails('${tracking.id}')" 
+                    title="Visualizza dettagli">
+                <i class="fas fa-eye"></i>
+            </button>
+    `;
+
+    if (canUpdate) {
+        actions += `
+            <button class="btn btn-outline-success btn-sm btn-update" 
+                    onclick="updateTrackingManually('${tracking.id}')" 
+                    title="Aggiorna tracking">
+                <i class="fas fa-sync-alt"></i>
+            </button>
+        `;
+    }
+
+    actions += `
+            <button class="btn btn-outline-danger btn-sm btn-delete" 
+                    onclick="deleteTracking('${tracking.id}')" 
+                    title="Elimina tracking">
+                <i class="fas fa-trash"></i>
+            </button>
+        </div>
+    `;
+
+    return actions;
+}
 // Aggiungi bottone per editor colonne nell'UI
 // Modifica la sezione page-actions in tracking.html per aggiungere:
 /*

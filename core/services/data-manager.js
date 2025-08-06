@@ -456,6 +456,65 @@ class DataManager {
         return { tracking, shipment };
     }
     
+    // 🔥 AGGIUNGI QUESTI METODI QUI:
+    
+    /**
+     * Aggiorna un tracking con flag per aggiornamento automatico
+     */
+    async updateTrackingWithAutoFlag(trackingId, trackingData) {
+        if (!this.initialized) await this.init();
+    
+        const timestamp = new Date().toISOString();
+        
+        const updateData = {
+            ...trackingData,
+            updated_at: timestamp,
+            last_auto_update: timestamp,
+            updated_by_robot: true,
+            organization_id: this.organizationId
+        };
+    
+        // Rimuovi campi che non dovrebbero essere aggiornati
+        delete updateData.id;
+        delete updateData.created_at;
+        delete updateData.user_id;
+    
+        const { data: tracking, error } = await supabase
+            .from('trackings')
+            .update(updateData)
+            .eq('id', trackingId)
+            .eq('organization_id', this.organizationId)
+            .select()
+            .single();
+    
+        if (error) {
+            console.error('❌ Error updating tracking with auto flag:', error);
+            throw error;
+        }
+    
+        console.log('🤖 Tracking auto-updated successfully:', tracking.id);
+        return { tracking };
+    }
+    
+    /**
+     * Recupera tracking per auto-aggiornamento (solo container attivi)
+     */
+    async getTrackingsForAutoUpdate() {
+        if (!this.initialized) await this.init();
+    
+        const { data, error } = await supabase
+            .from('trackings')
+            .select('*')
+            .eq('organization_id', this.organizationId)
+            .eq('tracking_type', 'container')
+            .not('status', 'in', '("delivered","completed","cancelled")')
+            .order('updated_at', { ascending: true }); // Più vecchi prima
+    
+        if (error) throw error;
+        return data || [];
+    }
+    
+    // ...existing code...
     /**
     * Versione migliorata di addTracking con gestione duplicati intelligente
     */
