@@ -1821,5 +1821,31 @@ if (window.ModalSystem && !window.ModalSystem.hide) {
     console.log('✅ ModalSystem.hide() aggiunto');
 }
 </script>
+<!-- 🤖 Auto Update System -->
+<script type="module" src="/core/services/auto-update-scheduler.js"></script>
+
+<script>
+// Debug commands per il browser console
+window.schedulerDebug = {
+    status: () => window.autoUpdateScheduler?.isRunning,
+    next: () => window.autoUpdateScheduler?.nextUpdateTime,
+    test: () => window.autoUpdateScheduler?.testUpdate(),
+    stop: () => window.autoUpdateScheduler?.stop(),
+    start: () => window.autoUpdateScheduler?.start()
+};
+
+// Funzione globale per aggiornamento manuale
+window.updateTrackingManually = async function(trackingId) {
+    if (window.autoUpdateScheduler) {
+        await window.autoUpdateScheduler.runManualUpdate(trackingId);
+    } else {
+        console.error('AutoUpdateScheduler not available');
+        window.notificationSystem?.error('Sistema di aggiornamento non disponibile');
+    }
+};
+
+console.log('🤖 Scheduler debug commands available: window.schedulerDebug');
+</script>
+
 </body>
 </html>
