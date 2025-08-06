@@ -1865,6 +1865,84 @@ window.updateTrackingManually = async function(trackingId) {
 
 console.log('🤖 Scheduler debug commands available: window.schedulerDebug');
 </script>
+<!-- AGGIUNGI QUESTO BLOCCO STYLE PRIMA DEL </body> -->
+<style>
+/* 🎨 STILI PER COLONNA AZIONI */
+.btn-group-sm .btn {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.75rem;
+    border-radius: 0.2rem;
+    margin: 0 1px;
+}
 
+.btn-group-sm .btn i {
+    font-size: 0.75rem;
+}
+
+/* Colori specifici per i pulsanti azioni */
+.btn-outline-primary:hover {
+    background-color: #007bff;
+    border-color: #007bff;
+}
+
+.btn-outline-success:hover {
+    background-color: #28a745;
+    border-color: #28a745;
+}
+
+.btn-outline-danger:hover {
+    background-color: #dc3545;
+    border-color: #dc3545;
+}
+
+/* Fix per la spaziatura nelle celle azioni */
+td[data-column="actions"] {
+    white-space: nowrap;
+    text-align: center;
+    vertical-align: middle;
+    padding: 0.5rem 0.25rem;
+}
+
+/* Badge stili per auto-update */
+.badge-info {
+    background-color: #17a2b8;
+}
+
+.badge-secondary {
+    background-color: #6c757d;
+}
+
+.badge-light {
+    background-color: #f8f9fa;
+    color: #6c757d;
+}
+
+/* Fix per icone robot */
+.fa-robot {
+    color: #007bff !important;
+}
+
+/* Fix per le colonne auto-update */
+.text-success {
+    color: #28a745 !important;
+}
+
+.text-warning {
+    color: #ffc107 !important;
+}
+
+.text-danger {
+    color: #dc3545 !important;
+}
+
+.text-muted {
+    color: #6c757d !important;
+}
+
+/* Gap per elementi flex */
+.d-flex.align-items-center.gap-1 > * + * {
+    margin-left: 0.25rem;
+}
+</style>
 </body>
 </html>

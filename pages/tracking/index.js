@@ -81,10 +81,13 @@ const DEFAULT_VISIBLE_COLUMNS = [
     'destination_port',
     'eta',
     'last_update',
+    'last_auto_update',
+    'updated_by_robot',
     'total_weight_kg',
     'total_volume_cbm',
     'container_types',
     'reference_number',
+    'actions'  // 🔥 INCLUDI ANCHE AZIONI
 ];
 
 // Column configuration for table
@@ -467,7 +470,6 @@ async function loadTrackings() {
         const columnOrder = await loadColumnPreferences();
         if (columnOrder && tableManager) {
             // FIX: Filtra le colonne salvate per assicurarsi che esistano ancora in AVAILABLE_COLUMNS
-            // Questo previene errori se una colonna viene rimossa dal codice ma è ancora nelle preferenze utente.
             const validColumnOrder = columnOrder.filter(key => {
                 const exists = AVAILABLE_COLUMNS.some(c => c.key === key);
                 if (!exists) {
@@ -476,11 +478,22 @@ async function loadTrackings() {
                 return exists;
             });
 
+            // 🔥 AGGIUNGI QUESTO BLOCCO MANCANTE:
             const newColumns = validColumnOrder.map(key => {
-                const availableCol = AVAILABLE_COLUMNS.find(c => c.key === key); // Ora è sicuro
-                return { key: key, label: availableCol.label, sortable: availableCol.sortable, formatter: getColumnFormatter(key) };
+                const availableCol = AVAILABLE_COLUMNS.find(c => c.key === key);
+                return { 
+                    key: key, 
+                    label: availableCol.label, 
+                    sortable: availableCol.sortable, 
+                    formatter: getColumnFormatter(key) 
+                };
             });
-            }
+
+            // 🔥 APPLICA LE COLONNE AL TABLE MANAGER:
+            TABLE_COLUMNS.length = 0;
+            TABLE_COLUMNS.push(...newColumns);
+            tableManager.options.columns = newColumns;
+        }
 
         // FIX CENTRALE: Normalizza lo stato per TUTTI i tracking dopo il caricamento
         processAndNormalizeTrackings(trackings);
@@ -1877,5 +1890,33 @@ window.updateTrackingManually = async function(trackingId) {
     } else {
         // Fallback se non trova il pulsante
         await refreshTracking(trackingId);
+    }
+};
+// 🔧 DEBUG FUNCTION
+window.debugColumns = function() {
+    console.log('=== COLUMN DEBUG ===');
+    console.log('AVAILABLE_COLUMNS:', AVAILABLE_COLUMNS.map(c => c.key));
+    console.log('TABLE_COLUMNS:', TABLE_COLUMNS.map(c => c.key));
+    console.log('TableManager columns:', tableManager?.options?.columns?.map(c => c.key));
+    
+    // Test caricamento preferenze
+    loadColumnPreferences().then(prefs => {
+        console.log('Saved preferences:', prefs);
+    });
+    
+    // Test salvataggio
+    const testOrder = ['tracking_number', 'last_auto_update', 'updated_by_robot', 'actions'];
+    saveColumnPreferences(testOrder).then(() => {
+        console.log('Test save completed');
+    });
+};
+
+window.resetColumnPreferences = async function() {
+    try {
+        await saveColumnPreferences(DEFAULT_VISIBLE_COLUMNS);
+        console.log('✅ Reset to default columns');
+        location.reload(); // Ricarica per applicare
+    } catch (error) {
+        console.error('❌ Reset error:', error);
     }
 };
