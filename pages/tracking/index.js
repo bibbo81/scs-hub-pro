@@ -1047,36 +1047,36 @@ function createTrackingActionsColumn(value, row) {
         `;
     }
     
-    let actions = `
-        <div class="btn-group btn-group-sm" role="group" data-tracking-id="${trackingId}">
-            <button class="btn btn-outline-primary btn-sm btn-view" 
-                    onclick="viewDetails('${trackingId}')" 
-                    title="Visualizza dettagli">
-                <i class="fas fa-eye"></i>
-            </button>
-    `;
-
-    if (canUpdate) {
-        actions += `
-            <button class="btn btn-outline-success btn-sm btn-update" 
-                    onclick="updateTrackingManually('${trackingId}')" 
-                    title="Aggiorna tracking">
-                <i class="fas fa-sync-alt"></i>
-            </button>
+        let actions = `
+            <div class="btn-group btn-group-sm" role="group" data-tracking-id="${trackingId}">
+                <button class="btn btn-outline-primary btn-sm btn-view" 
+                        onclick="viewDetails('${trackingId}')" 
+                        title="Visualizza dettagli">
+                    <i class="fas fa-eye"></i>
+                </button>
         `;
+    
+        if (canUpdate) {
+            actions += `
+                <button class="btn btn-outline-success btn-sm btn-update" 
+                        onclick="updateTrackingManually('${trackingId}')" 
+                        title="Aggiorna tracking">
+                    <i class="fas fa-sync-alt"></i>
+                </button>
+            `;
+        }
+    
+        actions += `
+                <button class="btn btn-outline-danger btn-sm btn-delete" 
+                        onclick="deleteTracking('${trackingId}')" 
+                        title="Elimina tracking">
+                    <i class="fas fa-trash-alt"></i>
+                </button>
+            </div>
+        `;
+    
+        return actions;
     }
-
-    actions += `
-            <button class="btn btn-outline-danger btn-sm btn-delete" 
-                    onclick="deleteTracking('${trackingId}')" 
-                    title="Elimina tracking">
-                <i class="fas fa-trash"></i>
-            </button>
-        </div>
-    `;
-
-    return actions;
-}
 // Aggiungi bottone per editor colonne nell'UI
 // Modifica la sezione page-actions in tracking.html per aggiungere:
 /*
