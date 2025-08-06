@@ -393,6 +393,18 @@ debugTrackingData(data) {
                 flight_number: flightNumber || null,
             };
 
+                        // Nel metodo handleSubmit, dopo aver costruito dataToSave, aggiungi:
+            console.log('🔍 DEBUG - Dati che stanno per essere salvati:');
+            console.log('📍 Origin:', dataToSave.origin_port);
+            console.log('📍 Destination:', dataToSave.destination_port);
+            console.log('📋 Source del dato destinazione:');
+            console.log('  - Campo form destination:', this.elements.destination.value);
+            console.log('  - Action type:', action);
+            
+            if (action !== 'manual') {
+                console.log('  - Dati da trackingService.track result:', result);
+            }
+            
             console.log('Manual entry: Data ready for saving:', dataToSave);
             this.debugTrackingData(dataToSave);
         } else {
