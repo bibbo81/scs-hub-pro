@@ -1865,83 +1865,106 @@ window.updateTrackingManually = async function(trackingId) {
 
 console.log('🤖 Scheduler debug commands available: window.schedulerDebug');
 </script>
-<!-- AGGIUNGI QUESTO BLOCCO STYLE PRIMA DEL </body> -->
 <style>
-/* 🎨 STILI PER COLONNA AZIONI */
-.btn-group-sm .btn {
-    padding: 0.25rem 0.5rem;
-    font-size: 0.75rem;
-    border-radius: 0.2rem;
-    margin: 0 1px;
+/* 🎯 FIX TABELLA E COLONNE - VERSIONE FINALE */
+.sol-table {
+    table-layout: fixed !important;
+    width: 100% !important;
+    border-collapse: separate !important;
+    border-spacing: 0 !important;
 }
 
-.btn-group-sm .btn i {
-    font-size: 0.75rem;
+.sol-table th,
+.sol-table td {
+    padding: 0.5rem 0.3rem !important;
+    vertical-align: middle !important;
+    border-bottom: 1px solid #dee2e6 !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    position: relative !important;
 }
 
-/* Colori specifici per i pulsanti azioni */
-.btn-outline-primary:hover {
-    background-color: #007bff;
-    border-color: #007bff;
+/* 🎯 LARGHEZZE SPECIFICHE - RISOLVE LA SOVRAPPOSIZIONE */
+.sol-table td[data-column="tracking_number"] { width: 180px !important; min-width: 180px !important; }
+.sol-table td[data-column="current_status"] { width: 100px !important; text-align: center !important; }
+.sol-table td[data-column="carrier_name"] { width: 80px !important; }
+.sol-table td[data-column="origin_port"] { width: 120px !important; }
+.sol-table td[data-column="destination_port"] { width: 120px !important; }
+.sol-table td[data-column="eta"] { width: 100px !important; }
+.sol-table td[data-column="last_update"] { width: 130px !important; }
+.sol-table td[data-column="last_auto_update"] { width: 150px !important; }
+.sol-table td[data-column="updated_by_robot"] { width: 120px !important; text-align: center !important; }
+.sol-table td[data-column="total_weight_kg"] { width: 90px !important; text-align: right !important; }
+.sol-table td[data-column="total_volume_cbm"] { width: 90px !important; text-align: right !important; }
+.sol-table td[data-column="container_types"] { width: 100px !important; }
+.sol-table td[data-column="reference_number"] { width: 120px !important; }
+.sol-table td[data-column="actions"] { width: 120px !important; text-align: center !important; }
+
+/* 🎯 HEADER CORRISPONDENTI */
+.sol-table th[data-column="tracking_number"] { width: 180px !important; min-width: 180px !important; }
+.sol-table th[data-column="current_status"] { width: 100px !important; text-align: center !important; }
+.sol-table th[data-column="carrier_name"] { width: 80px !important; }
+.sol-table th[data-column="origin_port"] { width: 120px !important; }
+.sol-table th[data-column="destination_port"] { width: 120px !important; }
+.sol-table th[data-column="eta"] { width: 100px !important; }
+.sol-table th[data-column="last_update"] { width: 130px !important; }
+.sol-table th[data-column="last_auto_update"] { width: 150px !important; }
+.sol-table th[data-column="updated_by_robot"] { width: 120px !important; text-align: center !important; }
+.sol-table th[data-column="total_weight_kg"] { width: 90px !important; text-align: right !important; }
+.sol-table th[data-column="total_volume_cbm"] { width: 90px !important; text-align: right !important; }
+.sol-table th[data-column="container_types"] { width: 100px !important; }
+.sol-table th[data-column="reference_number"] { width: 120px !important; }
+.sol-table th[data-column="actions"] { width: 120px !important; text-align: center !important; }
+
+/* 🎯 PULSANTI AZIONI - FIX DEFINITIVO */
+.sol-table .btn-group-sm {
+    display: flex !important;
+    justify-content: center !important;
+    gap: 2px !important;
 }
 
-.btn-outline-success:hover {
-    background-color: #28a745;
-    border-color: #28a745;
+.sol-table .btn-group-sm .btn {
+    padding: 0.2rem 0.4rem !important;
+    font-size: 0.7rem !important;
+    min-width: 26px !important;
+    height: 26px !important;
+    border-radius: 3px !important;
+    margin: 0 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
 }
 
-.btn-outline-danger:hover {
-    background-color: #dc3545;
-    border-color: #dc3545;
-}
+/* 🎯 COLORI PULSANTI */
+.btn-outline-primary { color: #007bff !important; border-color: #007bff !important; background: white !important; }
+.btn-outline-primary:hover { background: #007bff !important; color: white !important; }
+.btn-outline-success { color: #28a745 !important; border-color: #28a745 !important; background: white !important; }
+.btn-outline-success:hover { background: #28a745 !important; color: white !important; }
+.btn-outline-danger { color: #dc3545 !important; border-color: #dc3545 !important; background: white !important; }
+.btn-outline-danger:hover { background: #dc3545 !important; color: white !important; }
 
-/* Fix per la spaziatura nelle celle azioni */
-td[data-column="actions"] {
-    white-space: nowrap;
-    text-align: center;
-    vertical-align: middle;
-    padding: 0.5rem 0.25rem;
-}
+/* 🎯 BADGE AUTO-UPDATE */
+.badge-info { background-color: #17a2b8 !important; color: white !important; }
+.badge-secondary { background-color: #6c757d !important; color: white !important; }
+.badge-light { background-color: #f8f9fa !important; color: #6c757d !important; border: 1px solid #dee2e6 !important; }
 
-/* Badge stili per auto-update */
-.badge-info {
-    background-color: #17a2b8;
-}
+/* 🎯 ICONE E COLORI */
+.fa-robot { color: #007bff !important; }
+.text-success { color: #28a745 !important; }
+.text-warning { color: #ffc107 !important; }
+.text-danger { color: #dc3545 !important; }
+.text-muted { color: #6c757d !important; }
 
-.badge-secondary {
-    background-color: #6c757d;
-}
+/* 🎯 FLEX UTILITIES */
+.d-flex { display: flex !important; }
+.align-items-center { align-items: center !important; }
+.gap-1 > * + * { margin-left: 0.25rem !important; }
 
-.badge-light {
-    background-color: #f8f9fa;
-    color: #6c757d;
-}
-
-/* Fix per icone robot */
-.fa-robot {
-    color: #007bff !important;
-}
-
-/* Fix per le colonne auto-update */
-.text-success {
-    color: #28a745 !important;
-}
-
-.text-warning {
-    color: #ffc107 !important;
-}
-
-.text-danger {
-    color: #dc3545 !important;
-}
-
-.text-muted {
-    color: #6c757d !important;
-}
-
-/* Gap per elementi flex */
-.d-flex.align-items-center.gap-1 > * + * {
-    margin-left: 0.25rem;
+/* 🎯 RESPONSIVE */
+@media (max-width: 1200px) {
+    .sol-table td, .sol-table th { padding: 0.4rem 0.2rem !important; font-size: 0.85rem !important; }
+    .sol-table .btn-group-sm .btn { min-width: 22px !important; height: 22px !important; font-size: 0.65rem !important; }
 }
 </style>
 </body>
