@@ -54,9 +54,9 @@ class DataManager {
         return this.initPromise;
     }
 
-    async addTracking(trackingData, isManual = false) {
+        async addTracking(trackingData, isManual = false) {
         if (!this.initialized) await this.init();
-
+    
         const timestamp = new Date().toISOString();
         
         // Assicura che i campi richiesti da upsertTracking siano presenti.
@@ -69,12 +69,12 @@ class DataManager {
             // Assicura che carrier_code sia presente se manca
             carrier_code: trackingData.carrier_code || trackingData.carrier
         };
-
+    
         const tracking = await trackingUpsertUtility.upsertTracking(dataForUpsert, isManual);
-
+    
         // Dopo aver creato/aggiornato il tracking, crea o collega la spedizione corrispondente.
         let shipment = null;
-
+    
         // Cerca una spedizione esistente con lo stesso tracking number per evitare duplicati.
         const { data: existingShipment } = await supabase
             .from('shipments')
@@ -82,7 +82,7 @@ class DataManager {
             .eq('organization_id', this.organizationId)
             .eq('tracking_number', tracking.tracking_number)
             .maybeSingle();
-
+    
         if (existingShipment) {
             // Se una spedizione esiste già, assicurati che sia collegata a questo tracking.
             console.log(`Shipment for ${tracking.tracking_number} already exists. Updating tracking_id.`);
@@ -92,10 +92,10 @@ class DataManager {
                     tracking_id: tracking.id,
                     status: tracking.status,
                     updated_at: timestamp,
-                    total_volume_cbm: tracking.total_volume_cbm, // Aggiunto
-                    total_weight_kg: tracking.total_weight_kg,   // Aggiunto
-                    transport_mode_id: tracking.transport_mode_id, // Aggiunto
-                    vehicle_type_id: tracking.vehicle_type_id      // Aggiunto
+                    total_volume_cbm: tracking.total_volume_cbm,
+                    total_weight_kg: tracking.total_weight_kg,
+                    transport_mode_id: tracking.transport_mode_id,
+                    vehicle_type_id: tracking.vehicle_type_id
                 })
                 .eq('id', existingShipment.id)
                 .select()
@@ -103,7 +103,7 @@ class DataManager {
             
             if (updateError) console.error('Error updating existing shipment:', updateError);
             else shipment = updatedShipment;
-
+    
         } else {
             // Se non esiste, crea una nuova spedizione e collegala.
             console.log(`No shipment found for ${tracking.tracking_number}. Creating a new one.`);
@@ -114,20 +114,20 @@ class DataManager {
                 user_id: this.userId,
                 shipment_number: shipmentNumber,
                 tracking_number: tracking.tracking_number,
-                tracking_id: tracking.id, // Collega il tracking
+                tracking_id: tracking.id,
                 status: tracking.status,
                 origin: tracking.origin_port,
                 destination: tracking.destination_port,
                 carrier_name: tracking.carrier_name,
                 eta: tracking.eta,
-                total_volume_cbm: tracking.total_volume_cbm, // Aggiunto
-                total_weight_kg: tracking.total_weight_kg,   // Aggiunto
-                transport_mode_id: tracking.transport_mode_id, // Aggiunto
-                vehicle_type_id: tracking.vehicle_type_id,   // Aggiunto
+                total_volume_cbm: tracking.total_volume_cbm,
+                total_weight_kg: tracking.total_weight_kg,
+                transport_mode_id: tracking.transport_mode_id,
+                vehicle_type_id: tracking.vehicle_type_id,
                 created_at: timestamp,
                 updated_at: timestamp
             };
-
+    
             const { data: createdShipment, error: createError } = await supabase
                 .from('shipments')
                 .insert(newShipmentData)
@@ -137,43 +137,335 @@ class DataManager {
             if (createError) console.error('Error creating new shipment:', createError);
             else shipment = createdShipment;
         }
-
+    
         // Notifica alla UI che i dati sono cambiati.
         if (window.notifyDataChange) {
             window.notifyDataChange('trackings');
             window.notifyDataChange('shipments');
         }
-
+    
         console.log('✅ Tracking upserted:', { trackingId: tracking.id });
         return { tracking, shipment };
     }
-
+    
+    /**
+     * Verifica se esiste già un tracking simile e determina se è un duplicato o una spedizione diversa
+     * @param {Object} trackingData - Dati del tracking da verificare
+     * @returns {Promise<Object>} Risultato della verifica
+     */
+    async checkTrackingDuplicate(trackingData) {
+        if (!this.initialized) await this.init();
+    
+        const { tracking_number, carrier_code, origin_port, destination_port, tracking_type } = trackingData;
+    
+        // 1. Cerca tracking con stesso numero
+        const { data: existingTrackings, error } = await supabase
+            .from('trackings')
+            .select(`
+                id, tracking_number, carrier_code, carrier_name, origin_port, 
+                destination_port, tracking_type, created_at, updated_at,
+                total_weight_kg, total_volume_cbm, eta, status
+            `)
+            .eq('tracking_number', tracking_number)
+            .eq('organization_id', this.organizationId)
+            .order('created_at', { ascending: false });
+    
+        if (error) throw error;
+    
+        if (!existingTrackings || existingTrackings.length === 0) {
+            return { isDuplicate: false, action: 'create', existing: null };
+        }
+    
+        // 2. Analizza ogni tracking esistente per determinare se è un duplicato o una spedizione diversa
+        for (const existing of existingTrackings) {
+            const similarity = this.calculateTrackingSimilarity(trackingData, existing);
+            
+            console.log(`🔍 Comparing with existing tracking:`, {
+                existing: {
+                    id: existing.id,
+                    carrier: existing.carrier_code,
+                    route: `${existing.origin_port} → ${existing.destination_port}`,
+                    type: existing.tracking_type,
+                    created: existing.created_at
+                },
+                similarity: similarity
+            });
+    
+            // 3. Determina l'azione basata sulla similarità
+            if (similarity.score >= 0.8) {
+                // Alta similarità = stesso tracking, aggiorna
+                return {
+                    isDuplicate: true,
+                    action: 'update',
+                    existing: existing,
+                    similarity: similarity,
+                    message: `Tracking ${tracking_number} già esistente. Verrà aggiornato con i nuovi dati.`
+                };
+            } else if (similarity.score >= 0.4) {
+                // Media similarità = possibile conflitto, chiedi conferma
+                return {
+                    isDuplicate: true,
+                    action: 'confirm',
+                    existing: existing,
+                    similarity: similarity,
+                    message: `⚠️ Possibile conflitto: Tracking ${tracking_number} esiste già ma con dati diversi.\n\n` +
+                            `**Esistente:** ${existing.carrier_code} | ${existing.origin_port} → ${existing.destination_port} | ${existing.tracking_type}\n` +
+                            `**Nuovo:** ${carrier_code} | ${origin_port} → ${destination_port} | ${tracking_type}\n\n` +
+                            `Vuoi continuare comunque?`
+                };
+            }
+            // Bassa similarità = spedizione diversa con stesso numero, continua il controllo
+        }
+    
+        // 4. Se nessun tracking simile trovato, ma esistono tracking con stesso numero
+        return {
+            isDuplicate: true,
+            action: 'different_shipment',
+            existing: existingTrackings[0],
+            message: `⚠️ Numero tracking ${tracking_number} già utilizzato per una spedizione diversa.\n\n` +
+                    `Questo può accadere con tracking aerei/marittimi che riutilizzano i numeri.\n` +
+                    `Procedo con la creazione di una nuova spedizione.`
+        };
+    }
+    
+    /**
+     * Calcola la similarità tra due tracking
+     * @param {Object} newTracking - Nuovo tracking
+     * @param {Object} existingTracking - Tracking esistente
+     * @returns {Object} Punteggio di similarità e dettagli
+     */
+    calculateTrackingSimilarity(newTracking, existingTracking) {
+        let score = 0;
+        let maxScore = 0;
+        const details = {};
+    
+        // 1. Carrier (peso: 30%)
+        maxScore += 30;
+        if (newTracking.carrier_code && existingTracking.carrier_code) {
+            if (newTracking.carrier_code.toLowerCase() === existingTracking.carrier_code.toLowerCase()) {
+                score += 30;
+                details.carrier = '✅ Stesso carrier';
+            } else {
+                details.carrier = '❌ Carrier diverso';
+            }
+        } else {
+            details.carrier = '⚠️ Carrier mancante';
+        }
+    
+        // 2. Tipo tracking (peso: 25%)
+        maxScore += 25;
+        if (newTracking.tracking_type && existingTracking.tracking_type) {
+            if (newTracking.tracking_type === existingTracking.tracking_type) {
+                score += 25;
+                details.type = '✅ Stesso tipo';
+            } else {
+                details.type = '❌ Tipo diverso';
+            }
+        } else {
+            details.type = '⚠️ Tipo mancante';
+        }
+    
+        // 3. Rotta (peso: 25%)
+        maxScore += 25;
+        const sameOrigin = this.comparePorts(newTracking.origin_port, existingTracking.origin_port);
+        const sameDestination = this.comparePorts(newTracking.destination_port, existingTracking.destination_port);
+        
+        if (sameOrigin && sameDestination) {
+            score += 25;
+            details.route = '✅ Stessa rotta';
+        } else if (sameOrigin || sameDestination) {
+            score += 12;
+            details.route = '🔄 Rotta parzialmente diversa';
+        } else {
+            details.route = '❌ Rotta completamente diversa';
+        }
+    
+        // 4. Timeline (peso: 20%)
+        maxScore += 20;
+        const timeDiff = this.calculateTimeDifference(newTracking.eta, existingTracking.eta);
+        if (timeDiff <= 7) { // Entro 7 giorni
+            score += 20;
+            details.timeline = '✅ Timeline compatibile';
+        } else if (timeDiff <= 30) { // Entro 30 giorni
+            score += 10;
+            details.timeline = '🔄 Timeline simile';
+        } else {
+            details.timeline = '❌ Timeline molto diversa';
+        }
+    
+        const finalScore = maxScore > 0 ? score / maxScore : 0;
+    
+        return {
+            score: finalScore,
+            details: details,
+            summary: finalScore >= 0.8 ? 'Molto simile' : 
+                    finalScore >= 0.4 ? 'Possibile duplicato' : 'Spedizioni diverse'
+        };
+    }
+    
+    /**
+     * Confronta due nomi di porti per similarità
+     */
+    comparePorts(port1, port2) {
+        if (!port1 || !port2) return false;
+        
+        const normalize = (port) => port.toLowerCase().trim().replace(/[^a-z]/g, '');
+        const p1 = normalize(port1);
+        const p2 = normalize(port2);
+        
+        // Exact match
+        if (p1 === p2) return true;
+        
+        // Substring match (per port codes vs full names)
+        if (p1.includes(p2) || p2.includes(p1)) return true;
+        
+        return false;
+    }
+    
+    /**
+     * Calcola la differenza in giorni tra due date
+     */
+    calculateTimeDifference(date1, date2) {
+        if (!date1 || !date2) return Infinity;
+        
+        try {
+            const d1 = new Date(date1);
+            const d2 = new Date(date2);
+            return Math.abs((d1 - d2) / (1000 * 60 * 60 * 24));
+        } catch {
+            return Infinity;
+        }
+    }
+    
+    /**
+     * Aggiorna un tracking esistente con nuovi dati
+     */
+    async updateExistingTracking(existingId, newTrackingData) {
+        if (!this.initialized) await this.init();
+    
+        const timestamp = new Date().toISOString();
+        
+        const updateData = {
+            ...newTrackingData,
+            updated_at: timestamp,
+            organization_id: this.organizationId
+        };
+    
+        // Rimuovi campi che non dovrebbero essere aggiornati
+        delete updateData.id;
+        delete updateData.created_at;
+        delete updateData.user_id;
+    
+        const { data: tracking, error } = await supabase
+            .from('trackings')
+            .update(updateData)
+            .eq('id', existingId)
+            .eq('organization_id', this.organizationId)
+            .select()
+            .single();
+    
+        if (error) {
+            console.error('❌ Error updating existing tracking:', error);
+            throw error;
+        }
+    
+        // Aggiorna anche la spedizione collegata se esiste
+        const { data: shipment } = await supabase
+            .from('shipments')
+            .select('id')
+            .eq('tracking_id', existingId)
+            .eq('organization_id', this.organizationId)
+            .single();
+    
+        if (shipment) {
+            await supabase
+                .from('shipments')
+                .update({
+                    status: tracking.status,
+                    origin: tracking.origin_port,
+                    destination: tracking.destination_port,
+                    carrier_name: tracking.carrier_name,
+                    eta: tracking.eta,
+                    total_volume_cbm: tracking.total_volume_cbm,
+                    total_weight_kg: tracking.total_weight_kg,
+                    transport_mode_id: tracking.transport_mode_id,
+                    vehicle_type_id: tracking.vehicle_type_id,
+                    updated_at: timestamp
+                })
+                .eq('id', shipment.id);
+        }
+    
+        console.log('✅ Tracking updated successfully:', tracking.id);
+        return { tracking, shipment };
+    }
+    
+    /**
+     * Versione migliorata di addTracking con gestione duplicati intelligente
+     */
+    async addTrackingWithDuplicateCheck(trackingData, isManual = false, forceCreate = false) {
+        if (!this.initialized) await this.init();
+    
+        // 1. Controlla duplicati solo se non stiamo forzando la creazione
+        if (!forceCreate) {
+            const duplicateCheck = await this.checkTrackingDuplicate(trackingData);
+            
+            if (duplicateCheck.isDuplicate) {
+                switch (duplicateCheck.action) {
+                    case 'update':
+                        console.log(`🔄 ${duplicateCheck.message}`);
+                        return await this.updateExistingTracking(duplicateCheck.existing.id, trackingData);
+                    
+                    case 'confirm':
+                        // Lancia un errore speciale che la UI può catturare per mostrare conferma
+                        const confirmError = new Error('DUPLICATE_CONFIRMATION_NEEDED');
+                        confirmError.duplicateInfo = duplicateCheck;
+                        throw confirmError;
+                    
+                    case 'different_shipment':
+                        console.log(`ℹ️ ${duplicateCheck.message}`);
+                        // Continua con la creazione normale
+                        break;
+                }
+            }
+        }
+    
+        // 2. Procedi con la creazione normale
+        return await this.addTracking(trackingData, isManual);
+    }
+    
+    /**
+     * Alias per backwards compatibility
+     */
+    async upsertTracking(trackingData, isManual = false) {
+        return await this.addTrackingWithDuplicateCheck(trackingData, isManual);
+    }
+    
     async getTrackings(filters = {}) {
         if (!this.initialized) await this.init();
-
+    
         let query = supabase
             .from('trackings')
             .select('*')
             .eq('organization_id', this.organizationId)
             .order('created_at', { ascending: false });
-
+    
         if (filters.status) {
             query = query.eq('status', filters.status);
         }
-
+    
         const { data, error } = await query;
         if (error) throw error;
         return data || [];
     }
-
+    
     async getShipments() {
         if (!this.initialized) await this.init();
         return await ShipmentsService.getShipmentsByOrganization(this.organizationId);
     }
-
+    
     async getAllProducts() {
         if (!this.initialized) await this.init();
-
+    
         let query = supabase
             .from('products')
             .select(`
@@ -187,7 +479,7 @@ class DataManager {
             .eq('organization_id', this.organizationId);
         const { data, error } = await query;
         if (error) throw error;
-
+    
         return data || [];
     }
 

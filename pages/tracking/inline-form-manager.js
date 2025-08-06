@@ -319,19 +319,20 @@ debugTrackingData(data) {
     });
     console.log('Full object:', data);
 }
+
  async handleSubmit() {
     const action = this.elements.action.value;
     let trackingNumber = this.elements.trackingNumber.value.trim().toUpperCase();
     
     // Basic validation
     if (action !== 'manual' && !trackingNumber) {
-        window.NotificationSystem?.error('Il numero di tracking è obbligatorio.');
+        window.notificationSystem?.error('Il numero di tracking è obbligatorio.');
         return;
     }
 
     const carrier = this.elements.carrier.value;
     if (!carrier) {
-        window.NotificationSystem?.error('Il carrier è obbligatorio.');
+        window.notificationSystem?.error('Il carrier è obbligatorio.');
         return;
     }
 
@@ -355,17 +356,18 @@ debugTrackingData(data) {
 
     try {
         if (action === 'manual') {
-            // FIX COMPLETO: Validazione e mappatura corretta per il database
+            // 🔥 CORREZIONE: Costruisci dataToSave per inserimenti manuali
+            // FIX: Map 'air_waybill' to 'awb' to match the database check constraint.
             const dbTrackingType = (trackingType === 'air_waybill') ? 'awb' : trackingType;
-            
-            // Validazione campi obbligatori
-            if (!dbTrackingType || !['container', 'awb', 'bl', 'parcel'].includes(dbTrackingType)) {
-                throw new Error('Seleziona un tipo di tracking valido (Container, AWB, B/L, Parcel).');
-            }
 
-            // Genera tracking number se vuoto
+            // Generate tracking number if empty for manual entries
             if (!trackingNumber || trackingNumber.trim() === '') {
                 trackingNumber = `MAN-${Date.now()}`;
+            }
+
+            // Validazione campi obbligatori
+            if (!dbTrackingType || !['container', 'awb', 'bl', 'parcel'].includes(dbTrackingType)) {
+                throw new Error('Tipo di tracking non valido.');
             }
 
             // Get carrier name from select
@@ -374,38 +376,27 @@ debugTrackingData(data) {
             // Costruisci l'oggetto con i campi corretti per il database
             dataToSave = {
                 tracking_number: trackingNumber,
-                carrier_code: carrier, // FIX: Usa carrier_code invece di carrier
+                carrier_code: carrier,
                 carrier_name: carrierName,
                 tracking_type: dbTrackingType,
                 reference_number: reference || null,
-                origin_port: origin || null, // FIX: Usa origin_port invece di origin
-                destination_port: destination || null, // FIX: Usa destination_port invece di destination
-                current_status: 'pending', // FIX: Usa current_status invece di status
+                origin_port: origin || null,
+                destination_port: destination || null,
+                status: 'pending',
                 eta: eta || null,
                 // Validazione numerica rigorosa
                 total_weight_kg: totalWeight && !isNaN(parseFloat(totalWeight)) ? parseFloat(totalWeight) : null,
                 total_volume_cbm: totalVolume && !isNaN(parseFloat(totalVolume)) ? parseFloat(totalVolume) : null,
-                transport_mode_id: transportModeId && transportModeId !== '' ? transportModeId : null, // Mantieni come UUID string
-                vehicle_type_id: vehicleTypeId && vehicleTypeId !== '' ? vehicleTypeId : null, // Mantieni come UUID string
+                transport_mode_id: transportModeId && transportModeId !== '' ? transportModeId : null,
+                vehicle_type_id: vehicleTypeId && vehicleTypeId !== '' ? vehicleTypeId : null,
                 bl_number: blNumber || null,
                 flight_number: flightNumber || null,
             };
 
-            // Validazione finale rigorosa
-            if (!dataToSave.tracking_number || dataToSave.tracking_number.trim() === '') {
-                throw new Error('Numero di tracking non può essere vuoto.');
-            }
-            if (!dataToSave.carrier_code || dataToSave.carrier_code.trim() === '') {
-                throw new Error('Carrier non selezionato.');
-            }
-            if (!dataToSave.tracking_type) {
-                throw new Error('Tipo di tracking non selezionato.');
-            }
-
             console.log('Manual entry: Data ready for saving:', dataToSave);
-            this.debugTrackingData(dataToSave); // AGGIUNGI QUESTA RIGA QUI
+            this.debugTrackingData(dataToSave);
         } else {
-            // Per azioni auto/get, usa il trackingService
+            // 🔥 CORREZIONE: Per azioni auto/get, usa il trackingService
             console.log('Step 1: Calling trackingService.track to get enriched data...');
             const result = await window.trackingService.track(
                 trackingNumber,
@@ -438,10 +429,12 @@ debugTrackingData(data) {
         }
         
         console.log('Step 3: Saving data via DataManager...');
-        const saveResult = await window.dataManager.addTracking(dataToSave, action === 'manual');
-
-        if (saveResult && saveResult.tracking) {
-            window.NotificationSystem?.success(`Tracking ${action === 'get' ? 'recuperato' : 'aggiunto'} con successo!`);
+        
+        // 🔥 NUOVO: Usa la gestione intelligente dei duplicati
+        const saveResult = await window.dataManager.addTrackingWithDuplicateCheck(dataToSave, action === 'manual');
+        
+        if (saveResult.tracking) {
+            window.notificationSystem?.success(`Tracking ${action === 'get' ? 'recuperato' : 'aggiunto'} con successo!`);
             this.resetForm();
             if (window.addTrackingToView) {
                 window.addTrackingToView(saveResult.tracking);
@@ -455,31 +448,83 @@ debugTrackingData(data) {
 
     } catch (error) {
         console.error('Submit Error:', error);
+        console.error('Database error code:', error.code);
         
-        // Debug dell'errore per capire il problema
-        if (error.code) {
-            console.error('Database error code:', error.code);
-        }
-        if (error.details) {
-            console.error('Database error details:', error.details);
-        }
-        if (error.hint) {
-            console.error('Database error hint:', error.hint);
+        // 🔥 NUOVO: Gestione errore duplicato con conferma
+        if (error.message === 'DUPLICATE_CONFIRMATION_NEEDED') {
+            const duplicateInfo = error.duplicateInfo;
+            
+            window.ModalSystem?.show({
+                title: 'Possibile Duplicato Rilevato',
+                content: `<div class="alert alert-warning">${duplicateInfo.message.replace(/\n/g, '<br>')}</div>`,
+                buttons: [
+                    { 
+                        text: 'Annulla', 
+                        class: 'sol-btn sol-btn-secondary', 
+                        onclick: () => window.ModalSystem.close() 
+                    },
+                    {
+                        text: 'Aggiorna Esistente',
+                        class: 'sol-btn sol-btn-primary',
+                        onclick: async () => {
+                            try {
+                                const updateResult = await window.dataManager.updateExistingTracking(
+                                    duplicateInfo.existing.id, 
+                                    dataToSave
+                                );
+                                window.notificationSystem?.success('Tracking aggiornato con successo!');
+                                this.resetForm();
+                                if (window.loadTrackings) window.loadTrackings();
+                                window.ModalSystem.close();
+                            } catch (updateError) {
+                                window.notificationSystem?.error(`Errore aggiornamento: ${updateError.message}`);
+                            }
+                        }
+                    },
+                    {
+                        text: 'Crea Comunque',
+                        class: 'sol-btn sol-btn-warning',
+                        onclick: async () => {
+                            try {
+                                const forceResult = await window.dataManager.addTrackingWithDuplicateCheck(
+                                    dataToSave, 
+                                    action === 'manual', 
+                                    true // forceCreate = true
+                                );
+                                window.notificationSystem?.success('Nuovo tracking creato!');
+                                this.resetForm();
+                                if (window.loadTrackings) window.loadTrackings();
+                                window.ModalSystem.close();
+                            } catch (forceError) {
+                                window.notificationSystem?.error(`Errore creazione: ${forceError.message}`);
+                            }
+                        }
+                    }
+                ]
+            });
+            return;
         }
         
-        // Mostra un messaggio di errore più dettagliato
-        let errorMessage = 'Errore sconosciuto';
-        if (error.message) {
-            errorMessage = error.message;
-        } else if (error.details) {
-            errorMessage = `Errore database: ${error.details}`;
-        } else if (error.hint) {
-            errorMessage = `Suggerimento: ${error.hint}`;
-        } else if (error.code) {
-            errorMessage = `Errore ${error.code}`;
+        // 🔥 ESISTENTE: Gestione altri errori
+        if (error.code === '23505') {
+            window.notificationSystem?.error(`Tracking ${trackingNumber} già esistente. Il sistema aggiornerà i dati esistenti.`);
+            
+            // Retry con force update
+            try {
+                const updateResult = await window.dataManager.updateExistingTracking(trackingNumber, dataToSave);
+                if (updateResult.success) {
+                    window.notificationSystem?.success('Tracking aggiornato con successo!');
+                    this.resetForm();
+                    if (window.loadTrackings) {
+                        window.loadTrackings();
+                    }
+                }
+            } catch (updateError) {
+                window.notificationSystem?.error(`Errore nell'aggiornamento: ${updateError.message}`);
+            }
+        } else {
+            window.notificationSystem?.error(`Errore: ${error.message}`);
         }
-        
-        window.NotificationSystem?.error(`Errore: ${errorMessage}`);
     } finally {
         this.elements.submitBtn.disabled = false;
         this.elements.submitBtn.innerHTML = 'Aggiungi';
@@ -525,6 +570,7 @@ debugTrackingData(data) {
     }
 }
 
+// 🔥 CORREZIONE: Aggiungi addEventListener che mancava
 // Inizializza il manager quando il DOM è pronto
 document.addEventListener('DOMContentLoaded', () => {
     window.inlineFormManager = new InlineFormManager();
