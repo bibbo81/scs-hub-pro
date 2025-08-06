@@ -997,6 +997,7 @@ async function addAdditionalCost() {
             </div>
         </div>
     `;
+    
     window.ModalSystem?.show({
         title: 'Aggiungi Costo Aggiuntivo',
         content: modalContent,
@@ -1007,17 +1008,19 @@ async function addAdditionalCost() {
                 class: 'sol-btn sol-btn-primary',
                 onclick: async () => {
                     const shipmentId = getShipmentIdFromURL();
-                     // 🔥 CORREZIONE: Input HTML già in formato internazionale
-                    const amount = parseFloat(document.getElementById('amountInput').value) || 0;
+                    
+                    // 🔥 CORREZIONE: Rimuovi la variabile duplicata
                     const costData = {
                         cost_type: document.getElementById('costTypeSelect').value,
                         amount: parseFloat(document.getElementById('amountInput').value) || 0,
                         notes: document.getElementById('notesInput').value.trim()
                     };
+                    
                     if (costData.amount <= 0) {
                         window.notificationSystem?.warning('L\'importo deve essere maggiore di zero.');
                         return false;
                     }
+                    
                     try {
                         window.notificationSystem?.info('Aggiunta del costo in corso...');
                         await window.dataManager.addAdditionalCost(shipmentId, costData);
@@ -1025,6 +1028,7 @@ async function addAdditionalCost() {
                         loadShipmentDetails(shipmentId);
                         return true;
                     } catch (error) {
+                        console.error('Error adding additional cost:', error);
                         window.notificationSystem?.error(`Errore durante l\'aggiunta del costo: ${error.message}`);
                         return false;
                     }
