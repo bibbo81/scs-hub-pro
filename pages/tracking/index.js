@@ -36,7 +36,9 @@ const AVAILABLE_COLUMNS = [
     { key: 'ata', label: 'ATA', sortable: true },
     { key: 'date_of_arrival', label: 'Data Arrivo', sortable: true },
     { key: 'last_update', label: 'Ultimo Aggiornamento', sortable: true },
-
+    { key: 'last_auto_update', label: 'Ultimo Auto-Update', sortable: true },
+    { key: 'updated_by_robot', label: 'Tipo Aggiornamento', sortable: true },
+    
     // --- Dettagli Spedizione (Peso, Volume, Colli) ---
     { key: 'total_weight_kg', label: 'Peso Totale (kg)', sortable: true },
     { key: 'total_volume_cbm', label: 'Volume Totale (m³)', sortable: true },
@@ -1813,3 +1815,33 @@ window.trackingDebug = {
     getStatusMapping: () => STATUS_DISPLAY
 };
 window.AVAILABLE_COLUMNS = AVAILABLE_COLUMNS;
+
+window.updateTrackingManually = async function(trackingId) {
+    console.log('Manual update triggered for:', trackingId);
+    
+    // Trova il pulsante e mostra loading
+    const updateBtn = document.querySelector(`[data-tracking-id="${trackingId}"] .btn-update`);
+    if (updateBtn) {
+        const originalHTML = updateBtn.innerHTML;
+        updateBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+        updateBtn.disabled = true;
+        
+        try {
+            await refreshTracking(trackingId);
+            
+            // Ripristina il pulsante dopo il successo
+            setTimeout(() => {
+                updateBtn.innerHTML = originalHTML;
+                updateBtn.disabled = false;
+            }, 1000);
+            
+        } catch (error) {
+            console.error('Manual update error:', error);
+            updateBtn.innerHTML = originalHTML;
+            updateBtn.disabled = false;
+        }
+    } else {
+        // Fallback se non trova il pulsante
+        await refreshTracking(trackingId);
+    }
+};
