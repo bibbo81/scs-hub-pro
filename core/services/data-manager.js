@@ -400,8 +400,8 @@ class DataManager {
     }
     
     /**
-     * Versione migliorata di addTracking con gestione duplicati intelligente
-     */
+    * Versione migliorata di addTracking con gestione duplicati intelligente
+    */
     async addTrackingWithDuplicateCheck(trackingData, isManual = false, forceCreate = false) {
         if (!this.initialized) await this.init();
     
@@ -429,8 +429,91 @@ class DataManager {
             }
         }
     
-        // 2. Procedi con la creazione normale
-        return await this.addTracking(trackingData, isManual);
+        // 2. 🔥 CORREZIONE: Usa trackingUpsertUtility direttamente invece di addTracking
+        const timestamp = new Date().toISOString();
+        
+        const dataForUpsert = {
+            ...trackingData,
+            organization_id: this.organizationId,
+            user_id: this.userId,
+            created_at: timestamp,
+            updated_at: timestamp,
+            carrier_code: trackingData.carrier_code || trackingData.carrier
+        };
+    
+        const tracking = await trackingUpsertUtility.upsertTracking(dataForUpsert, isManual);
+    
+        // 3. Gestione shipment (copiato da addTracking)
+        let shipment = null;
+    
+        const { data: existingShipment } = await supabase
+            .from('shipments')
+            .select('id')
+            .eq('organization_id', this.organizationId)
+            .eq('tracking_number', tracking.tracking_number)
+            .maybeSingle();
+    
+        if (existingShipment) {
+            console.log(`Shipment for ${tracking.tracking_number} already exists. Updating tracking_id.`);
+            const { data: updatedShipment, error: updateError } = await supabase
+                .from('shipments')
+                .update({
+                    tracking_id: tracking.id,
+                    status: tracking.status,
+                    updated_at: timestamp,
+                    total_volume_cbm: tracking.total_volume_cbm,
+                    total_weight_kg: tracking.total_weight_kg,
+                    transport_mode_id: tracking.transport_mode_id,
+                    vehicle_type_id: tracking.vehicle_type_id
+                })
+                .eq('id', existingShipment.id)
+                .select()
+                .single();
+            
+            if (updateError) console.error('Error updating existing shipment:', updateError);
+            else shipment = updatedShipment;
+    
+        } else {
+            console.log(`No shipment found for ${tracking.tracking_number}. Creating a new one.`);
+            const shipmentNumber = `SHP-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 100000)).padStart(5, '0')}`;
+            
+            const newShipmentData = {
+                organization_id: this.organizationId,
+                user_id: this.userId,
+                shipment_number: shipmentNumber,
+                tracking_number: tracking.tracking_number,
+                tracking_id: tracking.id,
+                status: tracking.status,
+                origin: tracking.origin_port,
+                destination: tracking.destination_port,
+                carrier_name: tracking.carrier_name,
+                eta: tracking.eta,
+                total_volume_cbm: tracking.total_volume_cbm,
+                total_weight_kg: tracking.total_weight_kg,
+                transport_mode_id: tracking.transport_mode_id,
+                vehicle_type_id: tracking.vehicle_type_id,
+                created_at: timestamp,
+                updated_at: timestamp
+            };
+    
+            const { data: createdShipment, error: createError } = await supabase
+                .from('shipments')
+                .insert(newShipmentData)
+                .select()
+                .single();
+            
+            if (createError) console.error('Error creating new shipment:', createError);
+            else shipment = createdShipment;
+        }
+    
+        // Notifica alla UI che i dati sono cambiati
+        if (window.notifyDataChange) {
+            window.notifyDataChange('trackings');
+            window.notifyDataChange('shipments');
+        }
+    
+        console.log('✅ Tracking created with duplicate check:', { trackingId: tracking.id });
+        return { tracking, shipment };
     }
     
     /**
