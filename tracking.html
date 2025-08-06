@@ -1866,74 +1866,140 @@ window.updateTrackingManually = async function(trackingId) {
 console.log('🤖 Scheduler debug commands available: window.schedulerDebug');
 </script>
 <style>
-/* 🎯 FIX TABELLA E COLONNE - VERSIONE FINALE */
+/* 🎯 FIX TABELLA E COLONNE - VERSIONE RESPONSIVE */
 .sol-table {
-    table-layout: fixed !important;
+    table-layout: auto !important;
     width: 100% !important;
     border-collapse: separate !important;
     border-spacing: 0 !important;
+    min-width: 1200px; /* Forza scroll orizzontale su schermi piccoli */
 }
 
 .sol-table th,
 .sol-table td {
-    padding: 0.5rem 0.3rem !important;
+    padding: 0.5rem 0.4rem !important;
     vertical-align: middle !important;
     border-bottom: 1px solid #dee2e6 !important;
     white-space: nowrap !important;
-    overflow: hidden !important;
-    text-overflow: ellipsis !important;
     position: relative !important;
 }
 
-/* 🎯 LARGHEZZE SPECIFICHE - RISOLVE LA SOVRAPPOSIZIONE */
-.sol-table td[data-column="tracking_number"] { width: 180px !important; min-width: 180px !important; }
-.sol-table td[data-column="current_status"] { width: 100px !important; text-align: center !important; }
-.sol-table td[data-column="carrier_name"] { width: 80px !important; }
-.sol-table td[data-column="origin_port"] { width: 120px !important; }
-.sol-table td[data-column="destination_port"] { width: 120px !important; }
-.sol-table td[data-column="eta"] { width: 100px !important; }
-.sol-table td[data-column="last_update"] { width: 130px !important; }
-.sol-table td[data-column="last_auto_update"] { width: 150px !important; }
-.sol-table td[data-column="updated_by_robot"] { width: 120px !important; text-align: center !important; }
-.sol-table td[data-column="total_weight_kg"] { width: 90px !important; text-align: right !important; }
-.sol-table td[data-column="total_volume_cbm"] { width: 90px !important; text-align: right !important; }
-.sol-table td[data-column="container_types"] { width: 100px !important; }
-.sol-table td[data-column="reference_number"] { width: 120px !important; }
-.sol-table td[data-column="actions"] { width: 120px !important; text-align: center !important; }
+/* 🎯 LARGHEZZE FLESSIBILI - SI ADATTANO AL CONTENUTO */
+.sol-table td[data-column="tracking_number"], 
+.sol-table th[data-column="tracking_number"] { 
+    min-width: 150px !important; 
+    max-width: 200px !important; 
+    width: auto !important;
+}
 
-/* 🎯 HEADER CORRISPONDENTI */
-.sol-table th[data-column="tracking_number"] { width: 180px !important; min-width: 180px !important; }
-.sol-table th[data-column="current_status"] { width: 100px !important; text-align: center !important; }
-.sol-table th[data-column="carrier_name"] { width: 80px !important; }
-.sol-table th[data-column="origin_port"] { width: 120px !important; }
-.sol-table th[data-column="destination_port"] { width: 120px !important; }
-.sol-table th[data-column="eta"] { width: 100px !important; }
-.sol-table th[data-column="last_update"] { width: 130px !important; }
-.sol-table th[data-column="last_auto_update"] { width: 150px !important; }
-.sol-table th[data-column="updated_by_robot"] { width: 120px !important; text-align: center !important; }
-.sol-table th[data-column="total_weight_kg"] { width: 90px !important; text-align: right !important; }
-.sol-table th[data-column="total_volume_cbm"] { width: 90px !important; text-align: right !important; }
-.sol-table th[data-column="container_types"] { width: 100px !important; }
-.sol-table th[data-column="reference_number"] { width: 120px !important; }
-.sol-table th[data-column="actions"] { width: 120px !important; text-align: center !important; }
+.sol-table td[data-column="current_status"], 
+.sol-table th[data-column="current_status"] { 
+    min-width: 80px !important; 
+    max-width: 120px !important; 
+    text-align: center !important; 
+}
 
-/* 🎯 PULSANTI AZIONI - FIX DEFINITIVO */
+.sol-table td[data-column="carrier_name"], 
+.sol-table th[data-column="carrier_name"] { 
+    min-width: 60px !important; 
+    max-width: 100px !important; 
+}
+
+.sol-table td[data-column="origin_port"], 
+.sol-table td[data-column="destination_port"],
+.sol-table th[data-column="origin_port"], 
+.sol-table th[data-column="destination_port"] { 
+    min-width: 100px !important; 
+    max-width: 150px !important; 
+}
+
+.sol-table td[data-column="eta"], 
+.sol-table th[data-column="eta"] { 
+    min-width: 80px !important; 
+    max-width: 120px !important; 
+}
+
+.sol-table td[data-column="last_update"], 
+.sol-table th[data-column="last_update"] { 
+    min-width: 120px !important; 
+    max-width: 160px !important; 
+}
+
+.sol-table td[data-column="last_auto_update"], 
+.sol-table th[data-column="last_auto_update"] { 
+    min-width: 140px !important; 
+    max-width: 180px !important; 
+}
+
+.sol-table td[data-column="updated_by_robot"], 
+.sol-table th[data-column="updated_by_robot"] { 
+    min-width: 110px !important; 
+    max-width: 140px !important; 
+    text-align: center !important; 
+}
+
+.sol-table td[data-column="total_weight_kg"], 
+.sol-table td[data-column="total_volume_cbm"],
+.sol-table th[data-column="total_weight_kg"], 
+.sol-table th[data-column="total_volume_cbm"] { 
+    min-width: 80px !important; 
+    max-width: 110px !important; 
+    text-align: right !important; 
+}
+
+.sol-table td[data-column="container_types"], 
+.sol-table th[data-column="container_types"] { 
+    min-width: 90px !important; 
+    max-width: 130px !important; 
+}
+
+.sol-table td[data-column="reference_number"], 
+.sol-table th[data-column="reference_number"] { 
+    min-width: 100px !important; 
+    max-width: 140px !important; 
+}
+
+.sol-table td[data-column="actions"], 
+.sol-table th[data-column="actions"] { 
+    min-width: 110px !important; 
+    max-width: 110px !important; /* Fissa per i pulsanti */
+    width: 110px !important;
+    text-align: center !important; 
+}
+
+/* 🎯 TESTO CON ELLIPSIS PER CONTENUTI LUNGHI */
+.sol-table td {
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+}
+
+/* 🎯 CONTAINER RESPONSIVE CON SCROLL ORIZZONTALE */
+.table-responsive, 
+#trackingTableContainer {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    margin-bottom: 1rem !important;
+}
+
+/* 🎯 PULSANTI AZIONI - COMPATTI E RESPONSIVE */
 .sol-table .btn-group-sm {
     display: flex !important;
     justify-content: center !important;
-    gap: 2px !important;
+    gap: 1px !important;
+    flex-wrap: nowrap !important;
 }
 
 .sol-table .btn-group-sm .btn {
-    padding: 0.2rem 0.4rem !important;
-    font-size: 0.7rem !important;
-    min-width: 26px !important;
-    height: 26px !important;
-    border-radius: 3px !important;
+    padding: 0.15rem 0.3rem !important;
+    font-size: 0.65rem !important;
+    min-width: 24px !important;
+    height: 24px !important;
+    border-radius: 2px !important;
     margin: 0 !important;
     display: inline-flex !important;
     align-items: center !important;
     justify-content: center !important;
+    flex-shrink: 0 !important;
 }
 
 /* 🎯 COLORI PULSANTI */
@@ -1944,10 +2010,10 @@ console.log('🤖 Scheduler debug commands available: window.schedulerDebug');
 .btn-outline-danger { color: #dc3545 !important; border-color: #dc3545 !important; background: white !important; }
 .btn-outline-danger:hover { background: #dc3545 !important; color: white !important; }
 
-/* 🎯 BADGE AUTO-UPDATE */
-.badge-info { background-color: #17a2b8 !important; color: white !important; }
-.badge-secondary { background-color: #6c757d !important; color: white !important; }
-.badge-light { background-color: #f8f9fa !important; color: #6c757d !important; border: 1px solid #dee2e6 !important; }
+/* 🎯 BADGE AUTO-UPDATE - COMPATTI */
+.badge-info { background-color: #17a2b8 !important; color: white !important; padding: 0.15em 0.4em !important; }
+.badge-secondary { background-color: #6c757d !important; color: white !important; padding: 0.15em 0.4em !important; }
+.badge-light { background-color: #f8f9fa !important; color: #6c757d !important; border: 1px solid #dee2e6 !important; padding: 0.15em 0.4em !important; }
 
 /* 🎯 ICONE E COLORI */
 .fa-robot { color: #007bff !important; }
@@ -1959,12 +2025,70 @@ console.log('🤖 Scheduler debug commands available: window.schedulerDebug');
 /* 🎯 FLEX UTILITIES */
 .d-flex { display: flex !important; }
 .align-items-center { align-items: center !important; }
-.gap-1 > * + * { margin-left: 0.25rem !important; }
+.gap-1 > * + * { margin-left: 0.2rem !important; }
 
-/* 🎯 RESPONSIVE */
+/* 🎯 HEADER STICKY (OPZIONALE) */
+.sol-table thead th {
+    position: sticky !important;
+    top: 0 !important;
+    background-color: #f8f9fa !important;
+    z-index: 10 !important;
+    box-shadow: 0 2px 2px -1px rgba(0, 0, 0, 0.1) !important;
+}
+
+/* 🎯 HOVER EFFECTS */
+.sol-table tbody tr:hover {
+    background-color: rgba(0, 123, 255, 0.05) !important;
+}
+
+/* 🎯 RESPONSIVE BREAKPOINTS */
+@media (max-width: 1400px) {
+    .sol-table th, .sol-table td { 
+        padding: 0.4rem 0.3rem !important; 
+        font-size: 0.9rem !important; 
+    }
+    .sol-table .btn-group-sm .btn { 
+        min-width: 22px !important; 
+        height: 22px !important; 
+        font-size: 0.6rem !important; 
+    }
+}
+
 @media (max-width: 1200px) {
-    .sol-table td, .sol-table th { padding: 0.4rem 0.2rem !important; font-size: 0.85rem !important; }
-    .sol-table .btn-group-sm .btn { min-width: 22px !important; height: 22px !important; font-size: 0.65rem !important; }
+    .sol-table th, .sol-table td { 
+        padding: 0.3rem 0.2rem !important; 
+        font-size: 0.85rem !important; 
+    }
+    .sol-table .btn-group-sm .btn { 
+        min-width: 20px !important; 
+        height: 20px !important; 
+        font-size: 0.55rem !important; 
+        padding: 0.1rem 0.2rem !important;
+    }
+    
+    /* Riduci padding per colonne lunghe */
+    .sol-table td[data-column="last_auto_update"], 
+    .sol-table th[data-column="last_auto_update"] {
+        min-width: 120px !important;
+        max-width: 150px !important;
+    }
+}
+
+@media (max-width: 768px) {
+    .sol-table {
+        min-width: 900px !important; /* Forza scroll su mobile */
+    }
+    
+    .sol-table th, .sol-table td { 
+        padding: 0.25rem 0.15rem !important; 
+        font-size: 0.8rem !important; 
+    }
+    
+    .sol-table .btn-group-sm .btn { 
+        min-width: 18px !important; 
+        height: 18px !important; 
+        font-size: 0.5rem !important; 
+    }
 }
 </style>
 </body>
