@@ -4,7 +4,7 @@ class Dashboard {
         this.currentFilters = {};
         this.data = {};
         this.charts = {}; // ✅ AGGIUNGI per tenere traccia dei grafici
-            window.dashboard = this;
+        window.dashboard = this;
 
         console.log('🎯 Dashboard Controller initialized');
     }
@@ -953,8 +953,7 @@ renderTransportModeChart() {
                     </span>
                 </td>
                 <td class="text-center">
-                    <button class="btn btn-sm btn-outline-primary" onclick="dashboard.viewCarrierDetails('${carrier.id}')">
-                        <i class="fas fa-eye"></i>
+<button class="btn btn-sm btn-outline-primary" onclick="dashboard.viewCarrierDetails('${carrier.code || carrier.name || carrier.id}')">                        <i class="fas fa-eye"></i>
                     </button>
                 </td>
             </tr>
@@ -1044,11 +1043,6 @@ renderTransportModeChart() {
         window.notificationSystem?.error(message) || alert(message);
     }
 
-    viewCarrierDetails(carrierId) {
-        console.log('View carrier details:', carrierId);
-    }
-    // Aggiungi dopo la riga "View carrier details:"
-
 viewCarrierDetails(carrierCode) {
     console.log('👁️ View carrier details function called:', carrierCode);
     
@@ -1057,7 +1051,8 @@ viewCarrierDetails(carrierCode) {
         const carrierData = this.data.carriersPerformance.find(c => 
             c.carrier_code === carrierCode || 
             c.name === carrierCode ||
-            c.id === carrierCode
+            c.id === carrierCode ||
+            c.code === carrierCode
         );
         
         console.log('📊 Carrier data found:', carrierData);
@@ -1067,7 +1062,7 @@ viewCarrierDetails(carrierCode) {
             return;
         }
         
-        // ✅ CREA CONTENUTO MODALE
+        // ✅ CREA CONTENUTO MODALE CON PROPRIETÀ CORRETTE
         const modalContent = `
             <div class="row g-3">
                 <div class="col-12">
@@ -1089,7 +1084,7 @@ viewCarrierDetails(carrierCode) {
                 <div class="col-md-6">
                     <div class="card">
                         <div class="card-body text-center">
-                            <h3 class="text-success">€${(carrierData.totalCost || 0).toLocaleString()}</h3>
+                            <h3 class="text-success">€${(carrierData.revenue || 0).toLocaleString()}</h3>
                             <small class="text-muted">Fatturato Totale</small>
                         </div>
                     </div>
@@ -1098,7 +1093,7 @@ viewCarrierDetails(carrierCode) {
                 <div class="col-md-6">
                     <div class="card">
                         <div class="card-body text-center">
-                            <h3 class="text-warning">${(carrierData.totalWeight || 0).toLocaleString()} kg</h3>
+                            <h3 class="text-warning">${(carrierData.weight || 0).toLocaleString()} kg</h3>
                             <small class="text-muted">Peso Totale</small>
                         </div>
                     </div>
@@ -1107,7 +1102,7 @@ viewCarrierDetails(carrierCode) {
                 <div class="col-md-6">
                     <div class="card">
                         <div class="card-body text-center">
-                            <h3 class="text-info">${(carrierData.totalVolume || 0).toFixed(2)} m³</h3>
+                            <h3 class="text-info">${(carrierData.volume || 0).toFixed(2)} m³</h3>
                             <small class="text-muted">Volume Totale</small>
                         </div>
                     </div>
@@ -1118,6 +1113,15 @@ viewCarrierDetails(carrierCode) {
                         <div class="card-body text-center">
                             <h3 class="text-dark">€${(carrierData.avgCost || 0).toFixed(2)}</h3>
                             <small class="text-muted">Costo Medio per Spedizione</small>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-body text-center">
+                            <h3 class="text-success">${(carrierData.performance || 0).toFixed(1)}%</h3>
+                            <small class="text-muted">Performance Consegne</small>
                         </div>
                     </div>
                 </div>
@@ -1140,7 +1144,7 @@ viewCarrierDetails(carrierCode) {
             });
         } else {
             // ✅ FALLBACK con alert
-            alert(`Dettagli ${carrierData.name}:\nSpedizioni: ${carrierData.shipments}\nFatturato: €${carrierData.totalCost.toLocaleString()}`);
+            alert(`Dettagli ${carrierData.name}:\nSpedizioni: ${carrierData.shipments}\nFatturato: €${(carrierData.revenue || 0).toLocaleString()}`);
         }
         
     } catch (error) {
