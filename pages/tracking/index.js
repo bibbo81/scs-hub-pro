@@ -1970,7 +1970,7 @@ window.testServerAutoUpdate = function() {
 
 console.log('✅ Server auto-update functions loaded - Ready to test!');
 
-// 🔧 FUNZIONE DI MONITORAGGIO AUTO-UPDATE SYSTEM
+// 🔧 FUNZIONE DI MONITORAGGIO AUTO-UPDATE SYSTEM (CORRETTA)
 window.monitorAutoUpdateSystem = async function() {
     try {
         console.log('📊 === AUTO-UPDATE SYSTEM MONITOR ===');
@@ -1988,8 +1988,17 @@ window.monitorAutoUpdateSystem = async function() {
             `)
             .eq('tracking_type', 'container');
         
-        if (stats) {
-            const analysis = {
+        // 🔥 FIX: Inizializza analysis con valori di default
+        let analysis = {
+            total_containers: 0,
+            robot_updated: 0,
+            never_updated: 0,
+            updated_last_hour: 0,
+            updated_last_24h: 0
+        };
+        
+        if (stats && stats.length > 0) {
+            analysis = {
                 total_containers: stats.length,
                 robot_updated: stats.filter(t => t.updated_by_robot).length,
                 never_updated: stats.filter(t => !t.last_auto_update).length,
@@ -2006,6 +2015,8 @@ window.monitorAutoUpdateSystem = async function() {
             };
             
             console.log('📈 Container Analytics:', analysis);
+        } else {
+            console.log('📈 Container Analytics: No containers found');
         }
         
         // 2. Test Edge Function
@@ -2022,6 +2033,7 @@ window.monitorAutoUpdateSystem = async function() {
         
         console.log('🕒 Recent auto-updates:', recent);
         
+        // 🔥 FIX: Return con analysis definita correttamente
         return {
             stats: analysis,
             edgeFunction: edgeResult.success,
