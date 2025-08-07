@@ -398,63 +398,95 @@ class DataManager {
      * Aggiorna un tracking esistente con nuovi dati
      */
     async updateExistingTracking(existingId, newTrackingData) {
-        if (!this.initialized) await this.init();
+    if (!this.initialized) await this.init();
+
+    const timestamp = new Date().toISOString();
     
-        const timestamp = new Date().toISOString();
-        
-        const updateData = {
-            ...newTrackingData,
-            updated_at: timestamp,
-            organization_id: this.organizationId
-        };
-    
-        // Rimuovi campi che non dovrebbero essere aggiornati
-        delete updateData.id;
-        delete updateData.created_at;
-        delete updateData.user_id;
-    
-        const { data: tracking, error } = await supabase
+    const updateData = {
+        ...newTrackingData,
+        updated_at: timestamp,
+        organization_id: this.organizationId
+    };
+
+    // Rimuovi campi che non dovrebbero essere aggiornati
+    delete updateData.id;
+    delete updateData.created_at;
+    delete updateData.user_id;
+
+    // 🔥 FIX PRINCIPALE: Gestione corretta di tracking_number vs ID
+    let query;
+    if (typeof existingId === 'string' && existingId.includes('-')) {
+        // È un UUID - usa come ID
+        query = supabase
             .from('trackings')
             .update(updateData)
             .eq('id', existingId)
-            .eq('organization_id', this.organizationId)
-            .select()
-            .single();
-    
-        if (error) {
-            console.error('❌ Error updating existing tracking:', error);
-            throw error;
-        }
-    
-        // Aggiorna anche la spedizione collegata se esiste
-        const { data: shipment } = await supabase
-            .from('shipments')
-            .select('id')
-            .eq('tracking_id', existingId)
-            .eq('organization_id', this.organizationId)
-            .single();
-    
-        if (shipment) {
-            await supabase
-                .from('shipments')
-                .update({
-                    status: tracking.status,
-                    origin: tracking.origin_port,
-                    destination: tracking.destination_port,
-                    carrier_name: tracking.carrier_name,
-                    eta: tracking.eta,
-                    total_volume_cbm: tracking.total_volume_cbm,
-                    total_weight_kg: tracking.total_weight_kg,
-                    transport_mode_id: tracking.transport_mode_id,
-                    vehicle_type_id: tracking.vehicle_type_id,
-                    updated_at: timestamp
-                })
-                .eq('id', shipment.id);
-        }
-    
-        console.log('✅ Tracking updated successfully:', tracking.id);
-        return { tracking, shipment };
+            .eq('organization_id', this.organizationId);
+    } else {
+        // È un tracking number - usa come numero
+        query = supabase
+            .from('trackings')
+            .update(updateData)
+            .eq('tracking_number', existingId)
+            .eq('organization_id', this.organizationId);
     }
+
+    const { data: tracking, error } = await query
+        .select()
+        .single();
+
+    if (error) {
+        console.error('❌ Error updating existing tracking:', error);
+        // 🔥 FIX: Migliore gestione errori
+        if (error.code === 'PGRST116') {
+            throw new Error(`Tracking non trovato: ${existingId}`);
+        } else if (error.code === 'PGRST204') {
+            throw new Error(`Nessun tracking corrispondente per: ${existingId}`);
+        }
+        throw error;
+    }
+
+    // 🔥 FIX: Aggiorna anche la spedizione collegata se esiste
+    const { data: shipment } = await supabase
+        .from('shipments')
+        .select('id')
+        .eq('tracking_id', tracking.id)  // 🔥 Usa tracking.id invece di existingId
+        .eq('organization_id', this.organizationId)
+        .single();
+
+    if (shipment) {
+        // 🔥 FIX: Includi transport_company nell'aggiornamento della spedizione
+        await supabase
+            .from('shipments')
+            .update({
+                status: tracking.status,
+                origin: tracking.origin_port,
+                destination: tracking.destination_port,
+                carrier_name: tracking.carrier_name,
+                transport_company: tracking.transport_company, // 🆕 NUOVO CAMPO
+                eta: tracking.eta,
+                total_volume_cbm: tracking.total_volume_cbm,
+                total_weight_kg: tracking.total_weight_kg,
+                transport_mode_id: tracking.transport_mode_id,
+                vehicle_type_id: tracking.vehicle_type_id,
+                updated_at: timestamp
+            })
+            .eq('id', shipment.id);
+    }
+
+    // 🔥 FIX: Notifica cambio dati
+    if (window.notifyDataChange) {
+        window.notifyDataChange('trackings');
+        if (shipment) window.notifyDataChange('shipments');
+    }
+
+    console.log('✅ Tracking updated successfully:', tracking.id);
+    return { 
+        tracking, 
+        shipment,
+        success: true  // 🆕 Flag di successo esplicito
+    };
+}
     
     // 🔥 AGGIUNGI QUESTI METODI QUI:
     

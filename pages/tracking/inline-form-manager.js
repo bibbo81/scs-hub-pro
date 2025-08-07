@@ -510,6 +510,27 @@ async handleSubmit() {
         console.error('Submit Error:', error);
         console.error('Database error code:', error.code);
         
+        // 🔥 FIX: Gestione errore PGRST204 migliorata
+        if (error.code === 'PGRST204') {
+            window.notificationSystem?.error('Record non trovato o accesso negato. Creazione di un nuovo tracking...');
+            
+            try {
+                // Riprova come nuovo inserimento
+                const insertResult = await window.dataManager.insertNewTracking(dataToSave);
+                if (insertResult.success) {
+                    window.notificationSystem?.success('Nuovo tracking creato con successo!');
+                    this.resetForm();
+                    if (window.loadTrackings) {
+                        window.loadTrackings();
+                    }
+                    return;
+                }
+            } catch (insertError) {
+                window.notificationSystem?.error(`Errore creazione: ${insertError.message}`);
+                return;
+            }
+        }
+        
         // Gestione errore duplicato con conferma
         if (error.message === 'DUPLICATE_CONFIRMATION_NEEDED') {
             const duplicateInfo = error.duplicateInfo;
@@ -532,12 +553,18 @@ async handleSubmit() {
                                     duplicateInfo.existing.id, 
                                     dataToSave
                                 );
-                                window.notificationSystem?.success('Tracking aggiornato con successo!');
-                                this.resetForm();
-                                if (window.loadTrackings) window.loadTrackings();
-                                window.ModalSystem.close();
+                                if (updateResult && updateResult.success) {
+                                    window.notificationSystem?.success('Tracking aggiornato con successo!');
+                                    this.resetForm();
+                                    if (window.loadTrackings) window.loadTrackings();
+                                    window.ModalSystem.close();
+                                } else {
+                                    throw new Error('Aggiornamento fallito');
+                                }
                             } catch (updateError) {
+                                console.error('Update error:', updateError);
                                 window.notificationSystem?.error(`Errore aggiornamento: ${updateError.message}`);
+                                window.ModalSystem.close();
                             }
                         }
                     },
@@ -551,12 +578,18 @@ async handleSubmit() {
                                     action === 'manual', 
                                     true // forceCreate = true
                                 );
-                                window.notificationSystem?.success('Nuovo tracking creato!');
-                                this.resetForm();
-                                if (window.loadTrackings) window.loadTrackings();
-                                window.ModalSystem.close();
+                                if (forceResult && forceResult.tracking) {
+                                    window.notificationSystem?.success('Nuovo tracking creato!');
+                                    this.resetForm();
+                                    if (window.loadTrackings) window.loadTrackings();
+                                    window.ModalSystem.close();
+                                } else {
+                                    throw new Error('Creazione fallita');
+                                }
                             } catch (forceError) {
+                                console.error('Force create error:', forceError);
                                 window.notificationSystem?.error(`Errore creazione: ${forceError.message}`);
+                                window.ModalSystem.close();
                             }
                         }
                     }
@@ -571,20 +604,27 @@ async handleSubmit() {
             
             try {
                 const updateResult = await window.dataManager.updateExistingTracking(trackingNumber, dataToSave);
-                if (updateResult.success) {
+                if (updateResult && updateResult.success) {
                     window.notificationSystem?.success('Tracking aggiornato con successo!');
                     this.resetForm();
                     if (window.loadTrackings) {
                         window.loadTrackings();
                     }
+                } else {
+                    throw new Error('Aggiornamento non riuscito');
                 }
             } catch (updateError) {
+                console.error('Update error after 23505:', updateError);
                 window.notificationSystem?.error(`Errore nell'aggiornamento: ${updateError.message}`);
             }
         } else {
-            window.notificationSystem?.error(`Errore: ${error.message}`);
+            // Errore generico
+            const errorMessage = error.message || 'Errore sconosciuto durante il salvataggio';
+            window.notificationSystem?.error(`Errore: ${errorMessage}`);
+            console.error('Generic error:', error);
         }
     } finally {
+        // 🔥 FIX: Ripristina sempre il pulsante
         this.elements.submitBtn.disabled = false;
         this.elements.submitBtn.innerHTML = 'Aggiungi';
     }
