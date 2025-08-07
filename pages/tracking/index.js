@@ -1920,3 +1920,51 @@ window.resetColumnPreferences = async function() {
         console.error('❌ Reset error:', error);
     }
 };
+// 🔧 FUNZIONE PER CHIAMARE IL SERVER AUTO-UPDATE
+window.triggerServerAutoUpdate = async function() {
+    try {
+        // Usa l'URL del tuo progetto
+        const supabaseUrl = 'https://gnlrmnsdmpjzitsysowq.supabase.co'; // 🔥 SOSTITUISCI se usi l'altro progetto
+        const endpoint = `${supabaseUrl}/functions/v1/auto-update-scheduler`;
+        
+        const response = await fetch(endpoint, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${window.supabase?.supabaseKey || ''}`
+            }
+        });
+        
+        if (!response.ok) {
+            throw new Error(`Server responded with ${response.status}`);
+        }
+        
+        const result = await response.json();
+        console.log('🤖 Server auto-update result:', result);
+        
+        if (result.success) {
+            if (result.updated > 0) {
+                window.NotificationSystem?.success(`Server auto-update: ${result.updated} tracking aggiornati`);
+                await loadTrackings(); // Ricarica la tabella
+            } else {
+                window.NotificationSystem?.info('Server auto-update: nessun tracking da aggiornare');
+            }
+        } else {
+            throw new Error(result.error || 'Unknown server error');
+        }
+        
+        return result;
+    } catch (error) {
+        console.error('Server auto-update error:', error);
+        window.NotificationSystem?.error('Errore server auto-update: ' + error.message);
+        return { success: false, error: error.message };
+    }
+};
+
+// 🔧 TEST IMMEDIATO DEL SERVER AUTO-UPDATE
+window.testServerAutoUpdate = function() {
+    console.log('🧪 Testing server auto-update...');
+    window.triggerServerAutoUpdate();
+};
+
+console.log('✅ Server auto-update functions loaded - Ready to test!');
