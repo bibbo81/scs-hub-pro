@@ -446,13 +446,13 @@ class DataManager {
         throw error;
     }
 
-    // 🔥 FIX: Aggiorna anche la spedizione collegata se esiste
+ // 🔥 FIX DEFINITIVO per errore 406: Query più robusta
 const { data: shipment, error: shipmentError } = await supabase
     .from('shipments')
     .select('id')
-    .eq('tracking_number', tracking.tracking_number)  // 🔥 FIX: Usa tracking_number invece di tracking_id
+    .eq('tracking_number', tracking.tracking_number)
     .eq('organization_id', this.organizationId)
-    .single();
+    .maybeSingle(); // 🔥 USA maybeSingle() invece di single()
 
 // 🔧 Non lanciare errore se shipment non esiste (è normale per alcuni tracking)
 if (shipment && !shipmentError) {
@@ -472,7 +472,8 @@ if (shipment && !shipmentError) {
             vehicle_type_id: tracking.vehicle_type_id,
             updated_at: timestamp
         })
-        .eq('id', shipment.id);
+        .eq('id', shipment.id)
+        .eq('organization_id', this.organizationId); // 🔥 AGGIUNGI organization_id anche qui
         
     if (updateShipmentError) {
         console.warn('⚠️ Warning updating shipment:', updateShipmentError);
@@ -480,8 +481,8 @@ if (shipment && !shipmentError) {
     } else {
         console.log('✅ Shipment also updated successfully:', shipment.id);
     }
-} else if (shipmentError && shipmentError.code !== 'PGRST116') {
-    // Log solo errori non-PGRST116 (che indica semplicemente "nessun record trovato")
+} else if (shipmentError && !shipmentError.message?.includes('No rows found')) {
+    // Log solo errori che non sono "record non trovato"
     console.warn('⚠️ Warning fetching shipment:', shipmentError);
 } else {
     console.log('ℹ️ No shipment found for tracking:', tracking.tracking_number);
