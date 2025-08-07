@@ -684,7 +684,58 @@ async refreshWithFilters() {
         this.renderTrendChart();
         this.renderTransportModeChart();
     }
+renderTrendChart() {
+    const ctx = document.getElementById('trendChart');
+    if (!ctx || !this.data.trends) return;
 
+    // ✅ DISTRUGGI grafico esistente
+    if (this.charts.trendChart) {
+        this.charts.trendChart.destroy();
+    }
+
+    this.charts.trendChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: this.data.trends.map(t => t.month),
+            datasets: [{
+                label: 'Spedizioni',
+                data: this.data.trends.map(t => t.shipments),
+                borderColor: '#6366f1',
+                backgroundColor: 'rgba(99, 102, 241, 0.1)',
+                tension: 0.4
+            }, {
+                label: 'Costi (€)',
+                data: this.data.trends.map(t => t.costs),
+                borderColor: '#ef4444',
+                backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                tension: 0.4,
+                yAxisID: 'y1'
+            }]
+        },
+        options: {
+            responsive: true,
+            interaction: {
+                mode: 'index',
+                intersect: false,
+            },
+            scales: {
+                y: {
+                    type: 'linear',
+                    display: true,
+                    position: 'left',
+                },
+                y1: {
+                    type: 'linear',
+                    display: true,
+                    position: 'right',
+                    grid: {
+                        drawOnChartArea: false,
+                    },
+                }
+            }
+        }
+    });
+}
         renderTransportModeChart() {
     const ctx = document.getElementById('transportModeChart');
     if (!ctx || !this.data.transportModes) return;
@@ -714,29 +765,6 @@ async refreshWithFilters() {
     });
 }
 
-    renderTransportModeChart() {
-        const ctx = document.getElementById('transportModeChart');
-        if (!ctx || !this.data.transportModes) return;
-
-        new Chart(ctx, {
-            type: 'doughnut',
-            data: {
-                labels: this.data.transportModes.map(t => t.name),
-                datasets: [{
-                    data: this.data.transportModes.map(t => t.count),
-                    backgroundColor: ['#6366f1', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6']
-                }]
-            },
-            options: {
-                responsive: true,
-                plugins: {
-                    legend: {
-                        position: 'bottom'
-                    }
-                }
-            }
-        });
-    }
 
     renderTables() {
         this.renderCarriersDetailTable();
