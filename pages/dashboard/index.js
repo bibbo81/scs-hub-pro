@@ -599,83 +599,79 @@ async refreshWithFilters() {
         }
     }
 
-        renderKPICards() {
-        const container = document.getElementById('kpiCards');
-        if (!container) return;
+                 renderKPICards() {
+            const container = document.getElementById('kpiCards');
+            if (!container) return;
+            
+            const kpiCards = [
+                {
+                    label: 'Spedizioni',
+                    value: this.data.totalShipments.toLocaleString(),
+                    growth: 12.5,
+                    icon: 'fas fa-shipping-fast',
+                    color: '#6366f1'
+                },
+                {
+                    label: 'Costi Totali',
+                    value: `€${this.data.totalCosts.toLocaleString()}`,
+                    growth: 8.2,
+                    icon: 'fas fa-euro-sign',
+                    color: '#ef4444'
+                },
+                {
+                    label: 'Peso (kg)',
+                    value: `${this.data.totalWeight.toLocaleString()}`,
+                    growth: -3.1,
+                    icon: 'fas fa-weight-hanging',
+                    color: '#f59e0b'
+                },
+                {
+                    label: 'Volume (m³)',
+                    value: `${this.data.totalVolume.toFixed(1)}`,
+                    growth: 5.7,
+                    icon: 'fas fa-cube',
+                    color: '#8b5cf6'
+                },
+                {
+                    label: 'Spedizionieri',
+                    value: this.data.activeCarriers.toString(),
+                    growth: 15.3,
+                    icon: 'fas fa-truck',
+                    color: '#06b6d4'
+                },
+                {
+                    label: 'Costo Medio',
+                    value: this.data.totalShipments > 0 ? 
+                        `€${(this.data.totalCosts / this.data.totalShipments).toFixed(2)}` : '€0',
+                    growth: -2.4,
+                    icon: 'fas fa-calculator',
+                    color: '#10b981'
+                }
+            ];
         
-        const kpiCards = [
-            {
-                label: 'Spedizioni',
-                value: this.data.totalShipments.toLocaleString(),
-                growth: 12.5,
-                icon: 'fas fa-shipping-fast',
-                color: '#6366f1'
-            },
-            {
-                label: 'Costi Totali',
-                value: `€${this.data.totalCosts.toLocaleString()}`,
-                growth: 8.2,
-                icon: 'fas fa-euro-sign',
-                color: '#ef4444'
-            },
-            {
-                label: 'Peso (kg)',
-                value: `${this.data.totalWeight.toLocaleString()}`,
-                growth: -3.1,
-                icon: 'fas fa-weight-hanging',
-                color: '#f59e0b'
-            },
-            {
-                label: 'Volume (m³)',
-                value: `${this.data.totalVolume.toFixed(1)}`,
-                growth: 5.7,
-                icon: 'fas fa-cube',
-                color: '#8b5cf6'
-            },
-            {
-                label: 'Spedizionieri',
-                value: this.data.activeCarriers.toString(),
-                growth: 15.3,
-                icon: 'fas fa-truck',
-                color: '#06b6d4'
-            },
-            {
-                label: 'Costo Medio',
-                value: this.data.totalShipments > 0 ? 
-                    `€${(this.data.totalCosts / this.data.totalShipments).toFixed(2)}` : '€0',
-                growth: -2.4,
-                icon: 'fas fa-calculator',
-                color: '#ef4444'
-            }
-        ];
-    
-        // ✅ LAYOUT COMPATTO E RESPONSIVE
-        container.innerHTML = kpiCards.map((kpi, index) => `
-            <div class="col-lg-2 col-md-4 col-sm-6 mb-3" data-kpi-index="${index}">
-                <div class="kpi-card h-100 sortable-card" draggable="true">
-                    <div class="d-flex align-items-center">
-                        <div class="kpi-icon-small me-3" style="background-color: ${kpi.color};">
+            // ✅ LAYOUT GRIGLIA QUADRATA CON WRAPPER
+            container.innerHTML = kpiCards.map((kpi, index) => `
+                <div class="kpi-card-wrapper" data-kpi-index="${index}">
+                    <div class="kpi-card sortable-card" draggable="true">
+                        <div class="drag-handle">
+                            <i class="fas fa-grip-vertical"></i>
+                        </div>
+                        <div class="kpi-icon-small" style="background-color: ${kpi.color};">
                             <i class="${kpi.icon}"></i>
                         </div>
-                        <div class="flex-grow-1">
-                            <div class="kpi-label-small">${kpi.label}</div>
-                            <div class="kpi-value-small">${kpi.value}</div>
-                            <div class="growth-indicator-small ${kpi.growth >= 0 ? 'growth-positive' : 'growth-negative'}">
-                                <i class="fas fa-arrow-${kpi.growth >= 0 ? 'up' : 'down'} me-1"></i>
-                                ${Math.abs(kpi.growth).toFixed(1)}%
-                            </div>
-                        </div>
-                        <div class="drag-handle">
-                            <i class="fas fa-grip-vertical text-muted"></i>
+                        <div class="kpi-label-small">${kpi.label}</div>
+                        <div class="kpi-value-small">${kpi.value}</div>
+                        <div class="growth-indicator-small ${kpi.growth >= 0 ? 'growth-positive' : 'growth-negative'}">
+                            <i class="fas fa-arrow-${kpi.growth >= 0 ? 'up' : 'down'} me-1"></i>
+                            ${Math.abs(kpi.growth).toFixed(1)}%
                         </div>
                     </div>
                 </div>
-            </div>
-        `).join('');
-    
-        // ✅ INIZIALIZZA SORTABLE
-        this.initializeSortableKPIs();
-    }
+            `).join('');
+        
+            // ✅ INIZIALIZZA SORTABLE
+            this.initializeSortableKPIs();
+        }
 initializeSortableKPIs() {
     const container = document.getElementById('kpiCards');
     if (!container) return;
@@ -685,7 +681,7 @@ initializeSortableKPIs() {
     // Aggiungi event listeners per drag & drop
     container.addEventListener('dragstart', (e) => {
         if (e.target.closest('.sortable-card')) {
-            draggedElement = e.target.closest('.col-lg-2');
+            draggedElement = e.target.closest('.kpi-card-wrapper'); // ✅ CAMBIO QUI
             draggedElement.classList.add('dragging');
             e.dataTransfer.effectAllowed = 'move';
         }
@@ -705,7 +701,7 @@ initializeSortableKPIs() {
 
     container.addEventListener('drop', (e) => {
         e.preventDefault();
-        const dropTarget = e.target.closest('.col-lg-2');
+        const dropTarget = e.target.closest('.kpi-card-wrapper'); // ✅ CAMBIO QUI
         
         if (dropTarget && draggedElement && dropTarget !== draggedElement) {
             const allCards = Array.from(container.children);

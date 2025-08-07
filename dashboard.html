@@ -33,7 +33,7 @@
     <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
     
     <style>
-        /* ✅ KPI Cards Compatte e Responsive */
+                /* ✅ KPI Cards Compatte e QUADRATE */
         .kpi-card {
             background: white;
             border-radius: 12px;
@@ -42,76 +42,100 @@
             border: 1px solid #f1f5f9;
             transition: all 0.3s ease;
             cursor: grab;
-            height: 100%;
+            height: 120px; /* ✅ ALTEZZA FISSA QUADRATA */
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            position: relative;
         }
-
+        
         .kpi-card:hover {
             box-shadow: 0 4px 20px rgba(0,0,0,0.12);
             transform: translateY(-2px);
         }
-
+        
         .kpi-card.dragging {
             opacity: 0.5;
             cursor: grabbing;
         }
-
+        
         .kpi-icon-small {
-            width: 45px;
-            height: 45px;
+            width: 40px;
+            height: 40px;
             border-radius: 10px;
             display: flex;
             align-items: center;
             justify-content: center;
             color: white;
-            font-size: 1.2rem;
+            font-size: 1.1rem;
+            margin-bottom: 0.5rem;
             flex-shrink: 0;
         }
-
+        
         .kpi-label-small {
-            font-size: 0.75rem;
+            font-size: 0.7rem;
             color: #64748b;
             font-weight: 500;
             margin-bottom: 0.25rem;
             text-transform: uppercase;
             letter-spacing: 0.5px;
+            line-height: 1.2;
         }
-
+        
         .kpi-value-small {
-            font-size: 1.25rem;
+            font-size: 1.1rem;
             font-weight: 700;
             color: #1e293b;
-            line-height: 1.2;
+            line-height: 1.1;
             margin-bottom: 0.25rem;
         }
-
+        
         .growth-indicator-small {
-            font-size: 0.7rem;
+            font-size: 0.65rem;
             font-weight: 600;
             margin-top: 0.25rem;
         }
-
+        
         .growth-positive {
             color: #10b981;
         }
-
+        
         .growth-negative {
             color: #ef4444;
         }
-
+        
         .drag-handle {
-            opacity: 0.3;
+            position: absolute;
+            top: 0.5rem;
+            right: 0.5rem;
+            opacity: 0.2;
             transition: opacity 0.2s;
             cursor: grab;
+            font-size: 0.8rem;
         }
-
+        
         .kpi-card:hover .drag-handle {
-            opacity: 0.7;
+            opacity: 0.6;
         }
-
-        /* ✅ Grafici Responsivi */
+        
+        /* ✅ Layout per 6 cards in 2 righe */
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+       .kpi-card-wrapper {
+    width: 100%;
+    min-width: 180px;
+    max-width: 220px;
+}
+        /* ✅ Grafici Responsivi - PIÙ QUADRATI */
         .chart-container {
             position: relative;
-            height: 300px !important;
+            height: 350px !important; /* ✅ AUMENTATO per il grafico trend */
             width: 100%;
             background: white;
             border-radius: 12px;
@@ -120,9 +144,62 @@
             border: 1px solid #f1f5f9;
             margin-bottom: 1.5rem;
         }
-
+        
+        .chart-container.chart-square {
+            height: 380px !important; /* ✅ PIÙ QUADRATO per il grafico a torta */
+        }
+        
         .chart-container canvas {
-            max-height: 300px !important;
+            max-height: 100% !important;
+        }
+        
+        /* ✅ Responsive Design */
+        @media (max-width: 768px) {
+            .kpi-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 0.75rem;
+            }
+            
+            .kpi-card {
+                height: 100px;
+                padding: 0.75rem;
+            }
+            
+            .kpi-icon-small {
+                width: 30px;
+                height: 30px;
+                font-size: 0.9rem;
+                margin-bottom: 0.25rem;
+            }
+            
+            .kpi-value-small {
+                font-size: 0.95rem;
+            }
+            
+            .kpi-label-small {
+                font-size: 0.65rem;
+            }
+            
+            .chart-container {
+                height: 280px !important;
+                padding: 1rem;
+            }
+            
+            .chart-container.chart-square {
+                height: 300px !important;
+            }
+        }
+        
+        @media (max-width: 576px) {
+            .kpi-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 0.5rem;
+            }
+            
+            .kpi-card {
+                height: 90px;
+                padding: 0.5rem;
+            }
         }
 
         .chart-title {
@@ -440,31 +517,31 @@
         </div>
 
         <!-- KPI Cards -->
-        <div class="row g-3 mb-4" id="kpiCards">
-            <!-- Popolato dinamicamente con layout compatto -->
+<div class="kpi-grid" id="kpiCards">
+    <!-- Popolato dinamicamente con layout compatto quadrato -->
         </div>
 
-        <!-- Charts Section -->
-        <div class="row g-4 mb-4">
-            <div class="col-lg-8">
-                <div class="chart-container">
-                    <div class="chart-title">
-                        <i class="fas fa-chart-line text-primary"></i>
-                        Trend Spedizioni e Costi
-                    </div>
-                    <canvas id="trendChart"></canvas>
+           <!-- Charts Section - LAYOUT MIGLIORATO -->
+    <div class="row g-4 mb-4">
+        <div class="col-lg-7">
+            <div class="chart-container">
+                <div class="chart-title">
+                    <i class="fas fa-chart-line text-primary"></i>
+                    Trend Spedizioni e Costi
                 </div>
-            </div>
-            <div class="col-lg-4">
-                <div class="chart-container">
-                    <div class="chart-title">
-                        <i class="fas fa-chart-pie text-success"></i>
-                        Modi di Trasporto
-                    </div>
-                    <canvas id="transportModeChart"></canvas>
-                </div>
+                <canvas id="trendChart"></canvas>
             </div>
         </div>
+        <div class="col-lg-5">
+            <div class="chart-container chart-square">
+                <div class="chart-title">
+                    <i class="fas fa-chart-pie text-success"></i>
+                    Modi di Trasporto
+                </div>
+                <canvas id="transportModeChart"></canvas>
+            </div>
+        </div>
+    </div>
 
         <!-- Detail Tables -->
         <div class="sol-card">
