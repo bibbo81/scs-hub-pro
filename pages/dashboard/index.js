@@ -599,77 +599,170 @@ async refreshWithFilters() {
         }
     }
 
-    renderKPICards() {
-    const container = document.getElementById('kpiCards');
-    if (!container) return;
+        renderKPICards() {
+        const container = document.getElementById('kpiCards');
+        if (!container) return;
+        
+        const kpiCards = [
+            {
+                label: 'Spedizioni',
+                value: this.data.totalShipments.toLocaleString(),
+                growth: 12.5,
+                icon: 'fas fa-shipping-fast',
+                color: '#6366f1'
+            },
+            {
+                label: 'Costi Totali',
+                value: `€${this.data.totalCosts.toLocaleString()}`,
+                growth: 8.2,
+                icon: 'fas fa-euro-sign',
+                color: '#ef4444'
+            },
+            {
+                label: 'Peso (kg)',
+                value: `${this.data.totalWeight.toLocaleString()}`,
+                growth: -3.1,
+                icon: 'fas fa-weight-hanging',
+                color: '#f59e0b'
+            },
+            {
+                label: 'Volume (m³)',
+                value: `${this.data.totalVolume.toFixed(1)}`,
+                growth: 5.7,
+                icon: 'fas fa-cube',
+                color: '#8b5cf6'
+            },
+            {
+                label: 'Spedizionieri',
+                value: this.data.activeCarriers.toString(),
+                growth: 15.3,
+                icon: 'fas fa-truck',
+                color: '#06b6d4'
+            },
+            {
+                label: 'Costo Medio',
+                value: this.data.totalShipments > 0 ? 
+                    `€${(this.data.totalCosts / this.data.totalShipments).toFixed(2)}` : '€0',
+                growth: -2.4,
+                icon: 'fas fa-calculator',
+                color: '#ef4444'
+            }
+        ];
     
-    const kpiCards = [
-        {
-            label: 'Spedizioni Totali',
-            value: this.data.totalShipments.toLocaleString(),
-            growth: 12.5,
-            icon: 'fas fa-shipping-fast',
-            color: '#6366f1'
-        },
-        {
-            label: 'Costi Totali', // ✅ CAMBIATO da "Fatturato Totale"
-            value: `€${this.data.totalCosts.toLocaleString()}`, // ✅ CAMBIATO
-            growth: 8.2,
-            icon: 'fas fa-euro-sign',
-            color: '#ef4444' // ✅ Rosso per i costi
-        },
-        {
-            label: 'Peso Totale',
-            value: `${this.data.totalWeight.toLocaleString()} kg`,
-            growth: -3.1,
-            icon: 'fas fa-weight-hanging',
-            color: '#f59e0b'
-        },
-        {
-            label: 'Volume Totale',
-            value: `${this.data.totalVolume.toFixed(1)} m³`,
-            growth: 5.7,
-            icon: 'fas fa-cube',
-            color: '#8b5cf6'
-        },
-        {
-            label: 'Spedizionieri',
-            value: this.data.activeCarriers.toString(),
-            growth: 15.3,
-            icon: 'fas fa-truck',
-            color: '#06b6d4'
-        },
-        {
-            label: 'Costo Medio', // ✅ Già corretto
-            value: this.data.totalShipments > 0 ? 
-                `€${(this.data.totalCosts / this.data.totalShipments).toFixed(2)}` : '€0', // ✅ CAMBIATO
-            growth: -2.4,
-            icon: 'fas fa-calculator',
-            color: '#ef4444'
-        }
-    ];
-
-        container.innerHTML = kpiCards.map(kpi => `
-            <div class="col-xl-2 col-md-4 col-sm-6">
-                <div class="kpi-card">
-                    <div class="d-flex align-items-center justify-content-between">
+        // ✅ LAYOUT COMPATTO E RESPONSIVE
+        container.innerHTML = kpiCards.map((kpi, index) => `
+            <div class="col-lg-2 col-md-4 col-sm-6 mb-3" data-kpi-index="${index}">
+                <div class="kpi-card h-100 sortable-card" draggable="true">
+                    <div class="d-flex align-items-center">
+                        <div class="kpi-icon-small me-3" style="background-color: ${kpi.color};">
+                            <i class="${kpi.icon}"></i>
+                        </div>
                         <div class="flex-grow-1">
-                            <div class="kpi-label">${kpi.label}</div>
-                            <div class="kpi-value">${kpi.value}</div>
-                            <div class="growth-indicator ${kpi.growth >= 0 ? 'growth-positive' : 'growth-negative'}">
+                            <div class="kpi-label-small">${kpi.label}</div>
+                            <div class="kpi-value-small">${kpi.value}</div>
+                            <div class="growth-indicator-small ${kpi.growth >= 0 ? 'growth-positive' : 'growth-negative'}">
                                 <i class="fas fa-arrow-${kpi.growth >= 0 ? 'up' : 'down'} me-1"></i>
                                 ${Math.abs(kpi.growth).toFixed(1)}%
                             </div>
                         </div>
-                        <div class="kpi-icon" style="background-color: ${kpi.color};">
-                            <i class="${kpi.icon}"></i>
+                        <div class="drag-handle">
+                            <i class="fas fa-grip-vertical text-muted"></i>
                         </div>
                     </div>
                 </div>
             </div>
         `).join('');
+    
+        // ✅ INIZIALIZZA SORTABLE
+        this.initializeSortableKPIs();
     }
+initializeSortableKPIs() {
+    const container = document.getElementById('kpiCards');
+    if (!container) return;
 
+    let draggedElement = null;
+
+    // Aggiungi event listeners per drag & drop
+    container.addEventListener('dragstart', (e) => {
+        if (e.target.closest('.sortable-card')) {
+            draggedElement = e.target.closest('.col-lg-2');
+            draggedElement.classList.add('dragging');
+            e.dataTransfer.effectAllowed = 'move';
+        }
+    });
+
+    container.addEventListener('dragend', (e) => {
+        if (draggedElement) {
+            draggedElement.classList.remove('dragging');
+            draggedElement = null;
+        }
+    });
+
+    container.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+    });
+
+    container.addEventListener('drop', (e) => {
+        e.preventDefault();
+        const dropTarget = e.target.closest('.col-lg-2');
+        
+        if (dropTarget && draggedElement && dropTarget !== draggedElement) {
+            const allCards = Array.from(container.children);
+            const draggedIndex = allCards.indexOf(draggedElement);
+            const dropIndex = allCards.indexOf(dropTarget);
+            
+            if (draggedIndex < dropIndex) {
+                dropTarget.parentNode.insertBefore(draggedElement, dropTarget.nextSibling);
+            } else {
+                dropTarget.parentNode.insertBefore(draggedElement, dropTarget);
+            }
+            
+            // Salva l'ordine nel localStorage
+            this.saveKPIOrder();
+            
+            // Mostra notifica
+            window.notificationSystem?.success('Ordine KPI aggiornato!');
+        }
+    });
+
+    // Carica ordine salvato
+    this.loadKPIOrder();
+}
+
+saveKPIOrder() {
+    const container = document.getElementById('kpiCards');
+    if (!container) return;
+    
+    const order = Array.from(container.children).map(card => 
+        card.getAttribute('data-kpi-index')
+    );
+    
+    localStorage.setItem('dashboard-kpi-order', JSON.stringify(order));
+}
+
+loadKPIOrder() {
+    const savedOrder = localStorage.getItem('dashboard-kpi-order');
+    if (!savedOrder) return;
+    
+    try {
+        const order = JSON.parse(savedOrder);
+        const container = document.getElementById('kpiCards');
+        if (!container) return;
+        
+        const cards = Array.from(container.children);
+        
+        // Riordina secondo l'ordine salvato
+        order.forEach((index, position) => {
+            const card = cards.find(c => c.getAttribute('data-kpi-index') === index);
+            if (card) {
+                container.appendChild(card);
+            }
+        });
+    } catch (error) {
+        console.warn('Error loading KPI order:', error);
+    }
+}
     populateFilters() {
         const carrierFilter = document.getElementById('carrierFilter');
         if (carrierFilter && this.data.carriers) {
@@ -702,27 +795,54 @@ renderTrendChart() {
                 data: this.data.trends.map(t => t.shipments),
                 borderColor: '#6366f1',
                 backgroundColor: 'rgba(99, 102, 241, 0.1)',
-                tension: 0.4
+                tension: 0.4,
+                borderWidth: 2,
+                pointRadius: 4,
+                pointHoverRadius: 6
             }, {
                 label: 'Costi (€)',
                 data: this.data.trends.map(t => t.costs),
                 borderColor: '#ef4444',
                 backgroundColor: 'rgba(239, 68, 68, 0.1)',
                 tension: 0.4,
+                borderWidth: 2,
+                pointRadius: 4,
+                pointHoverRadius: 6,
                 yAxisID: 'y1'
             }]
         },
         options: {
             responsive: true,
+            maintainAspectRatio: false, // ✅ IMPORTANTE per altezza fissa
             interaction: {
                 mode: 'index',
                 intersect: false,
+            },
+            plugins: {
+                legend: {
+                    position: 'top',
+                    labels: {
+                        usePointStyle: true,
+                        padding: 15,
+                        font: {
+                            size: 12
+                        }
+                    }
+                }
             },
             scales: {
                 y: {
                     type: 'linear',
                     display: true,
                     position: 'left',
+                    grid: {
+                        color: 'rgba(0,0,0,0.05)'
+                    },
+                    ticks: {
+                        font: {
+                            size: 11
+                        }
+                    }
                 },
                 y1: {
                     type: 'linear',
@@ -731,12 +851,27 @@ renderTrendChart() {
                     grid: {
                         drawOnChartArea: false,
                     },
+                    ticks: {
+                        font: {
+                            size: 11
+                        }
+                    }
+                },
+                x: {
+                    grid: {
+                        color: 'rgba(0,0,0,0.05)'
+                    },
+                    ticks: {
+                        font: {
+                            size: 11
+                        }
+                    }
                 }
             }
         }
     });
 }
-        renderTransportModeChart() {
+ renderTransportModeChart() {
     const ctx = document.getElementById('transportModeChart');
     if (!ctx || !this.data.transportModes) return;
 
@@ -751,16 +886,37 @@ renderTrendChart() {
             labels: this.data.transportModes.map(t => t.name),
             datasets: [{
                 data: this.data.transportModes.map(t => t.count),
-                backgroundColor: ['#6366f1', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6']
+                backgroundColor: ['#6366f1', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'],
+                borderWidth: 2,
+                borderColor: '#fff',
+                hoverBorderWidth: 3
             }]
         },
         options: {
             responsive: true,
+            maintainAspectRatio: false, // ✅ IMPORTANTE per altezza fissa
             plugins: {
                 legend: {
-                    position: 'bottom'
+                    position: 'bottom',
+                    labels: {
+                        padding: 15,
+                        usePointStyle: true,
+                        font: {
+                            size: 11
+                        }
+                    }
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                            const percentage = ((context.parsed / total) * 100).toFixed(1);
+                            return `${context.label}: ${context.parsed} (${percentage}%)`;
+                        }
+                    }
                 }
-            }
+            },
+            cutout: '60%'
         }
     });
 }

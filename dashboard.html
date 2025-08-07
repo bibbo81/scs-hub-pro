@@ -33,60 +33,347 @@
     <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
     
     <style>
+        /* ✅ KPI Cards Compatte e Responsive */
         .kpi-card {
             background: white;
-            border-radius: var(--sol-radius-lg);
-            padding: 1.5rem;
-            box-shadow: var(--sol-shadow-sm);
-            border: 1px solid var(--sol-gray-200);
-            transition: transform var(--sol-transition-fast);
+            border-radius: 12px;
+            padding: 1rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+            border: 1px solid #f1f5f9;
+            transition: all 0.3s ease;
+            cursor: grab;
+            height: 100%;
         }
-        
+
         .kpi-card:hover {
+            box-shadow: 0 4px 20px rgba(0,0,0,0.12);
             transform: translateY(-2px);
-            box-shadow: var(--sol-shadow-md);
         }
-        
-        .kpi-label {
-            font-size: 0.875rem;
-            color: var(--sol-gray-600);
-            margin-bottom: 0.5rem;
+
+        .kpi-card.dragging {
+            opacity: 0.5;
+            cursor: grabbing;
         }
-        
-        .kpi-value {
-            font-size: 2rem;
-            font-weight: 700;
-            color: var(--sol-gray-900);
-            margin-bottom: 0.5rem;
-        }
-        
-        .kpi-icon {
-            width: 48px;
-            height: 48px;
-            border-radius: var(--sol-radius-md);
+
+        .kpi-icon-small {
+            width: 45px;
+            height: 45px;
+            border-radius: 10px;
             display: flex;
             align-items: center;
             justify-content: center;
             color: white;
+            font-size: 1.2rem;
+            flex-shrink: 0;
         }
-        
-        .growth-positive { color: var(--sol-success); }
-        .growth-negative { color: var(--sol-danger); }
-        
+
+        .kpi-label-small {
+            font-size: 0.75rem;
+            color: #64748b;
+            font-weight: 500;
+            margin-bottom: 0.25rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .kpi-value-small {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #1e293b;
+            line-height: 1.2;
+            margin-bottom: 0.25rem;
+        }
+
+        .growth-indicator-small {
+            font-size: 0.7rem;
+            font-weight: 600;
+            margin-top: 0.25rem;
+        }
+
+        .growth-positive {
+            color: #10b981;
+        }
+
+        .growth-negative {
+            color: #ef4444;
+        }
+
+        .drag-handle {
+            opacity: 0.3;
+            transition: opacity 0.2s;
+            cursor: grab;
+        }
+
+        .kpi-card:hover .drag-handle {
+            opacity: 0.7;
+        }
+
+        /* ✅ Grafici Responsivi */
         .chart-container {
+            position: relative;
+            height: 300px !important;
+            width: 100%;
             background: white;
-            border-radius: var(--sol-radius-lg);
+            border-radius: 12px;
             padding: 1.5rem;
-            box-shadow: var(--sol-shadow-sm);
-            border: 1px solid var(--sol-gray-200);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+            border: 1px solid #f1f5f9;
             margin-bottom: 1.5rem;
         }
-        
+
+        .chart-container canvas {
+            max-height: 300px !important;
+        }
+
         .chart-title {
             font-size: 1.1rem;
             font-weight: 600;
             margin-bottom: 1rem;
-            color: var(--sol-gray-800);
+            color: #1e293b;
+            display: flex;
+            align-items: center;
+        }
+
+        .chart-title i {
+            margin-right: 0.5rem;
+        }
+
+        /* ✅ Cards e Layout */
+        .sol-card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+            border: 1px solid #f1f5f9;
+        }
+
+        .sol-card-header {
+            padding: 1.5rem 1.5rem 0;
+        }
+
+        .sol-card-body {
+            padding: 1.5rem;
+        }
+
+        .sol-card-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #1e293b;
+            margin: 0;
+        }
+
+        /* ✅ Table Styling */
+        .table-hover tbody tr:hover {
+            background-color: #f8fafc;
+        }
+
+        .table th {
+            font-weight: 600;
+            color: #475569;
+            border-bottom: 2px solid #e2e8f0;
+            padding: 1rem 0.75rem;
+        }
+
+        .table td {
+            padding: 1rem 0.75rem;
+            vertical-align: middle;
+        }
+
+        /* ✅ Buttons */
+        .sol-btn {
+            border-radius: 8px;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            border: none;
+            padding: 0.625rem 1.25rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .sol-btn-primary {
+            background: #6366f1;
+            color: white;
+        }
+
+        .sol-btn-primary:hover {
+            background: #5048e5;
+            transform: translateY(-1px);
+        }
+
+        .sol-btn-glass {
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: #64748b;
+        }
+
+        .sol-btn-glass:hover {
+            background: rgba(255, 255, 255, 1);
+            transform: translateY(-1px);
+        }
+
+        .sol-btn-outline-primary {
+            background: transparent;
+            border: 1px solid #6366f1;
+            color: #6366f1;
+        }
+
+        .sol-btn-outline-primary:hover {
+            background: #6366f1;
+            color: white;
+        }
+
+        .sol-btn-sm {
+            padding: 0.375rem 0.75rem;
+            font-size: 0.875rem;
+        }
+
+        /* ✅ Form Controls */
+        .form-select, .form-control {
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 0.625rem 0.75rem;
+            font-size: 0.875rem;
+            transition: border-color 0.2s ease;
+        }
+
+        .form-select:focus, .form-control:focus {
+            border-color: #6366f1;
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+        }
+
+        .form-label {
+            font-weight: 500;
+            color: #374151;
+            margin-bottom: 0.5rem;
+        }
+
+        /* ✅ Page Header */
+        .sol-page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 2rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .sol-page-title {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #1e293b;
+            margin: 0 0 0.5rem 0;
+        }
+
+        .sol-page-subtitle {
+            color: #64748b;
+            margin: 0;
+        }
+
+        .sol-page-actions {
+            display: flex;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+        }
+
+        /* ✅ Main Content */
+        .sol-main-content {
+            padding: 2rem;
+            min-height: 100vh;
+            background: #f8fafc;
+        }
+
+        /* ✅ Responsive Design */
+        @media (max-width: 768px) {
+            .sol-main-content {
+                padding: 1rem;
+            }
+
+            .sol-page-header {
+                flex-direction: column;
+                gap: 1rem;
+                align-items: stretch;
+            }
+
+            .sol-page-actions {
+                justify-content: stretch;
+            }
+
+            .sol-page-actions .sol-btn {
+                flex: 1;
+                justify-content: center;
+            }
+
+            .kpi-card {
+                padding: 0.75rem;
+            }
+            
+            .kpi-icon-small {
+                width: 35px;
+                height: 35px;
+                font-size: 1rem;
+            }
+            
+            .kpi-value-small {
+                font-size: 1rem;
+            }
+            
+            .chart-container {
+                height: 250px !important;
+                padding: 1rem;
+            }
+
+            .chart-title {
+                font-size: 1rem;
+            }
+        }
+
+        /* ✅ Loading States */
+        .spinner-border {
+            width: 3rem;
+            height: 3rem;
+            border-width: 0.3em;
+        }
+
+        /* ✅ Performance Badge */
+        .badge {
+            padding: 0.375rem 0.75rem;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+
+        .badge.bg-success {
+            background-color: #10b981 !important;
+        }
+
+        .badge.bg-warning {
+            background-color: #f59e0b !important;
+        }
+
+        .badge.bg-danger {
+            background-color: #ef4444 !important;
+        }
+
+        /* ✅ Utility Classes */
+        .text-muted {
+            color: #64748b !important;
+        }
+
+        .text-primary {
+            color: #6366f1 !important;
+        }
+
+        .text-success {
+            color: #10b981 !important;
+        }
+
+        .text-warning {
+            color: #f59e0b !important;
+        }
+
+        .text-danger {
+            color: #ef4444 !important;
         }
     </style>
 </head>
@@ -153,26 +440,26 @@
         </div>
 
         <!-- KPI Cards -->
-        <div class="row g-4 mb-4" id="kpiCards">
-            <!-- Popolato dinamicamente -->
+        <div class="row g-3 mb-4" id="kpiCards">
+            <!-- Popolato dinamicamente con layout compatto -->
         </div>
 
         <!-- Charts Section -->
-        <div class="row g-4">
-            <div class="col-xl-8">
+        <div class="row g-4 mb-4">
+            <div class="col-lg-8">
                 <div class="chart-container">
                     <div class="chart-title">
-                        <i class="fas fa-chart-line text-primary me-2"></i>
-                        Trend Spedizioni
+                        <i class="fas fa-chart-line text-primary"></i>
+                        Trend Spedizioni e Costi
                     </div>
                     <canvas id="trendChart"></canvas>
                 </div>
             </div>
-            <div class="col-xl-4">
+            <div class="col-lg-4">
                 <div class="chart-container">
                     <div class="chart-title">
-                        <i class="fas fa-chart-pie text-success me-2"></i>
-                        Modalità di Trasporto
+                        <i class="fas fa-chart-pie text-success"></i>
+                        Modi di Trasporto
                     </div>
                     <canvas id="transportModeChart"></canvas>
                 </div>
@@ -182,7 +469,10 @@
         <!-- Detail Tables -->
         <div class="sol-card">
             <div class="sol-card-header">
-                <h3 class="sol-card-title">Dettaglio Spedizionieri</h3>
+                <h3 class="sol-card-title">
+                    <i class="fas fa-truck me-2"></i>
+                    Dettaglio Spedizionieri
+                </h3>
             </div>
             <div class="sol-card-body">
                 <div class="table-responsive">
@@ -213,10 +503,11 @@
         <div class="text-center">
             <div class="spinner-border text-primary mb-3" role="status"></div>
             <h5>Caricamento...</h5>
+            <p class="text-muted" id="loadingMessage">Preparazione dashboard...</p>
         </div>
     </div>
 
-        <!-- Core Services Module -->
+    <!-- Core Services Module -->
     <script type="module">
         // Inizializza Supabase client globalmente
         if (!window.supabase) {
