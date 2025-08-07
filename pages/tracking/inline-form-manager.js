@@ -52,36 +52,38 @@ class InlineFormManager {
         this.elements.vehicleType.addEventListener('change', () => this.handleVehicleTypeChange()); // New event listener
     }
 
-    handleActionChange() {
-    const action = this.elements.action.value;
-    const isManual = action === 'manual';
-
-    // Expand details for manual entry
-    const collapse = document.getElementById('collapseDetails');
-    if (isManual && collapse && !collapse.classList.contains('show')) {
-        $(collapse).collapse('show');
+        handleActionChange() {
+        const action = this.elements.action.value;
+        const isManual = action === 'manual';
+    
+        // Expand details for manual entry
+        const collapse = document.getElementById('collapseDetails');
+        if (isManual && collapse && !collapse.classList.contains('show')) {
+            $(collapse).collapse('show');
+        }
+    
+        // The tracking number is optional only for manual action.
+        if (isManual) {
+            this.elements.trackingNumber.placeholder = 'Opzionale, generato se vuoto';
+            this.elements.trackingType.required = true;
+        } else {
+            this.elements.trackingNumber.placeholder = 'Inserisci numero...';
+            this.elements.trackingType.required = false;
+        }
+    
+        // Reset values when switching from manual to auto/get
+        if (!isManual) {
+            this.elements.eta.value = '';
+            this.elements.trackingType.value = '';
+            this.elements.totalWeight.value = '';
+            this.elements.totalVolume.value = '';
+            this.elements.blNumber.value = '';
+            this.elements.flightNumber.value = '';
+        }
+    
+        // 🆕 AGGIUNGI: Ricarica i carriers quando cambia la modalità
+        this.populateCarriers(this.detectedType);
     }
-
-    // The tracking number is optional only for manual action.
-    if (isManual) {
-        this.elements.trackingNumber.placeholder = 'Opzionale, generato se vuoto';
-        // FIX: Rendi obbligatorio il tipo di tracking per le spedizioni manuali
-        this.elements.trackingType.required = true;
-    } else {
-        this.elements.trackingNumber.placeholder = 'Inserisci numero...';
-        this.elements.trackingType.required = false;
-    }
-
-    // Reset values when switching from manual to auto/get
-    if (!isManual) {
-        this.elements.eta.value = '';
-        this.elements.trackingType.value = '';
-        this.elements.totalWeight.value = '';
-        this.elements.totalVolume.value = '';
-        this.elements.blNumber.value = '';
-        this.elements.flightNumber.value = '';
-    }
-}
 
     handleTrackingTypeChange() {
         const trackingType = this.elements.trackingType.value;
@@ -135,18 +137,50 @@ class InlineFormManager {
         }
     }
 
-    async populateCarriers(trackingType) {
+        async populateCarriers(trackingType) {
         const select = this.elements.carrier;
         if (!select) return;
-
+    
         select.disabled = true;
         select.innerHTML = '<option value="">Caricamento...</option>';
-
+    
+        const action = this.elements.action.value;
+    
+        // 🎯 MODALITÀ MANUALE: Usa carriers dal database (spedizionieri)
+        if (action === 'manual') {
+            try {
+                const { data: carriers, error } = await window.supabase
+                    .from('carriers')
+                    .select('id, name')
+                    .order('name');
+    
+                if (error) throw error;
+    
+                if (carriers.length > 0) {
+                    select.innerHTML = '<option value="">Seleziona spedizioniere...</option>';
+                    carriers.forEach(carrier => {
+                        const option = document.createElement('option');
+                        option.value = carrier.id;
+                        option.textContent = carrier.name;
+                        select.appendChild(option);
+                    });
+                    select.disabled = false;
+                } else {
+                    select.innerHTML = '<option value="">Nessuno spedizioniere trovato</option>';
+                }
+            } catch (error) {
+                console.error('Failed to load carriers from database:', error);
+                select.innerHTML = '<option value="">Errore caricamento spedizionieri</option>';
+            }
+            return;
+        }
+    
+        // 🤖 MODALITÀ AUTOMATICA: Usa API esterne (compagnie di trasporto)
         if (!trackingType || !window.trackingService) {
             select.innerHTML = '<option value="">Inserisci un numero...</option>';
             return;
         }
-
+    
         try {
             let carriers = [];
             if (trackingType === 'container' || trackingType === 'bl') {
@@ -154,9 +188,9 @@ class InlineFormManager {
             } else if (trackingType === 'awb') {
                 carriers = await window.trackingService.getAirlines();
             }
-
+    
             if (carriers.length > 0) {
-                select.innerHTML = '<option value="">Seleziona carrier...</option>';
+                select.innerHTML = '<option value="">Seleziona compagnia...</option>';
                 carriers.forEach(carrier => {
                     const option = document.createElement('option');
                     option.value = carrier.code;
@@ -165,11 +199,11 @@ class InlineFormManager {
                 });
                 select.disabled = false;
             } else {
-                 select.innerHTML = '<option value="">Nessun carrier trovato</option>';
+                select.innerHTML = '<option value="">Nessuna compagnia trovata</option>';
             }
         } catch (error) {
-            console.error('Failed to load carriers:', error);
-            select.innerHTML = '<option value="">Errore caricamento</option>';
+            console.error('Failed to load carriers from API:', error);
+            select.innerHTML = '<option value="">Errore caricamento compagnie</option>';
         }
     }
 
@@ -322,7 +356,7 @@ debugTrackingData(data) {
     console.log('Full object:', data);
 }
 
- async handleSubmit() {
+async handleSubmit() {
     const action = this.elements.action.value;
     let trackingNumber = this.elements.trackingNumber.value.trim().toUpperCase();
     
@@ -334,7 +368,8 @@ debugTrackingData(data) {
 
     const carrier = this.elements.carrier.value;
     if (!carrier) {
-        window.notificationSystem?.error('Il carrier è obbligatorio.');
+        const errorMsg = action === 'manual' ? 'Lo spedizioniere è obbligatorio.' : 'La compagnia è obbligatoria.';
+        window.notificationSystem?.error(errorMsg);
         return;
     }
 
@@ -359,8 +394,7 @@ debugTrackingData(data) {
 
     try {
         if (action === 'manual') {
-            // 🔥 CORREZIONE: Costruisci dataToSave per inserimenti manuali
-            // FIX: Map 'air_waybill' to 'awb' to match the database check constraint.
+            // 🎯 MODALITÀ MANUALE: Usa spedizioniere dal database
             const dbTrackingType = (trackingType === 'air_waybill') ? 'awb' : trackingType;
 
             // Generate tracking number if empty for manual entries
@@ -373,22 +407,21 @@ debugTrackingData(data) {
                 throw new Error('Tipo di tracking non valido.');
             }
 
-            // Get carrier name from select
+            // 🔥 FIX: Per modalità manuale, carrier contiene l'ID dello spedizioniere
             const carrierName = this.elements.carrier.options[this.elements.carrier.selectedIndex]?.text || null;
 
-            // Costruisci l'oggetto con i campi corretti per il database
             dataToSave = {
                 tracking_number: trackingNumber,
-                carrier_code: carrier,
-                carrier_name: carrierName,
+                carrier_id: carrier,        // 🆕 ID dello spedizioniere (tabella carriers)
+                carrier_name: carrierName,  // Nome dello spedizioniere
+                carrier_code: null,         // Non serve per modalità manuale
                 tracking_type: dbTrackingType,
-                transport_company: transportCompany || null,
+                transport_company: transportCompany || null, // 🆕 Compagnia di trasporto separata
                 reference_number: reference || null,
                 origin_port: origin || null,
                 destination_port: destination || null,
                 status: 'pending',
                 eta: eta || null,
-                // Validazione numerica rigorosa
                 total_weight_kg: totalWeight && !isNaN(parseFloat(totalWeight)) ? parseFloat(totalWeight) : null,
                 total_volume_cbm: totalVolume && !isNaN(parseFloat(totalVolume)) ? parseFloat(totalVolume) : null,
                 transport_mode_id: transportModeId && transportModeId !== '' ? transportModeId : null,
@@ -397,29 +430,20 @@ debugTrackingData(data) {
                 flight_number: flightNumber || null,
             };
 
-                        // Nel metodo handleSubmit, dopo aver costruito dataToSave, aggiungi:
-            console.log('🔍 DEBUG - Dati che stanno per essere salvati:');
-            console.log('📍 Origin:', dataToSave.origin_port);
-            console.log('📍 Destination:', dataToSave.destination_port);
-            console.log('📋 Source del dato destinazione:');
-            console.log('  - Campo form destination:', this.elements.destination.value);
-            console.log('  - Action type:', action);
-            
-            if (action !== 'manual') {
-                console.log('  - Dati da trackingService.track result:', result);
-            }
-
-            console.log('Manual entry: Data ready for saving:', dataToSave);
+            console.log('🎯 MANUAL MODE - Data ready for saving:', dataToSave);
+            console.log('📋 Spedizioniere ID:', carrier, '| Nome:', carrierName);
+            console.log('🚛 Compagnia di trasporto:', transportCompany || 'Non specificata');
             this.debugTrackingData(dataToSave);
+
         } else {
-            // 🔥 CORREZIONE: Per azioni auto/get, usa il trackingService
-            console.log('Step 1: Calling trackingService.track to get enriched data...');
+            // 🤖 MODALITÀ AUTOMATICA: Usa API esterne per compagnie di trasporto
+            console.log('🤖 AUTO MODE - Calling trackingService.track...');
             const result = await window.trackingService.track(
                 trackingNumber,
                 this.detectedType,
                 {
                     operation: action,
-                    carrier: carrier,
+                    carrier: carrier,  // Code della compagnia dalle API
                     shipsgoId: this.detectedOceanShipment?.id,
                     carrier_name: this.elements.carrier.options[this.elements.carrier.selectedIndex]?.text,
                     origin: origin,
@@ -437,27 +461,31 @@ debugTrackingData(data) {
             dataToSave = { ...result };
             delete dataToSave.success;
             
-            console.log('Service-based entry: Data ready for saving:', dataToSave);
+            // 🔥 Per modalità automatica, la compagnia viene dalle API
+            dataToSave.carrier_id = null;  // Non serve per modalità automatica
+            dataToSave.transport_company = dataToSave.carrier_name; // Compagnia = quella dalle API
+            
+            console.log('🤖 AUTO MODE - Data ready for saving:', dataToSave);
+            console.log('📋 Compagnia dalle API:', dataToSave.carrier_name);
         }
 
         if (!window.dataManager) {
             throw new Error("DataManager non è disponibile.");
         }
         
-        console.log('Step 3: Saving data via DataManager...');
+        console.log('💾 Saving data via DataManager...');
         
-        // 🔥 NUOVO: Usa la gestione intelligente dei duplicati
+        // Usa la gestione intelligente dei duplicati
         const saveResult = await window.dataManager.addTrackingWithDuplicateCheck(dataToSave, action === 'manual');
         
-                // Nel metodo handleSubmit, modifica la parte del successo:
-                if (saveResult.tracking) {
+        if (saveResult.tracking) {
             const actionText = saveResult.wasUpdate ? 'aggiornato' : 
                               action === 'get' ? 'recuperato' : 'aggiunto';
             
             window.notificationSystem?.success(`Tracking ${actionText} con successo!`);
             this.resetForm();
             
-            // 🔥 Se è un update, forza il refresh per evitare duplicati visivi
+            // Se è un update, forza il refresh per evitare duplicati visivi
             if (saveResult.wasUpdate) {
                 console.log('🔄 Update rilevato - refresh automatico della tabella...');
                 setTimeout(() => {
@@ -482,7 +510,7 @@ debugTrackingData(data) {
         console.error('Submit Error:', error);
         console.error('Database error code:', error.code);
         
-        // 🔥 NUOVO: Gestione errore duplicato con conferma
+        // Gestione errore duplicato con conferma
         if (error.message === 'DUPLICATE_CONFIRMATION_NEEDED') {
             const duplicateInfo = error.duplicateInfo;
             
@@ -537,11 +565,10 @@ debugTrackingData(data) {
             return;
         }
         
-        // 🔥 ESISTENTE: Gestione altri errori
+        // Gestione altri errori
         if (error.code === '23505') {
             window.notificationSystem?.error(`Tracking ${trackingNumber} già esistente. Il sistema aggiornerà i dati esistenti.`);
             
-            // Retry con force update
             try {
                 const updateResult = await window.dataManager.updateExistingTracking(trackingNumber, dataToSave);
                 if (updateResult.success) {
@@ -562,7 +589,6 @@ debugTrackingData(data) {
         this.elements.submitBtn.innerHTML = 'Aggiungi';
     }
 }
-
     resetForm() {
         this.elements.trackingNumber.value = '';
         this.elements.origin.value = '';
