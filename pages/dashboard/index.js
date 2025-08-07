@@ -1,8 +1,9 @@
 class Dashboard {
-    constructor() {
+        constructor() {
         this.initialized = false;
         this.currentFilters = {};
         this.data = {};
+        this.charts = {}; // ✅ AGGIUNGI per tenere traccia dei grafici
         
         console.log('🎯 Dashboard Controller initialized');
     }
@@ -139,54 +140,86 @@ class Dashboard {
         }
     }
 
-        async loadDashboardData() {
-        console.log('📊 Loading dashboard data...');
-        
-        try {
-            // 1. Carica trackings
-            const trackings = await window.dataManager.getTrackings() || [];
-            console.log('📦 Trackings loaded:', trackings.length);
+                async loadDashboardData() {
+            console.log('📊 Loading dashboard data...');
             
-            // 2. Carica shipments
-            const shipments = await window.dataManager.getShipments() || [];
-            console.log('🚢 Shipments loaded:', shipments.length);
-            
-            // 3. Carica carriers
-            const carriers = await window.dataManager.getCarriers() || [];
-            console.log('🚛 Carriers loaded:', carriers.length);
-            
-            // 4. Carica additional costs
-            const additionalCosts = await this.loadAdditionalCosts() || [];
-            console.log('💰 Additional costs loaded:', additionalCosts.length);
-            
-            // 5. Applica filtri (con controlli di sicurezza)
-            const rawData = { trackings, shipments, carriers, additionalCosts };
-            const filtered = this.applyFilters(rawData);
-            
-            // 6. Calcola aggregazioni
-            this.data = this.calculateAggregations(filtered);
-            
-            console.log('✅ Dashboard data loaded successfully');
-            
-        } catch (error) {
-            console.error('❌ Error loading dashboard data:', error);
-            
-            // Fallback con dati vuoti
-            this.data = {
-                totalShipments: 0,
-                totalCosts: 0,
-                totalWeight: 0,
-                totalVolume: 0,
-                activeCarriers: 0,
-                trends: [],
-                transportModes: [],
-                carriersPerformance: [],
-                carriers: []
-            };
-            
-            throw error;
+            try {
+                // 1. Carica dati raw
+                const trackings = await window.dataManager.getTrackings() || [];
+                const shipments = await window.dataManager.getShipments() || [];
+                const carriers = await window.dataManager.getCarriers() || [];
+                const additionalCosts = await this.loadAdditionalCosts() || [];
+                
+                console.log('📊 Raw data loaded:', {
+                    trackings: trackings.length,
+                    shipments: shipments.length,
+                    carriers: carriers.length,
+                    additionalCosts: additionalCosts.length
+                });
+                
+                // 2. Applica filtri ai dati (NON alle UI)
+                const rawData = { trackings, shipments, carriers, additionalCosts };
+                const filtered = this.applyDataFilters(rawData); // ✅ NUOVO NOME
+                
+                // 3. Calcola aggregazioni
+                this.data = this.calculateAggregations(filtered);
+                
+                console.log('✅ Dashboard data loaded successfully');
+                
+            } catch (error) {
+                console.error('❌ Error loading dashboard data:', error);
+                
+                // Fallback con dati vuoti
+                this.data = {
+                    totalShipments: 0,
+                    totalCosts: 0,
+                    totalWeight: 0,
+                    totalVolume: 0,
+                    activeCarriers: 0,
+                    trends: [],
+                    transportModes: [],
+                    carriersPerformance: [],
+                    carriers: []
+                };
+                
+                throw error;
+            }
         }
+
+async refreshWithFilters() {
+    console.log('🔄 Refreshing with filters...');
+    
+    try {
+        // 1. Carica dati raw
+        const trackings = await window.dataManager.getTrackings() || [];
+        const shipments = await window.dataManager.getShipments() || [];
+        const carriers = await window.dataManager.getCarriers() || [];
+        const additionalCosts = await this.loadAdditionalCosts() || [];
+        
+        console.log('📊 Raw data loaded:', {
+            trackings: trackings.length,
+            shipments: shipments.length,
+            carriers: carriers.length,
+            additionalCosts: additionalCosts.length
+        });
+        
+        // 2. Applica filtri
+        const rawData = { trackings, shipments, carriers, additionalCosts };
+        const filtered = this.applyDataFilters(rawData); // ✅ NUOVO NOME
+        
+        // 3. Calcola aggregazioni
+        this.data = this.calculateAggregations(filtered);
+        
+        // 4. Re-render
+        await this.renderDashboard();
+        
+        console.log('✅ Refresh with filters complete');
+        
+    } catch (error) {
+        console.error('❌ Error refreshing with filters:', error);
+        throw error;
     }
+}
 
     async loadAdditionalCosts() {
         try {
@@ -203,54 +236,54 @@ class Dashboard {
         }
     }
 
-        applyFilters(rawData) {
-        // ✅ CONTROLLI DI SICUREZZA
-        let { trackings = [], shipments = [], carriers = [], additionalCosts = [] } = rawData || {};
-        
-        console.log('🔽 Applying filters to:', {
-            trackings: trackings.length,
-            shipments: shipments.length,
-            carriers: carriers.length,
-            additionalCosts: additionalCosts.length,
-            filters: this.currentFilters
-        });
-        
-        // Filtro per periodo
-        if (this.currentFilters.period) {
-            const cutoffDate = new Date();
-            cutoffDate.setDate(cutoffDate.getDate() - this.currentFilters.period);
+                applyDataFilters(rawData) { // ✅ CAMBIATO NOME da "applyFilters" a "applyDataFilters"
+            // ✅ CONTROLLI DI SICUREZZA
+            let { trackings = [], shipments = [], carriers = [], additionalCosts = [] } = rawData || {};
             
-            trackings = trackings.filter(t => t && new Date(t.created_at) >= cutoffDate);
-            shipments = shipments.filter(s => s && new Date(s.created_at) >= cutoffDate);
-            additionalCosts = additionalCosts.filter(c => c && new Date(c.created_at) >= cutoffDate);
+            console.log('🔽 Applying data filters to:', {
+                trackings: trackings.length,
+                shipments: shipments.length,
+                carriers: carriers.length,
+                additionalCosts: additionalCosts.length,
+                filters: this.currentFilters
+            });
+            
+            // Filtro per periodo
+            if (this.currentFilters.period) {
+                const cutoffDate = new Date();
+                cutoffDate.setDate(cutoffDate.getDate() - this.currentFilters.period);
+                
+                trackings = trackings.filter(t => t && new Date(t.created_at) >= cutoffDate);
+                shipments = shipments.filter(s => s && new Date(s.created_at) >= cutoffDate);
+                additionalCosts = additionalCosts.filter(c => c && new Date(c.created_at) >= cutoffDate);
+            }
+            
+            // Filtro per carrier
+            if (this.currentFilters.carrier) {
+                trackings = trackings.filter(t => 
+                    t && (t.carrier_code === this.currentFilters.carrier || t.carrier_name === this.currentFilters.carrier)
+                );
+                shipments = shipments.filter(s => s && s.carrier_id === this.currentFilters.carrier);
+            }
+            
+            // Filtro per status
+            if (this.currentFilters.status) {
+                trackings = trackings.filter(t => 
+                    t && (t.current_status === this.currentFilters.status || t.status === this.currentFilters.status)
+                );
+                shipments = shipments.filter(s => s && s.status === this.currentFilters.status);
+            }
+            
+            const result = { trackings, shipments, carriers, additionalCosts };
+            console.log('✅ Data filters applied, result:', {
+                trackings: result.trackings.length,
+                shipments: result.shipments.length,
+                carriers: result.carriers.length,
+                additionalCosts: result.additionalCosts.length
+            });
+            
+            return result;
         }
-        
-        // Filtro per carrier
-        if (this.currentFilters.carrier) {
-            trackings = trackings.filter(t => 
-                t && (t.carrier_code === this.currentFilters.carrier || t.carrier_name === this.currentFilters.carrier)
-            );
-            shipments = shipments.filter(s => s && s.carrier_id === this.currentFilters.carrier);
-        }
-        
-        // Filtro per status
-        if (this.currentFilters.status) {
-            trackings = trackings.filter(t => 
-                t && (t.current_status === this.currentFilters.status || t.status === this.currentFilters.status)
-            );
-            shipments = shipments.filter(s => s && s.status === this.currentFilters.status);
-        }
-        
-        const result = { trackings, shipments, carriers, additionalCosts };
-        console.log('✅ Filters applied, result:', {
-            trackings: result.trackings.length,
-            shipments: result.shipments.length,
-            carriers: result.carriers.length,
-            additionalCosts: result.additionalCosts.length
-        });
-        
-        return result;
-    }
 
                 calculateAggregations(data) {
             console.log('📊 Starting calculateAggregations with:', data);
@@ -652,53 +685,34 @@ class Dashboard {
         this.renderTransportModeChart();
     }
 
-        renderTrendChart() {
-        const ctx = document.getElementById('trendChart');
-        if (!ctx || !this.data.trends) return;
-    
-        new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: this.data.trends.map(t => t.month),
-                datasets: [{
-                    label: 'Spedizioni',
-                    data: this.data.trends.map(t => t.shipments),
-                    borderColor: '#6366f1',
-                    backgroundColor: 'rgba(99, 102, 241, 0.1)',
-                    tension: 0.4
-                }, {
-                    label: 'Costi (€)', // ✅ CAMBIATO da "Fatturato (€)"
-                    data: this.data.trends.map(t => t.costs), // ✅ CAMBIATO
-                    borderColor: '#ef4444', // ✅ Rosso per i costi
-                    backgroundColor: 'rgba(239, 68, 68, 0.1)',
-                    tension: 0.4,
-                    yAxisID: 'y1'
-                }]
-            },
-            options: {
-                responsive: true,
-                interaction: {
-                    mode: 'index',
-                    intersect: false,
-                },
-                scales: {
-                    y: {
-                        type: 'linear',
-                        display: true,
-                        position: 'left',
-                    },
-                    y1: {
-                        type: 'linear',
-                        display: true,
-                        position: 'right',
-                        grid: {
-                            drawOnChartArea: false,
-                        },
-                    }
+        renderTransportModeChart() {
+    const ctx = document.getElementById('transportModeChart');
+    if (!ctx || !this.data.transportModes) return;
+
+    // ✅ DISTRUGGI grafico esistente
+    if (this.charts.transportModeChart) {
+        this.charts.transportModeChart.destroy();
+    }
+
+    this.charts.transportModeChart = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: this.data.transportModes.map(t => t.name),
+            datasets: [{
+                data: this.data.transportModes.map(t => t.count),
+                backgroundColor: ['#6366f1', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6']
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'bottom'
                 }
             }
-        });
-    }
+        }
+    });
+}
 
     renderTransportModeChart() {
         const ctx = document.getElementById('transportModeChart');
@@ -763,7 +777,7 @@ class Dashboard {
         return 'bg-danger';
     }
 
-    async applyFilters() {
+        async applyFilters() {
         try {
             this.showLoading('Applicazione filtri...');
             
@@ -774,11 +788,11 @@ class Dashboard {
                 status: document.getElementById('statusFilter')?.value || ''
             };
             
-            // Reload data
-            await this.loadDashboardData();
+            console.log('🔽 Applying filters:', this.currentFilters);
             
-            // Re-render
-            await this.renderDashboard();
+            // ❌ RIMOSSO: await this.loadDashboardData(); - Causa loop infinito!
+            // Invece, ricarica solo i dati con i nuovi filtri
+            await this.refreshWithFilters();
             
             this.hideLoading();
             
