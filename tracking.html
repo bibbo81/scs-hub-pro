@@ -252,7 +252,8 @@
       window.AVAILABLE_COLUMNS = [
         // Informazioni generali
         { key: 'tracking_number', label: 'Tracking Number', required: true, sortable: true },
-        { key: 'carrier', label: 'Carrier', sortable: true },
+        { key: 'carrier', label: 'Spedizioniere', sortable: true },
+        { key: 'transport_company', label: 'Compagnia di Trasporto', sortable: true },
         { key: 'current_status', label: 'Stato', sortable: true },
         { key: 'tracking_type', label: 'Tipo', sortable: true },
 
@@ -482,10 +483,8 @@
                             <input type="text" class="form-control form-control-lg" id="inline-tracking-number" placeholder="Inserisci numero...">
                         </div>
                         <div class="form-group col-md-3">
-                            <label for="inline-carrier"><strong>2. Carrier *</strong></label>
-                            <select id="inline-carrier" class="form-control" required disabled>
-                                <option value="">Inserisci un numero...</option>
-                            </select>
+                        <label for="inline-carrier"><strong>2. Spedizioniere *</strong></label>                            <select id="inline-carrier" class="form-control" required disabled>
+                            <option value="">Seleziona spedizioniere...</option>                            </select>
                         </div>
                         <div class="form-group col-md-2">
                             <label for="inline-tracking-action"><strong>3. Azione</strong></label>
@@ -507,7 +506,7 @@
                         </a>
                         <div class="collapse" id="collapseDetails">
                             <div class="form-row mt-3">
-                                <div class="form-group col-md-6">
+                                                                <div class="form-group col-md-6">
                                     <label for="inline-origin">Origine</label>
                                     <input type="text" class="form-control" id="inline-origin" placeholder="Es. SHANGHAI, MXP">
                                 </div>
@@ -515,14 +514,13 @@
                                     <label for="inline-destination">Destinazione</label>
                                     <input type="text" class="form-control" id="inline-destination" placeholder="Es. GENOVA, FCO">
                                 </div>
-                            </div>
                             <div class="form-row">
                                 <div class="form-group col-md-12">
                                     <label for="inline-reference">Riferimento</label>
                                     <input type="text" class="form-control" id="inline-reference" placeholder="Es. PO-123, Fattura 456">
                                 </div>
                             </div>
-                            <div class="form-row">
+                                                        <div class="form-row">
                                 <div class="form-group col-md-6">
                                     <label for="inline-transport-mode">Modalità di Trasporto</label>
                                     <select id="inline-transport-mode" class="form-control">
@@ -534,6 +532,13 @@
                                     <select id="inline-vehicle-type" class="form-control" disabled>
                                         <option value="">Seleziona tipo di mezzo...</option>
                                     </select>
+                                </div>
+                            </div>
+                             </div>
+                                <div class="form-group col-md-6">
+                                    <label for="inline-transport-company">Compagnia di Trasporto (Opzionale)</label>
+                                    <input type="text" class="form-control" id="inline-transport-company" placeholder="Es. MSC, DHL, Trenitalia">
+                                    <small class="form-text text-muted">La compagnia effettiva (compilabile dopo)</small>
                                 </div>
                             </div>
                             <div class="form-row">

@@ -15,6 +15,7 @@ class InlineFormManager {
             trackingType: document.getElementById('inline-tracking-type'),
             totalWeight: document.getElementById('inline-total-weight'),
             totalVolume: document.getElementById('inline-total-volume'),
+            transportCompany: document.getElementById('inline-transport-company'),
             blNumber: document.getElementById('inline-bl-number'),
             flightNumber: document.getElementById('inline-flight-number'),
             submitBtn: document.getElementById('inline-submit-btn'),
@@ -201,6 +202,7 @@ class InlineFormManager {
     }
 
     async handleTransportModeChange() {
+        const transportCompany = this.elements.transportCompany.value.trim();
         const transportModeId = this.elements.transportMode.value;
         const transportModeName = this.elements.transportMode.options[this.elements.transportMode.selectedIndex]?.text;
 
@@ -348,6 +350,7 @@ debugTrackingData(data) {
     const totalVolume = this.elements.totalVolume.value;
     const blNumber = this.elements.blNumber.value;
     const flightNumber = this.elements.flightNumber.value;
+    const transportCompany = this.elements.transportCompany.value.trim();
 
     this.elements.submitBtn.disabled = true;
     this.elements.submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Elaborazione...';
@@ -379,6 +382,7 @@ debugTrackingData(data) {
                 carrier_code: carrier,
                 carrier_name: carrierName,
                 tracking_type: dbTrackingType,
+                transport_company: transportCompany || null,
                 reference_number: reference || null,
                 origin_port: origin || null,
                 destination_port: destination || null,
@@ -566,7 +570,7 @@ debugTrackingData(data) {
         this.elements.reference.value = '';
         this.elements.action.value = 'manual';
         this.elements.preview.innerHTML = '<p class="text-muted">Inserisci un numero di tracking per vedere l\'anteprima.</p>';
-        
+        this.elements.transportCompany.value = '';
         if (this.elements.carrier) {
             this.elements.carrier.innerHTML = '<option value="">Inserisci un numero...</option>';
             this.elements.carrier.disabled = true;
