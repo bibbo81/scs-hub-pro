@@ -447,45 +447,60 @@ class DataManager {
     }
 
     // 🔥 FIX: Aggiorna anche la spedizione collegata se esiste
-    const { data: shipment } = await supabase
+const { data: shipment, error: shipmentError } = await supabase
+    .from('shipments')
+    .select('id')
+    .eq('tracking_number', tracking.tracking_number)  // 🔥 FIX: Usa tracking_number invece di tracking_id
+    .eq('organization_id', this.organizationId)
+    .single();
+
+// 🔧 Non lanciare errore se shipment non esiste (è normale per alcuni tracking)
+if (shipment && !shipmentError) {
+    // 🔥 FIX: Includi transport_company nell'aggiornamento della spedizione
+    const { error: updateShipmentError } = await supabase
         .from('shipments')
-        .select('id')
-        .eq('tracking_id', tracking.id)  // 🔥 Usa tracking.id invece di existingId
-        .eq('organization_id', this.organizationId)
-        .single();
-
-    if (shipment) {
-        // 🔥 FIX: Includi transport_company nell'aggiornamento della spedizione
-        await supabase
-            .from('shipments')
-            .update({
-                status: tracking.status,
-                origin: tracking.origin_port,
-                destination: tracking.destination_port,
-                carrier_name: tracking.carrier_name,
-                transport_company: tracking.transport_company, // 🆕 NUOVO CAMPO
-                eta: tracking.eta,
-                total_volume_cbm: tracking.total_volume_cbm,
-                total_weight_kg: tracking.total_weight_kg,
-                transport_mode_id: tracking.transport_mode_id,
-                vehicle_type_id: tracking.vehicle_type_id,
-                updated_at: timestamp
-            })
-            .eq('id', shipment.id);
+        .update({
+            status: tracking.status,
+            origin: tracking.origin_port,
+            destination: tracking.destination_port,
+            carrier_name: tracking.carrier_name,
+            transport_company: tracking.transport_company, // 🆕 NUOVO CAMPO
+            eta: tracking.eta,
+            total_volume_cbm: tracking.total_volume_cbm,
+            total_weight_kg: tracking.total_weight_kg,
+            transport_mode_id: tracking.transport_mode_id,
+            vehicle_type_id: tracking.vehicle_type_id,
+            updated_at: timestamp
+        })
+        .eq('id', shipment.id);
+        
+    if (updateShipmentError) {
+        console.warn('⚠️ Warning updating shipment:', updateShipmentError);
+        // Non bloccare il processo se l'aggiornamento della spedizione fallisce
+    } else {
+        console.log('✅ Shipment also updated successfully:', shipment.id);
     }
+} else if (shipmentError && shipmentError.code !== 'PGRST116') {
+    // Log solo errori non-PGRST116 (che indica semplicemente "nessun record trovato")
+    console.warn('⚠️ Warning fetching shipment:', shipmentError);
+} else {
+    console.log('ℹ️ No shipment found for tracking:', tracking.tracking_number);
+}
 
-    // 🔥 FIX: Notifica cambio dati
-    if (window.notifyDataChange) {
-        window.notifyDataChange('trackings');
-        if (shipment) window.notifyDataChange('shipments');
+// 🔥 FIX: Notifica cambio dati
+if (window.notifyDataChange) {
+    window.notifyDataChange('trackings');
+    if (shipment && !shipmentError) {
+        window.notifyDataChange('shipments');
     }
+}
 
-    console.log('✅ Tracking updated successfully:', tracking.id);
-    return { 
-        tracking, 
-        shipment,
-        success: true  // 🆕 Flag di successo esplicito
-    };
+console.log('✅ Tracking updated successfully:', tracking.id);
+return { 
+    tracking, 
+    shipment: shipment || null,  // 🔥 Ritorna null se shipment non esiste
+    success: true  // 🆕 Flag di successo esplicito
+};
 }
     
     // 🔥 AGGIUNGI QUESTI METODI QUI:
