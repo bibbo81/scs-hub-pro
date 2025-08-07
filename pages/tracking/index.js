@@ -1016,15 +1016,17 @@ function formatLastUpdateColumn(tracking) {
 }
 
 function createTrackingActionsColumn(value, row) {
-    // 🔥 FIX: Gestisci diversi formati di input dal TableManager
-    const tracking = row || value || {};
-    
-    // 🔥 PROTEZIONE: Se non abbiamo dati validi, ritorna azioni base
-    if (!tracking || typeof tracking !== 'object') {
-        console.warn('createTrackingActionsColumn: Invalid tracking data:', tracking);
+    // 🔥 FIX: Gestisci input multipli dal TableManager
+    let tracking;
+    if (row && typeof row === 'object') {
+        tracking = row;
+    } else if (value && typeof value === 'object') {
+        tracking = value;
+    } else {
+        console.warn('createTrackingActionsColumn: Invalid input:', { value, row });
         return `
             <div class="btn-group btn-group-sm" role="group">
-                <button class="btn btn-outline-secondary btn-sm" disabled title="Dati non disponibili">
+                <button class="btn btn-outline-warning btn-sm" disabled title="Dati non validi">
                     <i class="fas fa-exclamation-triangle"></i>
                 </button>
             </div>
@@ -1036,7 +1038,6 @@ function createTrackingActionsColumn(value, row) {
     const currentStatus = (tracking.current_status || tracking.status || '').toLowerCase();
     const canUpdate = isContainer && !['delivered', 'completed', 'cancelled'].includes(currentStatus);
     
-    // 🔥 PROTEZIONE: Se non abbiamo ID, non mostrare azioni pericolose
     if (!trackingId) {
         return `
             <div class="btn-group btn-group-sm" role="group">
@@ -1047,36 +1048,36 @@ function createTrackingActionsColumn(value, row) {
         `;
     }
     
-        let actions = `
-            <div class="btn-group btn-group-sm" role="group" data-tracking-id="${trackingId}">
-                <button class="btn btn-outline-primary btn-sm btn-view" 
-                        onclick="viewDetails('${trackingId}')" 
-                        title="Visualizza dettagli">
-                    <i class="fas fa-eye"></i>
-                </button>
-        `;
+    let actions = `
+        <div class="btn-group btn-group-sm" role="group" data-tracking-id="${trackingId}">
+            <button class="btn btn-outline-primary btn-sm btn-view" 
+                    onclick="viewDetails('${trackingId}')" 
+                    title="Visualizza dettagli">
+                <i class="fas fa-eye"></i>
+            </button>
+    `;
     
-        if (canUpdate) {
-            actions += `
-                <button class="btn btn-outline-success btn-sm btn-update" 
-                        onclick="updateTrackingManually('${trackingId}')" 
-                        title="Aggiorna tracking">
-                    <i class="fas fa-sync-alt"></i>
-                </button>
-            `;
-        }
-    
+    if (canUpdate) {
         actions += `
-                <button class="btn btn-outline-danger btn-sm btn-delete" 
-                        onclick="deleteTracking('${trackingId}')" 
-                        title="Elimina tracking">
-                    <i class="fas fa-trash-alt"></i>
-                </button>
-            </div>
+            <button class="btn btn-outline-success btn-sm btn-update" 
+                    onclick="updateTrackingManually('${trackingId}')" 
+                    title="Aggiorna tracking">
+                <i class="fas fa-sync-alt"></i>
+            </button>
         `;
-    
-        return actions;
     }
+
+    actions += `
+            <button class="btn btn-outline-danger btn-sm btn-delete" 
+                    onclick="deleteTracking('${trackingId}')" 
+                    title="Elimina tracking">
+                <i class="fas fa-trash-alt"></i>
+            </button>
+        </div>
+    `;
+
+    return actions;
+}
 // Aggiungi bottone per editor colonne nell'UI
 // Modifica la sezione page-actions in tracking.html per aggiungere:
 /*
