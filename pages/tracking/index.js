@@ -2231,17 +2231,24 @@ window.handleTrackingUpdateButton = async function(trackingId = null) {
     }
 };
 
-// 🎮 SOSTITUISCI INDICATORE AUTO-UPDATE CON PULSANTE FUNZIONALE
+// 🎮 FIX: SOSTITUISCI INDICATORE AUTO-UPDATE CON PULSANTE FUNZIONALE
 window.createGlobalUpdateButton = function() {
-    // Trova e sostituisci l'indicatore esistente
+    // 🔍 TROVA L'INDICATORE ESISTENTE NELL'HEADER
     const existingIndicator = document.getElementById('auto-update-status');
     const existingButton = document.getElementById('global-update-btn');
     
-    // Rimuovi elementi esistenti
-    if (existingIndicator) existingIndicator.remove();
+    // Salva il parent container PRIMA di rimuovere l'indicatore
+    let headerContainer = null;
+    if (existingIndicator) {
+        headerContainer = existingIndicator.parentElement;
+        console.log('🎯 Found header container:', headerContainer);
+        existingIndicator.remove();
+    }
+    
+    // Rimuovi pulsante esistente se presente
     if (existingButton) existingButton.remove();
     
-    // Calcola il prossimo aggiornamento (ogni 4 ore)
+    // 🕒 CALCOLA IL PROSSIMO AGGIORNAMENTO (ogni 4 ore)
     const now = new Date();
     const currentHour = now.getHours();
     
@@ -2269,7 +2276,7 @@ window.createGlobalUpdateButton = function() {
     const isToday = nextUpdate.toDateString() === now.toDateString();
     const datePrefix = isToday ? '' : 'Dom ';
     
-    // Crea il nuovo pulsante che sostituisce l'indicatore
+    // 🎨 CREA IL NUOVO PULSANTE CHE SOSTITUISCE L'INDICATORE
     const button = document.createElement('button');
     button.id = 'global-update-btn';
     button.innerHTML = `
@@ -2298,7 +2305,7 @@ window.createGlobalUpdateButton = function() {
         position: relative;
     `;
     
-    // Event handler con feedback visivo
+    // 🎯 EVENT HANDLER CON FEEDBACK VISIVO
     button.onclick = async function() {
         // Mostra loading
         const originalHTML = this.innerHTML;
@@ -2356,7 +2363,7 @@ window.createGlobalUpdateButton = function() {
         }
     };
     
-    // Hover effects
+    // 🎨 HOVER EFFECTS
     button.onmouseenter = function() {
         this.style.background = 'rgba(13, 110, 253, 0.25)';
         this.style.borderColor = 'rgba(13, 110, 253, 0.5)';
@@ -2373,18 +2380,34 @@ window.createGlobalUpdateButton = function() {
         }
     };
     
-    // Trova il container dell'header dove inserire il pulsante
-    const headerContainer = document.querySelector('.auto-update-indicator')?.parentElement 
-        || document.querySelector('.header-actions') 
-        || document.querySelector('.d-flex.align-items-center.ml-auto');
-    
+    // 🔥 FIX: USA IL CONTAINER SALVATO O CERCA ALTERNATIVE
     if (headerContainer) {
+        // Usa il container dell'indicatore originale
         headerContainer.appendChild(button);
-        console.log('✅ Global update button replaced auto-update indicator');
+        console.log('✅ Global update button replaced auto-update indicator in header');
     } else {
-        // Fallback: aggiungi al body come prima
-        document.body.appendChild(button);
-        console.log('✅ Global update button added to body (fallback)');
+        // 🔍 CERCA ALTRI POSSIBILI CONTAINER NELL'HEADER
+        const alternativeContainers = [
+            document.querySelector('.header-actions'),
+            document.querySelector('.d-flex.align-items-center.ml-auto'),
+            document.querySelector('[class*="header"]'),
+            document.querySelector('header'),
+            document.querySelector('.navbar'),
+            document.querySelector('.top-bar')
+        ].filter(Boolean);
+        
+        if (alternativeContainers.length > 0) {
+            alternativeContainers[0].appendChild(button);
+            console.log('✅ Global update button added to alternative header container');
+        } else {
+            // Ultimo fallback: aggiungi al body con posizione fixed
+            button.style.position = 'fixed';
+            button.style.top = '20px';
+            button.style.right = '20px';
+            button.style.zIndex = '1000';
+            document.body.appendChild(button);
+            console.log('✅ Global update button added to body (fallback with fixed position)');
+        }
     }
     
     return button;
