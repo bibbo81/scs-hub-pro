@@ -1975,6 +1975,15 @@ window.monitorAutoUpdateSystem = async function() {
     try {
         console.log('📊 === AUTO-UPDATE SYSTEM MONITOR ===');
         
+        // 🔥 FIX: Dichiara analysis all'inizio con scope function
+        let analysis = {
+            total_containers: 0,
+            robot_updated: 0,
+            never_updated: 0,
+            updated_last_hour: 0,
+            updated_last_24h: 0
+        };
+        
         // 1. Statistiche tracking
         const { data: stats } = await window.supabase
             .from('trackings')
@@ -1988,16 +1997,8 @@ window.monitorAutoUpdateSystem = async function() {
             `)
             .eq('tracking_type', 'container');
         
-        // 🔥 FIX: Inizializza analysis con valori di default
-        let analysis = {
-            total_containers: 0,
-            robot_updated: 0,
-            never_updated: 0,
-            updated_last_hour: 0,
-            updated_last_24h: 0
-        };
-        
         if (stats && stats.length > 0) {
+            // 🔥 FIX: Aggiorna analysis (non ridichiarare)
             analysis = {
                 total_containers: stats.length,
                 robot_updated: stats.filter(t => t.updated_by_robot).length,
@@ -2033,7 +2034,7 @@ window.monitorAutoUpdateSystem = async function() {
         
         console.log('🕒 Recent auto-updates:', recent);
         
-        // 🔥 FIX: Return con analysis definita correttamente
+        // ✅ Ora analysis è sempre definita
         return {
             stats: analysis,
             edgeFunction: edgeResult.success,
