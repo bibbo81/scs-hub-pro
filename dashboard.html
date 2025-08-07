@@ -35,123 +35,146 @@
     <style>
                 /* ✅ KPI Cards Compatte e QUADRATE */
         .kpi-card {
-            background: white;
-            border-radius: 12px;
-            padding: 1rem;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
-            border: 1px solid #f1f5f9;
-            transition: all 0.3s ease;
-            cursor: grab;
-            height: 120px; /* ✅ ALTEZZA FISSA QUADRATA */
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            text-align: center;
-            position: relative;
-        }
-        
-        .kpi-card:hover {
-            box-shadow: 0 4px 20px rgba(0,0,0,0.12);
-            transform: translateY(-2px);
-        }
-        
-        .kpi-card.dragging {
-            opacity: 0.5;
-            cursor: grabbing;
-        }
-        
-        .kpi-icon-small {
-            width: 40px;
-            height: 40px;
-            border-radius: 10px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-size: 1.1rem;
-            margin-bottom: 0.5rem;
-            flex-shrink: 0;
-        }
-        
-        .kpi-label-small {
-            font-size: 0.7rem;
-            color: #64748b;
-            font-weight: 500;
-            margin-bottom: 0.25rem;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            line-height: 1.2;
-        }
-        
-        .kpi-value-small {
-            font-size: 1.1rem;
-            font-weight: 700;
-            color: #1e293b;
-            line-height: 1.1;
-            margin-bottom: 0.25rem;
-        }
-        
-        .growth-indicator-small {
-            font-size: 0.65rem;
-            font-weight: 600;
-            margin-top: 0.25rem;
-        }
-        
-        .growth-positive {
-            color: #10b981;
-        }
-        
-        .growth-negative {
-            color: #ef4444;
-        }
-        
-        .drag-handle {
-            position: absolute;
-            top: 0.5rem;
-            right: 0.5rem;
-            opacity: 0.2;
-            transition: opacity 0.2s;
-            cursor: grab;
-            font-size: 0.8rem;
-        }
-        
-        .kpi-card:hover .drag-handle {
-            opacity: 0.6;
-        }
-        
-        /* ✅ Layout per 6 cards in 2 righe */
-        .kpi-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-            gap: 1rem;
-            margin-bottom: 2rem;
-        }
-       .kpi-card-wrapper {
-    width: 100%;
-    min-width: 180px;
-    max-width: 220px;
+    background: white;
+    border-radius: 12px;
+    padding: 0.75rem;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+    border: 1px solid #f1f5f9;
+    transition: all 0.3s ease;
+    cursor: grab;
+    height: 130px; /* ✅ AUMENTATO per contenere tutto */
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between; /* ✅ DISTRIBUISCE SPAZIO */
+    align-items: center;
+    text-align: center;
+    position: relative;
+    overflow: hidden; /* ✅ NASCONDE OVERFLOW */
 }
-        /* ✅ Grafici Responsivi - PIÙ QUADRATI */
-        .chart-container {
-            position: relative;
-            height: 350px !important; /* ✅ AUMENTATO per il grafico trend */
-            width: 100%;
-            background: white;
-            border-radius: 12px;
-            padding: 1.5rem;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
-            border: 1px solid #f1f5f9;
-            margin-bottom: 1.5rem;
-        }
-        
-        .chart-container.chart-square {
-            height: 380px !important; /* ✅ PIÙ QUADRATO per il grafico a torta */
-        }
-        
-        .chart-container canvas {
-            max-height: 100% !important;
-        }
+
+.kpi-card:hover {
+    box-shadow: 0 4px 20px rgba(0,0,0,0.12);
+    transform: translateY(-2px);
+}
+
+.kpi-card.dragging {
+    opacity: 0.5;
+    cursor: grabbing;
+}
+
+.kpi-icon-small {
+    width: 35px;
+    height: 35px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 1rem;
+    flex-shrink: 0;
+}
+
+.kpi-label-small {
+    font-size: 0.65rem;
+    color: #64748b;
+    font-weight: 500;
+    margin: 0.25rem 0;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    line-height: 1.1;
+    white-space: nowrap; /* ✅ EVITA A CAPO */
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.kpi-value-small {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #1e293b;
+    line-height: 1.1;
+    margin: 0.25rem 0;
+    white-space: nowrap; /* ✅ EVITA A CAPO */
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.growth-indicator-small {
+    font-size: 0.6rem;
+    font-weight: 600;
+    margin: 0;
+    white-space: nowrap; /* ✅ EVITA A CAPO */
+}
+
+.growth-positive {
+    color: #10b981;
+}
+
+.growth-negative {
+    color: #ef4444;
+}
+
+.drag-handle {
+    position: absolute;
+    top: 0.25rem;
+    right: 0.25rem;
+    opacity: 0.2;
+    transition: opacity 0.2s;
+    cursor: grab;
+    font-size: 0.7rem;
+}
+
+.kpi-card:hover .drag-handle {
+    opacity: 0.6;
+}
+
+/* ✅ Layout per 6 cards in 2 righe */
+.kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
+.kpi-card-wrapper {
+    width: 100%;
+    min-width: 160px; /* ✅ RIDOTTO */
+    max-width: 200px; /* ✅ RIDOTTO */
+}
+        /* ✅ Grafici Responsivi - SENZA OVERFLOW */
+.chart-container {
+    position: relative;
+    height: 350px !important;
+    width: 100%;
+    background: white;
+    border-radius: 12px;
+    padding: 1rem; /* ✅ RIDOTTO */
+    box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+    border: 1px solid #f1f5f9;
+    margin-bottom: 1.5rem;
+    overflow: hidden; /* ✅ NASCONDE OVERFLOW */
+}
+
+.chart-container.chart-square {
+    height: 360px !important; /* ✅ RIDOTTO */
+}
+
+.chart-container canvas {
+    max-height: 100% !important;
+    max-width: 100% !important; /* ✅ AGGIUNGI */
+}
+
+.chart-title {
+    font-size: 1rem;
+    font-weight: 600;
+    margin-bottom: 0.75rem; /* ✅ RIDOTTO */
+    color: #1e293b;
+    display: flex;
+    align-items: center;
+}
+
+.chart-title i {
+    margin-right: 0.5rem;
+}
         
         /* ✅ Responsive Design */
         @media (max-width: 768px) {

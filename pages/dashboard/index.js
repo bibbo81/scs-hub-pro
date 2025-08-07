@@ -4,7 +4,8 @@ class Dashboard {
         this.currentFilters = {};
         this.data = {};
         this.charts = {}; // ✅ AGGIUNGI per tenere traccia dei grafici
-        
+            window.dashboard = this;
+
         console.log('🎯 Dashboard Controller initialized');
     }
 
@@ -867,7 +868,8 @@ renderTrendChart() {
         }
     });
 }
- renderTransportModeChart() {
+ 
+renderTransportModeChart() {
     const ctx = document.getElementById('transportModeChart');
     if (!ctx || !this.data.transportModes) return;
 
@@ -890,16 +892,26 @@ renderTrendChart() {
         },
         options: {
             responsive: true,
-            maintainAspectRatio: false, // ✅ IMPORTANTE per altezza fissa
+            maintainAspectRatio: false,
+            layout: {
+                padding: {
+                    top: 10,
+                    bottom: 10,
+                    left: 10,
+                    right: 10
+                }
+            },
             plugins: {
                 legend: {
                     position: 'bottom',
                     labels: {
-                        padding: 15,
+                        padding: 8, /* ✅ RIDOTTO */
                         usePointStyle: true,
                         font: {
-                            size: 11
-                        }
+                            size: 10 /* ✅ RIDOTTO */
+                        },
+                        boxWidth: 12,
+                        boxHeight: 12
                     }
                 },
                 tooltip: {
@@ -912,12 +924,10 @@ renderTrendChart() {
                     }
                 }
             },
-            cutout: '60%'
+            cutout: '55%' /* ✅ RIDOTTO per più spazio */
         }
     });
 }
-
-
     renderTables() {
         this.renderCarriersDetailTable();
     }
@@ -1037,6 +1047,112 @@ renderTrendChart() {
     viewCarrierDetails(carrierId) {
         console.log('View carrier details:', carrierId);
     }
+    // Aggiungi dopo la riga "View carrier details:"
+
+viewCarrierDetails(carrierCode) {
+    console.log('👁️ View carrier details function called:', carrierCode);
+    
+    try {
+        // ✅ TROVA dati del carrier
+        const carrierData = this.data.carriersPerformance.find(c => 
+            c.carrier_code === carrierCode || 
+            c.name === carrierCode ||
+            c.id === carrierCode
+        );
+        
+        console.log('📊 Carrier data found:', carrierData);
+        
+        if (!carrierData) {
+            window.notificationSystem?.warning(`Nessun dato trovato per ${carrierCode}`);
+            return;
+        }
+        
+        // ✅ CREA CONTENUTO MODALE
+        const modalContent = `
+            <div class="row g-3">
+                <div class="col-12">
+                    <h5 class="mb-3">
+                        <i class="fas fa-truck me-2"></i>
+                        Dettagli ${carrierData.name || carrierCode}
+                    </h5>
+                </div>
+                
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-body text-center">
+                            <h3 class="text-primary">${carrierData.shipments || 0}</h3>
+                            <small class="text-muted">Spedizioni Totali</small>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-body text-center">
+                            <h3 class="text-success">€${(carrierData.totalCost || 0).toLocaleString()}</h3>
+                            <small class="text-muted">Fatturato Totale</small>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-body text-center">
+                            <h3 class="text-warning">${(carrierData.totalWeight || 0).toLocaleString()} kg</h3>
+                            <small class="text-muted">Peso Totale</small>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-body text-center">
+                            <h3 class="text-info">${(carrierData.totalVolume || 0).toFixed(2)} m³</h3>
+                            <small class="text-muted">Volume Totale</small>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-body text-center">
+                            <h3 class="text-dark">€${(carrierData.avgCost || 0).toFixed(2)}</h3>
+                            <small class="text-muted">Costo Medio per Spedizione</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        // ✅ CONTROLLA se ModalSystem è disponibile
+        if (window.ModalSystem) {
+            window.ModalSystem.show({
+                title: `Dettagli Spedizioniere`,
+                body: modalContent,
+                size: 'lg',
+                buttons: [
+                    {
+                        text: 'Chiudi',
+                        class: 'btn-secondary',
+                        action: 'close'
+                    }
+                ]
+            });
+        } else {
+            // ✅ FALLBACK con alert
+            alert(`Dettagli ${carrierData.name}:\nSpedizioni: ${carrierData.shipments}\nFatturato: €${carrierData.totalCost.toLocaleString()}`);
+        }
+        
+    } catch (error) {
+        console.error('❌ Error viewing carrier details:', error);
+        window.notificationSystem?.error('Errore durante il caricamento dei dettagli');
+    }
+}
+
+exportCarrierData(carrierCode) {
+    console.log('📊 Exporting data for carrier:', carrierCode);
+    window.notificationSystem?.info('Funzione export in sviluppo...');
+}
 }
 
 // Initialize dashboard
