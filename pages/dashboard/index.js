@@ -1,590 +1,543 @@
-// public/pages/dashboard/index.js
-import { dataService } from '/core/data-service.js';
-import { notificationSystem } from '/core/notification-system.js';
+import DashboardManager from './dashboard-manager.js';
+import ChartsManager from './charts-manager.js';
+import KPICalculator from './kpi-calculator.js';
+import ExportManager from './export-manager.js';
+import FiltersManager from './filters-manager.js';
+import CostsDashboard from './costs-dashboard.js';
 
-/**
- * Dashboard Page Controller
- */
-class DashboardController {
+class Dashboard {
     constructor() {
-        this.charts = {};
-        this.currentPeriod = 30;
-        this.refreshInterval = null;
-        this.chartColors = {
-            primary: '#6366f1',
-            success: '#10b981',
-            warning: '#f59e0b',
-            danger: '#ef4444',
-            info: '#3b82f6',
-            secondary: '#6b7280'
-        };
+        this.initialized = false;
+        this.currentTab = 'overview';
+        this.currentFilters = {};
+        this.data = {};
+        
+        // Inizializza i manager
+        this.dashboardManager = new DashboardManager();
+        this.chartsManager = new ChartsManager();
+        this.kpiCalculator = new KPICalculator();
+        this.exportManager = new ExportManager();
+        this.filtersManager = new FiltersManager();
+        this.costsDashboard = new CostsDashboard();
+        
+        console.log('🎯 Dashboard Controller initialized');
     }
 
-    /**
-     * Inizializza dashboard
-     */
     async init() {
-        console.log('Initializing dashboard...');
+        if (this.initialized) return;
         
-        // Setup event listeners
-        this.setupEventListeners();
-        
-        // Carica dati iniziali
-        await this.loadDashboardData();
-        
-        // Setup auto-refresh (ogni 5 minuti)
-        this.refreshInterval = setInterval(() => {
-            this.loadDashboardData(true);
-        }, 5 * 60 * 1000);
-
-        // Subscribe a cambiamenti dati
-        this.setupDataSubscriptions();
-    }
-
-    /**
-     * Setup event listeners
-     */
-    setupEventListeners() {
-        // Period filter
-        document.getElementById('periodFilter')?.addEventListener('change', (e) => {
-            this.currentPeriod = parseInt(e.target.value);
-            this.loadDashboardData();
-        });
-    }
-
-    /**
-     * Carica tutti i dati dashboard
-     */
-    async loadDashboardData(silent = false) {
         try {
-            if (!silent) {
-                notificationSystem.show('Loading dashboard data...', 'info');
-            }
-
-            // Carica statistiche
-            const stats = await dataService.get('dashboard', {
-                period: this.currentPeriod
-            });
-
-            // Aggiorna UI
-            this.renderKPIs(stats);
-            this.renderCharts(stats);
-            this.renderTopSuppliers(stats.topSuppliers || []);
-            this.renderTopCarriers(stats.topCarriers || []);
-            this.renderAlerts(stats.alerts || {});
-            this.renderRecentActivity(stats.recentActivities || []);
-
-            if (!silent) {
-                notificationSystem.show('Dashboard updated', 'success');
-            }
-
+            this.showLoading('Inizializzazione dashboard...');
+            
+            // 1. Inizializza i manager
+            await this.dashboardManager.init();
+            await this.chartsManager.init();
+            
+            // 2. Setup event listeners
+            this.setupEventListeners();
+            
+            // 3. Carica dati iniziali
+            await this.loadInitialData();
+            
+            // 4. Render dashboard
+            await this.renderDashboard();
+            
+            this.initialized = true;
+            this.hideLoading();
+            
+            console.log('✅ Dashboard initialized successfully');
+            
         } catch (error) {
-            console.error('Dashboard load error:', error);
-            notificationSystem.show('Error loading dashboard data', 'error');
+            console.error('❌ Dashboard initialization error:', error);
+            this.showError('Errore durante l\'inizializzazione della dashboard');
+            this.hideLoading();
         }
     }
 
-    /**
-     * Renderizza KPI cards
-     */
-    renderKPIs(stats) {
-        const kpiGrid = document.getElementById('kpiGrid');
+    setupEventListeners() {
+        // Tab navigation
+        document.querySelectorAll('[data-bs-toggle="tab"]').forEach(tab => {
+            tab.addEventListener('shown.bs.tab', (e) => {
+                const tabId = e.target.getAttribute('data-bs-target').replace('#', '');
+                this.handleTabChange(tabId);
+            });
+        });
+
+        // Period filters per grafici
+        document.querySelectorAll('input[name="chartPeriod"]').forEach(radio => {
+            radio.addEventListener('change', (e) => {
+                this.handleChartPeriodChange(e.target.id);
+            });
+        });
+
+        // Auto-refresh ogni 5 minuti
+        setInterval(() => {
+            if (this.initialized) {
+                this.refresh(true); // silent refresh
+            }
+        }, 300000); // 5 minuti
+
+        console.log('🎯 Event listeners setup complete');
+    }
+
+    async loadInitialData() {
+        console.log('📊 Loading initial dashboard data...');
         
-        const kpis = [
+        try {
+            // Carica dati con filtri di default (ultimi 30 giorni)
+            this.currentFilters = {
+                period: 30,
+                status: '',
+                carrier: ''
+            };
+
+            this.data = await this.dashboardManager.loadDashboardData(this.currentFilters);
+            console.log('✅ Initial data loaded:', this.data);
+            
+        } catch (error) {
+            console.error('❌ Error loading initial data:', error);
+            throw error;
+        }
+    }
+
+    async renderDashboard() {
+        console.log('🎨 Rendering dashboard...');
+        
+        try {
+            // 1. Render KPI cards
+            this.renderKPICards();
+            
+            // 2. Populate filters
+            this.filtersManager.populateFilters(this.data.carriers);
+            
+            // 3. Render overview tab (default)
+            await this.renderOverviewTab();
+            
+            // 4. Update last update time
+            this.updateLastUpdateTime();
+            
+            console.log('✅ Dashboard rendered successfully');
+            
+        } catch (error) {
+            console.error('❌ Error rendering dashboard:', error);
+            throw error;
+        }
+    }
+
+    renderKPICards() {
+        const kpiData = this.kpiCalculator.calculateKPIs(this.data);
+        const container = document.getElementById('kpiCards');
+        
+        const kpiCards = [
             {
-                label: 'Total Revenue',
-                value: this.formatCurrency(stats.totalRevenue || 0),
-                change: stats.revenueGrowth || 0,
-                icon: 'euro-sign',
-                color: 'primary'
+                id: 'totalShipments',
+                label: 'Spedizioni Totali',
+                value: kpiData.totalShipments.toLocaleString(),
+                growth: kpiData.shipmentsGrowth,
+                icon: 'fas fa-shipping-fast',
+                color: 'var(--primary-color)'
             },
             {
-                label: 'Total Shipments',
-                value: this.formatNumber(stats.totalShipments || 0),
-                change: stats.shipmentsGrowth || 0,
-                icon: 'package',
-                color: 'info'
+                id: 'totalRevenue',
+                label: 'Fatturato Totale',
+                value: `€${kpiData.totalRevenue.toLocaleString()}`,
+                growth: kpiData.revenueGrowth,
+                icon: 'fas fa-euro-sign',
+                color: 'var(--success-color)'
             },
             {
-                label: 'Avg Delivery Time',
-                value: `${stats.avgDeliveryTime || 0} days`,
-                change: -stats.deliveryTimeChange || 0, // Negative is good
-                icon: 'clock',
-                color: 'warning'
+                id: 'totalWeight',
+                label: 'Peso Totale',
+                value: `${kpiData.totalWeight.toLocaleString()} kg`,
+                growth: kpiData.weightGrowth,
+                icon: 'fas fa-weight-hanging',
+                color: 'var(--warning-color)'
             },
             {
-                label: 'On-time Delivery',
-                value: `${stats.onTimeDelivery || 0}%`,
-                change: stats.onTimeChange || 0,
-                icon: 'check-circle',
-                color: 'success'
+                id: 'totalVolume',
+                label: 'Volume Totale',
+                value: `${kpiData.totalVolume.toFixed(1)} m³`,
+                growth: kpiData.volumeGrowth,
+                icon: 'fas fa-cube',
+                color: '#8b5cf6'
+            },
+            {
+                id: 'activeCarriers',
+                label: 'Spedizionieri Attivi',
+                value: kpiData.activeCarriers.toString(),
+                growth: kpiData.carriersGrowth,
+                icon: 'fas fa-truck',
+                color: '#06b6d4'
+            },
+            {
+                id: 'avgDeliveryTime',
+                label: 'Tempo Medio Consegna',
+                value: `${kpiData.avgDeliveryTime.toFixed(1)} gg`,
+                growth: kpiData.deliveryTimeGrowth,
+                icon: 'fas fa-clock',
+                color: 'var(--danger-color)'
             }
         ];
 
-        kpiGrid.innerHTML = kpis.map(kpi => `
-            <div class="kpi-card">
-                <div class="kpi-icon ${kpi.color}">
-                    <i class="icon-${kpi.icon}"></i>
-                </div>
-                <div class="kpi-content">
-                    <div class="kpi-label">${kpi.label}</div>
-                    <div class="kpi-value">${kpi.value}</div>
-                    <div class="kpi-change ${kpi.change >= 0 ? 'positive' : 'negative'}">
-                        <i class="icon-trending-${kpi.change >= 0 ? 'up' : 'down'}"></i>
-                        ${Math.abs(kpi.change)}%
+        container.innerHTML = kpiCards.map(kpi => `
+            <div class="col-xl-2 col-md-4 col-sm-6">
+                <div class="kpi-card">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <div class="flex-grow-1">
+                            <div class="kpi-label">${kpi.label}</div>
+                            <div class="kpi-value">${kpi.value}</div>
+                            <div class="growth-indicator ${kpi.growth >= 0 ? 'growth-positive' : 'growth-negative'}">
+                                <i class="fas fa-arrow-${kpi.growth >= 0 ? 'up' : 'down'} me-1"></i>
+                                ${Math.abs(kpi.growth).toFixed(1)}%
+                            </div>
+                        </div>
+                        <div class="kpi-icon" style="background-color: ${kpi.color};">
+                            <i class="${kpi.icon}"></i>
+                        </div>
                     </div>
                 </div>
             </div>
         `).join('');
+
+        console.log('✅ KPI cards rendered');
     }
 
-    /**
-     * Renderizza grafici
-     */
-    renderCharts(stats) {
-        // Revenue Trend Chart
-        this.renderRevenueChart(stats.dailyTrend || []);
+    async renderOverviewTab() {
+        console.log('📊 Rendering overview tab...');
         
-        // Status Distribution Chart
-        this.renderStatusChart(stats.statusBreakdown || {});
-    }
-
-    /**
-     * Grafico trend revenue
-     */
-    renderRevenueChart(dailyData) {
-        const ctx = document.getElementById('revenueChart');
-        
-        // Distruggi chart esistente
-        const existing = Chart.getChart(ctx);
-        if (existing) existing.destroy();
-
-        // Prepara dati
-        const labels = dailyData.map(d => this.formatDate(d.date));
-        const revenues = dailyData.map(d => d.cost || 0);
-        const shipments = dailyData.map(d => d.count || 0);
-
-        this.charts.revenue = new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: labels,
-                datasets: [
-                    {
-                        label: 'Revenue (€)',
-                        data: revenues,
-                        borderColor: this.chartColors.primary,
-                        backgroundColor: this.chartColors.primary + '20',
-                        yAxisID: 'y',
-                        tension: 0.4
-                    },
-                    {
-                        label: 'Shipments',
-                        data: shipments,
-                        borderColor: this.chartColors.info,
-                        backgroundColor: this.chartColors.info + '20',
-                        yAxisID: 'y1',
-                        tension: 0.4
-                    }
-                ]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                interaction: {
-                    mode: 'index',
-                    intersect: false,
-                },
-                plugins: {
-                    legend: {
-                        position: 'top',
-                    },
-                    tooltip: {
-                        callbacks: {
-                            label: function(context) {
-                                let label = context.dataset.label || '';
-                                if (label) {
-                                    label += ': ';
-                                }
-                                if (context.parsed.y !== null) {
-                                    if (context.datasetIndex === 0) {
-                                        label += new Intl.NumberFormat('it-IT', {
-                                            style: 'currency',
-                                            currency: 'EUR'
-                                        }).format(context.parsed.y);
-                                    } else {
-                                        label += context.parsed.y;
-                                    }
-                                }
-                                return label;
-                            }
-                        }
-                    }
-                },
-                scales: {
-                    x: {
-                        grid: {
-                            display: false
-                        }
-                    },
-                    y: {
-                        type: 'linear',
-                        display: true,
-                        position: 'left',
-                        ticks: {
-                            callback: function(value) {
-                                return '€' + value.toLocaleString();
-                            }
-                        }
-                    },
-                    y1: {
-                        type: 'linear',
-                        display: true,
-                        position: 'right',
-                        grid: {
-                            drawOnChartArea: false,
-                        }
-                    }
-                }
-            }
-        });
-    }
-
-    /**
-     * Grafico distribuzione stati
-     */
-    renderStatusChart(statusData) {
-        const ctx = document.getElementById('statusChart');
-        
-        // Distruggi chart esistente
-        const existing = Chart.getChart(ctx);
-        if (existing) existing.destroy();
-
-        // Prepara dati
-        const labels = Object.keys(statusData);
-        const values = Object.values(statusData);
-        
-        // Mappa colori per stato
-        const statusColors = {
-            'DELIVERED': this.chartColors.success,
-            'IN_TRANSIT': this.chartColors.info,
-            'PENDING': this.chartColors.warning,
-            'DELAYED': this.chartColors.danger,
-            'CANCELLED': this.chartColors.secondary
-        };
-
-        const backgroundColors = labels.map(label => 
-            statusColors[label] || this.chartColors.secondary
-        );
-
-        this.charts.status = new Chart(ctx, {
-            type: 'doughnut',
-            data: {
-                labels: labels.map(l => this.formatStatus(l)),
-                datasets: [{
-                    data: values,
-                    backgroundColor: backgroundColors,
-                    borderWidth: 0
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        position: 'right',
-                    },
-                    tooltip: {
-                        callbacks: {
-                            label: function(context) {
-                                const label = context.label || '';
-                                const value = context.parsed;
-                                const total = context.dataset.data.reduce((a, b) => a + b, 0);
-                                const percentage = ((value / total) * 100).toFixed(1);
-                                return `${label}: ${value} (${percentage}%)`;
-                            }
-                        }
-                    }
-                }
-            }
-        });
-    }
-
-    /**
-     * Renderizza top suppliers
-     */
-    renderTopSuppliers(suppliers) {
-        const tbody = document.querySelector('#topSuppliersTable tbody');
-        
-        if (suppliers.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="4" class="text-center">No data available</td></tr>';
-            return;
+        try {
+            // 1. Trend chart
+            await this.chartsManager.renderTrendChart(this.data.trends, 'trendChart');
+            
+            // 2. Transport mode chart
+            await this.chartsManager.renderTransportModeChart(this.data.transportModes, 'transportModeChart');
+            
+            // 3. Carriers performance chart
+            await this.chartsManager.renderCarriersChart(this.data.carriersPerformance, 'carriersChart');
+            
+            // 4. Top routes table
+            this.renderTopRoutesTable();
+            
+            // 5. Show detail table for overview
+            document.getElementById('detailTable').style.display = 'block';
+            this.renderCarriersDetailTable();
+            
+            console.log('✅ Overview tab rendered');
+            
+        } catch (error) {
+            console.error('❌ Error rendering overview tab:', error);
         }
+    }
 
-        tbody.innerHTML = suppliers.map(supplier => `
+    renderTopRoutesTable() {
+        const tbody = document.getElementById('topRoutesTable');
+        const routes = this.data.topRoutes.slice(0, 10);
+        
+        tbody.innerHTML = routes.map((route, index) => `
             <tr>
                 <td>
-                    <div class="text-primary font-medium">${supplier.name}</div>
+                    <div class="fw-semibold">${route.origin}</div>
+                    <div class="text-muted small">→ ${route.destination}</div>
                 </td>
-                <td>${supplier.shipments}</td>
-                <td>${this.formatNumber(supplier.quantity)} pcs</td>
-                <td>${this.formatCurrency(supplier.cost)}</td>
+                <td class="text-end">${route.shipments}</td>
+                <td class="text-end">${route.volume.toFixed(1)} m³</td>
             </tr>
         `).join('');
     }
 
-    /**
-     * Renderizza top carriers
-     */
-    renderTopCarriers(carriers) {
-        const tbody = document.querySelector('#topCarriersTable tbody');
+    renderCarriersDetailTable() {
+        const tbody = document.getElementById('carriersDetailBody');
+        const carriers = this.data.carriersPerformance;
         
-        if (carriers.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="4" class="text-center">No data available</td></tr>';
-            return;
-        }
-
         tbody.innerHTML = carriers.map(carrier => `
             <tr>
                 <td>
-                    <div class="text-primary font-medium">${carrier.name}</div>
+                    <div class="fw-semibold">${carrier.name}</div>
+                    <div class="text-muted small">${carrier.code || 'N/A'}</div>
                 </td>
-                <td>${carrier.shipments}</td>
-                <td>${this.formatCurrency(carrier.avgCost)}</td>
-                <td>
-                    <span class="badge ${carrier.onTimeRate >= 90 ? 'badge-success' : carrier.onTimeRate >= 80 ? 'badge-warning' : 'badge-danger'}">
-                        ${carrier.onTimeRate || 0}%
+                <td class="text-end">${carrier.shipments}</td>
+                <td class="text-end">€${carrier.revenue.toLocaleString()}</td>
+                <td class="text-end">${carrier.weight.toLocaleString()} kg</td>
+                <td class="text-end">${carrier.volume.toFixed(1)} m³</td>
+                <td class="text-end">€${carrier.avgCost.toFixed(2)}</td>
+                <td class="text-end">
+                    <span class="badge ${this.getPerformanceBadgeClass(carrier.performance)} rounded-pill">
+                        ${carrier.performance.toFixed(1)}%
                     </span>
+                </td>
+                <td class="text-center">
+                    <button class="btn btn-sm btn-outline-primary" onclick="dashboard.viewCarrierDetails('${carrier.id}')">
+                        <i class="fas fa-eye"></i>
+                    </button>
                 </td>
             </tr>
         `).join('');
     }
 
-    /**
-     * Renderizza alerts
-     */
-    renderAlerts(alerts) {
-        const section = document.getElementById('alertsSection');
-        const grid = document.getElementById('alertsGrid');
-        
-        const alertItems = [];
-        
-        if (alerts.highCostShipments > 0) {
-            alertItems.push({
-                type: 'warning',
-                icon: 'alert-triangle',
-                title: 'High Cost Shipments',
-                message: `${alerts.highCostShipments} shipments exceed €1000 transport cost`,
-                action: 'Review shipments',
-                link: '/shipments.html?filter=high_cost'
-            });
-        }
-        
-        if (alerts.delayedShipments > 0) {
-            alertItems.push({
-                type: 'danger',
-                icon: 'clock',
-                title: 'Delayed Shipments',
-                message: `${alerts.delayedShipments} shipments are currently delayed`,
-                action: 'View delays',
-                link: '/shipments.html?filter=delayed'
-            });
-        }
-        
-        if (alerts.missingTracking > 0) {
-            alertItems.push({
-                type: 'info',
-                icon: 'help-circle',
-                title: 'Missing Tracking',
-                message: `${alerts.missingTracking} shipments without tracking numbers`,
-                action: 'Add tracking',
-                link: '/shipments.html?filter=no_tracking'
-            });
-        }
+    getPerformanceBadgeClass(performance) {
+        if (performance >= 90) return 'bg-success';
+        if (performance >= 70) return 'bg-warning';
+        return 'bg-danger';
+    }
 
-        if (alertItems.length === 0) {
-            section.style.display = 'none';
-            return;
+    async handleTabChange(tabId) {
+        console.log(`🎯 Switching to tab: ${tabId}`);
+        this.currentTab = tabId;
+        
+        // Hide detail table for non-overview tabs
+        const detailTable = document.getElementById('detailTable');
+        detailTable.style.display = tabId === 'overview' ? 'block' : 'none';
+        
+        switch (tabId) {
+            case 'overview':
+                await this.renderOverviewTab();
+                break;
+            case 'costs':
+                await this.costsDashboard.render(document.getElementById('costsContent'), this.data);
+                break;
+            case 'performance':
+                await this.renderPerformanceTab();
+                break;
+            case 'routes':
+                await this.renderRoutesTab();
+                break;
         }
+    }
 
-        section.style.display = 'block';
-        grid.innerHTML = alertItems.map(alert => `
-            <div class="alert-card alert-${alert.type}">
-                <div class="alert-icon">
-                    <i class="icon-${alert.icon}"></i>
+    async handleChartPeriodChange(periodId) {
+        const periodMap = {
+            'chart3months': 90,
+            'chart6months': 180,
+            'chart1year': 365
+        };
+        
+        const days = periodMap[periodId];
+        if (days) {
+            // Reload trend data with new period
+            const trendData = await this.dashboardManager.loadTrendData(days);
+            await this.chartsManager.renderTrendChart(trendData, 'trendChart');
+        }
+    }
+
+    async applyFilters() {
+        try {
+            this.showLoading('Applicazione filtri...');
+            
+            // Get filter values
+            this.currentFilters = this.filtersManager.getCurrentFilters();
+            
+            // Reload data with new filters
+            this.data = await this.dashboardManager.loadDashboardData(this.currentFilters);
+            
+            // Re-render current tab
+            await this.renderDashboard();
+            await this.handleTabChange(this.currentTab);
+            
+            this.hideLoading();
+            console.log('✅ Filters applied successfully');
+            
+        } catch (error) {
+            console.error('❌ Error applying filters:', error);
+            this.showError('Errore durante l\'applicazione dei filtri');
+            this.hideLoading();
+        }
+    }
+
+    async refresh(silent = false) {
+        try {
+            if (!silent) {
+                this.showLoading('Aggiornamento dati...');
+            }
+            
+            // Reload data with current filters
+            this.data = await this.dashboardManager.loadDashboardData(this.currentFilters);
+            
+            // Re-render current view
+            await this.renderDashboard();
+            await this.handleTabChange(this.currentTab);
+            
+            this.updateLastUpdateTime();
+            
+            if (!silent) {
+                this.hideLoading();
+            }
+            
+            console.log('✅ Dashboard refreshed successfully');
+            
+        } catch (error) {
+            console.error('❌ Error refreshing dashboard:', error);
+            if (!silent) {
+                this.showError('Errore durante l\'aggiornamento');
+                this.hideLoading();
+            }
+        }
+    }
+
+    async renderPerformanceTab() {
+        console.log('📈 Rendering performance tab...');
+        const content = document.getElementById('performanceContent');
+        
+        content.innerHTML = `
+            <div class="row g-4">
+                <div class="col-lg-6">
+                    <div class="chart-container">
+                        <div class="chart-title">
+                            <i class="fas fa-stopwatch text-primary me-2"></i>
+                            Tempi di Consegna per Spedizioniere
+                        </div>
+                        <canvas id="deliveryTimesChart"></canvas>
+                    </div>
                 </div>
-                <div class="alert-content">
-                    <h4>${alert.title}</h4>
-                    <p>${alert.message}</p>
+                <div class="col-lg-6">
+                    <div class="chart-container">
+                        <div class="chart-title">
+                            <i class="fas fa-percentage text-success me-2"></i>
+                            Tasso di Successo
+                        </div>
+                        <canvas id="successRateChart"></canvas>
+                    </div>
                 </div>
-                <a href="${alert.link}" class="alert-action">
-                    ${alert.action} →
-                </a>
             </div>
+        `;
+        
+        // Render performance charts
+        await this.chartsManager.renderDeliveryTimesChart(this.data.deliveryTimes, 'deliveryTimesChart');
+        await this.chartsManager.renderSuccessRateChart(this.data.successRates, 'successRateChart');
+    }
+
+    async renderRoutesTab() {
+        console.log('🗺️ Rendering routes tab...');
+        const content = document.getElementById('routesContent');
+        
+        content.innerHTML = `
+            <div class="row g-4">
+                <div class="col-12">
+                    <div class="chart-container">
+                        <div class="chart-title">
+                            <i class="fas fa-globe text-info me-2"></i>
+                            Analisi Geografica delle Rotte
+                        </div>
+                        <canvas id="routesChart"></canvas>
+                    </div>
+                </div>
+                <div class="col-lg-8">
+                    <div class="table-container">
+                        <div class="p-3 border-bottom bg-light">
+                            <h6 class="mb-0 fw-semibold">Dettaglio Rotte Principali</h6>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0">
+                                <thead>
+                                    <tr>
+                                        <th>Origine</th>
+                                        <th>Destinazione</th>
+                                        <th class="text-end">Spedizioni</th>
+                                        <th class="text-end">Volume</th>
+                                        <th class="text-end">Ricavo</th>
+                                        <th class="text-end">Tempo Medio</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="routesDetailTable">
+                                    <!-- Popolato dinamicamente -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-4">
+                    <div class="chart-container">
+                        <div class="chart-title">
+                            <i class="fas fa-chart-pie text-warning me-2"></i>
+                            Top Destinazioni
+                        </div>
+                        <canvas id="destinationsChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        // Render routes analysis
+        await this.chartsManager.renderRoutesChart(this.data.routesAnalysis, 'routesChart');
+        await this.chartsManager.renderDestinationsChart(this.data.topDestinations, 'destinationsChart');
+        this.renderRoutesDetailTable();
+    }
+
+    renderRoutesDetailTable() {
+        const tbody = document.getElementById('routesDetailTable');
+        
+        tbody.innerHTML = this.data.topRoutes.map(route => `
+            <tr>
+                <td class="fw-semibold">${route.origin}</td>
+                <td class="fw-semibold">${route.destination}</td>
+                <td class="text-end">${route.shipments}</td>
+                <td class="text-end">${route.volume.toFixed(1)} m³</td>
+                <td class="text-end">€${route.revenue.toLocaleString()}</td>
+                <td class="text-end">${route.avgDeliveryTime.toFixed(1)} gg</td>
+            </tr>
         `).join('');
     }
 
-    /**
-     * Renderizza recent activity
-     */
-    renderRecentActivity(activities) {
-        const timeline = document.getElementById('activityTimeline');
-        
-        if (activities.length === 0) {
-            // Genera attività demo se non ci sono dati
-            activities = this.generateDemoActivities();
-        }
-
-        timeline.innerHTML = activities.map(activity => `
-            <div class="activity-item">
-                <div class="activity-icon ${activity.type}">
-                    <i class="icon-${activity.icon}"></i>
-                </div>
-                <div class="activity-content">
-                    <div class="activity-title">${activity.title}</div>
-                    <div class="activity-description">${activity.description}</div>
-                    <div class="activity-time">${this.formatTimeAgo(activity.timestamp)}</div>
-                </div>
-            </div>
-        `).join('');
+    // Export functions
+    async exportData() {
+        await this.exportManager.exportCurrentView(this.currentTab, this.data);
     }
 
-    /**
-     * Genera attività demo
-     */
-    generateDemoActivities() {
-        return [
-            {
-                type: 'success',
-                icon: 'check-circle',
-                title: 'Shipment Delivered',
-                description: 'Order #2024-1234 delivered to Milan warehouse',
-                timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000)
-            },
-            {
-                type: 'info',
-                icon: 'upload',
-                title: 'Data Import',
-                description: '150 new shipments imported via CSV',
-                timestamp: new Date(Date.now() - 5 * 60 * 60 * 1000)
-            },
-            {
-                type: 'warning',
-                icon: 'alert-triangle',
-                title: 'Delay Alert',
-                description: 'Container MSKU1234567 delayed at port',
-                timestamp: new Date(Date.now() - 12 * 60 * 60 * 1000)
-            },
-            {
-                type: 'primary',
-                icon: 'truck',
-                title: 'New Tracking',
-                description: '5 containers added to tracking system',
-                timestamp: new Date(Date.now() - 24 * 60 * 60 * 1000)
-            }
-        ];
+    async exportToExcel() {
+        await this.exportManager.exportToExcel(this.data);
     }
 
-    /**
-     * Setup data subscriptions
-     */
-    setupDataSubscriptions() {
-        // Subscribe a cambiamenti shipments
-        dataService.subscribe('shipments', (change) => {
-            console.log('Shipments changed:', change);
-            // Ricarica solo KPI, non tutto
-            this.loadDashboardData(true);
-        });
+    async printReport() {
+        await this.exportManager.printReport(this.currentTab, this.data);
     }
 
-    /**
-     * Export chart as image
-     */
-    exportChart(chartId) {
-        const chart = this.charts[chartId.replace('Chart', '')];
-        if (!chart) return;
-
-        const url = chart.toBase64Image();
-        const link = document.createElement('a');
-        link.download = `${chartId}_${new Date().toISOString().split('T')[0]}.png`;
-        link.href = url;
-        link.click();
+    // Utility functions
+    updateLastUpdateTime() {
+        const now = new Date();
+        document.getElementById('lastUpdate').textContent = 
+            now.toLocaleString('it-IT', { 
+                day: '2-digit', 
+                month: '2-digit', 
+                year: 'numeric',
+                hour: '2-digit', 
+                minute: '2-digit' 
+            });
     }
 
-    /**
-     * Utility formatters
-     */
-    formatCurrency(value) {
-        return new Intl.NumberFormat('it-IT', {
-            style: 'currency',
-            currency: 'EUR'
-        }).format(value || 0);
+    showLoading(message = 'Caricamento...') {
+        const overlay = document.getElementById('loadingOverlay');
+        overlay.querySelector('h5').textContent = message;
+        overlay.classList.remove('d-none');
     }
 
-    formatNumber(value) {
-        return new Intl.NumberFormat('it-IT').format(value || 0);
+    hideLoading() {
+        document.getElementById('loadingOverlay').classList.add('d-none');
     }
 
-    formatDate(dateStr) {
-        const date = new Date(dateStr);
-        return date.toLocaleDateString('it-IT', {
-            day: 'numeric',
-            month: 'short'
-        });
+    showError(message) {
+        // Implement your notification system here
+        console.error('Dashboard Error:', message);
+        alert(message); // Temporary fallback
     }
 
-    formatStatus(status) {
-        const statusMap = {
-            'DELIVERED': 'Delivered',
-            'IN_TRANSIT': 'In Transit',
-            'PENDING': 'Pending',
-            'DELAYED': 'Delayed',
-            'CANCELLED': 'Cancelled'
-        };
-        return statusMap[status] || status;
-    }
-
-    formatTimeAgo(date) {
-        const seconds = Math.floor((new Date() - new Date(date)) / 1000);
-        
-        const intervals = {
-            year: 31536000,
-            month: 2592000,
-            week: 604800,
-            day: 86400,
-            hour: 3600,
-            minute: 60
-        };
-
-        for (const [unit, secondsInUnit] of Object.entries(intervals)) {
-            const interval = Math.floor(seconds / secondsInUnit);
-            if (interval >= 1) {
-                return `${interval} ${unit}${interval > 1 ? 's' : ''} ago`;
-            }
-        }
-
-        return 'Just now';
-    }
-
-    /**
-     * Cleanup
-     */
-    destroy() {
-        // Clear interval
-        if (this.refreshInterval) {
-            clearInterval(this.refreshInterval);
-        }
-
-        // Destroy charts
-        Object.values(this.charts).forEach(chart => chart.destroy());
+    viewCarrierDetails(carrierId) {
+        // Navigate to carrier detail page or show modal
+        console.log('View carrier details:', carrierId);
     }
 }
 
-// Inizializza quando DOM è pronto
-const dashboard = new DashboardController();
+// Initialize dashboard when DOM is ready
+document.addEventListener('DOMContentLoaded', async () => {
+    try {
+        console.log('🚀 Initializing Dashboard...');
+        
+        window.dashboard = new Dashboard();
+        await window.dashboard.init();
+        
+        console.log('✅ Dashboard ready!');
+        
+    } catch (error) {
+        console.error('❌ Failed to initialize dashboard:', error);
+    }
+});
 
-window.dashboardInit = async function() {
-    await dashboard.init();
-};
-
-// Export per uso globale
-window.dashboard = dashboard;
+export default Dashboard;
