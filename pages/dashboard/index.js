@@ -230,7 +230,7 @@ class Dashboard {
         return result;
     }
 
-    calculateAggregations(data) {
+        calculateAggregations(data) {
         console.log('📊 Starting calculateAggregations with:', data);
         
         const { trackings = [], shipments = [], carriers = [], additionalCosts = [] } = data;
@@ -241,33 +241,33 @@ class Dashboard {
             carriers: carriers.length,
             additionalCosts: additionalCosts.length
         });
-
+    
         // ✅ Combina dati trackings e shipments
         const combined = this.combineTrackingsAndShipments(trackings, shipments);
         console.log('📊 Combined data result:', combined);
-
+    
         // ✅ Calcola costi totali includendo additional costs
         const costs = this.calculateTotalCosts(combined, additionalCosts);
         console.log('📊 Costs result:', costs);
-
-        // ✅ DATI AGGREGATI FINALI
+    
+        // ✅ DATI AGGREGATI FINALI CON FALLBACK
         const result = {
-            totalShipments: combined.length,
-            totalCosts: costs.total,
+            totalShipments: combined.length || 0,
+            totalCosts: costs.total || 0,
             totalWeight: combined.reduce((sum, item) => sum + (parseFloat(item.weight) || 0), 0),
             totalVolume: combined.reduce((sum, item) => sum + (parseFloat(item.volume) || 0), 0),
-            activeCarriers: [...new Set(combined.map(item => item.carrier_code || item.carrier_name).filter(Boolean))].length,
+            activeCarriers: [...new Set(combined.map(item => item.carrier_code || item.carrier_name).filter(Boolean))].length || 0,
             
             // ✅ TRENDS per il grafico lineare
-            trends: this.calculateTrends(combined),
+            trends: this.calculateTrends(combined) || [],
             
             // ✅ TRANSPORT MODES per il grafico a torta
-            transportModes: this.calculateTransportModes(combined),
+            transportModes: this.calculateTransportModes(combined) || [],
             
             // ✅ CARRIERS PERFORMANCE per la tabella
-            carriersPerformance: this.calculateCarriersPerformance(combined, carriers)
+            carriersPerformance: this.calculateCarriersPerformance(combined, carriers) || []
         };
-
+    
         console.log('📊 Aggregations result:', result);
         return result;
     }
@@ -500,14 +500,21 @@ class Dashboard {
         }));
     }
 
-    async renderDashboard() {
+        async renderDashboard() {
         try {
             console.log('🎨 Rendering dashboard...');
             
             // ✅ Renderizza tutti i componenti
+            console.log('🎯 Calling renderKPICards...');
             this.renderKPICards();
+            
+            console.log('🎯 Calling renderCharts...');
             this.renderCharts();
+            
+            console.log('🎯 Calling renderTables...');
             this.renderTables();
+            
+            console.log('🎯 Calling populateFilterDropdowns...');
             this.populateFilterDropdowns();
             
             console.log('✅ Dashboard rendered successfully');
@@ -518,58 +525,84 @@ class Dashboard {
         }
     }
 
-    renderKPICards() {
+        renderKPICards() {
+        console.log('🎯 Starting renderKPICards...');
+        console.log('🎯 Data object:', this.data);
+        console.log('🎯 Data properties:', Object.keys(this.data));
+        
         const container = document.getElementById('kpiCards');
-        if (!container) return;
+        if (!container) {
+            console.error('❌ KPI container not found!');
+            return;
+        }
+        
+        console.log('🎯 KPI container found:', container);
+        
+        // ✅ VERIFICA CHE I DATI ESISTANO
+        const totalShipments = this.data.totalShipments || 0;
+        const totalCosts = this.data.totalCosts || 0;
+        const totalWeight = this.data.totalWeight || 0;
+        const totalVolume = this.data.totalVolume || 0;
+        const activeCarriers = this.data.activeCarriers || 0;
+        
+        console.log('🎯 KPI Values:', {
+            totalShipments,
+            totalCosts,
+            totalWeight,
+            totalVolume,
+            activeCarriers
+        });
         
         const kpiCards = [
             {
                 label: 'Spedizioni',
-                value: this.data.totalShipments.toLocaleString(),
+                value: totalShipments.toLocaleString(),
                 growth: 12.5,
                 icon: 'fas fa-shipping-fast',
                 color: '#6366f1'
             },
             {
                 label: 'Costi Totali',
-                value: `€${this.data.totalCosts.toLocaleString()}`,
+                value: `€${totalCosts.toLocaleString()}`,
                 growth: 8.2,
                 icon: 'fas fa-euro-sign',
                 color: '#ef4444'
             },
             {
                 label: 'Peso (kg)',
-                value: `${this.data.totalWeight.toLocaleString()}`,
+                value: `${totalWeight.toLocaleString()}`,
                 growth: -3.1,
                 icon: 'fas fa-weight-hanging',
                 color: '#f59e0b'
             },
             {
                 label: 'Volume (m³)',
-                value: `${this.data.totalVolume.toFixed(1)}`,
+                value: `${totalVolume.toFixed(1)}`,
                 growth: 5.7,
                 icon: 'fas fa-cube',
                 color: '#8b5cf6'
             },
             {
                 label: 'Spedizionieri',
-                value: this.data.activeCarriers.toString(),
+                value: activeCarriers.toString(),
                 growth: 15.3,
                 icon: 'fas fa-truck',
                 color: '#06b6d4'
             },
             {
                 label: 'Costo Medio',
-                value: this.data.totalShipments > 0 ? 
-                    `€${(this.data.totalCosts / this.data.totalShipments).toFixed(2)}` : '€0',
+                value: totalShipments > 0 ? 
+                    `€${(totalCosts / totalShipments).toFixed(2)}` : '€0',
                 growth: -2.4,
                 icon: 'fas fa-calculator',
                 color: '#10b981'
             }
         ];
-
+    
+        console.log('🎯 KPI Cards data:', kpiCards);
+    
         // ✅ LAYOUT GRIGLIA QUADRATA CON WRAPPER
-        container.innerHTML = kpiCards.map((kpi, index) => `
+        const html = kpiCards.map((kpi, index) => `
             <div class="kpi-card-wrapper" data-kpi-index="${index}">
                 <div class="kpi-card sortable-card" draggable="true">
                     <div class="drag-handle">
@@ -587,7 +620,13 @@ class Dashboard {
                 </div>
             </div>
         `).join('');
-
+    
+        console.log('🎯 Generated HTML:', html.substring(0, 200) + '...');
+        
+        container.innerHTML = html;
+        
+        console.log('✅ KPI Cards rendered successfully');
+    
         // ✅ INIZIALIZZA SORTABLE
         this.initializeSortableKPIs();
     }
