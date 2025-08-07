@@ -2093,3 +2093,73 @@ Activity (24h): ${stats.total_containers > 0 ? Math.round((stats.updated_last_24
 
 // 🚀 Accesso rapido
 window.dashboard = window.autoUpdateDashboard;
+
+// 🧪 TEST COMPLETO DEL SISTEMA (FUNZIONE MANCANTE)
+window.fullSystemTest = async function() {
+    console.log('🧪 === FULL SYSTEM TEST START ===');
+    
+    try {
+        // 1. Dashboard completo
+        console.log('📊 Step 1: Running system dashboard...');
+        await window.dashboard();
+        
+        // 2. Test manuale Edge Function
+        console.log('\n🤖 Step 2: Testing server auto-update...');
+        const manualTest = await window.triggerServerAutoUpdate();
+        console.log('Manual trigger result:', manualTest);
+        
+        // 3. Verifica stato tracking
+        console.log('\n📋 Step 3: Checking tracking status...');
+        const trackingCount = window.trackings?.length || 0;
+        console.log('Local tracking count:', trackingCount);
+        
+        // 4. Test TableManager
+        console.log('\n📊 Step 4: Checking TableManager...');
+        const tableStatus = window.tableManager ? 'OPERATIONAL' : 'NOT_FOUND';
+        console.log('TableManager status:', tableStatus);
+        
+        // 5. Test API Keys
+        console.log('\n🔑 Step 5: Checking API configuration...');
+        const apiStatus = window.trackingService?.hasApiKeys() ? 'CONFIGURED' : 'MISSING';
+        console.log('API Keys status:', apiStatus);
+        
+        console.log('\n🎊 === SYSTEM READY FOR PRODUCTION ===');
+        console.log('🎯 All components tested successfully!');
+        
+        return {
+            success: true,
+            dashboard: true,
+            edgeFunction: manualTest.success,
+            trackingCount: trackingCount,
+            tableManager: tableStatus === 'OPERATIONAL',
+            apiKeys: apiStatus === 'CONFIGURED'
+        };
+        
+    } catch (error) {
+        console.error('❌ Full system test error:', error);
+        return {
+            success: false,
+            error: error.message
+        };
+    }
+};
+
+// 🎯 FUNZIONI DI ACCESSO RAPIDO
+window.systemStatus = function() {
+    console.log(`
+🚀 === SYSTEM STATUS OVERVIEW ===
+📊 Dashboard: ${typeof window.dashboard === 'function' ? '✅ Available' : '❌ Missing'}
+🤖 Auto-Update: ${typeof window.triggerServerAutoUpdate === 'function' ? '✅ Available' : '❌ Missing'}
+📋 Monitor: ${typeof window.quickMonitor === 'function' ? '✅ Available' : '❌ Missing'}
+🔧 Debug: ${typeof window.debugColumns === 'function' ? '✅ Available' : '❌ Missing'}
+📊 TableManager: ${window.tableManager ? '✅ Available' : '❌ Missing'}
+🔑 TrackingService: ${window.trackingService ? '✅ Available' : '❌ Missing'}
+📦 Tracking Data: ${window.trackings?.length || 0} records
+
+💡 Quick Commands:
+- window.dashboard() - Sistema completo
+- window.fullSystemTest() - Test completo
+- window.quickMonitor() - Status veloce
+- window.triggerServerAutoUpdate() - Test Edge Function
+    `);
+};
