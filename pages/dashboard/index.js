@@ -125,33 +125,33 @@ class DynamicDashboard {
         console.log('✅ Dynamic Dashboard initialized');
     }
 
-    setupEventListeners() {
-        // Category change listener
-        const categorySelect = document.getElementById('analyticsCategory');
-        if (categorySelect) {
-            categorySelect.addEventListener('change', (e) => {
-                this.onCategoryChange(e.target.value);
-            });
+                 setupEventListeners() {
+            // Category change listener
+            const categorySelect = document.getElementById('analyticsCategory');
+            if (categorySelect) {
+                categorySelect.addEventListener('change', (e) => {
+                    this.onCategoryChange(e.target.value);
+                });
+            }
+            
+            // Metric change listener  
+            const metricSelect = document.getElementById('specificMetric');
+            if (metricSelect) {
+                metricSelect.addEventListener('change', (e) => {
+                    this.onMetricChange(e.target.value);
+                });
+            }
+            
+            // Granularity change listener
+            const granularitySelect = document.getElementById('granularityLevel');
+            if (granularitySelect) {
+                granularitySelect.addEventListener('change', (e) => {
+                    this.onGranularityChange(e.target.value);
+                });
+            }
+            
+            console.log('✅ Dynamic Dashboard event listeners setup');
         }
-        
-        // Metric change listener  
-        const metricSelect = document.getElementById('specificMetric');
-        if (metricSelect) {
-            metricSelect.addEventListener('change', (e) => {
-                this.onMetricChange(e.target.value);
-            });
-        }
-        
-        // Granularity change listener
-        const granularitySelect = document.getElementById('granularityLevel');
-        if (granularitySelect) {
-            granularitySelect.addEventListener('change', (e) => {
-                this.onGranularityChange(e.target.value);
-            });
-        }
-        
-        console.log('✅ Dynamic Dashboard event listeners setup');
-    }
 
     async loadDefaultCategory() {
         // Load overview by default
@@ -722,31 +722,58 @@ class Dashboard {
         throw new Error('Required services not available after maximum attempts');
     }
 
-    setupEventListeners() {
+        setupEventListeners() {
+        console.log('🔄 Setting up Dashboard event listeners...');
+        
         // Filter events
         const periodFilter = document.getElementById('periodFilter');
         const carrierFilter = document.getElementById('carrierFilter');
         const statusFilter = document.getElementById('statusFilter');
+        const transportFilter = document.getElementById('transportFilter');
         
         if (periodFilter) {
-            periodFilter.addEventListener('change', () => {
-                this.currentFilters.period = parseInt(periodFilter.value);
+            periodFilter.addEventListener('change', (e) => {
+                this.currentFilters.period = parseInt(e.target.value);
+                console.log('🔄 Period filter changed:', this.currentFilters.period);
             });
         }
         
         if (carrierFilter) {
-            carrierFilter.addEventListener('change', () => {
-                this.currentFilters.carrier = carrierFilter.value;
+            carrierFilter.addEventListener('change', (e) => {
+                this.currentFilters.carrier = e.target.value;
+                console.log('🔄 Carrier filter changed:', this.currentFilters.carrier);
             });
         }
         
         if (statusFilter) {
-            statusFilter.addEventListener('change', () => {
-                this.currentFilters.status = statusFilter.value;
+            statusFilter.addEventListener('change', (e) => {
+                this.currentFilters.status = e.target.value;
+                console.log('🔄 Status filter changed:', this.currentFilters.status);
             });
         }
         
-        console.log('🎯 Event listeners setup complete');
+        if (transportFilter) {
+            transportFilter.addEventListener('change', (e) => {
+                this.currentFilters.transport = e.target.value;
+                console.log('🔄 Transport filter changed:', this.currentFilters.transport);
+            });
+        }
+        
+        // ✅ AGGIUNGI ALTRI FILTRI AVANZATI
+        const advancedFilters = ['originFilter', 'destinationFilter', 'weightRangeFilter', 'costRangeFilter', 'priorityFilter'];
+        
+        advancedFilters.forEach(filterId => {
+            const element = document.getElementById(filterId);
+            if (element) {
+                element.addEventListener('change', (e) => {
+                    const filterName = filterId.replace('Filter', '');
+                    this.currentFilters[filterName] = e.target.value;
+                    console.log(`🔄 ${filterName} filter changed:`, e.target.value);
+                });
+            }
+        });
+        
+        console.log('✅ Dashboard event listeners setup complete');
     }
 
     async loadInitialData() {
@@ -757,56 +784,69 @@ class Dashboard {
     }
 
         async loadDashboardData() {
-        try {
-            console.log('📊 Loading dashboard data...');
-            
-            const rawData = await this.dataManager.getDashboardData();
-            console.log('📊 Raw data loaded:', rawData);
-            
-            // ✅ SALVA RAW DATA per le query dinamiche
-            this.rawData = rawData;
-            window.dashboard.rawData = rawData; // Rendi disponibile globalmente
-            
-            // Applica filtri
-            const filteredData = this.applyDataFilters(rawData);
-            console.log('✅ Data filters applied, result:', filteredData);
-            
-            // ... resto del codice esistente
+    try {
+        console.log('📊 Loading dashboard data...');
+        
+        const rawData = await this.dataManager.getDashboardData();
+        console.log('📊 Raw data loaded:', rawData);
+        
+        // ✅ SALVA RAW DATA per le query dinamiche
+        this.rawData = rawData;
+        window.dashboard.rawData = rawData; // Rendi disponibile globalmente
+        
+        // Applica filtri
+        const filteredData = this.applyDataFilters(rawData);
+        console.log('✅ Data filters applied, result:', filteredData);
+        
+        // ✅ AGGIUNGI IL CALCOLO DELLE AGGREGAZIONI
+        this.data = this.calculateAggregations(filteredData);
+        
+        console.log('✅ Dashboard data loaded successfully');
+        
+    } catch (error) {
+        console.error('❌ Error loading dashboard data:', error);
+        throw error;
+    }
+} // ✅ CHIUSURA METODO
 
     async refreshWithFilters() {
-        console.log('🔄 Refreshing with filters...');
+    console.log('🔄 Refreshing with filters...');
+    
+    try {
+        // 1. Carica dati raw
+        const trackings = await window.dataManager.getTrackings() || [];
+        const shipments = await window.dataManager.getShipments() || [];
+        const carriers = await window.dataManager.getCarriers() || [];
+        const additionalCosts = await this.loadAdditionalCosts() || [];
         
-        try {
-            // 1. Carica dati raw
-            const trackings = await window.dataManager.getTrackings() || [];
-            const shipments = await window.dataManager.getShipments() || [];
-            const carriers = await window.dataManager.getCarriers() || [];
-            const additionalCosts = await this.loadAdditionalCosts() || [];
-            
-            console.log('📊 Raw data loaded:', {
-                trackings: trackings.length,
-                shipments: shipments.length,
-                carriers: carriers.length,
-                additionalCosts: additionalCosts.length
-            });
-            
-            // 2. Applica filtri
-            const rawData = { trackings, shipments, carriers, additionalCosts };
-            const filtered = this.applyDataFilters(rawData);
-            
-            // 3. Calcola aggregazioni
-            this.data = this.calculateAggregations(filtered);
-            
-            // 4. Re-render
-            await this.renderDashboard();
-            
-            console.log('✅ Refresh with filters complete');
-            
-        } catch (error) {
-            console.error('❌ Error refreshing with filters:', error);
-            throw error;
-        }
+        console.log('📊 Raw data loaded:', {
+            trackings: trackings.length,
+            shipments: shipments.length,
+            carriers: carriers.length,
+            additionalCosts: additionalCosts.length
+        });
+        
+        // 2. Applica filtri
+        const rawData = { trackings, shipments, carriers, additionalCosts };
+        const filtered = this.applyDataFilters(rawData);
+        
+        // 3. Calcola aggregazioni
+        this.data = this.calculateAggregations(filtered);
+        
+        // ✅ 4. SALVA RAW DATA per dashboard dinamica
+        this.rawData = rawData;
+        window.dashboard.rawData = rawData;
+        
+        // 5. Re-render
+        await this.renderDashboard();
+        
+        console.log('✅ Refresh with filters complete');
+        
+    } catch (error) {
+        console.error('❌ Error refreshing with filters:', error);
+        throw error;
     }
+}
 
     async loadAdditionalCosts() {
         try {
@@ -1621,15 +1661,135 @@ class Dashboard {
         return 'bg-danger';
     }
 
+        // ✅ POPOLAZIONE DROPDOWN MIGLIORATA
     populateFilterDropdowns() {
-        // Popola dropdown carriers
-        const carrierFilter = document.getElementById('carrierFilter');
-        if (carrierFilter && this.data.carriersPerformance) {
-            const carrierOptions = this.data.carriersPerformance.map(carrier => 
-                `<option value="${carrier.code}">${carrier.name}</option>`
-            ).join('');
+        console.log('🔄 Populating filter dropdowns...');
+        
+        try {
+            // 1. Popola Spedizionieri
+            this.populateCarrierFilter();
             
-            carrierFilter.innerHTML = '<option value="">Tutti gli spedizionieri</option>' + carrierOptions;
+            // 2. Popola Origini e Destinazioni
+            this.populateLocationFilters();
+            
+            // 3. Popola Metriche specifiche (già gestito da Dynamic Dashboard)
+            
+            console.log('✅ Filter dropdowns populated');
+            
+        } catch (error) {
+            console.error('❌ Error populating dropdowns:', error);
+        }
+    }
+    
+    // ✅ POPOLA CARRIER FILTER
+    populateCarrierFilter() {
+        const carrierFilter = document.getElementById('carrierFilter');
+        if (!carrierFilter) return;
+        
+        // Usa dati dai carriers performance se disponibili
+        let carrierOptions = '<option value="">Tutti gli spedizionieri</option>';
+        
+        if (this.data.carriersPerformance && this.data.carriersPerformance.length > 0) {
+            carrierOptions += this.data.carriersPerformance.map(carrier => 
+                `<option value="${carrier.code}">${carrier.name} (${carrier.shipments} spedizioni)</option>`
+            ).join('');
+        } else {
+            // Fallback: usa dati raw
+            if (this.rawData && this.rawData.trackings) {
+                const uniqueCarriers = new Set();
+                this.rawData.trackings.forEach(t => {
+                    if (t.carrier_name && t.carrier_name !== 'N/A') {
+                        uniqueCarriers.add(JSON.stringify({
+                            name: t.carrier_name,
+                            code: t.carrier_code || t.carrier_name
+                        }));
+                    }
+                });
+                
+                Array.from(uniqueCarriers).forEach(carrierStr => {
+                    const carrier = JSON.parse(carrierStr);
+                    carrierOptions += `<option value="${carrier.code}">${carrier.name}</option>`;
+                });
+            }
+        }
+        
+        carrierFilter.innerHTML = carrierOptions;
+        console.log('✅ Carrier filter populated');
+    }
+    
+    // ✅ POPOLA LOCATION FILTERS
+    populateLocationFilters() {
+        const originFilter = document.getElementById('originFilter');
+        const destinationFilter = document.getElementById('destinationFilter');
+        
+        if (!this.rawData || !this.rawData.shipments) return;
+        
+        // Raccogli paesi unici
+        const origins = new Set();
+        const destinations = new Set();
+        
+        this.rawData.shipments.forEach(s => {
+            if (s.origin_country && s.origin_country.trim()) {
+                origins.add(s.origin_country.trim());
+            }
+            if (s.destination_country && s.destination_country.trim()) {
+                destinations.add(s.destination_country.trim());
+            }
+        });
+        
+        // Popola origine
+        if (originFilter) {
+            let originOptions = '<option value="">Tutte le origini</option>';
+            Array.from(origins).sort().forEach(country => {
+                originOptions += `<option value="${country}">${country}</option>`;
+            });
+            originFilter.innerHTML = originOptions;
+        }
+        
+        // Popola destinazione
+        if (destinationFilter) {
+            let destinationOptions = '<option value="">Tutte le destinazioni</option>';
+            Array.from(destinations).sort().forEach(country => {
+                destinationOptions += `<option value="${country}">${country}</option>`;
+            });
+            destinationFilter.innerHTML = destinationOptions;
+        }
+        
+        console.log('✅ Location filters populated:', {
+            origins: origins.size,
+            destinations: destinations.size
+        });
+    }
+        // ✅ METODO RESET FILTRI
+    async resetFilters() {
+        console.log('🔄 Resetting all filters...');
+        
+        try {
+            // Reset filtri correnti
+            this.currentFilters = {};
+            
+            // Reset dropdown values
+            const filterIds = [
+                'periodFilter', 'carrierFilter', 'statusFilter', 'transportFilter',
+                'originFilter', 'destinationFilter', 'weightRangeFilter', 
+                'costRangeFilter', 'priorityFilter', 'specificMetric'
+            ];
+            
+            filterIds.forEach(id => {
+                const element = document.getElementById(id);
+                if (element) {
+                    element.selectedIndex = 0; // Reset to first option
+                }
+            });
+            
+            // Ricarica dashboard con filtri resettati
+            await this.refreshWithFilters();
+            
+            window.notificationSystem?.success('Filtri resettati!');
+            
+        } catch (error) {
+            console.error('❌ Error resetting filters:', error);
+            window.notificationSystem?.error('Errore durante il reset filtri');
         }
     }
 

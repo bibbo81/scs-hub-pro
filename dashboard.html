@@ -593,65 +593,48 @@
             </div>
         </div>
 
-<!-- Advanced Analytics Menu -->
+<!-- Compact Analytics & Filters Section -->
 <div class="sol-card mb-4">
     <div class="sol-card-header">
         <h5 class="sol-card-title">
             <i class="fas fa-analytics text-primary me-2"></i>
-            Analisi Avanzata & Filtri
+            Analisi & Filtri
         </h5>
     </div>
     <div class="sol-card-body">
-        <!-- ROW 1: Analisi Principale -->
+        <!-- ROW 1: Main Controls - ORIZZONTALE -->
         <div class="row g-3 mb-3">
-            <div class="col-md-4">
+            <div class="col-lg-3 col-md-6">
                 <label class="form-label fw-semibold">🎯 Categoria Analisi</label>
                 <select class="form-select" id="analyticsCategory">
                     <option value="overview">📊 Panoramica Generale</option>
                     <option value="shipments">📦 Analisi Spedizioni</option>
-                    <option value="financial">💰 Analisi Finanziaria</option>
-                    <option value="performance">🚀 Performance & KPI</option>
-                    <option value="geographical">🌍 Analisi Geografica</option>
-                    <option value="trends">📈 Trend & Previsioni</option>
-                    <option value="operational">⚙️ Analisi Operativa</option>
+                    <option value="financial">💰 Analisi Costi</option>
+                    <option value="performance">🚀 Performance</option>
+                    <option value="geographical">🌍 Geografica</option>
+                    <option value="trends">📈 Trend</option>
                 </select>
             </div>
-            <div class="col-md-4">
-                <label class="form-label fw-semibold">📊 Metrica Specifica</label>
-                <select class="form-select" id="specificMetric">
-                    <option value="">Tutte le metriche</option>
-                </select>
-            </div>
-            <div class="col-md-4">
-                <label class="form-label fw-semibold">📅 Periodo Analisi</label>
+            <div class="col-lg-3 col-md-6">
+                <label class="form-label fw-semibold">📅 Periodo</label>
                 <select class="form-select" id="periodFilter">
                     <option value="7">Ultimi 7 giorni</option>
                     <option value="30" selected>Ultimi 30 giorni</option>
                     <option value="90">Ultimi 3 mesi</option>
                     <option value="180">Ultimi 6 mesi</option>
                     <option value="365">Ultimo anno</option>
-                    <option value="730">Ultimi 2 anni</option>
                 </select>
             </div>
-        </div>
-
-        <!-- ROW 2: Filtri Operativi -->
-        <div class="row g-3 mb-3">
-            <div class="col-md-3">
-                <label class="form-label">🏢 Compagnia</label>
-                <select class="form-select form-select-sm" id="companyFilter">
-                    <option value="">Tutte le compagnie</option>
-                </select>
-            </div>
-            <div class="col-md-3">
-                <label class="form-label">🚚 Spedizioniere</label>
-                <select class="form-select form-select-sm" id="carrierFilter">
+            <div class="col-lg-3 col-md-6">
+                <label class="form-label fw-semibold">🚚 Spedizioniere</label>
+                <select class="form-select" id="carrierFilter">
                     <option value="">Tutti gli spedizionieri</option>
+                    <!-- Popolato dinamicamente -->
                 </select>
             </div>
-            <div class="col-md-3">
-                <label class="form-label">📋 Stato Spedizione</label>
-                <select class="form-select form-select-sm" id="statusFilter">
+            <div class="col-lg-3 col-md-6">
+                <label class="form-label fw-semibold">📋 Stato</label>
+                <select class="form-select" id="statusFilter">
                     <option value="">Tutti gli stati</option>
                     <option value="delivered">✅ Consegnato</option>
                     <option value="in_transit">🚛 In transito</option>
@@ -659,65 +642,53 @@
                     <option value="cancelled">❌ Annullato</option>
                 </select>
             </div>
-            <div class="col-md-3">
-                <label class="form-label">🚛 Tipo Trasporto</label>
+        </div>
+
+        <!-- ROW 2: Advanced Filters + Actions - ORIZZONTALE -->
+        <div class="row g-3 align-items-end">
+            <div class="col-lg-2 col-md-4">
+                <label class="form-label">📊 Metrica</label>
+                <select class="form-select form-select-sm" id="specificMetric">
+                    <option value="">Tutte</option>
+                    <!-- Popolato dinamicamente -->
+                </select>
+            </div>
+            <div class="col-lg-2 col-md-4">
+                <label class="form-label">🚛 Trasporto</label>
                 <select class="form-select form-select-sm" id="transportFilter">
-                    <option value="">Tutti i tipi</option>
+                    <option value="">Tutti</option>
                     <option value="container">🚢 Container</option>
                     <option value="air">✈️ Aereo</option>
                     <option value="road">🚛 Stradale</option>
                     <option value="parcel">📦 Corriere</option>
                 </select>
             </div>
-        </div>
-
-        <!-- ROW 3: Controlli Avanzati -->
-        <div class="row g-3 align-items-end">
-            <div class="col-md-2">
+            <div class="col-lg-2 col-md-4">
                 <label class="form-label">📈 Granularità</label>
                 <select class="form-select form-select-sm" id="granularityLevel">
-                    <option value="daily">📅 Giornaliera</option>
                     <option value="weekly">📊 Settimanale</option>
                     <option value="monthly" selected>📈 Mensile</option>
                     <option value="quarterly">📋 Trimestrale</option>
-                    <option value="yearly">📊 Annuale</option>
                 </select>
             </div>
-            <div class="col-md-2">
-                <label class="form-label">🔄 Comparazione</label>
-                <select class="form-select form-select-sm" id="comparisonType">
-                    <option value="none">Nessuna</option>
-                    <option value="yoy">Anno su Anno</option>
-                    <option value="mom">Mese su Mese</option>
-                    <option value="wow">Settimana su Settimana</option>
-                </select>
-            </div>
-            <div class="col-md-2">
-                <button class="sol-btn sol-btn-primary w-100" onclick="dynamicDashboard.generateAnalysis()">
-                    <i class="fas fa-chart-line"></i>
-                    Genera Analisi
+            <div class="col-lg-2 col-md-4">
+                <button class="sol-btn sol-btn-primary w-100" onclick="window.dynamicDashboard.generateAnalysis()">
+                    <i class="fas fa-chart-line"></i> Genera
                 </button>
             </div>
-            <div class="col-md-2">
-                <button class="sol-btn sol-btn-outline-primary w-100" onclick="dashboard.applyFilters()">
-                    <i class="fas fa-filter"></i>
-                    Applica Filtri
+            <div class="col-lg-2 col-md-4">
+                <button class="sol-btn sol-btn-outline-primary w-100" onclick="window.dashboard.applyFilters()">
+                    <i class="fas fa-filter"></i> Applica
                 </button>
             </div>
-            <div class="col-md-2">
-                <button class="sol-btn sol-btn-glass w-100" onclick="dashboard.resetFilters()">
-                    <i class="fas fa-undo"></i>
-                    Reset
-                </button>
-            </div>
-            <div class="col-md-2">
-                <button class="btn btn-outline-secondary btn-sm w-100" type="button" data-bs-toggle="collapse" data-bs-target="#advancedFilters" aria-expanded="false">
+            <div class="col-lg-2 col-md-4">
+                <button class="btn btn-outline-secondary btn-sm w-100" type="button" data-bs-toggle="collapse" data-bs-target="#advancedFilters">
                     <i class="fas fa-cogs"></i> Avanzati
                 </button>
             </div>
         </div>
         
-        <!-- FILTRI AVANZATI (Collapsible) -->
+        <!-- ROW 3: Advanced Filters (Collapsible) -->
         <div class="collapse mt-3" id="advancedFilters">
             <div class="card border-0 bg-light">
                 <div class="card-body">
@@ -725,52 +696,51 @@
                         <i class="fas fa-sliders-h me-2"></i>Filtri Avanzati
                     </h6>
                     <div class="row g-3">
-                        <div class="col-md-2">
+                        <div class="col-lg-2 col-md-4">
                             <label class="form-label">🌍 Origine</label>
                             <select class="form-select form-select-sm" id="originFilter">
-                                <option value="">Tutte le origini</option>
+                                <option value="">Tutte</option>
+                                <!-- Popolato dinamicamente -->
                             </select>
                         </div>
-                        <div class="col-md-2">
+                        <div class="col-lg-2 col-md-4">
                             <label class="form-label">🎯 Destinazione</label>
                             <select class="form-select form-select-sm" id="destinationFilter">
-                                <option value="">Tutte le destinazioni</option>
+                                <option value="">Tutte</option>
+                                <!-- Popolato dinamicamente -->
                             </select>
                         </div>
-                        <div class="col-md-2">
-                            <label class="form-label">⚖️ Range Peso</label>
+                        <div class="col-lg-2 col-md-4">
+                            <label class="form-label">⚖️ Peso</label>
                             <select class="form-select form-select-sm" id="weightRangeFilter">
-                                <option value="">Tutti i pesi</option>
+                                <option value="">Tutti</option>
                                 <option value="0-100">0-100 kg</option>
-                                <option value="100-1000">100-1000 kg</option>
-                                <option value="1000-5000">1-5 tonnellate</option>
-                                <option value="5000+">5+ tonnellate</option>
+                                <option value="100-1000">0.1-1 t</option>
+                                <option value="1000+">1+ t</option>
                             </select>
                         </div>
-                        <div class="col-md-2">
-                            <label class="form-label">💰 Range Costo</label>
+                        <div class="col-lg-2 col-md-4">
+                            <label class="form-label">💰 Costo</label>
                             <select class="form-select form-select-sm" id="costRangeFilter">
-                                <option value="">Tutti i costi</option>
+                                <option value="">Tutti</option>
                                 <option value="0-500">€0-500</option>
-                                <option value="500-1000">€500-1000</option>
-                                <option value="1000-5000">€1000-5000</option>
-                                <option value="5000+">€5000+</option>
+                                <option value="500-2000">€500-2K</option>
+                                <option value="2000+">€2K+</option>
                             </select>
                         </div>
-                        <div class="col-md-2">
+                        <div class="col-lg-2 col-md-4">
                             <label class="form-label">⚡ Priorità</label>
                             <select class="form-select form-select-sm" id="priorityFilter">
-                                <option value="">Tutte le priorità</option>
+                                <option value="">Tutte</option>
                                 <option value="high">🔴 Alta</option>
                                 <option value="medium">🟡 Media</option>
                                 <option value="low">🟢 Bassa</option>
                             </select>
                         </div>
-                        <div class="col-md-2">
-                            <label class="form-label">👤 Cliente</label>
-                            <select class="form-select form-select-sm" id="customerFilter">
-                                <option value="">Tutti i clienti</option>
-                            </select>
+                        <div class="col-lg-2 col-md-4">
+                            <button class="sol-btn sol-btn-glass w-100" onclick="window.dashboard.resetFilters()">
+                                <i class="fas fa-undo"></i> Reset
+                            </button>
                         </div>
                     </div>
                 </div>
