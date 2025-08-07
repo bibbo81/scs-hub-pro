@@ -841,7 +841,27 @@ async insertNewTracking(trackingData) {
         if (error) throw error;
         return data || [];
     }
+/**
+ * Recupera i costi aggiuntivi per l'organizzazione
+ */
+async getAdditionalCosts() {
+    if (!this.initialized) await this.init();
 
+    try {
+        const { data, error } = await supabase
+            .from('additional_costs')
+            .select('*')
+            .eq('organization_id', this.organizationId)
+            .order('created_at', { ascending: false });
+
+        if (error) throw error;
+        return data || [];
+        
+    } catch (error) {
+        console.error('Error loading additional costs:', error);
+        return [];
+    }
+}
     async getCarrierById(id) {
         if (!this.initialized) await this.init();
         const { data, error } = await supabase

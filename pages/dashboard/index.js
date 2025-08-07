@@ -229,239 +229,270 @@ class Dashboard {
         
         return result;
     }
-
+        
         calculateAggregations(data) {
-        console.log('📊 Starting calculateAggregations with:', data);
+            console.log('📊 Starting calculateAggregations with:', data);
+            
+            const { trackings = [], shipments = [], carriers = [], additionalCosts = [] } = data;
+            
+            console.log('📊 Data counts:', {
+                trackings: trackings.length,
+                shipments: shipments.length,
+                carriers: carriers.length,
+                additionalCosts: additionalCosts.length
+            });
         
-        const { trackings = [], shipments = [], carriers = [], additionalCosts = [] } = data;
+            // Combina dati
+            const combined = this.combineTrackingsAndShipments(trackings, shipments);
+            console.log('📊 Combined data result:', combined);
         
-        console.log('📊 Data counts:', {
-            trackings: trackings.length,
-            shipments: shipments.length,
-            carriers: carriers.length,
-            additionalCosts: additionalCosts.length
-        });
-    
-        // ✅ Combina dati trackings e shipments
-        const combined = this.combineTrackingsAndShipments(trackings, shipments);
-        console.log('📊 Combined data result:', combined);
-    
-        // ✅ Calcola costi totali includendo additional costs
-        const costs = this.calculateTotalCosts(combined, additionalCosts);
-        console.log('📊 Costs result:', costs);
-    
-        // ✅ DATI AGGREGATI FINALI CON FALLBACK
-        const result = {
-            totalShipments: combined.length || 0,
-            totalCosts: costs.total || 0,
-            totalWeight: combined.reduce((sum, item) => sum + (parseFloat(item.weight) || 0), 0),
-            totalVolume: combined.reduce((sum, item) => sum + (parseFloat(item.volume) || 0), 0),
-            activeCarriers: [...new Set(combined.map(item => item.carrier_code || item.carrier_name).filter(Boolean))].length || 0,
+            // Calcola costi
+            const costs = this.calculateTotalCosts(combined, additionalCosts);
+            console.log('📊 Costs result:', costs);
+        
+            // FIX: Calcola totali corretti
+            const totalWeight = combined.reduce((sum, item) => sum + (item.weight || 0), 0);
+            const totalVolume = combined.reduce((sum, item) => sum + (item.volume || 0), 0);
             
-            // ✅ TRENDS per il grafico lineare
-            trends: this.calculateTrends(combined) || [],
-            
-            // ✅ TRANSPORT MODES per il grafico a torta
-            transportModes: this.calculateTransportModes(combined) || [],
-            
-            // ✅ CARRIERS PERFORMANCE per la tabella
-            carriersPerformance: this.calculateCarriersPerformance(combined, carriers) || []
-        };
+            // FIX: Conta carrier unici reali
+            const uniqueCarriers = new Set();
+            combined.forEach(item => {
+                if (item.carrier_code && item.carrier_code !== 'UNKNOWN') {
+                    uniqueCarriers.add(item.carrier_code);
+                } else if (item.carrier_name && item.carrier_name !== 'N/A') {
+                    uniqueCarriers.add(item.carrier_name);
+                }
+            });
+        
+            const result = {
+                totalShipments: combined.length || 0,
+                totalCosts: costs.total || 0,
+                totalWeight: totalWeight || 0,
+                totalVolume: totalVolume || 0,
+                activeCarriers: uniqueCarriers.size || 0,
+                
+                // Trend e altre metriche
+                trends: this.calculateTrends(combined) || [],
+                transportModes: this.calculateTransportModes(combined) || [],
+                carriersPerformance: this.calculateCarriersPerformance(combined, carriers) || []
+            };
+        
+            console.log('📊 Aggregations result:', result);
+            return result;
+        }
+        
     
-        console.log('📊 Aggregations result:', result);
-        return result;
-    }
-
     combineTrackingsAndShipments(trackings, shipments) {
-        console.log('🔄 Combining data sources - DETAILED:', {
-            trackings: trackings.length,
-            shipments: shipments.length
+        console.log('🔄 Combining data sources - DETAILED:', { 
+            trackings: trackings.length, 
+            shipments: shipments.length 
         });
-
-        // ✅ Crea mappa dei trackings per numero
+    
+        const combined = [];
         const trackingMap = new Map();
+        
+        // Mappa tracking per lookup veloce
         trackings.forEach((tracking, index) => {
-            if (tracking && tracking.tracking_number) {
-                console.log(`📦 Mapped tracking ${index}:`, tracking.tracking_number);
-                trackingMap.set(tracking.tracking_number, tracking);
+            console.log(`📦 Mapped tracking ${index}:`, tracking.tracking_number);
+            trackingMap.set(tracking.tracking_number, tracking);
+            if (tracking.tracking_id) {
+                trackingMap.set(tracking.tracking_id, tracking);
             }
         });
         
         console.log('🗺️ Tracking map size:', trackingMap.size);
-
-        // ✅ Combina con shipments
-        const combined = [];
-        
+    
+        // Combina shipments con tracking
         shipments.forEach((shipment, index) => {
             console.log(`🚢 Processing shipment ${index}:`, shipment);
             
-            if (!shipment) return;
-
-            const tracking = trackingMap.get(shipment.tracking_number);
-            
-            const combinedItem = {
-                // Dati base
-                id: shipment.id || `ship_${index}`,
-                tracking_number: shipment.tracking_number || '',
+            // Cerca tracking by tracking_number o tracking_id
+            let tracking = null;
+            if (shipment.tracking_number) {
+                tracking = trackingMap.get(shipment.tracking_number);
+            }
+            if (!tracking && shipment.tracking_id) {
+                tracking = trackingMap.get(shipment.tracking_id);
+            }
+    
+            // FIX: Usa dati reali dai campi corretti
+            const item = {
+                id: shipment.id,
+                shipment_number: shipment.shipment_number,
+                tracking_number: shipment.tracking_number || tracking?.tracking_number,
                 
-                // Dati fisici
-                weight: shipment.weight || tracking?.weight || 0,
-                volume: shipment.volume || tracking?.volume || 0,
+                // COSTI: usa i campi corretti dalla spedizione
+                freight_cost: parseFloat(shipment.freight_cost) || 0,
+                other_costs: parseFloat(shipment.other_costs) || 0,
+                cost: (parseFloat(shipment.freight_cost) || 0) + (parseFloat(shipment.other_costs) || 0),
                 
-                // Dati carrier
-                carrier_code: shipment.carrier_code || tracking?.carrier_code || tracking?.carrier_name || 'UNKNOWN',
-                carrier_name: shipment.carrier_name || tracking?.carrier_name || tracking?.carrier_code || 'Unknown Carrier',
+                // PESO E VOLUME: prioritizza spedizione poi tracking
+                weight: parseFloat(shipment.total_weight_kg) || 
+                        parseFloat(tracking?.total_weight_kg) || 0,
+                volume: parseFloat(shipment.total_volume_cbm) || 
+                        parseFloat(tracking?.total_volume_cbm) || 0,
+                        
+                // STATUS: usa il più recente
+                status: shipment.status || tracking?.current_status || tracking?.status || 'registered',
                 
-                // Dati costi
-                cost: parseFloat(shipment.cost) || parseFloat(tracking?.cost) || 0,
+                // CARRIER: usa dati dalla spedizione o tracking
+                carrier_name: shipment.carrier_name || tracking?.carrier_name || 'N/A',
+                carrier_code: tracking?.carrier_code || 'UNKNOWN',
                 
-                // Dati temporali
-                created_at: shipment.created_at || tracking?.created_at || new Date().toISOString(),
-                delivery_date: shipment.delivery_date || tracking?.delivery_date,
+                // DATE
+                created_at: shipment.created_at,
+                eta: shipment.eta || tracking?.eta,
                 
-                // Status
-                status: shipment.status || tracking?.current_status || tracking?.status || 'unknown',
-                
-                // Transport mode
-                transport_mode: shipment.transport_mode || tracking?.transport_mode || 'road'
+                // RAW DATA per debug
+                shipment_data: shipment,
+                tracking_data: tracking
             };
             
-            combined.push(combinedItem);
+            combined.push(item);
         });
-
+    
+        // Aggiungi tracking senza spedizioni (se presenti)
+        trackings.forEach(tracking => {
+            const hasShipment = shipments.some(s => 
+                s.tracking_number === tracking.tracking_number || 
+                s.tracking_id === tracking.id
+            );
+            
+            if (!hasShipment) {
+                combined.push({
+                    id: tracking.id,
+                    tracking_number: tracking.tracking_number,
+                    cost: 0, // Tracking senza spedizioni = costo 0
+                    freight_cost: 0,
+                    other_costs: 0,
+                    weight: parseFloat(tracking.total_weight_kg) || 0,
+                    volume: parseFloat(tracking.total_volume_cbm) || 0,
+                    status: tracking.current_status || tracking.status || 'registered',
+                    carrier_name: tracking.carrier_name || 'N/A',
+                    carrier_code: tracking.carrier_code || 'UNKNOWN',
+                    created_at: tracking.created_at,
+                    eta: tracking.eta,
+                    is_tracking_only: true,
+                    tracking_data: tracking
+                });
+            }
+        });
+    
         console.log('✅ Combined final result:', combined);
         return combined;
     }
-
+    
     calculateTotalCosts(combined, additionalCosts) {
-        console.log('💰 Calculating total costs:', {
-            combined: combined.length,
-            additionalCosts: additionalCosts.length
+        console.log('💰 Calculating total costs:', { 
+            combined: combined.length, 
+            additionalCosts: additionalCosts.length 
         });
-
-        const shipmentCosts = combined.reduce((sum, item) => {
-            const cost = parseFloat(item.cost) || 0;
-            return sum + cost;
+    
+        // Calcola costi dalle spedizioni
+        let shipmentsTotal = 0;
+        combined.forEach(item => {
+            const itemCost = item.cost || 0;
+            shipmentsTotal += itemCost;
+            
+            if (itemCost > 0) {
+                console.log(`💰 Item ${item.shipment_number || item.tracking_number}: €${itemCost}`);
+            }
+        });
+    
+        // Calcola costi aggiuntivi
+        const additionalTotal = additionalCosts.reduce((sum, cost) => {
+            return sum + (parseFloat(cost.amount) || 0);
         }, 0);
-
-        const additionalCostsTotal = additionalCosts.reduce((sum, cost) => {
-            const amount = parseFloat(cost.amount) || 0;
-            return sum + amount;
-        }, 0);
-
+    
         const result = {
-            shipments: shipmentCosts,
-            additional: additionalCostsTotal,
-            total: shipmentCosts + additionalCostsTotal
+            shipments: shipmentsTotal,
+            additional: additionalTotal,
+            total: shipmentsTotal + additionalTotal
         };
-
+    
         console.log('💰 Costs result:', result);
         return result;
     }
-
-        calculateTrends(combined) {
+    
+    calculateTrends(combined) {
         console.log('📈 Calculating trends for:', combined.length, 'items');
         
-        // ✅ Raggruppa per mese
-        const monthlyData = {};
+        const now = new Date();
+        const trends = {};
         
-        combined.forEach((item, index) => {
-            try {
-                const date = new Date(item.created_at);
-                
-                // ✅ CONTROLLO VALIDITÀ DATA
-                if (isNaN(date.getTime())) {
-                    console.warn(`⚠️ Invalid date for item ${index}:`, item.created_at);
-                    return;
-                }
-                
-                const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-                
-                if (!monthlyData[monthKey]) {
-                    monthlyData[monthKey] = {
-                        month: monthKey,
-                        shipments: 0,
-                        costs: 0
-                    };
-                }
-                
-                monthlyData[monthKey].shipments++;
-                monthlyData[monthKey].costs += parseFloat(item.cost) || 0;
-                
-            } catch (error) {
-                console.warn(`⚠️ Error processing item ${index}:`, error, item);
-            }
-        });
-    
-        // ✅ Ordina per mese e prendi gli ultimi 6
-        const result = Object.values(monthlyData)
-            .sort((a, b) => a.month.localeCompare(b.month))
-            .slice(-6);
-        
-        console.log('📈 Trends calculated:', result);
-        
-        // ✅ SE VUOTO, CREA DATI DI DEFAULT
-        if (result.length === 0) {
-            const currentDate = new Date();
-            for (let i = 5; i >= 0; i--) {
-                const date = new Date(currentDate.getFullYear(), currentDate.getMonth() - i, 1);
-                const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-                result.push({
-                    month: monthKey,
-                    shipments: 0,
-                    costs: 0
-                });
-            }
-            console.log('📈 Created default trends:', result);
+        // Inizializza ultimi 12 mesi
+        for (let i = 11; i >= 0; i--) {
+            const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
+            const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+            trends[key] = {
+                month: key,
+                shipments: 0,
+                costs: 0,
+                weight: 0,
+                volume: 0
+            };
         }
         
+        // Aggrega dati per mese
+        combined.forEach(item => {
+            if (!item.created_at) return;
+            
+            const date = new Date(item.created_at);
+            const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+            
+            if (trends[key]) {
+                trends[key].shipments++;
+                trends[key].costs += item.cost || 0;
+                trends[key].weight += item.weight || 0;
+                trends[key].volume += item.volume || 0;
+            }
+        });
+        
+        const result = Object.values(trends).filter(t => t.shipments > 0 || t.costs > 0);
+        console.log('📈 Trends calculated:', result);
         return result;
     }
-
-        calculateTransportModes(combined) {
+    
+    calculateTransportModes(combined) {
         console.log('🚚 Calculating transport modes for:', combined.length, 'items');
         
-        // ✅ Raggruppa per modalità di trasporto
         const modes = {};
         
-        combined.forEach((item, index) => {
-            try {
-                const mode = item.transport_mode || 'road';
-                const modeName = this.getTransportModeName(mode);
-                
-                if (!modes[modeName]) {
-                    modes[modeName] = { name: modeName, count: 0 };
+        combined.forEach(item => {
+            // FIX: Determina modalità dal tracking_type se disponibile
+            let mode = 'Stradale'; // Default
+            
+            const trackingData = item.tracking_data;
+            if (trackingData?.tracking_type) {
+                switch (trackingData.tracking_type) {
+                    case 'container':
+                    case 'bl':
+                        mode = 'Marittimo';
+                        break;
+                    case 'awb':
+                        mode = 'Aereo';
+                        break;
+                    case 'parcel':
+                        mode = 'Corriere';
+                        break;
+                    default:
+                        mode = 'Stradale';
                 }
-                modes[modeName].count++;
-                
-            } catch (error) {
-                console.warn(`⚠️ Error processing transport mode for item ${index}:`, error, item);
             }
+            
+            if (!modes[mode]) {
+                modes[mode] = { name: mode, count: 0, revenue: 0 };
+            }
+            
+            modes[mode].count++;
+            modes[mode].revenue += item.cost || 0;
         });
-    
+        
         const result = Object.values(modes);
         console.log('🚚 Transport modes calculated:', result);
-        
-        // ✅ SE VUOTO, CREA DATI DI DEFAULT
-        if (result.length === 0) {
-            result.push({ name: 'Stradale', count: 1 });
-            console.log('🚚 Created default transport modes:', result);
-        }
-        
         return result;
     }
-
-    getTransportModeName(mode) {
-        const modeMap = {
-            'road': 'Stradale',
-            'air': 'Aereo',
-            'sea': 'Marittimo',
-            'rail': 'Ferroviario',
-            'express': 'Express'
-        };
-        return modeMap[mode] || 'Stradale';
-    }
-
+    
     calculateCarriersPerformance(combined, carriers) {
         // ✅ Raggruppa per carrier
         const carrierStats = {};
