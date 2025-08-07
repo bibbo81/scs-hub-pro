@@ -497,44 +497,59 @@
             </div>
         </div>
 
-        <!-- Filters -->
-        <div class="sol-card mb-4">
-            <div class="sol-card-body">
-                <div class="row g-3 align-items-end">
-                    <div class="col-md-3">
-                        <label class="form-label">Periodo</label>
-                        <select class="form-select" id="periodFilter">
-                            <option value="7">Ultimi 7 giorni</option>
-                            <option value="30" selected>Ultimi 30 giorni</option>
-                            <option value="90">Ultimi 3 mesi</option>
-                            <option value="365">Ultimo anno</option>
-                        </select>
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label">Spedizioniere</label>
-                        <select class="form-select" id="carrierFilter">
-                            <option value="">Tutti gli spedizionieri</option>
-                        </select>
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label">Stato</label>
-                        <select class="form-select" id="statusFilter">
-                            <option value="">Tutti gli stati</option>
-                            <option value="delivered">Consegnato</option>
-                            <option value="in_transit">In transito</option>
-                            <option value="pending">In attesa</option>
-                        </select>
-                    </div>
-                    <div class="col-md-3">
-                        <button class="sol-btn sol-btn-primary w-100" onclick="dashboard.applyFilters()">
-                            <i class="fas fa-filter"></i>
-                            Applica Filtri
-                        </button>
-                    </div>
-                </div>
+<!-- Filters -->
+<div class="sol-card mb-4">
+    <div class="sol-card-body">
+        <div class="row g-3 align-items-end">
+            <div class="col-md-2">
+                <label class="form-label">Periodo</label>
+                <select class="form-select" id="periodFilter">
+                    <option value="7">Ultimi 7 giorni</option>
+                    <option value="30" selected>Ultimi 30 giorni</option>
+                    <option value="90">Ultimi 3 mesi</option>
+                    <option value="365">Ultimo anno</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Compagnia</label> <!-- ✅ CAMBIATO -->
+                <select class="form-select" id="companyFilter">
+                    <option value="">Tutte le compagnie</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Spedizioniere</label> <!-- ✅ NUOVO -->
+                <select class="form-select" id="carrierFilter">
+                    <option value="">Tutti gli spedizionieri</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Stato</label>
+                <select class="form-select" id="statusFilter">
+                    <option value="">Tutti gli stati</option>
+                    <option value="delivered">Consegnato</option>
+                    <option value="in_transit">In transito</option>
+                    <option value="pending">In attesa</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Tipo Trasporto</label> <!-- ✅ NUOVO -->
+                <select class="form-select" id="transportFilter">
+                    <option value="">Tutti i tipi</option>
+                    <option value="container">Container</option>
+                    <option value="air">Aereo</option>
+                    <option value="road">Stradale</option>
+                    <option value="parcel">Corriere</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <button class="sol-btn sol-btn-primary w-100" onclick="dashboard.applyFilters()">
+                    <i class="fas fa-filter"></i>
+                    Applica
+                </button>
             </div>
         </div>
-
+    </div>
+</div>
         <!-- KPI Cards -->
 <div class="kpi-grid" id="kpiCards">
     <!-- Popolato dinamicamente con layout compatto quadrato -->
@@ -561,7 +576,150 @@
             </div>
         </div>
     </div>
+<!-- YoY Analysis Section -->
+<div class="row g-4 mb-4">
+    <div class="col-lg-6">
+        <div class="sol-card">
+            <div class="sol-card-header">
+                <h5 class="sol-card-title">
+                    <i class="fas fa-chart-line text-warning me-2"></i>
+                    Variazione Spedizioni Anno su Anno
+                </h5>
+            </div>
+            <div class="sol-card-body">
+                <div class="table-responsive">
+                    <table class="table table-sm" id="yoyVariationTable">
+                        <thead>
+                            <tr>
+                                <th>Periodo</th>
+                                <th class="text-end">Spedizioni Totali</th>
+                                <th class="text-end">Variazione YoY (%)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Popolato dinamicamente -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-6">
+        <div class="sol-card">
+            <div class="sol-card-header">
+                <h5 class="sol-card-title">
+                    <i class="fas fa-shipping-fast text-info me-2"></i>
+                    Tendenza YoY per Tipo Spedizione
+                </h5>
+            </div>
+            <div class="sol-card-body">
+                <div class="table-responsive">
+                    <table class="table table-sm" id="yoyByTypeTable">
+                        <thead>
+                            <tr>
+                                <th>Tipo</th>
+                                <th class="text-end">Anno Corrente</th>
+                                <th class="text-end">Anno Precedente</th>
+                                <th class="text-end">Variazione</th>
+                                <th class="text-end">%</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Popolato dinamicamente -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 
+<!-- Transit Times Section -->
+<div class="row g-4 mb-4">
+    <div class="col-lg-6">
+        <div class="sol-card">
+            <div class="sol-card-header">
+                <h5 class="sol-card-title">
+                    <i class="fas fa-clock text-primary me-2"></i>
+                    Tempi di Transito Medi per Tipo
+                </h5>
+            </div>
+            <div class="sol-card-body">
+                <div class="table-responsive">
+                    <table class="table table-sm" id="transitTimesTable">
+                        <thead>
+                            <tr>
+                                <th>Tipo Trasporto</th>
+                                <th class="text-end">Tempo Medio (giorni)</th>
+                                <th class="text-end">Spedizioni</th>
+                                <th class="text-center">Performance</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Popolato dinamicamente -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-6">
+        <div class="chart-container">
+            <div class="chart-title">
+                <i class="fas fa-trophy text-warning"></i>
+                Performance Spedizionieri (N. Spedizioni)
+            </div>
+            <canvas id="carriersPerformanceChart"></canvas>
+        </div>
+    </div>
+</div>
+
+<!-- Transit Times by Company Charts -->
+<div class="row g-4 mb-4">
+    <div class="col-lg-6">
+        <div class="chart-container">
+            <div class="chart-title">
+                <i class="fas fa-ship text-primary"></i>
+                Tempi Transito - Trasporto Marittimo
+            </div>
+            <canvas id="transitTimeSeaChart"></canvas>
+        </div>
+    </div>
+    
+    <div class="col-lg-6">
+        <div class="chart-container">
+            <div class="chart-title">
+                <i class="fas fa-plane text-info"></i>
+                Tempi Transito - Trasporto Aereo
+            </div>
+            <canvas id="transitTimeAirChart"></canvas>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4 mb-4">
+    <div class="col-lg-6">
+        <div class="chart-container">
+            <div class="chart-title">
+                <i class="fas fa-truck text-success"></i>
+                Tempi Transito - Trasporto Stradale
+            </div>
+            <canvas id="transitTimeRoadChart"></canvas>
+        </div>
+    </div>
+    
+    <div class="col-lg-6">
+        <div class="chart-container">
+            <div class="chart-title">
+                <i class="fas fa-box text-warning"></i>
+                Tempi Transito - Corriere
+            </div>
+            <canvas id="transitTimeParcelChart"></canvas>
+        </div>
+    </div>
+</div>
         <!-- Detail Tables -->
         <div class="sol-card">
             <div class="sol-card-header">
