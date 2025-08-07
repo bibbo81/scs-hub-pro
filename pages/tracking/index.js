@@ -2231,55 +2231,162 @@ window.handleTrackingUpdateButton = async function(trackingId = null) {
     }
 };
 
-// 🎮 CREA PULSANTE AGGIORNA GLOBALE
+// 🎮 SOSTITUISCI INDICATORE AUTO-UPDATE CON PULSANTE FUNZIONALE
 window.createGlobalUpdateButton = function() {
-    // Rimuovi pulsante esistente se presente
+    // Trova e sostituisci l'indicatore esistente
+    const existingIndicator = document.getElementById('auto-update-status');
     const existingButton = document.getElementById('global-update-btn');
-    if (existingButton) {
-        existingButton.remove();
+    
+    // Rimuovi elementi esistenti
+    if (existingIndicator) existingIndicator.remove();
+    if (existingButton) existingButton.remove();
+    
+    // Calcola il prossimo aggiornamento (ogni 4 ore)
+    const now = new Date();
+    const currentHour = now.getHours();
+    
+    // Prossimi slot: 00:00, 04:00, 08:00, 12:00, 16:00, 20:00
+    const scheduleSlots = [0, 4, 8, 12, 16, 20];
+    let nextSlot = scheduleSlots.find(slot => slot > currentHour);
+    
+    // Se non trova slot oggi, prende il primo di domani
+    if (!nextSlot) {
+        nextSlot = scheduleSlots[0]; // 00:00 del giorno dopo
     }
     
-    // Crea nuovo pulsante
+    const nextUpdate = new Date(now);
+    if (nextSlot <= currentHour) {
+        // Domani
+        nextUpdate.setDate(nextUpdate.getDate() + 1);
+    }
+    nextUpdate.setHours(nextSlot, 0, 0, 0);
+    
+    const timeString = nextUpdate.toLocaleTimeString('it-IT', { 
+        hour: '2-digit', 
+        minute: '2-digit' 
+    });
+    
+    const isToday = nextUpdate.toDateString() === now.toDateString();
+    const datePrefix = isToday ? '' : 'Dom ';
+    
+    // Crea il nuovo pulsante che sostituisce l'indicatore
     const button = document.createElement('button');
     button.id = 'global-update-btn';
-    button.innerHTML = '🤖 Aggiorna Tutti i Tracking';
-    button.className = 'btn btn-primary btn-sm';
-    button.style.cssText = `
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        z-index: 1000;
-        background: linear-gradient(45deg, #007bff, #28a745);
-        border: none;
-        color: white;
-        padding: 10px 15px;
-        border-radius: 25px;
-        font-weight: bold;
-        box-shadow: 0 4px 15px rgba(0,123,255,0.3);
-        cursor: pointer;
-        transition: all 0.3s ease;
+    button.innerHTML = `
+        <div class="d-flex align-items-center gap-2">
+            <i class="fas fa-robot"></i>
+            <div class="d-flex flex-column align-items-start" style="line-height: 1.1;">
+                <small style="font-size: 10px; opacity: 0.8;">Prossimo auto:</small>
+                <span style="font-size: 11px; font-weight: bold;">${datePrefix}${timeString}</span>
+            </div>
+            <i class="fas fa-play-circle ml-1" style="font-size: 14px;"></i>
+        </div>
     `;
     
-    // Event handler
+    button.className = 'btn btn-sm';
+    button.style.cssText = `
+        background: rgba(13, 110, 253, 0.15);
+        border: 1px solid rgba(13, 110, 253, 0.3);
+        border-radius: 20px;
+        padding: 6px 12px;
+        font-size: 11px;
+        color: #0d6efd;
+        margin-left: 15px;
+        white-space: nowrap;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        position: relative;
+    `;
+    
+    // Event handler con feedback visivo
     button.onclick = async function() {
-        await window.handleTrackingUpdateButton();
+        // Mostra loading
+        const originalHTML = this.innerHTML;
+        this.innerHTML = `
+            <div class="d-flex align-items-center gap-2">
+                <i class="fas fa-spinner fa-spin"></i>
+                <span style="font-size: 11px;">Aggiornando...</span>
+            </div>
+        `;
+        this.disabled = true;
+        this.style.background = 'rgba(40, 167, 69, 0.15)';
+        this.style.borderColor = 'rgba(40, 167, 69, 0.3)';
+        this.style.color = '#28a745';
+        
+        try {
+            await window.handleTrackingUpdateButton();
+            
+            // Feedback successo
+            this.innerHTML = `
+                <div class="d-flex align-items-center gap-2">
+                    <i class="fas fa-check-circle"></i>
+                    <span style="font-size: 11px;">Completato!</span>
+                </div>
+            `;
+            
+            // Ripristina dopo 2 secondi
+            setTimeout(() => {
+                this.innerHTML = originalHTML;
+                this.disabled = false;
+                this.style.background = 'rgba(13, 110, 253, 0.15)';
+                this.style.borderColor = 'rgba(13, 110, 253, 0.3)';
+                this.style.color = '#0d6efd';
+            }, 2000);
+            
+        } catch (error) {
+            // Feedback errore
+            this.innerHTML = `
+                <div class="d-flex align-items-center gap-2">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <span style="font-size: 11px;">Errore</span>
+                </div>
+            `;
+            this.style.background = 'rgba(220, 53, 69, 0.15)';
+            this.style.borderColor = 'rgba(220, 53, 69, 0.3)';
+            this.style.color = '#dc3545';
+            
+            // Ripristina dopo 3 secondi
+            setTimeout(() => {
+                this.innerHTML = originalHTML;
+                this.disabled = false;
+                this.style.background = 'rgba(13, 110, 253, 0.15)';
+                this.style.borderColor = 'rgba(13, 110, 253, 0.3)';
+                this.style.color = '#0d6efd';
+            }, 3000);
+        }
     };
     
     // Hover effects
     button.onmouseenter = function() {
-        this.style.transform = 'scale(1.05)';
-        this.style.boxShadow = '0 6px 20px rgba(0,123,255,0.4)';
+        this.style.background = 'rgba(13, 110, 253, 0.25)';
+        this.style.borderColor = 'rgba(13, 110, 253, 0.5)';
+        this.style.transform = 'scale(1.02)';
+        this.style.boxShadow = '0 4px 15px rgba(13, 110, 253, 0.2)';
     };
     
     button.onmouseleave = function() {
-        this.style.transform = 'scale(1)';
-        this.style.boxShadow = '0 4px 15px rgba(0,123,255,0.3)';
+        if (!this.disabled) {
+            this.style.background = 'rgba(13, 110, 253, 0.15)';
+            this.style.borderColor = 'rgba(13, 110, 253, 0.3)';
+            this.style.transform = 'scale(1)';
+            this.style.boxShadow = 'none';
+        }
     };
     
-    // Aggiungi al DOM
-    document.body.appendChild(button);
+    // Trova il container dell'header dove inserire il pulsante
+    const headerContainer = document.querySelector('.auto-update-indicator')?.parentElement 
+        || document.querySelector('.header-actions') 
+        || document.querySelector('.d-flex.align-items-center.ml-auto');
     
-    console.log('✅ Global update button created');
+    if (headerContainer) {
+        headerContainer.appendChild(button);
+        console.log('✅ Global update button replaced auto-update indicator');
+    } else {
+        // Fallback: aggiungi al body come prima
+        document.body.appendChild(button);
+        console.log('✅ Global update button added to body (fallback)');
+    }
+    
     return button;
 };
 
@@ -2317,3 +2424,51 @@ document.addEventListener('DOMContentLoaded', () => {
         window.initAutoUpdateButtons();
     }, 2000);
 });
+// 🎯 AVVIA INIZIALIZZAZIONE
+document.addEventListener('DOMContentLoaded', () => {
+    // Attendi che il resto della pagina sia caricato
+    setTimeout(() => {
+        window.initAutoUpdateButtons();
+    }, 2000);
+});
+
+// 🕒 AGGIORNA IL TIMER IN TEMPO REALE (AGGIUNGI QUI)
+window.startAutoUpdateTimer = function() {
+    // Aggiorna ogni minuto
+    setInterval(() => {
+        const button = document.getElementById('global-update-btn');
+        if (button && !button.disabled) {
+            // Ricrea il pulsante con l'orario aggiornato
+            window.createGlobalUpdateButton();
+        }
+    }, 60000); // Ogni 60 secondi
+};
+
+// 🚀 VERSIONE MIGLIORATA DELL'INIZIALIZZAZIONE (SOSTITUISCI LA PRECEDENTE)
+window.initAutoUpdateButtons = function() {
+    console.log('🚀 Initializing auto-update buttons...');
+    
+    // Crea il pulsante che sostituisce l'indicatore
+    window.createGlobalUpdateButton();
+    
+    // 🔥 AGGIUNGI: Avvia il timer per aggiornare l'orario
+    window.startAutoUpdateTimer();
+    
+    // Observer per nuovi pulsanti aggiunti dinamicamente
+    const observer = new MutationObserver(() => {
+        const actionButtons = document.querySelectorAll('[data-tracking-id] .btn-update');
+        actionButtons.forEach(btn => {
+            if (!btn.hasAttribute('data-auto-update-enhanced')) {
+                btn.setAttribute('data-auto-update-enhanced', 'true');
+                console.log('✅ Enhanced action button:', btn);
+            }
+        });
+    });
+    
+    observer.observe(document.body, {
+        childList: true,
+        subtree: true
+    });
+    
+    console.log('✅ Auto-update buttons initialized with live timer');
+};
