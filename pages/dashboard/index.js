@@ -414,18 +414,20 @@ class Dashboard {
         return result;
     }
     
-    calculateTrends(combined) {
+        calculateTrends(combined) {
         console.log('📈 Calculating trends for:', combined.length, 'items');
         
+        // ✅ Inizializza ultimi 12 mesi
         const now = new Date();
         const trends = {};
         
-        // Inizializza ultimi 12 mesi
+        // Crea struttura per ultimi 12 mesi
         for (let i = 11; i >= 0; i--) {
             const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
             const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
             trends[key] = {
                 month: key,
+                monthName: date.toLocaleDateString('it-IT', { month: 'short', year: '2-digit' }),
                 shipments: 0,
                 costs: 0,
                 weight: 0,
@@ -433,23 +435,54 @@ class Dashboard {
             };
         }
         
-        // Aggrega dati per mese
-        combined.forEach(item => {
-            if (!item.created_at) return;
-            
-            const date = new Date(item.created_at);
-            const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-            
-            if (trends[key]) {
-                trends[key].shipments++;
-                trends[key].costs += item.cost || 0;
-                trends[key].weight += item.weight || 0;
-                trends[key].volume += item.volume || 0;
+        console.log('📈 Initialized trends structure:', Object.keys(trends));
+        
+        // ✅ Aggrega dati per mese
+        combined.forEach((item, index) => {
+            try {
+                if (!item.created_at) {
+                    console.warn(`⚠️ Item ${index} missing created_at:`, item);
+                    return;
+                }
+                
+                const date = new Date(item.created_at);
+                
+                // ✅ CONTROLLO VALIDITÀ DATA
+                if (isNaN(date.getTime())) {
+                    console.warn(`⚠️ Invalid date for item ${index}:`, item.created_at);
+                    return;
+                }
+                
+                const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+                
+                if (trends[key]) {
+                    trends[key].shipments++;
+                    trends[key].costs += parseFloat(item.cost) || 0;
+                    trends[key].weight += parseFloat(item.weight) || 0;
+                    trends[key].volume += parseFloat(item.volume) || 0;
+                    
+                    console.log(`📈 Added to ${key}:`, {
+                        shipments: trends[key].shipments,
+                        costs: trends[key].costs
+                    });
+                } else {
+                    console.log(`📈 Month ${key} not in range, skipping`);
+                }
+                
+            } catch (error) {
+                console.warn(`⚠️ Error processing item ${index}:`, error, item);
             }
         });
         
-        const result = Object.values(trends).filter(t => t.shipments > 0 || t.costs > 0);
-        console.log('📈 Trends calculated:', result);
+        // ✅ Filtra solo mesi con dati + ultimi 6 mesi sempre
+        const result = Object.values(trends)
+            .slice(-6) // Prendi sempre ultimi 6 mesi
+            .map(trend => ({
+                ...trend,
+                label: trend.monthName
+            }));
+        
+        console.log('📈 Final trends result:', result);
         return result;
     }
     
@@ -673,117 +706,163 @@ class Dashboard {
         console.log('📊 Charts rendering complete');
     }
 
-        renderTrendChart() {
-        const ctx = document.getElementById('trendChart');
-        if (!ctx) {
-            console.error('❌ Trend chart canvas not found');
-            return;
-        }
+                renderTrendChart() {
+            const ctx = document.getElementById('trendChart');
+            if (!ctx) {
+                console.error('❌ Trend chart canvas not found');
+                return;
+            }
+            
+            if (!this.data.trends || this.data.trends.length === 0) {
+                console.error('❌ No trends data available');
+                return;
+            }
+            
+            console.log('📊 Rendering trend chart with data:', this.data.trends);
         
-        if (!this.data.trends || this.data.trends.length === 0) {
-            console.error('❌ No trends data available');
-            return;
-        }
+            // ✅ DISTRUGGI grafico esistente
+            if (this.charts.trendChart) {
+                this.charts.trendChart.destroy();
+            }
         
-        console.log('📊 Rendering trend chart with data:', this.data.trends);
-    
-        // ✅ DISTRUGGI grafico esistente
-        if (this.charts.trendChart) {
-            this.charts.trendChart.destroy();
-        }
-    
-        try {
-            this.charts.trendChart = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: this.data.trends.map(t => t.month),
-                    datasets: [{
-                        label: 'Spedizioni',
-                        data: this.data.trends.map(t => t.shipments),
-                        borderColor: '#6366f1',
-                        backgroundColor: 'rgba(99, 102, 241, 0.1)',
-                        tension: 0.4,
-                        borderWidth: 2,
-                        pointRadius: 4,
-                        pointHoverRadius: 6
-                    }, {
-                        label: 'Costi (€)',
-                        data: this.data.trends.map(t => t.costs),
-                        borderColor: '#ef4444',
-                        backgroundColor: 'rgba(239, 68, 68, 0.1)',
-                        tension: 0.4,
-                        borderWidth: 2,
-                        pointRadius: 4,
-                        pointHoverRadius: 6,
-                        yAxisID: 'y1'
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    interaction: {
-                        mode: 'index',
-                        intersect: false,
+            try {
+                this.charts.trendChart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: this.data.trends.map(t => t.label || t.month), // ✅ USA LABEL MIGLIORATI
+                        datasets: [{
+                            label: 'Spedizioni',
+                            data: this.data.trends.map(t => t.shipments),
+                            borderColor: '#6366f1',
+                            backgroundColor: 'rgba(99, 102, 241, 0.1)',
+                            tension: 0.4,
+                            borderWidth: 3, // ✅ AUMENTATO
+                            pointRadius: 5, // ✅ AUMENTATO
+                            pointHoverRadius: 8,
+                            pointBackgroundColor: '#6366f1',
+                            pointBorderColor: '#ffffff',
+                            pointBorderWidth: 2,
+                            fill: true
+                        }, {
+                            label: 'Costi (€)',
+                            data: this.data.trends.map(t => t.costs),
+                            borderColor: '#ef4444',
+                            backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                            tension: 0.4,
+                            borderWidth: 3, // ✅ AUMENTATO
+                            pointRadius: 5, // ✅ AUMENTATO
+                            pointHoverRadius: 8,
+                            pointBackgroundColor: '#ef4444',
+                            pointBorderColor: '#ffffff',
+                            pointBorderWidth: 2,
+                            yAxisID: 'y1',
+                            fill: true
+                        }]
                     },
-                    plugins: {
-                        legend: {
-                            position: 'top',
-                            labels: {
-                                usePointStyle: true,
-                                padding: 15,
-                                font: {
-                                    size: 12
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        interaction: {
+                            mode: 'index',
+                            intersect: false,
+                        },
+                        plugins: {
+                            legend: {
+                                position: 'top',
+                                labels: {
+                                    usePointStyle: true,
+                                    padding: 20,
+                                    font: {
+                                        size: 13, // ✅ AUMENTATO
+                                        weight: '500'
+                                    }
                                 }
-                            }
-                        }
-                    },
-                    scales: {
-                        y: {
-                            type: 'linear',
-                            display: true,
-                            position: 'left',
-                            grid: {
-                                color: 'rgba(0,0,0,0.05)'
                             },
-                            ticks: {
-                                font: {
-                                    size: 11
-                                }
+                            tooltip: {
+                                backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                                titleFont: {
+                                    size: 14
+                                },
+                                bodyFont: {
+                                    size: 13
+                                },
+                                padding: 12,
+                                cornerRadius: 8
                             }
                         },
-                        y1: {
-                            type: 'linear',
-                            display: true,
-                            position: 'right',
-                            grid: {
-                                drawOnChartArea: false,
-                            },
-                            ticks: {
-                                font: {
-                                    size: 11
+                        scales: {
+                            y: {
+                                type: 'linear',
+                                display: true,
+                                position: 'left',
+                                grid: {
+                                    color: 'rgba(0,0,0,0.05)',
+                                    lineWidth: 1
+                                },
+                                ticks: {
+                                    font: {
+                                        size: 12
+                                    },
+                                    color: '#64748b'
+                                },
+                                title: {
+                                    display: true,
+                                    text: 'Spedizioni',
+                                    font: {
+                                        size: 12,
+                                        weight: '600'
+                                    },
+                                    color: '#6366f1'
                                 }
-                            }
-                        },
-                        x: {
-                            grid: {
-                                color: 'rgba(0,0,0,0.05)'
                             },
-                            ticks: {
-                                font: {
-                                    size: 11
+                            y1: {
+                                type: 'linear',
+                                display: true,
+                                position: 'right',
+                                grid: {
+                                    drawOnChartArea: false,
+                                },
+                                ticks: {
+                                    font: {
+                                        size: 12
+                                    },
+                                    color: '#64748b',
+                                    callback: function(value) {
+                                        return '€' + value.toLocaleString();
+                                    }
+                                },
+                                title: {
+                                    display: true,
+                                    text: 'Costi (€)',
+                                    font: {
+                                        size: 12,
+                                        weight: '600'
+                                    },
+                                    color: '#ef4444'
+                                }
+                            },
+                            x: {
+                                grid: {
+                                    color: 'rgba(0,0,0,0.05)',
+                                    lineWidth: 1
+                                },
+                                ticks: {
+                                    font: {
+                                        size: 12
+                                    },
+                                    color: '#64748b'
                                 }
                             }
                         }
                     }
-                }
-            });
-            
-            console.log('✅ Trend chart rendered successfully');
-            
-        } catch (error) {
-            console.error('❌ Error rendering trend chart:', error);
+                });
+                
+                console.log('✅ Trend chart rendered successfully');
+                
+            } catch (error) {
+                console.error('❌ Error rendering trend chart:', error);
+            }
         }
-    }
 
         renderTransportModeChart() {
         const ctx = document.getElementById('transportModeChart');
