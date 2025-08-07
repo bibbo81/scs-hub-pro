@@ -2005,8 +2005,7 @@ window.monitorAutoUpdateSystem = async function() {
                 never_updated: stats.filter(t => !t.last_auto_update).length,
                 updated_last_hour: stats.filter(t => {
                     if (!t.last_auto_update) return false;
-                    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
-                    return new Date(t.last_auto_update) > oneHourAgo;
+                    const fourHoursAgo = new Date(Date.now() - 4 * 60 * 60 * 1000);                    return new Date(t.last_auto_update) > oneHourAgo;
                 }).length,
                 updated_last_24h: stats.filter(t => {
                     if (!t.last_auto_update) return false;

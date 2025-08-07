@@ -29,8 +29,7 @@ serve(async (req) => {
   .select('*')
   .eq('tracking_type', 'container')
   .or('current_status.is.null,current_status.not.in.(delivered,completed,cancelled)')  // ✅ INCLUDE NULL
-  .or(`last_auto_update.is.null,last_auto_update.lt.${oneHourAgo.toISOString()}`)
-  .limit(10)  // Aumenta anche il limite
+  .or(`last_auto_update.is.null,last_auto_update.lt.${fourHoursAgo.toISOString()}`)  .limit(10)  // Aumenta anche il limite
 
     if (fetchError) {
       throw fetchError
