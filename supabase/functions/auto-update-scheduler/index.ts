@@ -19,18 +19,19 @@ serve(async (req) => {
     )
 
     console.log('🤖 Auto-update scheduler started')
-
-    // Ottieni tracking che necessitano aggiornamento
-    const now = new Date()
-    const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000)
-
-    const { data: trackingsToUpdate, error: fetchError } = await supabaseClient
-  .from('trackings')
-  .select('*')
-  .eq('tracking_type', 'container')
-  .or('current_status.is.null,current_status.not.in.(delivered,completed,cancelled)')  // ✅ INCLUDE NULL
-  .or(`last_auto_update.is.null,last_auto_update.lt.${fourHoursAgo.toISOString()}`)  .limit(10)  // Aumenta anche il limite
-
+  
+  // 🔧 FIX: Cambia oneHourAgo in fourHoursAgo
+  const now = new Date()
+  const fourHoursAgo = new Date(now.getTime() - 4 * 60 * 60 * 1000)  // 🔥 4 ore invece di 1
+  
+  const { data: trackingsToUpdate, error: fetchError } = await supabaseClient
+    .from('trackings')
+    .select('*')
+    .eq('tracking_type', 'container')
+    .or('current_status.is.null,current_status.not.in.(delivered,completed,cancelled)')
+    .or(`last_auto_update.is.null,last_auto_update.lt.${fourHoursAgo.toISOString()}`)
+    .limit(10)
+  
     if (fetchError) {
       throw fetchError
     }

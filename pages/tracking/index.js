@@ -1057,12 +1057,13 @@ function createTrackingActionsColumn(value, row) {
             </button>
     `;
     
+    // 🔥 NUOVO: Pulsante aggiorna con auto-update integrato
     if (canUpdate) {
         actions += `
             <button class="btn btn-outline-success btn-sm btn-update" 
-                    onclick="updateTrackingManually('${trackingId}')" 
-                    title="Aggiorna tracking">
-                <i class="fas fa-sync-alt"></i>
+                    onclick="handleTrackingUpdateButton('${trackingId}')" 
+                    title="Aggiorna tracking (Auto-Update)">
+                <i class="fas fa-robot"></i>
             </button>
         `;
     }
@@ -2162,3 +2163,157 @@ window.systemStatus = function() {
 - window.triggerServerAutoUpdate() - Test Edge Function
     `);
 };
+// 🎯 FUNZIONE SPECIFICA PER PULSANTE AGGIORNA TRACKING
+window.handleTrackingUpdateButton = async function(trackingId = null) {
+    console.log('🔄 Handling tracking update button...', trackingId);
+    
+    try {
+        // Trova il pulsante specifico e mostra loading
+        const updateBtn = document.querySelector(`[data-tracking-id="${trackingId}"] .btn-update`);
+        if (updateBtn) {
+            const originalHTML = updateBtn.innerHTML;
+            updateBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+            updateBtn.disabled = true;
+        }
+        
+        // Mostra indicatore globale
+        if (window.NotificationSystem) {
+            window.NotificationSystem.show('🤖 Aggiornamento automatico in corso...', 'info');
+        }
+        
+        // 🔥 TRIGGER SERVER AUTO-UPDATE (invece del refresh locale)
+        const result = await window.triggerServerAutoUpdate();
+        
+        if (result.success) {
+            // Ricarica i dati
+            if (window.loadTrackings) {
+                await window.loadTrackings();
+                console.log('✅ Dati ricaricati dopo auto-update');
+            }
+            
+            // Notifica successo
+            const message = result.updated > 0 
+                ? `✅ ${result.updated} tracking aggiornati dal server!`
+                : '✅ Tutti i tracking sono già aggiornati';
+                
+            if (window.NotificationSystem) {
+                window.NotificationSystem.show(message, 'success');
+            }
+        } else {
+            throw new Error(result.message || 'Errore durante aggiornamento');
+        }
+        
+        // Ripristina il pulsante
+        if (updateBtn) {
+            setTimeout(() => {
+                updateBtn.innerHTML = '<i class="fas fa-robot"></i>';
+                updateBtn.disabled = false;
+            }, 1000);
+        }
+        
+        return result;
+        
+    } catch (error) {
+        console.error('❌ Update button error:', error);
+        
+        // Ripristina il pulsante in caso di errore
+        const updateBtn = document.querySelector(`[data-tracking-id="${trackingId}"] .btn-update`);
+        if (updateBtn) {
+            updateBtn.innerHTML = '<i class="fas fa-robot"></i>';
+            updateBtn.disabled = false;
+        }
+        
+        if (window.NotificationSystem) {
+            window.NotificationSystem.show('❌ Errore durante l\'aggiornamento', 'error');
+        }
+        
+        throw error;
+    }
+};
+
+// 🎮 CREA PULSANTE AGGIORNA GLOBALE
+window.createGlobalUpdateButton = function() {
+    // Rimuovi pulsante esistente se presente
+    const existingButton = document.getElementById('global-update-btn');
+    if (existingButton) {
+        existingButton.remove();
+    }
+    
+    // Crea nuovo pulsante
+    const button = document.createElement('button');
+    button.id = 'global-update-btn';
+    button.innerHTML = '🤖 Aggiorna Tutti i Tracking';
+    button.className = 'btn btn-primary btn-sm';
+    button.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 1000;
+        background: linear-gradient(45deg, #007bff, #28a745);
+        border: none;
+        color: white;
+        padding: 10px 15px;
+        border-radius: 25px;
+        font-weight: bold;
+        box-shadow: 0 4px 15px rgba(0,123,255,0.3);
+        cursor: pointer;
+        transition: all 0.3s ease;
+    `;
+    
+    // Event handler
+    button.onclick = async function() {
+        await window.handleTrackingUpdateButton();
+    };
+    
+    // Hover effects
+    button.onmouseenter = function() {
+        this.style.transform = 'scale(1.05)';
+        this.style.boxShadow = '0 6px 20px rgba(0,123,255,0.4)';
+    };
+    
+    button.onmouseleave = function() {
+        this.style.transform = 'scale(1)';
+        this.style.boxShadow = '0 4px 15px rgba(0,123,255,0.3)';
+    };
+    
+    // Aggiungi al DOM
+    document.body.appendChild(button);
+    
+    console.log('✅ Global update button created');
+    return button;
+};
+
+// 🚀 AUTO-INIZIALIZZAZIONE QUANDO LA PAGINA È PRONTA
+window.initAutoUpdateButtons = function() {
+    console.log('🚀 Initializing auto-update buttons...');
+    
+    // Crea il pulsante globale
+    window.createGlobalUpdateButton();
+    
+    // Observer per nuovi pulsanti aggiunti dinamicamente
+    const observer = new MutationObserver(() => {
+        // Re-check per nuovi pulsanti nella tabella
+        const actionButtons = document.querySelectorAll('[data-tracking-id] .btn-update');
+        actionButtons.forEach(btn => {
+            if (!btn.hasAttribute('data-auto-update-enhanced')) {
+                btn.setAttribute('data-auto-update-enhanced', 'true');
+                console.log('✅ Enhanced action button:', btn);
+            }
+        });
+    });
+    
+    observer.observe(document.body, {
+        childList: true,
+        subtree: true
+    });
+    
+    console.log('✅ Auto-update buttons initialized with observer');
+};
+
+// 🎯 AVVIA INIZIALIZZAZIONE
+document.addEventListener('DOMContentLoaded', () => {
+    // Attendi che il resto della pagina sia caricato
+    setTimeout(() => {
+        window.initAutoUpdateButtons();
+    }, 2000);
+});
