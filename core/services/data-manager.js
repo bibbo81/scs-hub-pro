@@ -408,10 +408,13 @@ class DataManager {
         organization_id: this.organizationId
     };
 
-    // Rimuovi campi che non dovrebbero essere aggiornati
+    // 🔥 FIX: Rimuovi campi che non dovrebbero essere aggiornati o che non esistono nel DB
     delete updateData.id;
     delete updateData.created_at;
     delete updateData.user_id;
+    delete updateData.fromCache; // 🔥 NUOVO: Rimuovi fromCache
+    delete updateData.cached_at; // 🔥 NUOVO: Rimuovi anche cached_at se presente
+    delete updateData.cache_expires; // 🔥 NUOVO: Rimuovi cache_expires se presente
 
     // 🔥 FIX PRINCIPALE: Gestione corretta di tracking_number vs ID
     let query;
@@ -446,12 +449,14 @@ class DataManager {
         throw error;
     }
 
- // 🔥 FIX DEFINITIVO per errore 406: Query più robusta
+// 🔥 FIX DEFINITIVO per errore 406 e shipments duplicati
 const { data: shipment, error: shipmentError } = await supabase
     .from('shipments')
     .select('id')
     .eq('tracking_number', tracking.tracking_number)
     .eq('organization_id', this.organizationId)
+    .order('created_at', { ascending: false }) // 🔥 Prendi il più recente
+    .limit(1) // 🔥 IMPORTANTE: Limita a 1 risultato
     .maybeSingle(); // 🔥 USA maybeSingle() invece di single()
 
 // 🔧 Non lanciare errore se shipment non esiste (è normale per alcuni tracking)
@@ -503,7 +508,99 @@ return {
     success: true  // 🆕 Flag di successo esplicito
 };
 }
+    /**
+ * Inserisce un nuovo tracking (senza controlli duplicati)
+ */
+async insertNewTracking(trackingData) {
+    if (!this.initialized) await this.init();
+
+    const timestamp = new Date().toISOString();
     
+    const insertData = {
+        ...trackingData,
+        created_at: timestamp,
+        updated_at: timestamp,
+        organization_id: this.organizationId,
+        user_id: this.userId
+    };
+
+    // 🔥 FIX: Rimuovi campi che non esistono nel database
+    delete insertData.id; // Non dovrebbe esserci per insert
+    delete insertData.fromCache;
+    delete insertData.cached_at;
+    delete insertData.cache_expires;
+    delete insertData.success;
+    delete insertData.apiError;
+
+    console.log('➕ Inserting new tracking with cleaned data:', insertData);
+
+    const { data: tracking, error } = await supabase
+        .from('trackings')
+        .insert(insertData)
+        .select()
+        .single();
+
+    if (error) {
+        console.error('❌ Error inserting new tracking:', error);
+        throw error;
+    }
+
+    // Crea shipment associato se necessario
+    let shipment = null;
+    try {
+        const shipmentNumber = `SHP-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 100000)).padStart(5, '0')}`;
+        
+        const newShipmentData = {
+            organization_id: this.organizationId,
+            user_id: this.userId,
+            shipment_number: shipmentNumber,
+            tracking_number: tracking.tracking_number,
+            tracking_id: tracking.id,
+            status: tracking.status,
+            origin: tracking.origin_port,
+            destination: tracking.destination_port,
+            carrier_name: tracking.carrier_name,
+            transport_company: tracking.transport_company,
+            eta: tracking.eta,
+            total_volume_cbm: tracking.total_volume_cbm,
+            total_weight_kg: tracking.total_weight_kg,
+            transport_mode_id: tracking.transport_mode_id,
+            vehicle_type_id: tracking.vehicle_type_id,
+            created_at: timestamp,
+            updated_at: timestamp
+        };
+
+        const { data: createdShipment, error: createError } = await supabase
+            .from('shipments')
+            .insert(newShipmentData)
+            .select()
+            .single();
+        
+        if (createError) {
+            console.warn('⚠️ Warning creating shipment:', createError);
+        } else {
+            shipment = createdShipment;
+            console.log('✅ Shipment created successfully:', shipment.id);
+        }
+    } catch (shipmentError) {
+        console.warn('⚠️ Could not create associated shipment:', shipmentError);
+    }
+
+    // Notifica cambio dati
+    if (window.notifyDataChange) {
+        window.notifyDataChange('trackings');
+        if (shipment) {
+            window.notifyDataChange('shipments');
+        }
+    }
+
+    console.log('✅ New tracking inserted successfully:', tracking.id);
+    return { 
+        tracking, 
+        shipment: shipment || null,
+        success: true 
+    };
+}
     // 🔥 AGGIUNGI QUESTI METODI QUI:
     
     /**

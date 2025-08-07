@@ -469,14 +469,45 @@ async handleSubmit() {
             console.log('📋 Compagnia dalle API:', dataToSave.carrier_name);
         }
 
+        // 🔥 FIX CRITICO: Rimuovi campi che non esistono nel database
+        const cleanDataToSave = {
+            tracking_number: dataToSave.tracking_number,
+            carrier_code: dataToSave.carrier_code,
+            carrier_name: dataToSave.carrier_name,
+            carrier_id: dataToSave.carrier_id,
+            transport_company: dataToSave.transport_company,
+            tracking_type: dataToSave.tracking_type,
+            reference_number: dataToSave.reference_number,
+            origin_port: dataToSave.origin_port,
+            destination_port: dataToSave.destination_port,
+            origin_country: dataToSave.origin_country,
+            destination_country: dataToSave.destination_country,
+            status: dataToSave.status,
+            eta: dataToSave.eta,
+            ata: dataToSave.ata,
+            last_event_date: dataToSave.last_event_date,
+            last_event_location: dataToSave.last_event_location,
+            last_event_description: dataToSave.last_event_description,
+            total_weight_kg: dataToSave.total_weight_kg,
+            total_volume_cbm: dataToSave.total_volume_cbm,
+            transport_mode_id: dataToSave.transport_mode_id,
+            vehicle_type_id: dataToSave.vehicle_type_id,
+            bl_number: dataToSave.bl_number,
+            flight_number: dataToSave.flight_number,
+            metadata: dataToSave.metadata
+            // 🔥 NON includere: fromCache, cached_at, cache_expires, success, apiError, etc.
+        };
+
         if (!window.dataManager) {
             throw new Error("DataManager non è disponibile.");
         }
         
-        console.log('💾 Saving data via DataManager...');
+        console.log('💾 Saving cleaned data via DataManager...');
+        console.log('🧹 Original fields count:', Object.keys(dataToSave).length);
+        console.log('🧹 Cleaned fields count:', Object.keys(cleanDataToSave).length);
         
-        // Usa la gestione intelligente dei duplicati
-        const saveResult = await window.dataManager.addTrackingWithDuplicateCheck(dataToSave, action === 'manual');
+        // Usa la gestione intelligente dei duplicati con dati puliti
+        const saveResult = await window.dataManager.addTrackingWithDuplicateCheck(cleanDataToSave, action === 'manual');
         
         if (saveResult.tracking) {
             const actionText = saveResult.wasUpdate ? 'aggiornato' : 
@@ -515,8 +546,8 @@ async handleSubmit() {
             window.notificationSystem?.error('Record non trovato o accesso negato. Creazione di un nuovo tracking...');
             
             try {
-                // Riprova come nuovo inserimento
-                const insertResult = await window.dataManager.insertNewTracking(dataToSave);
+                // Riprova come nuovo inserimento con dati puliti
+                const insertResult = await window.dataManager.insertNewTracking(cleanDataToSave);
                 if (insertResult.success) {
                     window.notificationSystem?.success('Nuovo tracking creato con successo!');
                     this.resetForm();
@@ -551,7 +582,7 @@ async handleSubmit() {
                             try {
                                 const updateResult = await window.dataManager.updateExistingTracking(
                                     duplicateInfo.existing.id, 
-                                    dataToSave
+                                    cleanDataToSave // 🔥 USA dati puliti
                                 );
                                 if (updateResult && updateResult.success) {
                                     window.notificationSystem?.success('Tracking aggiornato con successo!');
@@ -574,7 +605,7 @@ async handleSubmit() {
                         onclick: async () => {
                             try {
                                 const forceResult = await window.dataManager.addTrackingWithDuplicateCheck(
-                                    dataToSave, 
+                                    cleanDataToSave, // 🔥 USA dati puliti
                                     action === 'manual', 
                                     true // forceCreate = true
                                 );
@@ -603,7 +634,7 @@ async handleSubmit() {
             window.notificationSystem?.error(`Tracking ${trackingNumber} già esistente. Il sistema aggiornerà i dati esistenti.`);
             
             try {
-                const updateResult = await window.dataManager.updateExistingTracking(trackingNumber, dataToSave);
+                const updateResult = await window.dataManager.updateExistingTracking(trackingNumber, cleanDataToSave); // 🔥 USA dati puliti
                 if (updateResult && updateResult.success) {
                     window.notificationSystem?.success('Tracking aggiornato con successo!');
                     this.resetForm();
