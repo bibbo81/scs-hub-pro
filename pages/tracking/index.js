@@ -2231,21 +2231,13 @@ window.handleTrackingUpdateButton = async function(trackingId = null) {
     }
 };
 
-// 🎮 FIX: SOSTITUISCI INDICATORE AUTO-UPDATE CON PULSANTE FUNZIONALE
+// 🎮 PULSANTE AUTO-UPDATE MODERNO NELLA PAGE-ACTIONS
 window.createGlobalUpdateButton = function() {
-    // 🔍 TROVA L'INDICATORE ESISTENTE NELL'HEADER
+    // Rimuovi pulsanti esistenti
     const existingIndicator = document.getElementById('auto-update-status');
     const existingButton = document.getElementById('global-update-btn');
     
-    // Salva il parent container PRIMA di rimuovere l'indicatore
-    let headerContainer = null;
-    if (existingIndicator) {
-        headerContainer = existingIndicator.parentElement;
-        console.log('🎯 Found header container:', headerContainer);
-        existingIndicator.remove();
-    }
-    
-    // Rimuovi pulsante esistente se presente
+    if (existingIndicator) existingIndicator.remove();
     if (existingButton) existingButton.remove();
     
     // 🕒 CALCOLA IL PROSSIMO AGGIORNAMENTO (ogni 4 ore)
@@ -2276,137 +2268,131 @@ window.createGlobalUpdateButton = function() {
     const isToday = nextUpdate.toDateString() === now.toDateString();
     const datePrefix = isToday ? '' : 'Dom ';
     
-    // 🎨 CREA IL NUOVO PULSANTE CHE SOSTITUISCE L'INDICATORE
+    // 🎨 CREA IL NUOVO PULSANTE MODERNO
     const button = document.createElement('button');
     button.id = 'global-update-btn';
+    button.className = 'btn btn-primary';
     button.innerHTML = `
-        <div class="d-flex align-items-center gap-2">
-            <i class="fas fa-robot"></i>
-            <div class="d-flex flex-column align-items-start" style="line-height: 1.1;">
-                <small style="font-size: 10px; opacity: 0.8;">Prossimo auto:</small>
-                <span style="font-size: 11px; font-weight: bold;">${datePrefix}${timeString}</span>
+        <div class="d-flex align-items-center" style="gap: 8px;">
+            <i class="fas fa-robot" style="font-size: 16px;"></i>
+            <div class="d-flex flex-column align-items-start" style="line-height: 1.2;">
+                <span style="font-size: 13px; font-weight: 600;">Auto-Update</span>
+                <small style="font-size: 11px; opacity: 0.9;">Prossimo: ${datePrefix}${timeString}</small>
             </div>
-            <i class="fas fa-play-circle ml-1" style="font-size: 14px;"></i>
+            <i class="fas fa-play-circle" style="font-size: 14px; margin-left: 4px;"></i>
         </div>
     `;
     
-    button.className = 'btn btn-sm';
+    // 🎨 STILI MODERNI
     button.style.cssText = `
-        background: rgba(13, 110, 253, 0.15);
-        border: 1px solid rgba(13, 110, 253, 0.3);
-        border-radius: 20px;
-        padding: 6px 12px;
-        font-size: 11px;
-        color: #0d6efd;
-        margin-left: 15px;
-        white-space: nowrap;
+        background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+        border: none;
+        border-radius: 8px;
+        padding: 10px 16px;
+        color: white;
+        font-size: 13px;
         cursor: pointer;
-        transition: all 0.2s ease;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: 0 2px 8px rgba(0, 123, 255, 0.3);
+        margin-left: 12px;
         position: relative;
+        overflow: hidden;
     `;
     
-    // 🎯 EVENT HANDLER CON FEEDBACK VISIVO
+    // 🎯 EVENT HANDLER CON ANIMAZIONI MODERNE
     button.onclick = async function() {
-        // Mostra loading
+        // Mostra loading con animazione
         const originalHTML = this.innerHTML;
         this.innerHTML = `
-            <div class="d-flex align-items-center gap-2">
-                <i class="fas fa-spinner fa-spin"></i>
-                <span style="font-size: 11px;">Aggiornando...</span>
+            <div class="d-flex align-items-center" style="gap: 8px;">
+                <i class="fas fa-spinner fa-spin" style="font-size: 16px;"></i>
+                <span style="font-size: 13px; font-weight: 600;">Aggiornando...</span>
             </div>
         `;
         this.disabled = true;
-        this.style.background = 'rgba(40, 167, 69, 0.15)';
-        this.style.borderColor = 'rgba(40, 167, 69, 0.3)';
-        this.style.color = '#28a745';
+        this.style.background = 'linear-gradient(135deg, #28a745 0%, #20c997 100%)';
+        this.style.boxShadow = '0 4px 15px rgba(40, 167, 69, 0.4)';
+        this.style.transform = 'translateY(-1px)';
         
         try {
             await window.handleTrackingUpdateButton();
             
-            // Feedback successo
+            // Feedback successo con animazione
             this.innerHTML = `
-                <div class="d-flex align-items-center gap-2">
-                    <i class="fas fa-check-circle"></i>
-                    <span style="font-size: 11px;">Completato!</span>
+                <div class="d-flex align-items-center" style="gap: 8px;">
+                    <i class="fas fa-check-circle" style="font-size: 16px;"></i>
+                    <span style="font-size: 13px; font-weight: 600;">Completato!</span>
                 </div>
             `;
+            this.style.background = 'linear-gradient(135deg, #28a745 0%, #20c997 100%)';
             
-            // Ripristina dopo 2 secondi
+            // Ripristina dopo 2.5 secondi
             setTimeout(() => {
                 this.innerHTML = originalHTML;
                 this.disabled = false;
-                this.style.background = 'rgba(13, 110, 253, 0.15)';
-                this.style.borderColor = 'rgba(13, 110, 253, 0.3)';
-                this.style.color = '#0d6efd';
-            }, 2000);
+                this.style.background = 'linear-gradient(135deg, #007bff 0%, #0056b3 100%)';
+                this.style.boxShadow = '0 2px 8px rgba(0, 123, 255, 0.3)';
+                this.style.transform = 'translateY(0)';
+            }, 2500);
             
         } catch (error) {
-            // Feedback errore
+            // Feedback errore con animazione
             this.innerHTML = `
-                <div class="d-flex align-items-center gap-2">
-                    <i class="fas fa-exclamation-triangle"></i>
-                    <span style="font-size: 11px;">Errore</span>
+                <div class="d-flex align-items-center" style="gap: 8px;">
+                    <i class="fas fa-exclamation-triangle" style="font-size: 16px;"></i>
+                    <span style="font-size: 13px; font-weight: 600;">Errore</span>
                 </div>
             `;
-            this.style.background = 'rgba(220, 53, 69, 0.15)';
-            this.style.borderColor = 'rgba(220, 53, 69, 0.3)';
-            this.style.color = '#dc3545';
+            this.style.background = 'linear-gradient(135deg, #dc3545 0%, #c82333 100%)';
+            this.style.boxShadow = '0 4px 15px rgba(220, 53, 69, 0.4)';
             
             // Ripristina dopo 3 secondi
             setTimeout(() => {
                 this.innerHTML = originalHTML;
                 this.disabled = false;
-                this.style.background = 'rgba(13, 110, 253, 0.15)';
-                this.style.borderColor = 'rgba(13, 110, 253, 0.3)';
-                this.style.color = '#0d6efd';
+                this.style.background = 'linear-gradient(135deg, #007bff 0%, #0056b3 100%)';
+                this.style.boxShadow = '0 2px 8px rgba(0, 123, 255, 0.3)';
+                this.style.transform = 'translateY(0)';
             }, 3000);
         }
     };
     
-    // 🎨 HOVER EFFECTS
+    // 🎨 HOVER EFFECTS MODERNI
     button.onmouseenter = function() {
-        this.style.background = 'rgba(13, 110, 253, 0.25)';
-        this.style.borderColor = 'rgba(13, 110, 253, 0.5)';
-        this.style.transform = 'scale(1.02)';
-        this.style.boxShadow = '0 4px 15px rgba(13, 110, 253, 0.2)';
+        if (!this.disabled) {
+            this.style.transform = 'translateY(-2px)';
+            this.style.boxShadow = '0 6px 20px rgba(0, 123, 255, 0.4)';
+            this.style.background = 'linear-gradient(135deg, #0056b3 0%, #004085 100%)';
+        }
     };
     
     button.onmouseleave = function() {
         if (!this.disabled) {
-            this.style.background = 'rgba(13, 110, 253, 0.15)';
-            this.style.borderColor = 'rgba(13, 110, 253, 0.3)';
-            this.style.transform = 'scale(1)';
-            this.style.boxShadow = 'none';
+            this.style.transform = 'translateY(0)';
+            this.style.boxShadow = '0 2px 8px rgba(0, 123, 255, 0.3)';
+            this.style.background = 'linear-gradient(135deg, #007bff 0%, #0056b3 100%)';
         }
     };
     
-    // 🔥 FIX: USA IL CONTAINER SALVATO O CERCA ALTERNATIVE
-    if (headerContainer) {
-        // Usa il container dell'indicatore originale
-        headerContainer.appendChild(button);
-        console.log('✅ Global update button replaced auto-update indicator in header');
+    // 🎯 TROVA LA SEZIONE PAGE-ACTIONS E INSERISCI IL PULSANTE
+    const pageActions = document.querySelector('.page-actions');
+    
+    if (pageActions) {
+        pageActions.appendChild(button);
+        console.log('✅ Modern auto-update button added to page-actions');
     } else {
-        // 🔍 CERCA ALTRI POSSIBILI CONTAINER NELL'HEADER
+        // Fallback: cerca alternative
         const alternativeContainers = [
-            document.querySelector('.header-actions'),
-            document.querySelector('.d-flex.align-items-center.ml-auto'),
-            document.querySelector('[class*="header"]'),
-            document.querySelector('header'),
-            document.querySelector('.navbar'),
-            document.querySelector('.top-bar')
+            document.querySelector('.page-header .d-flex'),
+            document.querySelector('.page-header'),
+            document.querySelector('h1').parentElement
         ].filter(Boolean);
         
         if (alternativeContainers.length > 0) {
             alternativeContainers[0].appendChild(button);
-            console.log('✅ Global update button added to alternative header container');
+            console.log('✅ Modern auto-update button added to alternative container');
         } else {
-            // Ultimo fallback: aggiungi al body con posizione fixed
-            button.style.position = 'fixed';
-            button.style.top = '20px';
-            button.style.right = '20px';
-            button.style.zIndex = '1000';
-            document.body.appendChild(button);
-            console.log('✅ Global update button added to body (fallback with fixed position)');
+            console.warn('⚠️ Could not find page-actions container');
         }
     }
     
