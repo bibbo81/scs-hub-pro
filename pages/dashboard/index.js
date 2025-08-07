@@ -173,7 +173,7 @@ class Dashboard {
         return { trackings, shipments, carriers, additionalCosts };
     }
 
-    calculateAggregations(data) {
+        calculateAggregations(data) {
         const { trackings, shipments, carriers, additionalCosts } = data;
         
         // Combina tracking e shipments
@@ -186,14 +186,14 @@ class Dashboard {
             carriers,
             additionalCosts,
             
-            // KPI
+            // KPI CORRETTI
             totalShipments: combinedData.length,
-            totalRevenue: this.calculateTotalRevenue(combinedData, additionalCosts),
+            totalCosts: this.calculateTotalCosts(combinedData, additionalCosts), // ✅ CAMBIATO
             totalWeight: combinedData.reduce((sum, s) => sum + (s.total_weight_kg || 0), 0),
             totalVolume: combinedData.reduce((sum, s) => sum + (s.total_volume_cbm || 0), 0),
             activeCarriers: new Set(combinedData.map(s => s.carrier_id || s.carrier_code).filter(Boolean)).size,
             
-            // Analisi
+            // Analisi CORRETTE
             trends: this.calculateTrends(combinedData),
             transportModes: this.calculateTransportModes(combinedData),
             carriersPerformance: this.calculateCarriersPerformance(combinedData, carriers),
@@ -244,17 +244,17 @@ class Dashboard {
         return combined;
     }
 
-    calculateTotalRevenue(shipments, additionalCosts) {
-        const shipmentsRevenue = shipments.reduce((total, s) => 
+        calculateTotalCosts(shipments, additionalCosts) { // ✅ RINOMINATO
+        const shipmentsCosts = shipments.reduce((total, s) => 
             total + (s.freight_cost || 0) + (s.other_costs || 0), 0);
         
-        const additionalRevenue = additionalCosts.reduce((total, c) => 
+        const additionalTotalCosts = additionalCosts.reduce((total, c) => 
             total + (c.amount || 0), 0);
         
-        return shipmentsRevenue + additionalRevenue;
+        return shipmentsCosts + additionalTotalCosts;
     }
 
-    calculateTrends(shipments) {
+        calculateTrends(shipments) {
         const trends = {};
         const now = new Date();
         
@@ -265,7 +265,7 @@ class Dashboard {
             trends[monthKey] = {
                 month: date.toLocaleDateString('it-IT', { month: 'short', year: 'numeric' }),
                 shipments: 0,
-                revenue: 0
+                costs: 0 // ✅ CAMBIATO da "revenue" a "costs"
             };
         }
         
@@ -276,14 +276,14 @@ class Dashboard {
             
             if (trends[monthKey]) {
                 trends[monthKey].shipments++;
-                trends[monthKey].revenue += (shipment.freight_cost || 0) + (shipment.other_costs || 0);
+                trends[monthKey].costs += (shipment.freight_cost || 0) + (shipment.other_costs || 0); // ✅ CAMBIATO
             }
         });
         
         return Object.values(trends);
     }
 
-    calculateTransportModes(shipments) {
+        calculateTransportModes(shipments) {
         const modes = {};
         
         shipments.forEach(shipment => {
@@ -298,17 +298,17 @@ class Dashboard {
             }
             
             if (!modes[mode]) {
-                modes[mode] = { count: 0, revenue: 0 };
+                modes[mode] = { count: 0, costs: 0 }; // ✅ CAMBIATO da "revenue"
             }
             
             modes[mode].count++;
-            modes[mode].revenue += (shipment.freight_cost || 0) + (shipment.other_costs || 0);
+            modes[mode].costs += (shipment.freight_cost || 0) + (shipment.other_costs || 0); // ✅ CAMBIATO
         });
         
         return Object.entries(modes).map(([name, data]) => ({
             name,
             count: data.count,
-            revenue: data.revenue
+            costs: data.costs // ✅ CAMBIATO
         }));
     }
 
@@ -408,54 +408,54 @@ class Dashboard {
     }
 
     renderKPICards() {
-        const container = document.getElementById('kpiCards');
-        if (!container) return;
-        
-        const kpiCards = [
-            {
-                label: 'Spedizioni Totali',
-                value: this.data.totalShipments.toLocaleString(),
-                growth: 12.5, // Mock
-                icon: 'fas fa-shipping-fast',
-                color: '#6366f1'
-            },
-            {
-                label: 'Fatturato Totale',
-                value: `€${this.data.totalRevenue.toLocaleString()}`,
-                growth: 8.2,
-                icon: 'fas fa-euro-sign',
-                color: '#10b981'
-            },
-            {
-                label: 'Peso Totale',
-                value: `${this.data.totalWeight.toLocaleString()} kg`,
-                growth: -3.1,
-                icon: 'fas fa-weight-hanging',
-                color: '#f59e0b'
-            },
-            {
-                label: 'Volume Totale',
-                value: `${this.data.totalVolume.toFixed(1)} m³`,
-                growth: 5.7,
-                icon: 'fas fa-cube',
-                color: '#8b5cf6'
-            },
-            {
-                label: 'Spedizionieri',
-                value: this.data.activeCarriers.toString(),
-                growth: 15.3,
-                icon: 'fas fa-truck',
-                color: '#06b6d4'
-            },
-            {
-                label: 'Costo Medio',
-                value: this.data.totalShipments > 0 ? 
-                    `€${(this.data.totalRevenue / this.data.totalShipments).toFixed(2)}` : '€0',
-                growth: -2.4,
-                icon: 'fas fa-calculator',
-                color: '#ef4444'
-            }
-        ];
+    const container = document.getElementById('kpiCards');
+    if (!container) return;
+    
+    const kpiCards = [
+        {
+            label: 'Spedizioni Totali',
+            value: this.data.totalShipments.toLocaleString(),
+            growth: 12.5,
+            icon: 'fas fa-shipping-fast',
+            color: '#6366f1'
+        },
+        {
+            label: 'Costi Totali', // ✅ CAMBIATO da "Fatturato Totale"
+            value: `€${this.data.totalCosts.toLocaleString()}`, // ✅ CAMBIATO
+            growth: 8.2,
+            icon: 'fas fa-euro-sign',
+            color: '#ef4444' // ✅ Rosso per i costi
+        },
+        {
+            label: 'Peso Totale',
+            value: `${this.data.totalWeight.toLocaleString()} kg`,
+            growth: -3.1,
+            icon: 'fas fa-weight-hanging',
+            color: '#f59e0b'
+        },
+        {
+            label: 'Volume Totale',
+            value: `${this.data.totalVolume.toFixed(1)} m³`,
+            growth: 5.7,
+            icon: 'fas fa-cube',
+            color: '#8b5cf6'
+        },
+        {
+            label: 'Spedizionieri',
+            value: this.data.activeCarriers.toString(),
+            growth: 15.3,
+            icon: 'fas fa-truck',
+            color: '#06b6d4'
+        },
+        {
+            label: 'Costo Medio', // ✅ Già corretto
+            value: this.data.totalShipments > 0 ? 
+                `€${(this.data.totalCosts / this.data.totalShipments).toFixed(2)}` : '€0', // ✅ CAMBIATO
+            growth: -2.4,
+            icon: 'fas fa-calculator',
+            color: '#ef4444'
+        }
+    ];
 
         container.innerHTML = kpiCards.map(kpi => `
             <div class="col-xl-2 col-md-4 col-sm-6">
@@ -493,10 +493,10 @@ class Dashboard {
         this.renderTransportModeChart();
     }
 
-    renderTrendChart() {
+        renderTrendChart() {
         const ctx = document.getElementById('trendChart');
         if (!ctx || !this.data.trends) return;
-
+    
         new Chart(ctx, {
             type: 'line',
             data: {
@@ -508,10 +508,10 @@ class Dashboard {
                     backgroundColor: 'rgba(99, 102, 241, 0.1)',
                     tension: 0.4
                 }, {
-                    label: 'Fatturato (€)',
-                    data: this.data.trends.map(t => t.revenue),
-                    borderColor: '#10b981',
-                    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                    label: 'Costi (€)', // ✅ CAMBIATO da "Fatturato (€)"
+                    data: this.data.trends.map(t => t.costs), // ✅ CAMBIATO
+                    borderColor: '#ef4444', // ✅ Rosso per i costi
+                    backgroundColor: 'rgba(239, 68, 68, 0.1)',
                     tension: 0.4,
                     yAxisID: 'y1'
                 }]
