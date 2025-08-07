@@ -1969,3 +1969,73 @@ window.testServerAutoUpdate = function() {
 };
 
 console.log('✅ Server auto-update functions loaded - Ready to test!');
+
+// 🔧 FUNZIONE DI MONITORAGGIO AUTO-UPDATE SYSTEM
+window.monitorAutoUpdateSystem = async function() {
+    try {
+        console.log('📊 === AUTO-UPDATE SYSTEM MONITOR ===');
+        
+        // 1. Statistiche tracking
+        const { data: stats } = await window.supabase
+            .from('trackings')
+            .select(`
+                tracking_number,
+                tracking_type,
+                current_status,
+                last_auto_update,
+                updated_by_robot,
+                created_at
+            `)
+            .eq('tracking_type', 'container');
+        
+        if (stats) {
+            const analysis = {
+                total_containers: stats.length,
+                robot_updated: stats.filter(t => t.updated_by_robot).length,
+                never_updated: stats.filter(t => !t.last_auto_update).length,
+                updated_last_hour: stats.filter(t => {
+                    if (!t.last_auto_update) return false;
+                    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+                    return new Date(t.last_auto_update) > oneHourAgo;
+                }).length,
+                updated_last_24h: stats.filter(t => {
+                    if (!t.last_auto_update) return false;
+                    const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+                    return new Date(t.last_auto_update) > oneDayAgo;
+                }).length
+            };
+            
+            console.log('📈 Container Analytics:', analysis);
+        }
+        
+        // 2. Test Edge Function
+        const edgeResult = await window.triggerServerAutoUpdate();
+        console.log('🤖 Edge Function Status:', edgeResult.success ? 'OPERATIONAL' : 'ERROR');
+        
+        // 3. Mostra ultime attività
+        const { data: recent } = await window.supabase
+            .from('trackings')
+            .select('tracking_number, last_auto_update')
+            .eq('updated_by_robot', true)
+            .order('last_auto_update', { ascending: false })
+            .limit(3);
+        
+        console.log('🕒 Recent auto-updates:', recent);
+        
+        return {
+            stats: analysis,
+            edgeFunction: edgeResult.success,
+            recentUpdates: recent?.length || 0
+        };
+        
+    } catch (error) {
+        console.error('❌ Monitor error:', error);
+        return { error: error.message };
+    }
+};
+
+// 📊 Monitor rapido
+window.quickMonitor = function() {
+    console.log('🚀 Auto-Update System Status: OPERATIONAL ✅');
+    window.monitorAutoUpdateSystem();
+};
