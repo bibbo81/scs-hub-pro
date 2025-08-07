@@ -37,24 +37,69 @@ class Dashboard {
         }
     }
 
-    async waitForServices() {
+        async waitForServices() {
         let attempts = 0;
-        const maxAttempts = 50;
+        const maxAttempts = 100; // Aumentato
         
         while (attempts < maxAttempts) {
-            if (window.dataManager?.initialized && window.headerComponent) {
-                // Inizializza header se non già fatto
-                if (!window.headerComponent.initialized) {
-                    await window.headerComponent.init();
+            console.log(`⏳ Attempt ${attempts + 1}: Checking services...`);
+            
+            // Verifica servizi base
+            const hasDataManager = !!window.dataManager;
+            const hasHeaderComponent = !!window.headerComponent;
+            const hasSupabase = !!window.supabase;
+            
+            console.log(`📊 Services status:`, {
+                dataManager: hasDataManager,
+                headerComponent: hasHeaderComponent,
+                supabase: hasSupabase
+            });
+            
+            if (hasDataManager && hasHeaderComponent && hasSupabase) {
+                // Forza inizializzazione dataManager se necessario
+                if (window.dataManager && typeof window.dataManager.init === 'function') {
+                    if (!window.dataManager.initialized) {
+                        console.log('🔧 Force initializing DataManager...');
+                        try {
+                            await window.dataManager.init();
+                            console.log('✅ DataManager initialized successfully');
+                        } catch (error) {
+                            console.warn('⚠️ DataManager init failed, but continuing:', error);
+                        }
+                    }
                 }
+                
+                // Forza inizializzazione headerComponent se necessario
+                if (window.headerComponent && typeof window.headerComponent.init === 'function') {
+                    if (!window.headerComponent.initialized) {
+                        console.log('🔧 Force initializing HeaderComponent...');
+                        try {
+                            await window.headerComponent.init();
+                            console.log('✅ HeaderComponent initialized successfully');
+                        } catch (error) {
+                            console.warn('⚠️ HeaderComponent init failed, but continuing:', error);
+                        }
+                    }
+                }
+                
+                console.log('✅ All required services are available!');
                 return;
             }
             
-            await new Promise(resolve => setTimeout(resolve, 100));
+            await new Promise(resolve => setTimeout(resolve, 150));
             attempts++;
         }
         
-        throw new Error('Servizi non disponibili dopo 5 secondi');
+        // Se arriviamo qui, mostra stato dettagliato
+        console.warn('⚠️ Services timeout - current state:');
+        console.log('- window.dataManager:', window.dataManager);
+        console.log('- window.dataManager?.initialized:', window.dataManager?.initialized);
+        console.log('- window.headerComponent:', window.headerComponent);
+        console.log('- window.headerComponent?.initialized:', window.headerComponent?.initialized);
+        console.log('- window.supabase:', !!window.supabase);
+        
+        // NON lanciare errore, continua in modalità degradata
+        console.warn('⚠️ Continuing in degraded mode...');
     }
 
     setupEventListeners() {
