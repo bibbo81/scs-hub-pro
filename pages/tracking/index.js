@@ -2052,3 +2052,44 @@ window.quickMonitor = function() {
     console.log('🚀 Auto-Update System Status: OPERATIONAL ✅');
     window.monitorAutoUpdateSystem();
 };
+// 🎯 DASHBOARD COMPLETO AUTO-UPDATE SYSTEM
+window.autoUpdateDashboard = async function() {
+    console.log('🚀 === AUTO-UPDATE SYSTEM DASHBOARD ===');
+    
+    try {
+        const result = await window.monitorAutoUpdateSystem();
+        
+        if (result.error) {
+            console.error('❌ Dashboard error:', result.error);
+            return;
+        }
+        
+        const { stats, edgeFunction, recentUpdates } = result;
+        
+        console.log(`
+🎯 === SYSTEM STATUS ===
+✅ Edge Function: ${edgeFunction ? 'OPERATIONAL' : 'ERROR'}
+📊 Total Containers: ${stats.total_containers}
+🤖 Robot Updated: ${stats.robot_updated}
+⏰ Updated Last Hour: ${stats.updated_last_hour}
+📅 Updated Last 24h: ${stats.updated_last_24h}
+🔄 Recent Updates: ${recentUpdates}
+
+📈 === PERFORMANCE ===
+Coverage: ${stats.total_containers > 0 ? Math.round((stats.robot_updated / stats.total_containers) * 100) : 0}%
+Fresh Data (1h): ${stats.total_containers > 0 ? Math.round((stats.updated_last_hour / stats.total_containers) * 100) : 0}%
+Activity (24h): ${stats.total_containers > 0 ? Math.round((stats.updated_last_24h / stats.total_containers) * 100) : 0}%
+
+🎊 System Status: ${edgeFunction && stats.updated_last_hour > 0 ? 'EXCELLENT' : edgeFunction ? 'GOOD' : 'NEEDS ATTENTION'}
+        `);
+        
+        return result;
+        
+    } catch (error) {
+        console.error('❌ Dashboard error:', error);
+        return { error: error.message };
+    }
+};
+
+// 🚀 Accesso rapido
+window.dashboard = window.autoUpdateDashboard;
