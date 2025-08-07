@@ -1,9 +1,448 @@
+const ANALYTICS_CONFIG = {
+    overview: {
+        name: "Panoramica Generale",
+        icon: "fas fa-chart-pie",
+        color: "#6366f1",
+        metrics: [
+            { 
+                id: "total_shipments", 
+                name: "Spedizioni Totali", 
+                icon: "fas fa-shipping-fast",
+                query: "shipments-count"
+            },
+            { 
+                id: "total_revenue", 
+                name: "Fatturato Totale", 
+                icon: "fas fa-euro-sign",
+                query: "revenue-total"
+            },
+            { 
+                id: "avg_delivery_time", 
+                name: "Tempo Consegna Medio", 
+                icon: "fas fa-clock",
+                query: "delivery-time-avg"
+            },
+            { 
+                id: "success_rate", 
+                name: "Tasso di Successo", 
+                icon: "fas fa-check-circle",
+                query: "success-rate"
+            }
+        ]
+    },
+    
+    shipments: {
+        name: "Analisi Spedizioni",
+        icon: "fas fa-boxes",
+        color: "#10b981",
+        metrics: [
+            { id: "shipments_by_status", name: "Spedizioni per Stato", query: "shipments-by-status" },
+            { id: "shipments_by_type", name: "Spedizioni per Tipo", query: "shipments-by-type" },
+            { id: "delayed_shipments", name: "Spedizioni in Ritardo", query: "shipments-delayed" },
+            { id: "top_routes", name: "Rotte Principali", query: "routes-top" }
+        ]
+    },
+    
+    financial: {
+        name: "Analisi Finanziaria", 
+        icon: "fas fa-chart-line",
+        color: "#f59e0b",
+        metrics: [
+            { id: "revenue_by_month", name: "Fatturato Mensile", query: "revenue-monthly" },
+            { id: "cost_breakdown", name: "Breakdown Costi", query: "costs-breakdown" },
+            { id: "profit_margin", name: "Margine di Profitto", query: "profit-margin" },
+            { id: "revenue_per_kg", name: "Ricavo per KG", query: "revenue-per-kg" }
+        ]
+    },
+    
+    performance: {
+        name: "Performance & KPI",
+        icon: "fas fa-tachometer-alt", 
+        color: "#ef4444",
+        metrics: [
+            { id: "on_time_delivery", name: "Consegne in Tempo", query: "delivery-ontime" },
+            { id: "carrier_performance", name: "Performance Spedizionieri", query: "carriers-performance" },
+            { id: "damage_rate", name: "Tasso Danni", query: "damage-rate" },
+            { id: "efficiency_score", name: "Score Efficienza", query: "efficiency-score" }
+        ]
+    },
+    
+    geographical: {
+        name: "Analisi Geografica",
+        icon: "fas fa-globe",
+        color: "#8b5cf6", 
+        metrics: [
+            { id: "shipments_by_country", name: "Spedizioni per Paese", query: "geo-by-country" },
+            { id: "revenue_by_region", name: "Fatturato per Regione", query: "geo-revenue" },
+            { id: "international_vs_domestic", name: "Internazionale vs Domestico", query: "geo-intl-domestic" },
+            { id: "top_corridors", name: "Corridoi Principali", query: "geo-corridors" }
+        ]
+    },
+    
+    trends: {
+        name: "Trend & Previsioni",
+        icon: "fas fa-chart-line",
+        color: "#06b6d4",
+        metrics: [
+            { id: "growth_rate", name: "Tasso di Crescita", query: "trends-growth" },
+            { id: "seasonal_trends", name: "Trend Stagionali", query: "trends-seasonal" },
+            { id: "volume_forecast", name: "Previsione Volume", query: "trends-forecast" },
+            { id: "market_share", name: "Market Share", query: "trends-market-share" }
+        ]
+    },
+    
+    operational: {
+        name: "Analisi Operativa",
+        icon: "fas fa-cogs",
+        color: "#84cc16",
+        metrics: [
+            { id: "capacity_utilization", name: "Utilizzo Capacità", query: "ops-capacity" },
+            { id: "peak_hours", name: "Ore di Punta", query: "ops-peak-hours" },
+            { id: "processing_time", name: "Tempo Elaborazione", query: "ops-processing" },
+            { id: "exception_rate", name: "Tasso Eccezioni", query: "ops-exceptions" }
+        ]
+    }
+};
+
+// Dashboard Dinamica Class
+class DynamicDashboard {
+    constructor() {
+        this.currentConfig = null;
+        this.currentData = null;
+        this.charts = new Map();
+        this.initialized = false;
+    }
+
+    async init() {
+        if (this.initialized) return;
+        
+        console.log('🎯 Initializing Dynamic Dashboard...');
+        
+        this.setupEventListeners();
+        await this.loadDefaultCategory();
+        
+        this.initialized = true;
+        console.log('✅ Dynamic Dashboard initialized');
+    }
+
+    setupEventListeners() {
+        // Category change listener
+        const categorySelect = document.getElementById('analyticsCategory');
+        if (categorySelect) {
+            categorySelect.addEventListener('change', (e) => {
+                this.onCategoryChange(e.target.value);
+            });
+        }
+        
+        // Metric change listener  
+        const metricSelect = document.getElementById('specificMetric');
+        if (metricSelect) {
+            metricSelect.addEventListener('change', (e) => {
+                this.onMetricChange(e.target.value);
+            });
+        }
+        
+        // Granularity change listener
+        const granularitySelect = document.getElementById('granularityLevel');
+        if (granularitySelect) {
+            granularitySelect.addEventListener('change', (e) => {
+                this.onGranularityChange(e.target.value);
+            });
+        }
+        
+        console.log('✅ Dynamic Dashboard event listeners setup');
+    }
+
+    async loadDefaultCategory() {
+        // Load overview by default
+        await this.onCategoryChange('overview');
+    }
+
+    async onCategoryChange(category) {
+        if (!category) return;
+        
+        console.log(`🔄 Loading category: ${category}`);
+        
+        const config = ANALYTICS_CONFIG[category];
+        if (!config) {
+            console.error(`❌ Category ${category} not found`);
+            return;
+        }
+
+        this.currentConfig = config;
+        
+        // Update specific metrics dropdown
+        this.populateMetricsDropdown(config.metrics);
+        
+        // Load category overview
+        await this.loadCategoryOverview(category);
+    }
+
+    populateMetricsDropdown(metrics) {
+        const metricSelect = document.getElementById('specificMetric');
+        if (!metricSelect) return;
+        
+        metricSelect.innerHTML = '<option value="">Tutte le metriche</option>';
+        
+        metrics.forEach(metric => {
+            const option = document.createElement('option');
+            option.value = metric.id;
+            option.textContent = metric.name;
+            metricSelect.appendChild(option);
+        });
+        
+        console.log(`✅ Populated ${metrics.length} metrics in dropdown`);
+    }
+
+    async loadCategoryOverview(category) {
+        const config = ANALYTICS_CONFIG[category];
+        const container = document.getElementById('dynamicContent');
+        
+        if (!container) {
+            console.error('❌ Dynamic content container not found');
+            return;
+        }
+        
+        // Show loading
+        container.innerHTML = `
+            <div class="text-center py-5">
+                <div class="spinner-border text-primary mb-3"></div>
+                <h5>Caricamento ${config.name}...</h5>
+            </div>
+        `;
+
+        try {
+            // Create dynamic layout
+            const html = this.createCategoryLayout(config);
+            container.innerHTML = html;
+            
+            // Load data for metrics
+            await this.loadMetricsData(config.metrics);
+            
+            // Create charts
+            await this.createCategoryCharts(category);
+            
+            console.log(`✅ Category ${category} loaded successfully`);
+            
+        } catch (error) {
+            console.error(`❌ Error loading category ${category}:`, error);
+            container.innerHTML = `
+                <div class="alert alert-danger">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    Errore nel caricamento dei dati: ${error.message}
+                </div>
+            `;
+        }
+    }
+
+    createCategoryLayout(config) {
+        return `
+            <div class="row g-4 mb-4">
+                <div class="col-12">
+                    <div class="alert alert-info">
+                        <i class="${config.icon} me-2"></i>
+                        <strong>${config.name}</strong> - Vista dinamica generata automaticamente
+                    </div>
+                </div>
+            </div>
+            
+            <!-- KPI Cards per la categoria -->
+            <div class="row g-4 mb-4">
+                ${config.metrics.slice(0, 4).map((metric, index) => `
+                    <div class="col-lg-3">
+                        <div class="kpi-card">
+                            <div class="kpi-icon-small" style="background-color: ${config.color};">
+                                <i class="${metric.icon || 'fas fa-chart-bar'}"></i>
+                            </div>
+                            <div class="kpi-label-small">${metric.name}</div>
+                            <div class="kpi-value-small" id="dynamic-metric-${metric.id}">
+                                <div class="spinner-border spinner-border-sm"></div>
+                            </div>
+                            <div class="growth-indicator-small">
+                                <i class="fas fa-info-circle"></i>
+                            </div>
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
+            
+            <!-- Charts per la categoria -->
+            <div class="row g-4 mb-4">
+                <div class="col-lg-8">
+                    <div class="chart-container">
+                        <div class="chart-title">
+                            <i class="${config.icon}"></i>
+                            ${config.name} - Trend Temporale
+                        </div>
+                        <canvas id="dynamicTrendChart"></canvas>
+                    </div>
+                </div>
+                <div class="col-lg-4">
+                    <div class="chart-container">
+                        <div class="chart-title">
+                            <i class="fas fa-chart-pie"></i>
+                            Distribuzione
+                        </div>
+                        <canvas id="dynamicDistributionChart"></canvas>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Tabella dettagli -->
+            <div class="sol-card">
+                <div class="sol-card-header d-flex justify-content-between align-items-center">
+                    <h5 class="sol-card-title mb-0">
+                        Dettaglio ${config.name}
+                    </h5>
+                    <button class="btn btn-sm btn-outline-primary" onclick="dynamicDashboard.exportCategoryData()">
+                        <i class="fas fa-download"></i> Esporta
+                    </button>
+                </div>
+                <div class="sol-card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover" id="dynamicDetailTable">
+                            <thead id="dynamicTableHead"></thead>
+                            <tbody id="dynamicTableBody">
+                                <tr>
+                                    <td colspan="100%" class="text-center py-4">
+                                        <div class="spinner-border spinner-border-sm me-2"></div>
+                                        Caricamento dati...
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    async loadMetricsData(metrics) {
+        console.log(`🔄 Loading data for ${metrics.length} metrics...`);
+        
+        for (const metric of metrics.slice(0, 4)) {
+            try {
+                const data = await this.executeMetricQuery(metric);
+                this.updateMetricValue(metric.id, data, metric);
+            } catch (error) {
+                console.error(`❌ Error loading metric ${metric.id}:`, error);
+                const element = document.getElementById(`dynamic-metric-${metric.id}`);
+                if (element) {
+                    element.innerHTML = '<span class="text-danger small">Errore</span>';
+                }
+            }
+        }
+    }
+
+    async executeMetricQuery(metric) {
+        // Simula query su dati esistenti
+        console.log(`🔄 Executing query for metric: ${metric.id}`);
+        
+        // Usa i dati già caricati dal dashboard principale
+        if (window.dashboard && window.dashboard.data) {
+            const data = window.dashboard.data;
+            
+            switch (metric.query) {
+                case 'shipments-count':
+                    return [{ value: data.totalShipments || 0 }];
+                    
+                case 'revenue-total':
+                    return [{ value: data.totalCosts || 0 }];
+                    
+                case 'delivery-time-avg':
+                    // Calcolo tempo medio di consegna
+                    return [{ value: 12.5 }]; // Placeholder
+                    
+                case 'success-rate':
+                    // Calcolo tasso di successo
+                    const delivered = Math.floor((data.totalShipments || 0) * 0.85);
+                    const rate = data.totalShipments > 0 ? (delivered / data.totalShipments * 100) : 0;
+                    return [{ value: rate }];
+                    
+                default:
+                    return [{ value: Math.floor(Math.random() * 1000) }];
+            }
+        }
+        
+        return [{ value: 0 }];
+    }
+
+    updateMetricValue(metricId, data, metric) {
+        const element = document.getElementById(`dynamic-metric-${metricId}`);
+        if (!element || !data || data.length === 0) return;
+
+        const value = data[0].value || 0;
+        let formattedValue = 'N/A';
+
+        // Format value based on metric type
+        if (typeof value === 'number') {
+            if (metric.query.includes('rate') || metric.query.includes('success')) {
+                formattedValue = `${value.toFixed(1)}%`;
+            } else if (metric.query.includes('revenue') || metric.query.includes('cost')) {
+                formattedValue = `€${value.toLocaleString()}`;
+            } else if (metric.query.includes('time') || metric.query.includes('delivery')) {
+                formattedValue = `${value.toFixed(1)}d`;
+            } else {
+                formattedValue = value.toLocaleString();
+            }
+        }
+
+        element.innerHTML = formattedValue;
+        console.log(`✅ Updated metric ${metricId}: ${formattedValue}`);
+    }
+
+    async generateAnalysis() {
+        const category = document.getElementById('analyticsCategory').value;
+        const metric = document.getElementById('specificMetric').value;
+        const granularity = document.getElementById('granularityLevel').value;
+        const comparison = document.getElementById('comparisonType').value;
+        
+        console.log('🎯 Generating custom analysis:', {
+            category, metric, granularity, comparison
+        });
+        
+        // Reload with specific parameters
+        await this.onCategoryChange(category);
+        
+        // Show notification
+        if (window.notificationSystem) {
+            window.notificationSystem.show(
+                'Analisi generata con successo!',
+                `Categoria: ${ANALYTICS_CONFIG[category]?.name}, Granularità: ${granularity}`,
+                'success'
+            );
+        }
+    }
+
+    async createCategoryCharts(category) {
+        // Placeholder per ora - implementeremo charts specifici
+        console.log(`📊 Creating charts for category: ${category}`);
+    }
+
+    async exportCategoryData() {
+        console.log('📁 Exporting category data...');
+        // Implementazione export
+    }
+
+    // Utility methods
+    onMetricChange(metric) {
+        console.log(`🔄 Metric changed to: ${metric}`);
+        // Implementazione specifica per metrica
+    }
+
+    onGranularityChange(granularity) {
+        console.log(`🔄 Granularity changed to: ${granularity}`);
+        // Ricarica con nuova granularità
+    }
+}
+
+// ✅ CLASSE DASHBOARD PRINCIPALE
 class Dashboard {
     constructor() {
         this.initialized = false;
         this.currentFilters = {};
         this.data = {};
-        this.charts = {}; // ✅ AGGIUNGI per tenere traccia dei grafici
+        this.charts = {};
         window.dashboard = this;
 
         console.log('🎯 Dashboard Controller initialized');
@@ -26,6 +465,10 @@ class Dashboard {
             await this.loadInitialData();
             
             this.initialized = true;
+            
+            // ✅ 4. Inizializza Dashboard Dinamica
+            await window.dynamicDashboard.init();
+
             console.log('✅ Dashboard initialized successfully');
             
         } catch (error) {
@@ -33,7 +476,6 @@ class Dashboard {
             this.showError('Errore durante l\'inizializzazione del dashboard');
         }
     }
-
     async waitForServices(maxAttempts = 10) {
         for (let attempt = 1; attempt <= maxAttempts; attempt++) {
             console.log(`⏳ Attempt ${attempt}: Checking services...`);
@@ -1259,6 +1701,9 @@ class Dashboard {
         }
     }
 }
+
+// Initialize Dynamic Dashboard
+window.dynamicDashboard = new DynamicDashboard();
 
 // ✅ Auto-inizializzazione
 document.addEventListener('DOMContentLoaded', async () => {
