@@ -915,14 +915,17 @@ async getShipmentDetails(shipmentId) {
 
     // Recupera la spedizione con tutte le relazioni
     let { data: shipment, error: shipmentError } = await supabase
-        .from('shipments')
-        .select(`
+    .from('shipments')
+    .select(`
+        *,
+        carrier:carrier_id (*),
+        transport_mode:transport_mode_id (*),
+        vehicle_type:vehicle_type_id (*),
+        tracking:tracking_id (
             *,
-            carrier:carrier_id (*),
-            transport_mode:transport_mode_id (*),
-            vehicle_type:vehicle_type_id (*),
-            tracking:tracking_id (*)
-        `)
+            carriers:carrier_id (id, name)
+        )
+    `)
         .eq('id', shipmentId)
         .eq('organization_id', this.organizationId)
         .single();

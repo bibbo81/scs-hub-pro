@@ -138,74 +138,74 @@ class InlineFormManager {
     }
 
         async populateCarriers(trackingType) {
-        const select = this.elements.carrier;
-        if (!select) return;
-    
-        select.disabled = true;
-        select.innerHTML = '<option value="">Caricamento...</option>';
-    
-        const action = this.elements.action.value;
-    
-        // 🎯 MODALITÀ MANUALE: Usa carriers dal database (spedizionieri)
-        if (action === 'manual') {
-            try {
-                const { data: carriers, error } = await window.supabase
-                    .from('carriers')
-                    .select('id, name')
-                    .order('name');
-    
-                if (error) throw error;
-    
-                if (carriers.length > 0) {
-                    select.innerHTML = '<option value="">Seleziona spedizioniere...</option>';
-                    carriers.forEach(carrier => {
-                        const option = document.createElement('option');
-                        option.value = carrier.id;
-                        option.textContent = carrier.name;
-                        select.appendChild(option);
-                    });
-                    select.disabled = false;
-                } else {
-                    select.innerHTML = '<option value="">Nessuno spedizioniere trovato</option>';
-                }
-            } catch (error) {
-                console.error('Failed to load carriers from database:', error);
-                select.innerHTML = '<option value="">Errore caricamento spedizionieri</option>';
-            }
-            return;
-        }
-    
-        // 🤖 MODALITÀ AUTOMATICA: Usa API esterne (compagnie di trasporto)
-        if (!trackingType || !window.trackingService) {
-            select.innerHTML = '<option value="">Inserisci un numero...</option>';
-            return;
-        }
-    
+    const select = this.elements.carrier;
+    if (!select) return;
+
+    select.disabled = true;
+    select.innerHTML = '<option value="">Caricamento...</option>';
+
+    const action = this.elements.action.value;
+
+    // 🎯 MODALITÀ MANUALE: Usa carriers dal database (spedizionieri)
+    if (action === 'manual') {
         try {
-            let carriers = [];
-            if (trackingType === 'container' || trackingType === 'bl') {
-                carriers = await window.trackingService.getShippingLines();
-            } else if (trackingType === 'awb') {
-                carriers = await window.trackingService.getAirlines();
-            }
-    
+            const { data: carriers, error } = await window.supabase
+                .from('carriers')
+                .select('id, name')
+                .order('name');
+
+            if (error) throw error;
+
             if (carriers.length > 0) {
-                select.innerHTML = '<option value="">Seleziona compagnia...</option>';
+                select.innerHTML = '<option value="">Seleziona spedizioniere...</option>';
                 carriers.forEach(carrier => {
                     const option = document.createElement('option');
-                    option.value = carrier.code;
+                    option.value = carrier.id;
                     option.textContent = carrier.name;
                     select.appendChild(option);
                 });
                 select.disabled = false;
             } else {
-                select.innerHTML = '<option value="">Nessuna compagnia trovata</option>';
+                select.innerHTML = '<option value="">Nessuno spedizioniere trovato</option>';
             }
         } catch (error) {
-            console.error('Failed to load carriers from API:', error);
-            select.innerHTML = '<option value="">Errore caricamento compagnie</option>';
+            console.error('Failed to load carriers from database:', error);
+            select.innerHTML = '<option value="">Errore caricamento spedizionieri</option>';
         }
+        return;
     }
+
+    // 🤖 MODALITÀ AUTOMATICA: Usa API esterne (compagnie di trasporto)
+    if (!trackingType || !window.trackingService) {
+        select.innerHTML = '<option value="">Inserisci un numero...</option>';
+        return;
+    }
+
+    try {
+        let carriers = [];
+        if (trackingType === 'container' || trackingType === 'bl') {
+            carriers = await window.trackingService.getShippingLines();
+        } else if (trackingType === 'awb') {
+            carriers = await window.trackingService.getAirlines();
+        }
+
+        if (carriers.length > 0) {
+            select.innerHTML = '<option value="">Seleziona compagnia...</option>';
+            carriers.forEach(carrier => {
+                const option = document.createElement('option');
+                option.value = carrier.code;
+                option.textContent = carrier.name;
+                select.appendChild(option);
+            });
+            select.disabled = false;
+        } else {
+            select.innerHTML = '<option value="">Nessuna compagnia trovata</option>';
+        }
+    } catch (error) {
+        console.error('Failed to load carriers from API:', error);
+        select.innerHTML = '<option value="">Errore caricamento compagnie</option>';
+    }
+}
 
     async loadTransportModes() {
         const select = this.elements.transportMode;

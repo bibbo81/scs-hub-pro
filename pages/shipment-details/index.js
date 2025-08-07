@@ -224,13 +224,31 @@ async function renderShipmentInfo(shipment) {
     document.getElementById('shipmentTotalWeight').textContent = formatWeight(totalWeight);
     document.getElementById('shipmentTotalVolume').textContent = formatVolume(totalVolume);
 
-    // 6. CARRIERS: Due tipi diversi
-    document.getElementById('shipmentCarrier').textContent = shipment.carrier?.name || shipment.carrier_name || 'N/A';
-    
-    const trackingData = shipment.tracking || {};
-    const trackingCarrier = trackingData.carrier_name || trackingData.carrier || trackingData.carrier_code || '-';
-    document.getElementById('shipmentTrackingCarrier').textContent = trackingCarrier;
+    // 6. 🔥 FIX: SEPARAZIONE CORRETTA TRA SPEDIZIONIERE E COMPAGNIA
+// Spedizioniere (partner per i costi)
+let spedizioniere = '-';
+if (shipment.carrier?.name) {
+    // Spedizioniere dalla tabella carriers
+    spedizioniere = shipment.carrier.name;
+} else if (shipment.carrier_name) {
+    // Fallback al campo carrier_name
+    spedizioniere = shipment.carrier_name;
+} else if (shipment.tracking?.carrier_id && shipment.tracking?.carriers?.name) {
+    // Modalità manuale: usa il nome dalla relazione carriers
+    spedizioniere = shipment.tracking.carriers.name;
+}
+document.getElementById('shipmentCarrier').textContent = spedizioniere;
 
+// Compagnia di trasporto (operativa)
+let compagniaTrasporto = '-';
+if (shipment.tracking?.transport_company) {
+    // Campo dedicato per compagnia di trasporto
+    compagniaTrasporto = shipment.tracking.transport_company;
+} else if (!shipment.tracking?.carrier_id && shipment.tracking?.carrier_name) {
+    // Se non è modalità manuale, usa carrier_name come compagnia
+    compagniaTrasporto = shipment.tracking.carrier_name;
+}
+document.getElementById('shipmentTrackingCarrier').textContent = compagniaTrasporto;
     // 🔥 CORREZIONE: Costi nei campi input - FORMATO INTERNAZIONALE per HTML
     const freightCostInput = document.getElementById('freightCost');
     const otherCostsInput = document.getElementById('otherCosts');
