@@ -334,37 +334,168 @@ class DynamicDashboard {
         }
     }
 
-    async executeMetricQuery(metric) {
-        // Simula query su dati esistenti
-        console.log(`🔄 Executing query for metric: ${metric.id}`);
+        async executeMetricQuery(metric) {
+        console.log(`🔄 Executing REAL query for metric: ${metric.id}`);
         
-        // Usa i dati già caricati dal dashboard principale
-        if (window.dashboard && window.dashboard.data) {
-            const data = window.dashboard.data;
-            
-            switch (metric.query) {
-                case 'shipments-count':
-                    return [{ value: data.totalShipments || 0 }];
-                    
-                case 'revenue-total':
-                    return [{ value: data.totalCosts || 0 }];
-                    
-                case 'delivery-time-avg':
-                    // Calcolo tempo medio di consegna
-                    return [{ value: 12.5 }]; // Placeholder
-                    
-                case 'success-rate':
-                    // Calcolo tasso di successo
-                    const delivered = Math.floor((data.totalShipments || 0) * 0.85);
-                    const rate = data.totalShipments > 0 ? (delivered / data.totalShipments * 100) : 0;
-                    return [{ value: rate }];
-                    
-                default:
-                    return [{ value: Math.floor(Math.random() * 1000) }];
+        try {
+            // Usa i dati reali dal dashboard principale
+            if (window.dashboard && window.dashboard.data) {
+                const data = window.dashboard.data;
+                const rawData = window.dashboard.rawData; // Dati non elaborati
+                
+                switch (metric.query) {
+                    case 'shipments-count':
+                        return [{ value: data.totalShipments || 0 }];
+                        
+                    case 'revenue-total':
+                        return [{ value: data.totalCosts || 0 }];
+                        
+                    case 'delivery-time-avg':
+                        // Calcolo REALE tempo medio di consegna
+                        if (rawData && rawData.shipments) {
+                            const deliveredShipments = rawData.shipments.filter(s => 
+                                s.status === 'delivered' && s.created_at && s.delivered_at
+                            );
+                            
+                            if (deliveredShipments.length > 0) {
+                                const totalDays = deliveredShipments.reduce((sum, s) => {
+                                    const created = new Date(s.created_at);
+                                    const delivered = new Date(s.delivered_at);
+                                    const days = (delivered - created) / (1000 * 60 * 60 * 24);
+                                    return sum + (days > 0 ? days : 0);
+                                }, 0);
+                                
+                                return [{ value: totalDays / deliveredShipments.length }];
+                            }
+                        }
+                        return [{ value: 0 }];
+                        
+                    case 'success-rate':
+                        // Calcolo REALE tasso di successo
+                        if (rawData && rawData.shipments) {
+                            const total = rawData.shipments.length;
+                            const delivered = rawData.shipments.filter(s => s.status === 'delivered').length;
+                            const rate = total > 0 ? (delivered / total * 100) : 0;
+                            return [{ value: rate }];
+                        }
+                        return [{ value: 0 }];
+                        
+                    case 'shipments-by-status':
+                        // Query REALE per stato spedizioni
+                        if (rawData && rawData.shipments) {
+                            const byStatus = rawData.shipments.reduce((acc, s) => {
+                                acc[s.status] = (acc[s.status] || 0) + 1;
+                                return acc;
+                            }, {});
+                            return [{ value: Object.keys(byStatus).length }];
+                        }
+                        return [{ value: 0 }];
+                        
+                    case 'shipments-by-type':
+                        // Query REALE per tipo trasporto
+                        if (rawData && rawData.trackings) {
+                            const byType = rawData.trackings.reduce((acc, t) => {
+                                acc[t.transport_mode] = (acc[t.transport_mode] || 0) + 1;
+                                return acc;
+                            }, {});
+                            return [{ value: Object.keys(byType).length }];
+                        }
+                        return [{ value: 0 }];
+                        
+                    case 'delayed-shipments':
+                        // Query REALE spedizioni in ritardo
+                        if (rawData && rawData.shipments) {
+                            const now = new Date();
+                            const delayed = rawData.shipments.filter(s => {
+                                if (s.eta && s.status !== 'delivered' && s.status !== 'cancelled') {
+                                    return new Date(s.eta) < now;
+                                }
+                                return false;
+                            }).length;
+                            return [{ value: delayed }];
+                        }
+                        return [{ value: 0 }];
+                        
+                    case 'carriers-performance':
+                        // Query REALE performance spedizionieri
+                        if (rawData && rawData.trackings) {
+                            const uniqueCarriers = new Set(rawData.trackings.map(t => t.carrier_name).filter(c => c && c !== 'N/A'));
+                            return [{ value: uniqueCarriers.size }];
+                        }
+                        return [{ value: 0 }];
+                        
+                    // ✅ AGGIUNGI QUERY PER ALTRE CATEGORIE
+                    case 'revenue-monthly':
+                        return await this.calculateMonthlyRevenue(rawData);
+                        
+                    case 'geo-by-country':
+                        return await this.calculateCountryDistribution(rawData);
+                        
+                    case 'trends-growth':
+                        return await this.calculateGrowthRate(rawData);
+                        
+                    default:
+                        console.warn(`⚠️ Unknown metric query: ${metric.query}`);
+                        return [{ value: 0 }];
+                }
             }
+            
+            // Fallback se non ci sono dati
+            console.warn(`⚠️ No data available for metric: ${metric.id}`);
+            return [{ value: 0 }];
+            
+        } catch (error) {
+            console.error(`❌ Error executing query for ${metric.id}:`, error);
+            return [{ value: 0 }];
         }
+    }
+    
+    // ✅ METODI HELPER PER CALCOLI AVANZATI
+    async calculateMonthlyRevenue(rawData) {
+        if (!rawData || !rawData.shipments) return [{ value: 0 }];
         
-        return [{ value: 0 }];
+        const now = new Date();
+        const currentMonth = now.getMonth();
+        const currentYear = now.getFullYear();
+        
+        const monthlyRevenue = rawData.shipments
+            .filter(s => {
+                const date = new Date(s.created_at);
+                return date.getMonth() === currentMonth && date.getFullYear() === currentYear;
+            })
+            .reduce((sum, s) => sum + (parseFloat(s.freight_cost) || 0) + (parseFloat(s.other_costs) || 0), 0);
+        
+        return [{ value: monthlyRevenue }];
+    }
+    
+    async calculateCountryDistribution(rawData) {
+        if (!rawData || !rawData.shipments) return [{ value: 0 }];
+        
+        const countries = new Set();
+        rawData.shipments.forEach(s => {
+            if (s.origin_country) countries.add(s.origin_country);
+            if (s.destination_country) countries.add(s.destination_country);
+        });
+        
+        return [{ value: countries.size }];
+    }
+    
+    async calculateGrowthRate(rawData) {
+        if (!rawData || !rawData.shipments) return [{ value: 0 }];
+        
+        const now = new Date();
+        const thisMonth = rawData.shipments.filter(s => {
+            const date = new Date(s.created_at);
+            return date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear();
+        }).length;
+        
+        const lastMonth = rawData.shipments.filter(s => {
+            const date = new Date(s.created_at);
+            return date.getMonth() === (now.getMonth() - 1) && date.getFullYear() === now.getFullYear();
+        }).length;
+        
+        const growth = lastMonth > 0 ? ((thisMonth - lastMonth) / lastMonth * 100) : 0;
+        return [{ value: growth }];
     }
 
     updateMetricValue(metricId, data, metric) {
@@ -547,37 +678,22 @@ class Dashboard {
         console.log('✅ Initial data loaded:', this.data);
     }
 
-    async loadDashboardData() {
+        async loadDashboardData() {
         try {
             console.log('📊 Loading dashboard data...');
             
-            // 1. Carica dati raw
-            const trackings = await window.dataManager.getTrackings() || [];
-            const shipments = await window.dataManager.getShipments() || [];
-            const carriers = await window.dataManager.getCarriers() || [];
-            const additionalCosts = await this.loadAdditionalCosts() || [];
+            const rawData = await this.dataManager.getDashboardData();
+            console.log('📊 Raw data loaded:', rawData);
             
-            console.log('📊 Raw data loaded:', {
-                trackings: trackings.length,
-                shipments: shipments.length,
-                carriers: carriers.length,
-                additionalCosts: additionalCosts.length
-            });
+            // ✅ SALVA RAW DATA per le query dinamiche
+            this.rawData = rawData;
+            window.dashboard.rawData = rawData; // Rendi disponibile globalmente
             
-            // 2. Applica filtri ai dati (NON alle UI)
-            const rawData = { trackings, shipments, carriers, additionalCosts };
-            const filtered = this.applyDataFilters(rawData);
+            // Applica filtri
+            const filteredData = this.applyDataFilters(rawData);
+            console.log('✅ Data filters applied, result:', filteredData);
             
-            // 3. Calcola aggregazioni
-            this.data = this.calculateAggregations(filtered);
-            
-            console.log('✅ Dashboard data loaded successfully');
-            
-        } catch (error) {
-            console.error('❌ Error loading dashboard data:', error);
-            throw error;
-        }
-    }
+            // ... resto del codice esistente
 
     async refreshWithFilters() {
         console.log('🔄 Refreshing with filters...');

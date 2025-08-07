@@ -598,13 +598,14 @@
     <div class="sol-card-header">
         <h5 class="sol-card-title">
             <i class="fas fa-analytics text-primary me-2"></i>
-            Analisi Avanzata
+            Analisi Avanzata & Filtri
         </h5>
     </div>
     <div class="sol-card-body">
+        <!-- ROW 1: Analisi Principale -->
         <div class="row g-3 mb-3">
-            <div class="col-md-3">
-                <label class="form-label">Categoria Analisi</label>
+            <div class="col-md-4">
+                <label class="form-label fw-semibold">🎯 Categoria Analisi</label>
                 <select class="form-select" id="analyticsCategory">
                     <option value="overview">📊 Panoramica Generale</option>
                     <option value="shipments">📦 Analisi Spedizioni</option>
@@ -615,15 +616,66 @@
                     <option value="operational">⚙️ Analisi Operativa</option>
                 </select>
             </div>
-            <div class="col-md-3">
-                <label class="form-label">Metrica Specifica</label>
+            <div class="col-md-4">
+                <label class="form-label fw-semibold">📊 Metrica Specifica</label>
                 <select class="form-select" id="specificMetric">
-                    <option value="">Seleziona metrica...</option>
+                    <option value="">Tutte le metriche</option>
                 </select>
             </div>
+            <div class="col-md-4">
+                <label class="form-label fw-semibold">📅 Periodo Analisi</label>
+                <select class="form-select" id="periodFilter">
+                    <option value="7">Ultimi 7 giorni</option>
+                    <option value="30" selected>Ultimi 30 giorni</option>
+                    <option value="90">Ultimi 3 mesi</option>
+                    <option value="180">Ultimi 6 mesi</option>
+                    <option value="365">Ultimo anno</option>
+                    <option value="730">Ultimi 2 anni</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- ROW 2: Filtri Operativi -->
+        <div class="row g-3 mb-3">
+            <div class="col-md-3">
+                <label class="form-label">🏢 Compagnia</label>
+                <select class="form-select form-select-sm" id="companyFilter">
+                    <option value="">Tutte le compagnie</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">🚚 Spedizioniere</label>
+                <select class="form-select form-select-sm" id="carrierFilter">
+                    <option value="">Tutti gli spedizionieri</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">📋 Stato Spedizione</label>
+                <select class="form-select form-select-sm" id="statusFilter">
+                    <option value="">Tutti gli stati</option>
+                    <option value="delivered">✅ Consegnato</option>
+                    <option value="in_transit">🚛 In transito</option>
+                    <option value="pending">⏳ In attesa</option>
+                    <option value="cancelled">❌ Annullato</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">🚛 Tipo Trasporto</label>
+                <select class="form-select form-select-sm" id="transportFilter">
+                    <option value="">Tutti i tipi</option>
+                    <option value="container">🚢 Container</option>
+                    <option value="air">✈️ Aereo</option>
+                    <option value="road">🚛 Stradale</option>
+                    <option value="parcel">📦 Corriere</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- ROW 3: Controlli Avanzati -->
+        <div class="row g-3 align-items-end">
             <div class="col-md-2">
-                <label class="form-label">Granularità</label>
-                <select class="form-select" id="granularityLevel">
+                <label class="form-label">📈 Granularità</label>
+                <select class="form-select form-select-sm" id="granularityLevel">
                     <option value="daily">📅 Giornaliera</option>
                     <option value="weekly">📊 Settimanale</option>
                     <option value="monthly" selected>📈 Mensile</option>
@@ -632,140 +684,100 @@
                 </select>
             </div>
             <div class="col-md-2">
-                <label class="form-label">Comparazione</label>
-                <select class="form-select" id="comparisonType">
+                <label class="form-label">🔄 Comparazione</label>
+                <select class="form-select form-select-sm" id="comparisonType">
                     <option value="none">Nessuna</option>
                     <option value="yoy">Anno su Anno</option>
                     <option value="mom">Mese su Mese</option>
                     <option value="wow">Settimana su Settimana</option>
-                    <option value="benchmark">vs Benchmark</option>
                 </select>
             </div>
             <div class="col-md-2">
                 <button class="sol-btn sol-btn-primary w-100" onclick="dynamicDashboard.generateAnalysis()">
                     <i class="fas fa-chart-line"></i>
-                    Genera
+                    Genera Analisi
+                </button>
+            </div>
+            <div class="col-md-2">
+                <button class="sol-btn sol-btn-outline-primary w-100" onclick="dashboard.applyFilters()">
+                    <i class="fas fa-filter"></i>
+                    Applica Filtri
+                </button>
+            </div>
+            <div class="col-md-2">
+                <button class="sol-btn sol-btn-glass w-100" onclick="dashboard.resetFilters()">
+                    <i class="fas fa-undo"></i>
+                    Reset
+                </button>
+            </div>
+            <div class="col-md-2">
+                <button class="btn btn-outline-secondary btn-sm w-100" type="button" data-bs-toggle="collapse" data-bs-target="#advancedFilters" aria-expanded="false">
+                    <i class="fas fa-cogs"></i> Avanzati
                 </button>
             </div>
         </div>
         
-        <!-- Filtri Base (Collapsible) -->
-        <div>
-            <button class="btn btn-outline-secondary btn-sm" type="button" data-bs-toggle="collapse" data-bs-target="#basicFilters">
-                <i class="fas fa-filter"></i> Filtri Base
-            </button>
-            
-            <div class="collapse show" id="basicFilters">
-                <div class="row g-3 mt-2">
-                    <div class="col-md-2">
-                        <label class="form-label">Periodo</label>
-                        <select class="form-select form-select-sm" id="periodFilter">
-                            <option value="7">Ultimi 7 giorni</option>
-                            <option value="30" selected>Ultimi 30 giorni</option>
-                            <option value="90">Ultimi 3 mesi</option>
-                            <option value="365">Ultimo anno</option>
-                        </select>
-                    </div>
-                    <div class="col-md-2">
-                        <label class="form-label">Compagnia</label>
-                        <select class="form-select form-select-sm" id="companyFilter">
-                            <option value="">Tutte le compagnie</option>
-                        </select>
-                    </div>
-                    <div class="col-md-2">
-                        <label class="form-label">Spedizioniere</label>
-                        <select class="form-select form-select-sm" id="carrierFilter">
-                            <option value="">Tutti gli spedizionieri</option>
-                        </select>
-                    </div>
-                    <div class="col-md-2">
-                        <label class="form-label">Stato</label>
-                        <select class="form-select form-select-sm" id="statusFilter">
-                            <option value="">Tutti gli stati</option>
-                            <option value="delivered">Consegnato</option>
-                            <option value="in_transit">In transito</option>
-                            <option value="pending">In attesa</option>
-                        </select>
-                    </div>
-                    <div class="col-md-2">
-                        <label class="form-label">Tipo Trasporto</label>
-                        <select class="form-select form-select-sm" id="transportFilter">
-                            <option value="">Tutti i tipi</option>
-                            <option value="container">Container</option>
-                            <option value="air">Aereo</option>
-                            <option value="road">Stradale</option>
-                            <option value="parcel">Corriere</option>
-                        </select>
-                    </div>
-                    <div class="col-md-2">
-                        <button class="sol-btn sol-btn-outline-primary w-100 btn-sm" onclick="dashboard.applyFilters()">
-                            <i class="fas fa-filter"></i>
-                            Applica
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Filtri Avanzati (Collapsible) -->
-        <div class="mt-2">
-            <button class="btn btn-outline-secondary btn-sm" type="button" data-bs-toggle="collapse" data-bs-target="#advancedFilters">
-                <i class="fas fa-cogs"></i> Filtri Avanzati
-            </button>
-            
-            <div class="collapse" id="advancedFilters">
-                <div class="row g-3 mt-2">
-                    <div class="col-md-2">
-                        <label class="form-label">Origine</label>
-                        <select class="form-select form-select-sm" id="originFilter">
-                            <option value="">Tutte</option>
-                        </select>
-                    </div>
-                    <div class="col-md-2">
-                        <label class="form-label">Destinazione</label>
-                        <select class="form-select form-select-sm" id="destinationFilter">
-                            <option value="">Tutte</option>
-                        </select>
-                    </div>
-                    <div class="col-md-2">
-                        <label class="form-label">Range Peso</label>
-                        <select class="form-select form-select-sm" id="weightRangeFilter">
-                            <option value="">Tutti</option>
-                            <option value="0-100">0-100 kg</option>
-                            <option value="100-1000">100-1000 kg</option>
-                            <option value="1000+">1000+ kg</option>
-                        </select>
-                    </div>
-                    <div class="col-md-2">
-                        <label class="form-label">Range Costo</label>
-                        <select class="form-select form-select-sm" id="costRangeFilter">
-                            <option value="">Tutti</option>
-                            <option value="0-1000">€0-1000</option>
-                            <option value="1000-5000">€1000-5000</option>
-                            <option value="5000+">€5000+</option>
-                        </select>
-                    </div>
-                    <div class="col-md-2">
-                        <label class="form-label">Priorità</label>
-                        <select class="form-select form-select-sm" id="priorityFilter">
-                            <option value="">Tutte</option>
-                            <option value="high">Alta</option>
-                            <option value="medium">Media</option>
-                            <option value="low">Bassa</option>
-                        </select>
-                    </div>
-                    <div class="col-md-2">
-                        <label class="form-label">Cliente</label>
-                        <select class="form-select form-select-sm" id="customerFilter">
-                            <option value="">Tutti</option>
-                        </select>
+        <!-- FILTRI AVANZATI (Collapsible) -->
+        <div class="collapse mt-3" id="advancedFilters">
+            <div class="card border-0 bg-light">
+                <div class="card-body">
+                    <h6 class="card-title text-muted mb-3">
+                        <i class="fas fa-sliders-h me-2"></i>Filtri Avanzati
+                    </h6>
+                    <div class="row g-3">
+                        <div class="col-md-2">
+                            <label class="form-label">🌍 Origine</label>
+                            <select class="form-select form-select-sm" id="originFilter">
+                                <option value="">Tutte le origini</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">🎯 Destinazione</label>
+                            <select class="form-select form-select-sm" id="destinationFilter">
+                                <option value="">Tutte le destinazioni</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">⚖️ Range Peso</label>
+                            <select class="form-select form-select-sm" id="weightRangeFilter">
+                                <option value="">Tutti i pesi</option>
+                                <option value="0-100">0-100 kg</option>
+                                <option value="100-1000">100-1000 kg</option>
+                                <option value="1000-5000">1-5 tonnellate</option>
+                                <option value="5000+">5+ tonnellate</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">💰 Range Costo</label>
+                            <select class="form-select form-select-sm" id="costRangeFilter">
+                                <option value="">Tutti i costi</option>
+                                <option value="0-500">€0-500</option>
+                                <option value="500-1000">€500-1000</option>
+                                <option value="1000-5000">€1000-5000</option>
+                                <option value="5000+">€5000+</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">⚡ Priorità</label>
+                            <select class="form-select form-select-sm" id="priorityFilter">
+                                <option value="">Tutte le priorità</option>
+                                <option value="high">🔴 Alta</option>
+                                <option value="medium">🟡 Media</option>
+                                <option value="low">🟢 Bassa</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">👤 Cliente</label>
+                            <select class="form-select form-select-sm" id="customerFilter">
+                                <option value="">Tutti i clienti</option>
+                            </select>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 </div>
-
 <!-- Dynamic Content Area -->
 <div id="dynamicContent">
     <!-- Qui verrà inserito il contenuto dinamico basato sulla selezione -->
