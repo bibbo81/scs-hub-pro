@@ -359,47 +359,96 @@ class Dashboard {
         return result;
     }
 
-    calculateTrends(combined) {
+        calculateTrends(combined) {
+        console.log('📈 Calculating trends for:', combined.length, 'items');
+        
         // ✅ Raggruppa per mese
         const monthlyData = {};
         
-        combined.forEach(item => {
-            const date = new Date(item.created_at);
-            const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-            
-            if (!monthlyData[monthKey]) {
-                monthlyData[monthKey] = {
+        combined.forEach((item, index) => {
+            try {
+                const date = new Date(item.created_at);
+                
+                // ✅ CONTROLLO VALIDITÀ DATA
+                if (isNaN(date.getTime())) {
+                    console.warn(`⚠️ Invalid date for item ${index}:`, item.created_at);
+                    return;
+                }
+                
+                const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+                
+                if (!monthlyData[monthKey]) {
+                    monthlyData[monthKey] = {
+                        month: monthKey,
+                        shipments: 0,
+                        costs: 0
+                    };
+                }
+                
+                monthlyData[monthKey].shipments++;
+                monthlyData[monthKey].costs += parseFloat(item.cost) || 0;
+                
+            } catch (error) {
+                console.warn(`⚠️ Error processing item ${index}:`, error, item);
+            }
+        });
+    
+        // ✅ Ordina per mese e prendi gli ultimi 6
+        const result = Object.values(monthlyData)
+            .sort((a, b) => a.month.localeCompare(b.month))
+            .slice(-6);
+        
+        console.log('📈 Trends calculated:', result);
+        
+        // ✅ SE VUOTO, CREA DATI DI DEFAULT
+        if (result.length === 0) {
+            const currentDate = new Date();
+            for (let i = 5; i >= 0; i--) {
+                const date = new Date(currentDate.getFullYear(), currentDate.getMonth() - i, 1);
+                const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+                result.push({
                     month: monthKey,
                     shipments: 0,
                     costs: 0
-                };
+                });
             }
-            
-            monthlyData[monthKey].shipments++;
-            monthlyData[monthKey].costs += parseFloat(item.cost) || 0;
-        });
-
-        // ✅ Ordina per mese e prendi gli ultimi 6
-        return Object.values(monthlyData)
-            .sort((a, b) => a.month.localeCompare(b.month))
-            .slice(-6);
+            console.log('📈 Created default trends:', result);
+        }
+        
+        return result;
     }
 
-    calculateTransportModes(combined) {
+        calculateTransportModes(combined) {
+        console.log('🚚 Calculating transport modes for:', combined.length, 'items');
+        
         // ✅ Raggruppa per modalità di trasporto
         const modes = {};
         
-        combined.forEach(item => {
-            const mode = item.transport_mode || 'road';
-            const modeName = this.getTransportModeName(mode);
-            
-            if (!modes[modeName]) {
-                modes[modeName] = { name: modeName, count: 0 };
+        combined.forEach((item, index) => {
+            try {
+                const mode = item.transport_mode || 'road';
+                const modeName = this.getTransportModeName(mode);
+                
+                if (!modes[modeName]) {
+                    modes[modeName] = { name: modeName, count: 0 };
+                }
+                modes[modeName].count++;
+                
+            } catch (error) {
+                console.warn(`⚠️ Error processing transport mode for item ${index}:`, error, item);
             }
-            modes[modeName].count++;
         });
-
-        return Object.values(modes);
+    
+        const result = Object.values(modes);
+        console.log('🚚 Transport modes calculated:', result);
+        
+        // ✅ SE VUOTO, CREA DATI DI DEFAULT
+        if (result.length === 0) {
+            result.push({ name: 'Stradale', count: 1 });
+            console.log('🚚 Created default transport modes:', result);
+        }
+        
+        return result;
     }
 
     getTransportModeName(mode) {
@@ -543,164 +592,204 @@ class Dashboard {
         this.initializeSortableKPIs();
     }
 
-    renderCharts() {
+        renderCharts() {
+        console.log('📊 Starting to render charts...');
+        console.log('📊 Trends data:', this.data.trends);
+        console.log('📊 Transport modes data:', this.data.transportModes);
+        
         this.renderTrendChart();
         this.renderTransportModeChart();
+        
+        console.log('📊 Charts rendering complete');
     }
 
-    renderTrendChart() {
+        renderTrendChart() {
         const ctx = document.getElementById('trendChart');
-        if (!ctx || !this.data.trends) return;
-
+        if (!ctx) {
+            console.error('❌ Trend chart canvas not found');
+            return;
+        }
+        
+        if (!this.data.trends || this.data.trends.length === 0) {
+            console.error('❌ No trends data available');
+            return;
+        }
+        
+        console.log('📊 Rendering trend chart with data:', this.data.trends);
+    
         // ✅ DISTRUGGI grafico esistente
         if (this.charts.trendChart) {
             this.charts.trendChart.destroy();
         }
-
-        this.charts.trendChart = new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: this.data.trends.map(t => t.month),
-                datasets: [{
-                    label: 'Spedizioni',
-                    data: this.data.trends.map(t => t.shipments),
-                    borderColor: '#6366f1',
-                    backgroundColor: 'rgba(99, 102, 241, 0.1)',
-                    tension: 0.4,
-                    borderWidth: 2,
-                    pointRadius: 4,
-                    pointHoverRadius: 6
-                }, {
-                    label: 'Costi (€)',
-                    data: this.data.trends.map(t => t.costs),
-                    borderColor: '#ef4444',
-                    backgroundColor: 'rgba(239, 68, 68, 0.1)',
-                    tension: 0.4,
-                    borderWidth: 2,
-                    pointRadius: 4,
-                    pointHoverRadius: 6,
-                    yAxisID: 'y1'
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                interaction: {
-                    mode: 'index',
-                    intersect: false,
+    
+        try {
+            this.charts.trendChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: this.data.trends.map(t => t.month),
+                    datasets: [{
+                        label: 'Spedizioni',
+                        data: this.data.trends.map(t => t.shipments),
+                        borderColor: '#6366f1',
+                        backgroundColor: 'rgba(99, 102, 241, 0.1)',
+                        tension: 0.4,
+                        borderWidth: 2,
+                        pointRadius: 4,
+                        pointHoverRadius: 6
+                    }, {
+                        label: 'Costi (€)',
+                        data: this.data.trends.map(t => t.costs),
+                        borderColor: '#ef4444',
+                        backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                        tension: 0.4,
+                        borderWidth: 2,
+                        pointRadius: 4,
+                        pointHoverRadius: 6,
+                        yAxisID: 'y1'
+                    }]
                 },
-                plugins: {
-                    legend: {
-                        position: 'top',
-                        labels: {
-                            usePointStyle: true,
-                            padding: 15,
-                            font: {
-                                size: 12
-                            }
-                        }
-                    }
-                },
-                scales: {
-                    y: {
-                        type: 'linear',
-                        display: true,
-                        position: 'left',
-                        grid: {
-                            color: 'rgba(0,0,0,0.05)'
-                        },
-                        ticks: {
-                            font: {
-                                size: 11
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        mode: 'index',
+                        intersect: false,
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                            labels: {
+                                usePointStyle: true,
+                                padding: 15,
+                                font: {
+                                    size: 12
+                                }
                             }
                         }
                     },
-                    y1: {
-                        type: 'linear',
-                        display: true,
-                        position: 'right',
-                        grid: {
-                            drawOnChartArea: false,
-                        },
-                        ticks: {
-                            font: {
-                                size: 11
+                    scales: {
+                        y: {
+                            type: 'linear',
+                            display: true,
+                            position: 'left',
+                            grid: {
+                                color: 'rgba(0,0,0,0.05)'
+                            },
+                            ticks: {
+                                font: {
+                                    size: 11
+                                }
                             }
-                        }
-                    },
-                    x: {
-                        grid: {
-                            color: 'rgba(0,0,0,0.05)'
                         },
-                        ticks: {
-                            font: {
-                                size: 11
+                        y1: {
+                            type: 'linear',
+                            display: true,
+                            position: 'right',
+                            grid: {
+                                drawOnChartArea: false,
+                            },
+                            ticks: {
+                                font: {
+                                    size: 11
+                                }
+                            }
+                        },
+                        x: {
+                            grid: {
+                                color: 'rgba(0,0,0,0.05)'
+                            },
+                            ticks: {
+                                font: {
+                                    size: 11
+                                }
                             }
                         }
                     }
                 }
-            }
-        });
+            });
+            
+            console.log('✅ Trend chart rendered successfully');
+            
+        } catch (error) {
+            console.error('❌ Error rendering trend chart:', error);
+        }
     }
 
-    renderTransportModeChart() {
+        renderTransportModeChart() {
         const ctx = document.getElementById('transportModeChart');
-        if (!ctx || !this.data.transportModes) return;
-
+        if (!ctx) {
+            console.error('❌ Transport mode chart canvas not found');
+            return;
+        }
+        
+        if (!this.data.transportModes || this.data.transportModes.length === 0) {
+            console.error('❌ No transport modes data available');
+            return;
+        }
+        
+        console.log('📊 Rendering transport mode chart with data:', this.data.transportModes);
+    
         // ✅ DISTRUGGI grafico esistente
         if (this.charts.transportModeChart) {
             this.charts.transportModeChart.destroy();
         }
-
-        this.charts.transportModeChart = new Chart(ctx, {
-            type: 'doughnut',
-            data: {
-                labels: this.data.transportModes.map(t => t.name),
-                datasets: [{
-                    data: this.data.transportModes.map(t => t.count),
-                    backgroundColor: ['#6366f1', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'],
-                    borderWidth: 2,
-                    borderColor: '#fff',
-                    hoverBorderWidth: 3
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                layout: {
-                    padding: {
-                        top: 10,
-                        bottom: 10,
-                        left: 10,
-                        right: 10
-                    }
+    
+        try {
+            this.charts.transportModeChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: this.data.transportModes.map(t => t.name),
+                    datasets: [{
+                        data: this.data.transportModes.map(t => t.count),
+                        backgroundColor: ['#6366f1', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'],
+                        borderWidth: 2,
+                        borderColor: '#fff',
+                        hoverBorderWidth: 3
+                    }]
                 },
-                plugins: {
-                    legend: {
-                        position: 'bottom',
-                        labels: {
-                            padding: 8,
-                            usePointStyle: true,
-                            font: {
-                                size: 10
-                            },
-                            boxWidth: 12,
-                            boxHeight: 12
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    layout: {
+                        padding: {
+                            top: 10,
+                            bottom: 10,
+                            left: 10,
+                            right: 10
                         }
                     },
-                    tooltip: {
-                        callbacks: {
-                            label: function(context) {
-                                const total = context.dataset.data.reduce((a, b) => a + b, 0);
-                                const percentage = ((context.parsed / total) * 100).toFixed(1);
-                                return `${context.label}: ${context.parsed} (${percentage}%)`;
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                padding: 8,
+                                usePointStyle: true,
+                                font: {
+                                    size: 10
+                                },
+                                boxWidth: 12,
+                                boxHeight: 12
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                    const percentage = ((context.parsed / total) * 100).toFixed(1);
+                                    return `${context.label}: ${context.parsed} (${percentage}%)`;
+                                }
                             }
                         }
-                    }
-                },
-                cutout: '55%'
-            }
-        });
+                    },
+                    cutout: '55%'
+                }
+            });
+            
+            console.log('✅ Transport mode chart rendered successfully');
+            
+        } catch (error) {
+            console.error('❌ Error rendering transport mode chart:', error);
+        }
     }
 
     renderTables() {
