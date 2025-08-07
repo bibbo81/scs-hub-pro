@@ -139,24 +139,29 @@ class Dashboard {
         }
     }
 
-    async loadDashboardData() {
+        async loadDashboardData() {
         console.log('📊 Loading dashboard data...');
         
         try {
             // 1. Carica trackings
-            const trackings = await window.dataManager.getTrackings();
+            const trackings = await window.dataManager.getTrackings() || [];
+            console.log('📦 Trackings loaded:', trackings.length);
             
             // 2. Carica shipments
-            const shipments = await window.dataManager.getShipments();
+            const shipments = await window.dataManager.getShipments() || [];
+            console.log('🚢 Shipments loaded:', shipments.length);
             
             // 3. Carica carriers
-            const carriers = await window.dataManager.getCarriers();
+            const carriers = await window.dataManager.getCarriers() || [];
+            console.log('🚛 Carriers loaded:', carriers.length);
             
             // 4. Carica additional costs
-            const additionalCosts = await this.loadAdditionalCosts();
+            const additionalCosts = await this.loadAdditionalCosts() || [];
+            console.log('💰 Additional costs loaded:', additionalCosts.length);
             
-            // 5. Applica filtri
-            const filtered = this.applyFilters({ trackings, shipments, carriers, additionalCosts });
+            // 5. Applica filtri (con controlli di sicurezza)
+            const rawData = { trackings, shipments, carriers, additionalCosts };
+            const filtered = this.applyFilters(rawData);
             
             // 6. Calcola aggregazioni
             this.data = this.calculateAggregations(filtered);
@@ -165,6 +170,20 @@ class Dashboard {
             
         } catch (error) {
             console.error('❌ Error loading dashboard data:', error);
+            
+            // Fallback con dati vuoti
+            this.data = {
+                totalShipments: 0,
+                totalCosts: 0,
+                totalWeight: 0,
+                totalVolume: 0,
+                activeCarriers: 0,
+                trends: [],
+                transportModes: [],
+                carriersPerformance: [],
+                carriers: []
+            };
+            
             throw error;
         }
     }
@@ -184,38 +203,53 @@ class Dashboard {
         }
     }
 
-    applyFilters(rawData) {
-        let { trackings, shipments, carriers, additionalCosts } = rawData;
+        applyFilters(rawData) {
+        // ✅ CONTROLLI DI SICUREZZA
+        let { trackings = [], shipments = [], carriers = [], additionalCosts = [] } = rawData || {};
+        
+        console.log('🔽 Applying filters to:', {
+            trackings: trackings.length,
+            shipments: shipments.length,
+            carriers: carriers.length,
+            additionalCosts: additionalCosts.length,
+            filters: this.currentFilters
+        });
         
         // Filtro per periodo
         if (this.currentFilters.period) {
             const cutoffDate = new Date();
             cutoffDate.setDate(cutoffDate.getDate() - this.currentFilters.period);
             
-            trackings = trackings.filter(t => new Date(t.created_at) >= cutoffDate);
-            shipments = shipments.filter(s => new Date(s.created_at) >= cutoffDate);
-            additionalCosts = additionalCosts.filter(c => new Date(c.created_at) >= cutoffDate);
+            trackings = trackings.filter(t => t && new Date(t.created_at) >= cutoffDate);
+            shipments = shipments.filter(s => s && new Date(s.created_at) >= cutoffDate);
+            additionalCosts = additionalCosts.filter(c => c && new Date(c.created_at) >= cutoffDate);
         }
         
         // Filtro per carrier
         if (this.currentFilters.carrier) {
             trackings = trackings.filter(t => 
-                t.carrier_code === this.currentFilters.carrier || 
-                t.carrier_name === this.currentFilters.carrier
+                t && (t.carrier_code === this.currentFilters.carrier || t.carrier_name === this.currentFilters.carrier)
             );
-            shipments = shipments.filter(s => s.carrier_id === this.currentFilters.carrier);
+            shipments = shipments.filter(s => s && s.carrier_id === this.currentFilters.carrier);
         }
         
         // Filtro per status
         if (this.currentFilters.status) {
             trackings = trackings.filter(t => 
-                t.current_status === this.currentFilters.status || 
-                t.status === this.currentFilters.status
+                t && (t.current_status === this.currentFilters.status || t.status === this.currentFilters.status)
             );
-            shipments = shipments.filter(s => s.status === this.currentFilters.status);
+            shipments = shipments.filter(s => s && s.status === this.currentFilters.status);
         }
         
-        return { trackings, shipments, carriers, additionalCosts };
+        const result = { trackings, shipments, carriers, additionalCosts };
+        console.log('✅ Filters applied, result:', {
+            trackings: result.trackings.length,
+            shipments: result.shipments.length,
+            carriers: result.carriers.length,
+            additionalCosts: result.additionalCosts.length
+        });
+        
+        return result;
     }
 
         calculateAggregations(data) {
@@ -246,48 +280,66 @@ class Dashboard {
         };
     }
 
-    combineDataSources(trackings, shipments) {
-        const combined = [];
-        const trackingMap = new Map();
+   combineDataSources(trackings, shipments) {
+    const combined = [];
+    const trackingMap = new Map();
+    
+    // ✅ CONTROLLI DI SICUREZZA
+    const safeTrackings = trackings || [];
+    const safeShipments = shipments || [];
+    
+    console.log('🔄 Combining data sources:', {
+        trackings: safeTrackings.length,
+        shipments: safeShipments.length
+    });
+    
+    // Mappa trackings per lookup veloce
+    safeTrackings.forEach(t => {
+        if (t && t.tracking_number) {
+            trackingMap.set(t.tracking_number, t);
+        }
+    });
+    
+    // Combina shipments con trackings
+    safeShipments.forEach(shipment => {
+        if (!shipment) return;
         
-        // Mappa trackings per lookup veloce
-        trackings.forEach(t => trackingMap.set(t.tracking_number, t));
+        const tracking = trackingMap.get(shipment.tracking_number);
         
-        // Combina shipments con trackings
-        shipments.forEach(shipment => {
-            const tracking = trackingMap.get(shipment.tracking_number);
-            
+        combined.push({
+            ...shipment,
+            // Merge dei dati tracking
+            current_status: shipment.status || tracking?.current_status || tracking?.status,
+            carrier_name: shipment.carrier_name || tracking?.carrier_name,
+            carrier_code: tracking?.carrier_code,
+            origin_port: shipment.origin || tracking?.origin_port,
+            destination_port: shipment.destination || tracking?.destination_port,
+            total_weight_kg: shipment.total_weight_kg || tracking?.total_weight_kg || 0,
+            total_volume_cbm: shipment.total_volume_cbm || tracking?.total_volume_cbm || 0,
+            tracking_type: tracking?.tracking_type,
+            tracking_data: tracking
+        });
+    });
+    
+    // Aggiungi tracking senza shipments
+    safeTrackings.forEach(tracking => {
+        if (!tracking || !tracking.tracking_number) return;
+        
+        const hasShipment = safeShipments.some(s => s && s.tracking_number === tracking.tracking_number);
+        if (!hasShipment) {
             combined.push({
-                ...shipment,
-                // Merge dei dati tracking
-                current_status: shipment.status || tracking?.current_status || tracking?.status,
-                carrier_name: shipment.carrier_name || tracking?.carrier_name,
-                carrier_code: tracking?.carrier_code,
-                origin_port: shipment.origin || tracking?.origin_port,
-                destination_port: shipment.destination || tracking?.destination_port,
-                total_weight_kg: shipment.total_weight_kg || tracking?.total_weight_kg || 0,
-                total_volume_cbm: shipment.total_volume_cbm || tracking?.total_volume_cbm || 0,
-                tracking_type: tracking?.tracking_type,
-                tracking_data: tracking
+                ...tracking,
+                freight_cost: 0,
+                other_costs: 0,
+                total_cost: 0,
+                is_tracking_only: true
             });
-        });
-        
-        // Aggiungi tracking senza shipments
-        trackings.forEach(tracking => {
-            const hasShipment = shipments.some(s => s.tracking_number === tracking.tracking_number);
-            if (!hasShipment) {
-                combined.push({
-                    ...tracking,
-                    freight_cost: 0,
-                    other_costs: 0,
-                    total_cost: 0,
-                    is_tracking_only: true
-                });
-            }
-        });
-        
-        return combined;
-    }
+        }
+    });
+    
+    console.log('✅ Combined data result:', combined.length, 'records');
+    return combined;
+}
 
         calculateTotalCosts(shipments, additionalCosts) { // ✅ RINOMINATO
         const shipmentsCosts = shipments.reduce((total, s) => 
