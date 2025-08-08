@@ -773,8 +773,7 @@
                 <p class="sol-page-subtitle">Panoramica completa delle tue spedizioni e KPI</p>
             </div>
             <div class="sol-page-actions">
-                <button class="sol-btn sol-btn-glass" id="refreshBtn" onclick="refreshKPIs()">
-    <i class="fas fa-sync-alt"></i>
+<button class="sol-btn sol-btn-glass" id="refreshBtn" onclick="testKPIs()">    <i class="fas fa-sync-alt"></i>
     <span>Aggiorna KPI</span>
 </button>
                 <button class="sol-btn sol-btn-glass" onclick="dashboard.exportToExcel()">
@@ -1208,7 +1207,87 @@ document.addEventListener('DOMContentLoaded', function() {
         
         console.log('✅ Core services loaded for dashboard page');
     </script>
+        <!-- ✅ OVERRIDE COMPLETO - AGGIUNGI QUESTO DOPO IL SISTEMA KPI -->
+    <script>
+    // Disabilita completamente il sistema KPI del dashboard originale
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('🎯 Overriding dashboard KPI system...');
+        
+        // Aspetta che tutto sia caricato
+        setTimeout(() => {
+            // Disabilita renderKPICards del dashboard originale
+            if (window.dashboard && window.dashboard.renderKPICards) {
+                console.log('🔄 Disabling original KPI rendering...');
+                window.dashboard.renderKPICards = function() {
+                    console.log('🚫 Original KPI rendering blocked - using Real KPI System');
+                    return; // Non fare nulla
+                };
+            }
+            
+            // Forza il refresh del nostro sistema
+            if (window.realKPISystem && !window.realKPISystem.isLoading) {
+                console.log('🔄 Force refreshing Real KPI System...');
+                window.realKPISystem.loadRealKPIData();
+            }
+            
+            // Monitora cambiamenti del container e sovrascrivi
+            const kpiContainer = document.getElementById('kpiCards');
+            if (kpiContainer) {
+                const observer = new MutationObserver((mutations) => {
+                    mutations.forEach((mutation) => {
+                        if (mutation.type === 'childList') {
+                            // Se il container viene riempito con contenuto vuoto, sovrascrivi
+                            const hasEmptyContent = kpiContainer.innerHTML.includes('0') && 
+                                                  kpiContainer.innerHTML.includes('€0') &&
+                                                  !kpiContainer.innerHTML.includes('Caricamento');
+                            
+                            if (hasEmptyContent && window.realKPISystem) {
+                                console.log('🔄 Empty KPI detected, overriding with real data...');
+                                setTimeout(() => {
+                                    window.realKPISystem.loadRealKPIData();
+                                }, 500);
+                            }
+                        }
+                    });
+                });
+                
+                observer.observe(kpiContainer, { childList: true, subtree: true });
+                console.log('✅ KPI container monitor active');
+            }
+            
+        }, 4000); // Aspetta 4 secondi per essere sicuri
+    });
+    </script>
+
+<!-- ✅ SCRIPT DI TEST - AGGIUNGI DOPO L'OVERRIDE -->
+<script>
+// Test automatico dopo 6 secondi
+setTimeout(() => {
+    console.log('🧪 Running automatic KPI test...');
     
+    // Verifica sistemi
+    console.log('Dashboard system:', !!window.dashboard);
+    console.log('Real KPI system:', !!window.realKPISystem);
+    console.log('Supabase:', !!window.supabase);
+    
+    // Forza caricamento se necessario
+    if (window.realKPISystem) {
+        console.log('🔄 Force loading KPI data...');
+        window.realKPISystem.loadRealKPIData();
+    }
+}, 6000);
+
+// Funzione di test manuale
+window.testKPIs = function() {
+    console.log('🔧 Manual KPI test triggered');
+    if (window.realKPISystem) {
+        window.realKPISystem.loadRealKPIData();
+    } else {
+        console.error('❌ Real KPI System not found');
+    }
+};
+</script>
+
     <!-- Dashboard Script -->
     <script type="module" src="/pages/dashboard/index.js"></script>
         <!-- Bootstrap JS for Collapse functionality -->
@@ -1689,7 +1768,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         } catch (error) {
             console.error('❌ Real Data KPI System initialization error:', error);
         }
-    }, 1500);
+    }, 5000);
 });
 
 // ✅ FUNZIONI GLOBALI
