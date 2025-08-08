@@ -9,7 +9,8 @@
     
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
+    <!-- ✅ BOOTSTRAP CSS - AGGIUNGI QUESTA LINEA -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Solarium CSS - STESSO stile delle altre pagine -->
     <link rel="stylesheet" href="/assets/css/solarium.css">
     
@@ -33,60 +34,110 @@
     <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
     
         <style>
-    /* ✅ LAYOUT FILTRI RESPONSIVE */
-.form-label.small {
+    /* ✅ BOOTSTRAP GRID ENHANCEMENTS - COMPATIBILE CON FUTURE MODIFICHE */
+
+/* Override responsive per filtri dashboard - SPECIFICO E SCALABILE */
+.sol-card .row .col-xl-2,
+.sol-card .row .col-lg-3,
+.sol-card .row .col-md-4,
+.sol-card .row .col-6 {
+    display: flex;
+    flex-direction: column;
+    min-width: 0; /* Previene overflow */
+}
+
+/* ✅ FORM CONTROLS PERFEZIONATI */
+.sol-card .form-label.fw-semibold.small {
     font-size: 11px;
     font-weight: 600;
     color: #64748b;
     margin-bottom: 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
-.form-select-sm {
+.sol-card .form-select-sm {
     font-size: 13px;
-    padding: 4px 8px;
+    padding: 6px 10px;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    min-height: 32px;
 }
 
-.btn-sm {
+.sol-card .btn-sm {
     font-size: 12px;
-    padding: 4px 12px;
+    padding: 6px 12px;
+    min-height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
 }
 
-/* ✅ RESPONSIVE BREAKPOINTS */
-@media (max-width: 1200px) {
-    .col-xl-2 {
-        flex: 0 0 auto;
-        width: 20%;
+/* ✅ RESPONSIVE ENHANCEMENTS SPECIFICI */
+@media (max-width: 1400px) {
+    .sol-card .row > [class*="col-"] {
+        margin-bottom: 0.5rem;
     }
 }
 
 @media (max-width: 992px) {
-    .col-lg-3 {
-        flex: 0 0 auto;
-        width: 25%;
-    }
-}
-
-@media (max-width: 768px) {
-    .col-md-4 {
+    .sol-card .row .col-lg-3 {
         flex: 0 0 auto;
         width: 50%;
     }
 }
 
-@media (max-width: 576px) {
-    .col-6 {
+@media (max-width: 768px) {
+    .sol-card .row .col-md-4 {
         flex: 0 0 auto;
-        width: 100% !important;
+        width: 50%;
+    }
+    
+    .sol-card .form-label {
+        font-size: 10px !important;
+    }
+    
+    .sol-card .btn-sm {
+        padding: 4px 8px;
+        font-size: 11px;
     }
 }
 
-/* ✅ SMOOTH TRANSITIONS */
+@media (max-width: 576px) {
+    .sol-card .row > [class*="col-"] {
+        flex: 0 0 auto;
+        width: 100% !important;
+        margin-bottom: 0.75rem;
+    }
+    
+    .sol-card .row:last-child > [class*="col-"]:last-child {
+        margin-bottom: 0;
+    }
+}
+
+/* ✅ SMOOTH TRANSITIONS - MANTENUTE */
 #advancedFiltersRow {
     transition: all 0.3s ease;
+    overflow: hidden;
 }
 
 #toggleAdvancedBtn {
     transition: all 0.2s ease;
+}
+
+/* ✅ FOCUS STATES MIGLIORATI */
+.sol-card .form-select:focus,
+.sol-card .form-control:focus {
+    border-color: #6366f1;
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+    outline: none;
+}
+
+.sol-card .btn:focus {
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+    outline: none;
 }
     /* ===== KPI CARDS GRID ===== */
     .kpi-grid {
@@ -819,6 +870,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 toggleBtn.classList.remove('btn-outline-danger');
                 toggleBtn.classList.add('btn-outline-secondary');
             }
+        });
+    } else {
+        console.error('❌ Advanced filters elements not found:', {
+            toggleBtn: !!toggleBtn,
+            advancedRow: !!advancedRow
         });
     }
     
