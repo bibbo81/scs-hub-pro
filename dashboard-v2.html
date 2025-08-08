@@ -3,236 +3,217 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard Costi Trasporti - SCS Hub</title>
+    <title>Dashboard Costi Trasporti - SCS Hub Pro</title>
     
-    <!-- Styles -->
-    <link rel="stylesheet" href="../../assets/css/global.css">
-    <link rel="stylesheet" href="dashboard-v2.css">
+    <!-- ✅ CSS LOCALI -->
+    <link rel="stylesheet" href="../../../assets/css/global.css">
+    <link rel="stylesheet" href="./dashboard-v2.css">
     
-    <!-- Chart.js -->
+    <!-- ✅ FONT AWESOME -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <!-- ✅ CHART.JS -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    
-    <!-- Supabase -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/date-fns@2.29.3/index.min.js"></script>
 </head>
 <body>
-    <!-- Header Placeholder -->
+    <!-- ✅ HEADER -->
     <div id="headerContainer"></div>
 
-    <!-- Main Dashboard Container -->
+    <!-- ✅ MAIN DASHBOARD -->
     <div class="dashboard-container">
         
-        <!-- Filtri Principali -->
-        <div class="filters-section">
+        <!-- 🔍 SEZIONE FILTRI -->
+        <section class="filters-section">
             <div class="filters-grid">
-                <!-- Filtro Periodo -->
                 <div class="filter-group">
-                    <label>Periodo</label>
+                    <label for="periodFilter">📅 Periodo</label>
                     <select id="periodFilter">
-                        <option value="current_month">Mese Corrente</option>
-                        <option value="last_month">Mese Scorso</option>
-                        <option value="last_3_months" selected>Ultimi 3 Mesi</option>
-                        <option value="last_6_months">Ultimi 6 Mesi</option>
-                        <option value="current_year">Anno Corrente</option>
+                        <option value="7">Ultimi 7 giorni</option>
+                        <option value="30" selected>Ultimi 30 giorni</option>
+                        <option value="90">Ultimi 3 mesi</option>
+                        <option value="365">Ultimo anno</option>
                         <option value="custom">Personalizzato</option>
                     </select>
-                    <div id="customDateRange" style="display:none;">
-                        <input type="date" id="startDate">
-                        <input type="date" id="endDate">
-                    </div>
                 </div>
 
-                <!-- Filtro Corriere -->
                 <div class="filter-group">
-                    <label>Corriere/Spedizioniere</label>
+                    <label for="carrierFilter">🚚 Corriere</label>
                     <select id="carrierFilter">
-                        <option value="">Tutti</option>
+                        <option value="">Tutti i corrieri</option>
                     </select>
                 </div>
 
-                <!-- Filtro Modalità Trasporto -->
                 <div class="filter-group">
-                    <label>Modalità Trasporto</label>
-                    <select id="transportModeFilter">
-                        <option value="">Tutte</option>
-                        <option value="road">Stradale</option>
-                        <option value="sea">Marittimo</option>
-                        <option value="air">Aereo</option>
-                        <option value="rail">Ferroviario</option>
-                        <option value="courier">Corriere Espresso</option>
-                    </select>
-                </div>
-
-                <!-- Filtro Rotta -->
-                <div class="filter-group">
-                    <label>Rotta</label>
+                    <label for="routeFilter">🛣️ Rotta</label>
                     <select id="routeFilter">
-                        <option value="">Tutte</option>
-                        <option value="domestic">Nazionale</option>
-                        <option value="eu">Europa</option>
-                        <option value="international">Internazionale</option>
+                        <option value="">Tutte le rotte</option>
                     </select>
                 </div>
 
-                <!-- Filtro Stato -->
                 <div class="filter-group">
-                    <label>Stato Spedizione</label>
-                    <select id="statusFilter">
-                        <option value="">Tutti</option>
-                        <option value="delivered">Consegnate</option>
-                        <option value="in_transit">In Transito</option>
-                        <option value="pending">In Attesa</option>
-                        <option value="cancelled">Annullate</option>
+                    <label for="costRangeFilter">💰 Range Costi</label>
+                    <select id="costRangeFilter">
+                        <option value="">Tutti i costi</option>
+                        <option value="0-100">€0 - €100</option>
+                        <option value="100-500">€100 - €500</option>
+                        <option value="500-1000">€500 - €1.000</option>
+                        <option value="1000+">€1.000+</option>
                     </select>
                 </div>
 
-                <!-- Pulsanti Azione -->
                 <div class="filter-actions">
-                    <button id="applyFilters" class="btn-primary">Applica Filtri</button>
-                    <button id="resetFilters" class="btn-secondary">Reset</button>
+                    <button class="btn-primary" id="applyFilters">
+                        <i class="fas fa-search"></i> Applica
+                    </button>
+                    <button class="btn-secondary" id="resetFilters">
+                        <i class="fas fa-undo"></i> Reset
+                    </button>
                 </div>
             </div>
-        </div>
 
-        <!-- KPI Section - FOCUS SUI COSTI -->
-        <div class="kpi-section">
-            <div class="kpi-grid">
-                <!-- KPI 1: Costo Totale -->
-                <div class="kpi-card">
-                    <div class="kpi-icon">💰</div>
-                    <div class="kpi-content">
-                        <div class="kpi-label">Costo Totale Trasporti</div>
-                        <div class="kpi-value" id="totalCost">€0</div>
-                        <div class="kpi-trend" id="costTrend">-</div>
-                    </div>
-                </div>
-
-                <!-- KPI 2: Costo Medio per Spedizione -->
-                <div class="kpi-card">
-                    <div class="kpi-icon">📊</div>
-                    <div class="kpi-content">
-                        <div class="kpi-label">Costo Medio/Spedizione</div>
-                        <div class="kpi-value" id="avgCostPerShipment">€0</div>
-                        <div class="kpi-trend" id="avgCostTrend">-</div>
-                    </div>
-                </div>
-
-                <!-- KPI 3: Costo per Kg -->
-                <div class="kpi-card">
-                    <div class="kpi-icon">⚖️</div>
-                    <div class="kpi-content">
-                        <div class="kpi-label">Costo per Kg</div>
-                        <div class="kpi-value" id="costPerKg">€0</div>
-                        <div class="kpi-trend" id="costPerKgTrend">-</div>
-                    </div>
-                </div>
-
-                <!-- KPI 4: Tempo Medio Transito -->
-                <div class="kpi-card">
-                    <div class="kpi-icon">⏱️</div>
-                    <div class="kpi-content">
-                        <div class="kpi-label">Tempo Medio Transito</div>
-                        <div class="kpi-value" id="avgTransitTime">0 gg</div>
-                        <div class="kpi-trend" id="transitTrend">-</div>
-                    </div>
-                </div>
-
-                <!-- KPI 5: Numero Spedizioni -->
-                <div class="kpi-card">
-                    <div class="kpi-icon">📦</div>
-                    <div class="kpi-content">
-                        <div class="kpi-label">Totale Spedizioni</div>
-                        <div class="kpi-value" id="totalShipments">0</div>
-                        <div class="kpi-trend" id="shipmentsTrend">-</div>
-                    </div>
-                </div>
-
-                <!-- KPI 6: Puntualità -->
-                <div class="kpi-card">
-                    <div class="kpi-icon">✅</div>
-                    <div class="kpi-content">
-                        <div class="kpi-label">Consegne Puntuali</div>
-                        <div class="kpi-value" id="onTimeDelivery">0%</div>
-                        <div class="kpi-trend" id="onTimeTrend">-</div>
-                    </div>
-                </div>
+            <!-- ✅ DATE PERSONALIZZATE -->
+            <div id="customDateRange" style="display: none;">
+                <input type="date" id="startDate">
+                <input type="date" id="endDate">
             </div>
-        </div>
+        </section>
 
-        <!-- Charts Section -->
-        <div class="charts-section">
+        <!-- 📊 SEZIONE KPI -->
+        <section class="kpi-section">
+            <div class="kpi-grid" id="kpiGrid">
+                <!-- ✅ KPI DINAMICI GENERATI DA JS -->
+            </div>
+        </section>
+
+        <!-- 📈 SEZIONE CHARTS -->
+        <section class="charts-section">
             <div class="charts-grid">
-                <!-- Chart 1: Andamento Costi nel Tempo -->
+                <!-- ✅ TREND COSTI -->
                 <div class="chart-card">
                     <div class="chart-header">
-                        <h3>Andamento Costi Trasporto</h3>
-                        <select id="costChartPeriod">
+                        <h3><i class="fas fa-chart-line"></i> Trend Costi nel Tempo</h3>
+                        <select id="trendPeriod">
                             <option value="daily">Giornaliero</option>
-                            <option value="weekly">Settimanale</option>
-                            <option value="monthly" selected>Mensile</option>
+                            <option value="weekly" selected>Settimanale</option>
+                            <option value="monthly">Mensile</option>
                         </select>
                     </div>
-                    <canvas id="costTrendChart"></canvas>
+                    <canvas id="costsChart"></canvas>
                 </div>
 
-                <!-- Chart 2: Costi per Corriere -->
+                <!-- ✅ DISTRIBUZIONE CORRIERI -->
                 <div class="chart-card">
                     <div class="chart-header">
-                        <h3>Costi per Corriere/Spedizioniere</h3>
+                        <h3><i class="fas fa-chart-pie"></i> Costi per Corriere</h3>
+                        <select id="carrierMetric">
+                            <option value="costs">Costi Totali</option>
+                            <option value="avg_cost">Costo Medio</option>
+                            <option value="volume">Volume Spedizioni</option>
+                        </select>
                     </div>
-                    <canvas id="costByCarrierChart"></canvas>
+                    <canvas id="carriersChart"></canvas>
                 </div>
 
-                <!-- Chart 3: Costi per Modalità -->
+                <!-- ✅ ROTTE PIÙ COSTOSE -->
                 <div class="chart-card">
                     <div class="chart-header">
-                        <h3>Costi per Modalità Trasporto</h3>
+                        <h3><i class="fas fa-route"></i> Rotte per Costo</h3>
+                        <select id="routeMetric">
+                            <option value="total_cost">Costo Totale</option>
+                            <option value="avg_cost">Costo Medio</option>
+                            <option value="cost_per_kg">Costo per Kg</option>
+                        </select>
                     </div>
-                    <canvas id="costByModeChart"></canvas>
+                    <canvas id="routesChart"></canvas>
                 </div>
 
-                <!-- Chart 4: Tempi di Transito -->
+                <!-- ✅ TEMPI VS COSTI -->
                 <div class="chart-card">
                     <div class="chart-header">
-                        <h3>Tempi di Transito per Corriere</h3>
+                        <h3><i class="fas fa-clock"></i> Tempi di Transito vs Costi</h3>
+                        <select id="transitMetric">
+                            <option value="scatter">Scatter Plot</option>
+                            <option value="correlation">Correlazione</option>
+                        </select>
                     </div>
-                    <canvas id="transitTimeChart"></canvas>
+                    <canvas id="transitChart"></canvas>
                 </div>
             </div>
-        </div>
+        </section>
 
-        <!-- Analisi Dettagliate -->
-        <div class="analysis-section">
+        <!-- 🎯 SEZIONE ANALISI -->
+        <section class="analysis-section">
             <div class="analysis-grid">
-                <!-- Top Rotte per Costo -->
+                
+                <!-- ✅ TOP ROTTE COSTOSE -->
                 <div class="analysis-card">
-                    <h3>Top 10 Rotte per Costo</h3>
-                    <div id="topRoutesList" class="analysis-list"></div>
+                    <h3><i class="fas fa-list-ol"></i> Top 10 Rotte Più Costose</h3>
+                    <div id="topRoutes">
+                        <!-- ✅ LISTA DINAMICA -->
+                    </div>
                 </div>
 
-                <!-- Performance Corrieri -->
+                <!-- ✅ PERFORMANCE CORRIERI -->
                 <div class="analysis-card">
-                    <h3>Performance Corrieri</h3>
-                    <div id="carrierPerformanceTable" class="analysis-table"></div>
+                    <h3><i class="fas fa-trophy"></i> Performance Corrieri</h3>
+                    <div style="overflow-x: auto;">
+                        <table class="performance-table">
+                            <thead>
+                                <tr>
+                                    <th>Corriere</th>
+                                    <th>Spedizioni</th>
+                                    <th>Costo Totale</th>
+                                    <th>Costo Medio</th>
+                                    <th>Tempo Medio</th>
+                                    <th>Efficienza</th>
+                                </tr>
+                            </thead>
+                            <tbody id="carriersPerformance">
+                                <!-- ✅ DATI DINAMICI -->
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
 
-                <!-- Analisi Costi Extra -->
+                <!-- ✅ BREAKDOWN COSTI -->
                 <div class="analysis-card">
-                    <h3>Breakdown Costi Aggiuntivi</h3>
-                    <div id="additionalCostsList" class="analysis-list"></div>
+                    <h3><i class="fas fa-chart-pie"></i> Breakdown Costi</h3>
+                    <div id="costBreakdown">
+                        <!-- ✅ LISTA DINAMICA -->
+                    </div>
                 </div>
 
-                <!-- Alert e Anomalie -->
+                <!-- ✅ ALERT E ANOMALIE -->
                 <div class="analysis-card">
-                    <h3>Alert Costi Anomali</h3>
-                    <div id="costAlertsList" class="alert-list"></div>
+                    <h3><i class="fas fa-exclamation-triangle"></i> Alert Costi</h3>
+                    <div id="costAlerts">
+                        <!-- ✅ ALERT DINAMICI -->
+                    </div>
                 </div>
             </div>
-        </div>
+        </section>
+
     </div>
 
-    <!-- Scripts -->
-    <script src="../../core/services/supabase-client.js"></script>
-    <script src="dashboard-v2.js"></script>
+    <!-- ✅ SCRIPTS -->
+    <script type="module" src="../../../core/client/supabase-client.js"></script>
+    <script type="module" src="../../../core/services/core-services.js"></script>
+    <script type="module" src="./dashboard-v2.js"></script>
+    
+    <script>
+        // ✅ CARICA SERVIZI CORE
+        document.addEventListener('DOMContentLoaded', async () => {
+            console.log('🚀 Loading core services for transport costs dashboard...');
+            
+            // ✅ CARICA HEADER
+            try {
+                const headerModule = await import('../../../core/components/header-component.js');
+                console.log('✅ Core services loaded for transport costs dashboard');
+            } catch (error) {
+                console.warn('⚠️ Could not load header component:', error);
+            }
+        });
+    </script>
 </body>
 </html>
