@@ -604,10 +604,10 @@ class DynamicDashboard {
         const category = document.getElementById('analyticsCategory').value;
         const metric = document.getElementById('specificMetric').value;
         const granularity = document.getElementById('granularityLevel').value;
-        const comparison = document.getElementById('comparisonType').value;
+        // FIX: Rimosso riferimento a 'comparisonType' che non esiste e causava l'errore
         
         console.log('🎯 Generating custom analysis:', {
-            category, metric, granularity, comparison
+            category, metric, granularity
         });
         
         // Reload with specific parameters

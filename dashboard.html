@@ -593,28 +593,20 @@
             </div>
         </div>
 
-<!-- Compact Analytics & Filters Section -->
+<!-- ✅ NUOVO LAYOUT FILTRI - PIÙ COERENTE E ORIZZONTALE -->
 <div class="sol-card mb-4">
-    <div class="sol-card-header">
-        <h5 class="sol-card-title">
-            <i class="fas fa-analytics text-primary me-2"></i>
-            Analisi & Filtri
+    <div class="sol-card-header d-flex justify-content-between align-items-center">
+        <h5 class="sol-card-title mb-0">
+            <i class="fas fa-filter text-primary me-2"></i>
+            Filtri & Analisi
         </h5>
+        <button class="btn btn-outline-secondary btn-sm" type="button" data-bs-toggle="collapse" data-bs-target="#advancedFilters" aria-expanded="false" aria-controls="advancedFilters">
+            <i class="fas fa-sliders-h"></i> Filtri Avanzati
+        </button>
     </div>
     <div class="sol-card-body">
-        <!-- ROW 1: Main Controls - ORIZZONTALE -->
-        <div class="row g-3 mb-3">
-            <div class="col-lg-3 col-md-6">
-                <label class="form-label fw-semibold">🎯 Categoria Analisi</label>
-                <select class="form-select" id="analyticsCategory">
-                    <option value="overview">📊 Panoramica Generale</option>
-                    <option value="shipments">📦 Analisi Spedizioni</option>
-                    <option value="financial">💰 Analisi Costi</option>
-                    <option value="performance">🚀 Performance</option>
-                    <option value="geographical">🌍 Geografica</option>
-                    <option value="trends">📈 Trend</option>
-                </select>
-            </div>
+        <!-- Filtri Principali -->
+        <div class="row g-3 mb-3 align-items-end">
             <div class="col-lg-3 col-md-6">
                 <label class="form-label fw-semibold">📅 Periodo</label>
                 <select class="form-select" id="periodFilter">
@@ -642,72 +634,34 @@
                     <option value="cancelled">❌ Annullato</option>
                 </select>
             </div>
+            <div class="col-lg-3 col-md-6">
+                <button class="sol-btn sol-btn-outline-primary w-100" onclick="window.dashboard.applyFilters()">
+                    <i class="fas fa-filter"></i> Applica Filtri
+                </button>
+            </div>
         </div>
 
-        <!-- ROW 2: Advanced Filters + Actions - ORIZZONTALE -->
-        <div class="row g-3 align-items-end">
-            <div class="col-lg-2 col-md-4">
-                <label class="form-label">📊 Metrica</label>
-                <select class="form-select form-select-sm" id="specificMetric">
-                    <option value="">Tutte</option>
-                    <!-- Popolato dinamicamente -->
-                </select>
-            </div>
-            <div class="col-lg-2 col-md-4">
-                <label class="form-label">🚛 Trasporto</label>
-                <select class="form-select form-select-sm" id="transportFilter">
-                    <option value="">Tutti</option>
-                    <option value="container">🚢 Container</option>
-                    <option value="air">✈️ Aereo</option>
-                    <option value="road">🚛 Stradale</option>
-                    <option value="parcel">📦 Corriere</option>
-                </select>
-            </div>
-            <div class="col-lg-2 col-md-4">
-                <label class="form-label">📈 Granularità</label>
-                <select class="form-select form-select-sm" id="granularityLevel">
-                    <option value="weekly">📊 Settimanale</option>
-                    <option value="monthly" selected>📈 Mensile</option>
-                    <option value="quarterly">📋 Trimestrale</option>
-                </select>
-            </div>
-            <div class="col-lg-2 col-md-4">
-                <button class="sol-btn sol-btn-primary w-100" onclick="window.dynamicDashboard.generateAnalysis()">
-                    <i class="fas fa-chart-line"></i> Genera
-                </button>
-            </div>
-            <div class="col-lg-2 col-md-4">
-                <button class="sol-btn sol-btn-outline-primary w-100" onclick="window.dashboard.applyFilters()">
-                    <i class="fas fa-filter"></i> Applica
-                </button>
-            </div>
-            <div class="col-lg-2 col-md-4">
-                <button class="btn btn-outline-secondary btn-sm w-100" type="button" data-bs-toggle="collapse" data-bs-target="#advancedFilters">
-                    <i class="fas fa-cogs"></i> Avanzati
-                </button>
-            </div>
-        </div>
-        
-        <!-- ROW 3: Advanced Filters (Collapsible) -->
-        <div class="collapse mt-3" id="advancedFilters">
-            <div class="card border-0 bg-light">
+        <!-- Filtri Avanzati (Collapsible) -->
+        <div class="collapse" id="advancedFilters">
+            <div class="card border-0 bg-light mt-3">
                 <div class="card-body">
-                    <h6 class="card-title text-muted mb-3">
-                        <i class="fas fa-sliders-h me-2"></i>Filtri Avanzati
-                    </h6>
                     <div class="row g-3">
                         <div class="col-lg-2 col-md-4">
                             <label class="form-label">🌍 Origine</label>
-                            <select class="form-select form-select-sm" id="originFilter">
-                                <option value="">Tutte</option>
-                                <!-- Popolato dinamicamente -->
-                            </select>
+                            <select class="form-select form-select-sm" id="originFilter"><option value="">Tutte</option></select>
                         </div>
                         <div class="col-lg-2 col-md-4">
                             <label class="form-label">🎯 Destinazione</label>
-                            <select class="form-select form-select-sm" id="destinationFilter">
-                                <option value="">Tutte</option>
-                                <!-- Popolato dinamicamente -->
+                            <select class="form-select form-select-sm" id="destinationFilter"><option value="">Tutte</option></select>
+                        </div>
+                        <div class="col-lg-2 col-md-4">
+                            <label class="form-label">🚛 Trasporto</label>
+                            <select class="form-select form-select-sm" id="transportFilter">
+                                <option value="">Tutti</option>
+                                <option value="container">🚢 Container</option>
+                                <option value="air">✈️ Aereo</option>
+                                <option value="road">🚛 Stradale</option>
+                                <option value="parcel">📦 Corriere</option>
                             </select>
                         </div>
                         <div class="col-lg-2 col-md-4">
@@ -737,24 +691,53 @@
                                 <option value="low">🟢 Bassa</option>
                             </select>
                         </div>
-                        <div class="col-lg-2 col-md-4">
-                            <button class="sol-btn sol-btn-glass w-100" onclick="window.dashboard.resetFilters()">
-                                <i class="fas fa-undo"></i> Reset
-                            </button>
-                        </div>
                     </div>
                 </div>
             </div>
         </div>
+
+        <!-- Sezione Analisi Dinamica -->
+        <hr class="my-4">
+        <div class="row g-3 align-items-end">
+            <div class="col-lg-4 col-md-6">
+                <label class="form-label fw-semibold">🎯 Categoria Analisi</label>
+                <select class="form-select" id="analyticsCategory">
+                    <option value="overview">📊 Panoramica Generale</option>
+                    <option value="shipments">📦 Analisi Spedizioni</option>
+                    <option value="financial">💰 Analisi Costi</option>
+                    <option value="performance">🚀 Performance</option>
+                    <option value="geographical">🌍 Geografica</option>
+                    <option value="trends">📈 Trend</option>
+                </select>
+            </div>
+            <div class="col-lg-3 col-md-6">
+                <label class="form-label">📊 Metrica Specifica</label>
+                <select class="form-select form-select-sm" id="specificMetric"><option value="">Tutte</option></select>
+            </div>
+            <div class="col-lg-2 col-md-4">
+                <label class="form-label">📈 Granularità</label>
+                <select class="form-select form-select-sm" id="granularityLevel">
+                    <option value="weekly">Settimanale</option>
+                    <option value="monthly" selected>Mensile</option>
+                    <option value="quarterly">Trimestrale</option>
+                </select>
+            </div>
+            <div class="col-lg-3 col-md-4">
+                <button class="sol-btn sol-btn-primary w-100" onclick="window.dynamicDashboard.generateAnalysis()">
+                    <i class="fas fa-chart-line"></i> Genera Analisi
+                </button>
+            </div>
+        </div>
     </div>
 </div>
+
 <!-- Dynamic Content Area -->
 <div id="dynamicContent">
     <!-- Qui verrà inserito il contenuto dinamico basato sulla selezione -->
 </div>
 
 <!-- Default Dashboard Content (mostrato inizialmente) -->
-<div id="defaultDashboard">
+<div id="defaultDashboardContent">
         <!-- KPI Cards -->
 <div class="kpi-grid" id="kpiCards">
     <!-- Popolato dinamicamente con layout compatto quadrato -->
