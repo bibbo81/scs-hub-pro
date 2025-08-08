@@ -685,84 +685,76 @@ class Dashboard {
             this.showError('Errore durante l\'inizializzazione del dashboard');
         }
     }
-                   async waitForServices(maxAttempts = 10) {
-            for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-                console.log(`⏳ Attempt ${attempt}: Checking services...`);
-                
-                const status = {
-                    dataManager: !!window.dataManager,
-                    notificationSystem: !!window.notificationSystem,
-                    headerComponent: !!window.headerComponent,
-                    supabase: !!window.supabase
+async waitForServices(maxAttempts = 10) {
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+        console.log(`⏳ Attempt ${attempt}: Checking services...`);
+        
+        const status = {
+            dataManager: !!window.dataManager,
+            notificationSystem: !!window.notificationSystem,
+            headerComponent: !!window.headerComponent,
+            supabase: !!window.supabase
+        };
+        
+        console.log('📊 Services status:', status);
+        
+        // ✅ INIZIALIZZA NOTIFICATIONSYSTEM
+        if (!window.notificationSystem) {
+            try {
+                console.log('🔧 Initializing NotificationSystem...');
+                window.notificationSystem = {
+                    success: (msg) => console.log(`✅ ${msg}`),
+                    error: (msg) => console.error(`❌ ${msg}`),
+                    warning: (msg) => console.warn(`⚠️ ${msg}`),
+                    info: (msg) => console.info(`ℹ️ ${msg}`),
+                    show: (title, body, type) => console.log(`${type}: ${title} - ${body}`)
                 };
-                
-                console.log('📊 Services status:', status);
-                
-                // ✅ INIZIALIZZA NOTIFICATIONSYSTEM CON PATH CORRETTO
-                if (!window.notificationSystem) {
-                    try {
-                        console.log('🔧 Initializing NotificationSystem...');
-                        // ✅ FALLBACK: crea NotificationSystem mock
-                        window.notificationSystem = {
-                            success: (msg) => console.log(`✅ ${msg}`),
-                            error: (msg) => console.error(`❌ ${msg}`),
-                            warning: (msg) => console.warn(`⚠️ ${msg}`),
-                            info: (msg) => console.info(`ℹ️ ${msg}`),
-                            show: (title, body, type) => console.log(`${type}: ${title} - ${body}`)
-                        };
-                        status.notificationSystem = true;
-                        console.log('✅ NotificationSystem mock created');
-                    } catch (error) {
-                        console.warn('⚠️ Could not initialize NotificationSystem:', error);
-                    }
-                }
-                
-                // ✅ INIZIALIZZA DATAMANAGER CON PATH CORRETTO
-                if (!window.dataManager) {
-                    try {
-                        console.log('🔧 Initializing DataManager...');
-                        // ✅ FALLBACK: crea DataManager mock
-                        window.dataManager = {
-                            getDashboardData: async () => ({
-                                trackings: [],
-                                shipments: [],
-                                carriers: [],
-                                additionalCosts: []
-                            }),
-                            getTrackings: async () => [],
-                            getShipments: async () => [],
-                            getCarriers: async () => [],
-                            getAdditionalCosts: async () => []
-                        };
-                        status.dataManager = true;
-                        console.log('✅ DataManager mock created');
-                    } catch (error) {
-                        console.warn('⚠️ Could not initialize DataManager:', error);
-                    }
-                }
-                
-                // ✅ VERIFICA SERVIZI ESSENZIALI
-                const essentialServices = ['supabase'];
-                const essentialReady = essentialServices.every(service => status[service]);
-                
-                if (essentialReady) {
-                    console.log('✅ Essential services are available!');
-                    return true;
-                }
-                
-                await new Promise(resolve => setTimeout(resolve, 500));
+                status.notificationSystem = true;
+                console.log('✅ NotificationSystem mock created');
+            } catch (error) {
+                console.warn('⚠️ Could not initialize NotificationSystem:', error);
             }
-            
-            // ✅ FALLBACK FINALE
-            console.warn('⚠️ Not all services available, continuing anyway...');
+        }
+        
+        // ✅ INIZIALIZZA DATAMANAGER
+        if (!window.dataManager) {
+            try {
+                console.log('🔧 Initializing DataManager...');
+                window.dataManager = {
+                    getDashboardData: async () => ({
+                        trackings: [],
+                        shipments: [],
+                        carriers: [],
+                        additionalCosts: []
+                    }),
+                    getTrackings: async () => [],
+                    getShipments: async () => [],
+                    getCarriers: async () => [],
+                    getAdditionalCosts: async () => []
+                };
+                status.dataManager = true;
+                console.log('✅ DataManager mock created');
+            } catch (error) {
+                console.warn('⚠️ Could not initialize DataManager:', error);
+            }
+        }
+        
+        // ✅ VERIFICA SERVIZI ESSENZIALI
+        const essentialServices = ['supabase'];
+        const essentialReady = essentialServices.every(service => status[service]);
+        
+        if (essentialReady) {
+            console.log('✅ Essential services are available!');
             return true;
         }
         
-        // ✅ NON FARE THROW - continua con servizi parziali
-        console.warn('⚠️ Not all services available, continuing anyway...');
-        return true;
+        await new Promise(resolve => setTimeout(resolve, 500));
     }
-
+    
+    // ✅ FALLBACK FINALE (UNA SOLA VOLTA)
+    console.warn('⚠️ Not all services available, continuing anyway...');
+    return true;
+}
         setupEventListeners() {
         console.log('🔄 Setting up Dashboard event listeners...');
         
