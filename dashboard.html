@@ -1368,16 +1368,41 @@ class RealDataKPISystem {
         }
     }
 
-    // ✅ CARICA TUTTI I DATI DA SUPABASE
-    async loadAllData() {
-        console.log('📥 Loading all data from Supabase...');
-        
-        const [shipmentsResult, trackingsResult, carriersResult, costsResult] = await Promise.allSettled([
-            this.supabase.from('shipments').select('*').order('created_at', { ascending: false }).limit(2000),
-            this.supabase.from('trackings').select('*').limit(2000),
-            this.supabase.from('carriers').select('*').eq('is_active', true),
-            this.supabase.from('additional_costs').select('*').limit(1000)
-        ]);
+    // ✅ MIGLIORAMENTO: Carica anche dati organization-specific
+async loadAllData() {
+    console.log('📥 Loading all data from Supabase...');
+    
+    // Ottieni organization ID se disponibile
+    let organizationId = null;
+    try {
+        const { data: { user } } = await this.supabase.auth.getUser();
+        if (user) {
+            const { data: membership } = await this.supabase
+                .from('organization_members')
+                .select('organization_id')
+                .eq('user_id', user.id)
+                .single();
+            organizationId = membership?.organization_id;
+        }
+    } catch (error) {
+        console.log('ℹ️ No organization filter applied');
+    }
+    
+    // Query con filtro organization opzionale
+    let shipmentsQuery = this.supabase.from('shipments').select('*');
+    let trackingsQuery = this.supabase.from('trackings').select('*');
+    
+    if (organizationId) {
+        shipmentsQuery = shipmentsQuery.eq('organization_id', organizationId);
+        trackingsQuery = trackingsQuery.eq('organization_id', organizationId);
+    }
+    
+    const [shipmentsResult, trackingsResult, carriersResult, costsResult] = await Promise.allSettled([
+        shipmentsQuery.order('created_at', { ascending: false }).limit(2000),
+        trackingsQuery.limit(2000),
+        this.supabase.from('carriers').select('*').limit(100), // ✅ CORRETTO
+        this.supabase.from('additional_costs').select('*').limit(1000)
+    ]);
 
         // Estrai dati o array vuoti in caso di errore
         const shipments = this.extractData(shipmentsResult, 'shipments');
