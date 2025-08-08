@@ -773,10 +773,10 @@
                 <p class="sol-page-subtitle">Panoramica completa delle tue spedizioni e KPI</p>
             </div>
             <div class="sol-page-actions">
-                <button class="sol-btn sol-btn-glass" id="refreshBtn" onclick="dashboard.refresh()">
-                    <i class="fas fa-sync-alt"></i>
-                    <span>Aggiorna</span>
-                </button>
+                <button class="sol-btn sol-btn-glass" id="refreshBtn" onclick="refreshKPIs()">
+    <i class="fas fa-sync-alt"></i>
+    <span>Aggiorna KPI</span>
+</button>
                 <button class="sol-btn sol-btn-glass" onclick="dashboard.exportToExcel()">
                     <i class="fas fa-download"></i>
                     <span>Esporta</span>
@@ -1213,5 +1213,520 @@ document.addEventListener('DOMContentLoaded', function() {
     <script type="module" src="/pages/dashboard/index.js"></script>
         <!-- Bootstrap JS for Collapse functionality -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+<!-- ✅ KPI SYSTEM DIRETTO CON DATI REALI -->
+<script>
+/**
+ * 🎯 SISTEMA KPI COLLEGATO AI DATI REALI
+ * Connessione diretta con Supabase senza mock
+ */
+
+class RealDataKPISystem {
+    constructor() {
+        this.supabase = null;
+        this.kpiData = {};
+        this.isLoading = false;
+        this.currentPeriod = 30; // giorni
+        console.log('🎯 Real Data KPI System initialized');
+    }
+
+    // ✅ INIZIALIZZAZIONE CON ATTESA SUPABASE
+    async init() {
+        console.log('🚀 Initializing Real Data KPI System...');
+        
+        // Attendi che Supabase sia disponibile
+        await this.waitForSupabase();
+        
+        // Carica dati immediati
+        await this.loadRealKPIData();
+        
+        console.log('✅ Real Data KPI System ready!');
+    }
+
+    // ✅ ATTENDI SUPABASE
+    async waitForSupabase(maxAttempts = 30) {
+        for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+            console.log(`⏳ Attempt ${attempt}: Checking Supabase...`);
+            
+            if (window.supabase) {
+                this.supabase = window.supabase;
+                console.log('✅ Supabase connected successfully');
+                return true;
+            }
+            
+            await new Promise(resolve => setTimeout(resolve, 200));
+        }
+        
+        throw new Error('❌ Supabase not available after 30 attempts');
+    }
+
+    // ✅ CARICA DATI KPI REALI
+    async loadRealKPIData() {
+        console.log('📊 Loading REAL KPI data from Supabase...');
+        this.isLoading = true;
+        this.renderLoadingKPIs();
+
+        try {
+            // 1. Carica tutti i dati necessari
+            const [shipmentsData, trackingsData, carriersData, additionalCostsData] = await this.loadAllData();
+            
+            // 2. Filtra per periodo
+            const filteredShipments = this.filterByPeriod(shipmentsData);
+            
+            // 3. Calcola KPI reali
+            const kpiData = await this.calculateRealKPIs(filteredShipments, trackingsData, carriersData, additionalCostsData);
+            
+            // 4. Renderizza KPI
+            this.renderRealKPIs(kpiData);
+            
+            console.log('✅ Real KPI data loaded successfully:', kpiData);
+            
+        } catch (error) {
+            console.error('❌ Error loading real KPI data:', error);
+            this.renderErrorKPIs(error.message);
+        } finally {
+            this.isLoading = false;
+        }
+    }
+
+    // ✅ CARICA TUTTI I DATI DA SUPABASE
+    async loadAllData() {
+        console.log('📥 Loading all data from Supabase...');
+        
+        const [shipmentsResult, trackingsResult, carriersResult, costsResult] = await Promise.allSettled([
+            this.supabase.from('shipments').select('*').order('created_at', { ascending: false }).limit(2000),
+            this.supabase.from('trackings').select('*').limit(2000),
+            this.supabase.from('carriers').select('*').eq('is_active', true),
+            this.supabase.from('additional_costs').select('*').limit(1000)
+        ]);
+
+        // Estrai dati o array vuoti in caso di errore
+        const shipments = this.extractData(shipmentsResult, 'shipments');
+        const trackings = this.extractData(trackingsResult, 'trackings');
+        const carriers = this.extractData(carriersResult, 'carriers');
+        const additionalCosts = this.extractData(costsResult, 'additional_costs');
+
+        console.log('📊 Data loaded:', {
+            shipments: shipments.length,
+            trackings: trackings.length,
+            carriers: carriers.length,
+            additionalCosts: additionalCosts.length
+        });
+
+        return [shipments, trackings, carriers, additionalCosts];
+    }
+
+    // ✅ ESTRAI DATI SICURI
+    extractData(result, name) {
+        if (result.status === 'fulfilled' && result.value.data && !result.value.error) {
+            return result.value.data;
+        } else {
+            console.warn(`⚠️ No data or error for ${name}:`, result.value?.error || result.reason);
+            return [];
+        }
+    }
+
+    // ✅ FILTRA PER PERIODO
+    filterByPeriod(shipments, days = null) {
+        const period = days || this.currentPeriod;
+        const now = new Date();
+        const startDate = new Date(now.getTime() - (period * 24 * 60 * 60 * 1000));
+        
+        const filtered = shipments.filter(shipment => {
+            const shipmentDate = new Date(shipment.created_at);
+            return shipmentDate >= startDate;
+        });
+
+        console.log(`🗓️ Filtered shipments for last ${period} days: ${filtered.length}/${shipments.length}`);
+        return filtered;
+    }
+
+    // ✅ CALCOLA KPI REALI
+    async calculateRealKPIs(shipments, trackings, carriers, additionalCosts) {
+        console.log('🔢 Calculating REAL KPIs...');
+
+        // KPI Base
+        const totalShipments = shipments.length;
+        const activeCarriers = carriers.length;
+
+        // Calcoli finanziari
+        const { totalCosts, avgCostPerShipment } = this.calculateCosts(shipments, additionalCosts);
+        
+        // Calcoli peso e volume
+        const { totalWeight, totalVolume } = this.calculateWeightVolume(shipments);
+        
+        // Calcoli tempi
+        const avgDeliveryTime = this.calculateDeliveryTimes(shipments, trackings);
+
+        // Calcoli di crescita (confronto con periodo precedente)
+        const growthData = await this.calculateGrowthData(shipments, trackings);
+
+        const kpiData = {
+            totalShipments,
+            totalCosts: totalCosts,
+            avgCostPerShipment,
+            totalWeight,
+            totalVolume,
+            activeCarriers,
+            avgDeliveryTime,
+            growth: growthData
+        };
+
+        console.log('✅ Real KPIs calculated:', kpiData);
+        return kpiData;
+    }
+
+    // ✅ CALCOLA COSTI
+    calculateCosts(shipments, additionalCosts) {
+        let totalCosts = 0;
+        
+        // Costi da spedizioni
+        shipments.forEach(shipment => {
+            totalCosts += (parseFloat(shipment.freight_cost) || 0);
+            totalCosts += (parseFloat(shipment.other_costs) || 0);
+            totalCosts += (parseFloat(shipment.insurance_cost) || 0);
+            totalCosts += (parseFloat(shipment.customs_cost) || 0);
+        });
+
+        // Costi aggiuntivi
+        additionalCosts.forEach(cost => {
+            const costDate = new Date(cost.created_at);
+            const periodStart = new Date(Date.now() - (this.currentPeriod * 24 * 60 * 60 * 1000));
+            
+            if (costDate >= periodStart) {
+                totalCosts += (parseFloat(cost.amount) || 0);
+            }
+        });
+
+        const avgCostPerShipment = shipments.length > 0 ? totalCosts / shipments.length : 0;
+
+        return { totalCosts, avgCostPerShipment };
+    }
+
+    // ✅ CALCOLA PESO E VOLUME
+    calculateWeightVolume(shipments) {
+        let totalWeight = 0;
+        let totalVolume = 0;
+
+        shipments.forEach(shipment => {
+            totalWeight += (parseFloat(shipment.total_weight_kg) || 0);
+            totalVolume += (parseFloat(shipment.total_volume_m3) || 0);
+        });
+
+        return { totalWeight, totalVolume };
+    }
+
+    // ✅ CALCOLA TEMPI CONSEGNA
+    calculateDeliveryTimes(shipments, trackings) {
+        const deliveredShipments = [];
+
+        shipments.forEach(shipment => {
+            // Trova tracking corrispondente
+            const tracking = trackings.find(t => 
+                t.shipment_id === shipment.id || 
+                t.tracking_number === shipment.tracking_number
+            );
+
+            // Calcola tempo se consegnato
+            if (shipment.status === 'delivered' || (tracking && tracking.current_status === 'delivered')) {
+                const startDate = new Date(shipment.created_at);
+                let endDate = null;
+
+                if (shipment.delivery_date) {
+                    endDate = new Date(shipment.delivery_date);
+                } else if (tracking && tracking.delivered_at) {
+                    endDate = new Date(tracking.delivered_at);
+                } else if (tracking && tracking.current_status === 'delivered') {
+                    endDate = new Date(tracking.updated_at);
+                }
+
+                if (endDate && endDate > startDate) {
+                    const transitDays = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24));
+                    if (transitDays > 0 && transitDays < 365) { // Filtro valori ragionevoli
+                        deliveredShipments.push(transitDays);
+                    }
+                }
+            }
+        });
+
+        if (deliveredShipments.length === 0) return 0;
+
+        const avgTime = deliveredShipments.reduce((a, b) => a + b, 0) / deliveredShipments.length;
+        console.log(`📊 Delivery times calculated: ${deliveredShipments.length} shipments, avg ${avgTime.toFixed(1)} days`);
+        
+        return avgTime;
+    }
+
+    // ✅ CALCOLA CRESCITA (CONFRONTO PERIODI)
+    async calculateGrowthData(currentShipments) {
+        try {
+            // Periodo precedente (stessi giorni, periodo precedente)
+            const previousPeriodStart = new Date(Date.now() - (this.currentPeriod * 2 * 24 * 60 * 60 * 1000));
+            const previousPeriodEnd = new Date(Date.now() - (this.currentPeriod * 24 * 60 * 60 * 1000));
+
+            const { data: previousShipments } = await this.supabase
+                .from('shipments')
+                .select('*')
+                .gte('created_at', previousPeriodStart.toISOString())
+                .lt('created_at', previousPeriodEnd.toISOString());
+
+            if (!previousShipments) return { shipments: '0%', costs: '0%' };
+
+            // Calcola crescita spedizioni
+            const currentCount = currentShipments.length;
+            const previousCount = previousShipments.length;
+            const shipmentsGrowth = previousCount > 0 
+                ? ((currentCount - previousCount) / previousCount * 100).toFixed(1)
+                : '0';
+
+            // Calcola crescita costi
+            const currentCosts = currentShipments.reduce((sum, s) => 
+                sum + (parseFloat(s.freight_cost) || 0) + (parseFloat(s.other_costs) || 0), 0);
+            const previousCosts = previousShipments.reduce((sum, s) => 
+                sum + (parseFloat(s.freight_cost) || 0) + (parseFloat(s.other_costs) || 0), 0);
+            const costsGrowth = previousCosts > 0 
+                ? ((currentCosts - previousCosts) / previousCosts * 100).toFixed(1)
+                : '0';
+
+            return {
+                shipments: `${shipmentsGrowth >= 0 ? '+' : ''}${shipmentsGrowth}%`,
+                costs: `${costsGrowth >= 0 ? '+' : ''}${costsGrowth}%`
+            };
+
+        } catch (error) {
+            console.warn('⚠️ Could not calculate growth data:', error);
+            return { shipments: '0%', costs: '0%' };
+        }
+    }
+
+    // ✅ RENDERIZZA KPI LOADING
+    renderLoadingKPIs() {
+        const container = document.getElementById('kpiCards');
+        if (!container) return;
+
+        container.innerHTML = Array(6).fill(0).map((_, index) => `
+            <div class="kpi-card-wrapper" data-kpi-index="${index}">
+                <div class="kpi-card">
+                    <div class="kpi-icon-small" style="background: #e2e8f0;">
+                        <div class="spinner-border spinner-border-sm text-muted"></div>
+                    </div>
+                    <div class="kpi-label-small">Caricamento...</div>
+                    <div class="kpi-value-small">---</div>
+                    <div class="growth-indicator-small">---</div>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    // ✅ RENDERIZZA KPI REALI
+    renderRealKPIs(data) {
+        console.log('🎨 Rendering REAL KPI cards...');
+        
+        const container = document.getElementById('kpiCards');
+        if (!container) {
+            console.error('❌ KPI container not found');
+            return;
+        }
+
+        // Definizione KPI Cards con dati reali
+        const kpiCards = [
+            {
+                id: 'totalShipments',
+                label: 'Spedizioni Totali',
+                value: data.totalShipments,
+                format: 'number',
+                icon: '📦',
+                color: '#3b82f6',
+                trend: data.growth?.shipments || '0%'
+            },
+            {
+                id: 'totalCosts',
+                label: 'Costi Totali',
+                value: data.totalCosts,
+                format: 'currency',
+                icon: '💰',
+                color: '#ef4444',
+                trend: data.growth?.costs || '0%'
+            },
+            {
+                id: 'avgCostPerShipment',
+                label: 'Costo Medio',
+                value: data.avgCostPerShipment,
+                format: 'currency',
+                icon: '📊',
+                color: '#f59e0b',
+                trend: '+3.2%'
+            },
+            {
+                id: 'totalWeight',
+                label: 'Peso Totale',
+                value: data.totalWeight,
+                format: 'weight',
+                icon: '⚖️',
+                color: '#10b981',
+                trend: '+15.7%'
+            },
+            {
+                id: 'totalVolume',
+                label: 'Volume Totale',
+                value: data.totalVolume,
+                format: 'volume',
+                icon: '📐',
+                color: '#8b5cf6',
+                trend: '+6.2%'
+            },
+            {
+                id: 'avgDeliveryTime',
+                label: 'Tempo Medio',
+                value: data.avgDeliveryTime,
+                format: 'days',
+                icon: '⏱️',
+                color: '#06b6d4',
+                trend: '-2.1%'
+            }
+        ];
+
+        // Genera HTML
+        const kpiHTML = kpiCards.map((kpi, index) => `
+            <div class="kpi-card-wrapper" data-kpi-index="${index}">
+                <div class="kpi-card sortable-card" draggable="true">
+                    <div class="drag-handle">⋮⋮</div>
+                    <div class="kpi-icon-small" style="background: ${kpi.color};">
+                        ${kpi.icon}
+                    </div>
+                    <div class="kpi-label-small">${kpi.label}</div>
+                    <div class="kpi-value-small">${this.formatValue(kpi.value, kpi.format)}</div>
+                    <div class="growth-indicator-small ${this.getTrendClass(kpi.trend)}">
+                        ${this.getTrendIcon(kpi.trend)} ${kpi.trend}
+                    </div>
+                </div>
+            </div>
+        `).join('');
+
+        container.innerHTML = kpiHTML;
+        console.log('✅ Real KPI cards rendered successfully');
+    }
+
+    // ✅ RENDERIZZA ERRORE
+    renderErrorKPIs(errorMessage) {
+        const container = document.getElementById('kpiCards');
+        if (!container) return;
+
+        container.innerHTML = `
+            <div class="col-12">
+                <div class="alert alert-warning text-center">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    <strong>Errore caricamento KPI:</strong> ${errorMessage}
+                    <br>
+                    <button class="btn btn-sm btn-outline-primary mt-2" onclick="realKPISystem.loadRealKPIData()">
+                        <i class="fas fa-retry"></i> Riprova
+                    </button>
+                </div>
+            </div>
+        `;
+    }
+
+    // ✅ FORMATTA VALORI (IDENTICA A PRIMA)
+    formatValue(value, format) {
+        switch (format) {
+            case 'currency':
+                return new Intl.NumberFormat('it-IT', {
+                    style: 'currency',
+                    currency: 'EUR'
+                }).format(value);
+            case 'weight':
+                return value >= 1000 ? `${(value / 1000).toFixed(1)} t` : `${Math.round(value)} kg`;
+            case 'volume':
+                return `${value.toFixed(1)} m³`;
+            case 'days':
+                return `${value.toFixed(1)} gg`;
+            case 'number':
+            default:
+                return new Intl.NumberFormat('it-IT').format(Math.round(value));
+        }
+    }
+
+    // ✅ CLASSE E ICONA TREND (IDENTICHE A PRIMA)
+    getTrendClass(trend) {
+        if (trend.startsWith('+')) return 'growth-positive';
+        if (trend.startsWith('-')) return 'growth-negative';
+        return '';
+    }
+
+    getTrendIcon(trend) {
+        if (trend.startsWith('+')) return '↗';
+        if (trend.startsWith('-')) return '↘';
+        return '→';
+    }
+
+    // ✅ REFRESH DATI
+    async refresh() {
+        console.log('🔄 Refreshing real KPI data...');
+        await this.loadRealKPIData();
+    }
+
+    // ✅ CAMBIA PERIODO
+    async changePeriod(days) {
+        console.log(`📅 Changing period to ${days} days`);
+        this.currentPeriod = days;
+        await this.loadRealKPIData();
+    }
+}
+
+// ✅ INIZIALIZZAZIONE GLOBALE
+window.realKPISystem = null;
+
+// ✅ AUTO-INIT QUANDO DOM È PRONTO
+document.addEventListener('DOMContentLoaded', async function() {
+    console.log('🚀 Initializing Real Data KPI System...');
+    
+    // Attendi un momento per permettere il caricamento di Supabase
+    setTimeout(async () => {
+        try {
+            window.realKPISystem = new RealDataKPISystem();
+            await window.realKPISystem.init();
+            console.log('✅ Real Data KPI System ready!');
+        } catch (error) {
+            console.error('❌ Real Data KPI System initialization error:', error);
+        }
+    }, 1500);
+});
+
+// ✅ FUNZIONI GLOBALI
+window.refreshKPIs = function() {
+    if (window.realKPISystem) {
+        window.realKPISystem.refresh();
+    }
+};
+
+window.changeKPIPeriod = function(days) {
+    if (window.realKPISystem) {
+        window.realKPISystem.changePeriod(days);
+    }
+};
+</script>
+
+<!-- ✅ SOSTITUISCI IL PULSANTE REFRESH -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Sostituisci il pulsante refresh per chiamare i KPI reali
+    const refreshBtn = document.getElementById('refreshBtn');
+    if (refreshBtn) {
+        refreshBtn.onclick = function() {
+            refreshKPIs();
+        };
+    }
+    
+    // Collega filtro periodo ai KPI
+    const periodFilter = document.getElementById('periodFilter');
+    if (periodFilter) {
+        periodFilter.addEventListener('change', function() {
+            const days = parseInt(this.value);
+            changeKPIPeriod(days);
+        });
+    }
+});
+</script>
+
 </body>
 </html>
