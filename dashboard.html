@@ -593,20 +593,20 @@
             </div>
         </div>
 
-<!-- ✅ NUOVO LAYOUT FILTRI V2 - Orizzontale, su due righe logiche e con toggle funzionante -->
+<!-- ✅ NUOVO LAYOUT FILTRI V3 - Orizzontale, pulito e funzionale su due righe -->
 <div class="sol-card mb-4">
     <div class="sol-card-header">
         <h5 class="sol-card-title">
             <i class="fas fa-filter text-primary me-2"></i>
-            Filtri & Analisi
+            Filtri Dashboard
         </h5>
     </div>
     <div class="sol-card-body">
-        <!-- RIGA 1: Filtri Principali e Azioni -->
+        <!-- RIGA 1: Filtri principali e azioni -->
         <div class="row g-3 align-items-end mb-3">
             <div class="col-lg-3 col-md-6">
                 <label class="form-label fw-semibold">📅 Periodo</label>
-                <select class="form-select" id="periodFilter" onchange="window.dashboard.applyFilters()">
+                <select class="form-select" id="periodFilter">
                     <option value="7">Ultimi 7 giorni</option>
                     <option value="30" selected>Ultimi 30 giorni</option>
                     <option value="90">Ultimi 3 mesi</option>
@@ -614,16 +614,16 @@
                     <option value="365">Ultimo anno</option>
                 </select>
             </div>
-            <div class="col-lg-4 col-md-6">
+            <div class="col-lg-3 col-md-6">
                 <label class="form-label fw-semibold">🚚 Spedizioniere</label>
-                <select class="form-select" id="carrierFilter" onchange="window.dashboard.applyFilters()">
+                <select class="form-select" id="carrierFilter">
                     <option value="">Tutti gli spedizionieri</option>
                     <!-- Popolato dinamicamente -->
                 </select>
             </div>
-            <div class="col-lg-2 col-md-6">
+            <div class="col-lg-3 col-md-6">
                 <label class="form-label fw-semibold">📋 Stato</label>
-                <select class="form-select" id="statusFilter" onchange="window.dashboard.applyFilters()">
+                <select class="form-select" id="statusFilter">
                     <option value="">Tutti gli stati</option>
                     <option value="delivered">✅ Consegnato</option>
                     <option value="in_transit">🚛 In transito</option>
@@ -631,33 +631,32 @@
                     <option value="cancelled">❌ Annullato</option>
                 </select>
             </div>
-            <!-- Azioni principali -->
             <div class="col-lg-3 col-md-6 d-flex gap-2">
                 <button class="sol-btn sol-btn-outline-secondary w-100" type="button" data-bs-toggle="collapse" data-bs-target="#advancedFilters" aria-expanded="false" aria-controls="advancedFilters">
                     <i class="fas fa-sliders-h"></i> Avanzati
                 </button>
-                <button class="sol-btn sol-btn-outline-primary w-100" onclick="window.dashboard.applyFilters()">
+                <button class="sol-btn sol-btn-primary w-100" onclick="window.dashboard.applyFilters()">
                     <i class="fas fa-filter"></i> Applica
                 </button>
             </div>
         </div>
 
-        <!-- RIGA 2: Filtri Avanzati (Nascosti di default) -->
+        <!-- RIGA 2: Filtri avanzati (nascosti) -->
         <div class="collapse" id="advancedFilters">
             <div class="card border-0 bg-light mt-3">
                 <div class="card-body">
                     <div class="row g-3 align-items-end">
-                        <div class="col-lg-2 col-md-6">
+                        <div class="col-lg-2 col-md-4">
                             <label class="form-label">🌍 Origine</label>
                             <select class="form-select form-select-sm" id="originFilter"><option value="">Tutte</option></select>
                         </div>
-                        <div class="col-lg-2 col-md-6">
+                        <div class="col-lg-2 col-md-4">
                             <label class="form-label">🎯 Destinazione</label>
                             <select class="form-select form-select-sm" id="destinationFilter"><option value="">Tutte</option></select>
                         </div>
-                        <div class="col-lg-2 col-md-6">
+                        <div class="col-lg-2 col-md-4">
                             <label class="form-label">🚛 Trasporto</label>
-                            <select class="form-select form-select-sm" id="transportFilter" onchange="window.dashboard.applyFilters()">
+                            <select class="form-select form-select-sm" id="transportFilter">
                                 <option value="">Tutti</option>
                                 <option value="container">🚢 Container</option>
                                 <option value="air">✈️ Aereo</option>
@@ -665,7 +664,7 @@
                                 <option value="parcel">📦 Corriere</option>
                             </select>
                         </div>
-                        <div class="col-lg-2 col-md-6">
+                        <div class="col-lg-2 col-md-4">
                             <label class="form-label">⚖️ Peso</label>
                             <select class="form-select form-select-sm" id="weightRangeFilter">
                                 <option value="">Tutti</option>
@@ -674,7 +673,7 @@
                                 <option value="1000+">1+ t</option>
                             </select>
                         </div>
-                        <div class="col-lg-2 col-md-6">
+                        <div class="col-lg-2 col-md-4">
                             <label class="form-label">💰 Costo</label>
                             <select class="form-select form-select-sm" id="costRangeFilter">
                                 <option value="">Tutti</option>
@@ -683,7 +682,7 @@
                                 <option value="2000+">€2K+</option>
                             </select>
                         </div>
-                        <div class="col-lg-2 col-md-6">
+                        <div class="col-lg-2 col-md-4">
                             <label class="form-label">⚡ Priorità</label>
                             <select class="form-select form-select-sm" id="priorityFilter">
                                 <option value="">Tutte</option>
@@ -691,11 +690,6 @@
                                 <option value="medium">🟡 Media</option>
                                 <option value="low">🟢 Bassa</option>
                             </select>
-                        </div>
-                        <div class="col-12 text-end mt-3">
-                             <button class="sol-btn sol-btn-glass" onclick="window.dashboard.resetFilters()">
-                                <i class="fas fa-undo"></i> Reset Filtri
-                            </button>
                         </div>
                     </div>
                 </div>
@@ -743,7 +737,7 @@
 </div>
 
 <!-- Default Dashboard Content (mostrato inizialmente) -->
-<div id="defaultDashboard">
+<div id="defaultDashboardContent">
         <!-- KPI Cards -->
 <div class="kpi-grid" id="kpiCards">
     <!-- Popolato dinamicamente con layout compatto quadrato -->
