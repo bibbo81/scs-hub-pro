@@ -1219,67 +1219,61 @@ async function addProduct() {
     try {
         const allProducts = await window.dataManager.getAllProducts();
         
-        // ✅ MODAL UNIFICATA CON LAYOUT MIGLIORATO
+        // ✅ MODAL FULLSCREEN CON LAYOUT A DUE COLONNE
         const modalContent = `
             <div class="product-selection-modal">
                 <!-- ✅ SEZIONE RICERCA -->
-                <div class="sol-form mb-3">
-                    <div class="sol-form-group">
-                        <input type="text" id="productSearchInput" class="sol-form-input" placeholder="🔍 Cerca per nome, SKU...">
-                    </div>
+                <div class="search-section">
+                    <input type="text" id="productSearchInput" class="sol-form-input search-input" placeholder="🔍 Cerca per nome, SKU...">
                 </div>
                 
-                <!-- ✅ HEADER TABELLA MIGLIORATO -->
-                <div class="product-table-header">
-                    <div class="col-select">✓</div>
-                    <div class="col-product">Prodotto</div>
-                    <div class="col-quantities">Quantità & Misure</div>
-                    <div class="col-costs-wide">💰 Costi</div>
-                </div>
-                
-                <!-- ✅ LISTA PRODOTTI CON LAYOUT A CARD -->
+                <!-- ✅ LISTA PRODOTTI CON LAYOUT A DUE COLONNE -->
                 <div id="productListContainer" class="product-cards-container">
                     ${allProducts.map(product => `
-                        <div class="product-card" data-product-id="${product.id}">
-                            <!-- Checkbox e Info Prodotto -->
-                            <div class="product-card-header">
-                                <div class="product-select">
-                                    <input type="checkbox" class="sol-form-check-input product-checkbox" id="product-check-${product.id}">
+                        <div class="product-card-two-column" data-product-id="${product.id}">
+                            <!-- COLONNA SINISTRA: DESCRIZIONE -->
+                            <div class="product-left-column">
+                                <div class="product-checkbox-wrapper">
+                                    <input type="checkbox" class="product-checkbox" id="product-check-${product.id}">
                                 </div>
-                                <div class="product-info">
+                                <div class="product-description">
                                     <div class="product-name">${product.name}</div>
                                     <div class="product-sku">SKU: ${product.sku || 'N/A'}</div>
                                 </div>
                             </div>
                             
-                            <!-- Campi Input in Griglia -->
-                            <div class="product-inputs-grid">
-                                <!-- Quantità e Misure -->
-                                <div class="input-group">
-                                    <label>Quantità</label>
-                                    <input type="number" class="sol-form-input product-quantity-input" placeholder="1" min="1" value="1">
-                                </div>
-                                <div class="input-group">
-                                    <label>Peso Totale (kg)</label>
-                                    <input type="number" class="sol-form-input product-weight-input" placeholder="0.00" min="0" step="0.01">
-                                </div>
-                                <div class="input-group">
-                                    <label>Volume Totale (m³)</label>
-                                    <input type="number" class="sol-form-input product-volume-input" placeholder="0.00" min="0" step="0.01">
+                            <!-- COLONNA DESTRA: CAMPI INPUT IN RIGHE -->
+                            <div class="product-right-column">
+                                <!-- RIGA 1: Quantità, Peso, Volume -->
+                                <div class="input-row">
+                                    <div class="input-field">
+                                        <label>Quantità</label>
+                                        <input type="number" class="product-quantity-input" placeholder="1" min="1" value="1">
+                                    </div>
+                                    <div class="input-field">
+                                        <label>Peso Tot. (kg)</label>
+                                        <input type="number" class="product-weight-input" placeholder="0.00" min="0" step="0.01">
+                                    </div>
+                                    <div class="input-field">
+                                        <label>Volume Tot. (m³)</label>
+                                        <input type="number" class="product-volume-input" placeholder="0.00" min="0" step="0.01">
+                                    </div>
                                 </div>
                                 
-                                <!-- Costi -->
-                                <div class="input-group">
-                                    <label>Costo Unitario (€)</label>
-                                    <input type="number" class="sol-form-input product-unit-cost-input" placeholder="0.00" step="0.01">
-                                </div>
-                                <div class="input-group">
-                                    <label>Aliquota Dazio (%)</label>
-                                    <input type="number" class="sol-form-input product-duty-rate-input" placeholder="0.0" step="0.1" min="0" max="100">
-                                </div>
-                                <div class="input-group">
-                                    <label>Altri Oneri (€)</label>
-                                    <input type="number" class="sol-form-input product-custom-fees-input" placeholder="0.00" step="0.01">
+                                <!-- RIGA 2: Costo Unitario, Aliquota Dazio, Altri Oneri -->
+                                <div class="input-row">
+                                    <div class="input-field">
+                                        <label>Costo Unitario (€)</label>
+                                        <input type="number" class="product-unit-cost-input" placeholder="0.00" step="0.01">
+                                    </div>
+                                    <div class="input-field">
+                                        <label>Aliquota Dazio (%)</label>
+                                        <input type="number" class="product-duty-rate-input" placeholder="0.0" step="0.1" min="0" max="100">
+                                    </div>
+                                    <div class="input-field">
+                                        <label>Altri Oneri (€)</label>
+                                        <input type="number" class="product-custom-fees-input" placeholder="0.00" step="0.01">
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -1313,7 +1307,7 @@ async function addProduct() {
         window.ModalSystem?.show({
             title: '📦 Aggiungi Prodotti alla Spedizione',
             content: modalContent,
-            size: 'xxl', // ✅ MODAL EXTRA LARGE
+            size: 'xxl', // ✅ MODAL FULLSCREEN
             buttons: [
                 {
                     text: 'Annulla',
