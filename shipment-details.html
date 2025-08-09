@@ -426,14 +426,85 @@
                 }
             }
     
-            /* ✅ MODAL SIZE OVERRIDE */
+                        /* ✅ MODAL FULLSCREEN OVERRIDE */
             .modal-xxl {
-                max-width: 1400px !important;
-                width: 95% !important;
+                max-width: 100vw !important;
+                width: 100vw !important;
+                height: 100vh !important;
+                margin: 0 !important;
+                padding: 0 !important;
             }
-    
+            
+            .modal-xxl .modal-dialog {
+                max-width: 100vw !important;
+                width: 100vw !important;
+                height: 100vh !important;
+                margin: 0 !important;
+                padding: 0 !important;
+            }
+            
             .modal-xxl .modal-content {
-                min-height: 80vh;
+                width: 100vw !important;
+                height: 100vh !important;
+                max-height: 100vh !important;
+                border-radius: 0 !important;
+                border: none !important;
+                display: flex;
+                flex-direction: column;
+            }
+            
+            .modal-xxl .modal-header {
+                flex-shrink: 0;
+                padding: 20px;
+                border-bottom: 1px solid #e9ecef;
+            }
+            
+            .modal-xxl .modal-body {
+                flex: 1;
+                overflow-y: auto;
+                padding: 20px;
+            }
+            
+            .modal-xxl .modal-footer {
+                flex-shrink: 0;
+                padding: 20px;
+                border-top: 1px solid #e9ecef;
+            }
+            
+            /* ✅ FULLSCREEN RESPONSIVE ADJUSTMENTS */
+            .modal-xxl .product-cards-container {
+                max-height: calc(100vh - 400px) !important;
+            }
+            
+            .modal-xxl .product-inputs-grid {
+                grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            }
+            
+            .modal-xxl .global-costs-grid {
+                grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            }
+            
+            /* ✅ MOBILE FULLSCREEN */
+            @media (max-width: 768px) {
+                .modal-xxl .modal-header {
+                    padding: 15px;
+                }
+                
+                .modal-xxl .modal-body {
+                    padding: 15px;
+                }
+                
+                .modal-xxl .modal-footer {
+                    padding: 15px;
+                }
+                
+                .modal-xxl .product-inputs-grid {
+                    grid-template-columns: 1fr;
+                }
+                
+                .modal-xxl .global-costs-grid {
+                    grid-template-columns: 1fr;
+                }
             }
     </style>
 </head>
