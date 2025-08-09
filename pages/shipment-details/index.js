@@ -2035,9 +2035,6 @@ async function validateContainerLimits(shipmentId, additionalWeight, additionalV
         // ✅ DETERMINA LA CAPACITÀ MASSIMA DAI CONTAINER
         const containerInfo = getContainerCapacity(shipmentDetails);
         
-        // ✅ GENERA DESCRIZIONE DETTAGLIATA CONTAINER
-        const containerDescription = generateContainerDescription(shipmentDetails, containerInfo);
-        
         console.log('🔍 Container validation:', {
             currentWeight: currentWeight.toFixed(3),
             additionalWeight: additionalWeight.toFixed(3),
@@ -2048,31 +2045,72 @@ async function validateContainerLimits(shipmentId, additionalWeight, additionalV
             containerInfo
         });
         
-        // ✅ CONTROLLO LIMITI PESO
-        if (containerInfo.maxWeight > 0 && totalWeightAfter > containerInfo.maxWeight) {
-            const weightExcess = totalWeightAfter - containerInfo.maxWeight;
-            return {
-                valid: false,
-                message: `⚠️ LIMITE PESO SUPERATO!\n\n${containerDescription}\n\n📊 ANALISI PESO:\n• Peso attuale: ${formatWeight(currentWeight)}\n• Peso da aggiungere: ${formatWeight(additionalWeight)}\n• Peso totale risultante: ${formatWeight(totalWeightAfter)}\n• Capacità massima: ${formatWeight(containerInfo.maxWeight)}\n\n❌ ECCEDENZA: ${formatWeight(weightExcess)} (${((weightExcess/containerInfo.maxWeight)*100).toFixed(1)}% oltre il limite)`
-            };
-        }
-        
-        // ✅ CONTROLLO LIMITI VOLUME
-        if (containerInfo.maxVolume > 0 && totalVolumeAfter > containerInfo.maxVolume) {
-            const volumeExcess = totalVolumeAfter - containerInfo.maxVolume;
-            return {
-                valid: false,
-                message: `⚠️ LIMITE VOLUME SUPERATO!\n\n${containerDescription}\n\n📊 ANALISI VOLUME:\n• Volume attuale: ${formatVolume(currentVolume)}\n• Volume da aggiungere: ${formatVolume(additionalVolume)}\n• Volume totale risultante: ${formatVolume(totalVolumeAfter)}\n• Capacità massima: ${formatVolume(containerInfo.maxVolume)}\n\n❌ ECCEDENZA: ${formatVolume(volumeExcess)} (${((volumeExcess/containerInfo.maxVolume)*100).toFixed(1)}% oltre il limite)`
-            };
-        }
-        
-        // ✅ AVVISO SE SI SUPERA L'80% DELLA CAPACITÀ
-                // ✅ AVVISO SE SI SUPERA L'80% DELLA CAPACITÀ
+        // ✅ CALCOLA PERCENTUALI PER TUTTI I CASI
         const weightPercent = containerInfo.maxWeight > 0 ? (totalWeightAfter / containerInfo.maxWeight) * 100 : 0;
         const volumePercent = containerInfo.maxVolume > 0 ? (totalVolumeAfter / containerInfo.maxVolume) * 100 : 0;
         
-        if (weightPercent > 80 || volumePercent > 80) {
-            // ✅ GENERA CONTENUTO HTML RICCO PER IL MODAL
+        // ✅ CONTROLLO LIMITI PESO - USA MODAL HTML
+        if (containerInfo.maxWeight > 0 && totalWeightAfter > containerInfo.maxWeight) {
+            const containerDetailsHTML = generateContainerDetailsHTML(shipmentDetails, containerInfo, {
+                currentWeight,
+                additionalWeight,
+                totalWeightAfter,
+                currentVolume,
+                additionalVolume,
+                totalVolumeAfter,
+                weightPercent,
+                volumePercent
+            });
+            
+            // ✅ MOSTRA MODAL INVECE DI RITORNARE TESTO
+            const proceed = await window.ModalSystem?.confirm({
+                title: '🚫 Limite Peso Superato!',
+                content: containerDetailsHTML,
+                confirmText: 'Continua Comunque',
+                cancelText: 'Annulla',
+                size: 'lg'
+            });
+            
+            if (!proceed) {
+                return { valid: false, message: 'Operazione annullata dall\'utente.' };
+            }
+            
+            // Se l'utente sceglie di continuare, passa oltre
+        }
+        
+        // ✅ CONTROLLO LIMITI VOLUME - USA MODAL HTML
+        if (containerInfo.maxVolume > 0 && totalVolumeAfter > containerInfo.maxVolume) {
+            const containerDetailsHTML = generateContainerDetailsHTML(shipmentDetails, containerInfo, {
+                currentWeight,
+                additionalWeight,
+                totalWeightAfter,
+                currentVolume,
+                additionalVolume,
+                totalVolumeAfter,
+                weightPercent,
+                volumePercent
+            });
+            
+            // ✅ MOSTRA MODAL INVECE DI RITORNARE TESTO
+            const proceed = await window.ModalSystem?.confirm({
+                title: '🚫 Limite Volume Superato!',
+                content: containerDetailsHTML,
+                confirmText: 'Continua Comunque',
+                cancelText: 'Annulla',
+                size: 'lg'
+            });
+            
+            if (!proceed) {
+                return { valid: false, message: 'Operazione annullata dall\'utente.' };
+            }
+            
+            // Se l'utente sceglie di continuare, passa oltre
+        }
+        
+        // ✅ AVVISO SE SI SUPERA L'80% DELLA CAPACITÀ (MA NON I LIMITI)
+        if ((weightPercent > 80 || volumePercent > 80) && 
+            (weightPercent <= 100 && volumePercent <= 100)) {
+            
             const containerDetailsHTML = generateContainerDetailsHTML(shipmentDetails, containerInfo, {
                 currentWeight,
                 additionalWeight,
@@ -2089,7 +2127,7 @@ async function validateContainerLimits(shipmentId, additionalWeight, additionalV
                 content: containerDetailsHTML,
                 confirmText: 'Continua Comunque',
                 cancelText: 'Annulla',
-                size: 'lg' // Modal più grande per contenere tutte le info
+                size: 'lg'
             });
             
             if (!proceed) {
