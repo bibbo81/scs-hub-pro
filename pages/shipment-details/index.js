@@ -1397,6 +1397,8 @@ function formatStatus(rawStatus) {
             </span>`;
 }
 
+// ✅ AGGIUNGI QUESTO ALLA FINE DEL FILE index.js
+
 // Esponi le funzioni globalmente per l'accesso dai pulsanti
 window.editProductCosts = editProductCosts;
 window.setupCostCalculation = setupCostCalculation;
@@ -1409,3 +1411,45 @@ console.log('✅ Product cost functions exposed globally:', {
     updateCostCalculation: typeof window.updateCostCalculation,
     saveProductCosts: typeof window.saveProductCosts
 });
+
+// ✅ NUOVO: Forza re-render della tabella prodotti dopo che le funzioni sono caricate
+setTimeout(() => {
+    console.log('🔄 Re-rendering products table after functions are loaded...');
+    
+    // Verifica se esiste il currentShipment
+    if (window.currentShipment && window.currentShipment.products) {
+        console.log('📦 Current shipment found, re-rendering products:', window.currentShipment.products.length);
+        renderProductsTable(window.currentShipment.products, window.currentShipment);
+    } else {
+        console.log('❌ No current shipment found for re-render');
+        
+        // Tenta di ricaricare i dati se non ci sono
+        const shipmentId = new URLSearchParams(window.location.search).get('id');
+        if (shipmentId) {
+            console.log('🔄 Attempting to reload shipment data...');
+            loadShipmentDetails(shipmentId);
+        }
+    }
+}, 500); // Attendi 500ms per essere sicuri che tutto sia caricato
+
+// ✅ NUOVO: Debug per vedere cosa c'è nella tabella
+setTimeout(() => {
+    const costButtons = document.querySelectorAll('.product-costs-btn');
+    const tableRows = document.querySelectorAll('#productsTableBody tr');
+    
+    console.log('🔍 POST-RENDER DEBUG:', {
+        costButtonsFound: costButtons.length,
+        tableRowsFound: tableRows.length,
+        currentShipmentExists: !!window.currentShipment,
+        currentShipmentProducts: window.currentShipment?.products?.length || 0
+    });
+    
+    // Test manuale del primo pulsante se esiste
+    if (costButtons.length > 0) {
+        console.log('🧪 First cost button details:', {
+            visible: costButtons[0].offsetParent !== null,
+            productId: costButtons[0].dataset.itemId,
+            parentRow: costButtons[0].closest('tr')
+        });
+    }
+}, 1000);
