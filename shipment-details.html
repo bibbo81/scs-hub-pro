@@ -21,287 +21,421 @@
     <!-- Core Scripts -->
     <script src="/pages/tracking/tracking-unified-mapping.js"></script>
     
-    <style>
-        .section-title {
-            font-size: 1.5rem;
-            margin-bottom: 1rem;
-            color: var(--sol-gray-800);
-        }
-        .data-label {
-            font-weight: 600;
-            color: var(--sol-gray-700);
-        }
-        .data-value {
-            color: var(--sol-gray-900);
-        }
-        .status-badge {
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 0.85em;
-            font-weight: 500;
-            color: #fff;
-            display: inline-block;
-        }
-        .status-pending, .status-registered { background: #6c757d; }
-        .status-in_transit { background: #17a2b8; }
-        .status-delivered { background: #28a745; }
-        .status-exception, .status-delayed { background: #dc3545; }
-        .status-arrived { background: #007bff; }
-        .status-out_for_delivery { background: #fd7e14; }
-        .status-customs_hold { background: #ffc107; color: #000; }
-        .status-customs_cleared { background: #28a745; }
-        .font-weight-bold { font-weight: 600; }
-        .text-primary { color: #007bff; }
-        .product-row td {
-            vertical-align: middle;
-        }
-        
-        /* Evidenzia la colonna costo unitario */
-        .unit-cost-column {
-            background-color: #f8f9fa;
-            font-weight: 600;
-            color: #007bff;
-        }
-        
-        /* Stili per la modale di selezione prodotti */
-        .product-selection-modal .product-list-row {
-            display: flex;
-            align-items: center;
-            padding: 0.5rem;
-            border-bottom: 1px solid #e0e6ed;
-        }
-        .product-selection-modal .product-list-header {
-            font-weight: 600;
-            background-color: #f8f9fa;
-        }
-        .product-selection-modal .col-check { flex: 0 0 40px; text-align: center; }
-        .product-selection-modal .col-sku { flex: 1 1 20%; padding: 0 0.5rem; }
-        .product-selection-modal .col-name { flex: 1 1 35%; padding: 0 0.5rem; }
-        .product-selection-modal .col-weight { flex: 0 0 90px; text-align: center; }
-        .product-selection-modal .col-volume { flex: 0 0 90px; text-align: center; }
-        .product-selection-modal .col-qty { flex: 0 0 90px; text-align: center; }
-        
-        /* Bootstrap grid compatibility */
-        .row {
-            display: flex;
-            flex-wrap: wrap;
-            margin-right: -15px;
-            margin-left: -15px;
-        }
-        .col-md-4 {
-            position: relative;
-            width: 100%;
-            padding-right: 15px;
-            padding-left: 15px;
-            flex: 0 0 33.333333%;
-            max-width: 33.333333%;
-        }
-        @media (max-width: 767.98px) {
-            .col-md-4 {
-                flex: 0 0 100%;
-                max-width: 100%;
+        <style>
+            .section-title {
+                font-size: 1.5rem;
+                margin-bottom: 1rem;
+                color: var(--sol-gray-800);
             }
-        }
-
-        /* ✅ CSS per Product Costs Form */
-.product-costs-form {
-    padding: 1rem;
-}
-
-.form-section {
-    margin-bottom: 2rem;
-    padding: 1rem;
-    background: #f8f9fa;
-    border-radius: 8px;
-    border: 1px solid #e5e7eb;
-}
-
-.form-section h5 {
-    margin-bottom: 1rem;
-    color: #3b82f6;
-    border-bottom: 1px solid #e5e7eb;
-    padding-bottom: 0.5rem;
-    font-weight: 600;
-}
-
-.form-group {
-    margin-bottom: 1rem;
-}
-
-.form-group label {
-    display: block;
-    margin-bottom: 0.5rem;
-    font-weight: 600;
-    color: #374151;
-}
-
-.form-group input {
-    width: 100%;
-    padding: 0.75rem;
-    border: 1px solid #d1d5db;
-    border-radius: 6px;
-    font-size: 1rem;
-    background: #ffffff;
-    color: #374151;
-    transition: border-color 0.2s, box-shadow 0.2s;
-}
-
-.form-group input:focus {
-    outline: none;
-    border-color: #3b82f6;
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-}
-
-.form-group small {
-    display: block;
-    margin-top: 0.25rem;
-    color: #6b7280;
-    font-size: 0.875rem;
-}
-
-.costs-preview {
-    margin-top: 2rem;
-    padding: 1rem;
-    background: #ffffff;
-    border: 1px solid #e5e7eb;
-    border-radius: 8px;
-}
-
-.costs-preview h6 {
-    margin-bottom: 1rem;
-    color: #3b82f6;
-    font-weight: 600;
-}
-
-.calculation-preview {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-}
-
-.calc-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 0.5rem 0;
-    font-size: 0.9rem;
-}
-
-.calc-row.duty {
-    color: #f59e0b;
-    font-weight: 500;
-}
-
-.calc-row.total {
-    border-top: 1px solid #e5e7eb;
-    padding-top: 1rem;
-    margin-top: 0.5rem;
-    font-size: 1.1rem;
-    font-weight: 700;
-    color: #059669;
-}
-
-.calc-row small {
-    margin-left: 0.5rem;
-    color: #6b7280;
-    font-style: italic;
-    font-weight: normal;
-}
-
-/* ✅ CSS per Product Costs Button */
-.product-costs-btn {
-    background-color: #3b82f6 !important;
-    color: white !important;
-    margin: 0 2px;
-    border: none;
-    min-width: 32px;
-    height: 32px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.product-costs-btn:hover {
-    background-color: #2563eb !important;
-    opacity: 0.9;
-    transform: translateY(-1px);
-}
-
-.product-costs-btn i {
-    color: white !important;
-    font-size: 14px;
-}
-
-/* ✅ AGGIUNGI QUESTO CSS PER L'HEADER DEL PRODOTTO */
-.product-header {
-    background: #f8f9fa;
-    border: 1px solid #e9ecef;
-    border-radius: 8px;
-    padding: 20px;
-    margin-bottom: 20px;
-}
-
-.product-info-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 15px;
-}
-
-.info-item {
-    display: flex;
-    flex-direction: column;
-}
-
-.info-item label {
-    font-size: 12px;
-    font-weight: 600;
-    color: #6c757d;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    margin-bottom: 5px;
-}
-
-.info-item .value {
-    font-size: 14px;
-    font-weight: 500;
-    color: #212529;
-    padding: 8px 12px;
-    background: white;
-    border: 1px solid #dee2e6;
-    border-radius: 4px;
-}
-
-.section-divider {
-    border: 0;
-    height: 1px;
-    background: linear-gradient(to right, transparent, #dee2e6, transparent);
-    margin: 20px 0;
-}
-/* ✅ AGGIUNGI QUESTI STILI PER LA COLONNA COSTI */
-.product-selection-modal .col-costs { 
-    flex: 0 0 140px; 
-    text-align: center; 
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-}
-
-.product-selection-modal .col-costs input {
-    width: 100%;
-    padding: 4px 6px;
-    font-size: 11px;
-    border: 1px solid #d1d5db;
-    border-radius: 4px;
-}
-
-.product-selection-modal .col-costs input:first-child {
-    border-color: #3b82f6; /* Costo unitario */
-}
-
-.product-selection-modal .col-costs input:last-child {
-    border-color: #f59e0b; /* Dazio */
-}
-</style>
+            .data-label {
+                font-weight: 600;
+                color: var(--sol-gray-700);
+            }
+            .data-value {
+                color: var(--sol-gray-900);
+            }
+            .status-badge {
+                padding: 4px 12px;
+                border-radius: 20px;
+                font-size: 0.85em;
+                font-weight: 500;
+                color: #fff;
+                display: inline-block;
+            }
+            .status-pending, .status-registered { background: #6c757d; }
+            .status-in_transit { background: #17a2b8; }
+            .status-delivered { background: #28a745; }
+            .status-exception, .status-delayed { background: #dc3545; }
+            .status-arrived { background: #007bff; }
+            .status-out_for_delivery { background: #fd7e14; }
+            .status-customs_hold { background: #ffc107; color: #000; }
+            .status-customs_cleared { background: #28a745; }
+            .font-weight-bold { font-weight: 600; }
+            .text-primary { color: #007bff; }
+            .product-row td {
+                vertical-align: middle;
+            }
+            
+            /* Evidenzia la colonna costo unitario */
+            .unit-cost-column {
+                background-color: #f8f9fa;
+                font-weight: 600;
+                color: #007bff;
+            }
+            
+            /* Bootstrap grid compatibility */
+            .row {
+                display: flex;
+                flex-wrap: wrap;
+                margin-right: -15px;
+                margin-left: -15px;
+            }
+            .col-md-4 {
+                position: relative;
+                width: 100%;
+                padding-right: 15px;
+                padding-left: 15px;
+                flex: 0 0 33.333333%;
+                max-width: 33.333333%;
+            }
+            @media (max-width: 767.98px) {
+                .col-md-4 {
+                    flex: 0 0 100%;
+                    max-width: 100%;
+                }
+            }
+    
+            /* ✅ CSS per Product Costs Form */
+            .product-costs-form {
+                padding: 1rem;
+            }
+    
+            .form-section {
+                margin-bottom: 2rem;
+                padding: 1rem;
+                background: #f8f9fa;
+                border-radius: 8px;
+                border: 1px solid #e5e7eb;
+            }
+    
+            .form-section h5 {
+                margin-bottom: 1rem;
+                color: #3b82f6;
+                border-bottom: 1px solid #e5e7eb;
+                padding-bottom: 0.5rem;
+                font-weight: 600;
+            }
+    
+            .form-group {
+                margin-bottom: 1rem;
+            }
+    
+            .form-group label {
+                display: block;
+                margin-bottom: 0.5rem;
+                font-weight: 600;
+                color: #374151;
+            }
+    
+            .form-group input {
+                width: 100%;
+                padding: 0.75rem;
+                border: 1px solid #d1d5db;
+                border-radius: 6px;
+                font-size: 1rem;
+                background: #ffffff;
+                color: #374151;
+                transition: border-color 0.2s, box-shadow 0.2s;
+            }
+    
+            .form-group input:focus {
+                outline: none;
+                border-color: #3b82f6;
+                box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+            }
+    
+            .form-group small {
+                display: block;
+                margin-top: 0.25rem;
+                color: #6b7280;
+                font-size: 0.875rem;
+            }
+    
+            .costs-preview {
+                margin-top: 2rem;
+                padding: 1rem;
+                background: #ffffff;
+                border: 1px solid #e5e7eb;
+                border-radius: 8px;
+            }
+    
+            .costs-preview h6 {
+                margin-bottom: 1rem;
+                color: #3b82f6;
+                font-weight: 600;
+            }
+    
+            .calculation-preview {
+                display: flex;
+                flex-direction: column;
+                gap: 0.5rem;
+            }
+    
+            .calc-row {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                padding: 0.5rem 0;
+                font-size: 0.9rem;
+            }
+    
+            .calc-row.duty {
+                color: #f59e0b;
+                font-weight: 500;
+            }
+    
+            .calc-row.total {
+                border-top: 1px solid #e5e7eb;
+                padding-top: 1rem;
+                margin-top: 0.5rem;
+                font-size: 1.1rem;
+                font-weight: 700;
+                color: #059669;
+            }
+    
+            .calc-row small {
+                margin-left: 0.5rem;
+                color: #6b7280;
+                font-style: italic;
+                font-weight: normal;
+            }
+    
+            /* ✅ CSS per Product Costs Button */
+            .product-costs-btn {
+                background-color: #3b82f6 !important;
+                color: white !important;
+                margin: 0 2px;
+                border: none;
+                min-width: 32px;
+                height: 32px;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+            }
+    
+            .product-costs-btn:hover {
+                background-color: #2563eb !important;
+                opacity: 0.9;
+                transform: translateY(-1px);
+            }
+    
+            .product-costs-btn i {
+                color: white !important;
+                font-size: 14px;
+            }
+    
+            /* ✅ CSS PER L'HEADER DEL PRODOTTO */
+            .product-header {
+                background: #f8f9fa;
+                border: 1px solid #e9ecef;
+                border-radius: 8px;
+                padding: 20px;
+                margin-bottom: 20px;
+            }
+    
+            .product-info-grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+                gap: 15px;
+            }
+    
+            .info-item {
+                display: flex;
+                flex-direction: column;
+            }
+    
+            .info-item label {
+                font-size: 12px;
+                font-weight: 600;
+                color: #6c757d;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+                margin-bottom: 5px;
+            }
+    
+            .info-item .value {
+                font-size: 14px;
+                font-weight: 500;
+                color: #212529;
+                padding: 8px 12px;
+                background: white;
+                border: 1px solid #dee2e6;
+                border-radius: 4px;
+            }
+    
+            .section-divider {
+                border: 0;
+                height: 1px;
+                background: linear-gradient(to right, transparent, #dee2e6, transparent);
+                margin: 20px 0;
+            }
+    
+            /* ====== PRODUCT SELECTION MODAL - LAYOUT MIGLIORATO ====== */
+            .product-table-header {
+                display: grid;
+                grid-template-columns: 60px 1fr 2fr 2fr;
+                gap: 15px;
+                padding: 15px;
+                background: #f8f9fa;
+                border: 1px solid #e0e6ed;
+                border-radius: 8px 8px 0 0;
+                font-weight: 600;
+                color: #495057;
+            }
+    
+            .product-cards-container {
+                max-height: 500px;
+                overflow-y: auto;
+                border: 1px solid #e0e6ed;
+                border-top: none;
+                border-radius: 0 0 8px 8px;
+                background: #fff;
+            }
+    
+            .product-card {
+                border-bottom: 1px solid #e9ecef;
+                padding: 20px;
+                transition: background-color 0.2s;
+            }
+    
+            .product-card:hover {
+                background-color: #f8f9fa;
+            }
+    
+            .product-card:last-child {
+                border-bottom: none;
+            }
+    
+            .product-card-header {
+                display: flex;
+                align-items: center;
+                margin-bottom: 15px;
+                gap: 15px;
+            }
+    
+            .product-select input[type="checkbox"] {
+                transform: scale(1.2);
+            }
+    
+            .product-info {
+                flex: 1;
+            }
+    
+            .product-name {
+                font-size: 16px;
+                font-weight: 600;
+                color: #212529;
+                margin-bottom: 4px;
+            }
+    
+            .product-sku {
+                font-size: 14px;
+                color: #6c757d;
+            }
+    
+            .product-inputs-grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+                gap: 15px;
+                margin-top: 15px;
+            }
+    
+            .input-group {
+                display: flex;
+                flex-direction: column;
+            }
+    
+            .input-group label {
+                font-size: 12px;
+                font-weight: 600;
+                color: #495057;
+                margin-bottom: 5px;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+            }
+    
+            .input-group input {
+                padding: 10px 12px;
+                border: 1px solid #ced4da;
+                border-radius: 6px;
+                font-size: 14px;
+                transition: border-color 0.2s, box-shadow 0.2s;
+            }
+    
+            .input-group input:focus {
+                border-color: #3b82f6;
+                box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+                outline: none;
+            }
+    
+            /* ✅ SEZIONI GLOBALI */
+            .global-costs-section {
+                margin-top: 20px;
+                padding: 20px;
+                background: #f8f9fa;
+                border-radius: 8px;
+                border: 1px solid #e9ecef;
+            }
+    
+            .global-costs-section h6 {
+                margin-bottom: 15px;
+                color: #495057;
+                font-weight: 600;
+            }
+    
+            .global-costs-section h6 i {
+                margin-right: 8px;
+                color: #6c757d;
+            }
+    
+            .global-costs-grid {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 20px;
+            }
+    
+            .input-group small {
+                margin-top: 5px;
+                font-size: 12px;
+                color: #6c757d;
+                font-style: italic;
+            }
+    
+            /* ✅ ANTEPRIMA COSTI */
+            .costs-preview-section {
+                margin-top: 20px;
+                padding: 20px;
+                background: #ffffff;
+                border: 1px solid #e5e7eb;
+                border-radius: 8px;
+            }
+    
+            .costs-preview-section h6 {
+                margin-bottom: 15px;
+                color: #059669;
+                font-weight: 600;
+            }
+    
+            .costs-preview-section h6 i {
+                margin-right: 8px;
+            }
+    
+            /* ✅ RESPONSIVE */
+            @media (max-width: 768px) {
+                .product-table-header {
+                    grid-template-columns: 1fr;
+                    text-align: center;
+                }
+                
+                .product-inputs-grid {
+                    grid-template-columns: 1fr;
+                }
+                
+                .global-costs-grid {
+                    grid-template-columns: 1fr;
+                }
+            }
+    
+            /* ✅ MODAL SIZE OVERRIDE */
+            .modal-xxl {
+                max-width: 1400px !important;
+                width: 95% !important;
+            }
+    
+            .modal-xxl .modal-content {
+                min-height: 80vh;
+            }
+    </style>
 </head>
 <body>
     <div id="header-root"></div>

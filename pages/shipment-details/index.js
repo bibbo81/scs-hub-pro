@@ -1219,76 +1219,92 @@ async function addProduct() {
     try {
         const allProducts = await window.dataManager.getAllProducts();
         
-        // ✅ MODAL UNIFICATA: SELEZIONE + COSTI
+        // ✅ MODAL UNIFICATA CON LAYOUT MIGLIORATO
         const modalContent = `
             <div class="product-selection-modal">
                 <!-- ✅ SEZIONE RICERCA -->
-                <div class="sol-form">
+                <div class="sol-form mb-3">
                     <div class="sol-form-group">
-                        <input type="text" id="productSearchInput" class="sol-form-input" placeholder="Cerca per nome, SKU...">
+                        <input type="text" id="productSearchInput" class="sol-form-input" placeholder="🔍 Cerca per nome, SKU...">
                     </div>
                 </div>
                 
-                <!-- ✅ HEADER TABELLA PRODOTTI -->
-                <div class="product-list-row product-list-header">
-                    <div class="col-check"></div>
-                    <div class="col-sku">Cod. Prodotto</div>
-                    <div class="col-name">Descrizione</div>
-                    <div class="col-weight">Peso Tot. (kg)</div>
-                    <div class="col-volume">Volume Tot. (m³)</div>
-                    <div class="col-qty">Quantità</div>
-                    <div class="col-costs">💰 Costi</div>
+                <!-- ✅ HEADER TABELLA MIGLIORATO -->
+                <div class="product-table-header">
+                    <div class="col-select">✓</div>
+                    <div class="col-product">Prodotto</div>
+                    <div class="col-quantities">Quantità & Misure</div>
+                    <div class="col-costs-wide">💰 Costi</div>
                 </div>
                 
-                <!-- ✅ LISTA PRODOTTI CON CAMPI COSTI INTEGRATI -->
-                <div id="productListContainer" style="max-height:400px;overflow-y:auto;border:1px solid #e0e6ed;border-top:none;border-radius:0 0 5px 5px;background:#fff;">
+                <!-- ✅ LISTA PRODOTTI CON LAYOUT A CARD -->
+                <div id="productListContainer" class="product-cards-container">
                     ${allProducts.map(product => `
-                        <div class="product-list-row" data-product-id="${product.id}">
-                            <div class="col-check">
-                                <input type="checkbox" class="sol-form-check-input product-checkbox" id="product-check-${product.id}">
+                        <div class="product-card" data-product-id="${product.id}">
+                            <!-- Checkbox e Info Prodotto -->
+                            <div class="product-card-header">
+                                <div class="product-select">
+                                    <input type="checkbox" class="sol-form-check-input product-checkbox" id="product-check-${product.id}">
+                                </div>
+                                <div class="product-info">
+                                    <div class="product-name">${product.name}</div>
+                                    <div class="product-sku">SKU: ${product.sku || 'N/A'}</div>
+                                </div>
                             </div>
-                            <div class="col-sku text-muted">${product.sku || 'N/A'}</div>
-                            <div class="col-name">${product.name}</div>
-                            <div class="col-weight">
-                                <input type="number" class="sol-form-input sol-form-input-sm product-weight-input" placeholder="kg Tot." min="0" step="0.01" value="">
-                            </div>
-                            <div class="col-volume">
-                                <input type="number" class="sol-form-input sol-form-input-sm product-volume-input" placeholder="m³ Tot." min="0" step="0.01" value="">
-                            </div>
-                            <div class="col-qty">
-                                <input type="number" class="sol-form-input sol-form-input-sm product-quantity-input" placeholder="Q.tà" min="1" value="1">
-                            </div>
-                            <div class="col-costs">
-                                <input type="number" class="sol-form-input sol-form-input-sm product-unit-cost-input" placeholder="€/unità" step="0.01" title="Costo unitario">
-                                <input type="number" class="sol-form-input sol-form-input-sm product-duty-rate-input" placeholder="% dazio" step="0.1" min="0" max="100" title="Aliquota dazio">
+                            
+                            <!-- Campi Input in Griglia -->
+                            <div class="product-inputs-grid">
+                                <!-- Quantità e Misure -->
+                                <div class="input-group">
+                                    <label>Quantità</label>
+                                    <input type="number" class="sol-form-input product-quantity-input" placeholder="1" min="1" value="1">
+                                </div>
+                                <div class="input-group">
+                                    <label>Peso Totale (kg)</label>
+                                    <input type="number" class="sol-form-input product-weight-input" placeholder="0.00" min="0" step="0.01">
+                                </div>
+                                <div class="input-group">
+                                    <label>Volume Totale (m³)</label>
+                                    <input type="number" class="sol-form-input product-volume-input" placeholder="0.00" min="0" step="0.01">
+                                </div>
+                                
+                                <!-- Costi -->
+                                <div class="input-group">
+                                    <label>Costo Unitario (€)</label>
+                                    <input type="number" class="sol-form-input product-unit-cost-input" placeholder="0.00" step="0.01">
+                                </div>
+                                <div class="input-group">
+                                    <label>Aliquota Dazio (%)</label>
+                                    <input type="number" class="sol-form-input product-duty-rate-input" placeholder="0.0" step="0.1" min="0" max="100">
+                                </div>
+                                <div class="input-group">
+                                    <label>Altri Oneri (€)</label>
+                                    <input type="number" class="sol-form-input product-custom-fees-input" placeholder="0.00" step="0.01">
+                                </div>
                             </div>
                         </div>
                     `).join('')}
                 </div>
                 
-                <!-- ✅ SEZIONE COSTI DOGANALI GLOBALI -->
-                <div style="margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px; border: 1px solid #e9ecef;">
-                    <h6 style="margin-bottom: 15px; color: #495057;"><i class="fas fa-ship" style="margin-right: 8px;"></i>Costi Doganali Globali</h6>
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="sol-form-group">
-                                <label class="sol-form-label">Altri Oneri Doganali (€)</label>
-                                <input type="number" id="globalCustomsFees" class="sol-form-input" step="0.01" placeholder="es: 150.00">
-                                <small class="form-text text-muted">Spese fisse: clearance, handling, ecc.</small>
-                            </div>
+                <!-- ✅ SEZIONE COSTI GLOBALI -->
+                <div class="global-costs-section">
+                    <h6><i class="fas fa-ship"></i> Costi Doganali Globali</h6>
+                    <div class="global-costs-grid">
+                        <div class="input-group">
+                            <label>Altri Oneri Doganali (€)</label>
+                            <input type="number" id="globalCustomsFees" class="sol-form-input" step="0.01" placeholder="0.00">
+                            <small>Spese fisse distribuite tra tutti i prodotti</small>
                         </div>
-                        <div class="col-md-6">
-                            <div class="sol-form-group">
-                                <label class="sol-form-label">Note Costi</label>
-                                <input type="text" id="costsNotes" class="sol-form-input" placeholder="Note aggiuntive sui costi">
-                            </div>
+                        <div class="input-group">
+                            <label>Note Costi</label>
+                            <input type="text" id="costsNotes" class="sol-form-input" placeholder="Note aggiuntive">
                         </div>
                     </div>
                 </div>
                 
                 <!-- ✅ ANTEPRIMA TOTALI -->
-                <div id="costsPreview" style="margin-top: 15px; padding: 15px; background: #ffffff; border: 1px solid #e5e7eb; border-radius: 8px; display: none;">
-                    <h6 style="color: #059669; margin-bottom: 10px;"><i class="fas fa-calculator" style="margin-right: 8px;"></i>Anteprima Totali</h6>
+                <div id="costsPreview" class="costs-preview-section" style="display: none;">
+                    <h6><i class="fas fa-calculator"></i> Anteprima Totali</h6>
                     <div id="totalCalculation"></div>
                 </div>
             </div>
@@ -1297,7 +1313,7 @@ async function addProduct() {
         window.ModalSystem?.show({
             title: '📦 Aggiungi Prodotti alla Spedizione',
             content: modalContent,
-            size: 'xl', // Modal più grande per contenere tutti i campi
+            size: 'xxl', // ✅ MODAL EXTRA LARGE
             buttons: [
                 {
                     text: 'Annulla',
@@ -1305,7 +1321,7 @@ async function addProduct() {
                     onclick: () => window.ModalSystem.close()
                 },
                 {
-                    text: 'Aggiungi Prodotti',
+                    text: 'Aggiungi Prodotti Selezionati',
                     class: 'sol-btn sol-btn-primary',
                     onclick: () => addSelectedProductsWithCosts()
                 }
