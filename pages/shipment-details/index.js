@@ -2049,144 +2049,142 @@ async function validateContainerLimits(shipmentId, additionalWeight, additionalV
         const weightPercent = containerInfo.maxWeight > 0 ? (totalWeightAfter / containerInfo.maxWeight) * 100 : 0;
         const volumePercent = containerInfo.maxVolume > 0 ? (totalVolumeAfter / containerInfo.maxVolume) * 100 : 0;
         
-        // ✅ CONTROLLO LIMITI PESO - USA MODAL HTML
-        if (containerInfo.maxWeight > 0 && totalWeightAfter > containerInfo.maxWeight) {
-            const containerDetailsHTML = generateContainerDetailsHTML(shipmentDetails, containerInfo, {
-                currentWeight,
-                additionalWeight,
-                totalWeightAfter,
-                currentVolume,
-                additionalVolume,
-                totalVolumeAfter,
-                weightPercent,
-                volumePercent
-            });
-            
-            const proceed = await new Promise((resolve) => {
-                window.ModalSystem?.show({
-                    title: '🚫 Limite Peso Superato!',
-                    content: containerDetailsHTML,
-                    size: 'lg',
-                    buttons: [
-                        {
-                            text: 'Annulla',
-                            class: 'sol-btn sol-btn-secondary',
-                            onclick: () => {
-                                window.ModalSystem.close();
-                                resolve(false);
-                            }
-                        },
-                        {
-                            text: 'Continua Comunque',
-                            class: 'sol-btn sol-btn-primary',
-                            onclick: () => {
-                                window.ModalSystem.close();
-                                resolve(true);
-                            }
-                        }
-                    ]
-                });
-            });
-            
-            if (!proceed) {
-                return { valid: false, message: 'Operazione annullata dall\'utente.' };
-            }
-            
-            // Se l'utente sceglie di continuare, passa oltre
-        }
-        
-        // ✅ CONTROLLO LIMITI VOLUME - USA MODAL HTML
-        if (containerInfo.maxVolume > 0 && totalVolumeAfter > containerInfo.maxVolume) {
-            const containerDetailsHTML = generateContainerDetailsHTML(shipmentDetails, containerInfo, {
-                currentWeight,
-                additionalWeight,
-                totalWeightAfter,
-                currentVolume,
-                additionalVolume,
-                totalVolumeAfter,
-                weightPercent,
-                volumePercent
-            });
-                             
-                const proceed = await new Promise((resolve) => {
-                window.ModalSystem?.show({
-                    title: '🚫 Limite Voulume Superato!',
-                    content: containerDetailsHTML,
-                    size: 'lg',
-                    buttons: [
-                        {
-                            text: 'Annulla',
-                            class: 'sol-btn sol-btn-secondary',
-                            onclick: () => {
-                                window.ModalSystem.close();
-                                resolve(false);
-                            }
-                        },
-                        {
-                            text: 'Continua Comunque',
-                            class: 'sol-btn sol-btn-primary',
-                            onclick: () => {
-                                window.ModalSystem.close();
-                                resolve(true);
-                            }
-                        }
-                    ]
-                });
-            });
-            
-            if (!proceed) {
-                return { valid: false, message: 'Operazione annullata dall\'utente.' };
-            }
+        // ✅ CONTROLLO LIMITI PESO - MODAL PIÙ GRANDE
+if (containerInfo.maxWeight > 0 && totalWeightAfter > containerInfo.maxWeight) {
+    const containerDetailsHTML = generateContainerDetailsHTML(shipmentDetails, containerInfo, {
+        currentWeight,
+        additionalWeight,
+        totalWeightAfter,
+        currentVolume,
+        additionalVolume,
+        totalVolumeAfter,
+        weightPercent,
+        volumePercent
+    });
+    
+    const proceed = await new Promise((resolve) => {
+        window.ModalSystem?.show({
+            title: '🚫 Limite Peso Superato!',
+            content: containerDetailsHTML,
+            size: 'xxl', // ✅ MODAL FULLSCREEN
+            buttons: [
+                {
+                    text: 'Annulla',
+                    class: 'sol-btn sol-btn-secondary',
+                    onclick: () => {
+                        window.ModalSystem.close();
+                        resolve(false);
+                    }
+                },
+                {
+                    text: 'Continua Comunque',
+                    class: 'sol-btn sol-btn-primary',
+                    onclick: () => {
+                        window.ModalSystem.close();
+                        resolve(true);
+                    }
+                }
+            ]
+        });
+    });
+    
+    if (!proceed) {
+        return { valid: false, message: 'Operazione annullata dall\'utente.' };
+    }
             
             // Se l'utente sceglie di continuare, passa oltre
         }
         
-        // ✅ AVVISO SE SI SUPERA L'80% DELLA CAPACITÀ (MA NON I LIMITI)
-        if ((weightPercent > 80 || volumePercent > 80) && 
-            (weightPercent <= 100 && volumePercent <= 100)) {
-            
-            const containerDetailsHTML = generateContainerDetailsHTML(shipmentDetails, containerInfo, {
-                currentWeight,
-                additionalWeight,
-                totalWeightAfter,
-                currentVolume,
-                additionalVolume,
-                totalVolumeAfter,
-                weightPercent,
-                volumePercent
-            });
-            
-            // ✅ MODAL AVVISO PER SUPERAMENTO 80%
-            const proceed = await new Promise((resolve) => {
-                window.ModalSystem?.show({
-                    title: '🚫 Limite 80% Superato!',
-                    content: containerDetailsHTML,
-                    size: 'lg',
-                    buttons: [
-                        {
-                            text: 'Annulla',
-                            class: 'sol-btn sol-btn-secondary',
-                            onclick: () => {
-                                window.ModalSystem.close();
-                                resolve(false);
-                            }
-                        },
-                        {
-                            text: 'Continua Comunque',
-                            class: 'sol-btn sol-btn-primary',
-                            onclick: () => {
-                                window.ModalSystem.close();
-                                resolve(true);
-                            }
-                        }
-                    ]
-                });
-            });
-            
-            if (!proceed) {
-                return { valid: false, message: 'Operazione annullata dall\'utente.' };
-            }
+        // ✅ CONTROLLO LIMITI VOLUME - MODAL PIÙ GRANDE
+if (containerInfo.maxVolume > 0 && totalVolumeAfter > containerInfo.maxVolume) {
+    const containerDetailsHTML = generateContainerDetailsHTML(shipmentDetails, containerInfo, {
+        currentWeight,
+        additionalWeight,
+        totalWeightAfter,
+        currentVolume,
+        additionalVolume,
+        totalVolumeAfter,
+        weightPercent,
+        volumePercent
+    });
+                     
+    const proceed = await new Promise((resolve) => {
+        window.ModalSystem?.show({
+            title: '🚫 Limite Volume Superato!',
+            content: containerDetailsHTML,
+            size: 'xxl', // ✅ MODAL FULLSCREEN
+            buttons: [
+                {
+                    text: 'Annulla',
+                    class: 'sol-btn sol-btn-secondary',
+                    onclick: () => {
+                        window.ModalSystem.close();
+                        resolve(false);
+                    }
+                },
+                {
+                    text: 'Continua Comunque',
+                    class: 'sol-btn sol-btn-primary',
+                    onclick: () => {
+                        window.ModalSystem.close();
+                        resolve(true);
+                    }
+                }
+            ]
+        });
+    });
+    
+    if (!proceed) {
+        return { valid: false, message: 'Operazione annullata dall\'utente.' };
+    }       
+            // Se l'utente sceglie di continuare, passa oltre
         }
+        
+        // ✅ AVVISO CAPACITÀ ELEVATA - MODAL PIÙ GRANDE
+if ((weightPercent > 80 || volumePercent > 80) && 
+    (weightPercent <= 100 && volumePercent <= 100)) {
+    
+    const containerDetailsHTML = generateContainerDetailsHTML(shipmentDetails, containerInfo, {
+        currentWeight,
+        additionalWeight,
+        totalWeightAfter,
+        currentVolume,
+        additionalVolume,
+        totalVolumeAfter,
+        weightPercent,
+        volumePercent
+    });
+    
+    const proceed = await new Promise((resolve) => {
+        window.ModalSystem?.show({
+            title: '⚠️ Attenzione - Capacità Elevata',
+            content: containerDetailsHTML,
+            size: 'xxl', // ✅ MODAL FULLSCREEN
+            buttons: [
+                {
+                    text: 'Annulla',
+                    class: 'sol-btn sol-btn-secondary',
+                    onclick: () => {
+                        window.ModalSystem.close();
+                        resolve(false);
+                    }
+                },
+                {
+                    text: 'Continua Comunque',
+                    class: 'sol-btn sol-btn-primary',
+                    onclick: () => {
+                        window.ModalSystem.close();
+                        resolve(true);
+                    }
+                }
+            ]
+        });
+    });
+    
+    if (!proceed) {
+        return { valid: false, message: 'Operazione annullata dall\'utente.' };
+    }
+}
         
         return { valid: true };
         
@@ -2479,36 +2477,292 @@ function generateContainerDetailsHTML(shipmentDetails, containerInfo, metrics) {
             </div>
         </div>
         
-        <style>
-            .container-warning-details { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
-            .container-info-section, .capacity-overview, .usage-analysis { margin-bottom: 25px; padding: 20px; background: #f8f9fa; border-radius: 8px; border: 1px solid #e9ecef; }
-            .container-info-section h4, .capacity-overview h4, .usage-analysis h4 { color: #495057; margin-bottom: 15px; font-size: 16px; font-weight: 600; }
-            .container-types-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 15px; }
-            .container-type-card { background: white; padding: 15px; border-radius: 6px; border: 1px solid #dee2e6; text-align: center; }
-            .container-count { font-size: 24px; font-weight: 700; color: #007bff; }
-            .container-type { font-size: 14px; font-weight: 600; color: #495057; margin: 5px 0; }
-            .container-specs small { color: #6c757d; font-size: 11px; }
-            .container-info-text { padding: 15px; background: white; border-radius: 6px; border: 1px solid #dee2e6; color: #495057; }
-            .capacity-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-            .capacity-stat { display: flex; justify-content: space-between; align-items: center; padding: 12px; background: white; border-radius: 6px; border: 1px solid #dee2e6; }
-            .capacity-label { font-weight: 500; color: #6c757d; }
-            .capacity-value { font-weight: 600; color: #495057; }
-            .usage-section { margin-bottom: 20px; padding: 15px; background: white; border-radius: 6px; border: 1px solid #dee2e6; }
-            .usage-section h5 { color: #495057; margin-bottom: 15px; font-size: 14px; font-weight: 600; }
-            .usage-breakdown { margin-bottom: 15px; }
-            .usage-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #f1f3f4; }
-            .usage-row:last-child { border-bottom: none; }
-            .usage-row.add { color: #28a745; font-weight: 500; }
-            .usage-row.total { color: #495057; font-weight: 600; background: #f8f9fa; padding: 12px; margin: 10px -12px; border-radius: 4px; }
-            .usage-row.capacity { color: #6c757d; font-weight: 500; }
-            .progress-container { margin-top: 15px; }
-            .progress-bar { height: 20px; background: #e9ecef; border-radius: 10px; overflow: hidden; margin-bottom: 8px; }
-            .progress-fill { height: 100%; border-radius: 10px; transition: width 0.3s ease; }
-            .progress-fill.warning { background: linear-gradient(90deg, #ffc107, #fd7e14); }
-            .progress-fill.danger { background: linear-gradient(90deg, #dc3545, #c82333); }
-            .progress-label { font-size: 13px; font-weight: 600; text-align: center; }
-            .progress-label.warning { color: #f57c00; }
-            .progress-label.danger { color: #dc3545; }
+                <style>
+            /* ✅ LAYOUT PRINCIPALE OTTIMIZZATO PER FULLSCREEN */
+            .container-warning-details { 
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                max-width: 100%;
+                font-size: 16px;
+                line-height: 1.5;
+            }
+            
+            /* ✅ SEZIONI CON SPAZIATURA OTTIMIZZATA */
+            .container-info-section, .capacity-overview, .usage-analysis { 
+                margin-bottom: 30px; 
+                padding: 25px; 
+                background: #f8f9fa; 
+                border-radius: 10px; 
+                border: 1px solid #e9ecef; 
+            }
+            
+            /* ✅ TITOLI PIÙ GRANDI */
+            .container-info-section h4, .capacity-overview h4, .usage-analysis h4 { 
+                color: #495057; 
+                margin-bottom: 20px; 
+                font-size: 20px; 
+                font-weight: 600; 
+            }
+            
+            /* ✅ GRID CONTAINER TYPES OTTIMIZZATA */
+            .container-types-grid { 
+                display: grid; 
+                grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); 
+                gap: 20px; 
+            }
+            
+            /* ✅ CARD CONTAINER PIÙ GRANDI */
+            .container-type-card { 
+                background: white; 
+                padding: 20px; 
+                border-radius: 8px; 
+                border: 1px solid #dee2e6; 
+                text-align: center; 
+                min-height: 120px;
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+            }
+            
+            /* ✅ TESTO CONTAINER PIÙ GRANDE */
+            .container-count { 
+                font-size: 32px; 
+                font-weight: 700; 
+                color: #007bff; 
+                margin-bottom: 8px;
+            }
+            
+            .container-type { 
+                font-size: 18px; 
+                font-weight: 600; 
+                color: #495057; 
+                margin: 8px 0; 
+            }
+            
+            .container-specs small { 
+                color: #6c757d; 
+                font-size: 14px; 
+                margin-top: 8px;
+            }
+            
+            /* ✅ INFO TEXT PIÙ GRANDE */
+            .container-info-text { 
+                padding: 20px; 
+                background: white; 
+                border-radius: 8px; 
+                border: 1px solid #dee2e6; 
+                color: #495057; 
+                font-size: 16px;
+                text-align: center;
+            }
+            
+            /* ✅ STATS CAPACITY OTTIMIZZATE */
+            .capacity-stats { 
+                display: grid; 
+                grid-template-columns: 1fr 1fr; 
+                gap: 25px; 
+            }
+            
+            .capacity-stat { 
+                display: flex; 
+                justify-content: space-between; 
+                align-items: center; 
+                padding: 18px; 
+                background: white; 
+                border-radius: 8px; 
+                border: 1px solid #dee2e6; 
+                min-height: 60px;
+            }
+            
+            .capacity-label { 
+                font-weight: 500; 
+                color: #6c757d; 
+                font-size: 15px;
+            }
+            
+            .capacity-value { 
+                font-weight: 600; 
+                color: #495057; 
+                font-size: 18px;
+            }
+            
+            /* ✅ USAGE SECTION PIÙ GRANDE */
+            .usage-section { 
+                margin-bottom: 25px; 
+                padding: 20px; 
+                background: white; 
+                border-radius: 8px; 
+                border: 1px solid #dee2e6; 
+            }
+            
+            .usage-section h5 { 
+                color: #495057; 
+                margin-bottom: 18px; 
+                font-size: 18px; 
+                font-weight: 600; 
+            }
+            
+            .usage-breakdown { 
+                margin-bottom: 20px; 
+            }
+            
+            /* ✅ USAGE ROWS PIÙ GRANDI */
+            .usage-row { 
+                display: flex; 
+                justify-content: space-between; 
+                align-items: center; 
+                padding: 12px 0; 
+                border-bottom: 1px solid #f1f3f4; 
+                font-size: 16px;
+                min-height: 40px;
+            }
+            
+            .usage-row:last-child { 
+                border-bottom: none; 
+            }
+            
+            .usage-row.add { 
+                color: #28a745; 
+                font-weight: 500; 
+            }
+            
+            .usage-row.total { 
+                color: #495057; 
+                font-weight: 600; 
+                background: #f8f9fa; 
+                padding: 16px; 
+                margin: 15px -15px; 
+                border-radius: 6px; 
+                font-size: 18px;
+            }
+            
+            .usage-row.capacity { 
+                color: #6c757d; 
+                font-weight: 500; 
+            }
+            
+            /* ✅ ECCEDENZA EVIDENZIATA */
+            .usage-row.excess {
+                color: #dc3545;
+                font-weight: 700;
+                background: #f8d7da;
+                padding: 16px;
+                margin: 15px -15px;
+                border-radius: 6px;
+                border: 1px solid #f5c6cb;
+                font-size: 17px;
+            }
+            
+            .excess-value {
+                color: #721c24 !important;
+                font-weight: 700 !important;
+            }
+            
+            /* ✅ PROGRESS BAR PIÙ GRANDE */
+            .progress-container { 
+                margin-top: 20px; 
+            }
+            
+            .progress-bar { 
+                height: 30px; 
+                background: #e9ecef; 
+                border-radius: 15px; 
+                overflow: hidden; 
+                margin-bottom: 12px; 
+                position: relative;
+            }
+            
+            .progress-fill { 
+                height: 100%; 
+                border-radius: 15px; 
+                transition: width 0.3s ease; 
+            }
+            
+            .progress-fill.warning { 
+                background: linear-gradient(90deg, #ffc107, #fd7e14); 
+            }
+            
+            .progress-fill.danger { 
+                background: linear-gradient(90deg, #dc3545, #c82333); 
+            }
+            
+            /* ✅ LABEL PROGRESS PIÙ GRANDE */
+            .progress-label { 
+                font-size: 16px; 
+                font-weight: 600; 
+                text-align: center; 
+            }
+            
+            .progress-label.warning { 
+                color: #f57c00; 
+            }
+            
+            .progress-label.danger { 
+                color: #dc3545; 
+            }
+            
+            /* ✅ RESPONSIVE PER SCHERMI PICCOLI */
+            @media (max-width: 1200px) {
+                .container-warning-details {
+                    font-size: 15px;
+                }
+                
+                .container-info-section h4, .capacity-overview h4, .usage-analysis h4 {
+                    font-size: 18px;
+                }
+                
+                .container-count {
+                    font-size: 28px;
+                }
+                
+                .container-type {
+                    font-size: 16px;
+                }
+                
+                .capacity-stats {
+                    grid-template-columns: 1fr;
+                    gap: 15px;
+                }
+                
+                .container-types-grid {
+                    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+                }
+            }
+            
+            @media (max-width: 768px) {
+                .container-warning-details {
+                    font-size: 14px;
+                }
+                
+                .container-info-section, .capacity-overview, .usage-analysis {
+                    padding: 20px;
+                    margin-bottom: 20px;
+                }
+                
+                .container-info-section h4, .capacity-overview h4, .usage-analysis h4 {
+                    font-size: 16px;
+                }
+                
+                .container-count {
+                    font-size: 24px;
+                }
+                
+                .usage-row {
+                    font-size: 14px;
+                    min-height: 35px;
+                }
+                
+                .usage-row.total {
+                    font-size: 16px;
+                }
+                
+                .progress-bar {
+                    height: 25px;
+                }
+                
+                .progress-label {
+                    font-size: 14px;
+                }
+            }
         </style>
     `;
     
