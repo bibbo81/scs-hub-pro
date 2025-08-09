@@ -294,8 +294,7 @@ function calculateTotalMaxCBM(containerTypeString) {
 function renderProductsTable(shipment) {
     console.log('🔄 renderProductsTable called with:', {
         productsCount: shipment?.products?.length || 0,
-        shipmentId: shipment?.id,
-        editProductCostsAvailable: typeof window.editProductCosts
+        shipmentId: shipment?.id
     });
 
     const products = shipment.products || [];
@@ -307,206 +306,142 @@ function renderProductsTable(shipment) {
     
     tbody.innerHTML = '';
 
-    const isSeaShipment = shipment.tracking?.tracking_type === 'container' || shipment.tracking?.tracking_type === 'bl';
-    let costPerCBM = 0;
-    let costPerKG = 0;
-    let costPerUnit = 0;
-
-    // 🔥 CORREZIONE: Calcola la SOMMA EFFETTIVA dei prodotti, non i totali della spedizione
-    let productsTotalWeight = 0;
-    let productsTotalVolume = 0;
-    
-    products.forEach(product => {
-        productsTotalWeight += product.total_weight_kg || 0;
-        productsTotalVolume += product.total_volume_cbm || 0;
-    });
-
-    const totalCost = (shipment.freight_cost || 0) + (shipment.other_costs || 0);
-
-    console.log(`💰 DEBUG Cost Allocation:`, {
-        productsTotalWeight,
-        productsTotalVolume,
-        totalCost,
-        isSeaShipment,
-        note: "Using ACTUAL products sum, not shipment totals"
-    });
-
-    // Calculate cost allocation logic - SEMPRE basato sui volumi/pesi EFFETTIVI dei prodotti
-    if (shipment.tracking?.vehicle_types || shipment.vehicle_type) {
-        // 🎯 CORREZIONE: Per trasporto terrestre/aereo usa la SOMMA dei prodotti
-        if (productsTotalVolume > 0) {
-            costPerCBM = totalCost / productsTotalVolume;
-            costPerUnit = costPerCBM;
-            console.log(`📊 Vehicle-based allocation by PRODUCTS volume: €${costPerCBM.toFixed(2)}/CBM`);
-        } else if (productsTotalWeight > 0) {
-            costPerKG = totalCost / productsTotalWeight;
-            costPerUnit = costPerKG;
-            console.log(`📊 Vehicle-based allocation by PRODUCTS weight: €${costPerKG.toFixed(2)}/KG`);
-        }
-
-    } else if (isSeaShipment) {
-        // 🎯 CORREZIONE: Per spedizioni marittime usa SEMPRE la SOMMA dei CBM dei prodotti
-        if (productsTotalVolume > 0) {
-            costPerCBM = totalCost / productsTotalVolume;
-            costPerUnit = costPerCBM;
-            console.log(`🚢 Sea shipment allocation by PRODUCTS volume: €${costPerCBM.toFixed(2)}/CBM (products sum: ${productsTotalVolume} CBM)`);
-        } else {
-            // Fallback solo se non ci sono prodotti con CBM
-            const containerTypeElement = document.getElementById('shipmentContainerTypes');
-            const containerTypeString = containerTypeElement ? containerTypeElement.textContent : '';
-            const totalMaxCBM = calculateTotalMaxCBM(containerTypeString);
-            if (totalMaxCBM > 0) {
-                costPerCBM = totalCost / totalMaxCBM;
-                costPerUnit = costPerCBM;
-                console.warn(`⚠️ Fallback to container capacity: €${costPerCBM.toFixed(2)}/CBM`);
-            }
-        }
-    } else {
-        // 🎯 CORREZIONE: Sempre priorità alla SOMMA dei prodotti
-        if (productsTotalVolume > 0) {
-            costPerCBM = totalCost / productsTotalVolume;
-            costPerUnit = costPerCBM;
-            console.log(`📦 General allocation by PRODUCTS volume: €${costPerCBM.toFixed(2)}/CBM`);
-        } else if (productsTotalWeight > 0) {
-            costPerKG = totalCost / productsTotalWeight;
-            costPerUnit = costPerKG;
-            console.log(`📦 General allocation by PRODUCTS weight: €${costPerKG.toFixed(2)}/KG`);
-        }
-    }
-
     if (!products || products.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="7" class="text-center">Nessun prodotto associato.</td></tr>';
-        updateTotals(shipment);
+        tbody.innerHTML = '<tr><td colspan="10" class="text-center">Nessun prodotto associato.</td></tr>';
+        updateTotalsWithCosts([], shipment);
         return;
     }
 
-    products.forEach(product => {
-        let allocatedTotalCost = product.allocated_cost || 0;
-        let allocatedUnitCost = 0;
-        
-        if (costPerUnit > 0) {
-            const productVolume = product.total_volume_cbm || 0;
-            const productWeight = product.total_weight_kg || 0;
-            
-            if (costPerCBM > 0 && productVolume > 0) {
-                allocatedTotalCost = productVolume * costPerCBM;
-            } else if (costPerKG > 0 && productWeight > 0) {
-                allocatedTotalCost = productWeight * costPerKG;
-            }
-        }
-        
-        const quantity = product.quantity || 1;
-        allocatedUnitCost = quantity > 0 ? allocatedTotalCost / quantity : 0;
-
-        const tr = document.createElement('tr');
-        tr.classList.add('product-row');
-        tr.dataset.itemId = product.id;
-                tr.innerHTML = `
-    <td>${product.product?.name || product.name || '-'}<small class="text-muted d-block">${product.product?.sku || ''}</small></td>
-    <td>${formatQuantity(product.quantity || 0)}</td>
-    <td>${formatWeight(product.total_weight_kg)}</td>
-    <td>${formatVolume(product.total_volume_cbm)}</td>
-    <td>${formatCurrency(allocatedTotalCost)}</td>
-    <td class="unit-cost-column"><strong>${formatCurrency(allocatedUnitCost)}</strong></td>
-    <td>
-        <button class="sol-btn sol-btn-secondary sol-btn-sm edit-product-btn" data-item-id="${product.id}" title="Modifica Prodotto">
-            <i class="fas fa-edit"></i>
-        </button>
-        <button class="sol-btn sol-btn-primary sol-btn-sm product-costs-btn" data-item-id="${product.id}" title="Gestisci Costi">
-            <i class="fas fa-euro-sign"></i>
-        </button>
-        <button class="sol-btn sol-btn-danger sol-btn-sm delete-product-btn" data-item-id="${product.id}" title="Elimina Prodotto">
-            <i class="fas fa-trash"></i>
-        </button>
-    </td>
-`;
-        tbody.appendChild(tr);
+    // ✅ USA LA NUOVA FUNZIONE renderProductRow PER OGNI PRODOTTO
+    products.forEach(shipmentProduct => {
+        const product = shipmentProduct.product || null;
+        const rowHTML = renderProductRow(shipmentProduct, product);
+        tbody.innerHTML += rowHTML;
     });
-    updateTotals(shipment);
     
-setTimeout(() => {
+    updateTotalsWithCosts(products, shipment);
+    
+    setTimeout(() => {
         const addedCostButtons = tbody.querySelectorAll('.product-costs-btn');
         console.log('✅ renderProductsTable completed:', {
             rowsAdded: tbody.children.length,
-            costButtonsAdded: addedCostButtons.length,
-            sampleButton: addedCostButtons[0] ? {
-                productId: addedCostButtons[0].dataset.itemId,
-                visible: addedCostButtons[0].offsetParent !== null
-            } : null
+            costButtonsAdded: addedCostButtons.length
         });
     }, 100);
 }
 
-function updateTotals(shipment) {
-    const products = shipment.products || [];
-    let totalWeight = 0, totalVolume = 0, totalAllocatedCost = 0, totalQuantity = 0;
-
-    const totalCost = (shipment.freight_cost || 0) + (shipment.other_costs || 0);
-
-    // 🎯 CORREZIONE: Calcola la SOMMA EFFETTIVA dei prodotti
-    products.forEach(product => {
-        totalWeight += product.total_weight_kg || 0;
-        totalVolume += product.total_volume_cbm || 0;
-        totalQuantity += product.quantity || 0;
-    });
-
-    let costPerCBM = 0;
-    let costPerKG = 0;
-    let costPerUnit = 0;
-
-    // 🎯 CORREZIONE: Usa la SOMMA dei prodotti per il calcolo dei costi
-    if (totalVolume > 0) {
-        costPerCBM = totalCost / totalVolume;
-        costPerUnit = costPerCBM;
-        console.log(`🔄 Using products total volume for allocation: ${totalVolume} CBM`);
-    } else if (totalWeight > 0) {
-        costPerKG = totalCost / totalWeight;
-        costPerUnit = costPerKG;
-        console.log(`🔄 Using products total weight for allocation: ${totalWeight} KG`);
-    }
-
-    // 🎯 CORREZIONE: Calcola i costi allocati usando la stessa logica
-    products.forEach(product => {
-        if (costPerUnit > 0) {
-            const productVolume = product.total_volume_cbm || 0;
-            const productWeight = product.total_weight_kg || 0;
-            
-            if (costPerCBM > 0 && productVolume > 0) {
-                totalAllocatedCost += productVolume * costPerCBM;
-            } else if (costPerKG > 0 && productWeight > 0) {
-                totalAllocatedCost += productWeight * costPerKG;
-            }
-        } else {
-            totalAllocatedCost += product.allocated_cost || 0;
+function updateTotalsWithCosts(products, shipment) {
+    let totalQuantity = 0;
+    let totalWeight = 0;
+    let totalVolume = 0;
+    let totalProductCost = 0;
+    let totalDuty = 0;
+    let totalAllocatedCost = 0;
+    let weightedDutyRate = 0;
+    let totalUnitCostWeighted = 0;
+    
+    products.forEach(shipmentProduct => {
+        const costs = shipmentProduct.cost_metadata || {};
+        const unitCost = costs.unitCost || 0;
+        const productTotal = costs.totalCost || (unitCost * shipmentProduct.quantity);
+        const dutyRate = costs.dutyRate || 0;
+        const dutyAmount = productTotal * (dutyRate / 100);
+        const customsFees = costs.customsFees || 0;
+        const allocated = productTotal + dutyAmount + customsFees;
+        
+        totalQuantity += shipmentProduct.quantity || 0;
+        totalWeight += shipmentProduct.total_weight_kg || 0;
+        totalVolume += shipmentProduct.total_volume_cbm || 0;
+        totalProductCost += productTotal;
+        totalDuty += dutyAmount;
+        totalAllocatedCost += allocated;
+        
+        // Medie ponderate
+        if (productTotal > 0) {
+            weightedDutyRate += dutyRate * productTotal;
         }
+        totalUnitCostWeighted += unitCost * (shipmentProduct.quantity || 0);
     });
-
-    // Calcola il costo unitario medio
-    const averageUnitCost = totalQuantity > 0 ? totalAllocatedCost / totalQuantity : 0;
-
-    const totalWeightEl = document.getElementById('totalWeight');
-    const totalVolumeEl = document.getElementById('totalVolume');
-    const totalAllocatedCostEl = document.getElementById('totalAllocatedCost');
-    const totalQuantityEl = document.getElementById('totalQuantity');
-    const averageUnitCostEl = document.getElementById('averageUnitCost');
     
-    if (totalWeightEl) totalWeightEl.textContent = formatWeight(totalWeight);
-    if (totalVolumeEl) totalVolumeEl.textContent = formatVolume(totalVolume);
-    if (totalAllocatedCostEl) totalAllocatedCostEl.textContent = formatCurrency(totalAllocatedCost);
-    if (totalQuantityEl) totalQuantityEl.textContent = formatQuantity(totalQuantity); // 🔥 CORREZIONE
-    if (averageUnitCostEl) averageUnitCostEl.textContent = formatCurrency(averageUnitCost);
-
-    // DEBUG: Verifica che i totali allocati corrispondano al costo totale
-    const allocationAccuracy = totalCost > 0 ? (totalAllocatedCost / totalCost * 100) : 0;
-    console.log(`✅ Cost allocation accuracy: ${formatNumber(allocationAccuracy, 1)}% (${formatCurrency(totalAllocatedCost)} / ${formatCurrency(totalCost)})`);
-    console.log(`📊 Products totals: ${formatNumber(totalVolume, 3)} CBM, ${formatNumber(totalWeight, 3)} KG, ${formatQuantity(totalQuantity)} units`); // 🔥 CORREZIONE
+    const avgDutyRate = totalProductCost > 0 ? weightedDutyRate / totalProductCost : 0;
+    const avgUnitCost = totalQuantity > 0 ? totalUnitCostWeighted / totalQuantity : 0;
     
-    // ALERT se l'accuratezza non è del 100%
-    if (totalCost > 0 && Math.abs(totalAllocatedCost - totalCost) > 0.01) {
-        console.warn(`⚠️ Cost allocation mismatch! Expected: ${formatCurrency(totalCost)}, Allocated: ${formatCurrency(totalAllocatedCost)}`);
-    }
+    // Aggiorna i totali nella tabella
+    const elements = {
+        totalQuantity: document.getElementById('totalQuantity'),
+        totalWeight: document.getElementById('totalWeight'),
+        totalVolume: document.getElementById('totalVolume'),
+        averageUnitCost: document.getElementById('averageUnitCost'),
+        totalProductCost: document.getElementById('totalProductCost'),
+        averageDutyRate: document.getElementById('averageDutyRate'),
+        totalDuty: document.getElementById('totalDuty'),
+        totalAllocatedCost: document.getElementById('totalAllocatedCost')
+    };
+    
+    if (elements.totalQuantity) elements.totalQuantity.textContent = totalQuantity;
+    if (elements.totalWeight) elements.totalWeight.textContent = `${totalWeight.toFixed(2)} kg`;
+    if (elements.totalVolume) elements.totalVolume.textContent = `${totalVolume.toFixed(3)} m³`;
+    if (elements.averageUnitCost) elements.averageUnitCost.textContent = `€ ${avgUnitCost.toFixed(2)}`;
+    if (elements.totalProductCost) elements.totalProductCost.textContent = `€ ${totalProductCost.toFixed(2)}`;
+    if (elements.averageDutyRate) elements.averageDutyRate.textContent = `${avgDutyRate.toFixed(1)}%`;
+    if (elements.totalDuty) elements.totalDuty.textContent = `€ ${totalDuty.toFixed(2)}`;
+    if (elements.totalAllocatedCost) elements.totalAllocatedCost.textContent = `€ ${totalAllocatedCost.toFixed(2)}`;
+
+    console.log('📊 Totals updated:', {
+        totalQuantity,
+        totalProductCost: totalProductCost.toFixed(2),
+        totalDuty: totalDuty.toFixed(2),
+        totalAllocatedCost: totalAllocatedCost.toFixed(2)
+    });
 }
-
+// ✅ FUNZIONE MANCANTE: Renderizza una singola riga prodotto con tutti i costi
+function renderProductRow(shipmentProduct, product) {
+    console.log('🔄 renderProductRow:', {
+        productId: shipmentProduct.id,
+        productName: product?.name || shipmentProduct.name,
+        costMetadata: shipmentProduct.cost_metadata
+    });
+    
+    const costs = shipmentProduct.cost_metadata || {};
+    const unitCost = costs.unitCost || 0;
+    const totalCost = costs.totalCost || (unitCost * shipmentProduct.quantity);
+    const dutyRate = costs.dutyRate || 0;
+    const dutyTotal = totalCost * (dutyRate / 100);
+    const customsFees = costs.customsFees || 0;
+    const allocatedCost = totalCost + dutyTotal + customsFees;
+    
+    return `
+        <tr class="product-row" data-product-id="${shipmentProduct.id}">
+            <td>
+                <div class="product-info">
+                    <div class="product-name">${product?.name || shipmentProduct.name || '-'}</div>
+                    <div class="product-sku">SKU: ${product?.sku || shipmentProduct.sku || 'N/A'}</div>
+                </div>
+            </td>
+            <td>${formatQuantity(shipmentProduct.quantity || 0)}</td>
+            <td>${formatWeight(shipmentProduct.total_weight_kg || 0)}</td>
+            <td>${formatVolume(shipmentProduct.total_volume_cbm || 0)}</td>
+            <td class="unit-cost-column">€ ${unitCost.toFixed(2)}</td>
+            <td class="total-cost-column">€ ${totalCost.toFixed(2)}</td>
+            <td class="duty-rate-column">${dutyRate.toFixed(1)}%</td>
+            <td class="duty-total-column">€ ${dutyTotal.toFixed(2)}</td>
+            <td class="allocated-cost-column">€ ${allocatedCost.toFixed(2)}</td>
+            <td>
+                <div class="action-buttons">
+                    <button class="sol-btn sol-btn-secondary sol-btn-sm edit-product-btn" data-item-id="${shipmentProduct.id}" title="Modifica Prodotto">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    <button class="sol-btn sol-btn-primary sol-btn-sm product-costs-btn" data-item-id="${shipmentProduct.id}" title="Gestisci Costi">
+                        <i class="fas fa-euro-sign"></i>
+                    </button>
+                    <button class="sol-btn sol-btn-danger sol-btn-sm delete-product-btn" data-item-id="${shipmentProduct.id}" title="Elimina Prodotto">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            </td>
+        </tr>
+    `;
+}
 async function renderDocumentsTable(documents) {
     const tbody = document.getElementById('documentsTableBody');
     if (!tbody) return;
@@ -1688,15 +1623,16 @@ async function addSelectedProductsWithCosts() {
     }
     
     selectedCheckboxes.forEach(checkbox => {
-        const row = checkbox.closest('.product-list-row');
+        const row = checkbox.closest('.product-card-two-column'); // ✅ CORREZIONE: usa il selettore corretto
         const productId = row.dataset.productId;
         const weight = parseFloat(row.querySelector('.product-weight-input').value) || 0;
         const volume = parseFloat(row.querySelector('.product-volume-input').value) || 0;
         const quantity = parseFloat(row.querySelector('.product-quantity-input').value) || 1;
         const unitCost = parseFloat(row.querySelector('.product-unit-cost-input').value) || 0;
         const dutyRate = parseFloat(row.querySelector('.product-duty-rate-input').value) || 0;
+        const customsFees = parseFloat(row.querySelector('.product-custom-fees-input').value) || 0;
         
-        selectedProducts.push({
+        const productData = {
             productId,
             quantity,
             total_weight_kg: weight,
@@ -1705,13 +1641,16 @@ async function addSelectedProductsWithCosts() {
                 unitCost,
                 totalCost: quantity * unitCost,
                 dutyRate,
-                customsFees: 0 // Sarà distribuito globalmente
+                dutyAmount: (quantity * unitCost) * (dutyRate / 100),
+                customsFees
             }
-        });
+        };
+        
+        console.log('💰 Adding product with costs:', productData); // ✅ DEBUG
+        selectedProducts.push(productData);
     });
     
     const globalCustomsFees = parseFloat(document.getElementById('globalCustomsFees').value) || 0;
-    const costsNotes = document.getElementById('costsNotes').value;
     
     try {
         const shipmentId = getShipmentIdFromURL();
@@ -1720,18 +1659,12 @@ async function addSelectedProductsWithCosts() {
         if (globalCustomsFees > 0) {
             const feePerProduct = globalCustomsFees / selectedProducts.length;
             selectedProducts.forEach(product => {
-                product.cost_metadata.customsFees = feePerProduct;
+                product.cost_metadata.customsFees += feePerProduct;
             });
         }
         
         for (const productData of selectedProducts) {
             await window.dataManager.addProductToShipment(shipmentId, productData);
-        }
-        
-        // ✅ SALVA NOTE COSTI SE PRESENTI
-        if (costsNotes) {
-            // Potresti aggiungere le note ai metadati della spedizione
-            console.log('💡 Costs notes:', costsNotes);
         }
         
         window.notificationSystem?.success(`${selectedProducts.length} prodotti aggiunti con successo!`);
