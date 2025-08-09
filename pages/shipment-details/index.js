@@ -315,15 +315,16 @@ function renderProductsTable(shipment) {
     const tbody = document.getElementById('productsTableBody');
     if (!tbody) {
         console.error('❌ productsTableBody not found!');
-        return;
+        return { totalProducts: 0, totalWeight: 0, totalVolume: 0, totalValue: 0 };
     }
     
     tbody.innerHTML = '';
 
     if (!products || products.length === 0) {
         tbody.innerHTML = '<tr><td colspan="12" class="text-center">Nessun prodotto associato.</td></tr>';
+        const totals = { totalProducts: 0, totalWeight: 0, totalVolume: 0, totalValue: 0 };
         updateTotalsWithCosts([], shipment);
-        return;
+        return totals;
     }
 
     // ✅ CALCOLA I COSTI DI TRASPORTO
@@ -338,20 +339,47 @@ function renderProductsTable(shipment) {
             transportCosts.allocatedCosts[product.id] / product.quantity : 0;
     });
 
-    // ✅ USA LA FUNZIONE renderProductRow CORRETTA
+    // ✅ GENERA LE RIGHE PRODOTTI
+    const productRows = [];
+    let totals = {
+        totalProducts: products.length,
+        totalWeight: 0,
+        totalVolume: 0,
+        totalValue: 0
+    };
+
     products.forEach(shipmentProduct => {
         const product = shipmentProduct.product || null;
         const rowHTML = renderProductRow(shipmentProduct, product);
-        tbody.innerHTML += rowHTML;
+        productRows.push(rowHTML);
+        
+        // Accumula i totali
+        totals.totalWeight += shipmentProduct.total_weight_kg || 0;
+        totals.totalVolume += shipmentProduct.total_volume_cbm || 0;
+        totals.totalValue += shipmentProduct.total_cost || 0;
     });
     
+    // ✅ INSERISCI TUTTE LE RIGHE IN UNA VOLTA
+    tbody.innerHTML = productRows.join('');
+    
+    // ✅ AGGIORNA I TOTALI
     updateTotalsWithCosts(products, shipment);
     
+    // ✅ SETUP TOOLTIP PER NOMI PRODOTTI LUNGHI
     setTimeout(() => {
+        setupProductNameTooltips();
+        
         const addedCostButtons = tbody.querySelectorAll('.product-costs-btn');
         console.log('✅ renderProductsTable completed:', {
+            productCount: productRows.length,
             rowsAdded: tbody.children.length,
             costButtonsAdded: addedCostButtons.length,
+            totals: {
+                totalProducts: totals.totalProducts,
+                totalWeight: totals.totalWeight,
+                totalVolume: totals.totalVolume,
+                totalValue: totals.totalValue
+            },
             formatFunctionsAvailable: {
                 formatCurrencyIT: typeof window.formatCurrencyIT,
                 formatNumberIT: typeof window.formatNumberIT,
@@ -359,6 +387,8 @@ function renderProductsTable(shipment) {
             }
         });
     }, 100);
+    
+    return totals;
 }
 
 function setupProductNameTooltips() {
@@ -424,28 +454,7 @@ function setupProductNameTooltips() {
     });
 }
 
-// ✅ CHIAMA LA FUNZIONE DOPO IL RENDERING DELLA TABELLA
-// Modifica la fine della funzione renderProductsTable:
-function renderProductsTable(shipmentDetails) {
-    // ... codice esistente ...
-    
-    console.log('✅ renderProductsTable completed:', {
-        productCount: productRows.length,
-        totals: {
-            totalProducts: totals.totalProducts,
-            totalWeight: totals.totalWeight,
-            totalVolume: totals.totalVolume,
-            totalValue: totals.totalValue
-        }
-    });
-    
-    // ✅ AGGIUNGI SETUP TOOLTIP
-    setTimeout(() => {
-        setupProductNameTooltips();
-    }, 100);
-    
-    return totals;
-}
+
 function updateTotalsWithCosts(products, shipment) {
     let totalQuantity = 0;
     let totalWeight = 0;
