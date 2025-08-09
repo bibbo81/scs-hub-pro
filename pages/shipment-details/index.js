@@ -156,6 +156,11 @@ async function loadShipmentDetails(shipmentId) {
                 }
             }
         }
+                    
+        await renderShipmentInfo(shipmentDetails);
+        renderProductsTable(shipmentDetails);  // ⬅️ QUESTA È CRUCIALE!
+        await renderDocumentsTable(shipmentDetails.documents);
+        renderAdditionalCosts(shipmentDetails.additionalCosts);
 
         window.editProductCosts = editProductCosts;
         window.setupCostCalculation = setupCostCalculation;
@@ -287,9 +292,18 @@ function calculateTotalMaxCBM(containerTypeString) {
 }
 
 function renderProductsTable(shipment) {
+    console.log('🔄 renderProductsTable called with:', {
+        productsCount: shipment?.products?.length || 0,
+        shipmentId: shipment?.id,
+        editProductCostsAvailable: typeof window.editProductCosts
+    });
+
     const products = shipment.products || [];
     const tbody = document.getElementById('productsTableBody');
-    if (!tbody) return;
+    if (!tbody) {
+        console.error('❌ productsTableBody not found!');
+        return;
+    }
     
     tbody.innerHTML = '';
 
@@ -409,6 +423,18 @@ function renderProductsTable(shipment) {
         tbody.appendChild(tr);
     });
     updateTotals(shipment);
+    
+setTimeout(() => {
+        const addedCostButtons = tbody.querySelectorAll('.product-costs-btn');
+        console.log('✅ renderProductsTable completed:', {
+            rowsAdded: tbody.children.length,
+            costButtonsAdded: addedCostButtons.length,
+            sampleButton: addedCostButtons[0] ? {
+                productId: addedCostButtons[0].dataset.itemId,
+                visible: addedCostButtons[0].offsetParent !== null
+            } : null
+        });
+    }, 100);
 }
 
 function updateTotals(shipment) {
