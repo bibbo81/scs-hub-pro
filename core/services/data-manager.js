@@ -1194,9 +1194,16 @@ async getShipmentDetails(shipmentId) {
      * @param {Object} updateData - Dati da aggiornare (quantity, weight_kg, volume_cbm).
      * @returns {Promise<Object>} Il prodotto aggiornato.
      */
-    async updateShipmentItem(itemId, updatedData) {
+ async updateShipmentItem(itemId, updatedData) {
+    if (!this.initialized) await this.init(); // ✅ AGGIUNGI INIT CHECK
+    
     try {
-        const { data, error } = await this.supabase
+        console.log('🔄 Updating shipment item:', {
+            itemId,
+            updatedData
+        });
+
+        const { data, error } = await supabase
             .from('shipment_items')
             .update({
                 quantity: updatedData.quantity,
@@ -1204,14 +1211,23 @@ async getShipmentDetails(shipmentId) {
                 volume_cbm: updatedData.volume_cbm,
                 total_weight_kg: updatedData.total_weight_kg,
                 total_volume_cbm: updatedData.total_volume_cbm,
-                cost_metadata: updatedData.cost_metadata || {}, // ✅ AGGIUNGI QUESTA RIGA
+                cost_metadata: updatedData.cost_metadata || {} // ✅ INCLUDE cost_metadata
             })
-            .eq('id', itemId);
+            .eq('id', itemId)
+            .eq('organization_id', this.organizationId) // ✅ AGGIUNGI organization_id
+            .select() // ✅ AGGIUNGI select() per restituire i dati
+            .single(); // ✅ AGGIUNGI single() per un solo record
 
-        if (error) throw error;
+        if (error) {
+            console.error('❌ Supabase error updating item:', error);
+            throw error;
+        }
+        
+        console.log('✅ Shipment item updated successfully:', data);
         return data;
+        
     } catch (error) {
-        console.error('Error updating shipment item:', error);
+        console.error('❌ Error updating shipment item:', error);
         throw error;
     }
 }
