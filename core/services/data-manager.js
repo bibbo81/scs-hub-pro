@@ -1145,14 +1145,14 @@ async getShipmentDetails(shipmentId) {
      * @param {Object} productData - Dati del prodotto da aggiungere.
      * @returns {Promise<Object>} Il prodotto aggiunto.
      */
-            
+                
     async addShipmentItem(shipmentId, itemData) {
         if (!this.initialized) await this.init();
         
         try {
             console.log('🔄 Adding shipment item with data:', itemData);
             
-            // ✅ CORREZIONE: Assicurati che TUTTI i campi vengano salvati
+            // ✅ CORREZIONE: Assicurati che TUTTI i campi vengano salvati inclusi name e sku
             const dataToSave = {
                 shipment_id: shipmentId,
                 product_id: itemData.product_id,
@@ -1161,6 +1161,10 @@ async getShipmentDetails(shipmentId) {
                 volume_cbm: itemData.volume_cbm || 0,
                 total_weight_kg: itemData.total_weight_kg || 0,
                 total_volume_cbm: itemData.total_volume_cbm || 0,
+                
+                // ✅ AGGIUNGI: Salva anche name e sku se forniti
+                name: itemData.name || null,
+                sku: itemData.sku || null,
                 
                 // ✅ CAMPI COSTI - SALVALI DIRETTAMENTE
                 unit_cost: itemData.unit_cost || 0,
@@ -1193,24 +1197,42 @@ async getShipmentDetails(shipmentId) {
     
             console.log('✅ Shipment item added successfully:', data);
     
-            // ✅ CORREZIONE: Prova a caricare i dettagli del prodotto per completezza
-            try {
-                const { data: productData, error: productError } = await supabase
-                    .from('products')
-                    .select('id, name:description, sku')  // ✅ NOTA: name è mappato da description
-                    .eq('id', itemData.product_id)
-                    .eq('organization_id', this.organizationId)
-                    .single();
-                
-                if (!productError && productData) {
-                    console.log('✅ Product details loaded:', productData);
-                    // Aggiungi i dettagli del prodotto al risultato
-                    data.product = productData;
-                } else {
-                    console.warn('⚠️ Could not fetch product details:', productError);
+            // ✅ SE name E sku NON SONO STATI SALVATI, PROVA A CARICARE DAL PRODOTTO
+            if (!data.name || !data.sku) {
+                try {
+                    const { data: productData, error: productError } = await supabase
+                        .from('products')
+                        .select('id, description as name, sku')
+                        .eq('id', itemData.product_id)
+                        .eq('organization_id', this.organizationId)
+                        .single();
+                    
+                    if (!productError && productData) {
+                        console.log('✅ Product details loaded:', productData);
+                        
+                        // ✅ AGGIORNA IL RECORD CON I DATI DEL PRODOTTO
+                        const { data: updatedData, error: updateError } = await supabase
+                            .from('shipment_items')
+                            .update({
+                                name: productData.name,
+                                sku: productData.sku
+                            })
+                            .eq('id', data.id)
+                            .select('*')
+                            .single();
+                        
+                        if (!updateError) {
+                            console.log('✅ Product name and sku updated in shipment_item');
+                            data.name = productData.name;
+                            data.sku = productData.sku;
+                            data.product = productData;
+                        }
+                    } else {
+                        console.warn('⚠️ Could not fetch product details:', productError);
+                    }
+                } catch (productFetchError) {
+                    console.warn('⚠️ Product fetch failed:', productFetchError);
                 }
-            } catch (productFetchError) {
-                console.warn('⚠️ Product fetch failed:', productFetchError);
             }
     
             return data;
