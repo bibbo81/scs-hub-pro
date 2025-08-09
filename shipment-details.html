@@ -277,7 +277,30 @@
     background: linear-gradient(to right, transparent, #dee2e6, transparent);
     margin: 20px 0;
 }
+/* ✅ AGGIUNGI QUESTI STILI PER LA COLONNA COSTI */
+.product-selection-modal .col-costs { 
+    flex: 0 0 140px; 
+    text-align: center; 
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
 
+.product-selection-modal .col-costs input {
+    width: 100%;
+    padding: 4px 6px;
+    font-size: 11px;
+    border: 1px solid #d1d5db;
+    border-radius: 4px;
+}
+
+.product-selection-modal .col-costs input:first-child {
+    border-color: #3b82f6; /* Costo unitario */
+}
+
+.product-selection-modal .col-costs input:last-child {
+    border-color: #f59e0b; /* Dazio */
+}
 </style>
 </head>
 <body>

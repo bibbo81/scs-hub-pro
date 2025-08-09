@@ -1218,125 +1218,108 @@ async function saveProductCosts(productId) {
 async function addProduct() {
     try {
         const allProducts = await window.dataManager.getAllProducts();
-        let selectedProducts = new Set();
-
-        const renderProductList = (productsToRender) => {
-            const productListContainer = document.getElementById('productListContainer');
-            if (!productListContainer) return;
-            productListContainer.innerHTML = productsToRender.map(p => `
-                <div class="product-list-row" data-product-id="${p.id}">
-                    <div class="col-check">
-                        <input type="checkbox" class="sol-form-check-input" id="product-check-${p.id}" ${selectedProducts.has(p.id) ? 'checked' : ''}>
-                    </div>
-                    <div class="col-sku text-muted">${p.sku}</div>
-                    <div class="col-name">${p.name}</div>
-                    <div class="col-weight">
-                        <input type="number" class="sol-form-input sol-form-input-sm product-weight-input" placeholder="kg Tot." min="0" step="0.01" value="">
-                    </div>
-                    <div class="col-volume">
-                        <input type="number" class="sol-form-input sol-form-input-sm product-volume-input" placeholder="m³ Tot." min="0" step="0.01" value="">
-                    </div>
-                    <div class="col-qty">
-                        <input type="number" class="sol-form-input sol-form-input-sm product-quantity-input" placeholder="Q.tà" min="1" value="1">
-                    </div>
-                </div>
-            `).join('');
-        };
-
+        
+        // ✅ MODAL UNIFICATA: SELEZIONE + COSTI
         const modalContent = `
             <div class="product-selection-modal">
+                <!-- ✅ SEZIONE RICERCA -->
                 <div class="sol-form">
                     <div class="sol-form-group">
                         <input type="text" id="productSearchInput" class="sol-form-input" placeholder="Cerca per nome, SKU...">
                     </div>
                 </div>
+                
+                <!-- ✅ HEADER TABELLA PRODOTTI -->
                 <div class="product-list-row product-list-header">
                     <div class="col-check"></div>
                     <div class="col-sku">Cod. Prodotto</div>
                     <div class="col-name">Descrizione</div>
-                    <div class="col-weight">Peso Totale (kg)</div>
-                    <div class="col-volume">Volume Totale (m³)</div>
+                    <div class="col-weight">Peso Tot. (kg)</div>
+                    <div class="col-volume">Volume Tot. (m³)</div>
                     <div class="col-qty">Quantità</div>
+                    <div class="col-costs">💰 Costi</div>
                 </div>
-                <div id="productListContainer" style="max-height:400px;overflow-y:auto;border:1px solid #e0e6ed;border-top:none;border-radius:0 0 5px 5px;background:#fff;"></div>
+                
+                <!-- ✅ LISTA PRODOTTI CON CAMPI COSTI INTEGRATI -->
+                <div id="productListContainer" style="max-height:400px;overflow-y:auto;border:1px solid #e0e6ed;border-top:none;border-radius:0 0 5px 5px;background:#fff;">
+                    ${allProducts.map(product => `
+                        <div class="product-list-row" data-product-id="${product.id}">
+                            <div class="col-check">
+                                <input type="checkbox" class="sol-form-check-input product-checkbox" id="product-check-${product.id}">
+                            </div>
+                            <div class="col-sku text-muted">${product.sku || 'N/A'}</div>
+                            <div class="col-name">${product.name}</div>
+                            <div class="col-weight">
+                                <input type="number" class="sol-form-input sol-form-input-sm product-weight-input" placeholder="kg Tot." min="0" step="0.01" value="">
+                            </div>
+                            <div class="col-volume">
+                                <input type="number" class="sol-form-input sol-form-input-sm product-volume-input" placeholder="m³ Tot." min="0" step="0.01" value="">
+                            </div>
+                            <div class="col-qty">
+                                <input type="number" class="sol-form-input sol-form-input-sm product-quantity-input" placeholder="Q.tà" min="1" value="1">
+                            </div>
+                            <div class="col-costs">
+                                <input type="number" class="sol-form-input sol-form-input-sm product-unit-cost-input" placeholder="€/unità" step="0.01" title="Costo unitario">
+                                <input type="number" class="sol-form-input sol-form-input-sm product-duty-rate-input" placeholder="% dazio" step="0.1" min="0" max="100" title="Aliquota dazio">
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+                
+                <!-- ✅ SEZIONE COSTI DOGANALI GLOBALI -->
+                <div style="margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px; border: 1px solid #e9ecef;">
+                    <h6 style="margin-bottom: 15px; color: #495057;"><i class="fas fa-ship" style="margin-right: 8px;"></i>Costi Doganali Globali</h6>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="sol-form-group">
+                                <label class="sol-form-label">Altri Oneri Doganali (€)</label>
+                                <input type="number" id="globalCustomsFees" class="sol-form-input" step="0.01" placeholder="es: 150.00">
+                                <small class="form-text text-muted">Spese fisse: clearance, handling, ecc.</small>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="sol-form-group">
+                                <label class="sol-form-label">Note Costi</label>
+                                <input type="text" id="costsNotes" class="sol-form-input" placeholder="Note aggiuntive sui costi">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- ✅ ANTEPRIMA TOTALI -->
+                <div id="costsPreview" style="margin-top: 15px; padding: 15px; background: #ffffff; border: 1px solid #e5e7eb; border-radius: 8px; display: none;">
+                    <h6 style="color: #059669; margin-bottom: 10px;"><i class="fas fa-calculator" style="margin-right: 8px;"></i>Anteprima Totali</h6>
+                    <div id="totalCalculation"></div>
+                </div>
             </div>
         `;
-
+        
         window.ModalSystem?.show({
-            title: 'Aggiungi Prodotti alla Spedizione',
-            size: 'lg',
+            title: '📦 Aggiungi Prodotti alla Spedizione',
             content: modalContent,
+            size: 'xl', // Modal più grande per contenere tutti i campi
             buttons: [
-                { text: 'Annulla', class: 'sol-btn sol-btn-secondary', onclick: () => window.ModalSystem.close() },
                 {
-                    text: 'Aggiungi Selezionati',
+                    text: 'Annulla',
+                    class: 'sol-btn sol-btn-secondary',
+                    onclick: () => window.ModalSystem.close()
+                },
+                {
+                    text: 'Aggiungi Prodotti',
                     class: 'sol-btn sol-btn-primary',
-                    onclick: async function() {
-                        const shipmentId = getShipmentIdFromURL();
-                        const itemsToAdd = [];
-                        
-                        document.querySelectorAll('#productListContainer .product-list-row').forEach(row => {
-                            const checkbox = row.querySelector('input[type="checkbox"]');
-                            if (checkbox && checkbox.checked) {
-                                const productId = row.dataset.productId;
-                                const product = allProducts.find(p => p.id === productId);
-                                if (product) {
-                                    const quantity = parseInt(row.querySelector('.product-quantity-input').value, 10) || 1;
-                                    const totalVolume = parseFloat(row.querySelector('.product-volume-input').value) || 0;
-                                    const totalWeight = parseFloat(row.querySelector('.product-weight-input').value) || 0;
-                                    
-                                    const unitVolume = quantity > 0 ? totalVolume / quantity : 0;
-                                    const unitWeight = quantity > 0 ? totalWeight / quantity : 0;
-
-                                    itemsToAdd.push({ ...product, quantity, volume_cbm: unitVolume, weight_kg: unitWeight, product_id: productId });
-                                }
-                            }
-                        });
-
-                        try {
-                            window.notificationSystem?.info('Aggiunta prodotti in corso...');
-                            for (const item of itemsToAdd) {
-                                await window.dataManager.addShipmentItem(shipmentId, item);
-                            }
-                            window.notificationSystem?.success('Prodotti aggiunti con successo!');
-                            loadShipmentDetails(shipmentId);
-                            return true;
-                        } catch (error) {
-                            window.notificationSystem?.error(`Errore: ${error.message}`);
-                            return false;
-                        }
-                    }
+                    onclick: () => addSelectedProductsWithCosts()
                 }
             ]
         });
-
-        renderProductList(allProducts);
-
-        document.getElementById('productSearchInput')?.addEventListener('input', (e) => {
-            const searchTerm = e.target.value.toLowerCase();
-            const filteredProducts = allProducts.filter(p => 
-                p.name.toLowerCase().includes(searchTerm) || 
-                p.sku.toLowerCase().includes(searchTerm)
-            );
-            renderProductList(filteredProducts);
-        });
-
-        document.getElementById('productListContainer')?.addEventListener('change', (e) => {
-            if (e.target.type === 'checkbox') {
-                const row = e.target.closest('.product-list-row');
-                if (row) {
-                    const productId = row.dataset.productId;
-                    if (e.target.checked) {
-                        selectedProducts.add(productId);
-                    } else {
-                        selectedProducts.delete(productId);
-                    }
-                }
-            }
-        });
-
+        
+        // ✅ SETUP EVENT LISTENERS
+        setTimeout(() => {
+            setupProductSelectionWithCosts();
+        }, 100);
+        
     } catch (error) {
-        window.notificationSystem?.error('Impossibile caricare la lista dei prodotti.');
+        console.error('Error loading products:', error);
+        window.notificationSystem?.error('Errore nel caricamento dei prodotti.');
     }
 }
 
@@ -1571,4 +1554,184 @@ if (document.readyState === 'loading') {
             console.error('❌ Error in forced initialization:', error);
         }
     }, 1000);
+}
+// ✅ SETUP EVENT LISTENERS PER LA MODAL UNIFICATA
+function setupProductSelectionWithCosts() {
+    const searchInput = document.getElementById('productSearchInput');
+    const productRows = document.querySelectorAll('.product-list-row[data-product-id]');
+    const checkboxes = document.querySelectorAll('.product-checkbox');
+    const costInputs = document.querySelectorAll('.product-unit-cost-input, .product-duty-rate-input, .product-quantity-input');
+    
+    // ✅ RICERCA PRODOTTI
+    if (searchInput) {
+        searchInput.addEventListener('input', (e) => {
+            const searchTerm = e.target.value.toLowerCase();
+            productRows.forEach(row => {
+                const name = row.querySelector('.col-name').textContent.toLowerCase();
+                const sku = row.querySelector('.col-sku').textContent.toLowerCase();
+                const visible = name.includes(searchTerm) || sku.includes(searchTerm);
+                row.style.display = visible ? 'flex' : 'none';
+            });
+        });
+    }
+    
+    // ✅ AUTO-CHECK QUANDO SI INSERISCONO DATI
+    costInputs.forEach(input => {
+        input.addEventListener('input', (e) => {
+            const row = e.target.closest('.product-list-row');
+            const checkbox = row.querySelector('.product-checkbox');
+            if (e.target.value && !checkbox.checked) {
+                checkbox.checked = true;
+                updateCostsPreview();
+            }
+        });
+    });
+    
+    // ✅ UPDATE PREVIEW QUANDO SI CAMBIANO I VALORI
+    checkboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', updateCostsPreview);
+    });
+    
+    costInputs.forEach(input => {
+        input.addEventListener('input', updateCostsPreview);
+    });
+    
+    // ✅ UPDATE GLOBAL COSTS
+    const globalInputs = document.querySelectorAll('#globalCustomsFees, #costsNotes');
+    globalInputs.forEach(input => {
+        input.addEventListener('input', updateCostsPreview);
+    });
+}
+
+// ✅ AGGIORNA ANTEPRIMA COSTI IN TEMPO REALE
+function updateCostsPreview() {
+    const selectedRows = document.querySelectorAll('.product-checkbox:checked');
+    const previewDiv = document.getElementById('costsPreview');
+    const calculationDiv = document.getElementById('totalCalculation');
+    
+    if (selectedRows.length === 0) {
+        previewDiv.style.display = 'none';
+        return;
+    }
+    
+    let totalProducts = 0;
+    let totalUnitCost = 0;
+    let totalDuty = 0;
+    let totalQuantity = 0;
+    
+    selectedRows.forEach(checkbox => {
+        const row = checkbox.closest('.product-list-row');
+        const quantity = parseFloat(row.querySelector('.product-quantity-input').value) || 1;
+        const unitCost = parseFloat(row.querySelector('.product-unit-cost-input').value) || 0;
+        const dutyRate = parseFloat(row.querySelector('.product-duty-rate-input').value) || 0;
+        
+        const productTotal = quantity * unitCost;
+        const productDuty = productTotal * (dutyRate / 100);
+        
+        totalProducts++;
+        totalQuantity += quantity;
+        totalUnitCost += productTotal;
+        totalDuty += productDuty;
+    });
+    
+    const globalCustomsFees = parseFloat(document.getElementById('globalCustomsFees').value) || 0;
+    const grandTotal = totalUnitCost + totalDuty + globalCustomsFees;
+    
+    calculationDiv.innerHTML = `
+        <div class="calc-row">
+            <span>Prodotti selezionati:</span>
+            <span><strong>${totalProducts}</strong></span>
+        </div>
+        <div class="calc-row">
+            <span>Quantità totale:</span>
+            <span><strong>${totalQuantity}</strong></span>
+        </div>
+        <div class="calc-row">
+            <span>Costo prodotti:</span>
+            <span><strong>€ ${totalUnitCost.toFixed(2)}</strong></span>
+        </div>
+        <div class="calc-row duty">
+            <span>Dazi stimati:</span>
+            <span><strong>€ ${totalDuty.toFixed(2)}</strong></span>
+        </div>
+        <div class="calc-row">
+            <span>Altri oneri doganali:</span>
+            <span><strong>€ ${globalCustomsFees.toFixed(2)}</strong></span>
+        </div>
+        <div class="calc-row total">
+            <span>Totale stimato:</span>
+            <span><strong>€ ${grandTotal.toFixed(2)}</strong></span>
+        </div>
+    `;
+    
+    previewDiv.style.display = 'block';
+}
+
+// ✅ AGGIUNGI PRODOTTI SELEZIONATI CON TUTTI I COSTI
+async function addSelectedProductsWithCosts() {
+    const selectedProducts = [];
+    const selectedCheckboxes = document.querySelectorAll('.product-checkbox:checked');
+    
+    if (selectedCheckboxes.length === 0) {
+        window.notificationSystem?.warning('Seleziona almeno un prodotto.');
+        return;
+    }
+    
+    selectedCheckboxes.forEach(checkbox => {
+        const row = checkbox.closest('.product-list-row');
+        const productId = row.dataset.productId;
+        const weight = parseFloat(row.querySelector('.product-weight-input').value) || 0;
+        const volume = parseFloat(row.querySelector('.product-volume-input').value) || 0;
+        const quantity = parseFloat(row.querySelector('.product-quantity-input').value) || 1;
+        const unitCost = parseFloat(row.querySelector('.product-unit-cost-input').value) || 0;
+        const dutyRate = parseFloat(row.querySelector('.product-duty-rate-input').value) || 0;
+        
+        selectedProducts.push({
+            productId,
+            quantity,
+            total_weight_kg: weight,
+            total_volume_cbm: volume,
+            cost_metadata: {
+                unitCost,
+                totalCost: quantity * unitCost,
+                dutyRate,
+                customsFees: 0 // Sarà distribuito globalmente
+            }
+        });
+    });
+    
+    const globalCustomsFees = parseFloat(document.getElementById('globalCustomsFees').value) || 0;
+    const costsNotes = document.getElementById('costsNotes').value;
+    
+    try {
+        const shipmentId = getShipmentIdFromURL();
+        
+        // ✅ DISTRIBUISCI I COSTI GLOBALI TRA I PRODOTTI
+        if (globalCustomsFees > 0) {
+            const feePerProduct = globalCustomsFees / selectedProducts.length;
+            selectedProducts.forEach(product => {
+                product.cost_metadata.customsFees = feePerProduct;
+            });
+        }
+        
+        for (const productData of selectedProducts) {
+            await window.dataManager.addProductToShipment(shipmentId, productData);
+        }
+        
+        // ✅ SALVA NOTE COSTI SE PRESENTI
+        if (costsNotes) {
+            // Potresti aggiungere le note ai metadati della spedizione
+            console.log('💡 Costs notes:', costsNotes);
+        }
+        
+        window.notificationSystem?.success(`${selectedProducts.length} prodotti aggiunti con successo!`);
+        window.ModalSystem?.close();
+        
+        // Ricarica i dettagli della spedizione
+        await loadShipmentDetails(shipmentId);
+        
+    } catch (error) {
+        console.error('Error adding products with costs:', error);
+        window.notificationSystem?.error('Errore nell\'aggiunta dei prodotti.');
+    }
 }
