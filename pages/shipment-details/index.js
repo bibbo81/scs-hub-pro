@@ -2332,7 +2332,7 @@ function generateContainerDetailsHTML(shipmentDetails, containerInfo, metrics) {
                 <h4><i class="fas fa-chart-pie mr-2"></i>Analisi Utilizzo</h4>
     `;
     
-        // ✅ SEZIONE PESO - MODIFICA QUESTA PARTE
+    // ✅ SEZIONE PESO CON ECCEDENZE
     if (metrics.weightPercent > 80) {
         const weightStatus = metrics.weightPercent > 100 ? 'danger' : 'warning';
         const weightExcess = metrics.totalWeightAfter - containerInfo.maxWeight;
@@ -2367,9 +2367,6 @@ function generateContainerDetailsHTML(shipmentDetails, containerInfo, metrics) {
                 <div class="progress-container">
                     <div class="progress-bar">
                         <div class="progress-fill ${weightStatus}" style="width: ${Math.min(metrics.weightPercent, 100)}%"></div>
-                        ${metrics.weightPercent > 100 ? `
-                        <div class="progress-overflow" style="width: ${Math.min(metrics.weightPercent - 100, 50)}%; background: #dc3545; opacity: 0.7;"></div>
-                        ` : ''}
                     </div>
                     <div class="progress-label ${weightStatus}">
                         ${metrics.weightPercent.toFixed(1)}% utilizzato
@@ -2380,7 +2377,7 @@ function generateContainerDetailsHTML(shipmentDetails, containerInfo, metrics) {
         `;
     }
     
-    // ✅ SEZIONE VOLUME - MODIFICA QUESTA PARTE
+    // ✅ SEZIONE VOLUME CON ECCEDENZE
     if (metrics.volumePercent > 80) {
         const volumeStatus = metrics.volumePercent > 100 ? 'danger' : 'warning';
         const volumeExcess = metrics.totalVolumeAfter - containerInfo.maxVolume;
@@ -2415,9 +2412,6 @@ function generateContainerDetailsHTML(shipmentDetails, containerInfo, metrics) {
                 <div class="progress-container">
                     <div class="progress-bar">
                         <div class="progress-fill ${volumeStatus}" style="width: ${Math.min(metrics.volumePercent, 100)}%"></div>
-                        ${metrics.volumePercent > 100 ? `
-                        <div class="progress-overflow" style="width: ${Math.min(metrics.volumePercent - 100, 50)}%; background: #dc3545; opacity: 0.7;"></div>
-                        ` : ''}
                     </div>
                     <div class="progress-label ${volumeStatus}">
                         ${metrics.volumePercent.toFixed(1)}% utilizzato
@@ -2433,180 +2427,35 @@ function generateContainerDetailsHTML(shipmentDetails, containerInfo, metrics) {
         </div>
         
         <style>
-            .container-warning-details {
-                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            }
-            
-            .container-info-section, .capacity-overview, .usage-analysis {
-                margin-bottom: 25px;
-                padding: 20px;
-                background: #f8f9fa;
-                border-radius: 8px;
-                border: 1px solid #e9ecef;
-            }
-            
-            .container-info-section h4, .capacity-overview h4, .usage-analysis h4 {
-                color: #495057;
-                margin-bottom: 15px;
-                font-size: 16px;
-                font-weight: 600;
-            }
-            
-            .container-types-grid {
-                display: grid;
-                grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-                gap: 15px;
-            }
-            
-            .container-type-card {
-                background: white;
-                padding: 15px;
-                border-radius: 6px;
-                border: 1px solid #dee2e6;
-                text-align: center;
-            }
-            
-            .container-count {
-                font-size: 24px;
-                font-weight: 700;
-                color: #007bff;
-            }
-            
-            .container-type {
-                font-size: 14px;
-                font-weight: 600;
-                color: #495057;
-                margin: 5px 0;
-            }
-            
-            .container-specs small {
-                color: #6c757d;
-                font-size: 11px;
-            }
-            
-            .container-info-text {
-                padding: 15px;
-                background: white;
-                border-radius: 6px;
-                border: 1px solid #dee2e6;
-                color: #495057;
-            }
-            
-            .capacity-stats {
-                display: grid;
-                grid-template-columns: 1fr 1fr;
-                gap: 20px;
-            }
-            
-            .capacity-stat {
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-                padding: 12px;
-                background: white;
-                border-radius: 6px;
-                border: 1px solid #dee2e6;
-            }
-            
-            .capacity-label {
-                font-weight: 500;
-                color: #6c757d;
-            }
-            
-            .capacity-value {
-                font-weight: 600;
-                color: #495057;
-            }
-            
-            .usage-section {
-                margin-bottom: 20px;
-                padding: 15px;
-                background: white;
-                border-radius: 6px;
-                border: 1px solid #dee2e6;
-            }
-            
-            .usage-section h5 {
-                color: #495057;
-                margin-bottom: 15px;
-                font-size: 14px;
-                font-weight: 600;
-            }
-            
-            .usage-breakdown {
-                margin-bottom: 15px;
-            }
-            
-            .usage-row {
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-                padding: 8px 0;
-                border-bottom: 1px solid #f1f3f4;
-            }
-            
-            .usage-row:last-child {
-                border-bottom: none;
-            }
-            
-            .usage-row.add {
-                color: #28a745;
-                font-weight: 500;
-            }
-            
-            .usage-row.total {
-                color: #495057;
-                font-weight: 600;
-                background: #f8f9fa;
-                padding: 12px;
-                margin: 10px -12px;
-                border-radius: 4px;
-            }
-            
-            .usage-row.capacity {
-                color: #6c757d;
-                font-weight: 500;
-            }
-            
-            .progress-container {
-                margin-top: 15px;
-            }
-            
-            .progress-bar {
-                height: 20px;
-                background: #e9ecef;
-                border-radius: 10px;
-                overflow: hidden;
-                margin-bottom: 8px;
-            }
-            
-            .progress-fill {
-                height: 100%;
-                border-radius: 10px;
-                transition: width 0.3s ease;
-            }
-            
-            .progress-fill.warning {
-                background: linear-gradient(90deg, #ffc107, #fd7e14);
-            }
-            
-            .progress-fill.danger {
-                background: linear-gradient(90deg, #dc3545, #c82333);
-            }
-            
-            .progress-label {
-                font-size: 13px;
-                font-weight: 600;
-                text-align: center;
-            }
-            
-            .progress-label.warning {
-                color: #f57c00;
-            }
-            
-            .progress-label.danger {
-                color: #dc3545;
-            }
+            .container-warning-details { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+            .container-info-section, .capacity-overview, .usage-analysis { margin-bottom: 25px; padding: 20px; background: #f8f9fa; border-radius: 8px; border: 1px solid #e9ecef; }
+            .container-info-section h4, .capacity-overview h4, .usage-analysis h4 { color: #495057; margin-bottom: 15px; font-size: 16px; font-weight: 600; }
+            .container-types-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 15px; }
+            .container-type-card { background: white; padding: 15px; border-radius: 6px; border: 1px solid #dee2e6; text-align: center; }
+            .container-count { font-size: 24px; font-weight: 700; color: #007bff; }
+            .container-type { font-size: 14px; font-weight: 600; color: #495057; margin: 5px 0; }
+            .container-specs small { color: #6c757d; font-size: 11px; }
+            .container-info-text { padding: 15px; background: white; border-radius: 6px; border: 1px solid #dee2e6; color: #495057; }
+            .capacity-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+            .capacity-stat { display: flex; justify-content: space-between; align-items: center; padding: 12px; background: white; border-radius: 6px; border: 1px solid #dee2e6; }
+            .capacity-label { font-weight: 500; color: #6c757d; }
+            .capacity-value { font-weight: 600; color: #495057; }
+            .usage-section { margin-bottom: 20px; padding: 15px; background: white; border-radius: 6px; border: 1px solid #dee2e6; }
+            .usage-section h5 { color: #495057; margin-bottom: 15px; font-size: 14px; font-weight: 600; }
+            .usage-breakdown { margin-bottom: 15px; }
+            .usage-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #f1f3f4; }
+            .usage-row:last-child { border-bottom: none; }
+            .usage-row.add { color: #28a745; font-weight: 500; }
+            .usage-row.total { color: #495057; font-weight: 600; background: #f8f9fa; padding: 12px; margin: 10px -12px; border-radius: 4px; }
+            .usage-row.capacity { color: #6c757d; font-weight: 500; }
+            .progress-container { margin-top: 15px; }
+            .progress-bar { height: 20px; background: #e9ecef; border-radius: 10px; overflow: hidden; margin-bottom: 8px; }
+            .progress-fill { height: 100%; border-radius: 10px; transition: width 0.3s ease; }
+            .progress-fill.warning { background: linear-gradient(90deg, #ffc107, #fd7e14); }
+            .progress-fill.danger { background: linear-gradient(90deg, #dc3545, #c82333); }
+            .progress-label { font-size: 13px; font-weight: 600; text-align: center; }
+            .progress-label.warning { color: #f57c00; }
+            .progress-label.danger { color: #dc3545; }
         </style>
     `;
     
