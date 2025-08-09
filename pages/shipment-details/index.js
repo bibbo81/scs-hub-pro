@@ -307,12 +307,24 @@ function renderProductsTable(shipment) {
     tbody.innerHTML = '';
 
     if (!products || products.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="10" class="text-center">Nessun prodotto associato.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="12" class="text-center">Nessun prodotto associato.</td></tr>';
         updateTotalsWithCosts([], shipment);
         return;
     }
 
-    // ✅ USA LA NUOVA FUNZIONE renderProductRow PER OGNI PRODOTTO
+    // ✅ CALCOLA I COSTI DI TRASPORTO
+    const transportCosts = calculateTransportCosts(shipment, products);
+    
+    // ✅ AGGIORNA I METADATI DEI PRODOTTI CON I COSTI DI TRASPORTO
+    products.forEach(product => {
+        if (!product.cost_metadata) {
+            product.cost_metadata = {};
+        }
+        product.cost_metadata.transportUnitCost = transportCosts.allocatedCosts[product.id] ? 
+            transportCosts.allocatedCosts[product.id] / product.quantity : 0;
+    });
+
+    // ✅ USA LA FUNZIONE renderProductRow CORRETTA
     products.forEach(shipmentProduct => {
         const product = shipmentProduct.product || null;
         const rowHTML = renderProductRow(shipmentProduct, product);
@@ -325,7 +337,12 @@ function renderProductsTable(shipment) {
         const addedCostButtons = tbody.querySelectorAll('.product-costs-btn');
         console.log('✅ renderProductsTable completed:', {
             rowsAdded: tbody.children.length,
-            costButtonsAdded: addedCostButtons.length
+            costButtonsAdded: addedCostButtons.length,
+            formatFunctionsAvailable: {
+                formatCurrencyIT: typeof window.formatCurrencyIT,
+                formatNumberIT: typeof window.formatNumberIT,
+                formatPercentageIT: typeof window.formatPercentageIT
+            }
         });
     }, 100);
 }
@@ -336,9 +353,11 @@ function updateTotalsWithCosts(products, shipment) {
     let totalVolume = 0;
     let totalProductCost = 0;
     let totalDuty = 0;
-    let totalAllocatedCost = 0;
+    let totalTransportCost = 0;
     let weightedDutyRate = 0;
     let totalUnitCostWeighted = 0;
+    let totalDutyUnitWeighted = 0;
+    let totalTransportUnitWeighted = 0;
     
     products.forEach(shipmentProduct => {
         const costs = shipmentProduct.cost_metadata || {};
@@ -346,25 +365,30 @@ function updateTotalsWithCosts(products, shipment) {
         const productTotal = costs.totalCost || (unitCost * shipmentProduct.quantity);
         const dutyRate = costs.dutyRate || 0;
         const dutyAmount = productTotal * (dutyRate / 100);
-        const customsFees = costs.customsFees || 0;
-        const allocated = productTotal + dutyAmount + customsFees;
+        const dutyUnitCost = unitCost * (dutyRate / 100);
+        const transportUnitCost = costs.transportUnitCost || 0;
+        const transportProductTotal = transportUnitCost * shipmentProduct.quantity;
         
         totalQuantity += shipmentProduct.quantity || 0;
         totalWeight += shipmentProduct.total_weight_kg || 0;
         totalVolume += shipmentProduct.total_volume_cbm || 0;
         totalProductCost += productTotal;
         totalDuty += dutyAmount;
-        totalAllocatedCost += allocated;
+        totalTransportCost += transportProductTotal;
         
         // Medie ponderate
         if (productTotal > 0) {
             weightedDutyRate += dutyRate * productTotal;
         }
         totalUnitCostWeighted += unitCost * (shipmentProduct.quantity || 0);
+        totalDutyUnitWeighted += dutyUnitCost * (shipmentProduct.quantity || 0);
+        totalTransportUnitWeighted += transportUnitCost * (shipmentProduct.quantity || 0);
     });
     
     const avgDutyRate = totalProductCost > 0 ? weightedDutyRate / totalProductCost : 0;
     const avgUnitCost = totalQuantity > 0 ? totalUnitCostWeighted / totalQuantity : 0;
+    const avgDutyUnit = totalQuantity > 0 ? totalDutyUnitWeighted / totalQuantity : 0;
+    const avgTransportUnit = totalQuantity > 0 ? totalTransportUnitWeighted / totalQuantity : 0;
     
     // Aggiorna i totali nella tabella
     const elements = {
@@ -374,27 +398,63 @@ function updateTotalsWithCosts(products, shipment) {
         averageUnitCost: document.getElementById('averageUnitCost'),
         totalProductCost: document.getElementById('totalProductCost'),
         averageDutyRate: document.getElementById('averageDutyRate'),
+        averageDutyUnit: document.getElementById('averageDutyUnit'),
         totalDuty: document.getElementById('totalDuty'),
-        totalAllocatedCost: document.getElementById('totalAllocatedCost')
+        averageTransportUnit: document.getElementById('averageTransportUnit'),
+        totalTransportCost: document.getElementById('totalTransportCost')
     };
     
-    if (elements.totalQuantity) elements.totalQuantity.textContent = totalQuantity;
-    if (elements.totalWeight) elements.totalWeight.textContent = `${totalWeight.toFixed(2)} kg`;
-    if (elements.totalVolume) elements.totalVolume.textContent = `${totalVolume.toFixed(3)} m³`;
-    if (elements.averageUnitCost) elements.averageUnitCost.textContent = `€ ${avgUnitCost.toFixed(2)}`;
-    if (elements.totalProductCost) elements.totalProductCost.textContent = `€ ${totalProductCost.toFixed(2)}`;
-    if (elements.averageDutyRate) elements.averageDutyRate.textContent = `${avgDutyRate.toFixed(1)}%`;
-    if (elements.totalDuty) elements.totalDuty.textContent = `€ ${totalDuty.toFixed(2)}`;
-    if (elements.totalAllocatedCost) elements.totalAllocatedCost.textContent = `€ ${totalAllocatedCost.toFixed(2)}`;
+    if (elements.totalQuantity) elements.totalQuantity.textContent = window.formatNumberIT ? window.formatNumberIT(totalQuantity) : totalQuantity;
+    if (elements.totalWeight) elements.totalWeight.textContent = formatWeight(totalWeight);
+    if (elements.totalVolume) elements.totalVolume.textContent = formatVolume(totalVolume);
+    if (elements.averageUnitCost) elements.averageUnitCost.textContent = window.formatCurrencyIT ? window.formatCurrencyIT(avgUnitCost) : `€ ${avgUnitCost.toFixed(2)}`;
+    if (elements.totalProductCost) elements.totalProductCost.textContent = window.formatCurrencyIT ? window.formatCurrencyIT(totalProductCost) : `€ ${totalProductCost.toFixed(2)}`;
+    if (elements.averageDutyRate) elements.averageDutyRate.textContent = window.formatPercentageIT ? window.formatPercentageIT(avgDutyRate) : `${avgDutyRate.toFixed(1)}%`;
+    if (elements.averageDutyUnit) elements.averageDutyUnit.textContent = window.formatCurrencyIT ? window.formatCurrencyIT(avgDutyUnit) : `€ ${avgDutyUnit.toFixed(2)}`;
+    if (elements.totalDuty) elements.totalDuty.textContent = window.formatCurrencyIT ? window.formatCurrencyIT(totalDuty) : `€ ${totalDuty.toFixed(2)}`;
+    if (elements.averageTransportUnit) elements.averageTransportUnit.textContent = window.formatCurrencyIT ? window.formatCurrencyIT(avgTransportUnit) : `€ ${avgTransportUnit.toFixed(2)}`;
+    if (elements.totalTransportCost) elements.totalTransportCost.textContent = window.formatCurrencyIT ? window.formatCurrencyIT(totalTransportCost) : `€ ${totalTransportCost.toFixed(2)}`;
 
-    console.log('📊 Totals updated:', {
+    console.log('📊 Totals updated with Italian format:', {
         totalQuantity,
         totalProductCost: totalProductCost.toFixed(2),
         totalDuty: totalDuty.toFixed(2),
-        totalAllocatedCost: totalAllocatedCost.toFixed(2)
+        totalTransportCost: totalTransportCost.toFixed(2)
     });
 }
-// ✅ FUNZIONE MANCANTE: Renderizza una singola riga prodotto con tutti i costi
+
+function calculateTransportCosts(shipment, products) {
+    const freightCost = shipment.freight_cost || 0;
+    const otherCosts = shipment.other_costs || 0;
+    const totalShipmentCosts = freightCost + otherCosts;
+    
+    if (totalShipmentCosts === 0 || products.length === 0) {
+        return { unitCost: 0, allocatedCosts: {} };
+    }
+    
+    // Calcola il peso totale per l'allocazione
+    const totalWeight = products.reduce((sum, p) => sum + (p.total_weight_kg || 0), 0);
+    
+    if (totalWeight === 0) {
+        // Se non c'è peso, distribuisci equamente
+        const unitCost = totalShipmentCosts / products.length;
+        const allocatedCosts = {};
+        products.forEach(p => {
+            allocatedCosts[p.id] = unitCost;
+        });
+        return { unitCost, allocatedCosts };
+    }
+    
+    // Allocazione basata sul peso
+    const costPerKg = totalShipmentCosts / totalWeight;
+    const allocatedCosts = {};
+    products.forEach(p => {
+        allocatedCosts[p.id] = costPerKg * (p.total_weight_kg || 0);
+    });
+    
+    return { unitCost: costPerKg, allocatedCosts };
+}
+
 function renderProductRow(shipmentProduct, product) {
     console.log('🔄 renderProductRow:', {
         productId: shipmentProduct.id,
@@ -406,9 +466,10 @@ function renderProductRow(shipmentProduct, product) {
     const unitCost = costs.unitCost || 0;
     const totalCost = costs.totalCost || (unitCost * shipmentProduct.quantity);
     const dutyRate = costs.dutyRate || 0;
+    const dutyUnitCost = unitCost * (dutyRate / 100);
     const dutyTotal = totalCost * (dutyRate / 100);
-    const customsFees = costs.customsFees || 0;
-    const allocatedCost = totalCost + dutyTotal + customsFees;
+    const transportUnitCost = costs.transportUnitCost || 0;
+    const transportTotal = transportUnitCost * shipmentProduct.quantity;
     
     return `
         <tr class="product-row" data-product-id="${shipmentProduct.id}">
@@ -418,15 +479,17 @@ function renderProductRow(shipmentProduct, product) {
                     <div class="product-sku">SKU: ${product?.sku || shipmentProduct.sku || 'N/A'}</div>
                 </div>
             </td>
-            <td>${formatQuantity(shipmentProduct.quantity || 0)}</td>
+            <td>${window.formatNumberIT ? window.formatNumberIT(shipmentProduct.quantity || 0) : (shipmentProduct.quantity || 0)}</td>
             <td>${formatWeight(shipmentProduct.total_weight_kg || 0)}</td>
             <td>${formatVolume(shipmentProduct.total_volume_cbm || 0)}</td>
-            <td class="unit-cost-column">€ ${unitCost.toFixed(2)}</td>
-            <td class="total-cost-column">€ ${totalCost.toFixed(2)}</td>
-            <td class="duty-rate-column">${dutyRate.toFixed(1)}%</td>
-            <td class="duty-total-column">€ ${dutyTotal.toFixed(2)}</td>
-            <td class="allocated-cost-column">€ ${allocatedCost.toFixed(2)}</td>
-            <td>
+            <td class="unit-cost-column">${window.formatCurrencyIT ? window.formatCurrencyIT(unitCost) : `€ ${unitCost.toFixed(2)}`}</td>
+            <td class="total-cost-column">${window.formatCurrencyIT ? window.formatCurrencyIT(totalCost) : `€ ${totalCost.toFixed(2)}`}</td>
+            <td class="duty-rate-column">${window.formatPercentageIT ? window.formatPercentageIT(dutyRate) : `${dutyRate.toFixed(1)}%`}</td>
+            <td class="duty-unit-column">${window.formatCurrencyIT ? window.formatCurrencyIT(dutyUnitCost) : `€ ${dutyUnitCost.toFixed(2)}`}</td>
+            <td class="duty-total-column">${window.formatCurrencyIT ? window.formatCurrencyIT(dutyTotal) : `€ ${dutyTotal.toFixed(2)}`}</td>
+            <td class="transport-unit-column">${window.formatCurrencyIT ? window.formatCurrencyIT(transportUnitCost) : `€ ${transportUnitCost.toFixed(2)}`}</td>
+            <td class="transport-total-column">${window.formatCurrencyIT ? window.formatCurrencyIT(transportTotal) : `€ ${transportTotal.toFixed(2)}`}</td>
+            <td class="actions-column">
                 <div class="action-buttons">
                     <button class="sol-btn sol-btn-secondary sol-btn-sm edit-product-btn" data-item-id="${shipmentProduct.id}" title="Modifica Prodotto">
                         <i class="fas fa-edit"></i>
