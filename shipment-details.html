@@ -684,6 +684,98 @@
             .modal-xxl .product-cards-container {
                 max-height: calc(100vh - 350px) !important;
             }
+
+          /* ====== STILI PER LE COLONNE COSTI ESTESE ====== */
+.total-cost-column {
+    background-color: #e8f5e8;
+    font-weight: 600;
+    color: #2e7d32;
+    min-width: 120px;
+}
+
+.duty-rate-column {
+    background-color: #fff3e0;
+    font-weight: 600;
+    color: #f57c00;
+    min-width: 100px;
+    text-align: center;
+}
+
+.duty-total-column {
+    background-color: #fce4ec;
+    font-weight: 600;
+    color: #c2185b;
+    min-width: 120px;
+}
+
+.allocated-cost-column {
+    background-color: #f3e5f5;
+    font-weight: 600;
+    color: #7b1fa2;
+    min-width: 120px;
+}
+
+/* EVIDENZIAZIONE DELLE CELLE DATI */
+.product-row .total-cost-column {
+    background-color: #f0fff0;
+    border-left: 3px solid #2e7d32;
+}
+
+.product-row .duty-rate-column {
+    background-color: #fffaf0;
+    border-left: 3px solid #f57c00;
+    text-align: center;
+}
+
+.product-row .duty-total-column {
+    background-color: #fef7f7;
+    border-left: 3px solid #c2185b;
+}
+
+.product-row .allocated-cost-column {
+    background-color: #faf5ff;
+    border-left: 3px solid #7b1fa2;
+}
+
+/* SCROLL ORIZZONTALE PER TABELLE LARGHE */
+.table-container {
+    overflow-x: auto;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+}
+
+.data-table {
+    min-width: 1400px; /* Larghezza minima per tutte le colonne */
+}
+
+/* TOTALI ROW EVIDENZIATA */
+.totals-row {
+    background-color: #f8f9fa;
+    border-top: 2px solid #495057;
+}
+
+.totals-row th {
+    padding: 15px 8px;
+    font-size: 14px;
+}
+
+/* RESPONSIVE TABLE */
+@media (max-width: 1200px) {
+    .data-table {
+        font-size: 12px;
+    }
+    
+    .unit-cost-column,
+    .total-cost-column,
+    .duty-total-column,
+    .allocated-cost-column {
+        min-width: 100px;
+    }
+    
+    .duty-rate-column {
+        min-width: 80px;
+    }
+}  
     </style>
 </head>
 <body>
@@ -757,36 +849,40 @@
                 </div>
                 <div class="sol-card-body">
                     <div class="table-container">
-                        <table class="data-table">
-                            <thead>
-                                <tr>
-                                    <th>Prodotto</th>
-                                    <th>Quantità</th>
-                                    <th>Peso Totale</th>
-                                    <th>Volume Totale</th>
-                                    <th>Costo Allocato Totale</th>
-                                    <th class="unit-cost-column">💰 Costo Unitario</th>
-                                    <th>Azioni</th>
-                                </tr>
-                            </thead>
-                            <tbody id="productsTableBody">
-                                <!-- Righe prodotto saranno inserite qui -->
-                            </tbody>
-                            <tfoot>
-                                <tr class="totals-row">
-                                    <th><strong>Totali</strong></th>
-                                    <th><strong id="totalQuantity">0</strong></th>
-                                    <th><strong id="totalWeight">0 kg</strong></th>
-                                    <th><strong id="totalVolume">0 m³</strong></th>
-                                    <th><strong id="totalAllocatedCost">€ 0,00</strong></th>
-                                    <th class="unit-cost-column"><strong id="averageUnitCost">€ 0,00</strong></th>
-                                    <th></th>
-                                </tr>
-                            </tfoot>
-                        </table>
-                    </div>
-                </div>
-            </div>
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>Prodotto</th>
+                <th>Quantità</th>
+                <th>Peso Totale</th>
+                <th>Volume Totale</th>
+                <th class="unit-cost-column">💰 Costo Unitario</th>
+                <th class="total-cost-column">💰 Costo Totale</th>
+                <th class="duty-rate-column">📊 % Dazio</th>
+                <th class="duty-total-column">🚢 Dazio Totale</th>
+                <th class="allocated-cost-column">💸 Costo Allocato</th>
+                <th>Azioni</th>
+            </tr>
+        </thead>
+        <tbody id="productsTableBody">
+            <!-- Righe prodotto saranno inserite qui -->
+        </tbody>
+        <tfoot>
+            <tr class="totals-row">
+                <th><strong>Totali</strong></th>
+                <th><strong id="totalQuantity">0</strong></th>
+                <th><strong id="totalWeight">0 kg</strong></th>
+                <th><strong id="totalVolume">0 m³</strong></th>
+                <th class="unit-cost-column"><strong id="averageUnitCost">€ 0,00</strong></th>
+                <th class="total-cost-column"><strong id="totalProductCost">€ 0,00</strong></th>
+                <th class="duty-rate-column"><strong id="averageDutyRate">0,0%</strong></th>
+                <th class="duty-total-column"><strong id="totalDuty">€ 0,00</strong></th>
+                <th class="allocated-cost-column"><strong id="totalAllocatedCost">€ 0,00</strong></th>
+                <th></th>
+            </tr>
+        </tfoot>
+    </table>
+</div>
 
             <div class="sol-card mb-4">
                 <div class="sol-card-header">
