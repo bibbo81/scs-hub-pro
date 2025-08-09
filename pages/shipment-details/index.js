@@ -377,7 +377,7 @@ function renderProductsTable(shipment) {
         const tr = document.createElement('tr');
         tr.classList.add('product-row');
         tr.dataset.itemId = product.id;
-        tr.innerHTML = `
+                tr.innerHTML = `
             <td>${product.product?.name || product.name || '-'}<small class="text-muted d-block">${product.product?.sku || ''}</small></td>
             <td>${formatQuantity(product.quantity || 0)}</td>
             <td>${formatWeight(product.total_weight_kg)}</td>
@@ -386,6 +386,7 @@ function renderProductsTable(shipment) {
             <td class="unit-cost-column"><strong>${formatCurrency(allocatedUnitCost)}</strong></td>
             <td>
                 <button class="sol-btn sol-btn-secondary sol-btn-sm edit-product-btn" data-item-id="${product.id}" title="Modifica Prodotto"><i class="fas fa-edit"></i></button>
+                <button class="sol-btn sol-btn-primary sol-btn-sm product-costs-btn" data-item-id="${product.id}" title="Gestisci Costi"><i class="fas fa-euro-sign"></i></button>
                 <button class="sol-btn sol-btn-danger sol-btn-sm delete-product-btn" data-item-id="${product.id}" title="Elimina Prodotto"><i class="fas fa-trash"></i></button>
             </td>
         `;
@@ -564,6 +565,12 @@ function setupEventListeners() {
         if (editBtn) {
             editProduct(editBtn.dataset.itemId);
         }
+
+    const costsBtn = event.target.closest('.product-costs-btn');
+    if (costsBtn) {
+        editProductCosts(costsBtn.dataset.itemId);
+    }
+
         const deleteBtn = event.target.closest('.delete-product-btn');
         if (deleteBtn) {
             deleteProduct(deleteBtn.dataset.itemId);
@@ -866,6 +873,228 @@ async function deleteProduct(productId) {
         } catch (error) {
             window.notificationSystem?.error('Errore durante la rimozione del prodotto.');
         }
+    }
+}
+
+// ✅ AGGIUNGI QUESTA FUNZIONE COMPLETA
+async function editProductCosts(productId) {
+    const shipmentId = getShipmentIdFromURL();
+    try {
+        const shipmentDetails = await window.dataManager.getShipmentDetails(shipmentId);
+        const product = shipmentDetails.products.find(p => p.id === productId);
+        
+        if (!product) {
+            window.notificationSystem?.error('Prodotto non trovato nella spedizione.');
+            return;
+        }
+        
+        const modalContent = `
+            <div class="product-costs-form">
+                <h4><i class="fas fa-cubes"></i> Costi per ${product.product?.name || product.name || product.sku}</h4>
+                
+                <div class="form-section">
+                    <h5>Costi Prodotto</h5>
+                    <div class="form-group">
+                        <label>Costo Unitario (€)</label>
+                        <input type="number" 
+                               id="unitCost" 
+                               step="0.01" 
+                               value="${product.unitCost || ''}"
+                               placeholder="es: 25.50">
+                        <small>Costo di acquisto/produzione per unità</small>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Costo Totale (€)</label>
+                        <input type="number" 
+                               id="totalCost" 
+                               step="0.01" 
+                               value="${product.totalCost || ''}"
+                               placeholder="Auto-calcolato o inserimento manuale">
+                        <small>Verrà calcolato automaticamente se lasciato vuoto</small>
+                    </div>
+                </div>
+                
+                <div class="form-section">
+                    <h5>Dazi Doganali</h5>
+                    <div class="form-group">
+                        <label>Aliquota Dazio (%)</label>
+                        <input type="number" 
+                               id="dutyRate" 
+                               step="0.1" 
+                               min="0" 
+                               max="100"
+                               value="${product.dutyRate || ''}"
+                               placeholder="es: 8.5">
+                        <small>Percentuale di dazio per questo prodotto</small>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Altri Oneri Doganali (€)</label>
+                        <input type="number" 
+                               id="customsFees" 
+                               step="0.01" 
+                               value="${product.customsFees || ''}"
+                               placeholder="es: 50.00">
+                        <small>Spese fisse: clearance, handling, etc.</small>
+                    </div>
+                </div>
+                
+                <div class="costs-preview">
+                    <h6>Anteprima Calcoli</h6>
+                    <div id="costsCalculation" class="calculation-preview">
+                        <!-- Will be populated by JavaScript -->
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        window.ModalSystem?.show({
+            title: 'Modifica Costi Prodotto',
+            content: modalContent,
+            size: 'lg',
+            buttons: [
+                {
+                    text: 'Annulla',
+                    class: 'sol-btn sol-btn-secondary',
+                    onclick: () => window.ModalSystem.close()
+                },
+                {
+                    text: 'Salva Costi',
+                    class: 'sol-btn sol-btn-primary',
+                    onclick: () => saveProductCosts(productId)
+                }
+            ]
+        });
+        
+        // Setup real-time calculation
+        setTimeout(() => setupCostCalculation(product), 100);
+        
+    } catch (error) {
+        console.error('Error loading product for cost editing:', error);
+        window.notificationSystem?.error('Errore nel caricamento del prodotto.');
+    }
+}
+
+// ✅ AGGIUNGI QUESTA FUNZIONE
+function setupCostCalculation(product) {
+    const inputs = ['unitCost', 'totalCost', 'dutyRate', 'customsFees'];
+    const quantity = product.quantity || 0;
+    
+    inputs.forEach(inputId => {
+        const input = document.getElementById(inputId);
+        if (input) {
+            input.addEventListener('input', () => {
+                updateCostCalculation(quantity);
+            });
+        }
+    });
+    
+    // Initial calculation
+    updateCostCalculation(quantity);
+}
+
+// ✅ AGGIUNGI QUESTA FUNZIONE
+function updateCostCalculation(quantity) {
+    const unitCost = parseFloat(document.getElementById('unitCost')?.value || 0);
+    const manualTotalCost = parseFloat(document.getElementById('totalCost')?.value || 0);
+    const dutyRate = parseFloat(document.getElementById('dutyRate')?.value || 0);
+    const customsFees = parseFloat(document.getElementById('customsFees')?.value || 0);
+    
+    // Calculate totals
+    const calculatedTotalCost = unitCost * quantity;
+    const actualTotalCost = manualTotalCost || calculatedTotalCost;
+    const dutyAmount = actualTotalCost * dutyRate / 100;
+    const grandTotal = actualTotalCost + dutyAmount + customsFees;
+    
+    const previewContainer = document.getElementById('costsCalculation');
+    if (previewContainer) {
+        previewContainer.innerHTML = `
+            <div class="calc-row">
+                <span>Quantità:</span>
+                <strong>${quantity}</strong>
+            </div>
+            <div class="calc-row">
+                <span>Costo totale:</span>
+                <strong>€${actualTotalCost.toFixed(2)}</strong>
+                ${manualTotalCost ? '<small>(manuale)</small>' : '<small>(calcolato)</small>'}
+            </div>
+            <div class="calc-row duty">
+                <span>Dazio (${dutyRate}%):</span>
+                <strong>€${dutyAmount.toFixed(2)}</strong>
+            </div>
+            <div class="calc-row">
+                <span>Altri oneri:</span>
+                <strong>€${customsFees.toFixed(2)}</strong>
+            </div>
+            <div class="calc-row total">
+                <span><strong>Totale prodotto:</strong></span>
+                <strong>€${grandTotal.toFixed(2)}</strong>
+            </div>
+        `;
+    }
+}
+
+// ✅ AGGIUNGI QUESTA FUNZIONE
+async function saveProductCosts(productId) {
+    const unitCost = parseFloat(document.getElementById('unitCost')?.value || 0);
+    const manualTotalCost = parseFloat(document.getElementById('totalCost')?.value || 0);
+    const dutyRate = parseFloat(document.getElementById('dutyRate')?.value || 0);
+    const customsFees = parseFloat(document.getElementById('customsFees')?.value || 0);
+    
+    const shipmentId = getShipmentIdFromURL();
+    
+    try {
+        const shipmentDetails = await window.dataManager.getShipmentDetails(shipmentId);
+        const product = shipmentDetails.products.find(p => p.id === productId);
+        
+        if (!product) {
+            window.notificationSystem?.error('Prodotto non trovato.');
+            return false;
+        }
+        
+        const quantity = product.quantity || 0;
+        const calculatedTotalCost = unitCost * quantity;
+        const actualTotalCost = manualTotalCost || calculatedTotalCost;
+        const dutyAmount = actualTotalCost * dutyRate / 100;
+        
+        // Prepara i dati da salvare
+        const updatedData = {
+            // Campi esistenti
+            quantity: product.quantity,
+            weight_kg: product.weight_kg,
+            volume_cbm: product.volume_cbm,
+            
+            // Metadati per tracciare i costi
+            cost_metadata: {
+                unitCost: unitCost,
+                totalCost: actualTotalCost,
+                dutyRate: dutyRate,
+                dutyAmount: dutyAmount,
+                customsFees: customsFees,
+                grandTotal: actualTotalCost + dutyAmount + customsFees
+            }
+        };
+        
+        console.log('💰 Saving product costs:', updatedData);
+        
+        window.notificationSystem?.info('Salvataggio costi prodotto...');
+        
+        // Salva usando il dataManager esistente
+        await window.dataManager.updateShipmentItem(productId, updatedData);
+        
+        window.ModalSystem.close();
+        window.notificationSystem?.success('Costi prodotto aggiornati!');
+        
+        // Refresh della pagina
+        await loadShipmentDetails(shipmentId);
+        
+        return true;
+        
+    } catch (error) {
+        console.error('Error saving product costs:', error);
+        window.notificationSystem?.error(`Errore durante il salvataggio: ${error.message}`);
+        return false;
     }
 }
 
