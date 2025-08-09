@@ -98,7 +98,18 @@ async function getVehicleTypeName(vehicleTypeId) {
     }
 }
 
+// ✅ CACHE PER EVITARE CHIAMATE RIPETUTE
+let isLoadingShipment = false;
+
 async function loadShipmentDetails(shipmentId) {
+    // ✅ PREVIENI CHIAMATE MULTIPLE SIMULTANEE
+    if (isLoadingShipment) {
+        console.log('⚠️ Shipment loading already in progress, skipping...');
+        return;
+    }
+    
+    isLoadingShipment = true;
+    
     try {
         console.log('🔍 Loading shipment details for ID:', shipmentId);
         
@@ -180,6 +191,9 @@ async function loadShipmentDetails(shipmentId) {
     } catch (error) {
         console.error("Error loading shipment details:", error);
         window.notificationSystem?.error("Impossibile caricare i dettagli della spedizione.");
+    } finally {
+        // ✅ IMPORTANTE: Rilascia sempre il lock
+        isLoadingShipment = false;
     }
 }
 
@@ -433,11 +447,81 @@ function calculateTransportCosts(shipment, products) {
         return { unitCost: 0, allocatedCosts: {} };
     }
     
-    // ✅ CORREZIONE: Usa CBM invece del peso per spedizioni marittime
-    const totalVolume = products.reduce((sum, p) => sum + (p.total_volume_cbm || 0), 0);
+    // ✅ DETERMINA IL TIPO DI TRASPORTO
+    const transportMode = shipment.tracking?.transport_modes?.name || 
+                         shipment.transport_mode?.name || 
+                         'manual';
     
-    if (totalVolume === 0) {
-        // Se non c'è volume, distribuisci equamente
+    console.log('🚛 Transport mode detected:', transportMode);
+    
+    let totalBasis = 0;
+    let allocationMethod = 'equal'; // Default fallback
+    
+    // ✅ LOGICA SPECIFICA PER TIPO DI TRASPORTO
+    if (transportMode.toLowerCase().includes('mare') || 
+        transportMode.toLowerCase().includes('sea') || 
+        transportMode.toLowerCase().includes('ocean')) {
+        
+        // 🚢 SPEDIZIONI MARITTIME: Solo CBM
+        allocationMethod = 'volume';
+        totalBasis = products.reduce((sum, p) => sum + (p.total_volume_cbm || 0), 0);
+        console.log('🚢 Maritime shipping: using CBM only, total:', totalBasis);
+        
+    } else if (transportMode.toLowerCase().includes('aer') || 
+               transportMode.toLowerCase().includes('air') || 
+               transportMode.toLowerCase().includes('cargo')) {
+        
+        // ✈️ SPEDIZIONI AEREE: Peso vs Volume con coefficiente 1:167
+        allocationMethod = 'weight_volume_max';
+        const totalWeight = products.reduce((sum, p) => sum + (p.total_weight_kg || 0), 0);
+        const totalVolume = products.reduce((sum, p) => sum + (p.total_volume_cbm || 0), 0);
+        const volumetricWeight = totalVolume * 167; // Coefficiente 1:167kg per CBM
+        
+        totalBasis = Math.max(totalWeight, volumetricWeight);
+        console.log('✈️ Air shipping:', {
+            totalWeight,
+            totalVolume,
+            volumetricWeight,
+            selectedBasis: totalBasis,
+            method: totalWeight > volumetricWeight ? 'actual_weight' : 'volumetric_weight'
+        });
+        
+    } else {
+        
+        // 🚛 SPEDIZIONI MANUALI: Usa il campo disponibile
+        allocationMethod = 'flexible';
+        const totalWeight = products.reduce((sum, p) => sum + (p.total_weight_kg || 0), 0);
+        const totalVolume = products.reduce((sum, p) => sum + (p.total_volume_cbm || 0), 0);
+        
+        if (totalVolume > 0 && totalWeight > 0) {
+            // Entrambi disponibili: usa il volume (preferenza arbitraria)
+            totalBasis = totalVolume;
+            allocationMethod = 'volume';
+        } else if (totalVolume > 0) {
+            // Solo volume disponibile
+            totalBasis = totalVolume;
+            allocationMethod = 'volume';
+        } else if (totalWeight > 0) {
+            // Solo peso disponibile
+            totalBasis = totalWeight;
+            allocationMethod = 'weight';
+        } else {
+            // Nessun dato: distribuzione equa
+            totalBasis = products.length;
+            allocationMethod = 'equal';
+        }
+        
+        console.log('🚛 Manual shipping:', {
+            totalWeight,
+            totalVolume,
+            selectedBasis: totalBasis,
+            method: allocationMethod
+        });
+    }
+    
+    // ✅ FALLBACK: Se non c'è base per il calcolo, distribuisci equamente
+    if (totalBasis === 0) {
+        console.warn('⚠️ No basis for cost allocation, using equal distribution');
         const unitCost = totalShipmentCosts / products.length;
         const allocatedCosts = {};
         products.forEach(p => {
@@ -446,14 +530,59 @@ function calculateTransportCosts(shipment, products) {
         return { unitCost, allocatedCosts };
     }
     
-    // ✅ CORREZIONE: Allocazione basata sul volume CBM
-    const costPerCBM = totalShipmentCosts / totalVolume;
+    // ✅ CALCOLA IL COSTO UNITARIO E ALLOCA AI PRODOTTI
+    const costPerUnit = totalShipmentCosts / totalBasis;
     const allocatedCosts = {};
-    products.forEach(p => {
-        allocatedCosts[p.id] = costPerCBM * (p.total_volume_cbm || 0);
+    
+    products.forEach(product => {
+        let productBasis = 0;
+        
+        switch (allocationMethod) {
+            case 'volume':
+                productBasis = product.total_volume_cbm || 0;
+                break;
+                
+            case 'weight':
+                productBasis = product.total_weight_kg || 0;
+                break;
+                
+            case 'weight_volume_max':
+                const productWeight = product.total_weight_kg || 0;
+                const productVolume = product.total_volume_cbm || 0;
+                const productVolumetricWeight = productVolume * 167;
+                productBasis = Math.max(productWeight, productVolumetricWeight);
+                break;
+                
+            case 'flexible':
+                // Per spedizioni manuali, usa quello che è disponibile
+                if ((product.total_volume_cbm || 0) > 0 && (product.total_weight_kg || 0) > 0) {
+                    productBasis = product.total_volume_cbm; // Preferenza volume
+                } else if ((product.total_volume_cbm || 0) > 0) {
+                    productBasis = product.total_volume_cbm;
+                } else if ((product.total_weight_kg || 0) > 0) {
+                    productBasis = product.total_weight_kg;
+                } else {
+                    productBasis = 1; // Fallback per distribuzione equa
+                }
+                break;
+                
+            case 'equal':
+            default:
+                productBasis = 1;
+                break;
+        }
+        
+        allocatedCosts[product.id] = costPerUnit * productBasis;
     });
     
-    return { unitCost: costPerCBM, allocatedCosts };
+    console.log('💰 Transport cost allocation completed:', {
+        method: allocationMethod,
+        totalBasis,
+        costPerUnit: costPerUnit.toFixed(4),
+        totalAllocated: Object.values(allocatedCosts).reduce((sum, cost) => sum + cost, 0).toFixed(2)
+    });
+    
+    return { unitCost: costPerUnit, allocatedCosts };
 }
 
 function renderProductRow(shipmentProduct, product) {
@@ -888,10 +1017,14 @@ async function downloadDocument(documentId) {
 }
 
 async function editProduct(shipmentItemId) {
-    const shipmentId = getShipmentIdFromURL();
     try {
-        const shipmentDetails = await window.dataManager.getShipmentDetails(shipmentId);
-        const itemToEdit = shipmentDetails.products.find(p => p.id === shipmentItemId);
+        // ✅ USA I DATI GIÀ CARICATI INVECE DI RICARICARE
+        if (!window.currentShipment) {
+            window.notificationSystem?.error('Dati spedizione non disponibili. Ricarica la pagina.');
+            return;
+        }
+        
+        const itemToEdit = window.currentShipment.products.find(p => p.id === shipmentItemId);
 
         if (!itemToEdit) {
             window.notificationSystem?.error('Prodotto non trovato nella spedizione.');
@@ -916,7 +1049,7 @@ async function editProduct(shipmentItemId) {
         `;
 
         window.ModalSystem?.show({
-            title: `Modifica Prodotto: ${itemToEdit.product?.name || itemToEdit.name}`,
+            title: `Modifica Prodotto: ${itemToEdit.product?.name || itemToEdit.name || 'Prodotto'}`,
             content: modalContent,
             buttons: [
                 { text: 'Annulla', class: 'sol-btn sol-btn-secondary', onclick: () => window.ModalSystem.close() },
@@ -942,9 +1075,9 @@ async function editProduct(shipmentItemId) {
                         try {
                             window.notificationSystem?.info('Salvataggio modifiche...');
                             await window.dataManager.updateShipmentItem(shipmentItemId, updatedData);
-                            await window.dataManager.allocateCosts(shipmentId);
+                            await window.dataManager.allocateCosts(getShipmentIdFromURL());
                             window.notificationSystem?.success('Prodotto aggiornato con successo!');
-                            loadShipmentDetails(shipmentId);
+                            loadShipmentDetails(getShipmentIdFromURL());
                             return true;
                         } catch (error) {
                             window.notificationSystem?.error(`Errore durante l'aggiornamento: ${error.message}`);
@@ -956,6 +1089,7 @@ async function editProduct(shipmentItemId) {
         });
 
     } catch (error) {
+        console.error('Error editing product:', error);
         window.notificationSystem?.error('Impossibile caricare i dettagli del prodotto da modificare.');
     }
 }
@@ -980,14 +1114,34 @@ async function deleteProduct(productId) {
 
 async function editProductCosts(productId) {
     const shipmentId = getShipmentIdFromURL();
+    
     try {
-        const shipmentDetails = await window.dataManager.getShipmentDetails(shipmentId);
-        const product = shipmentDetails.products.find(p => p.id === productId);
+        // ✅ USA I DATI GIÀ CARICATI INVECE DI RICARICARE
+        if (!window.currentShipment) {
+            window.notificationSystem?.error('Dati spedizione non disponibili. Ricarica la pagina.');
+            return;
+        }
+        
+        const product = window.currentShipment.products.find(p => p.id === productId);
         
         if (!product) {
             window.notificationSystem?.error('Prodotto non trovato nella spedizione.');
             return;
         }
+        
+        // ✅ CARICA I VALORI ESISTENTI DAI CAMPI SALVATI O DAI METADATI
+        const existingUnitCost = product.unit_cost || product.cost_metadata?.unitCost || 0;
+        const existingTotalCost = product.total_cost || product.cost_metadata?.totalCost || 0;
+        const existingDutyRate = product.duty_rate || product.cost_metadata?.dutyRate || 0;
+        const existingCustomsFees = product.customs_fees || product.cost_metadata?.customsFees || 0;
+        
+        console.log('💰 Loading existing costs for product:', {
+            productId,
+            existingUnitCost,
+            existingTotalCost,
+            existingDutyRate,
+            existingCustomsFees
+        });
         
         // ✅ ESTENDI LA MODAL ESISTENTE CON SEZIONE COSTI
         const modalContent = `
@@ -1001,7 +1155,7 @@ async function editProductCosts(productId) {
                         </div>
                         <div class="info-item">
                             <div style="font-size: 12px; font-weight: 600; color: #6c757d; text-transform: uppercase; margin-bottom: 5px;">Descrizione</div>
-                            <div style="font-size: 14px; font-weight: 500; color: #212529; padding: 8px 12px; background: white; border: 1px solid #dee2e6; border-radius: 4px;">${product.product?.name || product.name || '-'}</div>
+                            <div style="font-size: 14px; font-weight: 500; color: #212529; padding: 8px 12px; background: white; border: 1px solid #dee2e6; border-radius: 4px;">${product.product?.name || product.name || 'Prodotto senza nome'}</div>
                         </div>
                         <div class="info-item">
                             <div style="font-size: 12px; font-weight: 600; color: #6c757d; text-transform: uppercase; margin-bottom: 5px;">Peso Totale</div>
@@ -1026,7 +1180,7 @@ async function editProductCosts(productId) {
                                id="unitCost" 
                                class="sol-form-input"
                                step="0.01" 
-                               value="${product.cost_metadata?.unitCost || ''}"
+                               value="${existingUnitCost}"
                                placeholder="es: 25.50">
                         <small class="form-text text-muted">Costo di acquisto/produzione per unità</small>
                     </div>
@@ -1037,7 +1191,7 @@ async function editProductCosts(productId) {
                                id="totalCost" 
                                class="sol-form-input"
                                step="0.01" 
-                               value="${product.cost_metadata?.totalCost || ''}"
+                               value="${existingTotalCost}"
                                placeholder="Auto-calcolato o inserimento manuale">
                         <small class="form-text text-muted">Verrà calcolato automaticamente se lasciato vuoto</small>
                     </div>
@@ -1050,7 +1204,7 @@ async function editProductCosts(productId) {
                                step="0.1" 
                                min="0" 
                                max="100"
-                               value="${product.cost_metadata?.dutyRate || ''}"
+                               value="${existingDutyRate}"
                                placeholder="es: 8.5">
                         <small class="form-text text-muted">Percentuale di dazio per questo prodotto</small>
                     </div>
@@ -1061,7 +1215,7 @@ async function editProductCosts(productId) {
                                id="customsFees" 
                                class="sol-form-input"
                                step="0.01" 
-                               value="${product.cost_metadata?.customsFees || ''}"
+                               value="${existingCustomsFees}"
                                placeholder="es: 50.00">
                         <small class="form-text text-muted">Spese fisse: clearance, handling, etc.</small>
                     </div>
@@ -1078,7 +1232,7 @@ async function editProductCosts(productId) {
         `;
         
         window.ModalSystem?.show({
-            title: `💰 Gestione Costi - ${product.product?.name || product.name}`,
+            title: `💰 Gestione Costi - ${product.product?.name || product.name || 'Prodotto'}`,
             content: modalContent,
             size: 'lg',
             buttons: [
