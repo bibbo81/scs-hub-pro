@@ -1145,8 +1145,10 @@ async getShipmentDetails(shipmentId) {
      * @param {Object} productData - Dati del prodotto da aggiungere.
      * @returns {Promise<Object>} Il prodotto aggiunto.
      */
-    
+            
     async addShipmentItem(shipmentId, itemData) {
+        if (!this.initialized) await this.init();
+        
         try {
             console.log('🔄 Adding shipment item with data:', itemData);
             
@@ -1157,6 +1159,8 @@ async getShipmentDetails(shipmentId) {
                 quantity: itemData.quantity || 1,
                 weight_kg: itemData.weight_kg || 0,
                 volume_cbm: itemData.volume_cbm || 0,
+                total_weight_kg: itemData.total_weight_kg || 0,
+                total_volume_cbm: itemData.total_volume_cbm || 0,
                 
                 // ✅ CAMPI COSTI - SALVALI DIRETTAMENTE
                 unit_cost: itemData.unit_cost || 0,
@@ -1166,13 +1170,17 @@ async getShipmentDetails(shipmentId) {
                 duty_unit_cost: itemData.duty_unit_cost || 0,
                 customs_fees: itemData.customs_fees || 0,
                 
-                // Aggiungi organization_id se necessario
+                // Metadati per compatibilità
+                cost_metadata: itemData.cost_metadata || {},
+                
+                // Organization ID
                 organization_id: this.organizationId
             };
             
             console.log('💾 Data being saved to database:', dataToSave);
             
-            const { data, error } = await this.supabase
+            // ✅ USA L'IMPORT SUPABASE DIRETTO (non window.supabase)
+            const { data, error } = await supabase
                 .from('shipment_items')
                 .insert([dataToSave])
                 .select('*')
@@ -1187,9 +1195,9 @@ async getShipmentDetails(shipmentId) {
     
             // ✅ CORREZIONE: Prova a caricare i dettagli del prodotto per completezza
             try {
-                const { data: productData, error: productError } = await this.supabase
+                const { data: productData, error: productError } = await supabase
                     .from('products')
-                    .select('id, name, sku')
+                    .select('id, name:description, sku')  // ✅ NOTA: name è mappato da description
                     .eq('id', itemData.product_id)
                     .eq('organization_id', this.organizationId)
                     .single();
@@ -1218,8 +1226,9 @@ async getShipmentDetails(shipmentId) {
      * @param {Object} updateData - Dati da aggiornare (quantity, weight_kg, volume_cbm).
      * @returns {Promise<Object>} Il prodotto aggiornato.
      */
- async updateShipmentItem(itemId, updatedData) {
-    if (!this.initialized) await this.init(); // ✅ AGGIUNGI INIT CHECK
+
+async updateShipmentItem(itemId, updatedData) {
+    if (!this.initialized) await this.init();
     
     try {
         console.log('🔄 Updating shipment item:', {
@@ -1227,20 +1236,31 @@ async getShipmentDetails(shipmentId) {
             updatedData
         });
 
+        // ✅ COSTRUISCI L'OGGETTO DI AGGIORNAMENTO CON TUTTI I CAMPI
+        const updateObject = {
+            quantity: updatedData.quantity,
+            weight_kg: updatedData.weight_kg,
+            volume_cbm: updatedData.volume_cbm,
+            total_weight_kg: updatedData.total_weight_kg,
+            total_volume_cbm: updatedData.total_volume_cbm
+        };
+
+        // ✅ AGGIUNGI I CAMPI COSTI SE PRESENTI
+        if (updatedData.unit_cost !== undefined) updateObject.unit_cost = updatedData.unit_cost;
+        if (updatedData.total_cost !== undefined) updateObject.total_cost = updatedData.total_cost;
+        if (updatedData.duty_rate !== undefined) updateObject.duty_rate = updatedData.duty_rate;
+        if (updatedData.duty_amount !== undefined) updateObject.duty_amount = updatedData.duty_amount;
+        if (updatedData.duty_unit_cost !== undefined) updateObject.duty_unit_cost = updatedData.duty_unit_cost;
+        if (updatedData.customs_fees !== undefined) updateObject.customs_fees = updatedData.customs_fees;
+        if (updatedData.cost_metadata !== undefined) updateObject.cost_metadata = updatedData.cost_metadata;
+
         const { data, error } = await supabase
             .from('shipment_items')
-            .update({
-                quantity: updatedData.quantity,
-                weight_kg: updatedData.weight_kg,
-                volume_cbm: updatedData.volume_cbm,
-                total_weight_kg: updatedData.total_weight_kg,
-                total_volume_cbm: updatedData.total_volume_cbm,
-                cost_metadata: updatedData.cost_metadata || {} // ✅ INCLUDE cost_metadata
-            })
+            .update(updateObject)
             .eq('id', itemId)
-            .eq('organization_id', this.organizationId) // ✅ AGGIUNGI organization_id
-            .select() // ✅ AGGIUNGI select() per restituire i dati
-            .single(); // ✅ AGGIUNGI single() per un solo record
+            .eq('organization_id', this.organizationId)
+            .select()
+            .single();
 
         if (error) {
             console.error('❌ Supabase error updating item:', error);

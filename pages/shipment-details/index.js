@@ -1773,11 +1773,11 @@ async function addSelectedProductsWithCosts() {
         try {
             console.log('🔍 Fetching product details for:', productId);
             
-            const { data, error } = await window.supabase
+                const { data, error } = await window.supabase
                 .from('products')
-                .select('id, name, sku')
+                .select('id, name:description, sku')  // ✅ MAPPA description -> name
                 .eq('id', productId)
-                .eq('organization_id', window.dataManager?.organizationId) // ✅ Aggiungi organization_id
+                .eq('organization_id', window.dataManager?.organizationId)
                 .single();
             
             if (!error && data) {
