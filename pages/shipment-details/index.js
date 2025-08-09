@@ -592,36 +592,41 @@ function calculateTransportCosts(shipment, products) {
 function renderProductRow(shipmentProduct, product) {
     console.log('🔄 renderProductRow:', {
         productId: shipmentProduct.id,
-        productName: product?.name || shipmentProduct.name,
-        costMetadata: shipmentProduct.cost_metadata,
+        productName: product?.name || shipmentProduct.product?.name || shipmentProduct.name,
         savedCosts: {
             unit_cost: shipmentProduct.unit_cost,
             total_cost: shipmentProduct.total_cost,
             duty_rate: shipmentProduct.duty_rate,
             duty_amount: shipmentProduct.duty_amount,
-            duty_unit_cost: shipmentProduct.duty_unit_cost // ✅ AGGIUNGI DEBUG
-        }
+            duty_unit_cost: shipmentProduct.duty_unit_cost
+        },
+        costMetadata: shipmentProduct.cost_metadata
     });
     
-    // ✅ CORREZIONE: Usa i campi salvati nel database PRIMA dei metadati
-    const costs = shipmentProduct.cost_metadata || {};
-    const unitCost = shipmentProduct.unit_cost || costs.unitCost || 0;
-    const totalCost = shipmentProduct.total_cost || costs.totalCost || (unitCost * shipmentProduct.quantity);
-    const dutyRate = shipmentProduct.duty_rate || costs.dutyRate || 0;
-    const dutyAmount = shipmentProduct.duty_amount || costs.dutyAmount || (totalCost * (dutyRate / 100));
-    
-    // ✅ CORREZIONE: PRIORITÀ AL CAMPO SALVATO duty_unit_cost
-    const dutyUnitCost = shipmentProduct.duty_unit_cost || costs.dutyUnitCost || 
+    // ✅ PRIORITÀ AI CAMPI SALVATI NEL DATABASE
+    const unitCost = shipmentProduct.unit_cost || 0;
+    const totalCost = shipmentProduct.total_cost || (unitCost * shipmentProduct.quantity);
+    const dutyRate = shipmentProduct.duty_rate || 0;
+    const dutyAmount = shipmentProduct.duty_amount || (totalCost * (dutyRate / 100));
+    const dutyUnitCost = shipmentProduct.duty_unit_cost || 
                         (shipmentProduct.quantity > 0 ? dutyAmount / shipmentProduct.quantity : 0);
     
+    // ✅ COSTI DI TRASPORTO DAI METADATI
+    const costs = shipmentProduct.cost_metadata || {};
     const transportUnitCost = costs.transportUnitCost || 0;
     const transportTotal = transportUnitCost * shipmentProduct.quantity;
     
-    // ✅ CORREZIONE: Migliora la visualizzazione del nome prodotto
-    const productName = product?.name || shipmentProduct.product?.name || shipmentProduct.name || 'Prodotto senza nome';
-    const productSku = product?.sku || shipmentProduct.product?.sku || shipmentProduct.sku || 'N/A';
+    // ✅ NOME PRODOTTO CON PRIORITÀ CORRETTA
+    const productName = product?.name || 
+                       shipmentProduct.product?.name || 
+                       shipmentProduct.name || 
+                       'Prodotto senza nome';
+    const productSku = product?.sku || 
+                      shipmentProduct.product?.sku || 
+                      shipmentProduct.sku || 
+                      'N/A';
     
-    // ✅ MIGLIORA: Formattazione dinamica per mostrare decimali quando necessari
+    // ✅ FORMATTAZIONE DINAMICA PER VALORI PICCOLI
     const formatSmallCurrency = (value) => {
         if (value === 0) return '€ 0,00';
         if (value > 0 && value < 0.01) {
@@ -1546,7 +1551,7 @@ function setupProductSelectionWithCosts() {
         costInputs: costInputs.length
     });
     
-    // ✅ RICERCA PRODOTTI CON CONTROLLO SICUREZZA
+    // ✅ RICERCA PRODOTTI
     if (searchInput && productRows.length > 0) {
         searchInput.addEventListener('input', (e) => {
             const searchTerm = e.target.value.toLowerCase();
@@ -1564,8 +1569,29 @@ function setupProductSelectionWithCosts() {
         });
     }
     
-    // ✅ AUTO-CHECK CON CONTROLLI SICUREZZA
-    costInputs.forEach(input => {
+    // ✅ VALIDAZIONE IN TEMPO REALE DEI LIMITI
+    const weightVolumeInputs = document.querySelectorAll('.product-weight-input, .product-volume-input');
+    weightVolumeInputs.forEach(input => {
+        if (input) {
+            input.addEventListener('input', async (e) => {
+                const row = e.target.closest('.product-card-two-column');
+                const checkbox = row?.querySelector('.product-checkbox');
+                
+                // Auto-check se l'utente inserisce valori
+                if (e.target.value && checkbox && !checkbox.checked) {
+                    checkbox.checked = true;
+                }
+                
+                // ✅ VALIDAZIONE LIMITI IN TEMPO REALE
+                await validateSelectedProductsLimits();
+                updateCostsPreview();
+            });
+        }
+    });
+    
+    // ✅ AUTO-CHECK PER ALTRI INPUT
+    const otherInputs = document.querySelectorAll('.product-unit-cost-input, .product-duty-rate-input, .product-quantity-input, .product-custom-fees-input');
+    otherInputs.forEach(input => {
         if (input) {
             input.addEventListener('input', (e) => {
                 const row = e.target.closest('.product-card-two-column');
@@ -1581,14 +1607,17 @@ function setupProductSelectionWithCosts() {
         }
     });
     
-    // ✅ UPDATE PREVIEW CON CONTROLLI
+    // ✅ UPDATE PREVIEW E VALIDAZIONE AL CAMBIO CHECKBOX
     checkboxes.forEach(checkbox => {
         if (checkbox) {
-            checkbox.addEventListener('change', updateCostsPreview);
+            checkbox.addEventListener('change', async () => {
+                await validateSelectedProductsLimits();
+                updateCostsPreview();
+            });
         }
     });
     
-    // ✅ UPDATE GLOBAL COSTS CON CONTROLLI
+    // ✅ UPDATE GLOBAL COSTS
     const globalInputs = document.querySelectorAll('#globalCustomsFees, #costsNotes');
     globalInputs.forEach(input => {
         if (input) {
@@ -1700,22 +1729,62 @@ async function addSelectedProductsWithCosts() {
         return;
     }
     
+    // ✅ CALCOLA TOTALI PER VALIDAZIONE CONTAINER
+    let totalWeightToAdd = 0;
+    let totalVolumeToAdd = 0;
+    
     selectedCheckboxes.forEach(checkbox => {
         if (!checkbox) return;
         
         const row = checkbox.closest('.product-card-two-column');
-        if (!row) {
-            console.warn('⚠️ Row not found for checkbox');
-            return;
-        }
+        if (!row) return;
+        
+        const weightInput = row.querySelector('.product-weight-input');
+        const volumeInput = row.querySelector('.product-volume-input');
+        
+        const weight = weightInput ? parseFloat(weightInput.value) || 0 : 0;
+        const volume = volumeInput ? parseFloat(volumeInput.value) || 0 : 0;
+        
+        totalWeightToAdd += weight;
+        totalVolumeToAdd += volume;
+    });
+    
+    // ✅ VALIDAZIONE LIMITI CONTAINER
+    const shipmentId = getShipmentIdFromURL();
+    const validationResult = await validateContainerLimits(shipmentId, totalWeightToAdd, totalVolumeToAdd);
+    
+    if (!validationResult.valid) {
+        window.notificationSystem?.error(validationResult.message);
+        return;
+    }
+    
+    // ✅ PROCESSA I PRODOTTI SELEZIONATI
+    for (const checkbox of selectedCheckboxes) {
+        if (!checkbox) continue;
+        
+        const row = checkbox.closest('.product-card-two-column');
+        if (!row) continue;
         
         const productId = row.dataset.productId;
-        if (!productId) {
-            console.warn('⚠️ Product ID not found');
-            return;
+        if (!productId) continue;
+        
+        // ✅ FETCH COMPLETO DEL PRODOTTO PER AVERE NOME E SKU
+        let productDetails = null;
+        try {
+            const { data, error } = await window.supabase
+                .from('products')
+                .select('id, name, sku')
+                .eq('id', productId)
+                .single();
+            
+            if (!error && data) {
+                productDetails = data;
+            }
+        } catch (error) {
+            console.warn('Could not fetch product details:', error);
         }
         
-        // ✅ CONTROLLI SICUREZZA PER TUTTI GLI INPUT
+        // ✅ RACCOGLI TUTTI I DATI
         const weightInput = row.querySelector('.product-weight-input');
         const volumeInput = row.querySelector('.product-volume-input');
         const quantityInput = row.querySelector('.product-quantity-input');
@@ -1734,7 +1803,7 @@ async function addSelectedProductsWithCosts() {
         const dutyAmount = totalCost * (dutyRate / 100);
         const dutyUnitCost = quantity > 0 ? dutyAmount / quantity : 0;
         
-        // ✅ CORREZIONE: Salva i costi sia nei metadati che nei campi diretti
+        // ✅ CREA L'OGGETTO PRODOTTO CON TUTTI I CAMPI
         const productData = {
             product_id: productId,
             quantity: quantity,
@@ -1743,7 +1812,7 @@ async function addSelectedProductsWithCosts() {
             total_weight_kg: weight,
             total_volume_cbm: volume,
             
-            // ✅ NUOVI CAMPI: Salva direttamente nei campi della tabella
+            // ✅ CAMPI COSTI - SALVATI DIRETTAMENTE NELLA TABELLA
             unit_cost: unitCost,
             total_cost: totalCost,
             duty_rate: dutyRate,
@@ -1751,45 +1820,35 @@ async function addSelectedProductsWithCosts() {
             duty_unit_cost: dutyUnitCost,
             customs_fees: customsFees,
             
-            // Metadati per compatibilità
-            cost_metadata: {
-                unitCost: unitCost,
-                totalCost: totalCost,
-                dutyRate: dutyRate,
-                dutyAmount: dutyAmount,
-                dutyUnitCost: dutyUnitCost,
-                customsFees: customsFees,
-                grandTotal: totalCost + dutyAmount + customsFees
-            }
+            // ✅ AGGIUNGI INFO PRODOTTO PER IL RENDERING
+            name: productDetails?.name || 'Prodotto senza nome',
+            sku: productDetails?.sku || 'N/A'
         };
         
-        console.log('💰 Adding product with costs:', productData);
+        console.log('💰 Adding product with all cost fields:', productData);
         selectedProducts.push(productData);
-    });
+    }
     
     if (selectedProducts.length === 0) {
         window.notificationSystem?.warning('Nessun prodotto valido selezionato.');
         return;
     }
     
+    // ✅ GESTIONE COSTI GLOBALI
     const globalCustomsFeesInput = document.getElementById('globalCustomsFees');
     const globalCustomsFees = globalCustomsFeesInput ? parseFloat(globalCustomsFeesInput.value) || 0 : 0;
     
+    if (globalCustomsFees > 0) {
+        const feePerProduct = globalCustomsFees / selectedProducts.length;
+        selectedProducts.forEach(product => {
+            product.customs_fees += feePerProduct;
+        });
+    }
+    
     try {
-        const shipmentId = getShipmentIdFromURL();
-        
-        if (globalCustomsFees > 0) {
-            const feePerProduct = globalCustomsFees / selectedProducts.length;
-            selectedProducts.forEach(product => {
-                // ✅ CORREZIONE: Aggiorna sia i campi diretti che i metadati
-                product.customs_fees += feePerProduct;
-                product.cost_metadata.customsFees += feePerProduct;
-                product.cost_metadata.grandTotal += feePerProduct;
-            });
-        }
-        
         window.notificationSystem?.info(`Aggiunta di ${selectedProducts.length} prodotti in corso...`);
         
+        // ✅ AGGIUNGI OGNI PRODOTTO CON I SUOI COSTI
         for (const productData of selectedProducts) {
             await window.dataManager.addShipmentItem(shipmentId, productData);
         }
@@ -1802,6 +1861,206 @@ async function addSelectedProductsWithCosts() {
     } catch (error) {
         console.error('Error adding products with costs:', error);
         window.notificationSystem?.error(`Errore nell'aggiunta dei prodotti: ${error.message}`);
+    }
+}
+
+async function validateContainerLimits(shipmentId, additionalWeight, additionalVolume) {
+    try {
+        // ✅ CARICA I DATI DELLA SPEDIZIONE CORRENTE
+        const shipmentDetails = await window.dataManager.getShipmentDetails(shipmentId);
+        
+        if (!shipmentDetails) {
+            return { valid: false, message: 'Impossibile caricare i dati della spedizione.' };
+        }
+        
+        // ✅ CALCOLA PESO E VOLUME ATTUALI
+        const currentWeight = shipmentDetails.products?.reduce((sum, p) => sum + (p.total_weight_kg || 0), 0) || 0;
+        const currentVolume = shipmentDetails.products?.reduce((sum, p) => sum + (p.total_volume_cbm || 0), 0) || 0;
+        
+        const totalWeightAfter = currentWeight + additionalWeight;
+        const totalVolumeAfter = currentVolume + additionalVolume;
+        
+        console.log('🔍 Container validation:', {
+            currentWeight: currentWeight.toFixed(3),
+            additionalWeight: additionalWeight.toFixed(3),
+            totalWeightAfter: totalWeightAfter.toFixed(3),
+            currentVolume: currentVolume.toFixed(3),
+            additionalVolume: additionalVolume.toFixed(3),
+            totalVolumeAfter: totalVolumeAfter.toFixed(3)
+        });
+        
+        // ✅ DETERMINA LA CAPACITÀ MASSIMA DAI CONTAINER
+        const containerInfo = getContainerCapacity(shipmentDetails);
+        
+        if (containerInfo.maxWeight > 0 && totalWeightAfter > containerInfo.maxWeight) {
+            return {
+                valid: false,
+                message: `⚠️ LIMITE PESO SUPERATO!\n\nPeso attuale: ${formatWeight(currentWeight)}\nPeso da aggiungere: ${formatWeight(additionalWeight)}\nTotale: ${formatWeight(totalWeightAfter)}\n\nCapacità massima container: ${formatWeight(containerInfo.maxWeight)}\nEccedenza: ${formatWeight(totalWeightAfter - containerInfo.maxWeight)}`
+            };
+        }
+        
+        if (containerInfo.maxVolume > 0 && totalVolumeAfter > containerInfo.maxVolume) {
+            return {
+                valid: false,
+                message: `⚠️ LIMITE VOLUME SUPERATO!\n\nVolume attuale: ${formatVolume(currentVolume)}\nVolume da aggiungere: ${formatVolume(additionalVolume)}\nTotale: ${formatVolume(totalVolumeAfter)}\n\nCapacità massima container: ${formatVolume(containerInfo.maxVolume)}\nEccedenza: ${formatVolume(totalVolumeAfter - containerInfo.maxVolume)}`
+            };
+        }
+        
+        // ✅ AVVISO SE SI SUPERA L'80% DELLA CAPACITÀ
+        const weightPercent = containerInfo.maxWeight > 0 ? (totalWeightAfter / containerInfo.maxWeight) * 100 : 0;
+        const volumePercent = containerInfo.maxVolume > 0 ? (totalVolumeAfter / containerInfo.maxVolume) * 100 : 0;
+        
+        let warnings = [];
+        if (weightPercent > 80) {
+            warnings.push(`Peso al ${weightPercent.toFixed(1)}% della capacità`);
+        }
+        if (volumePercent > 80) {
+            warnings.push(`Volume al ${volumePercent.toFixed(1)}% della capacità`);
+        }
+        
+        if (warnings.length > 0) {
+            // Non blocca ma avvisa
+            const proceed = await window.ModalSystem?.confirm({
+                title: '⚠️ Attenzione - Capacità Elevata',
+                content: `${warnings.join('\n')}\n\nVuoi continuare?`,
+                confirmText: 'Continua',
+                cancelText: 'Annulla'
+            });
+            
+            if (!proceed) {
+                return { valid: false, message: 'Operazione annullata dall\'utente.' };
+            }
+        }
+        
+        return { valid: true };
+        
+    } catch (error) {
+        console.error('Error in container validation:', error);
+        return { valid: true }; // In caso di errore, non bloccare
+    }
+}
+
+function getContainerCapacity(shipmentDetails) {
+    // ✅ CAPACITÀ STANDARD CONTAINER (in kg e m³)
+    const CONTAINER_CAPACITIES = {
+        "20'": { weight: 28080, volume: 33.2 },
+        "40'": { weight: 26580, volume: 67.7 },
+        "40'HC": { weight: 26380, volume: 76.4 },
+        "45'HC": { weight: 26500, volume: 86.0 }
+    };
+    
+    let maxWeight = 0;
+    let maxVolume = 0;
+    
+    // ✅ CERCA INFO CONTAINER DAL TRACKING
+    const containers = shipmentDetails.tracking?.metadata?.raw?.shipment?.containers;
+    
+    if (Array.isArray(containers) && containers.length > 0) {
+        containers.forEach(container => {
+            const size = container.size || 0;
+            const type = (container.type || '').toUpperCase();
+            let containerType = null;
+            
+            if (size === 20) containerType = "20'";
+            else if (size === 40) containerType = (type.includes('HC') || type.includes('HQ')) ? "40'HC" : "40'";
+            else if (size === 45) containerType = "45'HC";
+            
+            if (containerType && CONTAINER_CAPACITIES[containerType]) {
+                maxWeight += CONTAINER_CAPACITIES[containerType].weight;
+                maxVolume += CONTAINER_CAPACITIES[containerType].volume;
+            }
+        });
+    } else {
+        // ✅ FALLBACK: Analizza il campo container_types della spedizione
+        const containerTypes = shipmentDetails.tracking?.container_types || 
+                              shipmentDetails.container_types || 
+                              document.getElementById('shipmentContainerTypes')?.textContent || '';
+        
+        if (containerTypes && containerTypes !== '-') {
+            const parts = containerTypes.split(',');
+            parts.forEach(part => {
+                const match = part.trim().match(/(\d+)x(.+)/);
+                if (match) {
+                    const count = parseInt(match[1], 10);
+                    const type = match[2].trim();
+                    const capacity = CONTAINER_CAPACITIES[type];
+                    if (capacity) {
+                        maxWeight += count * capacity.weight;
+                        maxVolume += count * capacity.volume;
+                    }
+                }
+            });
+        }
+    }
+    
+    console.log('📦 Container capacity calculated:', {
+        maxWeight: maxWeight.toFixed(0),
+        maxVolume: maxVolume.toFixed(1),
+        source: containers ? 'tracking_containers' : 'container_types'
+    });
+    
+    return { maxWeight, maxVolume };
+}
+
+async function validateSelectedProductsLimits() {
+    const selectedCheckboxes = document.querySelectorAll('.product-checkbox:checked');
+    
+    if (selectedCheckboxes.length === 0) {
+        // Rimuovi eventuali warning precedenti
+        removeContainerWarnings();
+        return;
+    }
+    
+    let totalWeight = 0;
+    let totalVolume = 0;
+    
+    selectedCheckboxes.forEach(checkbox => {
+        const row = checkbox.closest('.product-card-two-column');
+        if (!row) return;
+        
+        const weightInput = row.querySelector('.product-weight-input');
+        const volumeInput = row.querySelector('.product-volume-input');
+        
+        const weight = weightInput ? parseFloat(weightInput.value) || 0 : 0;
+        const volume = volumeInput ? parseFloat(volumeInput.value) || 0 : 0;
+        
+        totalWeight += weight;
+        totalVolume += volume;
+    });
+    
+    const shipmentId = getShipmentIdFromURL();
+    const validationResult = await validateContainerLimits(shipmentId, totalWeight, totalVolume);
+    
+    if (!validationResult.valid) {
+        showContainerWarning(validationResult.message);
+    } else {
+        removeContainerWarnings();
+    }
+}
+
+function showContainerWarning(message) {
+    removeContainerWarnings(); // Rimuovi warnings precedenti
+    
+    const warningDiv = document.createElement('div');
+    warningDiv.id = 'containerLimitWarning';
+    warningDiv.className = 'alert alert-warning';
+    warningDiv.style.cssText = 'margin: 10px 0; padding: 10px; background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 4px; color: #856404;';
+    warningDiv.innerHTML = `
+        <i class="fas fa-exclamation-triangle" style="margin-right: 8px;"></i>
+        <strong>Attenzione Limiti Container:</strong><br>
+        ${message.replace(/\n/g, '<br>')}
+    `;
+    
+    const modalContent = document.querySelector('.product-selection-modal');
+    if (modalContent) {
+        modalContent.insertBefore(warningDiv, modalContent.firstChild);
+    }
+}
+
+function removeContainerWarnings() {
+    const existingWarning = document.getElementById('containerLimitWarning');
+    if (existingWarning) {
+        existingWarning.remove();
     }
 }
 
