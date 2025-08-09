@@ -1678,3 +1678,33 @@ async function addSelectedProductsWithCosts() {
         window.notificationSystem?.error('Errore nell\'aggiunta dei prodotti.');
     }
 }
+async function addProductToShipment(shipmentId, productData) {
+    try {
+        console.log('🔄 Adding product to shipment via index.js:', {
+            shipmentId,
+            productId: productData.productId,
+            costMetadata: productData.cost_metadata
+        });
+
+        // Converti il formato per il data-manager
+        const shipmentItemData = {
+            product_id: productData.productId,
+            quantity: productData.quantity,
+            weight_kg: productData.total_weight_kg / productData.quantity || 0,
+            volume_cbm: productData.total_volume_cbm / productData.quantity || 0,
+            total_weight_kg: productData.total_weight_kg,
+            total_volume_cbm: productData.total_volume_cbm,
+            cost_metadata: productData.cost_metadata || {}
+        };
+
+        // Usa addShipmentItem del data-manager
+        const result = await window.dataManager.addShipmentItem(shipmentId, shipmentItemData);
+        
+        console.log('✅ Product added successfully via index.js:', result);
+        return result;
+        
+    } catch (error) {
+        console.error('❌ Error in addProductToShipment:', error);
+        throw error;
+    }
+}
