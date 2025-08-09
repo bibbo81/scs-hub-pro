@@ -2062,13 +2062,30 @@ async function validateContainerLimits(shipmentId, additionalWeight, additionalV
                 volumePercent
             });
             
-            // ✅ MOSTRA MODAL INVECE DI RITORNARE TESTO
-            const proceed = await window.ModalSystem?.confirm({
-                title: '🚫 Limite Peso Superato!',
-                content: containerDetailsHTML,
-                confirmText: 'Continua Comunque',
-                cancelText: 'Annulla',
-                size: 'lg'
+            const proceed = await new Promise((resolve) => {
+                window.ModalSystem?.show({
+                    title: '🚫 Limite Peso Superato!',
+                    content: containerDetailsHTML,
+                    size: 'lg',
+                    buttons: [
+                        {
+                            text: 'Annulla',
+                            class: 'sol-btn sol-btn-secondary',
+                            onclick: () => {
+                                window.ModalSystem.close();
+                                resolve(false);
+                            }
+                        },
+                        {
+                            text: 'Continua Comunque',
+                            class: 'sol-btn sol-btn-primary',
+                            onclick: () => {
+                                window.ModalSystem.close();
+                                resolve(true);
+                            }
+                        }
+                    ]
+                });
             });
             
             if (!proceed) {
@@ -2090,14 +2107,31 @@ async function validateContainerLimits(shipmentId, additionalWeight, additionalV
                 weightPercent,
                 volumePercent
             });
-            
-            // ✅ MOSTRA MODAL INVECE DI RITORNARE TESTO
-            const proceed = await window.ModalSystem?.confirm({
-                title: '🚫 Limite Volume Superato!',
-                content: containerDetailsHTML,
-                confirmText: 'Continua Comunque',
-                cancelText: 'Annulla',
-                size: 'lg'
+                             
+                const proceed = await new Promise((resolve) => {
+                window.ModalSystem?.show({
+                    title: '🚫 Limite Voulume Superato!',
+                    content: containerDetailsHTML,
+                    size: 'lg',
+                    buttons: [
+                        {
+                            text: 'Annulla',
+                            class: 'sol-btn sol-btn-secondary',
+                            onclick: () => {
+                                window.ModalSystem.close();
+                                resolve(false);
+                            }
+                        },
+                        {
+                            text: 'Continua Comunque',
+                            class: 'sol-btn sol-btn-primary',
+                            onclick: () => {
+                                window.ModalSystem.close();
+                                resolve(true);
+                            }
+                        }
+                    ]
+                });
             });
             
             if (!proceed) {
@@ -2122,12 +2156,31 @@ async function validateContainerLimits(shipmentId, additionalWeight, additionalV
                 volumePercent
             });
             
-            const proceed = await window.ModalSystem?.confirm({
-                title: '⚠️ Attenzione - Capacità Elevata',
-                content: containerDetailsHTML,
-                confirmText: 'Continua Comunque',
-                cancelText: 'Annulla',
-                size: 'lg'
+            // ✅ MODAL AVVISO PER SUPERAMENTO 80%
+            const proceed = await new Promise((resolve) => {
+                window.ModalSystem?.show({
+                    title: '🚫 Limite 80% Superato!',
+                    content: containerDetailsHTML,
+                    size: 'lg',
+                    buttons: [
+                        {
+                            text: 'Annulla',
+                            class: 'sol-btn sol-btn-secondary',
+                            onclick: () => {
+                                window.ModalSystem.close();
+                                resolve(false);
+                            }
+                        },
+                        {
+                            text: 'Continua Comunque',
+                            class: 'sol-btn sol-btn-primary',
+                            onclick: () => {
+                                window.ModalSystem.close();
+                                resolve(true);
+                            }
+                        }
+                    ]
+                });
             });
             
             if (!proceed) {
