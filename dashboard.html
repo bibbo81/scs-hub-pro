@@ -3,1153 +3,171 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <script src="/core/env-check.js"></script>
     <title>Dashboard - SCS Hub Pro</title>
-    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23007AFF'%3E%3Cpath d='M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm5-18v4h3V3h-3z'/%3E%3C/svg%3E">
     
-    <!-- Font Awesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- ✅ BOOTSTRAP CSS - AGGIUNGI QUESTA LINEA -->
+    <!-- Stili -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- Solarium CSS - STESSO stile delle altre pagine -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="/assets/css/solarium.css">
     
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     
-    <!-- Core Modules - IDENTICI alle altre pagine -->
-    <script type="module">
-        import api from '/core/api-client.js';
-        import headerComponent from '/core/header-component.js';
-        import notificationSystem from '/core/notification-system.js';
-        import modalSystem from '/core/modal-system.js';
-        
-        window.api = api;
-        window.headerComponent = headerComponent;
-        window.NotificationSystem = notificationSystem;
-        window.ModalSystem = modalSystem;
-    </script>
-    
     <!-- Supabase -->
     <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
     
-        <style>
-    /* ✅ BOOTSTRAP GRID ENHANCEMENTS - COMPATIBILE CON FUTURE MODIFICHE */
-
-/* Override responsive per filtri dashboard - SPECIFICO E SCALABILE */
-.sol-card .row .col-xl-2,
-.sol-card .row .col-lg-3,
-.sol-card .row .col-md-4,
-.sol-card .row .col-6 {
-    display: flex;
-    flex-direction: column;
-    min-width: 0; /* Previene overflow */
-}
-
-/* ✅ FORM CONTROLS PERFEZIONATI */
-.sol-card .form-label.fw-semibold.small {
-    font-size: 11px;
-    font-weight: 600;
-    color: #64748b;
-    margin-bottom: 4px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.sol-card .form-select-sm {
-    font-size: 13px;
-    padding: 6px 10px;
-    border: 1px solid #e2e8f0;
-    border-radius: 6px;
-    min-height: 32px;
-}
-
-.sol-card .btn-sm {
-    font-size: 12px;
-    padding: 6px 12px;
-    min-height: 32px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 4px;
-}
-
-/* ✅ RESPONSIVE ENHANCEMENTS SPECIFICI */
-@media (max-width: 1400px) {
-    .sol-card .row > [class*="col-"] {
-        margin-bottom: 0.5rem;
-    }
-}
-
-@media (max-width: 992px) {
-    .sol-card .row .col-lg-3 {
-        flex: 0 0 auto;
-        width: 50%;
-    }
-}
-
-@media (max-width: 768px) {
-    .sol-card .row .col-md-4 {
-        flex: 0 0 auto;
-        width: 50%;
-    }
-    
-    .sol-card .form-label {
-        font-size: 10px !important;
-    }
-    
-    .sol-card .btn-sm {
-        padding: 4px 8px;
-        font-size: 11px;
-    }
-}
-
-@media (max-width: 576px) {
-    .sol-card .row > [class*="col-"] {
-        flex: 0 0 auto;
-        width: 100% !important;
-        margin-bottom: 0.75rem;
-    }
-    
-    .sol-card .row:last-child > [class*="col-"]:last-child {
-        margin-bottom: 0;
-    }
-}
-
-/* ✅ SMOOTH TRANSITIONS - MANTENUTE */
-#advancedFiltersRow {
-    transition: all 0.3s ease;
-    overflow: hidden;
-}
-
-#toggleAdvancedBtn {
-    transition: all 0.2s ease;
-}
-
-/* ✅ FOCUS STATES MIGLIORATI */
-.sol-card .form-select:focus,
-.sol-card .form-control:focus {
-    border-color: #6366f1;
-    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
-    outline: none;
-}
-
-.sol-card .btn:focus {
-    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
-    outline: none;
-}
-    /* ===== KPI CARDS GRID ===== */
-    .kpi-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); /* ✅ AUMENTATO da 180px */
-        gap: 1rem;
-        margin-bottom: 2rem;
-        padding: 0.5rem;
-    }
-    
-    /* ===== KPI CARD WRAPPER ===== */
-    .kpi-card-wrapper {
-        position: relative;
-        width: 100%;
-        min-width: 200px; /* ✅ AUMENTATO */
-        max-width: 220px; /* ✅ AUMENTATO */
-    }
-    
-    /* ===== KPI CARD PRINCIPALE ===== */
-    .kpi-card {
-        background: white;
-        border-radius: 12px;
-        padding: 1rem; /* ✅ AUMENTATO da 0.75rem */
-        box-shadow: 0 2px 10px rgba(0,0,0,0.08);
-        border: 1px solid #f1f5f9;
-        transition: all 0.3s ease;
-        cursor: grab;
-        height: 140px; /* ✅ AUMENTATO da 130px */
-        display: flex;
-        flex-direction: column;
-        justify-content: space-between;
-        align-items: center;
-        text-align: center;
-        position: relative;
-        overflow: hidden;
-    }
-    
-    .kpi-card:hover {
-        box-shadow: 0 4px 20px rgba(0,0,0,0.12);
-        transform: translateY(-2px);
-    }
-    
-    .kpi-card.dragging {
-        opacity: 0.5;
-        transform: rotate(5deg);
-        z-index: 1000;
-    }
-    
-    /* ===== DRAG HANDLE ===== */
-    .drag-handle {
-        position: absolute;
-        top: 8px;
-        right: 8px;
-        color: #94a3b8;
-        font-size: 12px;
-        opacity: 0;
-        transition: opacity 0.2s;
-        cursor: grab;
-    }
-    
-    .kpi-card:hover .drag-handle {
-        opacity: 1;
-    }
-    
-    /* ===== ICONA KPI ===== */
-    .kpi-icon-small {
-        width: 36px; /* ✅ AUMENTATO da 32px */
-        height: 36px;
-        border-radius: 8px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: white;
-        font-size: 16px; /* ✅ AUMENTATO da 14px */
-        margin-bottom: 8px;
-        flex-shrink: 0;
-    }
-    
-    /* ===== LABEL KPI ===== */
-    .kpi-label-small {
-        font-size: 11px; /* ✅ LEGGERMENTE AUMENTATO */
-        color: #64748b;
-        font-weight: 500;
-        margin-bottom: 4px;
-        line-height: 1.2;
-        flex-shrink: 0;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        max-width: 100%;
-    }
-    
-    /* ===== VALORE KPI ===== */
-    .kpi-value-small {
-        font-size: 18px; /* ✅ AUMENTATO da 16px */
-        font-weight: 700;
-        color: #1e293b;
-        margin-bottom: 6px;
-        flex-shrink: 0;
-        line-height: 1.1;
-        min-height: 20px; /* ✅ AGGIUNGI ALTEZZA MINIMA */
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        max-width: 100%;
-    }
-    
-    /* ===== GROWTH INDICATOR ===== */
-    .growth-indicator-small {
-        font-size: 10px; /* ✅ LEGGERMENTE AUMENTATO */
-        font-weight: 600;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 2px;
-        flex-shrink: 0;
-        min-height: 16px; /* ✅ AGGIUNGI ALTEZZA MINIMA */
-        white-space: nowrap;
-    }
-    
-    .growth-positive {
-        color: #16a34a;
-    }
-    
-    .growth-negative {
-        color: #dc2626;
-    }
-    
-    /* ===== CHARTS CONTAINER ===== */
-    .chart-container {
-        position: relative;
-        height: 400px !important; /* ✅ AUMENTATO da 350px */
-        width: 100%;
-        background: white;
-        border-radius: 12px;
-        padding: 1.25rem; /* ✅ AUMENTATO */
-        box-shadow: 0 2px 10px rgba(0,0,0,0.08);
-        border: 1px solid #f1f5f9;
-        margin-bottom: 1.5rem;
-        overflow: hidden;
-    }
-    
-    .chart-container.chart-square {
-        height: 420px !important; /* ✅ AUMENTATO */
-    }
-    
-    .chart-container canvas {
-        max-height: 100% !important;
-        max-width: 100% !important;
-    }
-    
-    .chart-title {
-        font-size: 1.1rem;
-        font-weight: 600;
-        margin-bottom: 1rem;
-        color: #1e293b;
-        display: flex;
-        align-items: center;
-    }
-    
-    .chart-title i {
-        margin-right: 0.5rem;
-    }
-    
-    /* ===== CARDS E LAYOUT ===== */
-    .sol-card {
-        background: white;
-        border-radius: 12px;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.08);
-        border: 1px solid #f1f5f9;
-    }
-    
-    .sol-card-header {
-        padding: 1.5rem 1.5rem 0;
-    }
-    
-    .sol-card-body {
-        padding: 1.5rem;
-    }
-    
-    .sol-card-title {
-        font-size: 1.2rem;
-        font-weight: 600;
-        color: #1e293b;
-        margin: 0;
-    }
-    
-    /* ===== TABLE STYLING ===== */
-    .table-hover tbody tr:hover {
-        background-color: #f8fafc;
-    }
-    
-    .table th {
-        font-weight: 600;
-        color: #475569;
-        border-bottom: 2px solid #e2e8f0;
-        padding: 1rem 0.75rem;
-    }
-    
-    .table td {
-        padding: 1rem 0.75rem;
-        vertical-align: middle;
-    }
-    
-/* ===== BUTTONS MIGLIORATI ===== */
-.sol-btn {
-    border-radius: 8px;
-    font-weight: 500;
-    transition: all 0.2s ease;
-    border: none;
-    padding: 0.625rem 1.25rem;
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    text-decoration: none;
-    cursor: pointer;
-}
-
-/* ✅ Bottone Genera Analisi - STILE MIGLIORATO */
-.sol-btn-primary {
-    background: linear-gradient(135deg, #6366f1, #4f46e5);
-    border: none;
-    color: white !important;
-    transition: all 0.3s ease;
-    box-shadow: 0 2px 8px rgba(99, 102, 241, 0.2);
-}
-
-.sol-btn-primary:hover {
-    background: linear-gradient(135deg, #4f46e5, #4338ca);
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
-    color: white !important;
-}
-
-.sol-btn-primary:active {
-    transform: translateY(0);
-    box-shadow: 0 2px 4px rgba(99, 102, 241, 0.3);
-}
-
-/* ✅ Bottone Outline Primary */
-.sol-btn-outline-primary {
-    background: transparent;
-    border: 2px solid #6366f1;
-    color: #6366f1;
-    transition: all 0.3s ease;
-}
-
-.sol-btn-outline-primary:hover {
-    background: #6366f1;
-    color: white;
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.2);
-}
-
-/* ✅ Bottoni Collapse */
-.btn-outline-secondary {
-    border: 1px solid #d1d5db;
-    color: #374151;
-    background: transparent;
-    padding: 0.5rem 1rem;
-    border-radius: 6px;
-    font-size: 0.875rem;
-    transition: all 0.2s ease;
-}
-
-.btn-outline-secondary:hover {
-    background: #f3f4f6;
-    border-color: #9ca3af;
-    color: #111827;
-}
-/* ✅ RESPONSIVE BOTTONI */
-@media (max-width: 768px) {
-    .sol-btn {
-        padding: 0.5rem 1rem;
-        font-size: 0.875rem;
-    }
-    
-    .sol-btn-primary {
-        box-shadow: 0 2px 6px rgba(99, 102, 241, 0.2);
-    }
-    
-    .btn-sm {
-        padding: 0.375rem 0.75rem;
-        font-size: 0.8rem;
-    }
-}
-
-/* ✅ STATO LOADING BOTTONI */
-.sol-btn:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-    transform: none !important;
-}
-
-.sol-btn.loading {
-    position: relative;
-    color: transparent !important;
-}
-
-.sol-btn.loading::after {
-    content: "";
-    position: absolute;
-    width: 16px;
-    height: 16px;
-    top: 50%;
-    left: 50%;
-    margin-left: -8px;
-    margin-top: -8px;
-    border: 2px solid transparent;
-    border-top-color: currentColor;
-    border-radius: 50%;
-    animation: spin 1s ease infinite;
-}
-
-@keyframes spin {
-    to { transform: rotate(360deg); }
-}
-
-/* ✅ HOVER EFFECTS MIGLIORATI */
-.sol-btn i {
-    transition: transform 0.2s ease;
-}
-
-.sol-btn:hover i {
-    transform: scale(1.1);
-}
-    /* ✅ Alert per categorie dinamiche */
-.alert-info {
-    background: linear-gradient(135deg, #f0f9ff, #e0f2fe);
-    border: 1px solid #0ea5e9;
-    color: #0c4a6e;
-    border-radius: 8px;
-    padding: 1rem;
-}
-
-/* ✅ Loading States */
-.spinner-border-sm {
-    width: 1rem;
-    height: 1rem;
-    border-width: 0.15em;
-}
-
-.text-center.py-5 {
-    padding: 3rem 0;
-}
-    /* ===== FORM CONTROLS ===== */
-    .form-select, .form-control {
-        border: 1px solid #e2e8f0;
-        border-radius: 8px;
-        padding: 0.625rem 0.75rem;
-        font-size: 0.875rem;
-        transition: border-color 0.2s ease;
-    }
-    
-   /* ✅ Form Controls Focus */
-.form-select:focus, .form-control:focus {
-    border-color: #6366f1;
-    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
-    outline: none;
-}
-
-/* ✅ Collapse Transitions */
-.collapse {
-    transition: height 0.35s ease;
-}
-
-.collapsing {
-    transition: height 0.35s ease;
-}
-    
-    /* ===== PAGE HEADER ===== */
-    .sol-page-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: flex-start;
-        margin-bottom: 2rem;
-        padding-bottom: 1rem;
-        border-bottom: 1px solid #e2e8f0;
-    }
-    
-    .sol-page-title {
-        font-size: 2rem;
-        font-weight: 700;
-        color: #1e293b;
-        margin: 0 0 0.5rem 0;
-    }
-    
-    .sol-page-subtitle {
-        color: #64748b;
-        margin: 0;
-    }
-    
-    .sol-page-actions {
-        display: flex;
-        gap: 0.75rem;
-        flex-wrap: wrap;
-    }
-    
-    /* ===== MAIN CONTENT ===== */
-    .sol-main-content {
-        padding: 2rem;
-        min-height: 100vh;
-        background: #f8fafc;
-    }
-    
-    /* ===== PERFORMANCE BADGE ===== */
-    .badge {
-        padding: 0.375rem 0.75rem;
-        border-radius: 6px;
-        font-size: 0.75rem;
-        font-weight: 500;
-    }
-    
-    .badge.bg-success {
-        background-color: #10b981 !important;
-    }
-    
-    .badge.bg-warning {
-        background-color: #f59e0b !important;
-    }
-    
-    .badge.bg-danger {
-        background-color: #ef4444 !important;
-    }
-    
-    /* ===== LOADING STATES ===== */
-    .spinner-border {
-        width: 3rem;
-        height: 3rem;
-        border-width: 0.3em;
-    }
-    
-    /* ===== UTILITY CLASSES ===== */
-    .text-muted {
-        color: #64748b !important;
-    }
-    
-    .text-primary {
-        color: #6366f1 !important;
-    }
-    
-    .text-success {
-        color: #10b981 !important;
-    }
-    
-    .text-warning {
-        color: #f59e0b !important;
-    }
-    
-    .text-danger {
-        color: #ef4444 !important;
-    }
-    
-    /* ===== RESPONSIVE DESIGN ===== */
-    @media (max-width: 768px) {
-        .sol-main-content {
-            padding: 1rem;
-        }
-    
-        .sol-page-header {
-            flex-direction: column;
-            gap: 1rem;
-            align-items: stretch;
-        }
-    
-        .sol-page-actions {
-            justify-content: stretch;
-        }
-    
-        .sol-page-actions .sol-btn {
-            flex: 1;
-            justify-content: center;
-        }
-    
+    <style>
+        /* KPI Cards Grid */
         .kpi-grid {
-            grid-template-columns: repeat(2, 1fr);
-            gap: 0.75rem;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
         }
         
         .kpi-card {
-            height: 120px;
-            padding: 0.75rem;
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+            border: 1px solid #f1f5f9;
+            text-align: center;
+            transition: transform 0.2s;
         }
         
-        .kpi-card-wrapper {
-            min-width: auto;
-            max-width: none;
+        .kpi-card:hover {
+            transform: translateY(-2px);
         }
         
         .kpi-icon-small {
-            width: 32px;
-            height: 32px;
-            font-size: 14px;
-        }
-        
-        .kpi-value-small {
-            font-size: 16px;
+            width: 48px;
+            height: 48px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            margin: 0 auto 1rem;
         }
         
         .kpi-label-small {
-            font-size: 10px;
+            font-size: 0.875rem;
+            color: #64748b;
+            margin-bottom: 0.5rem;
         }
+        
+        .kpi-value-small {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #1e293b;
+            margin-bottom: 0.5rem;
+        }
+        
+        .growth-indicator-small {
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        
+        .growth-positive { color: #16a34a; }
+        .growth-negative { color: #dc2626; }
         
         .chart-container {
-            height: 300px !important;
-            padding: 1rem;
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+            border: 1px solid #f1f5f9;
+            height: 400px;
         }
         
-        .chart-container.chart-square {
-            height: 320px !important;
-        }
-    
         .chart-title {
-            font-size: 1rem;
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: #1e293b;
         }
-    }
-    
-    @media (max-width: 480px) {
-        .kpi-grid {
-            grid-template-columns: 1fr;
-            gap: 0.5rem;
-        }
-        
-        .kpi-card {
-            height: 100px;
-            padding: 0.5rem;
-        }
-        
-        .chart-container {
-            height: 250px !important;
-            padding: 0.75rem;
-        }
-    }
     </style>
-        <style id="bootstrap-fallback">
-    /* ✅ FALLBACK CSS se Bootstrap non si carica */
-    .row { 
-        display: flex; 
-        flex-wrap: wrap; 
-        margin: 0 -0.75rem; 
-    }
-    
-    .row > * { 
-        padding: 0 0.75rem; 
-    }
-    
-    .col-xl-2, .col-lg-3, .col-md-4, .col-6 { 
-        flex: 1; 
-        min-width: 150px; 
-    }
-    
-    @media (min-width: 1200px) {
-        .col-xl-2 { flex: 0 0 16.666667%; }
-    }
-    
-    @media (min-width: 992px) {
-        .col-lg-3 { flex: 0 0 25%; }
-    }
-    
-    @media (min-width: 768px) {
-        .col-md-4 { flex: 0 0 33.333333%; }
-    }
-    
-    @media (max-width: 767px) {
-        .col-6 { flex: 0 0 50%; }
-    }
-    
-    .g-3 > * { padding: 0.75rem; }
-    .g-2 > * { padding: 0.5rem; }
-    .align-items-end { align-items: flex-end; }
-    .mb-3 { margin-bottom: 1rem; }
-    .my-3 { margin: 1rem 0; }
-    .my-4 { margin: 1.5rem 0; }
-    .w-100 { width: 100%; }
-    
-    .form-select, .form-control {
-        width: 100%;
-        padding: 0.375rem 0.75rem;
-        border: 1px solid #ced4da;
-        border-radius: 0.375rem;
-    }
-    
-    .btn {
-        padding: 0.375rem 0.75rem;
-        border: 1px solid transparent;
-        border-radius: 0.375rem;
-        cursor: pointer;
-    }
-    
-    .btn-primary { background: #0d6efd; color: white; }
-    .btn-outline-secondary { background: transparent; color: #6c757d; border-color: #6c757d; }
-    .btn-outline-danger { background: transparent; color: #dc3545; border-color: #dc3545; }
-    </style>
-    
-    <script>
-    // ✅ Verifica se Bootstrap è caricato e rimuovi fallback
-    document.addEventListener('DOMContentLoaded', function() {
-        // Verifica se Bootstrap è caricato controllando una classe specifica
-        const testElement = document.createElement('div');
-        testElement.className = 'row';
-        document.body.appendChild(testElement);
-        
-        const computedStyle = window.getComputedStyle(testElement);
-        const isBootstrapLoaded = computedStyle.display === 'flex';
-        
-        document.body.removeChild(testElement);
-        
-        if (isBootstrapLoaded) {
-            // Bootstrap è caricato, rimuovi CSS fallback
-            const fallbackCSS = document.getElementById('bootstrap-fallback');
-            if (fallbackCSS) {
-                fallbackCSS.remove();
-                console.log('✅ Bootstrap loaded successfully, fallback CSS removed');
-            }
-        } else {
-            console.warn('⚠️ Bootstrap not loaded, using fallback CSS');
-        }
-    });
-    </script>
 </head>
 <body>
-    <!-- Header Component - IDENTICO alle altre pagine -->
+    <!-- Header -->
     <div id="header-root"></div>
 
-    <!-- Main Content con stesso layout -->
-    <main class="sol-main-content" id="mainContent">
-        <!-- Page Header -->
+    <!-- Main Content -->
+    <main class="sol-main-content">
         <div class="sol-page-header">
             <div>
                 <h1 class="sol-page-title">Dashboard</h1>
-                <p class="sol-page-subtitle">Panoramica completa delle tue spedizioni e KPI</p>
+                <p class="sol-page-subtitle">Sistema unificato di metriche e analisi</p>
             </div>
             <div class="sol-page-actions">
-<button class="sol-btn sol-btn-glass" id="refreshBtn" onclick="testKPIs()">    <i class="fas fa-sync-alt"></i>
-    <span>Aggiorna KPI</span>
-</button>
-                <button class="sol-btn sol-btn-glass" onclick="dashboard.exportToExcel()">
-                    <i class="fas fa-download"></i>
-                    <span>Esporta</span>
+                <button class="sol-btn sol-btn-glass" onclick="metricsSystem.refresh()">
+                    <i class="fas fa-sync-alt"></i> Aggiorna
                 </button>
             </div>
         </div>
 
-<!-- ✅ FILTRI ORIZZONTALI SU 2 RIGHE - VERSIONE CORRETTA -->
-<div class="sol-card mb-4">
-    <div class="sol-card-header">
-        <h5 class="sol-card-title">
-            <i class="fas fa-filter text-primary me-2"></i>
-            Filtri Dashboard
-        </h5>
-    </div>
-    <div class="sol-card-body">
-        <!-- ✅ RIGA 1: Filtri principali (orizzontale) -->
-        <div class="row g-3 align-items-end mb-3">
-            <div class="col-xl-2 col-lg-3 col-md-4 col-6">
-                <label class="form-label fw-semibold small">📅 Periodo</label>
-                <select class="form-select form-select-sm" id="periodFilter">
-                    <option value="7">7 giorni</option>
-                    <option value="30" selected>30 giorni</option>
-                    <option value="90">3 mesi</option>
-                    <option value="180">6 mesi</option>
-                    <option value="365">1 anno</option>
-                </select>
-            </div>
-            <div class="col-xl-2 col-lg-3 col-md-4 col-6">
-                <label class="form-label fw-semibold small">🚚 Spedizioniere</label>
-                <select class="form-select form-select-sm" id="carrierFilter">
-                    <option value="">Tutti</option>
-                </select>
-            </div>
-            <div class="col-xl-2 col-lg-3 col-md-4 col-6">
-                <label class="form-label fw-semibold small">📋 Stato</label>
-                <select class="form-select form-select-sm" id="statusFilter">
-                    <option value="">Tutti</option>
-                    <option value="delivered">✅ Consegnato</option>
-                    <option value="in_transit">🚛 In transito</option>
-                    <option value="pending">⏳ In attesa</option>
-                    <option value="cancelled">❌ Annullato</option>
-                </select>
-            </div>
-            <div class="col-xl-2 col-lg-3 col-md-4 col-6">
-                <label class="form-label fw-semibold small">🚛 Trasporto</label>
-                <select class="form-select form-select-sm" id="transportFilter">
-                    <option value="">Tutti</option>
-                    <option value="container">🚢 Container</option>
-                    <option value="air">✈️ Aereo</option>
-                    <option value="road">🚛 Stradale</option>
-                    <option value="parcel">📦 Corriere</option>
-                </select>
-            </div>
-            <div class="col-xl-2 col-lg-3 col-md-4 col-6">
-                <button class="btn btn-sm btn-outline-secondary w-100" type="button" id="toggleAdvancedBtn">
-                    <i class="fas fa-sliders-h"></i> Avanzati
-                </button>
-            </div>
-            <div class="col-xl-2 col-lg-3 col-md-4 col-6">
-                <button class="btn btn-sm btn-primary w-100" onclick="window.dashboard.applyFilters()">
-                    <i class="fas fa-filter"></i> Applica
-                </button>
-            </div>
-        </div>
-
-        <!-- ✅ RIGA 2: Filtri avanzati (nascosti di default) -->
-        <div id="advancedFiltersRow" style="display: none;">
-            <hr class="my-3">
-            <div class="row g-2">
-                <div class="col-xl-2 col-lg-3 col-md-4 col-6">
-                    <label class="form-label small">🌍 Origine</label>
-                    <select class="form-select form-select-sm" id="originFilter">
-                        <option value="">Tutte</option>
-                    </select>
-                </div>
-                <div class="col-xl-2 col-lg-3 col-md-4 col-6">
-                    <label class="form-label small">🎯 Destinazione</label>
-                    <select class="form-select form-select-sm" id="destinationFilter">
-                        <option value="">Tutte</option>
-                    </select>
-                </div>
-                <div class="col-xl-2 col-lg-3 col-md-4 col-6">
-                    <label class="form-label small">⚖️ Peso</label>
-                    <select class="form-select form-select-sm" id="weightRangeFilter">
-                        <option value="">Tutti</option>
-                        <option value="0-100">0-100 kg</option>
-                        <option value="100-1000">0.1-1 t</option>
-                        <option value="1000+">1+ t</option>
-                    </select>
-                </div>
-                <div class="col-xl-2 col-lg-3 col-md-4 col-6">
-                    <label class="form-label small">💰 Costo</label>
-                    <select class="form-select form-select-sm" id="costRangeFilter">
-                        <option value="">Tutti</option>
-                        <option value="0-500">€0-500</option>
-                        <option value="500-2000">€500-2K</option>
-                        <option value="2000+">€2K+</option>
-                    </select>
-                </div>
-                <div class="col-xl-2 col-lg-3 col-md-4 col-6">
-                    <label class="form-label small">⚡ Priorità</label>
-                    <select class="form-select form-select-sm" id="priorityFilter">
-                        <option value="">Tutte</option>
-                        <option value="high">🔴 Alta</option>
-                        <option value="medium">🟡 Media</option>
-                        <option value="low">🟢 Bassa</option>
-                    </select>
-                </div>
-                <div class="col-xl-2 col-lg-3 col-md-4 col-6">
-                    <button class="btn btn-sm btn-outline-danger w-100" onclick="window.dashboard.resetFilters()">
-                        <i class="fas fa-undo"></i> Reset
-                    </button>
+        <!-- Filtri -->
+        <div class="sol-card mb-4">
+            <div class="sol-card-body">
+                <div class="row g-3">
+                    <div class="col-md-3">
+                        <label class="form-label">Periodo</label>
+                        <select class="form-select" id="periodFilter">
+                            <option value="7">7 giorni</option>
+                            <option value="30" selected>30 giorni</option>
+                            <option value="90">3 mesi</option>
+                            <option value="365">1 anno</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Spedizioniere</label>
+                        <select class="form-select" id="carrierFilter">
+                            <option value="">Tutti</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Stato</label>
+                        <select class="form-select" id="statusFilter">
+                            <option value="">Tutti</option>
+                            <option value="delivered">Consegnato</option>
+                            <option value="in_transit">In transito</option>
+                            <option value="pending">In attesa</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <button class="btn btn-primary w-100" onclick="applyFiltersFromUI()">
+                            <i class="fas fa-filter"></i> Applica Filtri
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <!-- ✅ SEZIONE ANALISI DINAMICA -->
-        <hr class="my-4">
-        <div class="row g-3 align-items-end">
-            <div class="col-xl-3 col-lg-4 col-md-6">
-                <label class="form-label fw-semibold">🎯 Categoria Analisi</label>
-                <select class="form-select" id="analyticsCategory">
-                    <option value="overview">📊 Panoramica</option>
-                    <option value="shipments">📦 Spedizioni</option>
-                    <option value="financial">💰 Costi</option>
-                    <option value="performance">🚀 Performance</option>
-                    <option value="geographical">🌍 Geografica</option>
-                    <option value="trends">📈 Trend</option>
-                </select>
-            </div>
-            <div class="col-xl-3 col-lg-4 col-md-6">
-                <label class="form-label">📊 Metrica</label>
-                <select class="form-select" id="specificMetric">
-                    <option value="">Tutte</option>
-                </select>
-            </div>
-            <div class="col-xl-2 col-lg-2 col-md-4">
-                <label class="form-label">📈 Granularità</label>
-                <select class="form-select" id="granularityLevel">
-                    <option value="weekly">Settimanale</option>
-                    <option value="monthly" selected>Mensile</option>
-                    <option value="quarterly">Trimestrale</option>
-                </select>
-            </div>
-            <div class="col-xl-4 col-lg-2 col-md-8">
-                <button class="btn btn-primary w-100" onclick="window.dynamicDashboard.generateAnalysis()">
-                    <i class="fas fa-chart-line"></i> Genera Analisi
-                </button>
-            </div>
-        </div>
-    </div>
-</div>
-<!-- ✅ SCRIPT TOGGLE FILTRI AVANZATI -->
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    // ✅ Toggle filtri avanzati
-    const toggleBtn = document.getElementById('toggleAdvancedBtn');
-    const advancedRow = document.getElementById('advancedFiltersRow');
-    let isAdvancedOpen = false;
-    
-    if (toggleBtn && advancedRow) {
-        toggleBtn.addEventListener('click', function() {
-            isAdvancedOpen = !isAdvancedOpen;
-            
-            if (isAdvancedOpen) {
-                // ✅ APRI filtri avanzati
-                advancedRow.style.display = 'block';
-                toggleBtn.innerHTML = '<i class="fas fa-times"></i> Chiudi';
-                toggleBtn.classList.remove('btn-outline-secondary');
-                toggleBtn.classList.add('btn-outline-danger');
-            } else {
-                // ✅ CHIUDI filtri avanzati
-                advancedRow.style.display = 'none';
-                toggleBtn.innerHTML = '<i class="fas fa-sliders-h"></i> Avanzati';
-                toggleBtn.classList.remove('btn-outline-danger');
-                toggleBtn.classList.add('btn-outline-secondary');
-            }
-        });
-    } else {
-        console.error('❌ Advanced filters elements not found:', {
-            toggleBtn: !!toggleBtn,
-            advancedRow: !!advancedRow
-        });
-    }
-    
-    console.log('✅ Advanced filters toggle initialized');
-});
-</script>
-
-<!-- Dynamic Content Area -->
-<div id="dynamicContent">
-    <!-- Qui verrà inserito il contenuto dinamico basato sulla selezione -->
-</div>
-
-<!-- Default Dashboard Content (mostrato inizialmente) -->
-<div id="defaultDashboardContent">
         <!-- KPI Cards -->
-<div class="kpi-grid" id="kpiCards">
-    <!-- Popolato dinamicamente con layout compatto quadrato -->
+        <div class="kpi-grid" id="kpiCards">
+            <!-- Popolato dal sistema unificato -->
         </div>
 
-           <!-- Charts Section - LAYOUT MIGLIORATO -->
-    <div class="row g-4 mb-4">
-        <div class="col-lg-7">
-            <div class="chart-container">
-                <div class="chart-title">
-                    <i class="fas fa-chart-line text-primary"></i>
-                    Trend Spedizioni e Costi
+        <!-- Charts -->
+        <div class="row g-4 mb-4">
+            <div class="col-lg-8">
+                <div class="chart-container">
+                    <div class="chart-title">Trend Spedizioni e Costi</div>
+                    <canvas id="trendChart"></canvas>
                 </div>
-                <canvas id="trendChart"></canvas>
+            </div>
+            <div class="col-lg-4">
+                <div class="chart-container">
+                    <div class="chart-title">Modi di Trasporto</div>
+                    <canvas id="transportModeChart"></canvas>
+                </div>
             </div>
         </div>
-        <div class="col-lg-5">
-            <div class="chart-container chart-square">
-                <div class="chart-title">
-                    <i class="fas fa-chart-pie text-success"></i>
-                    Modi di Trasporto
-                </div>
-                <canvas id="transportModeChart"></canvas>
-            </div>
-        </div>
-    </div>
-<!-- YoY Analysis Section -->
-<div class="row g-4 mb-4">
-    <div class="col-lg-6">
+
+        <!-- Tabelle -->
         <div class="sol-card">
             <div class="sol-card-header">
-                <h5 class="sol-card-title">
-                    <i class="fas fa-chart-line text-warning me-2"></i>
-                    Variazione Spedizioni Anno su Anno
-                </h5>
-            </div>
-            <div class="sol-card-body">
-                <div class="table-responsive">
-                    <table class="table table-sm" id="yoyVariationTable">
-                        <thead>
-                            <tr>
-                                <th>Periodo</th>
-                                <th class="text-end">Spedizioni Totali</th>
-                                <th class="text-end">Variazione YoY (%)</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <!-- Popolato dinamicamente -->
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-    </div>
-    
-    <div class="col-lg-6">
-        <div class="sol-card">
-            <div class="sol-card-header">
-                <h5 class="sol-card-title">
-                    <i class="fas fa-shipping-fast text-info me-2"></i>
-                    Tendenza YoY per Tipo Spedizione
-                </h5>
-            </div>
-            <div class="sol-card-body">
-                <div class="table-responsive">
-                    <table class="table table-sm" id="yoyByTypeTable">
-                        <thead>
-                            <tr>
-                                <th>Tipo</th>
-                                <th class="text-end">Anno Corrente</th>
-                                <th class="text-end">Anno Precedente</th>
-                                <th class="text-end">Variazione</th>
-                                <th class="text-end">%</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <!-- Popolato dinamicamente -->
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Transit Times Section -->
-<div class="row g-4 mb-4">
-    <div class="col-lg-6">
-        <div class="sol-card">
-            <div class="sol-card-header">
-                <h5 class="sol-card-title">
-                    <i class="fas fa-clock text-primary me-2"></i>
-                    Tempi di Transito Medi per Tipo
-                </h5>
-            </div>
-            <div class="sol-card-body">
-                <div class="table-responsive">
-                    <table class="table table-sm" id="transitTimesTable">
-                        <thead>
-                            <tr>
-                                <th>Tipo Trasporto</th>
-                                <th class="text-end">Tempo Medio (giorni)</th>
-                                <th class="text-end">Spedizioni</th>
-                                <th class="text-center">Performance</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <!-- Popolato dinamicamente -->
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="col-lg-6">
-        <div class="chart-container">
-            <div class="chart-title">
-                <i class="fas fa-trophy text-warning"></i>
-                Performance Spedizionieri (N. Spedizioni)
-            </div>
-            <canvas id="carriersPerformanceChart"></canvas>
-        </div>
-    </div>
-</div>
-
-<!-- Transit Times by Company Charts -->
-<div class="row g-4 mb-4">
-    <div class="col-lg-6">
-        <div class="chart-container">
-            <div class="chart-title">
-                <i class="fas fa-ship text-primary"></i>
-                Tempi Transito - Trasporto Marittimo
-            </div>
-            <canvas id="transitTimeSeaChart"></canvas>
-        </div>
-    </div>
-    
-    <div class="col-lg-6">
-        <div class="chart-container">
-            <div class="chart-title">
-                <i class="fas fa-plane text-info"></i>
-                Tempi Transito - Trasporto Aereo
-            </div>
-            <canvas id="transitTimeAirChart"></canvas>
-        </div>
-    </div>
-</div>
-
-<div class="row g-4 mb-4">
-    <div class="col-lg-6">
-        <div class="chart-container">
-            <div class="chart-title">
-                <i class="fas fa-truck text-success"></i>
-                Tempi Transito - Trasporto Stradale
-            </div>
-            <canvas id="transitTimeRoadChart"></canvas>
-        </div>
-    </div>
-    
-    <div class="col-lg-6">
-        <div class="chart-container">
-            <div class="chart-title">
-                <i class="fas fa-box text-warning"></i>
-                Tempi Transito - Corriere
-            </div>
-            <canvas id="transitTimeParcelChart"></canvas>
-        </div>
-    </div>
-</div>
-        <!-- Detail Tables -->
-        <div class="sol-card">
-            <div class="sol-card-header">
-                <h3 class="sol-card-title">
-                    <i class="fas fa-truck me-2"></i>
-                    Dettaglio Spedizionieri
-                </h3>
+                <h3 class="sol-card-title">Performance Spedizionieri</h3>
             </div>
             <div class="sol-card-body">
                 <div class="table-responsive">
@@ -1158,35 +176,24 @@ document.addEventListener('DOMContentLoaded', function() {
                             <tr>
                                 <th>Spedizioniere</th>
                                 <th class="text-end">Spedizioni</th>
-                                <th class="text-end">Fatturato</th>
-                                <th class="text-end">Peso (kg)</th>
-                                <th class="text-end">Volume (m³)</th>
+                                <th class="text-end">Costi</th>
+                                <th class="text-end">Peso</th>
+                                <th class="text-end">Volume</th>
                                 <th class="text-end">Costo Medio</th>
                                 <th class="text-end">Performance</th>
                                 <th class="text-center">Azioni</th>
                             </tr>
                         </thead>
-                        <tbody id="carriersDetailBody">
-                            <!-- Popolato dinamicamente -->
-                        </tbody>
+                        <tbody id="carriersDetailBody"></tbody>
                     </table>
                 </div>
             </div>
         </div>
     </main>
 
-    <!-- Loading Overlay -->
-    <div id="loadingOverlay" class="position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center bg-white bg-opacity-75 d-none" style="z-index: 9999;">
-        <div class="text-center">
-            <div class="spinner-border text-primary mb-3" role="status"></div>
-            <h5>Caricamento...</h5>
-            <p class="text-muted" id="loadingMessage">Preparazione dashboard...</p>
-        </div>
-    </div>
-
-    <!-- Core Services Module -->
+    <!-- Scripts -->
     <script type="module">
-        // Inizializza Supabase client globalmente
+        // Inizializza Supabase
         if (!window.supabase) {
             const { createClient } = supabase;
             window.supabase = createClient(
@@ -1194,643 +201,34 @@ document.addEventListener('DOMContentLoaded', function() {
                 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdubnJtbnNkbXBqeml0c3lzb3dxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mjk3OTI3OTQsImV4cCI6MjA0NTM2ODc5NH0.nBBLNL4OGHqXcj_0qXUYx95UwjJDcZXuKvQDmjq5B3k'
             );
         }
-    
-        // Import dei servizi core
-        const { default: dataManager } = await import('/core/services/data-manager.js');
-        const { default: notificationSystem } = await import('/core/notification-system.js');
+
+        // Import e inizializza sistema unificato
+        const { default: UnifiedMetricsSystem } = await import('/pages/dashboard/metrics-system.js');
         const { default: headerComponent } = await import('/core/header-component.js');
+        const { default: notificationSystem } = await import('/core/notification-system.js');
         
         // Rendi disponibili globalmente
-        window.dataManager = dataManager;
         window.notificationSystem = notificationSystem;
         window.headerComponent = headerComponent;
         
-        console.log('✅ Core services loaded for dashboard page');
+        // Inizializza sistema metriche
+        window.metricsSystem = new UnifiedMetricsSystem();
+        await window.metricsSystem.init();
+        
+        console.log('✅ Dashboard pronto con sistema unificato!');
     </script>
-        <!-- ✅ OVERRIDE COMPLETO - AGGIUNGI QUESTO DOPO IL SISTEMA KPI -->
+
     <script>
-    // Disabilita completamente il sistema KPI del dashboard originale
-    document.addEventListener('DOMContentLoaded', function() {
-        console.log('🎯 Overriding dashboard KPI system...');
-        
-        // Aspetta che tutto sia caricato
-        setTimeout(() => {
-            // Disabilita renderKPICards del dashboard originale
-            if (window.dashboard && window.dashboard.renderKPICards) {
-                console.log('🔄 Disabling original KPI rendering...');
-                window.dashboard.renderKPICards = function() {
-                    console.log('🚫 Original KPI rendering blocked - using Real KPI System');
-                    return; // Non fare nulla
-                };
-            }
-            
-            // Forza il refresh del nostro sistema
-            if (window.realKPISystem && !window.realKPISystem.isLoading) {
-                console.log('🔄 Force refreshing Real KPI System...');
-                window.realKPISystem.loadRealKPIData();
-            }
-            
-            // Monitora cambiamenti del container e sovrascrivi
-            const kpiContainer = document.getElementById('kpiCards');
-            if (kpiContainer) {
-                const observer = new MutationObserver((mutations) => {
-                    mutations.forEach((mutation) => {
-                        if (mutation.type === 'childList') {
-                            // Se il container viene riempito con contenuto vuoto, sovrascrivi
-                            const hasEmptyContent = kpiContainer.innerHTML.includes('0') && 
-                                                  kpiContainer.innerHTML.includes('€0') &&
-                                                  !kpiContainer.innerHTML.includes('Caricamento');
-                            
-                            if (hasEmptyContent && window.realKPISystem) {
-                                console.log('🔄 Empty KPI detected, overriding with real data...');
-                                setTimeout(() => {
-                                    window.realKPISystem.loadRealKPIData();
-                                }, 500);
-                            }
-                        }
-                    });
-                });
-                
-                observer.observe(kpiContainer, { childList: true, subtree: true });
-                console.log('✅ KPI container monitor active');
-            }
-            
-        }, 4000); // Aspetta 4 secondi per essere sicuri
-    });
-    </script>
-
-<!-- ✅ SCRIPT DI TEST - AGGIUNGI DOPO L'OVERRIDE -->
-<script>
-// Test automatico dopo 6 secondi
-setTimeout(() => {
-    console.log('🧪 Running automatic KPI test...');
-    
-    // Verifica sistemi
-    console.log('Dashboard system:', !!window.dashboard);
-    console.log('Real KPI system:', !!window.realKPISystem);
-    console.log('Supabase:', !!window.supabase);
-    
-    // Forza caricamento se necessario
-    if (window.realKPISystem) {
-        console.log('🔄 Force loading KPI data...');
-        window.realKPISystem.loadRealKPIData();
-    }
-}, 6000);
-
-// Funzione di test manuale
-window.testKPIs = function() {
-    console.log('🔧 Manual KPI test triggered');
-    if (window.realKPISystem) {
-        window.realKPISystem.loadRealKPIData();
-    } else {
-        console.error('❌ Real KPI System not found');
-    }
-};
-</script>
-
-    <!-- Dashboard Script -->
-    <script type="module" src="/pages/dashboard/index.js"></script>
-        <!-- Bootstrap JS for Collapse functionality -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-
-<!-- ✅ KPI SYSTEM DIRETTO CON DATI REALI -->
-<script>
-/**
- * 🎯 SISTEMA KPI COLLEGATO AI DATI REALI
- * Connessione diretta con Supabase senza mock
- */
-
-class RealDataKPISystem {
-    constructor() {
-        this.supabase = null;
-        this.kpiData = {};
-        this.isLoading = false;
-        this.currentPeriod = 30; // giorni
-        console.log('🎯 Real Data KPI System initialized');
-    }
-
-    // ✅ INIZIALIZZAZIONE CON ATTESA SUPABASE
-    async init() {
-        console.log('🚀 Initializing Real Data KPI System...');
-        
-        // Attendi che Supabase sia disponibile
-        await this.waitForSupabase();
-        
-        // Carica dati immediati
-        await this.loadRealKPIData();
-        
-        console.log('✅ Real Data KPI System ready!');
-    }
-
-    // ✅ ATTENDI SUPABASE
-    async waitForSupabase(maxAttempts = 30) {
-        for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-            console.log(`⏳ Attempt ${attempt}: Checking Supabase...`);
-            
-            if (window.supabase) {
-                this.supabase = window.supabase;
-                console.log('✅ Supabase connected successfully');
-                return true;
-            }
-            
-            await new Promise(resolve => setTimeout(resolve, 200));
-        }
-        
-        throw new Error('❌ Supabase not available after 30 attempts');
-    }
-
-    // ✅ CARICA DATI KPI REALI
-    async loadRealKPIData() {
-        console.log('📊 Loading REAL KPI data from Supabase...');
-        this.isLoading = true;
-        this.renderLoadingKPIs();
-
-        try {
-            // 1. Carica tutti i dati necessari
-            const [shipmentsData, trackingsData, carriersData, additionalCostsData] = await this.loadAllData();
-            
-            // 2. Filtra per periodo
-            const filteredShipments = this.filterByPeriod(shipmentsData);
-            
-            // 3. Calcola KPI reali
-            const kpiData = await this.calculateRealKPIs(filteredShipments, trackingsData, carriersData, additionalCostsData);
-            
-            // 4. Renderizza KPI
-            this.renderRealKPIs(kpiData);
-            
-            console.log('✅ Real KPI data loaded successfully:', kpiData);
-            
-        } catch (error) {
-            console.error('❌ Error loading real KPI data:', error);
-            this.renderErrorKPIs(error.message);
-        } finally {
-            this.isLoading = false;
-        }
-    }
-
-    // ✅ MIGLIORAMENTO: Carica anche dati organization-specific
-async loadAllData() {
-    console.log('📥 Loading all data from Supabase...');
-    
-    // Ottieni organization ID se disponibile
-    let organizationId = null;
-    try {
-        const { data: { user } } = await this.supabase.auth.getUser();
-        if (user) {
-            const { data: membership } = await this.supabase
-                .from('organization_members')
-                .select('organization_id')
-                .eq('user_id', user.id)
-                .single();
-            organizationId = membership?.organization_id;
-        }
-    } catch (error) {
-        console.log('ℹ️ No organization filter applied');
-    }
-    
-    // Query con filtro organization opzionale
-    let shipmentsQuery = this.supabase.from('shipments').select('*');
-    let trackingsQuery = this.supabase.from('trackings').select('*');
-    
-    if (organizationId) {
-        shipmentsQuery = shipmentsQuery.eq('organization_id', organizationId);
-        trackingsQuery = trackingsQuery.eq('organization_id', organizationId);
-    }
-    
-    const [shipmentsResult, trackingsResult, carriersResult, costsResult] = await Promise.allSettled([
-        shipmentsQuery.order('created_at', { ascending: false }).limit(2000),
-        trackingsQuery.limit(2000),
-        this.supabase.from('carriers').select('*').limit(100), // ✅ CORRETTO
-        this.supabase.from('additional_costs').select('*').limit(1000)
-    ]);
-
-        // Estrai dati o array vuoti in caso di errore
-        const shipments = this.extractData(shipmentsResult, 'shipments');
-        const trackings = this.extractData(trackingsResult, 'trackings');
-        const carriers = this.extractData(carriersResult, 'carriers');
-        const additionalCosts = this.extractData(costsResult, 'additional_costs');
-
-        console.log('📊 Data loaded:', {
-            shipments: shipments.length,
-            trackings: trackings.length,
-            carriers: carriers.length,
-            additionalCosts: additionalCosts.length
-        });
-
-        return [shipments, trackings, carriers, additionalCosts];
-    }
-
-    // ✅ ESTRAI DATI SICURI
-    extractData(result, name) {
-        if (result.status === 'fulfilled' && result.value.data && !result.value.error) {
-            return result.value.data;
-        } else {
-            console.warn(`⚠️ No data or error for ${name}:`, result.value?.error || result.reason);
-            return [];
-        }
-    }
-
-    // ✅ FILTRA PER PERIODO
-    filterByPeriod(shipments, days = null) {
-        const period = days || this.currentPeriod;
-        const now = new Date();
-        const startDate = new Date(now.getTime() - (period * 24 * 60 * 60 * 1000));
-        
-        const filtered = shipments.filter(shipment => {
-            const shipmentDate = new Date(shipment.created_at);
-            return shipmentDate >= startDate;
-        });
-
-        console.log(`🗓️ Filtered shipments for last ${period} days: ${filtered.length}/${shipments.length}`);
-        return filtered;
-    }
-
-    // ✅ CALCOLA KPI REALI
-    async calculateRealKPIs(shipments, trackings, carriers, additionalCosts) {
-        console.log('🔢 Calculating REAL KPIs...');
-
-        // KPI Base
-        const totalShipments = shipments.length;
-        const activeCarriers = carriers.length;
-
-        // Calcoli finanziari
-        const { totalCosts, avgCostPerShipment } = this.calculateCosts(shipments, additionalCosts);
-        
-        // Calcoli peso e volume
-        const { totalWeight, totalVolume } = this.calculateWeightVolume(shipments);
-        
-        // Calcoli tempi
-        const avgDeliveryTime = this.calculateDeliveryTimes(shipments, trackings);
-
-        // Calcoli di crescita (confronto con periodo precedente)
-        const growthData = await this.calculateGrowthData(shipments, trackings);
-
-        const kpiData = {
-            totalShipments,
-            totalCosts: totalCosts,
-            avgCostPerShipment,
-            totalWeight,
-            totalVolume,
-            activeCarriers,
-            avgDeliveryTime,
-            growth: growthData
-        };
-
-        console.log('✅ Real KPIs calculated:', kpiData);
-        return kpiData;
-    }
-
-    // ✅ CALCOLA COSTI
-    calculateCosts(shipments, additionalCosts) {
-        let totalCosts = 0;
-        
-        // Costi da spedizioni
-        shipments.forEach(shipment => {
-            totalCosts += (parseFloat(shipment.freight_cost) || 0);
-            totalCosts += (parseFloat(shipment.other_costs) || 0);
-            totalCosts += (parseFloat(shipment.insurance_cost) || 0);
-            totalCosts += (parseFloat(shipment.customs_cost) || 0);
-        });
-
-        // Costi aggiuntivi
-        additionalCosts.forEach(cost => {
-            const costDate = new Date(cost.created_at);
-            const periodStart = new Date(Date.now() - (this.currentPeriod * 24 * 60 * 60 * 1000));
-            
-            if (costDate >= periodStart) {
-                totalCosts += (parseFloat(cost.amount) || 0);
-            }
-        });
-
-        const avgCostPerShipment = shipments.length > 0 ? totalCosts / shipments.length : 0;
-
-        return { totalCosts, avgCostPerShipment };
-    }
-
-    // ✅ CALCOLA PESO E VOLUME
-    calculateWeightVolume(shipments) {
-        let totalWeight = 0;
-        let totalVolume = 0;
-
-        shipments.forEach(shipment => {
-            totalWeight += (parseFloat(shipment.total_weight_kg) || 0);
-            totalVolume += (parseFloat(shipment.total_volume_m3) || 0);
-        });
-
-        return { totalWeight, totalVolume };
-    }
-
-    // ✅ CALCOLA TEMPI CONSEGNA
-    calculateDeliveryTimes(shipments, trackings) {
-        const deliveredShipments = [];
-
-        shipments.forEach(shipment => {
-            // Trova tracking corrispondente
-            const tracking = trackings.find(t => 
-                t.shipment_id === shipment.id || 
-                t.tracking_number === shipment.tracking_number
-            );
-
-            // Calcola tempo se consegnato
-            if (shipment.status === 'delivered' || (tracking && tracking.current_status === 'delivered')) {
-                const startDate = new Date(shipment.created_at);
-                let endDate = null;
-
-                if (shipment.delivery_date) {
-                    endDate = new Date(shipment.delivery_date);
-                } else if (tracking && tracking.delivered_at) {
-                    endDate = new Date(tracking.delivered_at);
-                } else if (tracking && tracking.current_status === 'delivered') {
-                    endDate = new Date(tracking.updated_at);
-                }
-
-                if (endDate && endDate > startDate) {
-                    const transitDays = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24));
-                    if (transitDays > 0 && transitDays < 365) { // Filtro valori ragionevoli
-                        deliveredShipments.push(transitDays);
-                    }
-                }
-            }
-        });
-
-        if (deliveredShipments.length === 0) return 0;
-
-        const avgTime = deliveredShipments.reduce((a, b) => a + b, 0) / deliveredShipments.length;
-        console.log(`📊 Delivery times calculated: ${deliveredShipments.length} shipments, avg ${avgTime.toFixed(1)} days`);
-        
-        return avgTime;
-    }
-
-    // ✅ CALCOLA CRESCITA (CONFRONTO PERIODI)
-    async calculateGrowthData(currentShipments) {
-        try {
-            // Periodo precedente (stessi giorni, periodo precedente)
-            const previousPeriodStart = new Date(Date.now() - (this.currentPeriod * 2 * 24 * 60 * 60 * 1000));
-            const previousPeriodEnd = new Date(Date.now() - (this.currentPeriod * 24 * 60 * 60 * 1000));
-
-            const { data: previousShipments } = await this.supabase
-                .from('shipments')
-                .select('*')
-                .gte('created_at', previousPeriodStart.toISOString())
-                .lt('created_at', previousPeriodEnd.toISOString());
-
-            if (!previousShipments) return { shipments: '0%', costs: '0%' };
-
-            // Calcola crescita spedizioni
-            const currentCount = currentShipments.length;
-            const previousCount = previousShipments.length;
-            const shipmentsGrowth = previousCount > 0 
-                ? ((currentCount - previousCount) / previousCount * 100).toFixed(1)
-                : '0';
-
-            // Calcola crescita costi
-            const currentCosts = currentShipments.reduce((sum, s) => 
-                sum + (parseFloat(s.freight_cost) || 0) + (parseFloat(s.other_costs) || 0), 0);
-            const previousCosts = previousShipments.reduce((sum, s) => 
-                sum + (parseFloat(s.freight_cost) || 0) + (parseFloat(s.other_costs) || 0), 0);
-            const costsGrowth = previousCosts > 0 
-                ? ((currentCosts - previousCosts) / previousCosts * 100).toFixed(1)
-                : '0';
-
-            return {
-                shipments: `${shipmentsGrowth >= 0 ? '+' : ''}${shipmentsGrowth}%`,
-                costs: `${costsGrowth >= 0 ? '+' : ''}${costsGrowth}%`
+        // Funzioni di utilità per i filtri
+        function applyFiltersFromUI() {
+            const filters = {
+                period: parseInt(document.getElementById('periodFilter').value),
+                carrier: document.getElementById('carrierFilter').value,
+                status: document.getElementById('statusFilter').value
             };
-
-        } catch (error) {
-            console.warn('⚠️ Could not calculate growth data:', error);
-            return { shipments: '0%', costs: '0%' };
+            
+            metricsSystem.applyFilters(filters);
         }
-    }
-
-    // ✅ RENDERIZZA KPI LOADING
-    renderLoadingKPIs() {
-        const container = document.getElementById('kpiCards');
-        if (!container) return;
-
-        container.innerHTML = Array(6).fill(0).map((_, index) => `
-            <div class="kpi-card-wrapper" data-kpi-index="${index}">
-                <div class="kpi-card">
-                    <div class="kpi-icon-small" style="background: #e2e8f0;">
-                        <div class="spinner-border spinner-border-sm text-muted"></div>
-                    </div>
-                    <div class="kpi-label-small">Caricamento...</div>
-                    <div class="kpi-value-small">---</div>
-                    <div class="growth-indicator-small">---</div>
-                </div>
-            </div>
-        `).join('');
-    }
-
-    // ✅ RENDERIZZA KPI REALI
-    renderRealKPIs(data) {
-        console.log('🎨 Rendering REAL KPI cards...');
-        
-        const container = document.getElementById('kpiCards');
-        if (!container) {
-            console.error('❌ KPI container not found');
-            return;
-        }
-
-        // Definizione KPI Cards con dati reali
-        const kpiCards = [
-            {
-                id: 'totalShipments',
-                label: 'Spedizioni Totali',
-                value: data.totalShipments,
-                format: 'number',
-                icon: '📦',
-                color: '#3b82f6',
-                trend: data.growth?.shipments || '0%'
-            },
-            {
-                id: 'totalCosts',
-                label: 'Costi Totali',
-                value: data.totalCosts,
-                format: 'currency',
-                icon: '💰',
-                color: '#ef4444',
-                trend: data.growth?.costs || '0%'
-            },
-            {
-                id: 'avgCostPerShipment',
-                label: 'Costo Medio',
-                value: data.avgCostPerShipment,
-                format: 'currency',
-                icon: '📊',
-                color: '#f59e0b',
-                trend: '+3.2%'
-            },
-            {
-                id: 'totalWeight',
-                label: 'Peso Totale',
-                value: data.totalWeight,
-                format: 'weight',
-                icon: '⚖️',
-                color: '#10b981',
-                trend: '+15.7%'
-            },
-            {
-                id: 'totalVolume',
-                label: 'Volume Totale',
-                value: data.totalVolume,
-                format: 'volume',
-                icon: '📐',
-                color: '#8b5cf6',
-                trend: '+6.2%'
-            },
-            {
-                id: 'avgDeliveryTime',
-                label: 'Tempo Medio',
-                value: data.avgDeliveryTime,
-                format: 'days',
-                icon: '⏱️',
-                color: '#06b6d4',
-                trend: '-2.1%'
-            }
-        ];
-
-        // Genera HTML
-        const kpiHTML = kpiCards.map((kpi, index) => `
-            <div class="kpi-card-wrapper" data-kpi-index="${index}">
-                <div class="kpi-card sortable-card" draggable="true">
-                    <div class="drag-handle">⋮⋮</div>
-                    <div class="kpi-icon-small" style="background: ${kpi.color};">
-                        ${kpi.icon}
-                    </div>
-                    <div class="kpi-label-small">${kpi.label}</div>
-                    <div class="kpi-value-small">${this.formatValue(kpi.value, kpi.format)}</div>
-                    <div class="growth-indicator-small ${this.getTrendClass(kpi.trend)}">
-                        ${this.getTrendIcon(kpi.trend)} ${kpi.trend}
-                    </div>
-                </div>
-            </div>
-        `).join('');
-
-        container.innerHTML = kpiHTML;
-        console.log('✅ Real KPI cards rendered successfully');
-    }
-
-    // ✅ RENDERIZZA ERRORE
-    renderErrorKPIs(errorMessage) {
-        const container = document.getElementById('kpiCards');
-        if (!container) return;
-
-        container.innerHTML = `
-            <div class="col-12">
-                <div class="alert alert-warning text-center">
-                    <i class="fas fa-exclamation-triangle me-2"></i>
-                    <strong>Errore caricamento KPI:</strong> ${errorMessage}
-                    <br>
-                    <button class="btn btn-sm btn-outline-primary mt-2" onclick="realKPISystem.loadRealKPIData()">
-                        <i class="fas fa-retry"></i> Riprova
-                    </button>
-                </div>
-            </div>
-        `;
-    }
-
-    // ✅ FORMATTA VALORI (IDENTICA A PRIMA)
-    formatValue(value, format) {
-        switch (format) {
-            case 'currency':
-                return new Intl.NumberFormat('it-IT', {
-                    style: 'currency',
-                    currency: 'EUR'
-                }).format(value);
-            case 'weight':
-                return value >= 1000 ? `${(value / 1000).toFixed(1)} t` : `${Math.round(value)} kg`;
-            case 'volume':
-                return `${value.toFixed(1)} m³`;
-            case 'days':
-                return `${value.toFixed(1)} gg`;
-            case 'number':
-            default:
-                return new Intl.NumberFormat('it-IT').format(Math.round(value));
-        }
-    }
-
-    // ✅ CLASSE E ICONA TREND (IDENTICHE A PRIMA)
-    getTrendClass(trend) {
-        if (trend.startsWith('+')) return 'growth-positive';
-        if (trend.startsWith('-')) return 'growth-negative';
-        return '';
-    }
-
-    getTrendIcon(trend) {
-        if (trend.startsWith('+')) return '↗';
-        if (trend.startsWith('-')) return '↘';
-        return '→';
-    }
-
-    // ✅ REFRESH DATI
-    async refresh() {
-        console.log('🔄 Refreshing real KPI data...');
-        await this.loadRealKPIData();
-    }
-
-    // ✅ CAMBIA PERIODO
-    async changePeriod(days) {
-        console.log(`📅 Changing period to ${days} days`);
-        this.currentPeriod = days;
-        await this.loadRealKPIData();
-    }
-}
-
-// ✅ INIZIALIZZAZIONE GLOBALE
-window.realKPISystem = null;
-
-// ✅ AUTO-INIT QUANDO DOM È PRONTO
-document.addEventListener('DOMContentLoaded', async function() {
-    console.log('🚀 Initializing Real Data KPI System...');
-    
-    // Attendi un momento per permettere il caricamento di Supabase
-    setTimeout(async () => {
-        try {
-            window.realKPISystem = new RealDataKPISystem();
-            await window.realKPISystem.init();
-            console.log('✅ Real Data KPI System ready!');
-        } catch (error) {
-            console.error('❌ Real Data KPI System initialization error:', error);
-        }
-    }, 5000);
-});
-
-// ✅ FUNZIONI GLOBALI
-window.refreshKPIs = function() {
-    if (window.realKPISystem) {
-        window.realKPISystem.refresh();
-    }
-};
-
-window.changeKPIPeriod = function(days) {
-    if (window.realKPISystem) {
-        window.realKPISystem.changePeriod(days);
-    }
-};
-</script>
-
-<!-- ✅ SOSTITUISCI IL PULSANTE REFRESH -->
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Sostituisci il pulsante refresh per chiamare i KPI reali
-    const refreshBtn = document.getElementById('refreshBtn');
-    if (refreshBtn) {
-        refreshBtn.onclick = function() {
-            refreshKPIs();
-        };
-    }
-    
-    // Collega filtro periodo ai KPI
-    const periodFilter = document.getElementById('periodFilter');
-    if (periodFilter) {
-        periodFilter.addEventListener('change', function() {
-            const days = parseInt(this.value);
-            changeKPIPeriod(days);
-        });
-    }
-});
-</script>
-
+    </script>
 </body>
 </html>
