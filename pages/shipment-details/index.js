@@ -361,6 +361,91 @@ function renderProductsTable(shipment) {
     }, 100);
 }
 
+function setupProductNameTooltips() {
+    // ✅ TOOLTIP AVANZATO PER NOMI PRODOTTI LUNGHI
+    document.querySelectorAll('.product-name[data-full-name]').forEach(element => {
+        const fullName = element.getAttribute('data-full-name');
+        const currentText = element.textContent.trim();
+        
+        // Mostra tooltip solo se il testo è stato troncato
+        if (fullName && fullName.length > currentText.length - 3) { // -3 per i "..."
+            
+            element.addEventListener('mouseenter', (e) => {
+                // Rimuovi tooltip esistenti
+                const existingTooltip = document.querySelector('.product-name-tooltip');
+                if (existingTooltip) existingTooltip.remove();
+                
+                // Crea nuovo tooltip
+                const tooltip = document.createElement('div');
+                tooltip.className = 'product-name-tooltip';
+                tooltip.textContent = fullName;
+                tooltip.style.cssText = `
+                    position: absolute;
+                    background: rgba(45, 62, 80, 0.95);
+                    color: white;
+                    padding: 8px 12px;
+                    border-radius: 6px;
+                    font-size: 12px;
+                    max-width: 300px;
+                    word-wrap: break-word;
+                    z-index: 10000;
+                    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+                    pointer-events: none;
+                    line-height: 1.4;
+                `;
+                
+                document.body.appendChild(tooltip);
+                
+                // Posiziona il tooltip
+                const rect = element.getBoundingClientRect();
+                const tooltipRect = tooltip.getBoundingClientRect();
+                
+                let left = rect.left + (rect.width / 2) - (tooltipRect.width / 2);
+                let top = rect.top - tooltipRect.height - 8;
+                
+                // Aggiusta se esce dallo schermo
+                if (left < 10) left = 10;
+                if (left + tooltipRect.width > window.innerWidth - 10) {
+                    left = window.innerWidth - tooltipRect.width - 10;
+                }
+                if (top < 10) {
+                    top = rect.bottom + 8; // Mostra sotto se non c'è spazio sopra
+                }
+                
+                tooltip.style.left = left + 'px';
+                tooltip.style.top = top + 'px';
+            });
+            
+            element.addEventListener('mouseleave', () => {
+                const tooltip = document.querySelector('.product-name-tooltip');
+                if (tooltip) tooltip.remove();
+            });
+        }
+    });
+}
+
+// ✅ CHIAMA LA FUNZIONE DOPO IL RENDERING DELLA TABELLA
+// Modifica la fine della funzione renderProductsTable:
+function renderProductsTable(shipmentDetails) {
+    // ... codice esistente ...
+    
+    console.log('✅ renderProductsTable completed:', {
+        productCount: productRows.length,
+        totals: {
+            totalProducts: totals.totalProducts,
+            totalWeight: totals.totalWeight,
+            totalVolume: totals.totalVolume,
+            totalValue: totals.totalValue
+        }
+    });
+    
+    // ✅ AGGIUNGI SETUP TOOLTIP
+    setTimeout(() => {
+        setupProductNameTooltips();
+    }, 100);
+    
+    return totals;
+}
 function updateTotalsWithCosts(products, shipment) {
     let totalQuantity = 0;
     let totalWeight = 0;
@@ -616,15 +701,42 @@ function renderProductRow(shipmentProduct, product) {
     const transportUnitCost = costs.transportUnitCost || 0;
     const transportTotal = transportUnitCost * shipmentProduct.quantity;
     
-    // ✅ NOME PRODOTTO CON PRIORITÀ CORRETTA
-    const productName = product?.name || 
-                       shipmentProduct.product?.name || 
-                       shipmentProduct.name || 
-                       'Prodotto senza nome';
+    // ✅ NOME PRODOTTO CON PRIORITÀ CORRETTA E GESTIONE LUNGHEZZA
+    const rawProductName = product?.name || 
+                          shipmentProduct.product?.name || 
+                          shipmentProduct.name || 
+                          'Prodotto senza nome';
+    
+    // ✅ GESTIONE INTELLIGENTE DELLA DESCRIZIONE
     const productSku = product?.sku || 
                       shipmentProduct.product?.sku || 
                       shipmentProduct.sku || 
                       'N/A';
+    
+    // ✅ FUNZIONE PER TRONCARE E FORMATTARE IL NOME
+    const formatProductName = (name, maxLength = 80) => {
+        if (!name) return 'Prodotto senza nome';
+        
+        // Rimuovi spazi multipli e trim
+        const cleanName = name.trim().replace(/\s+/g, ' ');
+        
+        if (cleanName.length <= maxLength) {
+            return cleanName;
+        }
+        
+        // Tronca in modo intelligente (cerca ultimo spazio prima del limite)
+        const truncated = cleanName.substring(0, maxLength);
+        const lastSpace = truncated.lastIndexOf(' ');
+        
+        if (lastSpace > maxLength * 0.7) { // Se il taglio è ragionevole
+            return truncated.substring(0, lastSpace) + '...';
+        } else {
+            return truncated + '...';
+        }
+    };
+    
+    const productName = formatProductName(rawProductName);
+    const fullProductName = rawProductName; // Per il tooltip
     
     // ✅ FORMATTAZIONE DINAMICA PER VALORI PICCOLI
     const formatSmallCurrency = (value) => {
@@ -640,31 +752,67 @@ function renderProductRow(shipmentProduct, product) {
     
     return `
         <tr class="product-row" data-product-id="${shipmentProduct.id}">
-            <td>
+            <td style="max-width: 250px; min-width: 200px;">
                 <div class="product-info">
-                    <div class="product-name" style="font-weight: 500; color: #2c3e50;">${productName}</div>
-                    <div class="product-sku" style="font-size: 12px; color: #7f8c8d;">SKU: ${productSku}</div>
+                    <div class="product-name" 
+                         style="font-weight: 500; color: #2c3e50; font-size: 13px; line-height: 1.3; 
+                                word-wrap: break-word; overflow-wrap: break-word; hyphens: auto;
+                                display: block; max-width: 100%;" 
+                         title="${fullProductName.replace(/"/g, '&quot;')}"
+                         data-full-name="${fullProductName.replace(/"/g, '&quot;')}">
+                        ${productName}
+                    </div>
+                    <div class="product-sku" 
+                         style="font-size: 11px; color: #7f8c8d; margin-top: 2px; font-weight: 400;">
+                        SKU: ${productSku}
+                    </div>
                 </div>
             </td>
-            <td>${window.formatNumberIT ? window.formatNumberIT(shipmentProduct.quantity || 0) : (shipmentProduct.quantity || 0)}</td>
-            <td>${formatWeight(shipmentProduct.total_weight_kg || 0)}</td>
-            <td>${formatVolume(shipmentProduct.total_volume_cbm || 0)}</td>
-            <td class="unit-cost-column">${formatSmallCurrency(unitCost)}</td>
-            <td class="total-cost-column">${window.formatCurrencyIT ? window.formatCurrencyIT(totalCost) : `€ ${totalCost.toFixed(2)}`}</td>
-            <td class="duty-rate-column">${window.formatPercentageIT ? window.formatPercentageIT(dutyRate) : `${dutyRate.toFixed(1)}%`}</td>
-            <td class="duty-unit-column">${formatSmallCurrency(dutyUnitCost)}</td>
-            <td class="duty-total-column">${window.formatCurrencyIT ? window.formatCurrencyIT(dutyAmount) : `€ ${dutyAmount.toFixed(2)}`}</td>
-            <td class="transport-unit-column">${formatSmallCurrency(transportUnitCost)}</td>
-            <td class="transport-total-column">${window.formatCurrencyIT ? window.formatCurrencyIT(transportTotal) : `€ ${transportTotal.toFixed(2)}`}</td>
-            <td class="actions-column">
+            <td style="text-align: center; white-space: nowrap;">
+                ${window.formatNumberIT ? window.formatNumberIT(shipmentProduct.quantity || 0) : (shipmentProduct.quantity || 0)}
+            </td>
+            <td style="text-align: center; white-space: nowrap;">
+                ${formatWeight(shipmentProduct.total_weight_kg || 0)}
+            </td>
+            <td style="text-align: center; white-space: nowrap;">
+                ${formatVolume(shipmentProduct.total_volume_cbm || 0)}
+            </td>
+            <td class="unit-cost-column" style="text-align: right; white-space: nowrap;">
+                ${formatSmallCurrency(unitCost)}
+            </td>
+            <td class="total-cost-column" style="text-align: right; white-space: nowrap;">
+                ${window.formatCurrencyIT ? window.formatCurrencyIT(totalCost) : `€ ${totalCost.toFixed(2)}`}
+            </td>
+            <td class="duty-rate-column" style="text-align: center; white-space: nowrap;">
+                ${window.formatPercentageIT ? window.formatPercentageIT(dutyRate) : `${dutyRate.toFixed(1)}%`}
+            </td>
+            <td class="duty-unit-column" style="text-align: right; white-space: nowrap;">
+                ${formatSmallCurrency(dutyUnitCost)}
+            </td>
+            <td class="duty-total-column" style="text-align: right; white-space: nowrap;">
+                ${window.formatCurrencyIT ? window.formatCurrencyIT(dutyAmount) : `€ ${dutyAmount.toFixed(2)}`}
+            </td>
+            <td class="transport-unit-column" style="text-align: right; white-space: nowrap;">
+                ${formatSmallCurrency(transportUnitCost)}
+            </td>
+            <td class="transport-total-column" style="text-align: right; white-space: nowrap;">
+                ${window.formatCurrencyIT ? window.formatCurrencyIT(transportTotal) : `€ ${transportTotal.toFixed(2)}`}
+            </td>
+            <td class="actions-column" style="text-align: center; white-space: nowrap;">
                 <div class="action-buttons">
-                    <button class="sol-btn sol-btn-secondary sol-btn-sm edit-product-btn" data-item-id="${shipmentProduct.id}" title="Modifica Prodotto">
+                    <button class="sol-btn sol-btn-secondary sol-btn-sm edit-product-btn" 
+                            data-item-id="${shipmentProduct.id}" 
+                            title="Modifica Prodotto">
                         <i class="fas fa-edit"></i>
                     </button>
-                    <button class="sol-btn sol-btn-primary sol-btn-sm product-costs-btn" data-item-id="${shipmentProduct.id}" title="Gestisci Costi">
+                    <button class="sol-btn sol-btn-primary sol-btn-sm product-costs-btn" 
+                            data-item-id="${shipmentProduct.id}" 
+                            title="Gestisci Costi">
                         <i class="fas fa-euro-sign"></i>
                     </button>
-                    <button class="sol-btn sol-btn-danger sol-btn-sm delete-product-btn" data-item-id="${shipmentProduct.id}" title="Elimina Prodotto">
+                    <button class="sol-btn sol-btn-danger sol-btn-sm delete-product-btn" 
+                            data-item-id="${shipmentProduct.id}" 
+                            title="Elimina Prodotto">
                         <i class="fas fa-trash"></i>
                     </button>
                 </div>
