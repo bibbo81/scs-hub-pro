@@ -1508,3 +1508,41 @@ function formatStatus(rawStatus) {
                 <i class="fas ${config.icon} mr-2"></i>${config.label}
             </span>`;
 }
+// Export delle funzioni principali per l'accesso globale
+window.loadShipmentDetails = loadShipmentDetails;
+window.addProduct = addProduct;
+window.renderProductsTable = renderProductsTable;
+window.editProductCosts = editProductCosts;
+window.setupCostCalculation = setupCostCalculation;
+window.updateCostCalculation = updateCostCalculation;
+window.saveProductCosts = saveProductCosts;
+
+console.log('✅ Page functions exported globally:', {
+    loadShipmentDetails: typeof window.loadShipmentDetails,
+    addProduct: typeof window.addProduct,
+    renderProductsTable: typeof window.renderProductsTable,
+    editProductCosts: typeof window.editProductCosts
+});
+
+// ✅ FORZA IL CARICAMENTO SE LA PAGINA È GIÀ PRONTA
+if (document.readyState === 'loading') {
+    // Il DOMContentLoaded esistente gestirà l'inizializzazione
+    console.log('🔧 DOM still loading, existing DOMContentLoaded will handle init');
+} else {
+    // La pagina è già caricata, inizializza subito
+    console.log('🔧 DOM already loaded, initializing immediately...');
+    setTimeout(async () => {
+        try {
+            if (window.dataManager && window.ModalSystem && window.notificationSystem) {
+                const shipmentId = getShipmentIdFromURL();
+                if (shipmentId) {
+                    console.log('🔧 Force loading shipment:', shipmentId);
+                    await loadShipmentDetails(shipmentId);
+                    setupEventListeners();
+                }
+            }
+        } catch (error) {
+            console.error('❌ Error in forced initialization:', error);
+        }
+    }, 1000);
+}
