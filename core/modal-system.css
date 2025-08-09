@@ -806,8 +806,8 @@
         font-size: 16px;
     }
 }
-/* ✅ MODAL FULLSCREEN OVERRIDE - AGGIUNGI ALLA FINE DEL FILE */
-.modal-xxl {
+/* ✅ MODAL FULLSCREEN OVERRIDE - VERSIONE CORRETTA */
+.sol-modal-overlay.modal-xxl {
     max-width: 100vw !important;
     width: 100vw !important;
     height: 100vh !important;
@@ -815,7 +815,7 @@
     padding: 0 !important;
 }
 
-.modal-xxl .sol-modal-content {
+.sol-modal-overlay.modal-xxl .sol-modal-content {
     max-width: 100vw !important;
     width: 100vw !important;
     height: 100vh !important;
@@ -826,57 +826,57 @@
     flex-direction: column !important;
 }
 
-.modal-xxl .sol-modal-header {
+.sol-modal-overlay.modal-xxl .sol-modal-header {
     flex-shrink: 0 !important;
     padding: 20px !important;
     border-bottom: 1px solid #e9ecef !important;
 }
 
-.modal-xxl .sol-modal-body {
+.sol-modal-overlay.modal-xxl .sol-modal-body {
     flex: 1 !important;
     overflow-y: auto !important;
     padding: 20px !important;
     max-height: none !important;
 }
 
-.modal-xxl .sol-modal-footer {
+.sol-modal-overlay.modal-xxl .sol-modal-footer {
     flex-shrink: 0 !important;
     padding: 20px !important;
     border-top: 1px solid #e9ecef !important;
 }
 
 /* ✅ FULLSCREEN RESPONSIVE ADJUSTMENTS */
-.modal-xxl .product-cards-container {
+.sol-modal-overlay.modal-xxl .product-cards-container {
     max-height: calc(100vh - 400px) !important;
 }
 
-.modal-xxl .product-inputs-grid {
+.sol-modal-overlay.modal-xxl .product-inputs-grid {
     grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)) !important;
 }
 
-.modal-xxl .global-costs-grid {
+.sol-modal-overlay.modal-xxl .global-costs-grid {
     grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)) !important;
 }
 
 /* ✅ MOBILE FULLSCREEN */
 @media (max-width: 768px) {
-    .modal-xxl .sol-modal-header {
+    .sol-modal-overlay.modal-xxl .sol-modal-header {
         padding: 15px !important;
     }
     
-    .modal-xxl .sol-modal-body {
+    .sol-modal-overlay.modal-xxl .sol-modal-body {
         padding: 15px !important;
     }
     
-    .modal-xxl .sol-modal-footer {
+    .sol-modal-overlay.modal-xxl .sol-modal-footer {
         padding: 15px !important;
     }
     
-    .modal-xxl .product-inputs-grid {
+    .sol-modal-overlay.modal-xxl .product-inputs-grid {
         grid-template-columns: 1fr !important;
     }
     
-    .modal-xxl .global-costs-grid {
+    .sol-modal-overlay.modal-xxl .global-costs-grid {
         grid-template-columns: 1fr !important;
     }
 }

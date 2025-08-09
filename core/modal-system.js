@@ -398,7 +398,10 @@ class CompleteModalSystem {
         }
 
         const modal = document.createElement('div');
-        modal.className = 'sol-modal-overlay';
+    modal.className = 'sol-modal-overlay';  // ✅ QUESTA RIGA
+    if (config.size === 'xxl') {
+        modal.classList.add('modal-xxl');
+    }
         modal.id = modalId;
         modal.style.zIndex = this.zIndexCounter++;
         modal.innerHTML = `
