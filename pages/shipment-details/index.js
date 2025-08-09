@@ -2067,25 +2067,29 @@ async function validateContainerLimits(shipmentId, additionalWeight, additionalV
         }
         
         // ✅ AVVISO SE SI SUPERA L'80% DELLA CAPACITÀ
+                // ✅ AVVISO SE SI SUPERA L'80% DELLA CAPACITÀ
         const weightPercent = containerInfo.maxWeight > 0 ? (totalWeightAfter / containerInfo.maxWeight) * 100 : 0;
         const volumePercent = containerInfo.maxVolume > 0 ? (totalVolumeAfter / containerInfo.maxVolume) * 100 : 0;
         
         if (weightPercent > 80 || volumePercent > 80) {
-            let warningMessage = `⚠️ ATTENZIONE - CAPACITÀ ELEVATA\n\n${containerDescription}\n\n📊 UTILIZZO DOPO AGGIUNTA:`;
-            
-            if (weightPercent > 80) {
-                warningMessage += `\n\n🏋️ PESO:\n• Attuale: ${formatWeight(currentWeight)}\n• Da aggiungere: ${formatWeight(additionalWeight)}\n• Totale: ${formatWeight(totalWeightAfter)}\n• Capacità: ${formatWeight(containerInfo.maxWeight)}\n• Utilizzo: ${weightPercent.toFixed(1)}%`;
-            }
-            
-            if (volumePercent > 80) {
-                warningMessage += `\n\n📦 VOLUME:\n• Attuale: ${formatVolume(currentVolume)}\n• Da aggiungere: ${formatVolume(additionalVolume)}\n• Totale: ${formatVolume(totalVolumeAfter)}\n• Capacità: ${formatVolume(containerInfo.maxVolume)}\n• Utilizzo: ${volumePercent.toFixed(1)}%`;
-            }
+            // ✅ GENERA CONTENUTO HTML RICCO PER IL MODAL
+            const containerDetailsHTML = generateContainerDetailsHTML(shipmentDetails, containerInfo, {
+                currentWeight,
+                additionalWeight,
+                totalWeightAfter,
+                currentVolume,
+                additionalVolume,
+                totalVolumeAfter,
+                weightPercent,
+                volumePercent
+            });
             
             const proceed = await window.ModalSystem?.confirm({
                 title: '⚠️ Attenzione - Capacità Elevata',
-                content: warningMessage,
+                content: containerDetailsHTML,
                 confirmText: 'Continua Comunque',
-                cancelText: 'Annulla'
+                cancelText: 'Annulla',
+                size: 'lg' // Modal più grande per contenere tutte le info
             });
             
             if (!proceed) {
@@ -2209,7 +2213,345 @@ function generateContainerDescription(shipmentDetails, containerInfo) {
     
     return description;
 }
-
+function generateContainerDetailsHTML(shipmentDetails, containerInfo, metrics) {
+    const containers = shipmentDetails.tracking?.metadata?.raw?.shipment?.containers;
+    
+    let html = `
+        <div class="container-warning-details">
+            <!-- HEADER INFO CONTAINER -->
+            <div class="container-info-section">
+                <h4><i class="fas fa-shipping-fast mr-2"></i>Informazioni Container</h4>
+    `;
+    
+    if (Array.isArray(containers) && containers.length > 0) {
+        // ✅ CONTAINER DETTAGLIATI DAL TRACKING
+        const containerCounts = {};
+        containers.forEach(container => {
+            const size = container.size || 0;
+            const type = (container.type || '').toUpperCase();
+            let containerType = 'N/A';
+            
+            if (size === 20) containerType = "20'";
+            else if (size === 40) containerType = (type.includes('HC') || type.includes('HQ')) ? "40'HC" : "40'";
+            else if (size === 45) containerType = "45'HC";
+            
+            if (containerType !== 'N/A') {
+                containerCounts[containerType] = (containerCounts[containerType] || 0) + 1;
+            }
+        });
+        
+        html += '<div class="container-types-grid">';
+        Object.entries(containerCounts).forEach(([type, count]) => {
+            const capacity = getContainerTypeCapacity(type);
+            html += `
+                <div class="container-type-card">
+                    <div class="container-count">${count}x</div>
+                    <div class="container-type">${type}</div>
+                    ${capacity ? `
+                        <div class="container-specs">
+                            <small>Max: ${formatWeight(capacity.weight)} / ${formatVolume(capacity.volume)}</small>
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+        });
+        html += '</div>';
+        
+    } else {
+        // ✅ CONTAINER DAL CAMPO TESTUALE
+        const containerTypes = shipmentDetails.tracking?.container_types || 
+                              shipmentDetails.container_types || 
+                              document.getElementById('shipmentContainerTypes')?.textContent || '';
+        
+        html += `
+            <div class="container-info-text">
+                <i class="fas fa-info-circle mr-2"></i>
+                ${containerTypes && containerTypes !== '-' ? containerTypes : 'Informazioni container non disponibili'}
+            </div>
+        `;
+    }
+    
+    html += `
+            </div>
+            
+            <!-- CAPACITÀ TOTALE -->
+            <div class="capacity-overview">
+                <h4><i class="fas fa-balance-scale mr-2"></i>Capacità Totale</h4>
+                <div class="capacity-stats">
+                    <div class="capacity-stat">
+                        <span class="capacity-label">Peso Massimo:</span>
+                        <span class="capacity-value">${formatWeight(containerInfo.maxWeight)}</span>
+                    </div>
+                    <div class="capacity-stat">
+                        <span class="capacity-label">Volume Massimo:</span>
+                        <span class="capacity-value">${formatVolume(containerInfo.maxVolume)}</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- ANALISI UTILIZZO -->
+            <div class="usage-analysis">
+                <h4><i class="fas fa-chart-pie mr-2"></i>Analisi Utilizzo</h4>
+    `;
+    
+    // ✅ SEZIONE PESO
+    if (metrics.weightPercent > 80) {
+        const weightStatus = metrics.weightPercent > 100 ? 'danger' : 'warning';
+        html += `
+            <div class="usage-section">
+                <h5><i class="fas fa-weight-hanging mr-2"></i>Peso</h5>
+                <div class="usage-breakdown">
+                    <div class="usage-row">
+                        <span>Attuale:</span>
+                        <span class="value">${formatWeight(metrics.currentWeight)}</span>
+                    </div>
+                    <div class="usage-row add">
+                        <span>Da aggiungere:</span>
+                        <span class="value">+ ${formatWeight(metrics.additionalWeight)}</span>
+                    </div>
+                    <div class="usage-row total">
+                        <span>Totale risultante:</span>
+                        <span class="value">${formatWeight(metrics.totalWeightAfter)}</span>
+                    </div>
+                    <div class="usage-row capacity">
+                        <span>Capacità massima:</span>
+                        <span class="value">${formatWeight(containerInfo.maxWeight)}</span>
+                    </div>
+                </div>
+                <div class="progress-container">
+                    <div class="progress-bar">
+                        <div class="progress-fill ${weightStatus}" style="width: ${Math.min(metrics.weightPercent, 100)}%"></div>
+                    </div>
+                    <div class="progress-label ${weightStatus}">
+                        ${metrics.weightPercent.toFixed(1)}% utilizzato
+                        ${metrics.weightPercent > 100 ? ` (Eccedenza: ${formatWeight(metrics.totalWeightAfter - containerInfo.maxWeight)})` : ''}
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+    
+    // ✅ SEZIONE VOLUME
+    if (metrics.volumePercent > 80) {
+        const volumeStatus = metrics.volumePercent > 100 ? 'danger' : 'warning';
+        html += `
+            <div class="usage-section">
+                <h5><i class="fas fa-cube mr-2"></i>Volume</h5>
+                <div class="usage-breakdown">
+                    <div class="usage-row">
+                        <span>Attuale:</span>
+                        <span class="value">${formatVolume(metrics.currentVolume)}</span>
+                    </div>
+                    <div class="usage-row add">
+                        <span>Da aggiungere:</span>
+                        <span class="value">+ ${formatVolume(metrics.additionalVolume)}</span>
+                    </div>
+                    <div class="usage-row total">
+                        <span>Totale risultante:</span>
+                        <span class="value">${formatVolume(metrics.totalVolumeAfter)}</span>
+                    </div>
+                    <div class="usage-row capacity">
+                        <span>Capacità massima:</span>
+                        <span class="value">${formatVolume(containerInfo.maxVolume)}</span>
+                    </div>
+                </div>
+                <div class="progress-container">
+                    <div class="progress-bar">
+                        <div class="progress-fill ${volumeStatus}" style="width: ${Math.min(metrics.volumePercent, 100)}%"></div>
+                    </div>
+                    <div class="progress-label ${volumeStatus}">
+                        ${metrics.volumePercent.toFixed(1)}% utilizzato
+                        ${metrics.volumePercent > 100 ? ` (Eccedenza: ${formatVolume(metrics.totalVolumeAfter - containerInfo.maxVolume)})` : ''}
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+    
+    html += `
+            </div>
+        </div>
+        
+        <style>
+            .container-warning-details {
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            }
+            
+            .container-info-section, .capacity-overview, .usage-analysis {
+                margin-bottom: 25px;
+                padding: 20px;
+                background: #f8f9fa;
+                border-radius: 8px;
+                border: 1px solid #e9ecef;
+            }
+            
+            .container-info-section h4, .capacity-overview h4, .usage-analysis h4 {
+                color: #495057;
+                margin-bottom: 15px;
+                font-size: 16px;
+                font-weight: 600;
+            }
+            
+            .container-types-grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+                gap: 15px;
+            }
+            
+            .container-type-card {
+                background: white;
+                padding: 15px;
+                border-radius: 6px;
+                border: 1px solid #dee2e6;
+                text-align: center;
+            }
+            
+            .container-count {
+                font-size: 24px;
+                font-weight: 700;
+                color: #007bff;
+            }
+            
+            .container-type {
+                font-size: 14px;
+                font-weight: 600;
+                color: #495057;
+                margin: 5px 0;
+            }
+            
+            .container-specs small {
+                color: #6c757d;
+                font-size: 11px;
+            }
+            
+            .container-info-text {
+                padding: 15px;
+                background: white;
+                border-radius: 6px;
+                border: 1px solid #dee2e6;
+                color: #495057;
+            }
+            
+            .capacity-stats {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 20px;
+            }
+            
+            .capacity-stat {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                padding: 12px;
+                background: white;
+                border-radius: 6px;
+                border: 1px solid #dee2e6;
+            }
+            
+            .capacity-label {
+                font-weight: 500;
+                color: #6c757d;
+            }
+            
+            .capacity-value {
+                font-weight: 600;
+                color: #495057;
+            }
+            
+            .usage-section {
+                margin-bottom: 20px;
+                padding: 15px;
+                background: white;
+                border-radius: 6px;
+                border: 1px solid #dee2e6;
+            }
+            
+            .usage-section h5 {
+                color: #495057;
+                margin-bottom: 15px;
+                font-size: 14px;
+                font-weight: 600;
+            }
+            
+            .usage-breakdown {
+                margin-bottom: 15px;
+            }
+            
+            .usage-row {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                padding: 8px 0;
+                border-bottom: 1px solid #f1f3f4;
+            }
+            
+            .usage-row:last-child {
+                border-bottom: none;
+            }
+            
+            .usage-row.add {
+                color: #28a745;
+                font-weight: 500;
+            }
+            
+            .usage-row.total {
+                color: #495057;
+                font-weight: 600;
+                background: #f8f9fa;
+                padding: 12px;
+                margin: 10px -12px;
+                border-radius: 4px;
+            }
+            
+            .usage-row.capacity {
+                color: #6c757d;
+                font-weight: 500;
+            }
+            
+            .progress-container {
+                margin-top: 15px;
+            }
+            
+            .progress-bar {
+                height: 20px;
+                background: #e9ecef;
+                border-radius: 10px;
+                overflow: hidden;
+                margin-bottom: 8px;
+            }
+            
+            .progress-fill {
+                height: 100%;
+                border-radius: 10px;
+                transition: width 0.3s ease;
+            }
+            
+            .progress-fill.warning {
+                background: linear-gradient(90deg, #ffc107, #fd7e14);
+            }
+            
+            .progress-fill.danger {
+                background: linear-gradient(90deg, #dc3545, #c82333);
+            }
+            
+            .progress-label {
+                font-size: 13px;
+                font-weight: 600;
+                text-align: center;
+            }
+            
+            .progress-label.warning {
+                color: #f57c00;
+            }
+            
+            .progress-label.danger {
+                color: #dc3545;
+            }
+        </style>
+    `;
+    
+    return html;
+}
 function getContainerTypeCapacity(containerType) {
     const CONTAINER_CAPACITIES = {
         "20'": { weight: 28080, volume: 33.2 },
