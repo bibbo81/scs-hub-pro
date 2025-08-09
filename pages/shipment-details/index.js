@@ -1331,6 +1331,263 @@ async function addProduct() {
     }
 }
 
+// ✅ SETUP EVENT LISTENERS PER LA MODAL
+function setupProductSelectionWithCosts() {
+    const searchInput = document.getElementById('productSearchInput');
+    const productRows = document.querySelectorAll('.product-card-two-column[data-product-id]');
+    const checkboxes = document.querySelectorAll('.product-checkbox');
+    const costInputs = document.querySelectorAll('.product-unit-cost-input, .product-duty-rate-input, .product-quantity-input, .product-weight-input, .product-volume-input, .product-custom-fees-input');
+    
+    console.log('🔧 setupProductSelectionWithCosts:', {
+        searchInput: !!searchInput,
+        productRows: productRows.length,
+        checkboxes: checkboxes.length,
+        costInputs: costInputs.length
+    });
+    
+    // ✅ RICERCA PRODOTTI CON CONTROLLO SICUREZZA
+    if (searchInput && productRows.length > 0) {
+        searchInput.addEventListener('input', (e) => {
+            const searchTerm = e.target.value.toLowerCase();
+            productRows.forEach(row => {
+                const nameEl = row.querySelector('.product-name');
+                const skuEl = row.querySelector('.product-sku');
+                
+                if (nameEl && skuEl) {
+                    const name = nameEl.textContent.toLowerCase();
+                    const sku = skuEl.textContent.toLowerCase();
+                    const visible = name.includes(searchTerm) || sku.includes(searchTerm);
+                    row.style.display = visible ? 'flex' : 'none';
+                }
+            });
+        });
+    }
+    
+    // ✅ AUTO-CHECK CON CONTROLLI SICUREZZA
+    costInputs.forEach(input => {
+        if (input) {
+            input.addEventListener('input', (e) => {
+                const row = e.target.closest('.product-card-two-column');
+                const checkbox = row?.querySelector('.product-checkbox');
+                
+                if (e.target.value && checkbox && !checkbox.checked) {
+                    checkbox.checked = true;
+                    updateCostsPreview();
+                } else if (e.target.value) {
+                    updateCostsPreview();
+                }
+            });
+        }
+    });
+    
+    // ✅ UPDATE PREVIEW CON CONTROLLI
+    checkboxes.forEach(checkbox => {
+        if (checkbox) {
+            checkbox.addEventListener('change', updateCostsPreview);
+        }
+    });
+    
+    // ✅ UPDATE GLOBAL COSTS CON CONTROLLI
+    const globalInputs = document.querySelectorAll('#globalCustomsFees, #costsNotes');
+    globalInputs.forEach(input => {
+        if (input) {
+            input.addEventListener('input', updateCostsPreview);
+        }
+    });
+    
+    console.log('✅ Product selection event listeners attached safely');
+}
+
+// ✅ ANTEPRIMA COSTI CON CONTROLLI SICUREZZA
+function updateCostsPreview() {
+    const selectedRows = document.querySelectorAll('.product-checkbox:checked');
+    const previewDiv = document.getElementById('costsPreview');
+    const calculationDiv = document.getElementById('totalCalculation');
+    
+    if (!previewDiv || !calculationDiv) {
+        console.warn('⚠️ Preview elements not found');
+        return;
+    }
+    
+    if (selectedRows.length === 0) {
+        previewDiv.style.display = 'none';
+        return;
+    }
+    
+    let totalProducts = 0;
+    let totalUnitCost = 0;
+    let totalDuty = 0;
+    let totalQuantity = 0;
+    let totalCustomsFees = 0;
+    
+    selectedRows.forEach(checkbox => {
+        if (!checkbox) return;
+        
+        const row = checkbox.closest('.product-card-two-column');
+        if (!row) {
+            console.warn('⚠️ Row not found for checkbox');
+            return;
+        }
+        
+        // ✅ CONTROLLI SICUREZZA PER OGNI INPUT
+        const quantityInput = row.querySelector('.product-quantity-input');
+        const unitCostInput = row.querySelector('.product-unit-cost-input');
+        const dutyRateInput = row.querySelector('.product-duty-rate-input');
+        const customsFeesInput = row.querySelector('.product-custom-fees-input');
+        
+        const quantity = quantityInput ? parseFloat(quantityInput.value) || 1 : 1;
+        const unitCost = unitCostInput ? parseFloat(unitCostInput.value) || 0 : 0;
+        const dutyRate = dutyRateInput ? parseFloat(dutyRateInput.value) || 0 : 0;
+        const customsFees = customsFeesInput ? parseFloat(customsFeesInput.value) || 0 : 0;
+        
+        const productTotal = quantity * unitCost;
+        const productDuty = productTotal * (dutyRate / 100);
+        
+        totalProducts++;
+        totalQuantity += quantity;
+        totalUnitCost += productTotal;
+        totalDuty += productDuty;
+        totalCustomsFees += customsFees;
+    });
+    
+    const globalCustomsFeesInput = document.getElementById('globalCustomsFees');
+    const globalCustomsFees = globalCustomsFeesInput ? parseFloat(globalCustomsFeesInput.value) || 0 : 0;
+    const grandTotal = totalUnitCost + totalDuty + totalCustomsFees + globalCustomsFees;
+    
+    calculationDiv.innerHTML = `
+        <div class="calc-row">
+            <span>Prodotti selezionati:</span>
+            <span><strong>${totalProducts}</strong></span>
+        </div>
+        <div class="calc-row">
+            <span>Quantità totale:</span>
+            <span><strong>${window.formatNumberIT ? window.formatNumberIT(totalQuantity) : totalQuantity}</strong></span>
+        </div>
+        <div class="calc-row">
+            <span>Costo prodotti:</span>
+            <span><strong>${window.formatCurrencyIT ? window.formatCurrencyIT(totalUnitCost) : `€ ${totalUnitCost.toFixed(2)}`}</strong></span>
+        </div>
+        <div class="calc-row duty">
+            <span>Dazi stimati:</span>
+            <span><strong>${window.formatCurrencyIT ? window.formatCurrencyIT(totalDuty) : `€ ${totalDuty.toFixed(2)}`}</strong></span>
+        </div>
+        <div class="calc-row">
+            <span>Oneri prodotti:</span>
+            <span><strong>${window.formatCurrencyIT ? window.formatCurrencyIT(totalCustomsFees) : `€ ${totalCustomsFees.toFixed(2)}`}</strong></span>
+        </div>
+        <div class="calc-row">
+            <span>Altri oneri doganali:</span>
+            <span><strong>${window.formatCurrencyIT ? window.formatCurrencyIT(globalCustomsFees) : `€ ${globalCustomsFees.toFixed(2)}`}</strong></span>
+        </div>
+        <div class="calc-row total">
+            <span>Totale stimato:</span>
+            <span><strong>${window.formatCurrencyIT ? window.formatCurrencyIT(grandTotal) : `€ ${grandTotal.toFixed(2)}`}</strong></span>
+        </div>
+    `;
+    
+    previewDiv.style.display = 'block';
+}
+
+// ✅ AGGIUNGI PRODOTTI CON CONTROLLI SICUREZZA
+async function addSelectedProductsWithCosts() {
+    const selectedProducts = [];
+    const selectedCheckboxes = document.querySelectorAll('.product-checkbox:checked');
+    
+    if (selectedCheckboxes.length === 0) {
+        window.notificationSystem?.warning('Seleziona almeno un prodotto.');
+        return;
+    }
+    
+    selectedCheckboxes.forEach(checkbox => {
+        if (!checkbox) return;
+        
+        const row = checkbox.closest('.product-card-two-column');
+        if (!row) {
+            console.warn('⚠️ Row not found for checkbox');
+            return;
+        }
+        
+        const productId = row.dataset.productId;
+        if (!productId) {
+            console.warn('⚠️ Product ID not found');
+            return;
+        }
+        
+        // ✅ CONTROLLI SICUREZZA PER TUTTI GLI INPUT
+        const weightInput = row.querySelector('.product-weight-input');
+        const volumeInput = row.querySelector('.product-volume-input');
+        const quantityInput = row.querySelector('.product-quantity-input');
+        const unitCostInput = row.querySelector('.product-unit-cost-input');
+        const dutyRateInput = row.querySelector('.product-duty-rate-input');
+        const customsFeesInput = row.querySelector('.product-custom-fees-input');
+        
+        const weight = weightInput ? parseFloat(weightInput.value) || 0 : 0;
+        const volume = volumeInput ? parseFloat(volumeInput.value) || 0 : 0;
+        const quantity = quantityInput ? parseFloat(quantityInput.value) || 1 : 1;
+        const unitCost = unitCostInput ? parseFloat(unitCostInput.value) || 0 : 0;
+        const dutyRate = dutyRateInput ? parseFloat(dutyRateInput.value) || 0 : 0;
+        const customsFees = customsFeesInput ? parseFloat(customsFeesInput.value) || 0 : 0;
+        
+        const totalCost = quantity * unitCost;
+        const dutyAmount = totalCost * (dutyRate / 100);
+        
+        const productData = {
+            product_id: productId,
+            quantity: quantity,
+            weight_kg: quantity > 0 ? weight / quantity : 0,
+            volume_cbm: quantity > 0 ? volume / quantity : 0,
+            total_weight_kg: weight,
+            total_volume_cbm: volume,
+            cost_metadata: {
+                unitCost: unitCost,
+                totalCost: totalCost,
+                dutyRate: dutyRate,
+                dutyAmount: dutyAmount,
+                customsFees: customsFees,
+                grandTotal: totalCost + dutyAmount + customsFees
+            }
+        };
+        
+        console.log('💰 Adding product with costs:', productData);
+        selectedProducts.push(productData);
+    });
+    
+    if (selectedProducts.length === 0) {
+        window.notificationSystem?.warning('Nessun prodotto valido selezionato.');
+        return;
+    }
+    
+    const globalCustomsFeesInput = document.getElementById('globalCustomsFees');
+    const globalCustomsFees = globalCustomsFeesInput ? parseFloat(globalCustomsFeesInput.value) || 0 : 0;
+    
+    try {
+        const shipmentId = getShipmentIdFromURL();
+        
+        if (globalCustomsFees > 0) {
+            const feePerProduct = globalCustomsFees / selectedProducts.length;
+            selectedProducts.forEach(product => {
+                product.cost_metadata.customsFees += feePerProduct;
+                product.cost_metadata.grandTotal += feePerProduct;
+            });
+        }
+        
+        window.notificationSystem?.info(`Aggiunta di ${selectedProducts.length} prodotti in corso...`);
+        
+        for (const productData of selectedProducts) {
+            await window.dataManager.addShipmentItem(shipmentId, productData);
+        }
+        
+        window.notificationSystem?.success(`${selectedProducts.length} prodotti aggiunti con successo!`);
+        window.ModalSystem?.close();
+        
+        await loadShipmentDetails(shipmentId);
+        
+    } catch (error) {
+        console.error('Error adding products with costs:', error);
+        window.notificationSystem?.error(`Errore nell'aggiunta dei prodotti: ${error.message}`);
+    }
+}
+
 // 🔥 CORREZIONE: Aggiorna addAdditionalCost per input HTML
 async function addAdditionalCost() {
     const modalContent = `
@@ -1525,6 +1782,9 @@ function formatStatus(rawStatus) {
                 <i class="fas ${config.icon} mr-2"></i>${config.label}
             </span>`;
 }
+
+
+
 // Export delle funzioni principali per l'accesso globale
 window.loadShipmentDetails = loadShipmentDetails;
 window.addProduct = addProduct;
