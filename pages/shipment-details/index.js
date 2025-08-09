@@ -157,10 +157,20 @@ async function loadShipmentDetails(shipmentId) {
             }
         }
 
-        await renderShipmentInfo(shipmentDetails);
-        renderProductsTable(shipmentDetails);
-        await renderDocumentsTable(shipmentDetails.documents);
-        renderAdditionalCosts(shipmentDetails.additionalCosts);
+        window.editProductCosts = editProductCosts;
+        window.setupCostCalculation = setupCostCalculation;
+        window.updateCostCalculation = updateCostCalculation;
+        window.saveProductCosts = saveProductCosts;
+        
+        // Store shipment globally for re-render
+        window.currentShipment = shipmentDetails;
+        
+        console.log('✅ Product cost functions exposed after shipment load:', {
+            editProductCosts: typeof window.editProductCosts,
+            setupCostCalculation: typeof window.setupCostCalculation,
+            updateCostCalculation: typeof window.updateCostCalculation,
+            saveProductCosts: typeof window.saveProductCosts
+        });
         
     } catch (error) {
         console.error("Error loading shipment details:", error);
@@ -1396,14 +1406,6 @@ function formatStatus(rawStatus) {
                 <i class="fas ${config.icon} mr-2"></i>${config.label}
             </span>`;
 }
-
-// ✅ AGGIUNGI QUESTO ALLA FINE DEL FILE index.js
-
-// Esponi le funzioni globalmente per l'accesso dai pulsanti
-window.editProductCosts = editProductCosts;
-window.setupCostCalculation = setupCostCalculation;
-window.updateCostCalculation = updateCostCalculation;
-window.saveProductCosts = saveProductCosts;
 
 console.log('✅ Product cost functions exposed globally:', {
     editProductCosts: typeof window.editProductCosts,
