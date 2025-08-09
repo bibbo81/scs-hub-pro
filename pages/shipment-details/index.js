@@ -388,18 +388,24 @@ function renderProductsTable(shipment) {
         tr.classList.add('product-row');
         tr.dataset.itemId = product.id;
                 tr.innerHTML = `
-            <td>${product.product?.name || product.name || '-'}<small class="text-muted d-block">${product.product?.sku || ''}</small></td>
-            <td>${formatQuantity(product.quantity || 0)}</td>
-            <td>${formatWeight(product.total_weight_kg)}</td>
-            <td>${formatVolume(product.total_volume_cbm)}</td>
-            <td>${formatCurrency(allocatedTotalCost)}</td>
-            <td class="unit-cost-column"><strong>${formatCurrency(allocatedUnitCost)}</strong></td>
-            <td>
-                <button class="sol-btn sol-btn-secondary sol-btn-sm edit-product-btn" data-item-id="${product.id}" title="Modifica Prodotto"><i class="fas fa-edit"></i></button>
-                <button class="sol-btn sol-btn-primary sol-btn-sm product-costs-btn" data-item-id="${product.id}" title="Gestisci Costi"><i class="fas fa-euro-sign"></i></button>
-                <button class="sol-btn sol-btn-danger sol-btn-sm delete-product-btn" data-item-id="${product.id}" title="Elimina Prodotto"><i class="fas fa-trash"></i></button>
-            </td>
-        `;
+    <td>${product.product?.name || product.name || '-'}<small class="text-muted d-block">${product.product?.sku || ''}</small></td>
+    <td>${formatQuantity(product.quantity || 0)}</td>
+    <td>${formatWeight(product.total_weight_kg)}</td>
+    <td>${formatVolume(product.total_volume_cbm)}</td>
+    <td>${formatCurrency(allocatedTotalCost)}</td>
+    <td class="unit-cost-column"><strong>${formatCurrency(allocatedUnitCost)}</strong></td>
+    <td>
+        <button class="sol-btn sol-btn-secondary sol-btn-sm edit-product-btn" data-item-id="${product.id}" title="Modifica Prodotto">
+            <i class="fas fa-edit"></i>
+        </button>
+        <button class="sol-btn sol-btn-primary sol-btn-sm product-costs-btn" data-item-id="${product.id}" title="Gestisci Costi">
+            <i class="fas fa-euro-sign"></i>
+        </button>
+        <button class="sol-btn sol-btn-danger sol-btn-sm delete-product-btn" data-item-id="${product.id}" title="Elimina Prodotto">
+            <i class="fas fa-trash"></i>
+        </button>
+    </td>
+`;
         tbody.appendChild(tr);
     });
     updateTotals(shipment);
@@ -559,6 +565,7 @@ function updateTotalCost() {
 }
 
 function setupEventListeners() {
+    // Event listeners per i pulsanti principali
     document.getElementById('addProductBtn')?.addEventListener('click', addProduct);
     document.getElementById('uploadDocumentBtn')?.addEventListener('click', uploadDocument);
     document.getElementById('changeCarrierBtn')?.addEventListener('click', changeShipmentCarrier);
@@ -567,34 +574,82 @@ function setupEventListeners() {
     document.getElementById('editStatusBtn')?.addEventListener('click', toggleStatusEditMode);
     document.getElementById('saveStatusBtn')?.addEventListener('click', saveShipmentStatus);
 
+    // Event listeners per i campi di input dei costi
     document.getElementById('freightCost')?.addEventListener('input', updateTotalCost);
     document.getElementById('otherCosts')?.addEventListener('input', updateTotalCost);
 
+    // ✅ CORREZIONE: Event listener per la tabella prodotti con DEBUG
     document.getElementById('productsTableBody')?.addEventListener('click', (event) => {
+        console.log('👆 Click event on products table:', {
+            target: event.target.className,
+            closest: event.target.closest('.product-costs-btn') ? 'COST_BUTTON' : 'OTHER'
+        });
+
+        // Gestione pulsante modifica prodotto
         const editBtn = event.target.closest('.edit-product-btn');
         if (editBtn) {
+            console.log('✏️ Edit button clicked for product:', editBtn.dataset.itemId);
             editProduct(editBtn.dataset.itemId);
+            return;
         }
 
-    const costsBtn = event.target.closest('.product-costs-btn');
-    if (costsBtn) {
-        editProductCosts(costsBtn.dataset.itemId);
-    }
+        // ✅ CORREZIONE: Gestione pulsante costi con controllo funzione
+        const costsBtn = event.target.closest('.product-costs-btn');
+        if (costsBtn) {
+            console.log('💰 Cost button clicked for product:', costsBtn.dataset.itemId);
+            
+            // Verifica che la funzione sia disponibile
+            if (typeof window.editProductCosts === 'function') {
+                window.editProductCosts(costsBtn.dataset.itemId);
+            } else {
+                console.error('❌ editProductCosts function not available!');
+                window.notificationSystem?.error('Funzione costi non disponibile. Ricarica la pagina.');
+            }
+            return;
+        }
 
+        // Gestione pulsante elimina prodotto
         const deleteBtn = event.target.closest('.delete-product-btn');
         if (deleteBtn) {
+            console.log('🗑️ Delete button clicked for product:', deleteBtn.dataset.itemId);
             deleteProduct(deleteBtn.dataset.itemId);
+            return;
         }
     });
 
+    // Event listener per la tabella documenti
     document.getElementById('documentsTableBody')?.addEventListener('click', (event) => {
         const button = event.target.closest('button');
         if (!button) return;
-        const documentId = button.closest('tr').dataset.documentId;
-        if (button.classList.contains('delete-document-btn')) deleteDocument(documentId);
-        else if (button.classList.contains('replace-document-btn')) replaceDocument(documentId);
-        else if (button.classList.contains('download-document-btn')) downloadDocument(documentId);
+        
+        const documentId = button.closest('tr')?.dataset.documentId;
+        if (!documentId) {
+            console.error('❌ Document ID not found');
+            return;
+        }
+
+        // Gestione azioni documenti
+        if (button.classList.contains('delete-document-btn')) {
+            deleteDocument(documentId);
+        } else if (button.classList.contains('replace-document-btn')) {
+            replaceDocument(documentId);
+        } else if (button.classList.contains('download-document-btn')) {
+            downloadDocument(documentId);
+        }
     });
+
+    // ✅ NUOVO: Event listener per costi aggiuntivi (se esiste la tabella)
+    document.getElementById('additionalCostsList')?.addEventListener('click', (event) => {
+        const deleteBtn = event.target.closest('.delete-additional-cost-btn');
+        if (deleteBtn) {
+            const costId = deleteBtn.dataset.costId;
+            if (costId) {
+                deleteAdditionalCost(costId);
+            }
+        }
+    });
+
+    console.log('✅ All event listeners attached successfully');
 }
 
 // 🔥 CORREZIONE: Aggiorna saveCosts - input HTML già in formato internazionale
@@ -1295,6 +1350,27 @@ async function addAdditionalCost() {
     });
 }
 
+async function deleteAdditionalCost(costId) {
+    const confirmed = await window.ModalSystem?.confirm({ 
+        title: 'Conferma Eliminazione', 
+        content: 'Sei sicuro di voler eliminare questo costo aggiuntivo?', 
+        confirmText: 'Elimina', 
+        cancelText: 'Annulla' 
+    });
+    
+    if (confirmed) {
+        try {
+            window.notificationSystem?.info('Eliminazione costo in corso...');
+            await window.dataManager.deleteAdditionalCost(costId);
+            window.notificationSystem?.success('Costo aggiuntivo eliminato.');
+            await loadShipmentDetails(getShipmentIdFromURL());
+        } catch (error) {
+            console.error('Error deleting additional cost:', error);
+            window.notificationSystem?.error(`Errore durante l'eliminazione: ${error.message}`);
+        }
+    }
+}
+
 function toggleStatusEditMode() {
     const shipmentStatusSpan = document.getElementById('shipmentStatus');
     const shipmentStatusEditor = document.getElementById('shipmentStatusEditor');
@@ -1406,52 +1482,3 @@ function formatStatus(rawStatus) {
                 <i class="fas ${config.icon} mr-2"></i>${config.label}
             </span>`;
 }
-
-console.log('✅ Product cost functions exposed globally:', {
-    editProductCosts: typeof window.editProductCosts,
-    setupCostCalculation: typeof window.setupCostCalculation,
-    updateCostCalculation: typeof window.updateCostCalculation,
-    saveProductCosts: typeof window.saveProductCosts
-});
-
-// ✅ NUOVO: Forza re-render della tabella prodotti dopo che le funzioni sono caricate
-setTimeout(() => {
-    console.log('🔄 Re-rendering products table after functions are loaded...');
-    
-    // Verifica se esiste il currentShipment
-    if (window.currentShipment && window.currentShipment.products) {
-        console.log('📦 Current shipment found, re-rendering products:', window.currentShipment.products.length);
-        renderProductsTable(window.currentShipment.products, window.currentShipment);
-    } else {
-        console.log('❌ No current shipment found for re-render');
-        
-        // Tenta di ricaricare i dati se non ci sono
-        const shipmentId = new URLSearchParams(window.location.search).get('id');
-        if (shipmentId) {
-            console.log('🔄 Attempting to reload shipment data...');
-            loadShipmentDetails(shipmentId);
-        }
-    }
-}, 500); // Attendi 500ms per essere sicuri che tutto sia caricato
-
-// ✅ NUOVO: Debug per vedere cosa c'è nella tabella
-setTimeout(() => {
-    const costButtons = document.querySelectorAll('.product-costs-btn');
-    const tableRows = document.querySelectorAll('#productsTableBody tr');
-    
-    console.log('🔍 POST-RENDER DEBUG:', {
-        costButtonsFound: costButtons.length,
-        tableRowsFound: tableRows.length,
-        currentShipmentExists: !!window.currentShipment,
-        currentShipmentProducts: window.currentShipment?.products?.length || 0
-    });
-    
-    // Test manuale del primo pulsante se esiste
-    if (costButtons.length > 0) {
-        console.log('🧪 First cost button details:', {
-            visible: costButtons[0].offsetParent !== null,
-            productId: costButtons[0].dataset.itemId,
-            parentRow: costButtons[0].closest('tr')
-        });
-    }
-}, 1000);

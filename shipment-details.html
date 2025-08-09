@@ -409,6 +409,22 @@
     </script>
     
     <!-- Script specifico della pagina -->
-    <script type="module" src="/pages/shipment-details/index.js"></script>
-</body>
+<script type="module">
+    // Aspetta che i servizi core siano caricati
+    await new Promise(resolve => {
+        const checkServices = () => {
+            if (window.dataManager && window.ModalSystem && window.notificationSystem) {
+                resolve();
+            } else {
+                setTimeout(checkServices, 50);
+            }
+        };
+        checkServices();
+    });
+    
+    console.log('🔧 All services ready, loading page script...');
+    
+    // Ora carica lo script della pagina
+    await import('/pages/shipment-details/index.js');
+</script></body>
 </html>
