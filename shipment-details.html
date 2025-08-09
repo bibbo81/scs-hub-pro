@@ -102,6 +102,120 @@
                 max-width: 100%;
             }
         }
+
+        /* ✅ CSS per Product Costs Form */
+        .product-costs-form {
+            padding: 1rem;
+        }
+        
+        .form-section {
+            margin-bottom: 2rem;
+            padding: 1rem;
+            background: var(--sol-bg-secondary, #f8f9fa);
+            border-radius: 8px;
+        }
+        
+        .form-section h5 {
+            margin-bottom: 1rem;
+            color: var(--sol-primary, #3b82f6);
+            border-bottom: 1px solid var(--sol-border, #e5e7eb);
+            padding-bottom: 0.5rem;
+        }
+        
+        .form-group {
+            margin-bottom: 1rem;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: var(--sol-text-primary, #374151);
+        }
+        
+        .form-group input {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid var(--sol-border, #d1d5db);
+            border-radius: 6px;
+            font-size: 1rem;
+            background: var(--sol-bg-primary, #ffffff);
+            color: var(--sol-text-primary, #374151);
+        }
+        
+        .form-group input:focus {
+            outline: none;
+            border-color: var(--sol-primary, #3b82f6);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+        
+        .form-group small {
+            display: block;
+            margin-top: 0.25rem;
+            color: var(--sol-text-secondary, #6b7280);
+            font-size: 0.875rem;
+        }
+        
+        .costs-preview {
+            margin-top: 2rem;
+            padding: 1rem;
+            background: var(--sol-bg-primary, #ffffff);
+            border: 1px solid var(--sol-border, #e5e7eb);
+            border-radius: 8px;
+        }
+        
+        .costs-preview h6 {
+            margin-bottom: 1rem;
+            color: var(--sol-primary, #3b82f6);
+        }
+        
+        .calculation-preview {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        
+        .calc-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.5rem 0;
+        }
+        
+        .calc-row.duty {
+            color: var(--sol-warning, #f59e0b);
+        }
+        
+        .calc-row.total {
+            border-top: 1px solid var(--sol-border, #e5e7eb);
+            padding-top: 1rem;
+            margin-top: 0.5rem;
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+        
+        .calc-row small {
+            margin-left: 0.5rem;
+            color: var(--sol-text-secondary, #6b7280);
+            font-style: italic;
+        }
+        
+        /* ✅ CSS per Product Costs Button */
+        .product-costs-btn {
+            background-color: var(--sol-primary, #3b82f6) !important;
+            color: white !important;
+            margin: 0 2px;
+            border: none;
+        }
+        
+        .product-costs-btn:hover {
+            background-color: var(--sol-primary-dark, #2563eb) !important;
+            opacity: 0.9;
+        }
+        
+        .product-costs-btn i {
+            color: white !important;
+        }
     </style>
 </head>
 <body>

@@ -1396,3 +1396,16 @@ function formatStatus(rawStatus) {
                 <i class="fas ${config.icon} mr-2"></i>${config.label}
             </span>`;
 }
+
+// Esponi le funzioni globalmente per l'accesso dai pulsanti
+window.editProductCosts = editProductCosts;
+window.setupCostCalculation = setupCostCalculation;
+window.updateCostCalculation = updateCostCalculation;
+window.saveProductCosts = saveProductCosts;
+
+console.log('✅ Product cost functions exposed globally:', {
+    editProductCosts: typeof window.editProductCosts,
+    setupCostCalculation: typeof window.setupCostCalculation,
+    updateCostCalculation: typeof window.updateCostCalculation,
+    saveProductCosts: typeof window.saveProductCosts
+});
