@@ -56,13 +56,6 @@
             vertical-align: middle;
         }
         
-        /* Evidenzia la colonna costo unitario */
-        .unit-cost-column {
-            background-color: #f8f9fa;
-            font-weight: 600;
-            color: #007bff;
-        }
-        
         /* Bootstrap grid compatibility */
         .row {
             display: flex;
@@ -259,7 +252,8 @@
             background: linear-gradient(to right, transparent, #dee2e6, transparent);
             margin: 20px 0;
         }
-                /* ====== PRODUCT SELECTION MODAL - LAYOUT MIGLIORATO ====== */
+
+        /* ====== PRODUCT SELECTION MODAL - LAYOUT MIGLIORATO ====== */
         .product-table-header {
             display: grid;
             grid-template-columns: 60px 1fr 2fr 2fr;
@@ -505,536 +499,595 @@
                 grid-template-columns: 1fr;
             }
         }
-                        /* ====== LAYOUT A DUE COLONNE PER PRODOTTI ====== */
-                .search-section {
-                    margin-bottom: 20px;
-                    padding: 20px;
-                    background: #f8f9fa;
-                    border-radius: 8px;
-                    border: 1px solid #e9ecef;
-                }
-                
-                .search-input {
-                    width: 100%;
-                    padding: 15px 20px;
-                    font-size: 16px;
-                    border: 2px solid #ced4da;
-                    border-radius: 10px;
-                    transition: border-color 0.2s, box-shadow 0.2s;
-                }
-                
-                .search-input:focus {
-                    border-color: #3b82f6;
-                    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-                    outline: none;
-                }
-                
-                .product-card-two-column {
-                    display: flex;
-                    gap: 30px;
-                    padding: 25px;
-                    border-bottom: 1px solid #e9ecef;
-                    transition: background-color 0.2s;
-                    align-items: flex-start;
-                }
-                
-                .product-card-two-column:hover {
-                    background-color: #f8f9fa;
-                }
-                
-                .product-card-two-column:last-child {
-                    border-bottom: none;
-                }
-                
-                /* COLONNA SINISTRA: DESCRIZIONE */
-                .product-left-column {
-                    flex: 0 0 300px;
-                    display: flex;
-                    gap: 15px;
-                    align-items: flex-start;
-                }
-                
-                .product-checkbox-wrapper {
-                    flex-shrink: 0;
-                    padding-top: 5px;
-                }
-                
-                .product-checkbox-wrapper input[type="checkbox"] {
-                    transform: scale(1.3);
-                    cursor: pointer;
-                }
-                
-                .product-description {
-                    flex: 1;
-                }
-                
-                .product-name {
-                    font-size: 18px;
-                    font-weight: 600;
-                    color: #212529;
-                    line-height: 1.3;
-                    margin-bottom: 8px;
-                    word-wrap: break-word;
-                }
-                
-                .product-sku {
-                    font-size: 14px;
-                    color: #6c757d;
-                    font-weight: 500;
-                }
-                
-                /* COLONNA DESTRA: CAMPI INPUT */
-                .product-right-column {
-                    flex: 1;
-                    display: flex;
-                    flex-direction: column;
-                    gap: 20px;
-                }
-                
-                .input-row {
-                    display: grid;
-                    grid-template-columns: 1fr 1fr 1fr;
-                    gap: 20px;
-                }
-                
-                .input-field {
-                    display: flex;
-                    flex-direction: column;
-                }
-                
-                .input-field label {
-                    font-size: 12px;
-                    font-weight: 600;
-                    color: #495057;
-                    margin-bottom: 6px;
-                    text-transform: uppercase;
-                    letter-spacing: 0.5px;
-                }
-                
-                .input-field input {
-                    padding: 12px 15px;
-                    border: 2px solid #ced4da;
-                    border-radius: 8px;
-                    font-size: 14px;
-                    font-weight: 500;
-                    transition: border-color 0.2s, box-shadow 0.2s;
-                    background: #ffffff;
-                }
-                
-                .input-field input:focus {
-                    border-color: #3b82f6;
-                    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-                    outline: none;
-                }
-                
-                /* EVIDENZIAZIONE CAMPI COSTI */
-                .input-field:nth-child(1) input {
-                    border-color: #28a745; /* Quantità - Verde */
-                }
-                
-                .input-field:nth-child(2) input {
-                    border-color: #17a2b8; /* Peso - Azzurro */
-                }
-                
-                .input-field:nth-child(3) input {
-                    border-color: #6f42c1; /* Volume - Viola */
-                }
-                
-                .input-row:nth-child(2) .input-field:nth-child(1) input {
-                    border-color: #007bff; /* Costo Unitario - Blu */
-                }
-                
-                .input-row:nth-child(2) .input-field:nth-child(2) input {
-                    border-color: #fd7e14; /* Dazio - Arancione */
-                }
-                
-                .input-row:nth-child(2) .input-field:nth-child(3) input {
-                    border-color: #dc3545; /* Altri Oneri - Rosso */
-                }
-                
-                /* RESPONSIVE */
-                @media (max-width: 1200px) {
-                    .product-card-two-column {
-                        flex-direction: column;
-                        gap: 20px;
-                    }
-                    
-                    .product-left-column {
-                        flex: none;
-                        width: 100%;
-                    }
-                    
-                    .input-row {
-                        grid-template-columns: 1fr 1fr;
-                    }
-                }
-                
-                @media (max-width: 768px) {
-                    .input-row {
-                        grid-template-columns: 1fr;
-                    }
-                    
-                    .product-card-two-column {
-                        padding: 20px;
-                    }
-                }
-                
-                /* OVERRIDE PER FULLSCREEN */
-                .modal-xxl .product-cards-container {
-                    max-height: calc(100vh - 350px) !important;
-                }
+
+        /* ====== LAYOUT A DUE COLONNE PER PRODOTTI ====== */
+        .search-section {
+            margin-bottom: 20px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border: 1px solid #e9ecef;
+        }
         
-                /* ====== STILI PER LE COLONNE COSTI ESTESE ====== */
-                .total-cost-column {
-                    background-color: #e8f5e8;
-                    font-weight: 600;
-                    color: #2e7d32;
-                    min-width: 120px;
-                }
+        .search-input {
+            width: 100%;
+            padding: 15px 20px;
+            font-size: 16px;
+            border: 2px solid #ced4da;
+            border-radius: 10px;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
         
-                .duty-rate-column {
-                    background-color: #fff3e0;
-                    font-weight: 600;
-                    color: #f57c00;
-                    min-width: 100px;
-                    text-align: center;
-                }
+        .search-input:focus {
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+            outline: none;
+        }
         
-                .duty-unit-column {
-                    background-color: #fff8e1;
-                    font-weight: 600;
-                    color: #ff8f00;
-                    min-width: 100px;
-                }
+        .product-card-two-column {
+            display: flex;
+            gap: 30px;
+            padding: 25px;
+            border-bottom: 1px solid #e9ecef;
+            transition: background-color 0.2s;
+            align-items: flex-start;
+        }
         
-                .duty-total-column {
-                    background-color: #fce4ec;
-                    font-weight: 600;
-                    color: #c2185b;
-                    min-width: 120px;
-                }
+        .product-card-two-column:hover {
+            background-color: #f8f9fa;
+        }
         
-                .transport-unit-column {
-                    background-color: #e1f5fe;
-                    font-weight: 600;
-                    color: #0277bd;
-                    min-width: 100px;
-                }
+        .product-card-two-column:last-child {
+            border-bottom: none;
+        }
         
-                .transport-total-column {
-                    background-color: #e8f4f8;
-                    font-weight: 600;
-                    color: #01579b;
-                    min-width: 120px;
-                }
+        /* COLONNA SINISTRA: DESCRIZIONE */
+        .product-left-column {
+            flex: 0 0 300px;
+            display: flex;
+            gap: 15px;
+            align-items: flex-start;
+        }
         
-                /* EVIDENZIAZIONE DELLE CELLE DATI */
-                .product-row .total-cost-column {
-                    background-color: #f0fff0;
-                    border-left: 3px solid #2e7d32;
-                }
+        .product-checkbox-wrapper {
+            flex-shrink: 0;
+            padding-top: 5px;
+        }
         
-                .product-row .duty-rate-column {
-                    background-color: #fffaf0;
-                    border-left: 3px solid #f57c00;
-                    text-align: center;
-                }
+        .product-checkbox-wrapper input[type="checkbox"] {
+            transform: scale(1.3);
+            cursor: pointer;
+        }
         
-                .product-row .duty-unit-column {
-                    background-color: #fffbf0;
-                    border-left: 3px solid #ff8f00;
-                }
+        .product-description {
+            flex: 1;
+        }
         
-                .product-row .duty-total-column {
-                    background-color: #fef7f7;
-                    border-left: 3px solid #c2185b;
-                }
+        .product-name {
+            font-size: 18px;
+            font-weight: 600;
+            color: #212529;
+            line-height: 1.3;
+            margin-bottom: 8px;
+            word-wrap: break-word;
+        }
         
-                .product-row .transport-unit-column {
-                    background-color: #f0f8ff;
-                    border-left: 3px solid #0277bd;
-                }
+        .product-sku {
+            font-size: 14px;
+            color: #6c757d;
+            font-weight: 500;
+        }
         
-                .product-row .transport-total-column {
-                    background-color: #f5f9fa;
-                    border-left: 3px solid #01579b;
-                }
+        /* COLONNA DESTRA: CAMPI INPUT */
+        .product-right-column {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
         
-                /* SCROLL ORIZZONTALE PER TABELLE LARGHE */
-                .table-container {
-                    overflow-x: auto;
-                    border: 1px solid #dee2e6;
-                    border-radius: 8px;
-                }
+        .input-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 20px;
+        }
         
-                .data-table {
-                    min-width: 1800px; /* Aumentata per le nuove colonne */
-                }
+        .input-field {
+            display: flex;
+            flex-direction: column;
+        }
         
-                /* TOTALI ROW EVIDENZIATA */
-                .totals-row {
-                    background-color: #f8f9fa;
-                    border-top: 2px solid #495057;
-                }
+        .input-field label {
+            font-size: 12px;
+            font-weight: 600;
+            color: #495057;
+            margin-bottom: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
         
-                .totals-row th {
-                    padding: 15px 8px;
-                    font-size: 14px;
-                }
+        .input-field input {
+            padding: 12px 15px;
+            border: 2px solid #ced4da;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            transition: border-color 0.2s, box-shadow 0.2s;
+            background: #ffffff;
+        }
         
-                /* ====== COLONNA AZIONI ====== */
-                .actions-column {
-                    min-width: 150px;
-                    text-align: center;
-                    position: sticky;
-                    right: 0;
-                    background-color: #f8f9fa;
-                    border-left: 2px solid #dee2e6;
-                    z-index: 10;
-                }
+        .input-field input:focus {
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+            outline: none;
+        }
         
-                .product-row .actions-column {
-                    background-color: #ffffff;
-                }
+        /* EVIDENZIAZIONE CAMPI COSTI */
+        .input-field:nth-child(1) input {
+            border-color: #28a745; /* Quantità - Verde */
+        }
         
-                .action-buttons {
-                    display: flex;
-                    gap: 5px;
-                    justify-content: center;
-                    align-items: center;
-                }
+        .input-field:nth-child(2) input {
+            border-color: #17a2b8; /* Peso - Azzurro */
+        }
         
-                .action-buttons .sol-btn-sm {
-                    padding: 5px 8px;
-                    min-width: 35px;
-                    font-size: 12px;
-                }
+        .input-field:nth-child(3) input {
+            border-color: #6f42c1; /* Volume - Viola */
+        }
         
-                /* RESPONSIVE TABLE */
-                @media (max-width: 1200px) {
-                    .data-table {
-                        font-size: 12px;
-                    }
-                    
-                    .unit-cost-column,
-                    .total-cost-column,
-                    .duty-unit-column,
-                    .duty-total-column,
-                    .transport-unit-column,
-                    .transport-total-column {
-                        min-width: 100px;
-                    }
-                    
-                    .duty-rate-column {
-                        min-width: 80px;
-                    }
+        .input-row:nth-child(2) .input-field:nth-child(1) input {
+            border-color: #007bff; /* Costo Unitario - Blu */
+        }
         
-                    .actions-column {
-                        min-width: 120px;
-                    }
-                    
-                    .action-buttons {
-                        flex-direction: column;
-                        gap: 3px;
-                    }
-                    
-                    .action-buttons .sol-btn-sm {
-                        min-width: 30px;
-                        padding: 3px 6px;
-                    }
-                }
-            </style>
-        </head>
-                <body>
-            <div id="header-root"></div>
+        .input-row:nth-child(2) .input-field:nth-child(2) input {
+            border-color: #fd7e14; /* Dazio - Arancione */
+        }
         
-            <main class="sol-main-content">
-                <div class="sol-container">
-                    <div class="page-header d-flex justify-content-between align-items-center mb-4">
-                        <h1 id="shipmentNumberTitle">Dettaglio Spedizione</h1>
-                        <a href="/shipments.html" class="sol-btn sol-btn-secondary">
-                            <i class="fas fa-arrow-left mr-2"></i>Torna a Spedizioni
-                        </a>
-                    </div>
+        .input-row:nth-child(2) .input-field:nth-child(3) input {
+            border-color: #dc3545; /* Altri Oneri - Rosso */
+        }
         
-                    <!-- SEZIONE INFORMAZIONI SPEDIZIONE -->
-                    <div class="sol-card mb-4">
-                        <div class="sol-card-header"><h2 class="sol-card-title">Informazioni Spedizione</h2></div>
-                        <div class="sol-card-body">
-                            <div class="row">
-                                <div class="col-md-4">
-                                    <p><span class="data-label">Riferimento:</span> <span id="shipmentNumber" class="data-value">-</span></p>
-                                    <p><span class="data-label">Stato:</span> <span id="shipmentStatus" class="data-value">-</span>
-                                        <select id="shipmentStatusEditor" class="form-control form-control-sm d-inline-block w-auto ml-2" style="display: none;">
-                                            <option value="pending">In attesa</option>
-                                            <option value="in_transit">In transito</option>
-                                            <option value="delivered">Consegnato</option>
-                                            <option value="exception">Eccezione</option>
-                                            <option value="registered">Registrato</option>
-                                        </select>
-                                        <button class="sol-btn sol-btn-icon sol-btn-sm ml-2" id="editStatusBtn" title="Modifica Stato"><i class="fas fa-edit"></i></button>
-                                        <button class="sol-btn sol-btn-icon sol-btn-sm ml-2" id="saveStatusBtn" title="Salva Stato" style="display: none;"><i class="fas fa-save"></i></button>
-                                    </p>
-                                    <p><span class="data-label">Data Creazione:</span> <span id="shipmentDate" class="data-value">-</span></p>
-                                </div>
-                                <div class="col-md-4">
-                                    <p><span class="data-label">Origine:</span> <span id="shipmentOrigin" class="data-value">-</span></p>
-                                    <p><span class="data-label">Destinazione:</span> <span id="shipmentDestination" class="data-value">-</span></p>
-                                    <p><span class="data-label">Tipo Container:</span> <span id="shipmentContainerTypes" class="data-value">-</span></p>
-                                    <p><span class="data-label">Modalità di Trasporto:</span> <span id="shipmentTransportMode" class="data-value">-</span></p>
-                                    <p><span class="data-label">Tipo di Mezzo:</span> <span id="shipmentVehicleType" class="data-value">-</span></p>
-                                    <p><span class="data-label">Peso Totale (kg):</span> <span id="shipmentTotalWeight" class="data-value">-</span></p>
-                                    <p><span class="data-label">Volume Totale (cbm):</span> <span id="shipmentTotalVolume" class="data-value">-</span></p>
-                                    <p><span class="data-label">Spedizioniere:</span> <span id="shipmentCarrier" class="data-value">-</span> <button class="sol-btn sol-btn-icon sol-btn-sm" id="changeCarrierBtn" title="Cambia Spedizioniere"><i class="fas fa-edit"></i></button></p>
-                                    <p><span class="data-label">Compagnia (Marittima/Aerea):</span> <span id="shipmentTrackingCarrier" class="data-value">-</span></p>
-                                </div>
-                                <div class="col-md-4">
-                                    <div class="sol-form-group">
-                                        <label for="freightCost" class="sol-form-label">Costo Nolo</label>
-                                        <input type="number" id="freightCost" class="sol-form-input" placeholder="0.00">
-                                    </div>
-                                    <div class="sol-form-group">
-                                        <label for="otherCosts" class="sol-form-label">Altri Costi</label>
-                                        <input type="number" id="otherCosts" class="sol-form-input" placeholder="0.00">
-                                    </div>
-                                    <p><span class="data-label">Costo Totale:</span> <span id="shipmentTotalCost" class="data-value font-weight-bold">-</span></p>
-                                    <button class="sol-btn sol-btn-primary sol-btn-sm" id="saveCostsBtn" style="margin-top: 1rem;">
-                                        <i class="fas fa-save mr-2"></i>Salva Costi
-                                    </button>
-                                </div>
-                            </div>
+        /* RESPONSIVE */
+        @media (max-width: 1200px) {
+            .product-card-two-column {
+                flex-direction: column;
+                gap: 20px;
+            }
+            
+            .product-left-column {
+                flex: none;
+                width: 100%;
+            }
+            
+            .input-row {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .input-row {
+                grid-template-columns: 1fr;
+            }
+            
+            .product-card-two-column {
+                padding: 20px;
+            }
+        }
+        
+        /* OVERRIDE PER FULLSCREEN */
+        .modal-xxl .product-cards-container {
+            max-height: calc(100vh - 350px) !important;
+        }
+
+        /* ====== ✅ STILI PER LE COLONNE COSTI CORRETTI - 12 COLONNE ====== */
+        .unit-cost-column {
+            background-color: #f8f9fa;
+            font-weight: 600;
+            color: #007bff;
+            min-width: 120px;
+        }
+
+        .total-cost-column {
+            background-color: #e8f5e8;
+            font-weight: 600;
+            color: #2e7d32;
+            min-width: 120px;
+        }
+
+        .duty-rate-column {
+            background-color: #fff3e0;
+            font-weight: 600;
+            color: #f57c00;
+            min-width: 100px;
+            text-align: center;
+        }
+
+        .duty-unit-column {
+            background-color: #fff8e1;
+            font-weight: 600;
+            color: #ff8f00;
+            min-width: 100px;
+        }
+
+        .duty-total-column {
+            background-color: #fce4ec;
+            font-weight: 600;
+            color: #c2185b;
+            min-width: 120px;
+        }
+
+        .transport-unit-column {
+            background-color: #e1f5fe;
+            font-weight: 600;
+            color: #0277bd;
+            min-width: 100px;
+        }
+
+        .transport-total-column {
+            background-color: #e8f4f8;
+            font-weight: 600;
+            color: #01579b;
+            min-width: 120px;
+        }
+
+        /* ✅ COLONNA AZIONI - CORRETTA POSIZIONE */
+        .actions-column {
+            min-width: 150px;
+            text-align: center;
+            position: sticky;
+            right: 0;
+            background-color: #f8f9fa;
+            border-left: 2px solid #dee2e6;
+            z-index: 10;
+        }
+
+        /* EVIDENZIAZIONE DELLE CELLE DATI */
+        .product-row .unit-cost-column {
+            background-color: #f0f8ff;
+            border-left: 3px solid #007bff;
+        }
+
+        .product-row .total-cost-column {
+            background-color: #f0fff0;
+            border-left: 3px solid #2e7d32;
+        }
+
+        .product-row .duty-rate-column {
+            background-color: #fffaf0;
+            border-left: 3px solid #f57c00;
+            text-align: center;
+        }
+
+        .product-row .duty-unit-column {
+            background-color: #fffbf0;
+            border-left: 3px solid #ff8f00;
+        }
+
+        .product-row .duty-total-column {
+            background-color: #fef7f7;
+            border-left: 3px solid #c2185b;
+        }
+
+        .product-row .transport-unit-column {
+            background-color: #f0f8ff;
+            border-left: 3px solid #0277bd;
+        }
+
+        .product-row .transport-total-column {
+            background-color: #f5f9fa;
+            border-left: 3px solid #01579b;
+        }
+
+        .product-row .actions-column {
+            background-color: #ffffff;
+        }
+
+        /* SCROLL ORIZZONTALE PER TABELLE LARGHE */
+        .table-container {
+            overflow-x: auto;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+        }
+
+        .data-table {
+            min-width: 1900px; /* Aumentata per 12 colonne */
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .data-table th,
+        .data-table td {
+            padding: 12px 8px;
+            border-bottom: 1px solid #dee2e6;
+            text-align: left;
+            white-space: nowrap;
+        }
+
+        /* TOTALI ROW EVIDENZIATA */
+        .totals-row {
+            background-color: #f8f9fa;
+            border-top: 2px solid #495057;
+        }
+
+        .totals-row th {
+            padding: 15px 8px;
+            font-size: 14px;
+        }
+
+        /* ✅ PULSANTI AZIONI */
+        .action-buttons {
+            display: flex;
+            gap: 5px;
+            justify-content: center;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .action-buttons .sol-btn-sm {
+            padding: 5px 8px;
+            min-width: 35px;
+            font-size: 12px;
+        }
+
+        /* RESPONSIVE TABLE */
+        @media (max-width: 1200px) {
+            .data-table {
+                font-size: 12px;
+                min-width: 1600px;
+            }
+            
+            .unit-cost-column,
+            .total-cost-column,
+            .duty-unit-column,
+            .duty-total-column,
+            .transport-unit-column,
+            .transport-total-column {
+                min-width: 100px;
+            }
+            
+            .duty-rate-column {
+                min-width: 80px;
+            }
+
+            .actions-column {
+                min-width: 120px;
+            }
+            
+            .action-buttons {
+                flex-direction: column;
+                gap: 3px;
+            }
+            
+            .action-buttons .sol-btn-sm {
+                min-width: 30px;
+                padding: 3px 6px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .data-table {
+                min-width: 1400px;
+                font-size: 11px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="header-root"></div>
+
+    <main class="sol-main-content">
+        <div class="sol-container">
+            <div class="page-header d-flex justify-content-between align-items-center mb-4">
+                <h1 id="shipmentNumberTitle">Dettaglio Spedizione</h1>
+                <a href="/shipments.html" class="sol-btn sol-btn-secondary">
+                    <i class="fas fa-arrow-left mr-2"></i>Torna a Spedizioni
+                </a>
+            </div>
+
+            <!-- SEZIONE INFORMAZIONI SPEDIZIONE -->
+            <div class="sol-card mb-4">
+                <div class="sol-card-header"><h2 class="sol-card-title">Informazioni Spedizione</h2></div>
+                <div class="sol-card-body">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <p><span class="data-label">Riferimento:</span> <span id="shipmentNumber" class="data-value">-</span></p>
+                            <p><span class="data-label">Stato:</span> <span id="shipmentStatus" class="data-value">-</span>
+                                <select id="shipmentStatusEditor" class="form-control form-control-sm d-inline-block w-auto ml-2" style="display: none;">
+                                    <option value="pending">In attesa</option>
+                                    <option value="in_transit">In transito</option>
+                                    <option value="delivered">Consegnato</option>
+                                    <option value="exception">Eccezione</option>
+                                    <option value="registered">Registrato</option>
+                                </select>
+                                <button class="sol-btn sol-btn-icon sol-btn-sm ml-2" id="editStatusBtn" title="Modifica Stato"><i class="fas fa-edit"></i></button>
+                                <button class="sol-btn sol-btn-icon sol-btn-sm ml-2" id="saveStatusBtn" title="Salva Stato" style="display: none;"><i class="fas fa-save"></i></button>
+                            </p>
+                            <p><span class="data-label">Data Creazione:</span> <span id="shipmentDate" class="data-value">-</span></p>
                         </div>
-                    </div>
-        
-                    <!-- SEZIONE PRODOTTI -->
-                    <div class="sol-card mb-4">
-                        <div class="sol-card-header">
-                            <h2 class="sol-card-title">Prodotti</h2>
-                            <div class="card-actions">
-                                <button class="sol-btn sol-btn-primary sol-btn-sm" id="addProductBtn">
-                                    <i class="fas fa-plus mr-2"></i>Aggiungi Prodotto
-                                </button>
-                            </div>
+                        <div class="col-md-4">
+                            <p><span class="data-label">Origine:</span> <span id="shipmentOrigin" class="data-value">-</span></p>
+                            <p><span class="data-label">Destinazione:</span> <span id="shipmentDestination" class="data-value">-</span></p>
+                            <p><span class="data-label">Tipo Container:</span> <span id="shipmentContainerTypes" class="data-value">-</span></p>
+                            <p><span class="data-label">Modalità di Trasporto:</span> <span id="shipmentTransportMode" class="data-value">-</span></p>
+                            <p><span class="data-label">Tipo di Mezzo:</span> <span id="shipmentVehicleType" class="data-value">-</span></p>
+                            <p><span class="data-label">Peso Totale (kg):</span> <span id="shipmentTotalWeight" class="data-value">-</span></p>
+                            <p><span class="data-label">Volume Totale (cbm):</span> <span id="shipmentTotalVolume" class="data-value">-</span></p>
+                            <p><span class="data-label">Spedizioniere:</span> <span id="shipmentCarrier" class="data-value">-</span> <button class="sol-btn sol-btn-icon sol-btn-sm" id="changeCarrierBtn" title="Cambia Spedizioniere"><i class="fas fa-edit"></i></button></p>
+                            <p><span class="data-label">Compagnia (Marittima/Aerea):</span> <span id="shipmentTrackingCarrier" class="data-value">-</span></p>
                         </div>
-                        <div class="sol-card-body">
-                            <div class="table-container">
-                                <table class="data-table">
-                                    <thead>
-                                        <tr>
-                                            <th>Prodotto</th>
-                                            <th>Quantità</th>
-                                            <th>Peso Totale</th>
-                                            <th>Volume Totale</th>
-                                            <th class="unit-cost-column">💰 Costo Unitario</th>
-                                            <th class="total-cost-column">💰 Costo Totale</th>
-                                            <th class="duty-rate-column">📊 % Dazio</th>
-                                            <th class="duty-unit-column">🚢 Dazio Unitario</th>
-                                            <th class="duty-total-column">🚢 Dazio Totale</th>
-                                            <th class="transport-unit-column">🚛 Trasporto Un.</th>
-                                            <th class="transport-total-column">🚛 Trasporto Tot.</th>
-                                            <th class="actions-column">Azioni</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="productsTableBody">
-                                        <!-- Righe prodotto saranno inserite qui -->
-                                    </tbody>
-                                    <tfoot>
-                                        <tr class="totals-row">
-                                            <th><strong>Totali</strong></th>
-                                            <th><strong id="totalQuantity">0</strong></th>
-                                            <th><strong id="totalWeight">0 kg</strong></th>
-                                            <th><strong id="totalVolume">0 m³</strong></th>
-                                            <th class="unit-cost-column"><strong id="averageUnitCost">€ 0,00</strong></th>
-                                            <th class="total-cost-column"><strong id="totalProductCost">€ 0,00</strong></th>
-                                            <th class="duty-rate-column"><strong id="averageDutyRate">0,0%</strong></th>
-                                            <th class="duty-unit-column"><strong id="averageDutyUnit">€ 0,00</strong></th>
-                                            <th class="duty-total-column"><strong id="totalDuty">€ 0,00</strong></th>
-                                            <th class="transport-unit-column"><strong id="averageTransportUnit">€ 0,00</strong></th>
-                                            <th class="transport-total-column"><strong id="totalTransportCost">€ 0,00</strong></th>
-                                            <th class="actions-column"></th>
-                                        </tr>
-                                    </tfoot>
-                                </table>
+                        <div class="col-md-4">
+                            <div class="sol-form-group">
+                                <label for="freightCost" class="sol-form-label">Costo Nolo</label>
+                                <input type="number" id="freightCost" class="sol-form-input" placeholder="0.00">
                             </div>
-                        </div>
-                    </div>
-        
-                    <!-- SEZIONE DOCUMENTI -->
-                    <div class="sol-card mb-4">
-                        <div class="sol-card-header">
-                            <h2 class="sol-card-title">Documenti</h2>
-                            <div class="card-actions">
-                                <button class="sol-btn sol-btn-primary sol-btn-sm" id="uploadDocumentBtn">
-                                    <i class="fas fa-upload mr-2"></i>Carica Documento
-                                </button>
+                            <div class="sol-form-group">
+                                <label for="otherCosts" class="sol-form-label">Altri Costi</label>
+                                <input type="number" id="otherCosts" class="sol-form-input" placeholder="0.00">
                             </div>
-                        </div>
-                        <div class="sol-card-body">
-                            <div id="documentsList">
-                                <p class="text-muted">Nessun documento caricato.</p>
-                            </div>
-                        </div>
-                    </div>
-        
-                    <!-- SEZIONE COSTI AGGIUNTIVI -->
-                    <div class="sol-card">
-                        <div class="sol-card-header"><h2 class="sol-card-title">Costi Aggiuntivi</h2></div>
-                        <div class="sol-card-body">
-                            <div id="additionalCostsList"></div>
-                            <button class="sol-btn sol-btn-primary sol-btn-sm" id="addAdditionalCostBtn">
-                                <i class="fas fa-plus mr-2"></i>Aggiungi Costo
+                            <p><span class="data-label">Costo Totale:</span> <span id="shipmentTotalCost" class="data-value font-weight-bold">-</span></p>
+                            <button class="sol-btn sol-btn-primary sol-btn-sm" id="saveCostsBtn" style="margin-top: 1rem;">
+                                <i class="fas fa-save mr-2"></i>Salva Costi
                             </button>
                         </div>
                     </div>
-        
                 </div>
-            </main>
-        
-            <div id="modal-root"></div>
-            
-            <!-- Bootstrap JS -->
-            <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-        
-        <script type="module">
-            // Inizializza Supabase client globalmente
-            if (!window.supabase) {
-                const { createClient } = supabase;
-                window.supabase = createClient(
-                    'https://gnlrmnsdmpjzitsysowq.supabase.co',
-                    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdubnJtbnNkbXBqeml0c3lzb3dxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mjk3OTI3OTQsImV4cCI6MjA0NTM2ODc5NH0.nBBLNL4OGHqXcj_0qXUYx95UwjJDcZXuKvQDmjq5B3k'
-                );
+            </div>
+
+            <!-- SEZIONE PRODOTTI -->
+            <div class="sol-card mb-4">
+                <div class="sol-card-header">
+                    <h2 class="sol-card-title">Prodotti</h2>
+                    <div class="card-actions">
+                        <button class="sol-btn sol-btn-primary sol-btn-sm" id="addProductBtn">
+                            <i class="fas fa-plus mr-2"></i>Aggiungi Prodotto
+                        </button>
+                    </div>
+                </div>
+                <div class="sol-card-body">
+                    <div class="table-container">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Prodotto</th>
+                                    <th>Quantità</th>
+                                    <th>Peso Totale</th>
+                                    <th>Volume Totale</th>
+                                    <th class="unit-cost-column">💰 Costo Unitario</th>
+                                    <th class="total-cost-column">💰 Costo Totale</th>
+                                    <th class="duty-rate-column">📊 % Dazio</th>
+                                    <th class="duty-unit-column">🚢 Dazio Unitario</th>
+                                    <th class="duty-total-column">🚢 Dazio Totale</th>
+                                    <th class="transport-unit-column">🚛 Trasporto Un.</th>
+                                    <th class="transport-total-column">🚛 Trasporto Tot.</th>
+                                    <th class="actions-column">Azioni</th>
+                                </tr>
+                            </thead>
+                            <tbody id="productsTableBody">
+                                <!-- Righe prodotto saranno inserite qui -->
+                            </tbody>
+                            <tfoot>
+                                <tr class="totals-row">
+                                    <th><strong>Totali</strong></th>
+                                    <th><strong id="totalQuantity">0</strong></th>
+                                    <th><strong id="totalWeight">0 kg</strong></th>
+                                    <th><strong id="totalVolume">0 m³</strong></th>
+                                    <th class="unit-cost-column"><strong id="averageUnitCost">€ 0,00</strong></th>
+                                    <th class="total-cost-column"><strong id="totalProductCost">€ 0,00</strong></th>
+                                    <th class="duty-rate-column"><strong id="averageDutyRate">0,0%</strong></th>
+                                    <th class="duty-unit-column"><strong id="averageDutyUnit">€ 0,00</strong></th>
+                                    <th class="duty-total-column"><strong id="totalDuty">€ 0,00</strong></th>
+                                    <th class="transport-unit-column"><strong id="averageTransportUnit">€ 0,00</strong></th>
+                                    <th class="transport-total-column"><strong id="totalTransportCost">€ 0,00</strong></th>
+                                    <th class="actions-column"></th>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SEZIONE DOCUMENTI -->
+            <div class="sol-card mb-4">
+                <div class="sol-card-header">
+                    <h2 class="sol-card-title">Documenti</h2>
+                    <div class="card-actions">
+                        <button class="sol-btn sol-btn-primary sol-btn-sm" id="uploadDocumentBtn">
+                            <i class="fas fa-upload mr-2"></i>Carica Documento
+                        </button>
+                    </div>
+                </div>
+                <div class="sol-card-body">
+                    <div id="documentsList">
+                        <p class="text-muted">Nessun documento caricato.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SEZIONE COSTI AGGIUNTIVI -->
+            <div class="sol-card">
+                <div class="sol-card-header"><h2 class="sol-card-title">Costi Aggiuntivi</h2></div>
+                <div class="sol-card-body">
+                    <div id="additionalCostsList"></div>
+                    <button class="sol-btn sol-btn-primary sol-btn-sm" id="addAdditionalCostBtn">
+                        <i class="fas fa-plus mr-2"></i>Aggiungi Costo
+                    </button>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <div id="modal-root"></div>
+    
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+<script type="module">
+    // ✅ FUNZIONE GLOBALE PER FORMATTAZIONE NUMERI ITALIANI
+    window.formatCurrencyIT = (value) => {
+        if (value === null || value === undefined || isNaN(value)) return '€ 0,00';
+        return new Intl.NumberFormat('it-IT', { 
+            style: 'currency', 
+            currency: 'EUR' 
+        }).format(parseFloat(value));
+    };
+
+    window.formatNumberIT = (value) => {
+        if (value === null || value === undefined || isNaN(value)) return '0';
+        return new Intl.NumberFormat('it-IT', { 
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 2 
+        }).format(parseFloat(value));
+    };
+
+    window.formatPercentageIT = (value) => {
+        if (value === null || value === undefined || isNaN(value)) return '0,0%';
+        return new Intl.NumberFormat('it-IT', { 
+            style: 'percent',
+            minimumFractionDigits: 1,
+            maximumFractionDigits: 1 
+        }).format(parseFloat(value) / 100);
+    };
+
+    // Inizializza Supabase client globalmente
+    if (!window.supabase) {
+        const { createClient } = supabase;
+        window.supabase = createClient(
+            'https://gnlrmnsdmpjzitsysowq.supabase.co',
+            'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdubnJtbnNkbXBqeml0c3lzb3dxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mjk3OTI3OTQsImV4cCI6MjA0NTM2ODc5NH0.nBBLNL4OGHqXcj_0qXUYx95UwjJDcZXuKvQDmjq5B3k'
+        );
+    }
+
+    // Import dei servizi core
+    const { default: dataManager } = await import('/core/services/data-manager.js');
+    const { default: notificationSystem } = await import('/core/notification-system.js');
+    const { default: headerComponent } = await import('/core/header-component.js');
+    const { default: ModalSystem } = await import('/core/modal-system.js');
+    
+    // Rendi disponibili globalmente
+    window.dataManager = dataManager;
+    window.notificationSystem = notificationSystem;
+    window.headerComponent = headerComponent;
+    window.ModalSystem = ModalSystem;
+    
+    console.log('✅ Core services loaded for shipment-details page');
+    
+    // ✅ ASPETTA CHE I SERVIZI SIANO PRONTI E POI CARICA LO SCRIPT
+    await new Promise(resolve => {
+        const checkServices = () => {
+            if (window.dataManager && window.ModalSystem && window.notificationSystem) {
+                resolve();
+            } else {
+                setTimeout(checkServices, 50);
             }
-        
-            // Import dei servizi core
-            const { default: dataManager } = await import('/core/services/data-manager.js');
-            const { default: notificationSystem } = await import('/core/notification-system.js');
-            const { default: headerComponent } = await import('/core/header-component.js');
-            const { default: ModalSystem } = await import('/core/modal-system.js');
-            
-            // Rendi disponibili globalmente
-            window.dataManager = dataManager;
-            window.notificationSystem = notificationSystem;
-            window.headerComponent = headerComponent;
-            window.ModalSystem = ModalSystem;
-            
-            console.log('✅ Core services loaded for shipment-details page');
-            
-            // ✅ ASPETTA CHE I SERVIZI SIANO PRONTI E POI CARICA LO SCRIPT
-            await new Promise(resolve => {
-                const checkServices = () => {
-                    if (window.dataManager && window.ModalSystem && window.notificationSystem) {
-                        resolve();
-                    } else {
-                        setTimeout(checkServices, 50);
-                    }
-                };
-                checkServices();
-            });
-            
-            console.log('🔧 All services ready, loading page script...');
-            
-            // ✅ CARICA LO SCRIPT DELLA PAGINA
-            await import('/pages/shipment-details/index.js');
-        </script>
-        </body>
-        </html>
+        };
+        checkServices();
+    });
+    
+    console.log('🔧 All services ready, loading page script...');
+    
+    // ✅ CARICA LO SCRIPT DELLA PAGINA
+    await import('/pages/shipment-details/index.js');
+</script>
+</body>
+</html>
