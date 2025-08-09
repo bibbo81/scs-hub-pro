@@ -967,7 +967,6 @@ async function deleteProduct(productId) {
     }
 }
 
-// ✅ AGGIUNGI QUESTA FUNZIONE COMPLETA
 async function editProductCosts(productId) {
     const shipmentId = getShipmentIdFromURL();
     try {
@@ -979,18 +978,46 @@ async function editProductCosts(productId) {
             return;
         }
         
+        // ✅ HEADER COMPLETO CON TUTTI I DATI DEL PRODOTTO
         const modalContent = `
             <div class="product-costs-form">
-                <h4><i class="fas fa-cubes"></i> Costi per ${product.product?.name || product.name || product.sku}</h4>
+                <!-- ✅ HEADER INFORMATIVO DEL PRODOTTO -->
+                <div class="product-header">
+                    <div class="product-info-grid">
+                        <div class="info-item">
+                            <label>Cod. Prodotto</label>
+                            <span class="value">${product.product?.sku || product.sku || '-'}</span>
+                        </div>
+                        <div class="info-item">
+                            <label>Descrizione</label>
+                            <span class="value">${product.product?.name || product.name || '-'}</span>
+                        </div>
+                        <div class="info-item">
+                            <label>Peso Totale</label>
+                            <span class="value">${formatWeight(product.total_weight_kg || 0)}</span>
+                        </div>
+                        <div class="info-item">
+                            <label>Volume Totale</label>
+                            <span class="value">${formatVolume(product.total_volume_cbm || 0)}</span>
+                        </div>
+                        <div class="info-item">
+                            <label>Quantità</label>
+                            <span class="value">${formatQuantity(product.quantity || 0)}</span>
+                        </div>
+                    </div>
+                </div>
                 
+                <hr class="section-divider">
+                
+                <!-- ✅ SEZIONE COSTI PRODOTTO -->
                 <div class="form-section">
-                    <h5>Costi Prodotto</h5>
+                    <h5><i class="fas fa-euro-sign"></i> Costi Prodotto</h5>
                     <div class="form-group">
                         <label>Costo Unitario (€)</label>
                         <input type="number" 
                                id="unitCost" 
                                step="0.01" 
-                               value="${product.unitCost || ''}"
+                               value="${product.cost_metadata?.unitCost || ''}"
                                placeholder="es: 25.50">
                         <small>Costo di acquisto/produzione per unità</small>
                     </div>
@@ -1000,14 +1027,15 @@ async function editProductCosts(productId) {
                         <input type="number" 
                                id="totalCost" 
                                step="0.01" 
-                               value="${product.totalCost || ''}"
+                               value="${product.cost_metadata?.totalCost || ''}"
                                placeholder="Auto-calcolato o inserimento manuale">
                         <small>Verrà calcolato automaticamente se lasciato vuoto</small>
                     </div>
                 </div>
                 
+                <!-- ✅ SEZIONE DAZI DOGANALI -->
                 <div class="form-section">
-                    <h5>Dazi Doganali</h5>
+                    <h5><i class="fas fa-ship"></i> Dazi Doganali</h5>
                     <div class="form-group">
                         <label>Aliquota Dazio (%)</label>
                         <input type="number" 
@@ -1015,7 +1043,7 @@ async function editProductCosts(productId) {
                                step="0.1" 
                                min="0" 
                                max="100"
-                               value="${product.dutyRate || ''}"
+                               value="${product.cost_metadata?.dutyRate || ''}"
                                placeholder="es: 8.5">
                         <small>Percentuale di dazio per questo prodotto</small>
                     </div>
@@ -1025,14 +1053,15 @@ async function editProductCosts(productId) {
                         <input type="number" 
                                id="customsFees" 
                                step="0.01" 
-                               value="${product.customsFees || ''}"
+                               value="${product.cost_metadata?.customsFees || ''}"
                                placeholder="es: 50.00">
                         <small>Spese fisse: clearance, handling, etc.</small>
                     </div>
                 </div>
                 
+                <!-- ✅ ANTEPRIMA CALCOLI -->
                 <div class="costs-preview">
-                    <h6>Anteprima Calcoli</h6>
+                    <h6><i class="fas fa-calculator"></i> Anteprima Calcoli</h6>
                     <div id="costsCalculation" class="calculation-preview">
                         <!-- Will be populated by JavaScript -->
                     </div>
@@ -1041,7 +1070,7 @@ async function editProductCosts(productId) {
         `;
         
         window.ModalSystem?.show({
-            title: 'Modifica Costi Prodotto',
+            title: 'Gestione Costi Prodotto',
             content: modalContent,
             size: 'lg',
             buttons: [

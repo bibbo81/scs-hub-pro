@@ -231,6 +231,74 @@
     color: white !important;
     font-size: 14px;
 }
+
+/* ✅ AGGIUNGI QUESTO CSS PER L'HEADER DEL PRODOTTO */
+.product-header {
+    background: #f8f9fa;
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 20px;
+}
+
+.product-info-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+}
+
+.info-item {
+    display: flex;
+    flex-direction: column;
+}
+
+.info-item label {
+    font-size: 12px;
+    font-weight: 600;
+    color: #6c757d;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 5px;
+}
+
+.info-item .value {
+    font-size: 14px;
+    font-weight: 500;
+    color: #212529;
+    padding: 8px 12px;
+    background: white;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+}
+
+.section-divider {
+    border: 0;
+    height: 1px;
+    background: linear-gradient(to right, transparent, #dee2e6, transparent);
+    margin: 20px 0;
+}
+
+.form-section h5 {
+    color: #495057;
+    border-bottom: 2px solid #e9ecef;
+    padding-bottom: 8px;
+    margin-bottom: 15px;
+}
+
+.form-section h5 i {
+    margin-right: 8px;
+    color: #6c757d;
+}
+
+.costs-preview h6 {
+    color: #495057;
+    margin-bottom: 10px;
+}
+
+.costs-preview h6 i {
+    margin-right: 8px;
+    color: #28a745;
+}
 </style>
 </head>
 <body>
