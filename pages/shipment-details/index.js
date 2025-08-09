@@ -722,29 +722,6 @@ function renderProductRow(shipmentProduct, product) {
                       shipmentProduct.sku || 
                       'N/A';
     
-    // ✅ FUNZIONE PER TRONCARE E FORMATTARE IL NOME
-    const formatProductName = (name, maxLength = 80) => {
-        if (!name) return 'Prodotto senza nome';
-        
-        // Rimuovi spazi multipli e trim
-        const cleanName = name.trim().replace(/\s+/g, ' ');
-        
-        if (cleanName.length <= maxLength) {
-            return cleanName;
-        }
-        
-        // Tronca in modo intelligente (cerca ultimo spazio prima del limite)
-        const truncated = cleanName.substring(0, maxLength);
-        const lastSpace = truncated.lastIndexOf(' ');
-        
-        if (lastSpace > maxLength * 0.7) { // Se il taglio è ragionevole
-            return truncated.substring(0, lastSpace) + '...';
-        } else {
-            return truncated + '...';
-        }
-    };
-    
-    const productName = formatProductName(rawProductName);
     const fullProductName = rawProductName; // Per il tooltip
     
     // ✅ FORMATTAZIONE DINAMICA PER VALORI PICCOLI
@@ -761,16 +738,16 @@ function renderProductRow(shipmentProduct, product) {
     
     return `
         <tr class="product-row" data-product-id="${shipmentProduct.id}">
-            <td style="max-width: 250px; min-width: 200px;">
-                <div class="product-info">
-                    <div class="product-name" 
-                         style="font-weight: 500; color: #2c3e50; font-size: 13px; line-height: 1.3; 
-                                word-wrap: break-word; overflow-wrap: break-word; hyphens: auto;
-                                display: block; max-width: 100%;" 
-                         title="${fullProductName.replace(/"/g, '&quot;')}"
-                         data-full-name="${fullProductName.replace(/"/g, '&quot;')}">
-                        ${productName}
-                    </div>
+                        <td style="max-width: 300px; min-width: 250px;">
+                            <div class="product-info">
+                                <div class="product-name" 
+                                     style="font-weight: 700; color: #2c3e50; font-size: 14px; line-height: 1.4; 
+                                            word-wrap: break-word; overflow-wrap: break-word; hyphens: auto;
+                                            display: block; max-width: 100%; white-space: normal;" 
+                                     title="${fullProductName.replace(/"/g, '&quot;')}"
+                                     data-full-name="${fullProductName.replace(/"/g, '&quot;')}">
+                                    ${fullProductName}
+                                </div>
                     <div class="product-sku" 
                          style="font-size: 11px; color: #7f8c8d; margin-top: 2px; font-weight: 400;">
                         SKU: ${productSku}
@@ -2055,29 +2032,37 @@ async function validateContainerLimits(shipmentId, additionalWeight, additionalV
         const totalWeightAfter = currentWeight + additionalWeight;
         const totalVolumeAfter = currentVolume + additionalVolume;
         
+        // ✅ DETERMINA LA CAPACITÀ MASSIMA DAI CONTAINER
+        const containerInfo = getContainerCapacity(shipmentDetails);
+        
+        // ✅ GENERA DESCRIZIONE DETTAGLIATA CONTAINER
+        const containerDescription = generateContainerDescription(shipmentDetails, containerInfo);
+        
         console.log('🔍 Container validation:', {
             currentWeight: currentWeight.toFixed(3),
             additionalWeight: additionalWeight.toFixed(3),
             totalWeightAfter: totalWeightAfter.toFixed(3),
             currentVolume: currentVolume.toFixed(3),
             additionalVolume: additionalVolume.toFixed(3),
-            totalVolumeAfter: totalVolumeAfter.toFixed(3)
+            totalVolumeAfter: totalVolumeAfter.toFixed(3),
+            containerInfo
         });
         
-        // ✅ DETERMINA LA CAPACITÀ MASSIMA DAI CONTAINER
-        const containerInfo = getContainerCapacity(shipmentDetails);
-        
+        // ✅ CONTROLLO LIMITI PESO
         if (containerInfo.maxWeight > 0 && totalWeightAfter > containerInfo.maxWeight) {
+            const weightExcess = totalWeightAfter - containerInfo.maxWeight;
             return {
                 valid: false,
-                message: `⚠️ LIMITE PESO SUPERATO!\n\nPeso attuale: ${formatWeight(currentWeight)}\nPeso da aggiungere: ${formatWeight(additionalWeight)}\nTotale: ${formatWeight(totalWeightAfter)}\n\nCapacità massima container: ${formatWeight(containerInfo.maxWeight)}\nEccedenza: ${formatWeight(totalWeightAfter - containerInfo.maxWeight)}`
+                message: `⚠️ LIMITE PESO SUPERATO!\n\n${containerDescription}\n\n📊 ANALISI PESO:\n• Peso attuale: ${formatWeight(currentWeight)}\n• Peso da aggiungere: ${formatWeight(additionalWeight)}\n• Peso totale risultante: ${formatWeight(totalWeightAfter)}\n• Capacità massima: ${formatWeight(containerInfo.maxWeight)}\n\n❌ ECCEDENZA: ${formatWeight(weightExcess)} (${((weightExcess/containerInfo.maxWeight)*100).toFixed(1)}% oltre il limite)`
             };
         }
         
+        // ✅ CONTROLLO LIMITI VOLUME
         if (containerInfo.maxVolume > 0 && totalVolumeAfter > containerInfo.maxVolume) {
+            const volumeExcess = totalVolumeAfter - containerInfo.maxVolume;
             return {
                 valid: false,
-                message: `⚠️ LIMITE VOLUME SUPERATO!\n\nVolume attuale: ${formatVolume(currentVolume)}\nVolume da aggiungere: ${formatVolume(additionalVolume)}\nTotale: ${formatVolume(totalVolumeAfter)}\n\nCapacità massima container: ${formatVolume(containerInfo.maxVolume)}\nEccedenza: ${formatVolume(totalVolumeAfter - containerInfo.maxVolume)}`
+                message: `⚠️ LIMITE VOLUME SUPERATO!\n\n${containerDescription}\n\n📊 ANALISI VOLUME:\n• Volume attuale: ${formatVolume(currentVolume)}\n• Volume da aggiungere: ${formatVolume(additionalVolume)}\n• Volume totale risultante: ${formatVolume(totalVolumeAfter)}\n• Capacità massima: ${formatVolume(containerInfo.maxVolume)}\n\n❌ ECCEDENZA: ${formatVolume(volumeExcess)} (${((volumeExcess/containerInfo.maxVolume)*100).toFixed(1)}% oltre il limite)`
             };
         }
         
@@ -2085,20 +2070,21 @@ async function validateContainerLimits(shipmentId, additionalWeight, additionalV
         const weightPercent = containerInfo.maxWeight > 0 ? (totalWeightAfter / containerInfo.maxWeight) * 100 : 0;
         const volumePercent = containerInfo.maxVolume > 0 ? (totalVolumeAfter / containerInfo.maxVolume) * 100 : 0;
         
-        let warnings = [];
-        if (weightPercent > 80) {
-            warnings.push(`Peso al ${weightPercent.toFixed(1)}% della capacità`);
-        }
-        if (volumePercent > 80) {
-            warnings.push(`Volume al ${volumePercent.toFixed(1)}% della capacità`);
-        }
-        
-        if (warnings.length > 0) {
-            // Non blocca ma avvisa
+        if (weightPercent > 80 || volumePercent > 80) {
+            let warningMessage = `⚠️ ATTENZIONE - CAPACITÀ ELEVATA\n\n${containerDescription}\n\n📊 UTILIZZO DOPO AGGIUNTA:`;
+            
+            if (weightPercent > 80) {
+                warningMessage += `\n\n🏋️ PESO:\n• Attuale: ${formatWeight(currentWeight)}\n• Da aggiungere: ${formatWeight(additionalWeight)}\n• Totale: ${formatWeight(totalWeightAfter)}\n• Capacità: ${formatWeight(containerInfo.maxWeight)}\n• Utilizzo: ${weightPercent.toFixed(1)}%`;
+            }
+            
+            if (volumePercent > 80) {
+                warningMessage += `\n\n📦 VOLUME:\n• Attuale: ${formatVolume(currentVolume)}\n• Da aggiungere: ${formatVolume(additionalVolume)}\n• Totale: ${formatVolume(totalVolumeAfter)}\n• Capacità: ${formatVolume(containerInfo.maxVolume)}\n• Utilizzo: ${volumePercent.toFixed(1)}%`;
+            }
+            
             const proceed = await window.ModalSystem?.confirm({
                 title: '⚠️ Attenzione - Capacità Elevata',
-                content: `${warnings.join('\n')}\n\nVuoi continuare?`,
-                confirmText: 'Continua',
+                content: warningMessage,
+                confirmText: 'Continua Comunque',
                 cancelText: 'Annulla'
             });
             
@@ -2176,7 +2162,64 @@ function getContainerCapacity(shipmentDetails) {
     
     return { maxWeight, maxVolume };
 }
+function generateContainerDescription(shipmentDetails, containerInfo) {
+    // ✅ INFORMAZIONI CONTAINER DAL TRACKING
+    const containers = shipmentDetails.tracking?.metadata?.raw?.shipment?.containers;
+    let description = "📦 INFORMAZIONI CONTAINER:\n";
+    
+    if (Array.isArray(containers) && containers.length > 0) {
+        // Container dal tracking dettagliato
+        const containerCounts = {};
+        containers.forEach(container => {
+            const size = container.size || 0;
+            const type = (container.type || '').toUpperCase();
+            let containerType = 'N/A';
+            
+            if (size === 20) containerType = "20'";
+            else if (size === 40) containerType = (type.includes('HC') || type.includes('HQ')) ? "40'HC" : "40'";
+            else if (size === 45) containerType = "45'HC";
+            
+            if (containerType !== 'N/A') {
+                containerCounts[containerType] = (containerCounts[containerType] || 0) + 1;
+            }
+        });
+        
+        Object.entries(containerCounts).forEach(([type, count]) => {
+            const capacity = getContainerTypeCapacity(type);
+            description += `\n• ${count}x Container ${type}`;
+            if (capacity) {
+                description += ` (${formatWeight(capacity.weight)} / ${formatVolume(capacity.volume)} cad.)`;
+            }
+        });
+        
+    } else {
+        // Container dal campo testuale
+        const containerTypes = shipmentDetails.tracking?.container_types || 
+                              shipmentDetails.container_types || 
+                              document.getElementById('shipmentContainerTypes')?.textContent || '';
+        
+        if (containerTypes && containerTypes !== '-') {
+            description += `\n• ${containerTypes}`;
+        } else {
+            description += "\n• Informazioni container non disponibili";
+        }
+    }
+    
+    description += `\n\n📏 CAPACITÀ TOTALE:\n• Peso massimo: ${formatWeight(containerInfo.maxWeight)}\n• Volume massimo: ${formatVolume(containerInfo.maxVolume)}`;
+    
+    return description;
+}
 
+function getContainerTypeCapacity(containerType) {
+    const CONTAINER_CAPACITIES = {
+        "20'": { weight: 28080, volume: 33.2 },
+        "40'": { weight: 26580, volume: 67.7 },
+        "40'HC": { weight: 26380, volume: 76.4 },
+        "45'HC": { weight: 26500, volume: 86.0 }
+    };
+    
+    return CONTAINER_CAPACITIES[containerType] || null;
+}
 async function validateSelectedProductsLimits() {
     const selectedCheckboxes = document.querySelectorAll('.product-checkbox:checked');
     
