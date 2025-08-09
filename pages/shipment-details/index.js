@@ -1767,21 +1767,27 @@ async function addSelectedProductsWithCosts() {
         
         const productId = row.dataset.productId;
         if (!productId) continue;
-        
+                
         // ✅ FETCH COMPLETO DEL PRODOTTO PER AVERE NOME E SKU
         let productDetails = null;
         try {
+            console.log('🔍 Fetching product details for:', productId);
+            
             const { data, error } = await window.supabase
                 .from('products')
                 .select('id, name, sku')
                 .eq('id', productId)
+                .eq('organization_id', window.dataManager?.organizationId) // ✅ Aggiungi organization_id
                 .single();
             
             if (!error && data) {
                 productDetails = data;
+                console.log('✅ Product details fetched:', productDetails);
+            } else {
+                console.warn('⚠️ Product fetch error:', error);
             }
         } catch (error) {
-            console.warn('Could not fetch product details:', error);
+            console.warn('⚠️ Could not fetch product details:', error);
         }
         
         // ✅ RACCOGLI TUTTI I DATI
@@ -1846,22 +1852,34 @@ async function addSelectedProductsWithCosts() {
     }
     
     try {
-        window.notificationSystem?.info(`Aggiunta di ${selectedProducts.length} prodotti in corso...`);
+    window.notificationSystem?.info(`Aggiunta di ${selectedProducts.length} prodotti in corso...`);
+    
+    // ✅ AGGIUNGI OGNI PRODOTTO CON DEBUG DETTAGLIATO
+    for (const productData of selectedProducts) {
+        console.log('📦 About to add product:', {
+            product_id: productData.product_id,
+            quantity: productData.quantity,
+            unit_cost: productData.unit_cost,
+            total_cost: productData.total_cost,
+            duty_rate: productData.duty_rate,
+            duty_amount: productData.duty_amount,
+            duty_unit_cost: productData.duty_unit_cost,
+            customs_fees: productData.customs_fees
+        });
         
-        // ✅ AGGIUNGI OGNI PRODOTTO CON I SUOI COSTI
-        for (const productData of selectedProducts) {
-            await window.dataManager.addShipmentItem(shipmentId, productData);
-        }
-        
-        window.notificationSystem?.success(`${selectedProducts.length} prodotti aggiunti con successo!`);
-        window.ModalSystem?.close();
-        
-        await loadShipmentDetails(shipmentId);
-        
-    } catch (error) {
-        console.error('Error adding products with costs:', error);
-        window.notificationSystem?.error(`Errore nell'aggiunta dei prodotti: ${error.message}`);
+        const result = await window.dataManager.addShipmentItem(shipmentId, productData);
+        console.log('✅ Product added, result:', result);
     }
+    
+    window.notificationSystem?.success(`${selectedProducts.length} prodotti aggiunti con successo!`);
+    window.ModalSystem?.close();
+    
+    await loadShipmentDetails(shipmentId);
+    
+} catch (error) {
+    console.error('❌ Detailed error adding products:', error);
+    window.notificationSystem?.error(`Errore nell'aggiunta dei prodotti: ${error.message}`);
+}
 }
 
 async function validateContainerLimits(shipmentId, additionalWeight, additionalVolume) {

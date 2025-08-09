@@ -1145,47 +1145,71 @@ async getShipmentDetails(shipmentId) {
      * @param {Object} productData - Dati del prodotto da aggiungere.
      * @returns {Promise<Object>} Il prodotto aggiunto.
      */
-    async addShipmentItem(shipmentId, productData) {
-         if (!this.initialized) await this.init();
- 
-         const { data: newItem, error } = await supabase
-             .from('shipment_items')
-             .insert([{
-                 shipment_id: shipmentId,
-                 organization_id: this.organizationId,
-                 product_id: productData.product_id,
-                 name: productData.name,
-                 sku: productData.sku,
-                 quantity: productData.quantity,
-                 unit_value: productData.unit_value,
-                 weight_kg: productData.weight_kg,
-                 volume_cbm: productData.volume_cbm,
-                 total_value: (productData.quantity || 0) * (productData.unit_value || 0),
-                 total_weight_kg: (productData.weight_kg || 0) * (productData.quantity || 0),
-                 total_volume_cbm: (productData.volume_cbm || 0) * (productData.quantity || 0)
-             }])
-             .select()
-             .single();
- 
-         if (error) {
-             console.error("Errore Supabase nell'aggiungere prodotto:", JSON.stringify(error, null, 2));
-             throw error;
-         }
- 
-         if (newItem && newItem.product_id) {
-             const { data: productDetails, error: productError } = await supabase
-                 .from('products')
-                 .select('id, name, sku')
-                 .eq('id', newItem.product_id)
-                 .single();
- 
-             if (productError) {
-                 console.warn(`Could not fetch product details for new item:`, productError);
-                 return newItem;
-             }
-             return { ...newItem, product: productDetails };
-         }
-         return newItem;
+    
+    async addShipmentItem(shipmentId, itemData) {
+        try {
+            console.log('🔄 Adding shipment item with data:', itemData);
+            
+            // ✅ CORREZIONE: Assicurati che TUTTI i campi vengano salvati
+            const dataToSave = {
+                shipment_id: shipmentId,
+                product_id: itemData.product_id,
+                quantity: itemData.quantity || 1,
+                weight_kg: itemData.weight_kg || 0,
+                volume_cbm: itemData.volume_cbm || 0,
+                
+                // ✅ CAMPI COSTI - SALVALI DIRETTAMENTE
+                unit_cost: itemData.unit_cost || 0,
+                total_cost: itemData.total_cost || 0,
+                duty_rate: itemData.duty_rate || 0,
+                duty_amount: itemData.duty_amount || 0,
+                duty_unit_cost: itemData.duty_unit_cost || 0,
+                customs_fees: itemData.customs_fees || 0,
+                
+                // Aggiungi organization_id se necessario
+                organization_id: this.organizationId
+            };
+            
+            console.log('💾 Data being saved to database:', dataToSave);
+            
+            const { data, error } = await this.supabase
+                .from('shipment_items')
+                .insert([dataToSave])
+                .select('*')
+                .single();
+    
+            if (error) {
+                console.error('❌ Error inserting shipment item:', error);
+                throw error;
+            }
+    
+            console.log('✅ Shipment item added successfully:', data);
+    
+            // ✅ CORREZIONE: Prova a caricare i dettagli del prodotto per completezza
+            try {
+                const { data: productData, error: productError } = await this.supabase
+                    .from('products')
+                    .select('id, name, sku')
+                    .eq('id', itemData.product_id)
+                    .eq('organization_id', this.organizationId)
+                    .single();
+                
+                if (!productError && productData) {
+                    console.log('✅ Product details loaded:', productData);
+                    // Aggiungi i dettagli del prodotto al risultato
+                    data.product = productData;
+                } else {
+                    console.warn('⚠️ Could not fetch product details:', productError);
+                }
+            } catch (productFetchError) {
+                console.warn('⚠️ Product fetch failed:', productFetchError);
+            }
+    
+            return data;
+        } catch (error) {
+            console.error('❌ Error in addShipmentItem:', error);
+            throw new Error(`Impossibile aggiungere il prodotto alla spedizione: ${error.message}`);
+        }
     }
 
     /**
