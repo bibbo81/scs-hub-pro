@@ -360,11 +360,12 @@ function updateTotalsWithCosts(products, shipment) {
     let totalTransportUnitWeighted = 0;
     
     products.forEach(shipmentProduct => {
+        // ✅ CORREZIONE: Usa i campi salvati nel database PRIMA dei metadati
         const costs = shipmentProduct.cost_metadata || {};
-        const unitCost = costs.unitCost || 0;
-        const productTotal = costs.totalCost || (unitCost * shipmentProduct.quantity);
-        const dutyRate = costs.dutyRate || 0;
-        const dutyAmount = productTotal * (dutyRate / 100);
+        const unitCost = shipmentProduct.unit_cost || costs.unitCost || 0;
+        const productTotal = shipmentProduct.total_cost || costs.totalCost || (unitCost * shipmentProduct.quantity);
+        const dutyRate = shipmentProduct.duty_rate || costs.dutyRate || 0;
+        const dutyAmount = shipmentProduct.duty_amount || costs.dutyAmount || (productTotal * (dutyRate / 100));
         const dutyUnitCost = unitCost * (dutyRate / 100);
         const transportUnitCost = costs.transportUnitCost || 0;
         const transportProductTotal = transportUnitCost * shipmentProduct.quantity;
@@ -432,11 +433,11 @@ function calculateTransportCosts(shipment, products) {
         return { unitCost: 0, allocatedCosts: {} };
     }
     
-    // Calcola il peso totale per l'allocazione
-    const totalWeight = products.reduce((sum, p) => sum + (p.total_weight_kg || 0), 0);
+    // ✅ CORREZIONE: Usa CBM invece del peso per spedizioni marittime
+    const totalVolume = products.reduce((sum, p) => sum + (p.total_volume_cbm || 0), 0);
     
-    if (totalWeight === 0) {
-        // Se non c'è peso, distribuisci equamente
+    if (totalVolume === 0) {
+        // Se non c'è volume, distribuisci equamente
         const unitCost = totalShipmentCosts / products.length;
         const allocatedCosts = {};
         products.forEach(p => {
@@ -445,38 +446,49 @@ function calculateTransportCosts(shipment, products) {
         return { unitCost, allocatedCosts };
     }
     
-    // Allocazione basata sul peso
-    const costPerKg = totalShipmentCosts / totalWeight;
+    // ✅ CORREZIONE: Allocazione basata sul volume CBM
+    const costPerCBM = totalShipmentCosts / totalVolume;
     const allocatedCosts = {};
     products.forEach(p => {
-        allocatedCosts[p.id] = costPerKg * (p.total_weight_kg || 0);
+        allocatedCosts[p.id] = costPerCBM * (p.total_volume_cbm || 0);
     });
     
-    return { unitCost: costPerKg, allocatedCosts };
+    return { unitCost: costPerCBM, allocatedCosts };
 }
 
 function renderProductRow(shipmentProduct, product) {
     console.log('🔄 renderProductRow:', {
         productId: shipmentProduct.id,
         productName: product?.name || shipmentProduct.name,
-        costMetadata: shipmentProduct.cost_metadata
+        costMetadata: shipmentProduct.cost_metadata,
+        savedCosts: {
+            unit_cost: shipmentProduct.unit_cost,
+            total_cost: shipmentProduct.total_cost,
+            duty_rate: shipmentProduct.duty_rate,
+            duty_amount: shipmentProduct.duty_amount
+        }
     });
     
+    // ✅ CORREZIONE: Usa i campi salvati nel database PRIMA dei metadati
     const costs = shipmentProduct.cost_metadata || {};
-    const unitCost = costs.unitCost || 0;
-    const totalCost = costs.totalCost || (unitCost * shipmentProduct.quantity);
-    const dutyRate = costs.dutyRate || 0;
+    const unitCost = shipmentProduct.unit_cost || costs.unitCost || 0;
+    const totalCost = shipmentProduct.total_cost || costs.totalCost || (unitCost * shipmentProduct.quantity);
+    const dutyRate = shipmentProduct.duty_rate || costs.dutyRate || 0;
+    const dutyAmount = shipmentProduct.duty_amount || costs.dutyAmount || (totalCost * (dutyRate / 100));
     const dutyUnitCost = unitCost * (dutyRate / 100);
-    const dutyTotal = totalCost * (dutyRate / 100);
     const transportUnitCost = costs.transportUnitCost || 0;
     const transportTotal = transportUnitCost * shipmentProduct.quantity;
+    
+    // ✅ CORREZIONE: Migliora la visualizzazione del nome prodotto
+    const productName = product?.name || shipmentProduct.product?.name || shipmentProduct.name || 'Prodotto senza nome';
+    const productSku = product?.sku || shipmentProduct.product?.sku || shipmentProduct.sku || 'N/A';
     
     return `
         <tr class="product-row" data-product-id="${shipmentProduct.id}">
             <td>
                 <div class="product-info">
-                    <div class="product-name">${product?.name || shipmentProduct.name || '-'}</div>
-                    <div class="product-sku">SKU: ${product?.sku || shipmentProduct.sku || 'N/A'}</div>
+                    <div class="product-name" style="font-weight: 500; color: #2c3e50;">${productName}</div>
+                    <div class="product-sku" style="font-size: 12px; color: #7f8c8d;">SKU: ${productSku}</div>
                 </div>
             </td>
             <td>${window.formatNumberIT ? window.formatNumberIT(shipmentProduct.quantity || 0) : (shipmentProduct.quantity || 0)}</td>
@@ -486,7 +498,7 @@ function renderProductRow(shipmentProduct, product) {
             <td class="total-cost-column">${window.formatCurrencyIT ? window.formatCurrencyIT(totalCost) : `€ ${totalCost.toFixed(2)}`}</td>
             <td class="duty-rate-column">${window.formatPercentageIT ? window.formatPercentageIT(dutyRate) : `${dutyRate.toFixed(1)}%`}</td>
             <td class="duty-unit-column">${window.formatCurrencyIT ? window.formatCurrencyIT(dutyUnitCost) : `€ ${dutyUnitCost.toFixed(2)}`}</td>
-            <td class="duty-total-column">${window.formatCurrencyIT ? window.formatCurrencyIT(dutyTotal) : `€ ${dutyTotal.toFixed(2)}`}</td>
+            <td class="duty-total-column">${window.formatCurrencyIT ? window.formatCurrencyIT(dutyAmount) : `€ ${dutyAmount.toFixed(2)}`}</td>
             <td class="transport-unit-column">${window.formatCurrencyIT ? window.formatCurrencyIT(transportUnitCost) : `€ ${transportUnitCost.toFixed(2)}`}</td>
             <td class="transport-total-column">${window.formatCurrencyIT ? window.formatCurrencyIT(transportTotal) : `€ ${transportTotal.toFixed(2)}`}</td>
             <td class="actions-column">
@@ -505,6 +517,7 @@ function renderProductRow(shipmentProduct, product) {
         </tr>
     `;
 }
+
 async function renderDocumentsTable(documents) {
     const tbody = document.getElementById('documentsTableBody');
     if (!tbody) return;
@@ -1151,6 +1164,7 @@ function updateCostCalculation(quantity) {
 }
 
 // ✅ AGGIUNGI QUESTA FUNZIONE
+
 async function saveProductCosts(productId) {
     const unitCost = parseFloat(document.getElementById('unitCost')?.value || 0);
     const manualTotalCost = parseFloat(document.getElementById('totalCost')?.value || 0);
@@ -1171,16 +1185,23 @@ async function saveProductCosts(productId) {
         const quantity = product.quantity || 0;
         const calculatedTotalCost = unitCost * quantity;
         const actualTotalCost = manualTotalCost || calculatedTotalCost;
-        const dutyAmount = actualTotalCost * dutyRate / 100;
+        const dutyAmount = actualTotalCost * (dutyRate / 100);
         
-        // Prepara i dati da salvare
+        // ✅ CORREZIONE: Prepara TUTTI i dati da salvare inclusi i costi
         const updatedData = {
             // Campi esistenti
             quantity: product.quantity,
             weight_kg: product.weight_kg,
             volume_cbm: product.volume_cbm,
             
-            // Metadati per tracciare i costi
+            // ✅ AGGIUNGI: Salva i costi direttamente nei campi della tabella
+            unit_cost: unitCost,
+            total_cost: actualTotalCost,
+            duty_rate: dutyRate,
+            duty_amount: dutyAmount,
+            customs_fees: customsFees,
+            
+            // Metadati per compatibilità con il rendering
             cost_metadata: {
                 unitCost: unitCost,
                 totalCost: actualTotalCost,
@@ -1191,7 +1212,7 @@ async function saveProductCosts(productId) {
             }
         };
         
-        console.log('💰 Saving product costs:', updatedData);
+        console.log('💰 Saving product costs with all fields:', updatedData);
         
         window.notificationSystem?.info('Salvataggio costi prodotto...');
         
