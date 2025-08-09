@@ -380,7 +380,10 @@ function updateTotalsWithCosts(products, shipment) {
         const productTotal = shipmentProduct.total_cost || costs.totalCost || (unitCost * shipmentProduct.quantity);
         const dutyRate = shipmentProduct.duty_rate || costs.dutyRate || 0;
         const dutyAmount = shipmentProduct.duty_amount || costs.dutyAmount || (productTotal * (dutyRate / 100));
-        const dutyUnitCost = unitCost * (dutyRate / 100);
+        
+        // ✅ CORREZIONE: CALCOLO CORRETTO DEL DAZIO UNITARIO
+        const dutyUnitCost = shipmentProduct.quantity > 0 ? dutyAmount / shipmentProduct.quantity : 0;
+        
         const transportUnitCost = costs.transportUnitCost || 0;
         const transportProductTotal = transportUnitCost * shipmentProduct.quantity;
         
@@ -434,7 +437,8 @@ function updateTotalsWithCosts(products, shipment) {
         totalQuantity,
         totalProductCost: totalProductCost.toFixed(2),
         totalDuty: totalDuty.toFixed(2),
-        totalTransportCost: totalTransportCost.toFixed(2)
+        totalTransportCost: totalTransportCost.toFixed(2),
+        avgDutyUnit: avgDutyUnit.toFixed(4) // ✅ DEBUG per vedere se viene calcolato
     });
 }
 
@@ -604,7 +608,10 @@ function renderProductRow(shipmentProduct, product) {
     const totalCost = shipmentProduct.total_cost || costs.totalCost || (unitCost * shipmentProduct.quantity);
     const dutyRate = shipmentProduct.duty_rate || costs.dutyRate || 0;
     const dutyAmount = shipmentProduct.duty_amount || costs.dutyAmount || (totalCost * (dutyRate / 100));
-    const dutyUnitCost = unitCost * (dutyRate / 100);
+    
+    // ✅ CORREZIONE: CALCOLO CORRETTO DEL DAZIO UNITARIO
+    const dutyUnitCost = shipmentProduct.quantity > 0 ? dutyAmount / shipmentProduct.quantity : 0;
+    
     const transportUnitCost = costs.transportUnitCost || 0;
     const transportTotal = transportUnitCost * shipmentProduct.quantity;
     
@@ -1341,6 +1348,9 @@ async function saveProductCosts(productId) {
         const actualTotalCost = manualTotalCost || calculatedTotalCost;
         const dutyAmount = actualTotalCost * (dutyRate / 100);
         
+        // ✅ CORREZIONE: Calcola anche il dazio unitario
+        const dutyUnitCost = quantity > 0 ? dutyAmount / quantity : 0;
+        
         // ✅ CORREZIONE: Prepara TUTTI i dati da salvare inclusi i costi
         const updatedData = {
             // Campi esistenti
@@ -1353,6 +1363,7 @@ async function saveProductCosts(productId) {
             total_cost: actualTotalCost,
             duty_rate: dutyRate,
             duty_amount: dutyAmount,
+            duty_unit_cost: dutyUnitCost, // ✅ NUOVO CAMPO
             customs_fees: customsFees,
             
             // Metadati per compatibilità con il rendering
@@ -1361,6 +1372,7 @@ async function saveProductCosts(productId) {
                 totalCost: actualTotalCost,
                 dutyRate: dutyRate,
                 dutyAmount: dutyAmount,
+                dutyUnitCost: dutyUnitCost, // ✅ NUOVO CAMPO
                 customsFees: customsFees,
                 grandTotal: actualTotalCost + dutyAmount + customsFees
             }
