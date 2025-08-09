@@ -598,7 +598,8 @@ function renderProductRow(shipmentProduct, product) {
             unit_cost: shipmentProduct.unit_cost,
             total_cost: shipmentProduct.total_cost,
             duty_rate: shipmentProduct.duty_rate,
-            duty_amount: shipmentProduct.duty_amount
+            duty_amount: shipmentProduct.duty_amount,
+            duty_unit_cost: shipmentProduct.duty_unit_cost // ✅ AGGIUNGI DEBUG
         }
     });
     
@@ -609,8 +610,9 @@ function renderProductRow(shipmentProduct, product) {
     const dutyRate = shipmentProduct.duty_rate || costs.dutyRate || 0;
     const dutyAmount = shipmentProduct.duty_amount || costs.dutyAmount || (totalCost * (dutyRate / 100));
     
-    // ✅ CORREZIONE: CALCOLO CORRETTO DEL DAZIO UNITARIO
-    const dutyUnitCost = shipmentProduct.quantity > 0 ? dutyAmount / shipmentProduct.quantity : 0;
+    // ✅ CORREZIONE: PRIORITÀ AL CAMPO SALVATO duty_unit_cost
+    const dutyUnitCost = shipmentProduct.duty_unit_cost || costs.dutyUnitCost || 
+                        (shipmentProduct.quantity > 0 ? dutyAmount / shipmentProduct.quantity : 0);
     
     const transportUnitCost = costs.transportUnitCost || 0;
     const transportTotal = transportUnitCost * shipmentProduct.quantity;
@@ -618,6 +620,18 @@ function renderProductRow(shipmentProduct, product) {
     // ✅ CORREZIONE: Migliora la visualizzazione del nome prodotto
     const productName = product?.name || shipmentProduct.product?.name || shipmentProduct.name || 'Prodotto senza nome';
     const productSku = product?.sku || shipmentProduct.product?.sku || shipmentProduct.sku || 'N/A';
+    
+    // ✅ MIGLIORA: Formattazione dinamica per mostrare decimali quando necessari
+    const formatSmallCurrency = (value) => {
+        if (value === 0) return '€ 0,00';
+        if (value > 0 && value < 0.01) {
+            return `€ ${value.toFixed(6).replace('.', ',')}`;
+        } else if (value > 0 && value < 0.1) {
+            return `€ ${value.toFixed(4).replace('.', ',')}`;
+        } else {
+            return window.formatCurrencyIT ? window.formatCurrencyIT(value) : `€ ${value.toFixed(2)}`;
+        }
+    };
     
     return `
         <tr class="product-row" data-product-id="${shipmentProduct.id}">
@@ -630,12 +644,12 @@ function renderProductRow(shipmentProduct, product) {
             <td>${window.formatNumberIT ? window.formatNumberIT(shipmentProduct.quantity || 0) : (shipmentProduct.quantity || 0)}</td>
             <td>${formatWeight(shipmentProduct.total_weight_kg || 0)}</td>
             <td>${formatVolume(shipmentProduct.total_volume_cbm || 0)}</td>
-            <td class="unit-cost-column">${window.formatCurrencyIT ? window.formatCurrencyIT(unitCost) : `€ ${unitCost.toFixed(2)}`}</td>
+            <td class="unit-cost-column">${formatSmallCurrency(unitCost)}</td>
             <td class="total-cost-column">${window.formatCurrencyIT ? window.formatCurrencyIT(totalCost) : `€ ${totalCost.toFixed(2)}`}</td>
             <td class="duty-rate-column">${window.formatPercentageIT ? window.formatPercentageIT(dutyRate) : `${dutyRate.toFixed(1)}%`}</td>
-            <td class="duty-unit-column">${window.formatCurrencyIT ? window.formatCurrencyIT(dutyUnitCost) : `€ ${dutyUnitCost.toFixed(2)}`}</td>
+            <td class="duty-unit-column">${formatSmallCurrency(dutyUnitCost)}</td>
             <td class="duty-total-column">${window.formatCurrencyIT ? window.formatCurrencyIT(dutyAmount) : `€ ${dutyAmount.toFixed(2)}`}</td>
-            <td class="transport-unit-column">${window.formatCurrencyIT ? window.formatCurrencyIT(transportUnitCost) : `€ ${transportUnitCost.toFixed(2)}`}</td>
+            <td class="transport-unit-column">${formatSmallCurrency(transportUnitCost)}</td>
             <td class="transport-total-column">${window.formatCurrencyIT ? window.formatCurrencyIT(transportTotal) : `€ ${transportTotal.toFixed(2)}`}</td>
             <td class="actions-column">
                 <div class="action-buttons">
@@ -1676,6 +1690,7 @@ function updateCostsPreview() {
 }
 
 // ✅ AGGIUNGI PRODOTTI CON CONTROLLI SICUREZZA
+
 async function addSelectedProductsWithCosts() {
     const selectedProducts = [];
     const selectedCheckboxes = document.querySelectorAll('.product-checkbox:checked');
@@ -1717,7 +1732,9 @@ async function addSelectedProductsWithCosts() {
         
         const totalCost = quantity * unitCost;
         const dutyAmount = totalCost * (dutyRate / 100);
+        const dutyUnitCost = quantity > 0 ? dutyAmount / quantity : 0;
         
+        // ✅ CORREZIONE: Salva i costi sia nei metadati che nei campi diretti
         const productData = {
             product_id: productId,
             quantity: quantity,
@@ -1725,11 +1742,22 @@ async function addSelectedProductsWithCosts() {
             volume_cbm: quantity > 0 ? volume / quantity : 0,
             total_weight_kg: weight,
             total_volume_cbm: volume,
+            
+            // ✅ NUOVI CAMPI: Salva direttamente nei campi della tabella
+            unit_cost: unitCost,
+            total_cost: totalCost,
+            duty_rate: dutyRate,
+            duty_amount: dutyAmount,
+            duty_unit_cost: dutyUnitCost,
+            customs_fees: customsFees,
+            
+            // Metadati per compatibilità
             cost_metadata: {
                 unitCost: unitCost,
                 totalCost: totalCost,
                 dutyRate: dutyRate,
                 dutyAmount: dutyAmount,
+                dutyUnitCost: dutyUnitCost,
                 customsFees: customsFees,
                 grandTotal: totalCost + dutyAmount + customsFees
             }
@@ -1753,6 +1781,8 @@ async function addSelectedProductsWithCosts() {
         if (globalCustomsFees > 0) {
             const feePerProduct = globalCustomsFees / selectedProducts.length;
             selectedProducts.forEach(product => {
+                // ✅ CORREZIONE: Aggiorna sia i campi diretti che i metadati
+                product.customs_fees += feePerProduct;
                 product.cost_metadata.customsFees += feePerProduct;
                 product.cost_metadata.grandTotal += feePerProduct;
             });
