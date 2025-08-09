@@ -978,90 +978,87 @@ async function editProductCosts(productId) {
             return;
         }
         
-        // ✅ HEADER COMPLETO CON TUTTI I DATI DEL PRODOTTO
+        // ✅ ESTENDI LA MODAL ESISTENTE CON SEZIONE COSTI
         const modalContent = `
-            <div class="product-costs-form">
+            <div class="product-selection-modal">
                 <!-- ✅ HEADER INFORMATIVO DEL PRODOTTO -->
-                <div class="product-header">
-                    <div class="product-info-grid">
+                <div class="product-header" style="background: #f8f9fa; border: 1px solid #e9ecef; border-radius: 8px; padding: 20px; margin-bottom: 20px;">
+                    <div class="product-info-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
                         <div class="info-item">
-                            <label>Cod. Prodotto</label>
-                            <span class="value">${product.product?.sku || product.sku || '-'}</span>
+                            <div style="font-size: 12px; font-weight: 600; color: #6c757d; text-transform: uppercase; margin-bottom: 5px;">Cod. Prodotto</div>
+                            <div style="font-size: 14px; font-weight: 500; color: #212529; padding: 8px 12px; background: white; border: 1px solid #dee2e6; border-radius: 4px;">${product.product?.sku || product.sku || '-'}</div>
                         </div>
                         <div class="info-item">
-                            <label>Descrizione</label>
-                            <span class="value">${product.product?.name || product.name || '-'}</span>
+                            <div style="font-size: 12px; font-weight: 600; color: #6c757d; text-transform: uppercase; margin-bottom: 5px;">Descrizione</div>
+                            <div style="font-size: 14px; font-weight: 500; color: #212529; padding: 8px 12px; background: white; border: 1px solid #dee2e6; border-radius: 4px;">${product.product?.name || product.name || '-'}</div>
                         </div>
                         <div class="info-item">
-                            <label>Peso Totale</label>
-                            <span class="value">${formatWeight(product.total_weight_kg || 0)}</span>
+                            <div style="font-size: 12px; font-weight: 600; color: #6c757d; text-transform: uppercase; margin-bottom: 5px;">Peso Totale</div>
+                            <div style="font-size: 14px; font-weight: 500; color: #212529; padding: 8px 12px; background: white; border: 1px solid #dee2e6; border-radius: 4px;">${formatWeight(product.total_weight_kg || 0)}</div>
                         </div>
                         <div class="info-item">
-                            <label>Volume Totale</label>
-                            <span class="value">${formatVolume(product.total_volume_cbm || 0)}</span>
+                            <div style="font-size: 12px; font-weight: 600; color: #6c757d; text-transform: uppercase; margin-bottom: 5px;">Volume Totale</div>
+                            <div style="font-size: 14px; font-weight: 500; color: #212529; padding: 8px 12px; background: white; border: 1px solid #dee2e6; border-radius: 4px;">${formatVolume(product.total_volume_cbm || 0)}</div>
                         </div>
                         <div class="info-item">
-                            <label>Quantità</label>
-                            <span class="value">${formatQuantity(product.quantity || 0)}</span>
+                            <div style="font-size: 12px; font-weight: 600; color: #6c757d; text-transform: uppercase; margin-bottom: 5px;">Quantità</div>
+                            <div style="font-size: 14px; font-weight: 500; color: #212529; padding: 8px 12px; background: white; border: 1px solid #dee2e6; border-radius: 4px;">${formatQuantity(product.quantity || 0)}</div>
                         </div>
                     </div>
                 </div>
                 
-                <hr class="section-divider">
-                
-                <!-- ✅ SEZIONE COSTI PRODOTTO -->
-                <div class="form-section">
-                    <h5><i class="fas fa-euro-sign"></i> Costi Prodotto</h5>
-                    <div class="form-group">
-                        <label>Costo Unitario (€)</label>
+                <!-- ✅ SEZIONI COSTI INTEGRATE -->
+                <div class="sol-form">
+                    <div class="sol-form-group">
+                        <label class="sol-form-label"><i class="fas fa-euro-sign"></i> Costo Unitario (€)</label>
                         <input type="number" 
                                id="unitCost" 
+                               class="sol-form-input"
                                step="0.01" 
                                value="${product.cost_metadata?.unitCost || ''}"
                                placeholder="es: 25.50">
-                        <small>Costo di acquisto/produzione per unità</small>
+                        <small class="form-text text-muted">Costo di acquisto/produzione per unità</small>
                     </div>
                     
-                    <div class="form-group">
-                        <label>Costo Totale (€)</label>
+                    <div class="sol-form-group">
+                        <label class="sol-form-label"><i class="fas fa-calculator"></i> Costo Totale (€)</label>
                         <input type="number" 
                                id="totalCost" 
+                               class="sol-form-input"
                                step="0.01" 
                                value="${product.cost_metadata?.totalCost || ''}"
                                placeholder="Auto-calcolato o inserimento manuale">
-                        <small>Verrà calcolato automaticamente se lasciato vuoto</small>
+                        <small class="form-text text-muted">Verrà calcolato automaticamente se lasciato vuoto</small>
                     </div>
-                </div>
-                
-                <!-- ✅ SEZIONE DAZI DOGANALI -->
-                <div class="form-section">
-                    <h5><i class="fas fa-ship"></i> Dazi Doganali</h5>
-                    <div class="form-group">
-                        <label>Aliquota Dazio (%)</label>
+                    
+                    <div class="sol-form-group">
+                        <label class="sol-form-label"><i class="fas fa-ship"></i> Aliquota Dazio (%)</label>
                         <input type="number" 
                                id="dutyRate" 
+                               class="sol-form-input"
                                step="0.1" 
                                min="0" 
                                max="100"
                                value="${product.cost_metadata?.dutyRate || ''}"
                                placeholder="es: 8.5">
-                        <small>Percentuale di dazio per questo prodotto</small>
+                        <small class="form-text text-muted">Percentuale di dazio per questo prodotto</small>
                     </div>
                     
-                    <div class="form-group">
-                        <label>Altri Oneri Doganali (€)</label>
+                    <div class="sol-form-group">
+                        <label class="sol-form-label"><i class="fas fa-file-invoice-dollar"></i> Altri Oneri Doganali (€)</label>
                         <input type="number" 
                                id="customsFees" 
+                               class="sol-form-input"
                                step="0.01" 
                                value="${product.cost_metadata?.customsFees || ''}"
                                placeholder="es: 50.00">
-                        <small>Spese fisse: clearance, handling, etc.</small>
+                        <small class="form-text text-muted">Spese fisse: clearance, handling, etc.</small>
                     </div>
                 </div>
                 
                 <!-- ✅ ANTEPRIMA CALCOLI -->
-                <div class="costs-preview">
-                    <h6><i class="fas fa-calculator"></i> Anteprima Calcoli</h6>
+                <div style="margin-top: 20px; padding: 15px; background: #ffffff; border: 1px solid #e5e7eb; border-radius: 8px;">
+                    <h6 style="color: #495057; margin-bottom: 10px;"><i class="fas fa-calculator" style="margin-right: 8px; color: #28a745;"></i>Anteprima Calcoli</h6>
                     <div id="costsCalculation" class="calculation-preview">
                         <!-- Will be populated by JavaScript -->
                     </div>
@@ -1070,7 +1067,7 @@ async function editProductCosts(productId) {
         `;
         
         window.ModalSystem?.show({
-            title: 'Gestione Costi Prodotto',
+            title: `💰 Gestione Costi - ${product.product?.name || product.name}`,
             content: modalContent,
             size: 'lg',
             buttons: [
