@@ -977,6 +977,42 @@
             max-height: 2.8em;
         }
     }
+    
+    /* ✅ STILI PER ECCEDENZE CONTAINER */
+    .usage-row.excess {
+        color: #dc3545;
+        font-weight: 700;
+        background: #f8d7da;
+        padding: 12px;
+        margin: 10px -12px;
+        border-radius: 4px;
+        border: 1px solid #f5c6cb;
+    }
+    
+    .excess-value {
+        color: #721c24 !important;
+        font-weight: 700 !important;
+    }
+    
+    .progress-overflow {
+        height: 100%;
+        position: absolute;
+        top: 0;
+        left: 100%;
+        background: repeating-linear-gradient(
+            45deg,
+            #dc3545,
+            #dc3545 10px,
+            #f8d7da 10px,
+            #f8d7da 20px
+        );
+        border-radius: 0 10px 10px 0;
+    }
+    
+    .progress-bar {
+        position: relative;
+        overflow: visible;
+    }
     </style>
 </head>
 <body>

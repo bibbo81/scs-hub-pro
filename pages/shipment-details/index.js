@@ -2332,9 +2332,11 @@ function generateContainerDetailsHTML(shipmentDetails, containerInfo, metrics) {
                 <h4><i class="fas fa-chart-pie mr-2"></i>Analisi Utilizzo</h4>
     `;
     
-    // ✅ SEZIONE PESO
+        // ✅ SEZIONE PESO - MODIFICA QUESTA PARTE
     if (metrics.weightPercent > 80) {
         const weightStatus = metrics.weightPercent > 100 ? 'danger' : 'warning';
+        const weightExcess = metrics.totalWeightAfter - containerInfo.maxWeight;
+        
         html += `
             <div class="usage-section">
                 <h5><i class="fas fa-weight-hanging mr-2"></i>Peso</h5>
@@ -2355,23 +2357,34 @@ function generateContainerDetailsHTML(shipmentDetails, containerInfo, metrics) {
                         <span>Capacità massima:</span>
                         <span class="value">${formatWeight(containerInfo.maxWeight)}</span>
                     </div>
+                    ${weightExcess > 0 ? `
+                    <div class="usage-row excess">
+                        <span><strong>⚠️ ECCEDENZA PESO:</strong></span>
+                        <span class="value excess-value">${formatWeight(weightExcess)} (${((weightExcess/containerInfo.maxWeight)*100).toFixed(1)}%)</span>
+                    </div>
+                    ` : ''}
                 </div>
                 <div class="progress-container">
                     <div class="progress-bar">
                         <div class="progress-fill ${weightStatus}" style="width: ${Math.min(metrics.weightPercent, 100)}%"></div>
+                        ${metrics.weightPercent > 100 ? `
+                        <div class="progress-overflow" style="width: ${Math.min(metrics.weightPercent - 100, 50)}%; background: #dc3545; opacity: 0.7;"></div>
+                        ` : ''}
                     </div>
                     <div class="progress-label ${weightStatus}">
                         ${metrics.weightPercent.toFixed(1)}% utilizzato
-                        ${metrics.weightPercent > 100 ? ` (Eccedenza: ${formatWeight(metrics.totalWeightAfter - containerInfo.maxWeight)})` : ''}
+                        ${metrics.weightPercent > 100 ? ` - SUPERATO DI ${(metrics.weightPercent - 100).toFixed(1)}%` : ''}
                     </div>
                 </div>
             </div>
         `;
     }
     
-    // ✅ SEZIONE VOLUME
+    // ✅ SEZIONE VOLUME - MODIFICA QUESTA PARTE
     if (metrics.volumePercent > 80) {
         const volumeStatus = metrics.volumePercent > 100 ? 'danger' : 'warning';
+        const volumeExcess = metrics.totalVolumeAfter - containerInfo.maxVolume;
+        
         html += `
             <div class="usage-section">
                 <h5><i class="fas fa-cube mr-2"></i>Volume</h5>
@@ -2392,14 +2405,23 @@ function generateContainerDetailsHTML(shipmentDetails, containerInfo, metrics) {
                         <span>Capacità massima:</span>
                         <span class="value">${formatVolume(containerInfo.maxVolume)}</span>
                     </div>
+                    ${volumeExcess > 0 ? `
+                    <div class="usage-row excess">
+                        <span><strong>⚠️ ECCEDENZA VOLUME:</strong></span>
+                        <span class="value excess-value">${formatVolume(volumeExcess)} (${((volumeExcess/containerInfo.maxVolume)*100).toFixed(1)}%)</span>
+                    </div>
+                    ` : ''}
                 </div>
                 <div class="progress-container">
                     <div class="progress-bar">
                         <div class="progress-fill ${volumeStatus}" style="width: ${Math.min(metrics.volumePercent, 100)}%"></div>
+                        ${metrics.volumePercent > 100 ? `
+                        <div class="progress-overflow" style="width: ${Math.min(metrics.volumePercent - 100, 50)}%; background: #dc3545; opacity: 0.7;"></div>
+                        ` : ''}
                     </div>
                     <div class="progress-label ${volumeStatus}">
                         ${metrics.volumePercent.toFixed(1)}% utilizzato
-                        ${metrics.volumePercent > 100 ? ` (Eccedenza: ${formatVolume(metrics.totalVolumeAfter - containerInfo.maxVolume)})` : ''}
+                        ${metrics.volumePercent > 100 ? ` - SUPERATO DI ${(metrics.volumePercent - 100).toFixed(1)}%` : ''}
                     </div>
                 </div>
             </div>
