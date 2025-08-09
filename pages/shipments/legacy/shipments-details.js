@@ -745,45 +745,327 @@ if (window.ShipmentDetails) {
                 year: 'numeric'
             });
         }
-        
+                
         getProductCard(product) {
-            const unitCost = this.currentShipment?.costs?.costPerUnit?.[product.sku] || 0;
-            const totalCost = unitCost * (product.quantity || 0);
+            const unitCost = product.unitCost || 0;
+            const totalCost = product.totalCost || (unitCost * (product.quantity || 0));
+            const dutyRate = product.dutyRate || 0;
+            const dutyAmount = product.dutyAmount || (totalCost * dutyRate / 100);
+            const customsFees = product.customsFees || 0;
+            const totalProductCosts = totalCost + dutyAmount + customsFees;
             
             return `
                 <div class="product-card">
                     <div class="product-header">
                         <h5>${product.productName || product.sku}</h5>
                         <span class="product-sku">${product.sku}</span>
+                        <div class="product-actions">
+                            <button class="sol-btn sol-btn-sm sol-btn-glass" 
+                                    onclick="window.shipmentDetails.editProductCosts('${product.sku}')">
+                                <i class="fas fa-edit"></i> Costi
+                            </button>
+                        </div>
                     </div>
+                    
                     <div class="product-details">
-                        <div class="detail-row">
-                            <span>Quantità:</span>
-                            <strong>${product.quantity || 0}</strong>
-                        </div>
-                        <div class="detail-row">
-                            <span>Peso unitario:</span>
-                            <span>${product.weight || 0} kg</span>
-                        </div>
-                        <div class="detail-row">
-                            <span>Volume unitario:</span>
-                            <span>${product.volume || 0} m³</span>
-                        </div>
-                        ${unitCost > 0 ? `
-                            <div class="detail-row cost">
-                                <span>Costo unitario:</span>
-                                <strong>€${unitCost.toFixed(2)}</strong>
+                        <!-- Informazioni base -->
+                        <div class="detail-section">
+                            <h6><i class="fas fa-info-circle"></i> Informazioni Base</h6>
+                            <div class="detail-row">
+                                <span>Quantità:</span>
+                                <strong>${product.quantity || 0}</strong>
                             </div>
-                            <div class="detail-row total-cost">
-                                <span>Costo totale:</span>
-                                <strong>€${totalCost.toFixed(2)}</strong>
+                            <div class="detail-row">
+                                <span>Peso unitario:</span>
+                                <span>${product.weight || 0} kg</span>
                             </div>
-                        ` : ''}
+                            <div class="detail-row">
+                                <span>Volume unitario:</span>
+                                <span>${product.volume || 0} m³</span>
+                            </div>
+                        </div>
+                        
+                        <!-- ✅ NUOVA SEZIONE: Costi e Dazi -->
+                        <div class="detail-section costs-section">
+                            <h6><i class="fas fa-euro-sign"></i> Costi e Dazi</h6>
+                            
+                            ${unitCost > 0 ? `
+                                <!-- Costi Prodotto -->
+                                <div class="detail-row">
+                                    <span>Costo unitario:</span>
+                                    <strong>€${unitCost.toFixed(2)}</strong>
+                                </div>
+                                <div class="detail-row">
+                                    <span>Costo totale:</span>
+                                    <strong>€${totalCost.toFixed(2)}</strong>
+                                </div>
+                                
+                                <!-- Dazi -->
+                                ${dutyRate > 0 ? `
+                                    <div class="detail-row duty">
+                                        <span>Aliquota dazio:</span>
+                                        <span>${dutyRate}%</span>
+                                    </div>
+                                    <div class="detail-row duty">
+                                        <span>Importo dazio:</span>
+                                        <strong class="text-warning">€${dutyAmount.toFixed(2)}</strong>
+                                    </div>
+                                ` : ''}
+                                
+                                <!-- Altri oneri -->
+                                ${customsFees > 0 ? `
+                                    <div class="detail-row customs">
+                                        <span>Altri oneri doganali:</span>
+                                        <strong class="text-info">€${customsFees.toFixed(2)}</strong>
+                                    </div>
+                                ` : ''}
+                                
+                                <!-- Totale prodotto -->
+                                <div class="detail-row total-cost">
+                                    <span><strong>Totale prodotto:</strong></span>
+                                    <strong class="text-primary">€${totalProductCosts.toFixed(2)}</strong>
+                                </div>
+                            ` : `
+                                <div class="no-costs">
+                                    <i class="fas fa-exclamation-circle text-warning"></i>
+                                    <span>Costi non definiti</span>
+                                    <button class="sol-btn sol-btn-xs sol-btn-primary" 
+                                            onclick="window.shipmentDetails.editProductCosts('${product.sku}')">
+                                        Aggiungi Costi
+                                    </button>
+                                </div>
+                            `}
+                        </div>
                     </div>
                 </div>
             `;
         }
         
+        // ✅ NUOVO METODO: Edit Product Costs
+        async editProductCosts(productSku) {
+            const product = this.currentShipment.products.find(p => p.sku === productSku);
+            if (!product) return;
+            
+            const modalContent = `
+                <div class="product-costs-form">
+                    <h4><i class="fas fa-cubes"></i> Costi per ${product.productName || productSku}</h4>
+                    
+                    <div class="form-section">
+                        <h5>Costi Prodotto</h5>
+                        <div class="form-group">
+                            <label>Costo Unitario (€)</label>
+                            <input type="number" 
+                                   id="unitCost" 
+                                   step="0.01" 
+                                   value="${product.unitCost || ''}"
+                                   placeholder="es: 25.50">
+                            <small>Costo di acquisto/produzione per unità</small>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Costo Totale (€)</label>
+                            <input type="number" 
+                                   id="totalCost" 
+                                   step="0.01" 
+                                   value="${product.totalCost || ''}"
+                                   placeholder="Auto-calcolato o inserimento manuale">
+                            <small>Verrà calcolato automaticamente se lasciato vuoto</small>
+                        </div>
+                    </div>
+                    
+                    <div class="form-section">
+                        <h5>Dazi Doganali</h5>
+                        <div class="form-group">
+                            <label>Aliquota Dazio (%)</label>
+                            <input type="number" 
+                                   id="dutyRate" 
+                                   step="0.1" 
+                                   min="0" 
+                                   max="100"
+                                   value="${product.dutyRate || ''}"
+                                   placeholder="es: 8.5">
+                            <small>Percentuale di dazio per questo prodotto</small>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Altri Oneri Doganali (€)</label>
+                            <input type="number" 
+                                   id="customsFees" 
+                                   step="0.01" 
+                                   value="${product.customsFees || ''}"
+                                   placeholder="es: 50.00">
+                            <small>Spese fisse: clearance, handling, etc.</small>
+                        </div>
+                    </div>
+                    
+                    <div class="costs-preview">
+                        <h6>Anteprima Calcoli</h6>
+                        <div id="costsCalculation" class="calculation-preview">
+                            <!-- Will be populated by JavaScript -->
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            window.ModalSystem?.show({
+                title: 'Modifica Costi Prodotto',
+                content: modalContent,
+                size: 'lg',
+                buttons: [
+                    {
+                        text: 'Annulla',
+                        class: 'sol-btn-glass',
+                        onclick: () => window.ModalSystem.close()
+                    },
+                    {
+                        text: 'Salva Costi',
+                        class: 'sol-btn-primary',
+                        onclick: () => this.saveProductCosts(productSku)
+                    }
+                ]
+            });
+            
+            // Setup real-time calculation
+            setTimeout(() => this.setupCostCalculation(product), 100);
+        }
+        
+        // ✅ NUOVO METODO: Setup Real-time Cost Calculation
+        setupCostCalculation(product) {
+            const inputs = ['unitCost', 'totalCost', 'dutyRate', 'customsFees'];
+            const quantity = product.quantity || 0;
+            
+            inputs.forEach(inputId => {
+                const input = document.getElementById(inputId);
+                if (input) {
+                    input.addEventListener('input', () => {
+                        this.updateCostCalculation(quantity);
+                    });
+                }
+            });
+            
+            // Initial calculation
+            this.updateCostCalculation(quantity);
+        }
+        
+        // ✅ NUOVO METODO: Update Cost Calculation Preview
+        updateCostCalculation(quantity) {
+            const unitCost = parseFloat(document.getElementById('unitCost')?.value || 0);
+            const manualTotalCost = parseFloat(document.getElementById('totalCost')?.value || 0);
+            const dutyRate = parseFloat(document.getElementById('dutyRate')?.value || 0);
+            const customsFees = parseFloat(document.getElementById('customsFees')?.value || 0);
+            
+            // Calculate totals
+            const calculatedTotalCost = unitCost * quantity;
+            const actualTotalCost = manualTotalCost || calculatedTotalCost;
+            const dutyAmount = actualTotalCost * dutyRate / 100;
+            const grandTotal = actualTotalCost + dutyAmount + customsFees;
+            
+            const previewContainer = document.getElementById('costsCalculation');
+            if (previewContainer) {
+                previewContainer.innerHTML = `
+                    <div class="calc-row">
+                        <span>Quantità:</span>
+                        <strong>${quantity}</strong>
+                    </div>
+                    <div class="calc-row">
+                        <span>Costo totale:</span>
+                        <strong>€${actualTotalCost.toFixed(2)}</strong>
+                        ${manualTotalCost ? '<small>(manuale)</small>' : '<small>(calcolato)</small>'}
+                    </div>
+                    <div class="calc-row duty">
+                        <span>Dazio (${dutyRate}%):</span>
+                        <strong>€${dutyAmount.toFixed(2)}</strong>
+                    </div>
+                    <div class="calc-row">
+                        <span>Altri oneri:</span>
+                        <strong>€${customsFees.toFixed(2)}</strong>
+                    </div>
+                    <div class="calc-row total">
+                        <span><strong>Totale prodotto:</strong></span>
+                        <strong>€${grandTotal.toFixed(2)}</strong>
+                    </div>
+                `;
+            }
+        }
+        
+        // ✅ NUOVO METODO: Save Product Costs
+        async saveProductCosts(productSku) {
+            const unitCost = parseFloat(document.getElementById('unitCost')?.value || 0);
+            const manualTotalCost = parseFloat(document.getElementById('totalCost')?.value || 0);
+            const dutyRate = parseFloat(document.getElementById('dutyRate')?.value || 0);
+            const customsFees = parseFloat(document.getElementById('customsFees')?.value || 0);
+            
+            const product = this.currentShipment.products.find(p => p.sku === productSku);
+            if (!product) return;
+            
+            // Update product with new costs
+            const quantity = product.quantity || 0;
+            const calculatedTotalCost = unitCost * quantity;
+            const actualTotalCost = manualTotalCost || calculatedTotalCost;
+            const dutyAmount = actualTotalCost * dutyRate / 100;
+            
+            product.unitCost = unitCost;
+            product.totalCost = actualTotalCost;
+            product.dutyRate = dutyRate;
+            product.dutyAmount = dutyAmount;
+            product.customsFees = customsFees;
+            
+            // ✅ AGGIORNA COSTI TOTALI SPEDIZIONE
+            this.updateShipmentCostsFromProducts();
+            
+            window.ModalSystem.close();
+            window.NotificationSystem?.show('Successo', 'Costi prodotto aggiornati', 'success');
+            
+            // Refresh the current view
+            if (this.activeTab === 'products') {
+                this.refreshProductsTab();
+            }
+        }
+        
+        // ✅ NUOVO METODO: Update Shipment Costs from Products
+        updateShipmentCostsFromProducts() {
+            if (!this.currentShipment.products) return;
+            
+            let totalInsuranceNeeded = 0;
+            let totalCustomsCosts = 0;
+            
+            // Calcola totali da prodotti
+            this.currentShipment.products.forEach(product => {
+                if (product.totalCost) {
+                    totalInsuranceNeeded += product.totalCost;
+                }
+                if (product.dutyAmount) {
+                    totalCustomsCosts += product.dutyAmount;
+                }
+                if (product.customsFees) {
+                    totalCustomsCosts += product.customsFees;
+                }
+            });
+            
+            // Aggiorna costi spedizione (se non già impostati manualmente)
+            if (!this.currentShipment.insurance_cost && totalInsuranceNeeded > 0) {
+                // Calcola assicurazione come % del valore (es: 0.5%)
+                this.currentShipment.insurance_cost = totalInsuranceNeeded * 0.005;
+            }
+            
+            if (totalCustomsCosts > 0) {
+                this.currentShipment.customs_cost = totalCustomsCosts;
+            }
+            
+            // Ricalcola totale
+            this.updateTotalCost();
+        }
+        
+        // ✅ NUOVO METODO: Update Total Cost
+        updateTotalCost() {
+            const freight = parseFloat(this.currentShipment.freight_cost || 0);
+            const other = parseFloat(this.currentShipment.other_costs || 0);
+            const insurance = parseFloat(this.currentShipment.insurance_cost || 0);
+            const customs = parseFloat(this.currentShipment.customs_cost || 0);
+            
+            this.currentShipment.total_cost = freight + other + insurance + customs;
+        }
+                
         getTotalDocumentsSize(documents) {
             const totalBytes = documents.reduce((sum, doc) => sum + doc.fileSize, 0);
             return this.documentsManager ? this.documentsManager.formatFileSize(totalBytes) : '0 Bytes';
