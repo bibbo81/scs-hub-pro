@@ -874,7 +874,20 @@ calculateCarriersDBPerformance() {
             this.renderError(error.message);
         }
     }
-
+// ✅ RENDERIZZA TUTTI I CHARTS
+renderCharts() {
+    console.log('📊 Rendering all charts...');
+    
+    try {
+        this.renderTrendChart();
+        this.renderTransportModeChart();
+        
+        console.log('✅ All charts rendered successfully');
+        
+    } catch (error) {
+        console.error('❌ Error rendering charts:', error);
+    }
+}
     // ✅ RENDERIZZA KPI CON SELEZIONE PERSONALIZZATA
     renderKPIs() {
         const container = document.getElementById('kpiCards');
