@@ -462,6 +462,13 @@ class UnifiedMetricsSystem {
             // ✅ USA CARRIER_NAME PER LE COMPAGNIE (non più per carriers)
             const companyName = shipment.carrier_name || 'Sconosciuto';
             
+            // ✅ TROVA CARRIER DA TABELLA CARRIERS SE PRESENTE
+            let carrierName = 'Non specificato';
+            if (shipment.carrier_id) {
+                const carrier = this.rawData.carriers.find(c => c.id === shipment.carrier_id);
+                carrierName = carrier ? carrier.name : `Carrier ID: ${shipment.carrier_id}`;
+            }
+            
             const key = `${companyName} → ${carrierName}`;
             
             if (!performance[key]) {
