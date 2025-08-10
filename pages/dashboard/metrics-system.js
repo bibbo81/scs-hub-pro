@@ -17,6 +17,7 @@ class UnifiedMetricsSystem {
         this.METRICS_CONFIG = {
             // KPI Principali (sempre visibili)
             kpis: [
+                // KPI Generali
                 {
                     id: 'total_shipments',
                     name: 'Spedizioni Totali',
@@ -64,9 +65,42 @@ class UnifiedMetricsSystem {
                     color: '#06b6d4',
                     calculation: 'avg_delivery_time',
                     format: 'days'
+                },
+                // ✅ NUOVI KPI PER MODALITÀ TRASPORTO
+                {
+                    id: 'avg_sea_delivery_time',
+                    name: 'Tempo Medio Via Mare',
+                    icon: 'fas fa-ship',
+                    color: '#0891b2',
+                    calculation: 'avg_sea_delivery_time',
+                    format: 'days'
+                },
+                {
+                    id: 'avg_air_delivery_time',
+                    name: 'Tempo Medio Via Aerea',
+                    icon: 'fas fa-plane',
+                    color: '#f59e0b',
+                    calculation: 'avg_air_delivery_time',
+                    format: 'days'
+                },
+                {
+                    id: 'avg_parcel_delivery_time',
+                    name: 'Tempo Medio Parcel',
+                    icon: 'fas fa-box',
+                    color: '#8b5cf6',
+                    calculation: 'avg_parcel_delivery_time',
+                    format: 'days'
+                },
+                {
+                    id: 'avg_road_delivery_time',
+                    name: 'Tempo Medio Stradale',
+                    icon: 'fas fa-truck',
+                    color: '#64748b',
+                    calculation: 'avg_road_delivery_time',
+                    format: 'days'
                 }
             ],
-            
+
             // Categorie di Analisi Avanzate
             categories: {
                 overview: {
@@ -98,7 +132,12 @@ class UnifiedMetricsSystem {
                 avg_cost_shipment: (data) => this.avgCostPerShipment(data.shipments, data.additionalCosts),
                 sum_weight: (data) => this.sumWeight(data.shipments),
                 sum_volume: (data) => this.sumVolume(data.shipments),
-                avg_delivery_time: (data) => this.avgDeliveryTime(data.shipments, data.trackings)
+                avg_delivery_time: (data) => this.avgDeliveryTime(data.shipments, data.trackings),
+                // ✅ NUOVI CALCOLI PER MODALITÀ TRASPORTO
+                avg_sea_delivery_time: (data) => this.avgDeliveryTimeByMode(data.shipments, data.trackings, 'sea'),
+                avg_air_delivery_time: (data) => this.avgDeliveryTimeByMode(data.shipments, data.trackings, 'air'),
+                avg_parcel_delivery_time: (data) => this.avgDeliveryTimeByMode(data.shipments, data.trackings, 'parcel'),
+                avg_road_delivery_time: (data) => this.avgDeliveryTimeByMode(data.shipments, data.trackings, 'road')
             }
         };
         
@@ -369,8 +408,173 @@ class UnifiedMetricsSystem {
             ? deliveredTimes.reduce((a, b) => a + b, 0) / deliveredTimes.length 
             : 0;
     }
+// ✅ CALCOLA TEMPO MEDIO CONSEGNA PER MODALITÀ TRASPORTO
+avgDeliveryTimeByMode(shipments, trackings, mode) {
+    console.log(`🔍 Calculating delivery time for mode: ${mode}`);
+    
+    const deliveredTimes = [];
+    const filteredShipments = shipments.filter(shipment => {
+        const shipmentMode = this.determineShipmentMode(shipment, trackings);
+        return shipmentMode === mode;
+    });
+    
+    console.log(`📦 Found ${filteredShipments.length} shipments for mode ${mode}`);
+    
+    filteredShipments.forEach(shipment => {
+        // ✅ STATI MULTIPLI PER "CONSEGNATO"
+        const deliveredStates = [
+            'delivered', 'consegnato', 'consegnata', 'completed', 'finished',
+            'discharged', 'scaricato', 'scaricata', 'emrt', 'disc', 'gtot',
+            'arrived', 'arrivato', 'arrivata', 'delivery', 'delivered_to_customer',
+            'sailing', 'navigando', 'in_transit', 'in transito'
+        ];
+        
+        const isDelivered = deliveredStates.some(state => 
+            shipment.status?.toLowerCase().includes(state.toLowerCase())
+        ) || shipment.delivery_date || shipment.actual_delivery;
+        
+        if (isDelivered) {
+            console.log(`📦 ${mode} shipment considered: ${shipment.id} - Status: ${shipment.status}`);
+            
+            const days = this.calculateDeliveryDays(shipment);
+            if (days !== null && days > 0 && days < 365) {
+                deliveredTimes.push(days);
+                console.log(`✅ ${mode} days added: ${days}`);
+            }
+        }
+    });
+    
+    console.log(`📊 ${mode} calculation: ${deliveredTimes.length} valid shipments`);
+    console.log(`📊 ${mode} days found: [${deliveredTimes.join(', ')}]`);
+    
+    return deliveredTimes.length > 0 
+        ? deliveredTimes.reduce((a, b) => a + b, 0) / deliveredTimes.length 
+        : 0;
+}
 
-    // ✅ CALCOLA TREND (confronto con periodo precedente)
+// ✅ DETERMINA MODALITÀ SPEDIZIONE - VERSIONE ROBUSTA
+determineShipmentMode(shipment, trackings) {
+    // 🎯 PRIORITÀ 1: Trova tracking corrispondente
+    const tracking = trackings.find(t => 
+        t.shipment_id === shipment.id || 
+        t.tracking_number === shipment.tracking_number ||
+        t.tracking_number === shipment.tracking_code
+    );
+    
+    // 🎯 PRIORITÀ 2: Usa tracking_type se disponibile
+    if (tracking?.tracking_type) {
+        const trackingType = tracking.tracking_type.toLowerCase();
+        
+        // Mapping definitivo tracking types
+        if (['container', 'bl', 'bill_of_lading', 'sea'].includes(trackingType)) {
+            return 'sea';
+        }
+        if (['awb', 'air_waybill', 'airway_bill', 'air'].includes(trackingType)) {
+            return 'air';
+        }
+        if (['parcel', 'package', 'courier', 'express'].includes(trackingType)) {
+            return 'parcel';
+        }
+        if (['truck', 'road', 'rail', 'train'].includes(trackingType)) {
+            return 'road';
+        }
+    }
+    
+    // 🎯 PRIORITÀ 3: Analizza carrier_name per pattern
+    if (shipment.carrier_name) {
+        const carrierName = shipment.carrier_name.toLowerCase();
+        
+        // Pattern spedizionieri marittimi
+        const seaPatterns = ['msc', 'maersk', 'cosco', 'evergreen', 'cma', 'cgm', 'hapag', 'lloyd', 'one', 'shipping', 'line', 'ocean'];
+        if (seaPatterns.some(pattern => carrierName.includes(pattern))) {
+            console.log(`🚢 Detected SEA from carrier: ${shipment.carrier_name}`);
+            return 'sea';
+        }
+        
+        // Pattern spedizionieri aerei
+        const airPatterns = ['lufthansa', 'cargo', 'air', 'emirates', 'klm', 'alitalia', 'dhl', 'fedex'];
+        if (airPatterns.some(pattern => carrierName.includes(pattern))) {
+            console.log(`✈️ Detected AIR from carrier: ${shipment.carrier_name}`);
+            return 'air';
+        }
+        
+        // Pattern corrieri
+        const parcelPatterns = ['ups', 'tnt', 'gls', 'sda', 'bartolini', 'express', 'courier'];
+        if (parcelPatterns.some(pattern => carrierName.includes(pattern))) {
+            console.log(`📦 Detected PARCEL from carrier: ${shipment.carrier_name}`);
+            return 'parcel';
+        }
+        
+        // Pattern stradali
+        const roadPatterns = ['truck', 'trasporti', 'logistics', 'spedizioni', 'autotrasporti'];
+        if (roadPatterns.some(pattern => carrierName.includes(pattern))) {
+            console.log(`🚛 Detected ROAD from carrier: ${shipment.carrier_name}`);
+            return 'road';
+        }
+    }
+    
+    // 🎯 PRIORITÀ 4: Analizza campi spedizione
+    // Container info = Mare
+    if (shipment.container_type || shipment.container_size || shipment.bl_number || shipment.booking_number) {
+        console.log(`🚢 Detected SEA from container fields: ${shipment.id}`);
+        return 'sea';
+    }
+    
+    // Flight number = Aereo  
+    if (shipment.flight_number || shipment.awb_number) {
+        console.log(`✈️ Detected AIR from flight fields: ${shipment.id}`);
+        return 'air';
+    }
+    
+    // 🎯 PRIORITÀ 5: Analizza metadati tracking per pattern
+    if (tracking?.metadata) {
+        try {
+            const metadataStr = JSON.stringify(tracking.metadata).toLowerCase();
+            
+            if (metadataStr.includes('container') || metadataStr.includes('vessel') || metadataStr.includes('port')) {
+                console.log(`🚢 Detected SEA from metadata: ${tracking.tracking_number}`);
+                return 'sea';
+            }
+            
+            if (metadataStr.includes('flight') || metadataStr.includes('airport') || metadataStr.includes('awb')) {
+                console.log(`✈️ Detected AIR from metadata: ${tracking.tracking_number}`);
+                return 'air';
+            }
+            
+            if (metadataStr.includes('parcel') || metadataStr.includes('package') || metadataStr.includes('delivery')) {
+                console.log(`📦 Detected PARCEL from metadata: ${tracking.tracking_number}`);
+                return 'parcel';
+            }
+        } catch (error) {
+            console.warn('⚠️ Error parsing metadata for mode detection:', error);
+        }
+    }
+    
+    // 🎯 FALLBACK: Analizza peso/volume per guess intelligente
+    const weight = parseFloat(shipment.total_weight_kg) || 0;
+    const volume = parseFloat(shipment.total_volume_cbm) || 0;
+    
+    // Logica euristica basata su peso/volume
+    if (volume > 50 || weight > 5000) {
+        // Grandi volumi/pesi = Mare
+        console.log(`🚢 Detected SEA from weight/volume: ${weight}kg, ${volume}m³`);
+        return 'sea';
+    } else if (weight < 100 && volume < 1) {
+        // Piccoli pesi/volumi = Parcel/Corriere
+        console.log(`📦 Detected PARCEL from weight/volume: ${weight}kg, ${volume}m³`);
+        return 'parcel';
+    } else if (weight < 1000 && volume < 10) {
+        // Pesi medi = Potenzialmente aereo
+        console.log(`✈️ Detected AIR from weight/volume: ${weight}kg, ${volume}m³`);
+        return 'air';
+    }
+    
+    // Default = Road (stradale/terrestre)
+    console.log(`🚛 Default ROAD for shipment: ${shipment.id}`);
+    return 'road';
+}
+
+// ✅ CALCOLA TREND (confronto con periodo precedente)
     calculateTrend(metricId) {
         // TODO: Implementa logica di confronto con periodo precedente
         // Per ora restituisce valore mock
