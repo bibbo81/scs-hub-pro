@@ -1733,133 +1733,91 @@ if (window.ModalSystem) {
         
         return total;
     }
-        // ✅ CALCOLA GIORNI CONSEGNA - VERSIONE ULTRA-ROBUSTA COME TRACKING.HTML
+    // ✅ CALCOLA GIORNI CONSEGNA - VERSIONE METADATA-BASED
     calculateDeliveryDays(shipment) {
         console.log(`🔍 Calculating delivery days for shipment ${shipment.id}`);
         
-        // 🎯 PRIORITÀ 1: delivery_date vs created_at (più accurato)
-        if (shipment.delivery_date && shipment.created_at) {
-            const startDate = new Date(shipment.created_at);
-            const endDate = new Date(shipment.delivery_date);
-            
-            if (!isNaN(startDate.getTime()) && !isNaN(endDate.getTime())) {
-                const days = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24));
-                if (days >= 0 && days <= 365) {
-                    console.log(`✅ From delivery_date: ${days} giorni`);
-                    return days;
-                }
-            }
-        }
-        
-        // 🎯 PRIORITÀ 2: ETA vs created_at (stima)
-        if (shipment.eta && shipment.created_at) {
-            const startDate = new Date(shipment.created_at);
-            const etaDate = new Date(shipment.eta);
-            
-            if (!isNaN(startDate.getTime()) && !isNaN(etaDate.getTime())) {
-                const days = Math.ceil((etaDate - startDate) / (1000 * 60 * 60 * 24));
-                if (days >= 0 && days <= 365) {
-                    console.log(`📅 From ETA: ${days} giorni`);
-                    return days;
-                }
-            }
-        }
-        
-        // 🎯 PRIORITÀ 3: updated_at vs created_at (tracking.html style)
-        if (shipment.updated_at && shipment.created_at) {
-            const startDate = new Date(shipment.created_at);
-            const endDate = new Date(shipment.updated_at);
-            
-            if (!isNaN(startDate.getTime()) && !isNaN(endDate.getTime())) {
-                const days = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24));
-                if (days >= 0 && days <= 365) {
-                    console.log(`🔄 From updated_at: ${days} giorni`);
-                    return days;
-                }
-            }
-        }
-        
-        // 🎯 PRIORITÀ 4: Cerca il tracking e usa TUTTI i suoi campi date
+        // 🎯 PRIORITÀ 1: Trova il tracking corrispondente
         const tracking = this.rawData.trackings.find(t => 
             t.shipment_id === shipment.id || 
             t.tracking_number === shipment.tracking_number ||
             t.tracking_number === shipment.tracking_code
         );
         
-        if (tracking) {
-            console.log(`🔍 Found tracking ${tracking.tracking_number || tracking.id}, checking all date fields...`);
-            
-            // ✅ ESTRAI TUTTE LE POSSIBILI DATE DAL TRACKING
-            const possibleDateFields = [
-                'delivery_date', 'delivered_at', 'completion_date', 'completed_at',
-                'arrival_date', 'arrived_at', 'finished_at', 'final_date',
-                'last_update_date', 'updated_at', 'modified_at'
-            ];
-            
-            const startDate = new Date(tracking.created_at || shipment.created_at);
-            
-            for (const field of possibleDateFields) {
-                if (tracking[field] && tracking[field] !== null) {
-                    const endDate = new Date(tracking[field]);
-                    
-                    if (!isNaN(endDate.getTime()) && endDate > startDate) {
-                        const days = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24));
-                        if (days >= 0 && days <= 365) {
-                            console.log(`✅ From tracking.${field}: ${days} giorni`);
-                            return days;
-                        }
-                    }
-                }
-            }
-            
-            // ✅ SE HA EVENTI, USA PRIMO E ULTIMO (come tracking.html)
-            if (tracking.events && Array.isArray(tracking.events) && tracking.events.length >= 2) {
-                try {
-                    const sortedEvents = tracking.events
-                        .filter(event => event.date || event.timestamp || event.datetime)
-                        .sort((a, b) => {
-                            const dateA = new Date(a.date || a.timestamp || a.datetime);
-                            const dateB = new Date(b.date || b.timestamp || b.datetime);
-                            return dateA - dateB;
-                        });
-                    
-                    if (sortedEvents.length >= 2) {
-                        const firstEvent = sortedEvents[0];
-                        const lastEvent = sortedEvents[sortedEvents.length - 1];
-                        
-                        const startDate = new Date(firstEvent.date || firstEvent.timestamp || firstEvent.datetime);
-                        const endDate = new Date(lastEvent.date || lastEvent.timestamp || lastEvent.datetime);
-                        
-                        if (!isNaN(startDate.getTime()) && !isNaN(endDate.getTime())) {
-                            const days = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24));
-                            if (days >= 0 && days <= 365) {
-                                console.log(`✅ From tracking events: ${days} giorni`);
-                                return days;
-                            }
-                        }
-                    }
-                } catch (error) {
-                    console.log(`⚠️ Error processing events:`, error);
-                }
-            }
-            
-            // ✅ FALLBACK: tracking updated_at vs created_at
-            if (tracking.updated_at && tracking.created_at) {
-                const startDate = new Date(tracking.created_at);
-                const endDate = new Date(tracking.updated_at);
-                
-                if (!isNaN(startDate.getTime()) && !isNaN(endDate.getTime()) && endDate > startDate) {
-                    const days = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24));
-                    if (days >= 0 && days <= 365) {
-                        console.log(`🔄 From tracking updated_at: ${days} giorni`);
-                        return days;
-                    }
-                }
-            }
+        if (!tracking || !tracking.metadata) {
+            console.log(`⚠️ Nessun tracking o metadata trovato per spedizione ${shipment.id}`);
+            return null;
         }
         
-        console.log(`❌ No valid dates found for shipment ${shipment.id}`);
-        return null;
+        try {
+            let movements = [];
+            let startDate = null;
+            let endDate = null;
+            
+            // ✅ ESTRAI MOVEMENTS DA METADATA - VERSIONE ROBUSTA
+            if (tracking.metadata.raw && tracking.metadata.raw.shipment && tracking.metadata.raw.shipment.containers) {
+                // Tipo Container: movimenti nei containers
+                const container = tracking.metadata.raw.shipment.containers[0];
+                if (container && container.movements) {
+                    movements = container.movements;
+                    console.log(`📦 Container movements trovati: ${movements.length} eventi`);
+                }
+            } else if (tracking.metadata.raw && tracking.metadata.raw.movements) {
+                // Tipo AWB: movimenti diretti
+                movements = tracking.metadata.raw.movements;
+                console.log(`✈️ AWB movements trovati: ${movements.length} eventi`);
+            } else if (tracking.metadata.mapped && tracking.metadata.mapped._raw_api_response && tracking.metadata.mapped._raw_api_response.movements) {
+                // Tipo AWB alternativo
+                movements = tracking.metadata.mapped._raw_api_response.movements;
+                console.log(`✈️ AWB mapped movements trovati: ${movements.length} eventi`);
+            }
+            
+            if (movements.length === 0) {
+                console.log(`❌ Nessun movimento trovato nel metadata`);
+                return null;
+            }
+            
+            // ✅ TROVA DATE INIZIO E FINE
+            const sortedMovements = movements
+                .filter(m => m.timestamp || m.date)
+                .sort((a, b) => {
+                    const dateA = new Date(a.timestamp || a.date);
+                    const dateB = new Date(b.timestamp || b.date);
+                    return dateA - dateB;
+                });
+            
+            if (sortedMovements.length < 2) {
+                console.log(`⚠️ Movimenti insufficienti: ${sortedMovements.length}`);
+                return null;
+            }
+            
+            startDate = new Date(sortedMovements[0].timestamp || sortedMovements[0].date);
+            endDate = new Date(sortedMovements[sortedMovements.length - 1].timestamp || sortedMovements[sortedMovements.length - 1].date);
+            
+            // ✅ VERIFICA DATE VALIDE
+            if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+                console.log(`❌ Date non valide: ${startDate} → ${endDate}`);
+                return null;
+            }
+            
+            const days = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24));
+            
+            // ✅ VERIFICA RAGIONEVOLEZZA
+            if (days < 0 || days > 365) {
+                console.log(`⚠️ Giorni non ragionevoli: ${days}`);
+                return null;
+            }
+            
+            console.log(`✅ Transit time calcolato: ${days} giorni (${startDate.toLocaleDateString()} → ${endDate.toLocaleDateString()})`);
+            console.log(`   Primo evento: ${sortedMovements[0].event || 'N/A'} - ${sortedMovements[0].location?.name || sortedMovements[0].location || 'N/A'}`);
+            console.log(`   Ultimo evento: ${sortedMovements[sortedMovements.length - 1].event || 'N/A'} - ${sortedMovements[sortedMovements.length - 1].location?.name || sortedMovements[sortedMovements.length - 1].location || 'N/A'}`);
+            
+            return days;
+            
+        } catch (error) {
+            console.error(`❌ Errore nel parsing metadata per tracking ${tracking.tracking_number}:`, error);
+            return null;
+        }
     }
         // ✅ DEBUG TRACKING DATA PER VERIFICARE STRUTTURA
     debugTrackingData(limit = 3) {
