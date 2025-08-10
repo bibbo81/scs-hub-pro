@@ -875,28 +875,270 @@ calculateCarriersDBPerformance() {
         }
     }
 
-    // ✅ RENDERIZZA KPI
+    // ✅ RENDERIZZA KPI CON SELEZIONE PERSONALIZZATA
     renderKPIs() {
         const container = document.getElementById('kpiCards');
         if (!container || !this.processedMetrics.kpis) return;
         
-        const kpiHTML = Object.values(this.processedMetrics.kpis).map((kpi, index) => `
-            <div class="kpi-card-wrapper" data-kpi-index="${index}">
-                <div class="kpi-card">
-                    <div class="kpi-icon-small" style="background-color: ${kpi.color};">
-                        <i class="${kpi.icon}"></i>
+        // ✅ OTTIENI KPI SELEZIONATI (salva/carica da localStorage)
+        const selectedKPIs = this.getSelectedKPIs();
+        const filteredKPIs = Object.values(this.processedMetrics.kpis).filter(kpi => 
+            selectedKPIs.includes(kpi.id)
+        );
+        
+        // ✅ HEADER CON CONTROLLI
+        const headerHTML = `
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h5 class="mb-0">📊 KPI Dashboard</h5>
+                <div class="btn-group">
+                    <button class="btn btn-outline-primary btn-sm" onclick="metricsSystem.showKPISelector()">
+                        <i class="fas fa-cog me-1"></i>Personalizza KPI
+                    </button>
+                    <button class="btn btn-outline-secondary btn-sm" onclick="metricsSystem.resetKPISelection()">
+                        <i class="fas fa-undo me-1"></i>Reset
+                    </button>
+                </div>
+            </div>
+        `;
+        
+        // ✅ NUOVO LAYOUT RESPONSIVE CON STILE MIGLIORATO
+        const kpiHTML = filteredKPIs.map((kpi, index) => `
+            <div class="col-xl-3 col-lg-4 col-md-6 col-sm-12 mb-3" data-kpi-id="${kpi.id}">
+                <div class="kpi-card-modern h-100">
+                    <div class="kpi-card-header">
+                        <div class="kpi-icon-modern" style="background: linear-gradient(135deg, ${kpi.color}15, ${kpi.color}25);">
+                            <i class="${kpi.icon}" style="color: ${kpi.color};"></i>
+                        </div>
+                        <div class="kpi-trend-badge ${this.getTrendClass(kpi.trend)}">
+                            ${this.getTrendIcon(kpi.trend)} ${kpi.trend}
+                        </div>
                     </div>
-                    <div class="kpi-label-small">${kpi.name}</div>
-                    <div class="kpi-value-small">${this.formatValue(kpi.value, kpi.format)}</div>
-                    <div class="growth-indicator-small ${this.getTrendClass(kpi.trend)}">
-                        ${this.getTrendIcon(kpi.trend)} ${kpi.trend}
+                    <div class="kpi-card-body">
+                        <div class="kpi-label-modern">${kpi.name}</div>
+                        <div class="kpi-value-modern" style="color: ${kpi.color};">
+                            ${this.formatValue(kpi.value, kpi.format)}
+                        </div>
                     </div>
                 </div>
             </div>
         `).join('');
         
-        container.innerHTML = kpiHTML;
-        console.log('✅ KPIs rendered');
+        // ✅ MESSAGE SE NESSUN KPI SELEZIONATO
+        const emptyMessage = filteredKPIs.length === 0 ? `
+            <div class="col-12">
+                <div class="alert alert-info text-center">
+                    <i class="fas fa-info-circle me-2"></i>
+                    <strong>Nessun KPI selezionato</strong><br>
+                    <small>Clicca su "Personalizza KPI" per scegliere quali metriche visualizzare</small>
+                    <button class="btn btn-primary btn-sm mt-2 d-block mx-auto" onclick="metricsSystem.showKPISelector()">
+                        <i class="fas fa-plus me-1"></i>Aggiungi KPI
+                    </button>
+                </div>
+            </div>
+        ` : '';
+        
+        container.innerHTML = headerHTML + '<div class="row">' + kpiHTML + emptyMessage + '</div>';
+        console.log('✅ KPIs rendered:', filteredKPIs.length, 'of', Object.keys(this.processedMetrics.kpis).length);
+    }
+    
+    // ✅ OTTIENI KPI SELEZIONATI (da localStorage o default)
+    getSelectedKPIs() {
+        const saved = localStorage.getItem('selectedKPIs');
+        if (saved) {
+            try {
+                return JSON.parse(saved);
+            } catch (error) {
+                console.warn('⚠️ Errore parsing selectedKPIs, uso default');
+            }
+        }
+        
+        // ✅ DEFAULT: KPI PIÙ IMPORTANTI
+        return [
+            'total_shipments',
+            'total_costs', 
+            'avg_cost_per_shipment',
+            'avg_delivery_time',
+            'avg_sea_delivery_time',
+            'avg_air_delivery_time'
+        ];
+    }
+    
+    // ✅ SALVA KPI SELEZIONATI
+    saveSelectedKPIs(selectedIds) {
+        localStorage.setItem('selectedKPIs', JSON.stringify(selectedIds));
+        console.log('✅ KPI selection saved:', selectedIds);
+    }
+    
+    // ✅ MOSTRA SELETTORE KPI
+    showKPISelector() {
+        const allKPIs = this.METRICS_CONFIG.kpis;
+        const selectedKPIs = this.getSelectedKPIs();
+        
+        const modalContent = `
+            <div class="kpi-selector">
+                <p class="text-muted mb-4">
+                    <i class="fas fa-info-circle me-2"></i>
+                    Seleziona i KPI che vuoi visualizzare nella dashboard. Puoi scegliere fino a 8 KPI per una visualizzazione ottimale.
+                </p>
+                
+                <div class="row g-3">
+                    ${allKPIs.map(kpi => `
+                        <div class="col-md-6">
+                            <div class="form-check kpi-check-item">
+                                <input class="form-check-input" type="checkbox" 
+                                       id="kpi_${kpi.id}" value="${kpi.id}"
+                                       ${selectedKPIs.includes(kpi.id) ? 'checked' : ''}>
+                                <label class="form-check-label w-100" for="kpi_${kpi.id}">
+                                    <div class="d-flex align-items-center">
+                                        <div class="kpi-mini-icon me-3" style="background: linear-gradient(135deg, ${kpi.color}15, ${kpi.color}25);">
+                                            <i class="${kpi.icon}" style="color: ${kpi.color};"></i>
+                                        </div>
+                                        <div class="flex-grow-1">
+                                            <div class="fw-semibold">${kpi.name}</div>
+                                            <div class="small text-muted">${this.getKPIDescription(kpi.id)}</div>
+                                        </div>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+                
+                <div class="mt-4 pt-3 border-top">
+                    <div class="row g-2">
+                        <div class="col-6">
+                            <button class="btn btn-outline-secondary w-100" onclick="metricsSystem.selectKPIPreset('basic')">
+                                <i class="fas fa-layer-group me-1"></i>Base (6)
+                            </button>
+                        </div>
+                        <div class="col-6">
+                            <button class="btn btn-outline-info w-100" onclick="metricsSystem.selectKPIPreset('advanced')">
+                                <i class="fas fa-chart-line me-1"></i>Avanzato (10)
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        if (window.ModalSystem) {
+            window.ModalSystem.show({
+                title: '⚙️ Personalizza KPI Dashboard',
+                content: modalContent,
+                size: 'lg',
+                customClass: 'kpi-selector-modal',
+                onConfirm: () => this.applyKPISelection(),
+                confirmText: 'Applica Selezione',
+                cancelText: 'Annulla'
+            });
+        }
+    }
+    
+    // ✅ APPLICA SELEZIONE KPI
+    applyKPISelection() {
+        const checkboxes = document.querySelectorAll('.kpi-selector input[type="checkbox"]:checked');
+        const selectedIds = Array.from(checkboxes).map(cb => cb.value);
+        
+        if (selectedIds.length === 0) {
+            alert('⚠️ Seleziona almeno un KPI');
+            return false;
+        }
+        
+        if (selectedIds.length > 8) {
+            alert('⚠️ Puoi selezionare massimo 8 KPI per una visualizzazione ottimale');
+            return false;
+        }
+        
+        this.saveSelectedKPIs(selectedIds);
+        this.renderKPIs(); // Re-renderizza immediatamente
+        
+        // ✅ NOTIFICA SUCCESSO
+        if (window.NotificationSystem) {
+            window.NotificationSystem.show({
+                type: 'success',
+                title: 'KPI Aggiornati',
+                message: `Dashboard aggiornata con ${selectedIds.length} KPI selezionati`,
+                duration: 3000
+            });
+        }
+        
+        return true;
+    }
+    
+    // ✅ PRESET KPI
+    selectKPIPreset(presetType) {
+        const checkboxes = document.querySelectorAll('.kpi-selector input[type="checkbox"]');
+        
+        // Deseleziona tutti
+        checkboxes.forEach(cb => cb.checked = false);
+        
+        let presetIds = [];
+        
+        switch (presetType) {
+            case 'basic':
+                presetIds = [
+                    'total_shipments',
+                    'total_costs',
+                    'avg_cost_per_shipment',
+                    'total_weight',
+                    'total_volume',
+                    'avg_delivery_time'
+                ];
+                break;
+            case 'advanced':
+                presetIds = [
+                    'total_shipments',
+                    'total_costs',
+                    'avg_delivery_time',
+                    'avg_sea_delivery_time',
+                    'avg_air_delivery_time',
+                    'avg_parcel_delivery_time',
+                    'avg_road_delivery_time',
+                    'total_weight',
+                    'total_volume',
+                    'avg_cost_per_shipment'
+                ];
+                break;
+        }
+        
+        // Seleziona preset
+        presetIds.forEach(id => {
+            const checkbox = document.getElementById(`kpi_${id}`);
+            if (checkbox) checkbox.checked = true;
+        });
+    }
+    
+    // ✅ RESET SELEZIONE KPI
+    resetKPISelection() {
+        localStorage.removeItem('selectedKPIs');
+        this.renderKPIs();
+        
+        if (window.NotificationSystem) {
+            window.NotificationSystem.show({
+                type: 'info',
+                title: 'KPI Reset',
+                message: 'Selezione KPI ripristinata ai valori predefiniti',
+                duration: 3000
+            });
+        }
+    }
+    
+    // ✅ DESCRIZIONI KPI
+    getKPIDescription(kpiId) {
+        const descriptions = {
+            'total_shipments': 'Numero totale spedizioni nel periodo',
+            'total_costs': 'Somma di tutti i costi sostenuti',
+            'avg_cost_per_shipment': 'Costo medio per singola spedizione',
+            'total_weight': 'Peso totale spedito',
+            'total_volume': 'Volume totale spedito',
+            'avg_delivery_time': 'Tempo medio di consegna generale',
+            'avg_sea_delivery_time': 'Tempo medio consegne marittime',
+            'avg_air_delivery_time': 'Tempo medio consegne aeree',
+            'avg_parcel_delivery_time': 'Tempo medio consegne corriere',
+            'avg_road_delivery_time': 'Tempo medio consegne stradali'
+        };
+        
+        return descriptions[kpiId] || 'Metrica personalizzata';
     }
 
     // ✅ RENDERIZZA CHARTS

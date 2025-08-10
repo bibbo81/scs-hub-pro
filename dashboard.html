@@ -409,6 +409,224 @@
                 .sol-modal-content.analytics-modal .mt-3 {
                     margin-top: 4px !important;
                 }
+                
+                /* ✅ STILI KPI CARDS MODERNI */
+                .kpi-card-modern {
+                    background: #ffffff;
+                    border-radius: 16px;
+                    border: 1px solid #e5e7eb;
+                    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+                    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                    position: relative;
+                    overflow: hidden;
+                }
+                
+                .kpi-card-modern:hover {
+                    transform: translateY(-2px);
+                    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+                    border-color: #d1d5db;
+                }
+                
+                .kpi-card-header {
+                    padding: 1.5rem 1.5rem 0 1.5rem;
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: flex-start;
+                }
+                
+                .kpi-icon-modern {
+                    width: 48px;
+                    height: 48px;
+                    border-radius: 12px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    flex-shrink: 0;
+                }
+                
+                .kpi-icon-modern i {
+                    font-size: 20px;
+                    line-height: 1;
+                }
+                
+                .kpi-trend-badge {
+                    font-size: 0.75rem;
+                    font-weight: 600;
+                    padding: 0.25rem 0.5rem;
+                    border-radius: 6px;
+                    line-height: 1;
+                    white-space: nowrap;
+                }
+                
+                .kpi-trend-badge.growth-positive {
+                    background: #dcfce7;
+                    color: #16a34a;
+                }
+                
+                .kpi-trend-badge.growth-negative {
+                    background: #fef2f2;
+                    color: #dc2626;
+                }
+                
+                .kpi-trend-badge:not(.growth-positive):not(.growth-negative) {
+                    background: #f3f4f6;
+                    color: #6b7280;
+                }
+                
+                .kpi-card-body {
+                    padding: 0.75rem 1.5rem 1.5rem 1.5rem;
+                }
+                
+                .kpi-label-modern {
+                    color: #6b7280;
+                    font-size: 0.875rem;
+                    font-weight: 500;
+                    margin-bottom: 0.5rem;
+                    line-height: 1.2;
+                }
+                
+                .kpi-value-modern {
+                    font-size: 1.875rem;
+                    font-weight: 700;
+                    line-height: 1.1;
+                    margin: 0;
+                }
+                
+                /* ✅ RESPONSIVE TYPOGRAPHY */
+                @media (max-width: 1400px) {
+                    .kpi-value-modern {
+                        font-size: 1.625rem;
+                    }
+                    .kpi-icon-modern {
+                        width: 42px;
+                        height: 42px;
+                    }
+                    .kpi-icon-modern i {
+                        font-size: 18px;
+                    }
+                }
+                
+                @media (max-width: 992px) {
+                    .kpi-value-modern {
+                        font-size: 1.5rem;
+                    }
+                    .kpi-card-header {
+                        padding: 1.25rem 1.25rem 0 1.25rem;
+                    }
+                    .kpi-card-body {
+                        padding: 0.5rem 1.25rem 1.25rem 1.25rem;
+                    }
+                }
+                
+                @media (max-width: 768px) {
+                    .kpi-value-modern {
+                        font-size: 1.375rem;
+                    }
+                    .kpi-icon-modern {
+                        width: 38px;
+                        height: 38px;
+                    }
+                    .kpi-icon-modern i {
+                        font-size: 16px;
+                    }
+                }
+                
+                /* ✅ STILI SELETTORE KPI */
+                .kpi-selector-modal .modal-dialog {
+                    max-width: 800px;
+                }
+                
+                .kpi-check-item {
+                    background: #f8fafc;
+                    border: 2px solid #e2e8f0;
+                    border-radius: 12px;
+                    padding: 1rem;
+                    transition: all 0.2s ease;
+                    cursor: pointer;
+                }
+                
+                .kpi-check-item:hover {
+                    background: #f1f5f9;
+                    border-color: #cbd5e1;
+                }
+                
+                .kpi-check-item:has(input:checked) {
+                    background: #dbeafe;
+                    border-color: #3b82f6;
+                }
+                
+                .kpi-mini-icon {
+                    width: 36px;
+                    height: 36px;
+                    border-radius: 8px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    flex-shrink: 0;
+                }
+                
+                .kpi-mini-icon i {
+                    font-size: 16px;
+                }
+                
+                .form-check-label {
+                    cursor: pointer;
+                }
+                
+                /* ✅ ANIMAZIONI */
+                @keyframes slideInUp {
+                    from {
+                        opacity: 0;
+                        transform: translateY(20px);
+                    }
+                    to {
+                        opacity: 1;
+                        transform: translateY(0);
+                    }
+                }
+                
+                .kpi-card-modern {
+                    animation: slideInUp 0.3s ease-out;
+                }
+                
+                .kpi-card-modern:nth-child(1) { animation-delay: 0ms; }
+                .kpi-card-modern:nth-child(2) { animation-delay: 50ms; }
+                .kpi-card-modern:nth-child(3) { animation-delay: 100ms; }
+                .kpi-card-modern:nth-child(4) { animation-delay: 150ms; }
+                .kpi-card-modern:nth-child(5) { animation-delay: 200ms; }
+                .kpi-card-modern:nth-child(6) { animation-delay: 250ms; }
+                .kpi-card-modern:nth-child(7) { animation-delay: 300ms; }
+                .kpi-card-modern:nth-child(8) { animation-delay: 350ms; }
+                
+                /* ✅ MIGLIORAMENTI ACCESSIBILITÀ */
+                .kpi-card-modern:focus-within {
+                    outline: 2px solid #3b82f6;
+                    outline-offset: 2px;
+                }
+                
+                .kpi-trend-badge {
+                    min-width: 60px;
+                    text-align: center;
+                }
+                
+                /* ✅ DARK MODE SUPPORT (OPZIONALE) */
+                @media (prefers-color-scheme: dark) {
+                    .kpi-card-modern {
+                        background: #1f2937;
+                        border-color: #374151;
+                        color: #f9fafb;
+                    }
+                    
+                    .kpi-label-modern {
+                        color: #9ca3af;
+                    }
+                    
+                    .kpi-check-item {
+                        background: #374151;
+                        border-color: #4b5563;
+                        color: #f9fafb;
+                    }
+                }
     </style>
 </head>
 <body>
