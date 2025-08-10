@@ -1096,15 +1096,6 @@
             <div class="sol-card-body">
                 <div class="row g-3">
                     <div class="col-md-2">
-                        <label class="form-label">Periodo</label>
-                        <select class="form-select" id="periodFilter">
-                            <option value="7">7 giorni</option>
-                            <option value="30" selected>30 giorni</option>
-                            <option value="90">3 mesi</option>
-                            <option value="365">1 anno</option>
-                        </select>
-                    </div>
-                    <div class="col-md-2">
                         <label class="form-label">Compagnia</label>
                         <select class="form-select" id="companyFilter">
                             <option value="">Tutte le compagnie</option>
@@ -1125,13 +1116,25 @@
                             <option value="pending">In attesa</option>
                         </select>
                     </div>
+                                        <!-- ✅ SOSTITUISCI IL SELECT PERIODO CON QUESTO -->
                     <div class="col-md-3">
-                        <button class="btn btn-primary w-100" onclick="applyFiltersFromUI()">
-                            <i class="fas fa-filter"></i> Applica Filtri
-                        </button>
-                        <button class="btn btn-outline-secondary w-100 mt-2" onclick="clearFilters()">
-                            <i class="fas fa-times"></i> Reset
-                        </button>
+                        <label for="dateFromFilter" class="form-label">📅 Da:</label>
+                        <input type="date" class="form-control" id="dateFromFilter" onchange="applyDateFilters()">
+                    </div>
+                    <div class="col-md-3">
+                        <label for="dateToFilter" class="form-label">📅 A:</label>
+                        <input type="date" class="form-control" id="dateToFilter" onchange="applyDateFilters()">
+                    </div>
+                    <!-- ✅ AGGIUNGI QUESTO BLOCCO QUI -->
+                    <div class="col-12">
+                        <div class="btn-group btn-group-sm" role="group">
+                            <button type="button" class="btn btn-outline-secondary" onclick="metricsSystem.applyDatePreset('today')">Oggi</button>
+                            <button type="button" class="btn btn-outline-secondary" onclick="metricsSystem.applyDatePreset('week')">7gg</button>
+                            <button type="button" class="btn btn-outline-secondary" onclick="metricsSystem.applyDatePreset('month')">30gg</button>
+                            <button type="button" class="btn btn-outline-secondary" onclick="metricsSystem.applyDatePreset('quarter')">90gg</button>
+                            <button type="button" class="btn btn-outline-secondary" onclick="metricsSystem.resetDateFilters()">Reset</button>
+                        </div>
+                    </div>
                     </div>
                 </div>
             </div>
@@ -1264,7 +1267,6 @@
                 // ✅ FUNZIONI FILTRI AGGIORNATE
         function applyFiltersFromUI() {
             const filters = {
-                period: parseInt(document.getElementById('periodFilter').value),
                 company: document.getElementById('companyFilter').value,
                 carrier: document.getElementById('carrierFilter').value,
                 status: document.getElementById('statusFilter').value
@@ -1275,19 +1277,26 @@
         }
         
         function clearFilters() {
-            document.getElementById('periodFilter').value = '30';
             document.getElementById('companyFilter').value = '';
             document.getElementById('carrierFilter').value = '';
             document.getElementById('statusFilter').value = '';
             
+            metricsSystem.resetDateFilters();
+
             metricsSystem.applyFilters({
-                period: 30,
                 company: '',
                 carrier: '',
                 status: ''
             });
         }
     </script>
-      
+      <script>
+// ✅ FUNZIONE GLOBALE PER I FILTRI DATE
+function applyDateFilters() {
+    if (window.metricsSystem && window.metricsSystem.applyDateFilters) {
+        window.metricsSystem.applyDateFilters();
+    }
+}
+</script>
     </body>
 </html>

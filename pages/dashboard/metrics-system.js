@@ -157,13 +157,16 @@ class UnifiedMetricsSystem {
             // 2. Ottieni Organization ID
             await this.getOrganizationId();
             
-            // 3. Carica dati iniziali
+            // ✅ 3. INIZIALIZZA FILTRI DATE
+            this.initializeDateFilters();
+            
+            // 4. Carica dati iniziali
             await this.loadRawData();
             
-            // 4. Calcola metriche
+            // 5. Calcola metriche
             await this.calculateAllMetrics();
             
-            // 5. Renderizza dashboard
+            // 6. Renderizza dashboard
             this.renderDashboard();
             
             this.initialized = true;
@@ -211,7 +214,7 @@ class UnifiedMetricsSystem {
         }
     }
 
-    // ✅ CARICA RAW DATA
+       // ✅ CARICA RAW DATA CON FILTRO DATE GRANULARE
     async loadRawData() {
         console.log('📥 Loading raw data...');
         
@@ -220,24 +223,55 @@ class UnifiedMetricsSystem {
             let shipmentsQuery = this.supabase.from('shipments').select('*');
             let trackingsQuery = this.supabase.from('trackings').select('*');
             let costsQuery = this.supabase.from('additional_costs').select('*');
-            let carriersQuery = this.supabase.from('carriers').select('*'); // ✅ AGGIUNGI QUESTA
+            let carriersQuery = this.supabase.from('carriers').select('*');
             
             if (this.organizationId) {
                 shipmentsQuery = shipmentsQuery.eq('organization_id', this.organizationId);
                 trackingsQuery = trackingsQuery.eq('organization_id', this.organizationId);
                 costsQuery = costsQuery.eq('organization_id', this.organizationId);
-                carriersQuery = carriersQuery.eq('organization_id', this.organizationId); // ✅ AGGIUNGI QUESTA
+                carriersQuery = carriersQuery.eq('organization_id', this.organizationId);
             }
             
-            // Applica filtri periodo se specificati
-            if (this.currentFilters.period) {
-                const cutoffDate = new Date();
-                cutoffDate.setDate(cutoffDate.getDate() - this.currentFilters.period);
-                const dateFilter = cutoffDate.toISOString();
+            // ✅ APPLICA FILTRI DATE GRANULARI - USA DATE DI PARTENZA
+            if (this.currentFilters.dateFrom || this.currentFilters.dateTo) {
+                console.log('📅 Applying date filters:', {
+                    from: this.currentFilters.dateFrom,
+                    to: this.currentFilters.dateTo
+                });
                 
-                shipmentsQuery = shipmentsQuery.gte('created_at', dateFilter);
-                trackingsQuery = trackingsQuery.gte('created_at', dateFilter);
-                costsQuery = costsQuery.gte('created_at', dateFilter);
+                // ✅ USA CAMPI DATE DI PARTENZA (NON CREATED_AT)
+                const dateFields = [
+                    'departure_date',     // Data partenza effettiva
+                    'etd',               // Estimated Time of Departure  
+                    'sailing_date',      // Data navigazione
+                    'flight_date',       // Data volo
+                    'pickup_date',       // Data ritiro
+                    'shipment_date',     // Data spedizione
+                    'created_at'         // Fallback su data creazione
+                ];
+                
+                // Trova il primo campo data disponibile per ogni spedizione
+                if (this.currentFilters.dateFrom) {
+                    // Costruisci query OR per tutti i campi data
+                    const fromDateQuery = dateFields.map(field => 
+                        `${field}.gte.${this.currentFilters.dateFrom}`
+                    ).join(',');
+                    
+                    shipmentsQuery = shipmentsQuery.or(fromDateQuery);
+                }
+                
+                if (this.currentFilters.dateTo) {
+                    // Aggiungi 1 giorno alla data TO per includere tutto il giorno
+                    const toDate = new Date(this.currentFilters.dateTo);
+                    toDate.setDate(toDate.getDate() + 1);
+                    const toDateString = toDate.toISOString().split('T')[0];
+                    
+                    const toDateQuery = dateFields.map(field => 
+                        `${field}.lt.${toDateString}`
+                    ).join(',');
+                    
+                    shipmentsQuery = shipmentsQuery.or(toDateQuery);
+                }
             }
             
             // ✅ APPLICA FILTRI COMPAGNIA E SPEDIZIONIERE
@@ -246,7 +280,6 @@ class UnifiedMetricsSystem {
             }
             
             if (this.currentFilters.carrier) {
-                // Cerca nelle spedizioni dove carrier_id corrisponde
                 shipmentsQuery = shipmentsQuery.eq('carrier_id', this.currentFilters.carrier);
             }
             
@@ -259,7 +292,7 @@ class UnifiedMetricsSystem {
                 shipmentsQuery.order('created_at', { ascending: false }).limit(5000),
                 trackingsQuery.order('created_at', { ascending: false }).limit(5000),
                 costsQuery.order('created_at', { ascending: false }).limit(2000),
-                carriersQuery.order('name', { ascending: true }).limit(500) // ✅ MODIFICA QUERY CARRIERS
+                carriersQuery.order('name', { ascending: true }).limit(500)
             ]);
             
             // Estrai dati
@@ -267,15 +300,42 @@ class UnifiedMetricsSystem {
                 shipments: this.extractData(shipmentsResult, 'shipments'),
                 trackings: this.extractData(trackingsResult, 'trackings'),
                 additionalCosts: this.extractData(costsResult, 'additional_costs'),
-                carriers: this.extractData(carriersResult, 'carriers'), // ✅ CARRIERS DA SUPABASE
+                carriers: this.extractData(carriersResult, 'carriers'),
                 loadedAt: new Date().toISOString()
             };
             
-            console.log('✅ Raw data loaded:', {
+            // ✅ FILTRAGGIO POST-QUERY PIÙ PRECISO LATO CLIENT
+            if (this.currentFilters.dateFrom || this.currentFilters.dateTo) {
+                this.rawData.shipments = this.rawData.shipments.filter(shipment => {
+                    const shipmentDate = this.getShipmentDepartureDate(shipment);
+                    if (!shipmentDate) return false;
+                    
+                    const dateObj = new Date(shipmentDate);
+                    
+                    // Verifica range
+                    if (this.currentFilters.dateFrom) {
+                        const fromDate = new Date(this.currentFilters.dateFrom);
+                        if (dateObj < fromDate) return false;
+                    }
+                    
+                    if (this.currentFilters.dateTo) {
+                        const toDate = new Date(this.currentFilters.dateTo);
+                        toDate.setHours(23, 59, 59, 999); // Include tutto il giorno
+                        if (dateObj > toDate) return false;
+                    }
+                    
+                    return true;
+                });
+            }
+            
+            console.log('✅ Raw data loaded with date filters:', {
                 shipments: this.rawData.shipments.length,
                 trackings: this.rawData.trackings.length,
                 additionalCosts: this.rawData.additionalCosts.length,
-                carriers: this.rawData.carriers.length // ✅ LOG CARRIERS
+                carriers: this.rawData.carriers.length,
+                dateRange: this.currentFilters.dateFrom && this.currentFilters.dateTo 
+                    ? `${this.currentFilters.dateFrom} → ${this.currentFilters.dateTo}`
+                    : 'Nessun filtro data'
             });
             
         } catch (error) {
@@ -283,7 +343,34 @@ class UnifiedMetricsSystem {
             throw error;
         }
     }
-
+// ✅ OTTIENI DATA DI PARTENZA EFFETTIVA DELLA SPEDIZIONE
+getShipmentDepartureDate(shipment) {
+    // ✅ PRIORITÀ: Date di partenza reali prima di created_at
+    const dateFields = [
+        'departure_date',     // Data partenza effettiva
+        'etd',               // Estimated Time of Departure
+        'sailing_date',      // Data navigazione (mare)
+        'flight_date',       // Data volo (aereo)
+        'pickup_date',       // Data ritiro (corriere)
+        'shipment_date',     // Data spedizione generica
+        'actual_departure',  // Partenza effettiva
+        'created_at'         // Fallback su data creazione
+    ];
+    
+    // Trova la prima data valida
+    for (const field of dateFields) {
+        if (shipment[field]) {
+            const date = new Date(shipment[field]);
+            if (!isNaN(date.getTime())) {
+                console.log(`📅 Using ${field} for shipment ${shipment.id}: ${date.toISOString().split('T')[0]}`);
+                return shipment[field];
+            }
+        }
+    }
+    
+    console.warn(`⚠️ No valid departure date found for shipment ${shipment.id}`);
+    return null;
+}
     // ✅ ESTRAI DATI DA RISULTATI PROMISE
     extractData(result, name) {
         if (result.status === 'fulfilled' && result.value.data && !result.value.error) {
@@ -2501,6 +2588,125 @@ if (window.ModalSystem) {
         }
         
         return 'Non specificato';
+    }
+        // ✅ INIZIALIZZA DATE DEFAULT (ULTIMI 30 GIORNI)
+    initializeDateFilters() {
+        const today = new Date();
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(today.getDate() - 30);
+        
+        // Imposta valori di default
+        const dateFromInput = document.getElementById('dateFromFilter');
+        const dateToInput = document.getElementById('dateToFilter');
+        
+        if (dateFromInput) {
+            dateFromInput.value = thirtyDaysAgo.toISOString().split('T')[0];
+        }
+        
+        if (dateToInput) {
+            dateToInput.value = today.toISOString().split('T')[0];
+        }
+        
+        // Imposta filtri attuali
+        this.currentFilters.dateFrom = thirtyDaysAgo.toISOString().split('T')[0];
+        this.currentFilters.dateTo = today.toISOString().split('T')[0];
+        
+        console.log('📅 Date filters initialized:', {
+            from: this.currentFilters.dateFrom,
+            to: this.currentFilters.dateTo
+        });
+    }
+    
+    // ✅ APPLICA FILTRI DATE
+    async applyDateFilters() {
+        const dateFromInput = document.getElementById('dateFromFilter');
+        const dateToInput = document.getElementById('dateToFilter');
+        
+        const dateFrom = dateFromInput?.value;
+        const dateTo = dateToInput?.value;
+        
+        // Validazione range
+        if (dateFrom && dateTo && new Date(dateFrom) > new Date(dateTo)) {
+            alert('⚠️ La data "Da" non può essere successiva alla data "A"');
+            return;
+        }
+        
+        // Aggiorna filtri
+        this.currentFilters.dateFrom = dateFrom;
+        this.currentFilters.dateTo = dateTo;
+        
+        console.log('📅 Applying new date filters:', {
+            from: dateFrom,
+            to: dateTo
+        });
+        
+        // Ricarica dati e dashboard
+        await this.loadRawData();
+        await this.calculateAllMetrics();
+        this.renderDashboard();
+        
+        // ✅ NOTIFICA SUCCESSO
+        if (window.NotificationSystem) {
+            const rangeText = dateFrom && dateTo 
+                ? `${new Date(dateFrom).toLocaleDateString('it-IT')} - ${new Date(dateTo).toLocaleDateString('it-IT')}`
+                : 'Nessun filtro';
+                
+            window.NotificationSystem.show({
+                type: 'success',
+                title: 'Filtri Data Applicati',
+                message: `Dashboard aggiornata per il periodo: ${rangeText}`,
+                duration: 3000
+            });
+        }
+    }
+    
+    // ✅ RESET FILTRI DATE
+    resetDateFilters() {
+        this.initializeDateFilters();
+        this.applyDateFilters();
+    }
+    
+    // ✅ PRESET DATE RAPIDI
+    applyDatePreset(preset) {
+        const today = new Date();
+        let fromDate, toDate;
+        
+        switch (preset) {
+            case 'today':
+                fromDate = toDate = today;
+                break;
+            case 'yesterday':
+                fromDate = toDate = new Date(today.getTime() - 24 * 60 * 60 * 1000);
+                break;
+            case 'week':
+                fromDate = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
+                toDate = today;
+                break;
+            case 'month':
+                fromDate = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
+                toDate = today;
+                break;
+            case 'quarter':
+                fromDate = new Date(today.getTime() - 90 * 24 * 60 * 60 * 1000);
+                toDate = today;
+                break;
+            case 'year':
+                fromDate = new Date(today.getTime() - 365 * 24 * 60 * 60 * 1000);
+                toDate = today;
+                break;
+            default:
+                return;
+        }
+        
+        // Aggiorna inputs
+        const dateFromInput = document.getElementById('dateFromFilter');
+        const dateToInput = document.getElementById('dateToFilter');
+        
+        if (dateFromInput) dateFromInput.value = fromDate.toISOString().split('T')[0];
+        if (dateToInput) dateToInput.value = toDate.toISOString().split('T')[0];
+        
+        // Applica filtri
+        this.applyDateFilters();
     }
 }
 
