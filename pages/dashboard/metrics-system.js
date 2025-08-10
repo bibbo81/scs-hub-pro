@@ -268,16 +268,17 @@ class UnifiedMetricsSystem {
                     kpis[kpi.id] = {
                         ...kpi,
                         value: calculation(this.rawData),
-                        trend: this.calculateTrend(kpi.id) // Calcolo trend separato
+                        trend: this.calculateTrend(kpi.id)
                     };
                 }
             });
             
-            // Calcola metriche avanzate
+            // ✅ AGGIUNGI NUOVA METRICA
             const advancedMetrics = {
                 trends: this.calculateTrends(),
                 transportModes: this.calculateTransportModes(),
                 carriersPerformance: this.calculateCarriersPerformance(),
+                carriersDBPerformance: this.calculateCarriersDBPerformance(), // ✅ NUOVA
                 geographicalData: this.calculateGeographicalData()
             };
             
@@ -500,7 +501,96 @@ class UnifiedMetricsSystem {
             performance: p.shipments > 0 ? (p.delivered / p.shipments * 100) : 0
         })).sort((a, b) => b.shipments - a.shipments);
     }
-
+// CALCOLA PERFORMANCE SPEDIZIONIERI DA DATABASE
+calculateCarriersDBPerformance() {
+    const carriersPerformance = {};
+    
+    // Itera attraverso tutte le spedizioni
+    this.rawData.shipments.forEach(shipment => {
+        let carrierInfo = null;
+        
+        // ✅ TROVA SPEDIZIONIERE DA TABELLA CARRIERS
+        if (shipment.carrier_id) {
+            carrierInfo = this.rawData.carriers.find(c => c.id === shipment.carrier_id);
+        }
+        
+        // Se non troviamo lo spedizioniere, skippa
+        if (!carrierInfo) return;
+        
+        const carrierId = carrierInfo.id;
+        const carrierName = carrierInfo.name;
+        
+        // ✅ DETERMINA TIPO SPEDIZIONE DAL TRACKING
+        let shipmentType = 'Altro';
+        const tracking = this.rawData.trackings.find(t => 
+            t.shipment_id === shipment.id || 
+            t.tracking_number === shipment.tracking_number
+        );
+        
+        if (tracking?.tracking_type) {
+            switch (tracking.tracking_type.toLowerCase()) {
+                case 'container':
+                case 'bl':
+                case 'bill_of_lading':
+                    shipmentType = 'Marittimo';
+                    break;
+                case 'awb':
+                case 'air_waybill':
+                case 'airway_bill':
+                    shipmentType = 'Aereo';
+                    break;
+                case 'parcel':
+                case 'package':
+                    shipmentType = 'Corriere';
+                    break;
+                case 'truck':
+                case 'road':
+                default:
+                    shipmentType = 'Stradale';
+            }
+        }
+        
+        // ✅ INIZIALIZZA CARRIER SE NON ESISTE
+        if (!carriersPerformance[carrierId]) {
+            carriersPerformance[carrierId] = {
+                id: carrierId,
+                name: carrierName,
+                country: carrierInfo.country || '',
+                email: carrierInfo.email || '',
+                phone: carrierInfo.phone || '',
+                totalShipments: 0,
+                totalFreightCost: 0,
+                deliveredShipments: 0,
+                shipmentTypes: {
+                    'Marittimo': 0,
+                    'Aereo': 0,
+                    'Stradale': 0,
+                    'Corriere': 0
+                }
+            };
+        }
+        
+        const carrier = carriersPerformance[carrierId];
+        
+        // ✅ AGGIORNA STATISTICHE
+        carrier.totalShipments++;
+        carrier.totalFreightCost += (parseFloat(shipment.freight_cost) || 0);
+        carrier.shipmentTypes[shipmentType]++;
+        
+        if (shipment.status === 'delivered') {
+            carrier.deliveredShipments++;
+        }
+    });
+    
+    // ✅ CALCOLA METRICHE FINALI E ORDINA
+    return Object.values(carriersPerformance)
+        .map(carrier => ({
+            ...carrier,
+            avgFreightCost: carrier.totalShipments > 0 ? carrier.totalFreightCost / carrier.totalShipments : 0,
+            deliveryPerformance: carrier.totalShipments > 0 ? (carrier.deliveredShipments / carrier.totalShipments * 100) : 0
+        }))
+        .sort((a, b) => b.totalShipments - a.totalShipments);
+}
     // ✅ CALCOLA DATI GEOGRAFICI
     calculateGeographicalData() {
         const countries = {};
@@ -651,9 +741,10 @@ class UnifiedMetricsSystem {
         this.charts.set('transportModeChart', chart);
     }
 
-    // ✅ RENDERIZZA TABELLE
+        // ✅ RENDERIZZA TABELLE
     renderTables() {
         this.renderCarriersTable();
+        this.renderCarriersDBPerformanceTable(); // ✅ AGGIUNGI QUESTA RIGA
     }
 
         // ✅ RENDERIZZA TABELLA CARRIERS - VERSIONE AGGIORNATA
@@ -685,7 +776,50 @@ class UnifiedMetricsSystem {
             </tr>
         `).join('');
     }
-
+// ✅ RENDERIZZA TABELLA PERFORMANCE SPEDIZIONIERI
+renderCarriersDBPerformanceTable() {
+    const tbody = document.getElementById('carriersPerformanceBody');
+    if (!tbody || !this.processedMetrics.advanced.carriersDBPerformance) return;
+    
+    tbody.innerHTML = this.processedMetrics.advanced.carriersDBPerformance.map(carrier => `
+        <tr>
+            <td>
+                <div class="fw-semibold">${carrier.name}</div>
+                <small class="text-muted">${carrier.country ? `${carrier.country}` : 'Paese non specificato'}</small>
+            </td>
+            <td class="text-end">
+                <span class="fw-semibold">${carrier.totalShipments}</span>
+            </td>
+            <td class="text-end">
+                <span class="fw-semibold text-primary">€${carrier.avgFreightCost.toFixed(2)}</span>
+            </td>
+            <td class="text-end">
+                <span class="badge bg-info">${carrier.shipmentTypes.Marittimo}</span>
+            </td>
+            <td class="text-end">
+                <span class="badge bg-warning">${carrier.shipmentTypes.Aereo}</span>
+            </td>
+            <td class="text-end">
+                <span class="badge bg-secondary">${carrier.shipmentTypes.Stradale}</span>
+            </td>
+            <td class="text-end">
+                <span class="badge bg-dark">${carrier.shipmentTypes.Corriere}</span>
+            </td>
+            <td class="text-end">
+                <span class="badge ${this.getPerformanceBadgeClass(carrier.deliveryPerformance)}">
+                    ${carrier.deliveryPerformance.toFixed(1)}%
+                </span>
+            </td>
+            <td class="text-center">
+                <button class="btn btn-sm btn-outline-primary" onclick="metricsSystem.viewCarrierDBDetails('${carrier.id}')">
+                    <i class="fas fa-eye"></i>
+                </button>
+            </td>
+        </tr>
+    `).join('');
+    
+    console.log('✅ Carriers DB Performance table rendered');
+}
     // ✅ POPOLA FILTRI
         // ✅ POPOLA FILTRI - VERSIONE AGGIORNATA
     populateFilters() {
@@ -753,68 +887,157 @@ class UnifiedMetricsSystem {
         this.renderDashboard();
     }
 
-    // ✅ UTILITY METHODS
-    formatValue(value, format) {
-        switch (format) {
-            case 'currency':
-                return new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR' }).format(value);
-            case 'weight':
-                return value >= 1000 ? `${(value / 1000).toFixed(1)} t` : `${Math.round(value)} kg`;
-            case 'volume':
-                return `${value.toFixed(1)} m³`;
-            case 'days':
-                return `${value.toFixed(1)} gg`;
-            case 'number':
-            default:
-                return new Intl.NumberFormat('it-IT').format(Math.round(value));
+            // ✅ UTILITY METHODS
+        formatValue(value, format) {
+            switch (format) {
+                case 'currency':
+                    return new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR' }).format(value);
+                case 'weight':
+                    return value >= 1000 ? `${(value / 1000).toFixed(1)} t` : `${Math.round(value)} kg`;
+                case 'volume':
+                    return `${value.toFixed(1)} m³`;
+                case 'days':
+                    return `${value.toFixed(1)} gg`;
+                case 'number':
+                default:
+                    return new Intl.NumberFormat('it-IT').format(Math.round(value));
+            }
         }
-    }
-
-    getTrendClass(trend) {
-        return trend.startsWith('+') ? 'growth-positive' : trend.startsWith('-') ? 'growth-negative' : '';
-    }
-
-    getTrendIcon(trend) {
-        return trend.startsWith('+') ? '↗' : trend.startsWith('-') ? '↘' : '→';
-    }
-
-    renderError(message) {
-        const container = document.getElementById('kpiCards');
-        if (container) {
-            container.innerHTML = `
-                <div class="col-12">
-                    <div class="alert alert-danger">
-                        <i class="fas fa-exclamation-triangle me-2"></i>
-                        <strong>Errore:</strong> ${message}
-                        <button class="btn btn-sm btn-outline-danger ms-2" onclick="metricsSystem.refresh()">
-                            Riprova
-                        </button>
+    
+        getTrendClass(trend) {
+            return trend.startsWith('+') ? 'growth-positive' : trend.startsWith('-') ? 'growth-negative' : '';
+        }
+    
+        getTrendIcon(trend) {
+            return trend.startsWith('+') ? '↗' : trend.startsWith('-') ? '↘' : '→';
+        }
+    
+        renderError(message) {
+            const container = document.getElementById('kpiCards');
+            if (container) {
+                container.innerHTML = `
+                    <div class="col-12">
+                        <div class="alert alert-danger">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            <strong>Errore:</strong> ${message}
+                            <button class="btn btn-sm btn-outline-danger ms-2" onclick="metricsSystem.refresh()">
+                                Riprova
+                            </button>
+                        </div>
                     </div>
+                `;
+            }
+        }
+    
+        viewCarrierDetails(carrierName) {
+            const carrier = this.processedMetrics.advanced.carriersPerformance.find(c => c.name === carrierName);
+            if (carrier && window.ModalSystem) {
+                window.ModalSystem.show({
+                    title: `Dettagli ${carrierName}`,
+                    body: `
+                        <div class="row g-3">
+                            <div class="col-6"><strong>Spedizioni:</strong> ${carrier.shipments}</div>
+                            <div class="col-6"><strong>Costi:</strong> €${carrier.costs.toLocaleString()}</div>
+                            <div class="col-6"><strong>Peso:</strong> ${carrier.weight.toLocaleString()} kg</div>
+                            <div class="col-6"><strong>Volume:</strong> ${carrier.volume.toFixed(1)} m³</div>
+                            <div class="col-6"><strong>Costo Medio:</strong> €${carrier.avgCost.toFixed(2)}</div>
+                            <div class="col-6"><strong>Performance:</strong> ${carrier.performance.toFixed(1)}%</div>
+                        </div>
+                    `,
+                    size: 'md'
+                });
+            }
+        }
+    
+        // ✅ UTILITY: CLASSE BADGE PERFORMANCE
+        getPerformanceBadgeClass(performance) {
+            if (performance >= 90) return 'bg-success';
+            if (performance >= 70) return 'bg-warning';
+            if (performance >= 50) return 'bg-orange';
+            return 'bg-danger';
+        }
+    
+        // ✅ VISTA DETTAGLI CARRIER DA DATABASE
+        viewCarrierDBDetails(carrierId) {
+            const carrier = this.processedMetrics.advanced.carriersDBPerformance.find(c => c.id === carrierId);
+            if (!carrier) return;
+            
+            // Calcola spedizione più comune
+            const topShipmentType = Object.entries(carrier.shipmentTypes)
+                .sort(([,a], [,b]) => b - a)[0];
+            
+            const detailsHTML = `
+                <div class="row g-3">
+                    <div class="col-12">
+                        <h5 class="mb-3">📊 Statistiche Generali</h5>
+                    </div>
+                    <div class="col-6">
+                        <strong>Paese:</strong> ${carrier.country || 'Non specificato'}
+                    </div>
+                    <div class="col-6">
+                        <strong>Totale Spedizioni:</strong> ${carrier.totalShipments}
+                    </div>
+                    <div class="col-6">
+                        <strong>Costo Medio Nolo:</strong> €${carrier.avgFreightCost.toFixed(2)}
+                    </div>
+                    <div class="col-6">
+                        <strong>Performance Consegne:</strong> ${carrier.deliveryPerformance.toFixed(1)}%
+                    </div>
+                    <div class="col-6">
+                        <strong>Costo Totale Noli:</strong> €${carrier.totalFreightCost.toLocaleString()}
+                    </div>
+                    <div class="col-6">
+                        <strong>Spedizioni Consegnate:</strong> ${carrier.deliveredShipments}/${carrier.totalShipments}
+                    </div>
+                    
+                    <div class="col-12">
+                        <h5 class="mb-3 mt-3">🚚 Breakdown per Tipo Spedizione</h5>
+                    </div>
+                    <div class="col-6">
+                        <strong>🚢 Marittimo:</strong> 
+                        <span class="badge bg-info ms-2">${carrier.shipmentTypes.Marittimo}</span>
+                    </div>
+                    <div class="col-6">
+                        <strong>✈️ Aereo:</strong> 
+                        <span class="badge bg-warning ms-2">${carrier.shipmentTypes.Aereo}</span>
+                    </div>
+                    <div class="col-6">
+                        <strong>🚛 Stradale:</strong> 
+                        <span class="badge bg-secondary ms-2">${carrier.shipmentTypes.Stradale}</span>
+                    </div>
+                    <div class="col-6">
+                        <strong>📦 Corriere:</strong> 
+                        <span class="badge bg-dark ms-2">${carrier.shipmentTypes.Corriere}</span>
+                    </div>
+                    
+                    <div class="col-12">
+                        <div class="alert alert-info mt-3">
+                            <i class="fas fa-info-circle me-2"></i>
+                            <strong>Specializzazione:</strong> ${topShipmentType[0]} (${topShipmentType[1]} spedizioni)
+                        </div>
+                    </div>
+                    
+                    ${carrier.email ? `
+                    <div class="col-12">
+                        <h6 class="mt-3">📞 Contatti</h6>
+                        <div class="row">
+                            ${carrier.email ? `<div class="col-6"><strong>Email:</strong> ${carrier.email}</div>` : ''}
+                            ${carrier.phone ? `<div class="col-6"><strong>Telefono:</strong> ${carrier.phone}</div>` : ''}
+                        </div>
+                    </div>
+                    ` : ''}
                 </div>
             `;
+            
+            if (window.ModalSystem) {
+                window.ModalSystem.show({
+                    title: `🚚 ${carrier.name}`,
+                    content: detailsHTML,
+                    size: 'lg'
+                });
+            }
         }
     }
-
-    viewCarrierDetails(carrierName) {
-        const carrier = this.processedMetrics.advanced.carriersPerformance.find(c => c.name === carrierName);
-        if (carrier && window.ModalSystem) {
-            window.ModalSystem.show({
-                title: `Dettagli ${carrierName}`,
-                body: `
-                    <div class="row g-3">
-                        <div class="col-6"><strong>Spedizioni:</strong> ${carrier.shipments}</div>
-                        <div class="col-6"><strong>Costi:</strong> €${carrier.costs.toLocaleString()}</div>
-                        <div class="col-6"><strong>Peso:</strong> ${carrier.weight.toLocaleString()} kg</div>
-                        <div class="col-6"><strong>Volume:</strong> ${carrier.volume.toFixed(1)} m³</div>
-                        <div class="col-6"><strong>Costo Medio:</strong> €${carrier.avgCost.toFixed(2)}</div>
-                        <div class="col-6"><strong>Performance:</strong> ${carrier.performance.toFixed(1)}%</div>
-                    </div>
-                `,
-                size: 'md'
-            });
-        }
-    }
-}
-
-// ✅ ESPORTA SISTEMA
-export default UnifiedMetricsSystem;
+    
+    // ✅ ESPORTA SISTEMA
+    export default UnifiedMetricsSystem;
