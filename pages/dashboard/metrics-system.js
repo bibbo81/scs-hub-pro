@@ -886,10 +886,10 @@ calculateCarriersDBPerformance() {
             selectedKPIs.includes(kpi.id)
         );
         
-        // ✅ HEADER CON CONTROLLI
+        // ✅ HEADER CON CONTROLLI - DENTRO IL CONTAINER
         const headerHTML = `
             <div class="d-flex justify-content-between align-items-center mb-4">
-                <h5 class="mb-0">📊 KPI Dashboard</h5>
+                <h5 class="mb-0"><i class="fas fa-chart-pie me-2 text-primary"></i>KPI Dashboard</h5>
                 <div class="btn-group">
                     <button class="btn btn-outline-primary btn-sm" onclick="metricsSystem.showKPISelector()">
                         <i class="fas fa-cog me-1"></i>Personalizza KPI
@@ -901,9 +901,9 @@ calculateCarriersDBPerformance() {
             </div>
         `;
         
-        // ✅ NUOVO LAYOUT RESPONSIVE CON STILE MIGLIORATO
+        // ✅ LAYOUT RESPONSIVE BOOTSTRAP (NON CSS GRID!)
         const kpiHTML = filteredKPIs.map((kpi, index) => `
-            <div class="col-xl-3 col-lg-4 col-md-6 col-sm-12 mb-3" data-kpi-id="${kpi.id}">
+            <div class="col-xl-3 col-lg-4 col-md-6 col-12 mb-3" data-kpi-id="${kpi.id}">
                 <div class="kpi-card-modern h-100">
                     <div class="kpi-card-header">
                         <div class="kpi-icon-modern" style="background: linear-gradient(135deg, ${kpi.color}15, ${kpi.color}25);">
@@ -937,7 +937,9 @@ calculateCarriersDBPerformance() {
             </div>
         ` : '';
         
-        container.innerHTML = headerHTML + '<div class="row">' + kpiHTML + emptyMessage + '</div>';
+        // ✅ COSTRUISCI HTML COMPLETO CON BOOTSTRAP ROW
+        container.innerHTML = headerHTML + '<div class="row g-3">' + kpiHTML + emptyMessage + '</div>';
+        
         console.log('✅ KPIs rendered:', filteredKPIs.length, 'of', Object.keys(this.processedMetrics.kpis).length);
     }
     
