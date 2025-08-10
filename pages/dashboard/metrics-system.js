@@ -1197,6 +1197,138 @@ renderCarriersDBPerformanceTable() {
             return `<span class="text-danger fw-semibold">↘ ${percentage.toFixed(1)}%</span>`;
         }
     }
+        // ✅ CALCOLA ANALYTICS COMPAGNIA CON KPI DINAMICHE
+    calculateCompanyAnalytics(companyShipments) {
+        const analytics = {
+            kpis: [],
+            containerTypes: []
+        };
+        
+        // Separa spedizioni per tipo
+        const seaShipments = companyShipments.filter(s => {
+            const tracking = this.rawData.trackings.find(t => 
+                t.shipment_id === s.id || t.tracking_number === s.tracking_number
+            );
+            return tracking && ['container', 'bl', 'bill_of_lading'].includes(tracking.tracking_type?.toLowerCase());
+        });
+        
+        const airShipments = companyShipments.filter(s => {
+            const tracking = this.rawData.trackings.find(t => 
+                t.shipment_id === s.id || t.tracking_number === s.tracking_number
+            );
+            return tracking && ['awb', 'air_waybill', 'airway_bill'].includes(tracking.tracking_type?.toLowerCase());
+        });
+        
+        // KPI Mare
+        if (seaShipments.length > 0) {
+            const avgSeaFreight = seaShipments.reduce((sum, s) => sum + (parseFloat(s.freight_cost) || 0), 0) / seaShipments.length;
+            const avgSeaCBM = seaShipments.reduce((sum, s) => sum + (parseFloat(s.total_volume_cbm) || 0), 0) / seaShipments.length;
+            const avgSeaTransit = this.calculateAvgTransitTime(seaShipments);
+            
+            analytics.kpis.push(
+                { label: 'Media Costo Nolo Mare', value: `€${avgSeaFreight.toFixed(2)}`, color: 'info' },
+                { label: 'Media CBM Mare', value: `${avgSeaCBM.toFixed(1)} m³`, color: 'info' },
+                { label: 'Media Transit Time Mare', value: `${avgSeaTransit.toFixed(1)} gg`, color: 'info' }
+            );
+            
+            // Container types
+            analytics.containerTypes = this.getContainerTypes(seaShipments);
+        }
+        
+        // KPI Aereo
+        if (airShipments.length > 0) {
+            const avgAirFreight = airShipments.reduce((sum, s) => sum + (parseFloat(s.freight_cost) || 0), 0) / airShipments.length;
+            const avgAirCBM = airShipments.reduce((sum, s) => sum + (parseFloat(s.total_volume_cbm) || 0), 0) / airShipments.length;
+            const avgAirWeight = airShipments.reduce((sum, s) => sum + (parseFloat(s.total_weight_kg) || 0), 0) / airShipments.length;
+            const avgAirTransit = this.calculateAvgTransitTime(airShipments);
+            
+            analytics.kpis.push(
+                { label: 'Media Costo Nolo Aereo', value: `€${avgAirFreight.toFixed(2)}`, color: 'warning' },
+                { label: 'Media CBM Aereo', value: `${avgAirCBM.toFixed(1)} m³`, color: 'warning' },
+                { label: 'Media Kg Aereo', value: `${avgAirWeight.toFixed(1)} kg`, color: 'warning' },
+                { label: 'Media Transit Time Aereo', value: `${avgAirTransit.toFixed(1)} gg`, color: 'warning' }
+            );
+        }
+        
+        return analytics;
+    }
+    
+    // ✅ CALCOLA TEMPO MEDIO DI TRANSITO
+    calculateAvgTransitTime(shipments) {
+        const transitTimes = [];
+        
+        shipments.forEach(shipment => {
+            if (shipment.delivery_date) {
+                const startDate = new Date(shipment.created_at);
+                const endDate = new Date(shipment.delivery_date);
+                const days = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24));
+                
+                if (days > 0 && days < 365) {
+                    transitTimes.push(days);
+                }
+            }
+        });
+        
+        return transitTimes.length > 0 
+            ? transitTimes.reduce((a, b) => a + b, 0) / transitTimes.length 
+            : 0;
+    }
+    
+    // ✅ OTTIENI TIPOLOGIE CONTAINER
+    getContainerTypes(seaShipments) {
+        const containerTypes = {};
+        
+        seaShipments.forEach(shipment => {
+            // Cerca tipo container (potrebbe essere in diversi campi)
+            let containerType = shipment.container_type || shipment.container_size || 'N/A';
+            
+            // Normalizza i tipi più comuni
+            if (containerType.includes('20')) containerType = "20'";
+            else if (containerType.includes('40') && containerType.toLowerCase().includes('hc')) containerType = "40'HC";
+            else if (containerType.includes('40')) containerType = "40'";
+            else if (containerType.includes('45')) containerType = "45'";
+            
+            containerTypes[containerType] = (containerTypes[containerType] || 0) + 1;
+        });
+        
+        return Object.entries(containerTypes).map(([type, count]) => ({ type, count }));
+    }
+    
+    // ✅ RENDERIZZA RIGHE SPEDIZIONI COMPAGNIA
+    renderCompanyShipmentsRows(companyShipments) {
+        return companyShipments
+            .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+            .slice(0, 50)
+            .map(shipment => {
+                const tracking = this.rawData.trackings.find(t => 
+                    t.shipment_id === shipment.id || t.tracking_number === shipment.tracking_number
+                );
+                
+                const shipmentType = this.getShipmentTypeFromTracking(tracking);
+                const containerType = shipmentType === 'Marittimo' ? (shipment.container_type || 'N/A') : '-';
+                const transitDays = this.calculateDeliveryDays(shipment) || 'N/A';
+                
+                return `
+                    <tr style="cursor: pointer;" onclick="metricsSystem.openShipmentDetails('${shipment.id}')">
+                        <td><strong>${shipment.tracking_number || 'N/A'}</strong></td>
+                        <td><strong>${this.getOriginDestination(shipment, 'origin')}</strong> → <strong>${this.getOriginDestination(shipment, 'destination')}</strong></td>
+                        <td>${shipment.tracking_number || shipment.tracking_code || 'N/A'}</td>
+                        <td><span class="badge ${this.getShipmentTypeColor(shipmentType)}">${this.getShipmentTypeIcon(shipmentType)} ${shipmentType}</span></td>
+                        <td>${containerType}</td>
+                        <td>${(parseFloat(shipment.total_volume_cbm) || 0).toFixed(1)} m³</td>
+                        <td>${(parseFloat(shipment.total_weight_kg) || 0).toFixed(1)} kg</td>
+                        <td>${transitDays} ${typeof transitDays === 'number' ? 'gg' : ''}</td>
+                        <td><i class="fas fa-chevron-right text-muted"></i></td>
+                    </tr>
+                `;
+            }).join('');
+    }
+    
+    // ✅ APRI DETTAGLI SPEDIZIONE (usa shipment-details.js)
+    openShipmentDetails(shipmentId) {
+        // Reindirizza alla pagina shipment-details
+        window.open(`/shipment-details.html?id=${shipmentId}`, '_blank');
+    }
         // ✅ CALCOLA STATISTICHE CARRIER
     calculateCarrierStats(shipments) {
         const stats = {
