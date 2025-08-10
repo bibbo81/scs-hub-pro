@@ -214,7 +214,7 @@ class UnifiedMetricsSystem {
         }
     }
 
-       // ✅ CARICA RAW DATA CON FILTRO DATE GRANULARE
+         // ✅ CARICA RAW DATA CON FILTRO DATE SEMPLIFICATO
     async loadRawData() {
         console.log('📥 Loading raw data...');
         
@@ -232,49 +232,7 @@ class UnifiedMetricsSystem {
                 carriersQuery = carriersQuery.eq('organization_id', this.organizationId);
             }
             
-            // ✅ APPLICA FILTRI DATE GRANULARI - USA DATE DI PARTENZA
-            if (this.currentFilters.dateFrom || this.currentFilters.dateTo) {
-                console.log('📅 Applying date filters:', {
-                    from: this.currentFilters.dateFrom,
-                    to: this.currentFilters.dateTo
-                });
-                
-                // ✅ USA CAMPI DATE DI PARTENZA (NON CREATED_AT)
-                const dateFields = [
-                    'departure_date',     // Data partenza effettiva
-                    'etd',               // Estimated Time of Departure  
-                    'sailing_date',      // Data navigazione
-                    'flight_date',       // Data volo
-                    'pickup_date',       // Data ritiro
-                    'shipment_date',     // Data spedizione
-                    'created_at'         // Fallback su data creazione
-                ];
-                
-                // Trova il primo campo data disponibile per ogni spedizione
-                if (this.currentFilters.dateFrom) {
-                    // Costruisci query OR per tutti i campi data
-                    const fromDateQuery = dateFields.map(field => 
-                        `${field}.gte.${this.currentFilters.dateFrom}`
-                    ).join(',');
-                    
-                    shipmentsQuery = shipmentsQuery.or(fromDateQuery);
-                }
-                
-                if (this.currentFilters.dateTo) {
-                    // Aggiungi 1 giorno alla data TO per includere tutto il giorno
-                    const toDate = new Date(this.currentFilters.dateTo);
-                    toDate.setDate(toDate.getDate() + 1);
-                    const toDateString = toDate.toISOString().split('T')[0];
-                    
-                    const toDateQuery = dateFields.map(field => 
-                        `${field}.lt.${toDateString}`
-                    ).join(',');
-                    
-                    shipmentsQuery = shipmentsQuery.or(toDateQuery);
-                }
-            }
-            
-            // ✅ APPLICA FILTRI COMPAGNIA E SPEDIZIONIERE
+            // ✅ FILTRI ALTRI CAMPI
             if (this.currentFilters.company) {
                 shipmentsQuery = shipmentsQuery.eq('carrier_name', this.currentFilters.company);
             }
@@ -304,27 +262,24 @@ class UnifiedMetricsSystem {
                 loadedAt: new Date().toISOString()
             };
             
-            // ✅ FILTRAGGIO POST-QUERY PIÙ PRECISO LATO CLIENT
+            // ✅ FILTRO DATE SOLO LATO CLIENT (PIÙ SEMPLICE E AFFIDABILE)
             if (this.currentFilters.dateFrom || this.currentFilters.dateTo) {
+                console.log('📅 Applying client-side date filters:', {
+                    from: this.currentFilters.dateFrom,
+                    to: this.currentFilters.dateTo
+                });
+                
                 this.rawData.shipments = this.rawData.shipments.filter(shipment => {
                     const shipmentDate = this.getShipmentDepartureDate(shipment);
-                    if (!shipmentDate) return false;
+                    if (!shipmentDate) {
+                        // Se non ha data di partenza, usa created_at come fallback
+                        if (!shipment.created_at) return false;
+                        const createdDate = new Date(shipment.created_at);
+                        return this.isDateInRange(createdDate);
+                    }
                     
                     const dateObj = new Date(shipmentDate);
-                    
-                    // Verifica range
-                    if (this.currentFilters.dateFrom) {
-                        const fromDate = new Date(this.currentFilters.dateFrom);
-                        if (dateObj < fromDate) return false;
-                    }
-                    
-                    if (this.currentFilters.dateTo) {
-                        const toDate = new Date(this.currentFilters.dateTo);
-                        toDate.setHours(23, 59, 59, 999); // Include tutto il giorno
-                        if (dateObj > toDate) return false;
-                    }
-                    
-                    return true;
+                    return this.isDateInRange(dateObj);
                 });
             }
             
@@ -342,6 +297,22 @@ class UnifiedMetricsSystem {
             console.error('❌ Error loading raw data:', error);
             throw error;
         }
+    }
+    
+    // ✅ HELPER PER VERIFICA RANGE DATE
+    isDateInRange(dateObj) {
+        if (this.currentFilters.dateFrom) {
+            const fromDate = new Date(this.currentFilters.dateFrom);
+            if (dateObj < fromDate) return false;
+        }
+        
+        if (this.currentFilters.dateTo) {
+            const toDate = new Date(this.currentFilters.dateTo);
+            toDate.setHours(23, 59, 59, 999); // Include tutto il giorno
+            if (dateObj > toDate) return false;
+        }
+        
+        return true;
     }
 // ✅ OTTIENI DATA DI PARTENZA EFFETTIVA DELLA SPEDIZIONE
 getShipmentDepartureDate(shipment) {
@@ -2617,7 +2588,7 @@ if (window.ModalSystem) {
         });
     }
     
-    // ✅ APPLICA FILTRI DATE
+        // ✅ APPLICA FILTRI DATE
     async applyDateFilters() {
         const dateFromInput = document.getElementById('dateFromFilter');
         const dateToInput = document.getElementById('dateToFilter');
@@ -2645,18 +2616,17 @@ if (window.ModalSystem) {
         await this.calculateAllMetrics();
         this.renderDashboard();
         
-        // ✅ NOTIFICA SUCCESSO
-        if (window.NotificationSystem) {
+        // ✅ NOTIFICA CORRETTA (STRINGA INVECE DI OGGETTO)
+        if (window.notificationSystem) {
             const rangeText = dateFrom && dateTo 
                 ? `${new Date(dateFrom).toLocaleDateString('it-IT')} - ${new Date(dateTo).toLocaleDateString('it-IT')}`
                 : 'Nessun filtro';
                 
-            window.NotificationSystem.show({
-                type: 'success',
-                title: 'Filtri Data Applicati',
-                message: `Dashboard aggiornata per il periodo: ${rangeText}`,
-                duration: 3000
-            });
+            window.notificationSystem.show(
+                'success',
+                'Filtri Data Applicati',
+                `Dashboard aggiornata per il periodo: ${rangeText}`
+            );
         }
     }
     
