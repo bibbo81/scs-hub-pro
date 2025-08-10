@@ -1212,19 +1212,79 @@ renderCarriersDBPerformanceTable() {
         }
     }
     
-    // ✅ BADGE STATO SPEDIZIONE
-    getStatusBadge(status) {
-        const statusConfig = {
-            'delivered': { class: 'bg-success', text: 'Consegnato', icon: '✓' },
-            'in_transit': { class: 'bg-warning', text: 'In transito', icon: '🚚' },
-            'pending': { class: 'bg-secondary', text: 'In attesa', icon: '⏳' },
-            'cancelled': { class: 'bg-danger', text: 'Annullato', icon: '✗' }
-        };
-        
-        const config = statusConfig[status] || { class: 'bg-light text-dark', text: status || 'N/A', icon: '❓' };
-        
-        return `<span class="badge ${config.class}">${config.icon} ${config.text}</span>`;
+   // ✅ BADGE STATO SPEDIZIONE - USANDO MAPPING UNIFICATO
+getStatusBadge(status) {
+    if (!status) return '<span class="badge bg-light text-dark">❓ Non specificato</span>';
+    
+    // ✅ USA IL TUO SISTEMA UNIFICATO DI MAPPING
+    let normalizedStatus = status;
+    
+    // Se il mapping unificato è disponibile, usalo
+    if (window.TrackingUnifiedMapping) {
+        normalizedStatus = window.TrackingUnifiedMapping.mapStatus(status);
+    } else {
+        // Fallback locale se il mapping non è caricato
+        normalizedStatus = this.mapStatusLocal(status);
     }
+    
+    // ✅ USA LA TUA CONFIGURAZIONE DISPLAY
+    const displayConfig = window.TrackingUnifiedMapping?.STATUS_DISPLAY_CONFIG || this.getLocalStatusConfig();
+    
+    const config = displayConfig[normalizedStatus] || displayConfig['default'] || {
+        label: status,
+        class: 'secondary',
+        icon: 'fa-question-circle'
+    };
+    
+    return `<span class="badge bg-${config.class}" title="Stato originale: ${status}">
+        <i class="fas ${config.icon} me-1"></i>${config.label}
+    </span>`;
+}
+
+// ✅ FALLBACK LOCALE SE MAPPING NON DISPONIBILE
+mapStatusLocal(status) {
+    const statusStr = status.toString().trim().toLowerCase();
+    
+    // Mapping essenziale locale
+    const localMapping = {
+        'delivered': 'delivered',
+        'consegnato': 'delivered',
+        'consegnata': 'delivered',
+        'in_transit': 'in_transit',
+        'in transit': 'in_transit',
+        'in transito': 'in_transit',
+        'sailing': 'in_transit',
+        'navigando': 'in_transit',
+        'arrived': 'arrived',
+        'arrivato': 'arrived',
+        'arrivata': 'arrived',
+        'discharged': 'arrived',
+        'scaricato': 'arrived',
+        'pending': 'registered',
+        'in attesa': 'registered',
+        'registered': 'registered',
+        'registrato': 'registered',
+        'out_for_delivery': 'out_for_delivery',
+        'in consegna': 'out_for_delivery',
+        'cancelled': 'cancelled',
+        'annullato': 'cancelled'
+    };
+    
+    return localMapping[statusStr] || 'registered';
+}
+
+// ✅ CONFIGURAZIONE DISPLAY LOCALE
+getLocalStatusConfig() {
+    return {
+        'in_transit': { label: 'In Transito', class: 'info', icon: 'fa-truck' },
+        'delivered': { label: 'Consegnato', class: 'success', icon: 'fa-check-circle' },
+        'arrived': { label: 'Arrivato', class: 'primary', icon: 'fa-anchor' },
+        'registered': { label: 'Registrato', class: 'secondary', icon: 'fa-clipboard-check' },
+        'out_for_delivery': { label: 'In Consegna', class: 'warning', icon: 'fa-shipping-fast' },
+        'cancelled': { label: 'Annullato', class: 'secondary', icon: 'fa-times-circle' },
+        'default': { label: 'Sconosciuto', class: 'secondary', icon: 'fa-question-circle' }
+    };
+}
     
     // ✅ DETTAGLI SINGOLA SPEDIZIONE (SECONDO LIVELLO)
     viewShipmentDetails(shipmentId) {
@@ -1337,16 +1397,33 @@ renderCarriersDBPerformanceTable() {
         
         return total;
     }
-        // ✅ UTILITY: MAPPATURA ROBUSTA ORIGINE/DESTINAZIONE
+          // ✅ UTILITY: MAPPATURA ROBUSTA ORIGINE/DESTINAZIONE - VERSIONE MIGLIORATA
     getOriginDestination(shipment, type) {
-        // ✅ POSSIBILI NOMI DEI CAMPI PER ORIGINE
+        // ✅ USA IL MAPPING UNIFICATO SE DISPONIBILE
+        if (window.TrackingUnifiedMapping) {
+            // Cerca nei campi mappati
+            const mappedFields = Object.values(window.TrackingUnifiedMapping.COLUMN_MAPPING);
+            
+            if (type === 'origin') {
+                const originMapped = ['origin_port', 'origin_name', 'origin'].find(field => 
+                    shipment[field] && shipment[field].trim() !== ''
+                );
+                if (originMapped) return shipment[originMapped];
+            } else {
+                const destMapped = ['destination_port', 'destination_name', 'destination'].find(field => 
+                    shipment[field] && shipment[field].trim() !== ''
+                );
+                if (destMapped) return shipment[destMapped];
+            }
+        }
+        
+        // ✅ FALLBACK AI CAMPI ORIGINALI
         const originFields = [
             'origin', 'origin_port', 'origin_city', 'origin_location', 
             'pickup_location', 'from_port', 'departure_port',
             'origin_address', 'pickup_address', 'from_location'
         ];
         
-        // ✅ POSSIBILI NOMI DEI CAMPI PER DESTINAZIONE
         const destinationFields = [
             'destination', 'destination_port', 'destination_city', 'destination_location',
             'delivery_location', 'to_port', 'arrival_port',
