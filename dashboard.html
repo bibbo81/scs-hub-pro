@@ -106,11 +106,11 @@
             </div>
         </div>
 
-        <!-- Filtri -->
+                <!-- Filtri -->
         <div class="sol-card mb-4">
             <div class="sol-card-body">
                 <div class="row g-3">
-                    <div class="col-md-3">
+                    <div class="col-md-2">
                         <label class="form-label">Periodo</label>
                         <select class="form-select" id="periodFilter">
                             <option value="7">7 giorni</option>
@@ -119,13 +119,19 @@
                             <option value="365">1 anno</option>
                         </select>
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-md-2">
                         <label class="form-label">Compagnia</label>
-                        <select class="form-select" id="carrierFilter">
-                            <option value="">Tutte</option>
+                        <select class="form-select" id="companyFilter">
+                            <option value="">Tutte le compagnie</option>
                         </select>
                     </div>
                     <div class="col-md-3">
+                        <label class="form-label">Spedizioniere</label>
+                        <select class="form-select" id="carrierFilter">
+                            <option value="">Tutti gli spedizionieri</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
                         <label class="form-label">Stato</label>
                         <select class="form-select" id="statusFilter">
                             <option value="">Tutti</option>
@@ -137,6 +143,9 @@
                     <div class="col-md-3">
                         <button class="btn btn-primary w-100" onclick="applyFiltersFromUI()">
                             <i class="fas fa-filter"></i> Applica Filtri
+                        </button>
+                        <button class="btn btn-outline-secondary w-100 mt-2" onclick="clearFilters()">
+                            <i class="fas fa-times"></i> Reset
                         </button>
                     </div>
                 </div>
@@ -219,15 +228,31 @@
     </script>
 
     <script>
-        // Funzioni di utilità per i filtri
+                // ✅ FUNZIONI FILTRI AGGIORNATE
         function applyFiltersFromUI() {
             const filters = {
                 period: parseInt(document.getElementById('periodFilter').value),
+                company: document.getElementById('companyFilter').value,
                 carrier: document.getElementById('carrierFilter').value,
                 status: document.getElementById('statusFilter').value
             };
             
+            console.log('🔄 Applying filters:', filters);
             metricsSystem.applyFilters(filters);
+        }
+        
+        function clearFilters() {
+            document.getElementById('periodFilter').value = '30';
+            document.getElementById('companyFilter').value = '';
+            document.getElementById('carrierFilter').value = '';
+            document.getElementById('statusFilter').value = '';
+            
+            metricsSystem.applyFilters({
+                period: 30,
+                company: '',
+                carrier: '',
+                status: ''
+            });
         }
     </script>
 </body>

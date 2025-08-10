@@ -181,11 +181,13 @@ class UnifiedMetricsSystem {
             let shipmentsQuery = this.supabase.from('shipments').select('*');
             let trackingsQuery = this.supabase.from('trackings').select('*');
             let costsQuery = this.supabase.from('additional_costs').select('*');
+            let carriersQuery = this.supabase.from('carriers').select('*'); // ✅ AGGIUNGI QUESTA
             
             if (this.organizationId) {
                 shipmentsQuery = shipmentsQuery.eq('organization_id', this.organizationId);
                 trackingsQuery = trackingsQuery.eq('organization_id', this.organizationId);
                 costsQuery = costsQuery.eq('organization_id', this.organizationId);
+                carriersQuery = carriersQuery.eq('organization_id', this.organizationId); // ✅ AGGIUNGI QUESTA
             }
             
             // Applica filtri periodo se specificati
@@ -199,12 +201,26 @@ class UnifiedMetricsSystem {
                 costsQuery = costsQuery.gte('created_at', dateFilter);
             }
             
+            // ✅ APPLICA FILTRI COMPAGNIA E SPEDIZIONIERE
+            if (this.currentFilters.company) {
+                shipmentsQuery = shipmentsQuery.eq('carrier_name', this.currentFilters.company);
+            }
+            
+            if (this.currentFilters.carrier) {
+                // Cerca nelle spedizioni dove carrier_id corrisponde
+                shipmentsQuery = shipmentsQuery.eq('carrier_id', this.currentFilters.carrier);
+            }
+            
+            if (this.currentFilters.status) {
+                shipmentsQuery = shipmentsQuery.eq('status', this.currentFilters.status);
+            }
+            
             // Esegui query in parallelo
             const [shipmentsResult, trackingsResult, costsResult, carriersResult] = await Promise.allSettled([
                 shipmentsQuery.order('created_at', { ascending: false }).limit(5000),
                 trackingsQuery.order('created_at', { ascending: false }).limit(5000),
                 costsQuery.order('created_at', { ascending: false }).limit(2000),
-                this.supabase.from('carriers').select('*').limit(200)
+                carriersQuery.order('name', { ascending: true }).limit(500) // ✅ MODIFICA QUERY CARRIERS
             ]);
             
             // Estrai dati
@@ -212,7 +228,7 @@ class UnifiedMetricsSystem {
                 shipments: this.extractData(shipmentsResult, 'shipments'),
                 trackings: this.extractData(trackingsResult, 'trackings'),
                 additionalCosts: this.extractData(costsResult, 'additional_costs'),
-                carriers: this.extractData(carriersResult, 'carriers'),
+                carriers: this.extractData(carriersResult, 'carriers'), // ✅ CARRIERS DA SUPABASE
                 loadedAt: new Date().toISOString()
             };
             
@@ -220,7 +236,7 @@ class UnifiedMetricsSystem {
                 shipments: this.rawData.shipments.length,
                 trackings: this.rawData.trackings.length,
                 additionalCosts: this.rawData.additionalCosts.length,
-                carriers: this.rawData.carriers.length
+                carriers: this.rawData.carriers.length // ✅ LOG CARRIERS
             });
             
         } catch (error) {
@@ -437,16 +453,28 @@ class UnifiedMetricsSystem {
         return Object.values(modes);
     }
 
-    // ✅ CALCOLA PERFORMANCE CARRIERS
+        // ✅ CALCOLA PERFORMANCE CARRIERS - VERSIONE AGGIORNATA
     calculateCarriersPerformance() {
         const performance = {};
         
         this.rawData.shipments.forEach(shipment => {
-            const carrierName = shipment.carrier_name || 'Sconosciuto';
+            // ✅ USA CARRIER_NAME PER LE COMPAGNIE (non più per carriers)
+            const companyName = shipment.carrier_name || 'Sconosciuto';
             
-            if (!performance[carrierName]) {
-                performance[carrierName] = {
-                    name: carrierName,
+            // ✅ TROVA CARRIER DA TABELLA CARRIERS SE PRESENTE
+            let carrierName = 'Non specificato';
+            if (shipment.carrier_id) {
+                const carrier = this.rawData.carriers.find(c => c.id === shipment.carrier_id);
+                carrierName = carrier ? carrier.name : `Carrier ID: ${shipment.carrier_id}`;
+            }
+            
+            const key = `${companyName} → ${carrierName}`;
+            
+            if (!performance[key]) {
+                performance[key] = {
+                    name: key,
+                    company: companyName,
+                    carrier: carrierName,
                     shipments: 0,
                     costs: 0,
                     weight: 0,
@@ -455,7 +483,7 @@ class UnifiedMetricsSystem {
                 };
             }
             
-            const p = performance[carrierName];
+            const p = performance[key];
             p.shipments++;
             p.costs += (parseFloat(shipment.freight_cost) || 0) + (parseFloat(shipment.other_costs) || 0);
             p.weight += (parseFloat(shipment.total_weight_kg) || 0);
@@ -628,27 +656,29 @@ class UnifiedMetricsSystem {
         this.renderCarriersTable();
     }
 
+        // ✅ RENDERIZZA TABELLA CARRIERS - VERSIONE AGGIORNATA
     renderCarriersTable() {
         const tbody = document.getElementById('carriersDetailBody');
         if (!tbody || !this.processedMetrics.advanced.carriersPerformance) return;
         
-        tbody.innerHTML = this.processedMetrics.advanced.carriersPerformance.map(carrier => `
+        tbody.innerHTML = this.processedMetrics.advanced.carriersPerformance.map(item => `
             <tr>
                 <td>
-                    <div class="fw-semibold">${carrier.name}</div>
+                    <div class="fw-semibold">${item.company}</div>
+                    <small class="text-muted">${item.carrier}</small>
                 </td>
-                <td class="text-end">${carrier.shipments}</td>
-                <td class="text-end">€${carrier.costs.toLocaleString()}</td>
-                <td class="text-end">${carrier.weight.toLocaleString()} kg</td>
-                <td class="text-end">${carrier.volume.toFixed(1)} m³</td>
-                <td class="text-end">€${carrier.avgCost.toFixed(2)}</td>
+                <td class="text-end">${item.shipments}</td>
+                <td class="text-end">€${item.costs.toLocaleString()}</td>
+                <td class="text-end">${item.weight.toLocaleString()} kg</td>
+                <td class="text-end">${item.volume.toFixed(1)} m³</td>
+                <td class="text-end">€${item.avgCost.toFixed(2)}</td>
                 <td class="text-end">
-                    <span class="badge ${carrier.performance >= 90 ? 'bg-success' : carrier.performance >= 70 ? 'bg-warning' : 'bg-danger'}">
-                        ${carrier.performance.toFixed(1)}%
+                    <span class="badge ${item.performance >= 90 ? 'bg-success' : item.performance >= 70 ? 'bg-warning' : 'bg-danger'}">
+                        ${item.performance.toFixed(1)}%
                     </span>
                 </td>
                 <td class="text-center">
-                    <button class="btn btn-sm btn-outline-primary" onclick="metricsSystem.viewCarrierDetails('${carrier.name}')">
+                    <button class="btn btn-sm btn-outline-primary" onclick="metricsSystem.viewCarrierDetails('${item.name}')">
                         <i class="fas fa-eye"></i>
                     </button>
                 </td>
@@ -657,14 +687,48 @@ class UnifiedMetricsSystem {
     }
 
     // ✅ POPOLA FILTRI
+        // ✅ POPOLA FILTRI - VERSIONE AGGIORNATA
     populateFilters() {
+        this.populateCompanyFilter();
+        this.populateCarrierFilter();
+    }
+    
+    // ✅ POPOLA FILTRO COMPAGNIE (da carrier_name delle spedizioni)
+    populateCompanyFilter() {
+        const companyFilter = document.getElementById('companyFilter');
+        if (!companyFilter) return;
+        
+        // Estrai compagnie uniche dalle spedizioni
+        const companies = [...new Set(
+            this.rawData.shipments
+                .map(s => s.carrier_name)
+                .filter(name => name && name.trim() !== '')
+        )].sort();
+        
+        companyFilter.innerHTML = '<option value="">Tutte le compagnie</option>' +
+            companies.map(company => 
+                `<option value="${company}">${company}</option>`
+            ).join('');
+        
+        console.log('✅ Company filter populated with', companies.length, 'companies');
+    }
+    
+    // ✅ POPOLA FILTRO SPEDIZIONIERI (da tabella carriers)
+    populateCarrierFilter() {
         const carrierFilter = document.getElementById('carrierFilter');
-        if (carrierFilter && this.processedMetrics.advanced.carriersPerformance) {
-            carrierFilter.innerHTML = '<option value="">Tutti gli spedizionieri</option>' +
-                this.processedMetrics.advanced.carriersPerformance.map(carrier => 
-                    `<option value="${carrier.name}">${carrier.name} (${carrier.shipments})</option>`
-                ).join('');
-        }
+        if (!carrierFilter || !this.rawData.carriers) return;
+        
+        // Usa la tabella carriers da Supabase
+        const carriers = this.rawData.carriers
+            .filter(carrier => carrier.name && carrier.name.trim() !== '')
+            .sort((a, b) => a.name.localeCompare(b.name));
+        
+        carrierFilter.innerHTML = '<option value="">Tutti gli spedizionieri</option>' +
+            carriers.map(carrier => 
+                `<option value="${carrier.id}">${carrier.name}${carrier.country ? ` (${carrier.country})` : ''}</option>`
+            ).join('');
+        
+        console.log('✅ Carrier filter populated with', carriers.length, 'carriers from Supabase');
     }
 
     // ✅ APPLICA FILTRI
