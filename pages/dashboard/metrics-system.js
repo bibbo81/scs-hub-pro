@@ -333,11 +333,12 @@ class UnifiedMetricsSystem {
         const deliveredTimes = [];
         
         shipments.forEach(shipment => {
-            // ✅ STATI MULTIPLI PER "CONSEGNATO" - VERSIONE ESTESA
+            // ✅ STATI MULTIPLI PER "CONSEGNATO" - VERSIONE ESTESA  
             const deliveredStates = [
                 'delivered', 'consegnato', 'consegnata', 'completed', 'finished',
                 'discharged', 'scaricato', 'scaricata', 'emrt', 'disc', 'gtot',
-                'arrived', 'arrivato', 'arrivata', 'delivery', 'delivered_to_customer'
+                'arrived', 'arrivato', 'arrivata', 'delivery', 'delivered_to_customer',
+                'sailing', 'navigando' // ✅ AGGIUNGI ANCHE QUESTE PER TEST
             ];
             
             const isDelivered = deliveredStates.some(state => 
