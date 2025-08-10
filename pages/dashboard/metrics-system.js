@@ -333,29 +333,26 @@ class UnifiedMetricsSystem {
         const deliveredTimes = [];
         
         shipments.forEach(shipment => {
-            if (shipment.status === 'delivered') {
-                const tracking = trackings.find(t => 
-                    t.shipment_id === shipment.id || 
-                    t.tracking_number === shipment.tracking_number
-                );
+            // ✅ STATI MULTIPLI PER "CONSEGNATO"
+            const deliveredStates = ['delivered', 'consegnato', 'consegnata', 'completed', 'finished'];
+            const isDelivered = deliveredStates.some(state => 
+                shipment.status?.toLowerCase().includes(state.toLowerCase())
+            );
+            
+            if (isDelivered || shipment.delivery_date || shipment.actual_delivery) {
+                console.log(`📦 Spedizione potenzialmente consegnata: ${shipment.id} - Status: ${shipment.status}`);
                 
-                const startDate = new Date(shipment.created_at);
-                let endDate = null;
-                
-                if (shipment.delivery_date) {
-                    endDate = new Date(shipment.delivery_date);
-                } else if (tracking?.delivered_at) {
-                    endDate = new Date(tracking.delivered_at);
-                }
-                
-                if (endDate && endDate > startDate) {
-                    const days = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24));
-                    if (days > 0 && days < 365) {
-                        deliveredTimes.push(days);
-                    }
+                // ✅ USA LA NUOVA FUNZIONE calculateDeliveryDays
+                const days = this.calculateDeliveryDays(shipment);
+                if (days !== null && days > 0 && days < 365) {
+                    deliveredTimes.push(days);
+                    console.log(`✅ Giorni aggiunti al calcolo: ${days}`);
                 }
             }
         });
+        
+        console.log(`📊 Calcolo tempo medio: ${deliveredTimes.length} spedizioni valide su ${shipments.length} totali`);
+        console.log(`📊 Giorni trovati: [${deliveredTimes.join(', ')}]`);
         
         return deliveredTimes.length > 0 
             ? deliveredTimes.reduce((a, b) => a + b, 0) / deliveredTimes.length 
