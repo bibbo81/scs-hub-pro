@@ -765,17 +765,15 @@ calculateCarriersDBPerformance() {
     }
 
         // ✅ RENDERIZZA TABELLA CARRIERS - VERSIONE AGGIORNATA
-    renderCarriersTable() {
-        const tbody = document.getElementById('carriersDetailBody');
-        if (!tbody || !this.processedMetrics.advanced.carriersPerformance) return;
-        
-        tbody.innerHTML = this.processedMetrics.advanced.carriersPerformance.map(item => `
-            <tr>
-                <td>
-                    <div class="fw-semibold">${item.company}</div>
-                    <small class="text-muted">${item.carrier}</small>
-                </td>
-                <td class="text-end">${item.shipments}</td>
+                    renderCarriersTable() {
+                    const tbody = document.getElementById('carriersDetailBody');
+                    if (!tbody || !this.processedMetrics.advanced.carriersPerformance) return;
+                    
+                    tbody.innerHTML = this.processedMetrics.advanced.carriersPerformance.map(item => `
+                        <tr>
+                            <td>
+                                <div class="fw-semibold">${item.company}</div>
+                            </td>            <td class="text-end">${item.shipments}</td>
                 <td class="text-end">€${item.costs.toLocaleString()}</td>
                 <td class="text-end">${item.weight.toLocaleString()} kg</td>
                 <td class="text-end">${item.volume.toFixed(1)} m³</td>
