@@ -1068,13 +1068,6 @@ renderCarriersDBPerformanceTable() {
         }
     
         // ✅ UTILITY: CLASSE BADGE PERFORMANCE
-        getPerformanceBadgeClass(performance) {
-            if (performance >= 90) return 'bg-success';
-            if (performance >= 70) return 'bg-warning';
-            if (performance >= 50) return 'bg-orange';
-            return 'bg-danger';
-        }
-        // ✅ UTILITY: CLASSE BADGE PERFORMANCE
     getPerformanceBadgeClass(performance) {
         if (performance >= 90) return 'bg-success';
         if (performance >= 70) return 'bg-warning';
@@ -1371,7 +1364,7 @@ renderCarriersDBPerformanceTable() {
         
         return 'Non specificato';
     }
-    }
+}
 
-    // ✅ ESPORTA SISTEMA (FUORI DALLA CLASSE!)
+// ✅ ESPORTA SISTEMA (FUORI DALLA CLASSE!)
 export default UnifiedMetricsSystem;
