@@ -880,3 +880,27 @@
         grid-template-columns: 1fr !important;
     }
 }
+/* ✅ DIMENSIONI SPECIFICHE PER ANALYTICS MODALI */
+.sol-modal-content.analytics-modal {
+    max-width: 1600px;
+    width: 98vw;
+    max-height: 98vh;
+}
+
+.sol-modal-content.analytics-modal .sol-modal-body {
+    max-height: calc(98vh - 160px);
+    padding: 20px;
+}
+
+/* ✅ RESPONSIVE PER ANALYTICS */
+@media (max-width: 768px) {
+    .sol-modal-content.analytics-modal {
+        width: 98vw;
+        max-width: calc(100vw - 10px);
+        max-height: 95vh;
+    }
+    
+    .sol-modal-content.analytics-modal .sol-modal-body {
+        padding: 15px;
+    }
+}

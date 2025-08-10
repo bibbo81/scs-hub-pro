@@ -891,13 +891,15 @@ calculateCarriersDBPerformance() {
             </div>
         `;
         
-        if (window.ModalSystem) {
-            window.ModalSystem.show({
-                title: `📊 ${carrier.name} - Analisi Spedizioni`,
-                content: modalContent,
-                size: 'xl'
-            });
-        }
+        // ✅ PRIMA MODAL CON CLASSE CUSTOM
+if (window.ModalSystem) {
+    window.ModalSystem.show({
+        title: `📊 ${carrier.name} - Analisi Spedizioni`,
+        content: modalContent,
+        size: 'xl',
+        customClass: 'analytics-modal'  // ✅ AGGIUNTO
+    });
+}
     }
 // ✅ RENDERIZZA TABELLA - ICONA AGGIORNATA
 renderCarriersDBPerformanceTable() {
@@ -1480,13 +1482,15 @@ getLocalStatusConfig() {
             </div>
         `;
         
-        if (window.ModalSystem) {
-            window.ModalSystem.show({
-                title: `🔍 Dettagli Spedizione ${shipment.tracking_number || shipment.id}`,
-                content: detailsHTML,
-                size: 'xl'
-            });
-        }
+        // ✅ SECONDA MODAL CON CLASSE CUSTOM
+if (window.ModalSystem) {
+    window.ModalSystem.show({
+        title: `🔍 Dettagli Spedizione ${shipment.tracking_number || shipment.id}`,
+        content: detailsHTML,
+        size: 'xl',
+        customClass: 'analytics-modal'  // ✅ AGGIUNTO
+    });
+}
     }
     
     // ✅ CALCOLA TOTALE SPEDIZIONE
