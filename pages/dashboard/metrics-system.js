@@ -1733,89 +1733,109 @@ if (window.ModalSystem) {
         
         return total;
     }
-        // ✅ CALCOLA GIORNI DI CONSEGNA USANDO TRACKING DATA
-    calculateDeliveryDays(shipment) {
-        // Trova il tracking corrispondente
-        const tracking = this.rawData.trackings.find(t => 
-            t.shipment_id === shipment.id || 
-            t.tracking_number === shipment.tracking_number ||
-            t.tracking_number === shipment.tracking_code
-        );
-        
-        if (!tracking) {
-            console.log(`⚠️ Nessun tracking trovato per spedizione ${shipment.id}`);
-            return null;
-        }
-        
-        // ✅ USA IL SISTEMA DI TRACKING.HTML PER CALCOLARE I GIORNI
-        try {
-            // Cerca eventi di tracking
-            let events = [];
-            
-            // Se tracking ha eventi strutturati
-            if (tracking.events && Array.isArray(tracking.events)) {
-                events = tracking.events;
-            }
-            // Se tracking ha timeline
-            else if (tracking.timeline && Array.isArray(tracking.timeline)) {
-                events = tracking.timeline;
-            }
-            // Se tracking ha tracking_data come JSON
-            else if (tracking.tracking_data) {
-                const trackingData = typeof tracking.tracking_data === 'string' 
-                    ? JSON.parse(tracking.tracking_data) 
-                    : tracking.tracking_data;
+                // ✅ CALCOLA GIORNI DI CONSEGNA - VERSIONE SEMPLIFICATA CON FALLBACK
+        calculateDeliveryDays(shipment) {
+            // 🎯 PRIORITÀ 1: Usa date dirette dal database se disponibili
+            if (shipment.delivery_date && shipment.created_at) {
+                const startDate = new Date(shipment.created_at);
+                const endDate = new Date(shipment.delivery_date);
                 
-                events = trackingData.events || trackingData.timeline || [];
+                if (!isNaN(startDate.getTime()) && !isNaN(endDate.getTime())) {
+                    const days = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24));
+                    if (days >= 0 && days <= 365) {
+                        console.log(`✅ Delivery days from DB fields: ${days} giorni`);
+                        return days;
+                    }
+                }
             }
             
-            if (events.length === 0) {
-                console.log(`⚠️ Nessun evento trovato nel tracking ${tracking.tracking_number}`);
+            // 🎯 PRIORITÀ 2: Usa ETA come stima se non c'è delivery_date
+            if (shipment.eta && shipment.created_at) {
+                const startDate = new Date(shipment.created_at);
+                const etaDate = new Date(shipment.eta);
+                
+                if (!isNaN(startDate.getTime()) && !isNaN(etaDate.getTime())) {
+                    const days = Math.ceil((etaDate - startDate) / (1000 * 60 * 60 * 24));
+                    if (days >= 0 && days <= 365) {
+                        console.log(`📅 Estimated days from ETA: ${days} giorni`);
+                        return days;
+                    }
+                }
+            }
+            
+            // 🎯 PRIORITÀ 3: Cerca il tracking corrispondente per eventi dettagliati
+            const tracking = this.rawData.trackings.find(t => 
+                t.shipment_id === shipment.id || 
+                t.tracking_number === shipment.tracking_number ||
+                t.tracking_number === shipment.tracking_code
+            );
+            
+            if (!tracking) {
+                console.log(`⚠️ Nessun tracking trovato per spedizione ${shipment.id}`);
                 return null;
             }
             
-            // ✅ TROVA PRIMO E ULTIMO EVENTO
-            const sortedEvents = events
-                .filter(event => event.date || event.timestamp || event.datetime)
-                .sort((a, b) => {
-                    const dateA = new Date(a.date || a.timestamp || a.datetime);
-                    const dateB = new Date(b.date || b.timestamp || b.datetime);
-                    return dateA - dateB;
-                });
-            
-            if (sortedEvents.length < 2) {
-                console.log(`⚠️ Eventi insufficienti per calcolare transito in ${tracking.tracking_number}`);
+            // ✅ USA IL SISTEMA DI TRACKING.HTML PER CALCOLARE I GIORNI (ORIGINALE)
+            try {
+                let events = [];
+                
+                if (tracking.events && Array.isArray(tracking.events)) {
+                    events = tracking.events;
+                } else if (tracking.timeline && Array.isArray(tracking.timeline)) {
+                    events = tracking.timeline;
+                } else if (tracking.tracking_data) {
+                    const trackingData = typeof tracking.tracking_data === 'string' 
+                        ? JSON.parse(tracking.tracking_data) 
+                        : tracking.tracking_data;
+                    
+                    events = trackingData.events || trackingData.timeline || [];
+                }
+                
+                if (events.length === 0) {
+                    console.log(`⚠️ Nessun evento trovato nel tracking ${tracking.tracking_number}`);
+                    return null;
+                }
+                
+                // ✅ TROVA PRIMO E ULTIMO EVENTO
+                const sortedEvents = events
+                    .filter(event => event.date || event.timestamp || event.datetime)
+                    .sort((a, b) => {
+                        const dateA = new Date(a.date || a.timestamp || a.datetime);
+                        const dateB = new Date(b.date || b.timestamp || b.datetime);
+                        return dateA - dateB;
+                    });
+                
+                if (sortedEvents.length < 2) {
+                    console.log(`⚠️ Eventi insufficienti per calcolare transito in ${tracking.tracking_number}`);
+                    return null;
+                }
+                
+                const firstEvent = sortedEvents[0];
+                const lastEvent = sortedEvents[sortedEvents.length - 1];
+                
+                const startDate = new Date(firstEvent.date || firstEvent.timestamp || firstEvent.datetime);
+                const endDate = new Date(lastEvent.date || lastEvent.timestamp || lastEvent.datetime);
+                
+                if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+                    console.log(`⚠️ Date non valide nel tracking ${tracking.tracking_number}`);
+                    return null;
+                }
+                
+                const days = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24));
+                
+                if (days < 0 || days > 365) {
+                    console.log(`⚠️ Giorni di transito non ragionevoli: ${days} per ${tracking.tracking_number}`);
+                    return null;
+                }
+                
+                console.log(`✅ Tracking ${tracking.tracking_number}: ${days} giorni (${startDate.toLocaleDateString()} → ${endDate.toLocaleDateString()})`);
+                return days;
+                
+            } catch (error) {
+                console.error(`❌ Errore nel calcolo giorni per tracking ${tracking?.tracking_number}:`, error);
                 return null;
             }
-            
-            const firstEvent = sortedEvents[0];
-            const lastEvent = sortedEvents[sortedEvents.length - 1];
-            
-            const startDate = new Date(firstEvent.date || firstEvent.timestamp || firstEvent.datetime);
-            const endDate = new Date(lastEvent.date || lastEvent.timestamp || lastEvent.datetime);
-            
-            // ✅ VERIFICA CHE LE DATE SIANO VALIDE
-            if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
-                console.log(`⚠️ Date non valide nel tracking ${tracking.tracking_number}`);
-                return null;
-            }
-            
-            const days = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24));
-            
-            // ✅ VERIFICA RAGIONEVOLEZZA (0-365 giorni)
-            if (days < 0 || days > 365) {
-                console.log(`⚠️ Giorni di transito non ragionevoli: ${days} per ${tracking.tracking_number}`);
-                return null;
-            }
-            
-            console.log(`✅ Tracking ${tracking.tracking_number}: ${days} giorni (${startDate.toLocaleDateString()} → ${endDate.toLocaleDateString()})`);
-            return days;
-            
-        } catch (error) {
-            console.error(`❌ Errore nel calcolo giorni per tracking ${tracking?.tracking_number}:`, error);
-            return null;
         }
-    }
         // ✅ DEBUG TRACKING DATA PER VERIFICARE STRUTTURA
     debugTrackingData(limit = 3) {
         console.log('🔍 ANALISI TRACKING DATA:');
