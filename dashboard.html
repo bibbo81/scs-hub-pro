@@ -674,26 +674,350 @@
                                     min-height: 120px;
                                 }
                             }
-                            
-                            /* ✅ DARK MODE SUPPORT (OPZIONALE) */
-                            @media (prefers-color-scheme: dark) {
-                                .kpi-card-modern {
-                                    background: #1f2937;
-                                    border-color: #374151;
-                                    color: #f9fafb;
-                                }
-                                
-                                .kpi-label-modern {
-                                    color: #9ca3af;
-                                }
-                                
-                                .kpi-check-item {
-                                    background: #374151;
-                                    border-color: #4b5563;
-                                    color: #f9fafb;
-                                }
-                            }
-                </style>
+                                           
+
+            /* ✅ SISTEMA DARK MODE COMPLETO PAGINA DASHBOARD */
+            @media (prefers-color-scheme: dark) {
+                /* ✅ BODY E BACKGROUND PRINCIPALI */
+                body {
+                    background-color: #0f172a !important;
+                    color: #f1f5f9 !important;
+                }
+                
+                /* ✅ MAIN CONTENT E LAYOUT */
+                .sol-main-content {
+                    background-color: #0f172a !important;
+                }
+                
+                /* ✅ HEADER PAGINA */
+                .sol-page-header {
+                    background-color: transparent !important;
+                    border-bottom: 1px solid #334155 !important;
+                }
+                
+                .sol-page-title {
+                    color: #f1f5f9 !important;
+                }
+                
+                .sol-page-subtitle {
+                    color: #94a3b8 !important;
+                }
+                
+                /* ✅ CARDS PRINCIPALI */
+                .sol-card {
+                    background-color: #1e293b !important;
+                    border: 1px solid #334155 !important;
+                    color: #f1f5f9 !important;
+                }
+                
+                .sol-card-header {
+                    border-bottom: 1px solid #334155 !important;
+                    background-color: #1e293b !important;
+                }
+                
+                .sol-card-title {
+                    color: #f1f5f9 !important;
+                }
+                
+                .sol-card-subtitle {
+                    color: #94a3b8 !important;
+                }
+                
+                .sol-card-body {
+                    background-color: #1e293b !important;
+                }
+                
+                /* ✅ CHART CONTAINERS */
+                .chart-container {
+                    background-color: #1e293b !important;
+                    border: 1px solid #334155 !important;
+                    color: #f1f5f9 !important;
+                }
+                
+                .chart-title {
+                    color: #f1f5f9 !important;
+                }
+                
+                /* ✅ FORM ELEMENTS */
+                .form-label {
+                    color: #f1f5f9 !important;
+                }
+                
+                .form-select {
+                    background-color: #334155 !important;
+                    border: 1px solid #475569 !important;
+                    color: #f1f5f9 !important;
+                }
+                
+                .form-select:focus {
+                    background-color: #334155 !important;
+                    border-color: #3b82f6 !important;
+                    box-shadow: 0 0 0 0.2rem rgba(59, 130, 246, 0.25) !important;
+                }
+                
+                .form-select option {
+                    background-color: #334155 !important;
+                    color: #f1f5f9 !important;
+                }
+                
+                /* ✅ BUTTONS */
+                .btn-primary {
+                    background-color: #3b82f6 !important;
+                    border-color: #3b82f6 !important;
+                }
+                
+                .btn-primary:hover {
+                    background-color: #2563eb !important;
+                    border-color: #2563eb !important;
+                }
+                
+                .btn-outline-secondary {
+                    color: #94a3b8 !important;
+                    border-color: #475569 !important;
+                }
+                
+                .btn-outline-secondary:hover {
+                    background-color: #475569 !important;
+                    border-color: #475569 !important;
+                    color: #f1f5f9 !important;
+                }
+                
+                .sol-btn-glass {
+                    background: rgba(30, 41, 59, 0.8) !important;
+                    border: 1px solid #334155 !important;
+                    color: #f1f5f9 !important;
+                    backdrop-filter: blur(10px) !important;
+                }
+                
+                .sol-btn-glass:hover {
+                    background: rgba(51, 65, 85, 0.9) !important;
+                    border-color: #475569 !important;
+                }
+                
+                /* ✅ TABELLE */
+                .table {
+                    color: #f1f5f9 !important;
+                    --bs-table-bg: transparent !important;
+                }
+                
+                .table th {
+                    background-color: #334155 !important;
+                    border-color: #475569 !important;
+                    color: #f1f5f9 !important;
+                }
+                
+                .table td {
+                    border-color: #334155 !important;
+                    color: #f1f5f9 !important;
+                }
+                
+                .table-hover tbody tr:hover {
+                    background-color: rgba(51, 65, 85, 0.5) !important;
+                }
+                
+                .table-responsive {
+                    border: 1px solid #334155 !important;
+                }
+                
+                /* ✅ BADGES */
+                .badge.bg-success {
+                    background-color: #16a34a !important;
+                }
+                
+                .badge.bg-primary {
+                    background-color: #3b82f6 !important;
+                }
+                
+                .badge.bg-warning {
+                    background-color: #f59e0b !important;
+                    color: #1f2937 !important;
+                }
+                
+                .badge.bg-secondary {
+                    background-color: #6b7280 !important;
+                }
+                
+                .badge.bg-info {
+                    background-color: #06b6d4 !important;
+                }
+                
+                /* ✅ TEXT COLORS */
+                .text-muted {
+                    color: #94a3b8 !important;
+                }
+                
+                .text-primary {
+                    color: #60a5fa !important;
+                }
+                
+                .text-success {
+                    color: #4ade80 !important;
+                }
+                
+                .text-warning {
+                    color: #fbbf24 !important;
+                }
+                
+                .text-info {
+                    color: #38bdf8 !important;
+                }
+                
+                .text-danger {
+                    color: #f87171 !important;
+                }
+                
+                .text-secondary {
+                    color: #9ca3af !important;
+                }
+                
+                /* ✅ KPI CARDS DARK MODE (RIDEFINITE) */
+                .kpi-card-modern {
+                    background: #1e293b !important;
+                    border-color: #334155 !important;
+                    color: #f1f5f9 !important;
+                }
+                
+                .kpi-card-modern:hover {
+                    border-color: #475569 !important;
+                    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3) !important;
+                }
+                
+                .kpi-label-modern {
+                    color: #94a3b8 !important;
+                }
+                
+                .kpi-value-modern {
+                    color: inherit !important; /* Mantiene il colore specifico del KPI */
+                }
+                
+                /* ✅ KPI CARDS VECCHIE (FALLBACK) */
+                .kpi-card {
+                    background: #1e293b !important;
+                    border-color: #334155 !important;
+                    color: #f1f5f9 !important;
+                }
+                
+                .kpi-label-small {
+                    color: #94a3b8 !important;
+                }
+                
+                .kpi-value-small {
+                    color: #f1f5f9 !important;
+                }
+                
+                /* ✅ MODAL SYSTEM DARK */
+                .sol-modal-overlay {
+                    background-color: rgba(0, 0, 0, 0.8) !important;
+                }
+                
+                .sol-modal-content {
+                    background-color: #1e293b !important;
+                    border: 1px solid #334155 !important;
+                    color: #f1f5f9 !important;
+                }
+                
+                .sol-modal-header {
+                    background-color: #334155 !important;
+                    border-bottom: 1px solid #475569 !important;
+                }
+                
+                .sol-modal-title {
+                    color: #f1f5f9 !important;
+                }
+                
+                .sol-modal-body {
+                    background-color: #1e293b !important;
+                }
+                
+                /* ✅ ALERT COMPONENTS */
+                .alert-info {
+                    background-color: #1e3a8a !important;
+                    border-color: #3b82f6 !important;
+                    color: #dbeafe !important;
+                }
+                
+                .alert-success {
+                    background-color: #14532d !important;
+                    border-color: #16a34a !important;
+                    color: #dcfce7 !important;
+                }
+                
+                .alert-warning {
+                    background-color: #92400e !important;
+                    border-color: #f59e0b !important;
+                    color: #fef3c7 !important;
+                }
+                
+                .alert-danger {
+                    background-color: #991b1b !important;
+                    border-color: #dc2626 !important;
+                    color: #fee2e2 !important;
+                }
+                
+                /* ✅ SELECTOR DARK MODE */
+                .kpi-check-item {
+                    background: #334155 !important;
+                    border-color: #475569 !important;
+                    color: #f1f5f9 !important;
+                }
+                
+                .kpi-check-item:hover {
+                    background: #475569 !important;
+                    border-color: #64748b !important;
+                }
+                
+                .kpi-check-item:has(input:checked) {
+                    background: #1e40af !important;
+                    border-color: #3b82f6 !important;
+                }
+                
+                /* ✅ SCROLLBARS DARK */
+                ::-webkit-scrollbar {
+                    width: 8px;
+                    height: 8px;
+                }
+                
+                ::-webkit-scrollbar-track {
+                    background: #1e293b;
+                    border-radius: 4px;
+                }
+                
+                ::-webkit-scrollbar-thumb {
+                    background: #475569;
+                    border-radius: 4px;
+                }
+                
+                ::-webkit-scrollbar-thumb:hover {
+                    background: #64748b;
+                }
+                
+                /* ✅ ICONE E SIMBOLI */
+                .fas, .far, .fab {
+                    color: inherit !important;
+                }
+                
+                /* ✅ UTILITIES */
+                .border {
+                    border-color: #334155 !important;
+                }
+                
+                .border-top {
+                    border-top-color: #334155 !important;
+                }
+                
+                .border-bottom {
+                    border-bottom-color: #334155 !important;
+                }
+                
+                .bg-light {
+                    background-color: #1e293b !important;
+                }
+                
+                .bg-white {
+                    background-color: #1e293b !important;
+                }
+            }
+</style>
 </head>
 <body>
     <!-- Header -->
