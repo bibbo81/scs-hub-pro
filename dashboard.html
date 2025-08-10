@@ -86,6 +86,27 @@
             margin-bottom: 1rem;
             color: #1e293b;
         }
+                /* ✅ TABELLA SPEDIZIONIERI PIÙ COMPATTA */
+        #carriersPerformanceBody .badge {
+            font-size: 0.75rem;
+            padding: 0.25em 0.5em;
+            min-width: 2.5rem;
+        }
+        
+        #carriersPerformanceBody .text-muted.d-block {
+            font-size: 0.7rem;
+            line-height: 1.1;
+        }
+        
+        #carriersPerformanceBody td {
+            padding: 0.75rem 0.5rem;
+        }
+        
+        /* ✅ TENDENZA STYLING */
+        .text-success.fw-semibold,
+        .text-danger.fw-semibold {
+            font-size: 0.85rem;
+        }
     </style>
 </head>
 <body>
@@ -208,16 +229,15 @@
             <div class="sol-card-body">
                 <div class="table-responsive">
                     <table class="table table-hover">
-                        <thead>
+                                                <thead>
                             <tr>
                                 <th>Spedizioniere</th>
                                 <th class="text-end">Totale Spedizioni</th>
-                                <th class="text-end">Costo Medio Nolo</th>
-                                <th class="text-end">Marittimo</th>
-                                <th class="text-end">Aereo</th>
-                                <th class="text-end">Stradale</th>
-                                <th class="text-end">Corriere</th>
-                                <th class="text-end">Performance</th>
+                                <th class="text-end">🚢 Marittimo</th>
+                                <th class="text-end">✈️ Aereo</th>
+                                <th class="text-end">🚛 Stradale</th>
+                                <th class="text-end">📦 Corriere</th>
+                                <th class="text-end">Tendenza</th>
                                 <th class="text-center">Azioni</th>
                             </tr>
                         </thead>

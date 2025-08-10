@@ -501,9 +501,14 @@ class UnifiedMetricsSystem {
             performance: p.shipments > 0 ? (p.delivered / p.shipments * 100) : 0
         })).sort((a, b) => b.shipments - a.shipments);
     }
-// CALCOLA PERFORMANCE SPEDIZIONIERI DA DATABASE
+// ✅ CALCOLA PERFORMANCE SPEDIZIONIERI CON TENDENZA
 calculateCarriersDBPerformance() {
     const carriersPerformance = {};
+    
+    // Calcola date per confronto tendenza (ultimi 30 vs precedenti 30 giorni)
+    const now = new Date();
+    const last30Days = new Date(now.getTime() - (30 * 24 * 60 * 60 * 1000));
+    const previous30Days = new Date(now.getTime() - (60 * 24 * 60 * 60 * 1000));
     
     // Itera attraverso tutte le spedizioni
     this.rawData.shipments.forEach(shipment => {
@@ -519,6 +524,7 @@ calculateCarriersDBPerformance() {
         
         const carrierId = carrierInfo.id;
         const carrierName = carrierInfo.name;
+        const shipmentDate = new Date(shipment.created_at);
         
         // ✅ DETERMINA TIPO SPEDIZIONE DAL TRACKING
         let shipmentType = 'Altro';
@@ -559,8 +565,8 @@ calculateCarriersDBPerformance() {
                 email: carrierInfo.email || '',
                 phone: carrierInfo.phone || '',
                 totalShipments: 0,
-                totalFreightCost: 0,
-                deliveredShipments: 0,
+                last30DaysShipments: 0,
+                previous30DaysShipments: 0,
                 shipmentTypes: {
                     'Marittimo': 0,
                     'Aereo': 0,
@@ -574,21 +580,32 @@ calculateCarriersDBPerformance() {
         
         // ✅ AGGIORNA STATISTICHE
         carrier.totalShipments++;
-        carrier.totalFreightCost += (parseFloat(shipment.freight_cost) || 0);
         carrier.shipmentTypes[shipmentType]++;
         
-        if (shipment.status === 'delivered') {
-            carrier.deliveredShipments++;
+        // ✅ CALCOLA TENDENZA (ultimi 30 vs precedenti 30 giorni)
+        if (shipmentDate >= last30Days) {
+            carrier.last30DaysShipments++;
+        } else if (shipmentDate >= previous30Days && shipmentDate < last30Days) {
+            carrier.previous30DaysShipments++;
         }
     });
     
-    // ✅ CALCOLA METRICHE FINALI E ORDINA
+    // ✅ CALCOLA TENDENZA FINALE E ORDINA
     return Object.values(carriersPerformance)
-        .map(carrier => ({
-            ...carrier,
-            avgFreightCost: carrier.totalShipments > 0 ? carrier.totalFreightCost / carrier.totalShipments : 0,
-            deliveryPerformance: carrier.totalShipments > 0 ? (carrier.deliveredShipments / carrier.totalShipments * 100) : 0
-        }))
+        .map(carrier => {
+            // Calcola tendenza percentuale
+            let trendPercentage = 0;
+            if (carrier.previous30DaysShipments > 0) {
+                trendPercentage = ((carrier.last30DaysShipments - carrier.previous30DaysShipments) / carrier.previous30DaysShipments) * 100;
+            } else if (carrier.last30DaysShipments > 0) {
+                trendPercentage = 100; // Nuovo carrier o prima attività
+            }
+            
+            return {
+                ...carrier,
+                trendPercentage: trendPercentage
+            };
+        })
         .sort((a, b) => b.totalShipments - a.totalShipments);
 }
     // ✅ CALCOLA DATI GEOGRAFICI
@@ -776,7 +793,7 @@ calculateCarriersDBPerformance() {
             </tr>
         `).join('');
     }
-// ✅ RENDERIZZA TABELLA PERFORMANCE SPEDIZIONIERI
+// ✅ RENDERIZZA TABELLA PERFORMANCE SPEDIZIONIERI - VERSIONE SNELLA
 renderCarriersDBPerformanceTable() {
     const tbody = document.getElementById('carriersPerformanceBody');
     if (!tbody || !this.processedMetrics.advanced.carriersDBPerformance) return;
@@ -789,9 +806,7 @@ renderCarriersDBPerformanceTable() {
             </td>
             <td class="text-end">
                 <span class="fw-semibold">${carrier.totalShipments}</span>
-            </td>
-            <td class="text-end">
-                <span class="fw-semibold text-primary">€${carrier.avgFreightCost.toFixed(2)}</span>
+                <small class="text-muted d-block">Ult. 30gg: ${carrier.last30DaysShipments}</small>
             </td>
             <td class="text-end">
                 <span class="badge bg-info">${carrier.shipmentTypes.Marittimo}</span>
@@ -806,9 +821,7 @@ renderCarriersDBPerformanceTable() {
                 <span class="badge bg-dark">${carrier.shipmentTypes.Corriere}</span>
             </td>
             <td class="text-end">
-                <span class="badge ${this.getPerformanceBadgeClass(carrier.deliveryPerformance)}">
-                    ${carrier.deliveryPerformance.toFixed(1)}%
-                </span>
+                ${this.formatTrendPercentage(carrier.trendPercentage)}
             </td>
             <td class="text-center">
                 <button class="btn btn-sm btn-outline-primary" onclick="metricsSystem.viewCarrierDBDetails('${carrier.id}')">
@@ -956,7 +969,46 @@ renderCarriersDBPerformanceTable() {
             if (performance >= 50) return 'bg-orange';
             return 'bg-danger';
         }
-    
+        // ✅ UTILITY: CLASSE BADGE PERFORMANCE
+    getPerformanceBadgeClass(performance) {
+        if (performance >= 90) return 'bg-success';
+        if (performance >= 70) return 'bg-warning';
+        if (performance >= 50) return 'bg-orange';
+        return 'bg-danger';
+    }
+
+    // ✅ UTILITY: ICONA TIPO SPEDIZIONE
+    getShipmentTypeIcon(type) {
+        switch (type) {
+            case 'Marittimo': return '🚢';
+            case 'Aereo': return '✈️';
+            case 'Stradale': return '🚛';
+            case 'Corriere': return '📦';
+            default: return '🚚';
+        }
+    }
+
+    // ✅ UTILITY: COLORE TIPO SPEDIZIONE
+    getShipmentTypeColor(type) {
+        switch (type) {
+            case 'Marittimo': return 'bg-info';
+            case 'Aereo': return 'bg-warning';
+            case 'Stradale': return 'bg-secondary';
+            case 'Corriere': return 'bg-dark';
+            default: return 'bg-light';
+        }
+    }
+
+    // ✅ UTILITY: FORMATTA TENDENZA PERCENTUALE
+    formatTrendPercentage(percentage) {
+        if (percentage === 0) {
+            return '<span class="text-muted">→ 0%</span>';
+        } else if (percentage > 0) {
+            return `<span class="text-success fw-semibold">↗ +${percentage.toFixed(1)}%</span>`;
+        } else {
+            return `<span class="text-danger fw-semibold">↘ ${percentage.toFixed(1)}%</span>`;
+        }
+    }
         // ✅ VISTA DETTAGLI CARRIER DA DATABASE
         viewCarrierDBDetails(carrierId) {
             const carrier = this.processedMetrics.advanced.carriersDBPerformance.find(c => c.id === carrierId);
