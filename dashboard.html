@@ -153,7 +153,7 @@
                     width: 80px;
                 }
                                 
-                /* ====== MODAL FULLSCREEN SYSTEM - ANALYTICS ====== */
+                                /* ====== MODAL FULLSCREEN SYSTEM - ANALYTICS OTTIMIZZATO ====== */
                 .sol-modal-content.analytics-modal {
                     max-width: 100vw !important;
                     width: 100vw !important;
@@ -173,36 +173,35 @@
                     justify-content: stretch !important;
                 }
 
+                /* ✅ HEADER COMPATTO */
                 .sol-modal-content.analytics-modal .sol-modal-header {
                     flex-shrink: 0 !important;
-                    padding: 20px !important;
+                    padding: 12px 20px !important; /* ✅ RIDOTTO DA 20px A 12px */
                     border-bottom: 1px solid #e9ecef !important;
                     background: #f8f9fa !important;
+                    min-height: 60px !important; /* ✅ ALTEZZA FISSA MINIMA */
                 }
 
+                .sol-modal-content.analytics-modal .sol-modal-title {
+                    font-size: 1.3rem !important; /* ✅ RIDOTTO */
+                    margin: 0 !important;
+                    line-height: 1.2 !important;
+                }
+
+                /* ✅ BODY OTTIMIZZATO - MASSIMO SPAZIO UTILE */
                 .sol-modal-content.analytics-modal .sol-modal-body {
                     flex: 1 !important;
                     overflow-y: auto !important;
-                    padding: 20px !important;
+                    padding: 15px !important; /* ✅ RIDOTTO DA 20px A 15px */
                     max-height: none !important;
                     background: #ffffff !important;
                 }
 
-                .sol-modal-content.analytics-modal .sol-modal-footer {
-                    flex-shrink: 0 !important;
-                    padding: 20px !important;
-                    border-top: 1px solid #e9ecef !important;
-                    background: #f8f9fa !important;
-                }
-
-                /* ✅ FULLSCREEN RESPONSIVE ADJUSTMENTS */
-                .sol-modal-content.analytics-modal .table-responsive {
-                    max-height: calc(100vh - 400px) !important;
-                    overflow-y: auto !important;
-                }
-
+                /* ✅ LAYOUT COMPATTO - RIMUOVI MARGINI INUTILI */
                 .sol-modal-content.analytics-modal .row {
                     margin: 0 !important;
+                    --bs-gutter-x: 10px !important; /* ✅ GUTTER RIDOTTO */
+                    --bs-gutter-y: 8px !important;
                 }
 
                 .sol-modal-content.analytics-modal .col-12,
@@ -210,35 +209,68 @@
                 .sol-modal-content.analytics-modal .col-md-6,
                 .sol-modal-content.analytics-modal .col-md-8,
                 .sol-modal-content.analytics-modal .col-md-4 {
-                    padding: 10px !important;
+                    padding: 5px !important; /* ✅ RIDOTTO DA 10px A 5px */
+                    margin-bottom: 8px !important;
                 }
 
-                /* ✅ STATISTICHE CARDS OTTIMIZZATE FULLSCREEN */
+                /* ✅ STATISTICHE CARDS ULTRA-COMPATTE */
                 .sol-modal-content.analytics-modal .border.rounded.p-3 {
-                    padding: 25px !important;
-                    margin-bottom: 20px !important;
-                    box-shadow: 0 2px 8px rgba(0,0,0,0.1) !important;
+                    padding: 15px 12px !important; /* ✅ RIDOTTO SIGNIFICATIVAMENTE */
+                    margin-bottom: 8px !important; /* ✅ RIDOTTO DA 20px A 8px */
+                    box-shadow: 0 1px 4px rgba(0,0,0,0.1) !important; /* ✅ OMBRA PIÙ LEGGERA */
+                    border: 1px solid #e9ecef !important;
                 }
 
+                /* ✅ NUMERI GRANDI MA SPAZIATURA COMPATTA */
                 .sol-modal-content.analytics-modal .h4 {
-                    font-size: 2.5rem !important;
+                    font-size: 2rem !important; /* ✅ RIDOTTO DA 2.5rem */
                     font-weight: 700 !important;
+                    margin-bottom: 4px !important; /* ✅ MARGINE RIDOTTO */
+                    line-height: 1.1 !important;
                 }
 
                 .sol-modal-content.analytics-modal .h6 {
-                    font-size: 1.2rem !important;
-                    margin-bottom: 20px !important;
+                    font-size: 1rem !important; /* ✅ RIDOTTO DA 1.2rem */
+                    margin-bottom: 10px !important; /* ✅ RIDOTTO DA 20px */
+                    font-weight: 600 !important;
                 }
 
-                /* ✅ TABELLA SPEDIZIONI OTTIMIZZATA */
+                /* ✅ SMALL TEXT ULTRA COMPATTO */
+                .sol-modal-content.analytics-modal .text-muted,
+                .sol-modal-content.analytics-modal small {
+                    font-size: 0.75rem !important;
+                    margin-bottom: 2px !important;
+                    line-height: 1.2 !important;
+                }
+
+                /* ✅ TABELLA SPEDIZIONI ULTRA-OTTIMIZZATA */
+                .sol-modal-content.analytics-modal .table-responsive {
+                    max-height: calc(100vh - 320px) !important; /* ✅ PIÙ SPAZIO PER LA TABELLA */
+                    overflow-y: auto !important;
+                    border: 1px solid #e9ecef !important;
+                    border-radius: 6px !important;
+                }
+
                 .sol-modal-content.analytics-modal .table {
-                    font-size: 14px !important;
+                    font-size: 12px !important; /* ✅ RIDOTTO DA 14px */
+                    margin-bottom: 0 !important;
                 }
 
                 .sol-modal-content.analytics-modal .table th,
                 .sol-modal-content.analytics-modal .table td {
-                    padding: 12px 8px !important;
+                    padding: 6px 4px !important; /* ✅ RIDOTTO SIGNIFICATIVAMENTE */
                     vertical-align: middle !important;
+                    line-height: 1.2 !important;
+                    border-bottom: 1px solid #f1f5f9 !important;
+                }
+
+                .sol-modal-content.analytics-modal .table th {
+                    background-color: #f8f9fa !important;
+                    font-weight: 600 !important;
+                    font-size: 11px !important;
+                    text-transform: uppercase !important;
+                    letter-spacing: 0.5px !important;
+                    padding: 8px 4px !important; /* ✅ HEADER LEGGERMENTE PIÙ ALTO */
                 }
 
                 .sol-modal-content.analytics-modal .table-hover tbody tr:hover {
@@ -246,85 +278,136 @@
                     cursor: pointer !important;
                 }
 
-                /* ✅ BREAKDOWN TIPI CON SPACING MIGLIORATO */
+                /* ✅ BREAKDOWN TIPI COMPATTO */
                 .sol-modal-content.analytics-modal .badge {
-                    font-size: 0.9rem !important;
-                    padding: 8px 12px !important;
-                    margin-right: 10px !important;
+                    font-size: 0.7rem !important; /* ✅ RIDOTTO */
+                    padding: 4px 8px !important; /* ✅ RIDOTTO */
+                    margin-right: 6px !important; /* ✅ RIDOTTO */
+                    margin-bottom: 4px !important;
+                    display: inline-block !important;
                 }
 
-                /* ✅ SEZIONE CONTATTI EVIDENZIATA */
+                /* ✅ SEZIONI CON MARGINI MINIMI */
                 .sol-modal-content.analytics-modal .border-top {
-                    border-top: 2px solid #e9ecef !important;
-                    padding-top: 25px !important;
-                    margin-top: 30px !important;
+                    border-top: 1px solid #e9ecef !important; /* ✅ RIDOTTO DA 2px */
+                    padding-top: 15px !important; /* ✅ RIDOTTO DA 25px */
+                    margin-top: 15px !important; /* ✅ RIDOTTO DA 30px */
                 }
 
-                /* ✅ MOBILE FULLSCREEN */
+                /* ✅ ALERT E HEADER INFO COMPATTI */
+                .sol-modal-content.analytics-modal .alert {
+                    padding: 8px 12px !important; /* ✅ RIDOTTO */
+                    margin-bottom: 10px !important; /* ✅ RIDOTTO */
+                    font-size: 0.85rem !important;
+                }
+
+                /* ✅ GRID LAYOUT OTTIMIZZATO */
+                .sol-modal-content.analytics-modal .g-3,
+                .sol-modal-content.analytics-modal .g-4 {
+                    --bs-gutter-x: 8px !important;
+                    --bs-gutter-y: 8px !important;
+                }
+
+                /* ✅ BOTTONI AZIONI COMPATTI */
+                .sol-modal-content.analytics-modal .btn {
+                    padding: 6px 12px !important;
+                    font-size: 0.8rem !important;
+                    margin-bottom: 4px !important;
+                }
+
+                .sol-modal-content.analytics-modal .d-grid.gap-2 {
+                    gap: 6px !important;
+                }
+
+                /* ✅ MOBILE ULTRA-COMPATTO */
                 @media (max-width: 768px) {
                     .sol-modal-content.analytics-modal .sol-modal-header {
-                        padding: 15px !important;
+                        padding: 10px 15px !important;
+                        min-height: 50px !important;
                     }
                     
                     .sol-modal-content.analytics-modal .sol-modal-body {
-                        padding: 15px !important;
-                    }
-                    
-                    .sol-modal-content.analytics-modal .sol-modal-footer {
-                        padding: 15px !important;
+                        padding: 10px !important;
                     }
                     
                     .sol-modal-content.analytics-modal .table-responsive {
-                        max-height: calc(100vh - 300px) !important;
+                        max-height: calc(100vh - 250px) !important;
                     }
                     
                     .sol-modal-content.analytics-modal .h4 {
-                        font-size: 1.8rem !important;
+                        font-size: 1.5rem !important;
                     }
                     
                     .sol-modal-content.analytics-modal .col-md-3 {
-                        margin-bottom: 15px !important;
+                        margin-bottom: 8px !important;
                     }
                     
                     .sol-modal-content.analytics-modal .border.rounded.p-3 {
-                        padding: 15px !important;
+                        padding: 10px !important;
+                    }
+                    
+                    .sol-modal-content.analytics-modal .table {
+                        font-size: 11px !important;
+                    }
+                    
+                    .sol-modal-content.analytics-modal .table th,
+                    .sol-modal-content.analytics-modal .table td {
+                        padding: 4px 2px !important;
                     }
                 }
 
-                /* ✅ OTTIMIZZAZIONI SCROLL E LAYOUT */
+                /* ✅ SCROLL BARS MINIMALI */
                 .sol-modal-content.analytics-modal .table-responsive::-webkit-scrollbar {
-                    height: 8px;
-                    width: 8px;
+                    height: 6px !important; /* ✅ RIDOTTO */
+                    width: 6px !important;
                 }
 
                 .sol-modal-content.analytics-modal .table-responsive::-webkit-scrollbar-track {
-                    background: #f1f1f1;
-                    border-radius: 4px;
+                    background: #f8f9fa !important;
+                    border-radius: 3px !important;
                 }
 
                 .sol-modal-content.analytics-modal .table-responsive::-webkit-scrollbar-thumb {
-                    background: #c1c1c1;
-                    border-radius: 4px;
+                    background: #dee2e6 !important;
+                    border-radius: 3px !important;
                 }
 
                 .sol-modal-content.analytics-modal .table-responsive::-webkit-scrollbar-thumb:hover {
-                    background: #a8a8a8;
+                    background: #adb5bd !important;
                 }
 
-                /* ✅ ANIMAZIONI SMOOTH */
+                /* ✅ ANIMAZIONI VELOCI */
                 .sol-modal-content.analytics-modal {
-                    animation: fullscreenModalEnter 0.3s ease-out !important;
+                    animation: fullscreenModalEnter 0.2s ease-out !important; /* ✅ PIÙ VELOCE */
                 }
 
                 @keyframes fullscreenModalEnter {
                     0% {
                         opacity: 0;
-                        transform: scale(0.95);
+                        transform: scale(0.98); /* ✅ MENO MOVIMENTO */
                     }
                     100% {
                         opacity: 1;
                         transform: scale(1);
                     }
+                }
+
+                /* ✅ UTILITY: RIMUOVI SPAZI EXTRA */
+                .sol-modal-content.analytics-modal p,
+                .sol-modal-content.analytics-modal div {
+                    margin-bottom: 0 !important;
+                }
+
+                .sol-modal-content.analytics-modal .mb-1,
+                .sol-modal-content.analytics-modal .mb-2,
+                .sol-modal-content.analytics-modal .mb-3 {
+                    margin-bottom: 4px !important;
+                }
+
+                .sol-modal-content.analytics-modal .mt-1,
+                .sol-modal-content.analytics-modal .mt-2,
+                .sol-modal-content.analytics-modal .mt-3 {
+                    margin-top: 4px !important;
                 }
     </style>
 </head>
