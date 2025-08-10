@@ -910,7 +910,6 @@ renderCarriersDBPerformanceTable() {
         <tr>
             <td>
                 <div class="fw-semibold">${carrier.name}</div>
-                <small class="text-muted">${carrier.country || 'Paese non specificato'}</small>
             </td>
             <td class="text-end">
                 <span class="fw-semibold">${carrier.totalShipments}</span>
@@ -1530,7 +1529,6 @@ if (window.ModalSystem) {
                         <div class="col-md-6">
                             <div class="bg-light rounded p-3">
                                 <div class="fw-semibold">${carrier.name}</div>
-                                <small class="text-muted">${carrier.country || 'Paese non specificato'}</small>
                                 ${carrier.email ? `<div class="mt-1"><i class="fas fa-envelope me-1"></i><a href="mailto:${carrier.email}">${carrier.email}</a></div>` : ''}
                                 ${carrier.phone ? `<div><i class="fas fa-phone me-1"></i><a href="tel:${carrier.phone}">${carrier.phone}</a></div>` : ''}
                             </div>
