@@ -1286,92 +1286,197 @@ getLocalStatusConfig() {
     };
 }
     
-    // ✅ DETTAGLI SINGOLA SPEDIZIONE (SECONDO LIVELLO)
+        // ✅ DETTAGLI SINGOLA SPEDIZIONE (SECONDO LIVELLO) - VERSIONE COMPLETA
     viewShipmentDetails(shipmentId) {
         const shipment = this.rawData.shipments.find(s => s.id === shipmentId);
-        if (!shipment) return;
+        if (!shipment) {
+            console.error('❌ Spedizione non trovata:', shipmentId);
+            return;
+        }
         
         const tracking = this.rawData.trackings.find(t => 
             t.shipment_id === shipment.id || 
             t.tracking_number === shipment.tracking_number
         );
         
-        const additionalCosts = this.rawData.additionalCosts.filter(c => c.shipment_id === shipmentId);
+        const additionalCosts = this.rawData.additionalCosts?.filter(c => c.shipment_id === shipmentId) || [];
+        
+        // ✅ CALCOLA DATI AVANZATI
+        const shipmentType = this.getShipmentTypeFromTracking(tracking);
+        const totalCost = this.calculateShipmentTotal(shipment, additionalCosts);
+        const deliveryDays = this.calculateDeliveryDays(shipment);
         
         const detailsHTML = `
             <div class="row g-4">
                 <!-- Header Info -->
                 <div class="col-12">
-                    <div class="row g-3">
-                        <div class="col-md-6">
-                            <h6 class="text-muted mb-1">Tracking Number</h6>
-                            <div class="h5">${shipment.tracking_number || 'Non disponibile'}</div>
+                    <div class="alert alert-info d-flex align-items-center">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <strong>Tracking:</strong> ${shipment.tracking_number || shipment.tracking_code || 'Non disponibile'}
+                        <div class="ms-auto">${this.getStatusBadge(shipment.status)}</div>
+                    </div>
+                </div>
+                
+                <!-- Metriche Rapide -->
+                <div class="col-12">
+                    <div class="row g-3 text-center">
+                        <div class="col-md-3">
+                            <div class="border rounded p-3 bg-light">
+                                <div class="h5 mb-1 text-primary">${this.getShipmentTypeIcon(shipmentType)}</div>
+                                <small class="text-muted">Tipo Spedizione</small>
+                                <div class="fw-semibold">${shipmentType}</div>
+                            </div>
                         </div>
-                        <div class="col-md-6">
-                            <h6 class="text-muted mb-1">Stato</h6>
-                            <div>${this.getStatusBadge(shipment.status)}</div>
+                        <div class="col-md-3">
+                            <div class="border rounded p-3 bg-light">
+                                <div class="h5 mb-1 text-success">€${totalCost.toFixed(2)}</div>
+                                <small class="text-muted">Costo Totale</small>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="border rounded p-3 bg-light">
+                                <div class="h5 mb-1 text-info">${shipment.total_weight_kg || 0} kg</div>
+                                <small class="text-muted">Peso</small>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="border rounded p-3 bg-light">
+                                <div class="h5 mb-1 text-warning">${deliveryDays ? deliveryDays + ' gg' : 'N/A'}</div>
+                                <small class="text-muted">Giorni Consegna</small>
+                            </div>
                         </div>
                     </div>
                 </div>
                 
                 <!-- Origine e Destinazione -->
                 <div class="col-12">
-                    <h6 class="mb-3">📍 Rotta</h6>
+                    <h6 class="mb-3"><i class="fas fa-route me-2"></i>Rotta</h6>
                     <div class="row g-3">
                         <div class="col-md-6">
-                            <div class="border rounded p-3">
-                                <h6 class="text-success mb-2">🚀 Origine</h6>
-                                <div><strong>${shipment.origin || 'Non specificato'}</strong></div>
-                                <small class="text-muted">${shipment.origin_country || ''}</small>
+                            <div class="border rounded p-3 bg-success bg-opacity-10">
+                                <h6 class="text-success mb-2"><i class="fas fa-plane-departure me-2"></i>Origine</h6>
+                                <div class="h6 mb-1">${this.getOriginDestination(shipment, 'origin')}</div>
+                                <small class="text-muted">${shipment.origin_country || shipment.from_country || ''}</small>
+                                ${shipment.origin_address ? `<div class="small mt-1"><i class="fas fa-map-marker-alt me-1"></i>${shipment.origin_address}</div>` : ''}
                             </div>
                         </div>
                         <div class="col-md-6">
-                            <div class="border rounded p-3">
-                                <h6 class="text-danger mb-2">🎯 Destinazione</h6>
-                                <div><strong>${shipment.destination || 'Non specificato'}</strong></div>
-                                <small class="text-muted">${shipment.destination_country || ''}</small>
+                            <div class="border rounded p-3 bg-danger bg-opacity-10">
+                                <h6 class="text-danger mb-2"><i class="fas fa-plane-arrival me-2"></i>Destinazione</h6>
+                                <div class="h6 mb-1">${this.getOriginDestination(shipment, 'destination')}</div>
+                                <small class="text-muted">${shipment.destination_country || shipment.to_country || ''}</small>
+                                ${shipment.destination_address ? `<div class="small mt-1"><i class="fas fa-map-marker-alt me-1"></i>${shipment.destination_address}</div>` : ''}
                             </div>
                         </div>
                     </div>
                 </div>
                 
-                <!-- Dettagli Spedizione -->
-                <div class="col-md-6">
-                    <h6 class="mb-3">📦 Dettagli</h6>
-                    <table class="table table-sm">
-                        <tr><td><strong>Peso:</strong></td><td>${shipment.total_weight_kg || 0} kg</td></tr>
-                        <tr><td><strong>Volume:</strong></td><td>${shipment.total_volume_cbm || 0} m³</td></tr>
-                        <tr><td><strong>Tipo:</strong></td><td>${this.getShipmentTypeFromTracking(tracking)}</td></tr>
-                        <tr><td><strong>Creata:</strong></td><td>${new Date(shipment.created_at).toLocaleDateString('it-IT')}</td></tr>
-                        ${shipment.delivery_date ? `<tr><td><strong>Consegnata:</strong></td><td>${new Date(shipment.delivery_date).toLocaleDateString('it-IT')}</td></tr>` : ''}
-                    </table>
+                <!-- Dettagli e Timeline -->
+                <div class="col-md-8">
+                    <h6 class="mb-3"><i class="fas fa-box me-2"></i>Dettagli Spedizione</h6>
+                    <div class="table-responsive">
+                        <table class="table table-sm table-bordered">
+                            <tr>
+                                <th class="bg-light" style="width: 40%;">Peso:</th>
+                                <td>${shipment.total_weight_kg || 0} kg</td>
+                            </tr>
+                            <tr>
+                                <th class="bg-light">Volume:</th>
+                                <td>${shipment.total_volume_cbm || 0} m³</td>
+                            </tr>
+                            <tr>
+                                <th class="bg-light">Numero Colli:</th>
+                                <td>${shipment.total_packages || 'N/A'}</td>
+                            </tr>
+                            <tr>
+                                <th class="bg-light">Tipo Spedizione:</th>
+                                <td><span class="badge ${this.getShipmentTypeColor(shipmentType)}">${this.getShipmentTypeIcon(shipmentType)} ${shipmentType}</span></td>
+                            </tr>
+                            <tr>
+                                <th class="bg-light">Data Creazione:</th>
+                                <td>${new Date(shipment.created_at).toLocaleString('it-IT')}</td>
+                            </tr>
+                            ${shipment.delivery_date ? `
+                            <tr>
+                                <th class="bg-light">Data Consegna:</th>
+                                <td>${new Date(shipment.delivery_date).toLocaleString('it-IT')}</td>
+                            </tr>
+                            ` : ''}
+                            ${tracking ? `
+                            <tr>
+                                <th class="bg-light">Ultimo Aggiornamento:</th>
+                                <td>${new Date(tracking.updated_at || tracking.created_at).toLocaleString('it-IT')}</td>
+                            </tr>
+                            ` : ''}
+                        </table>
+                    </div>
+                    
+                    ${tracking?.notes || shipment.notes ? `
+                    <div class="mt-3">
+                        <h6><i class="fas fa-sticky-note me-2"></i>Note</h6>
+                        <div class="bg-light rounded p-3">
+                            ${shipment.notes ? `<div class="mb-2"><strong>Spedizione:</strong> ${shipment.notes}</div>` : ''}
+                            ${tracking?.notes ? `<div><strong>Tracking:</strong> ${tracking.notes}</div>` : ''}
+                        </div>
+                    </div>
+                    ` : ''}
                 </div>
                 
-                <!-- Costi -->
-                <div class="col-md-6">
-                    <h6 class="mb-3">💰 Breakdown Costi</h6>
-                    <table class="table table-sm">
-                        <tr><td><strong>Nolo:</strong></td><td class="text-end">€${(parseFloat(shipment.freight_cost) || 0).toFixed(2)}</td></tr>
-                        <tr><td><strong>Altri costi:</strong></td><td class="text-end">€${(parseFloat(shipment.other_costs) || 0).toFixed(2)}</td></tr>
-                        <tr><td><strong>Assicurazione:</strong></td><td class="text-end">€${(parseFloat(shipment.insurance_cost) || 0).toFixed(2)}</td></tr>
-                        <tr><td><strong>Dogana:</strong></td><td class="text-end">€${(parseFloat(shipment.customs_cost) || 0).toFixed(2)}</td></tr>
-                        ${additionalCosts.map(cost => 
-                            `<tr><td><strong>${cost.description}:</strong></td><td class="text-end">€${(parseFloat(cost.amount) || 0).toFixed(2)}</td></tr>`
-                        ).join('')}
-                        <tr class="table-warning"><td><strong>TOTALE:</strong></td><td class="text-end"><strong>€${this.calculateShipmentTotal(shipment, additionalCosts).toFixed(2)}</strong></td></tr>
-                    </table>
-                </div>
-                
-                <!-- Note e Tracking -->
-                ${shipment.notes || tracking?.notes ? `
-                <div class="col-12">
-                    <h6 class="mb-3">📝 Note</h6>
-                    <div class="bg-light rounded p-3">
-                        ${shipment.notes ? `<div class="mb-2"><strong>Spedizione:</strong> ${shipment.notes}</div>` : ''}
-                        ${tracking?.notes ? `<div><strong>Tracking:</strong> ${tracking.notes}</div>` : ''}
+                <!-- Breakdown Costi -->
+                <div class="col-md-4">
+                    <h6 class="mb-3"><i class="fas fa-euro-sign me-2"></i>Breakdown Costi</h6>
+                    <div class="table-responsive">
+                        <table class="table table-sm table-bordered">
+                            <tr>
+                                <th class="bg-light">Nolo:</th>
+                                <td class="text-end">€${(parseFloat(shipment.freight_cost) || 0).toFixed(2)}</td>
+                            </tr>
+                            <tr>
+                                <th class="bg-light">Altri costi:</th>
+                                <td class="text-end">€${(parseFloat(shipment.other_costs) || 0).toFixed(2)}</td>
+                            </tr>
+                            <tr>
+                                <th class="bg-light">Assicurazione:</th>
+                                <td class="text-end">€${(parseFloat(shipment.insurance_cost) || 0).toFixed(2)}</td>
+                            </tr>
+                            <tr>
+                                <th class="bg-light">Dogana:</th>
+                                <td class="text-end">€${(parseFloat(shipment.customs_cost) || 0).toFixed(2)}</td>
+                            </tr>
+                            ${additionalCosts.map(cost => 
+                                `<tr>
+                                    <th class="bg-light">${cost.description}:</th>
+                                    <td class="text-end">€${(parseFloat(cost.amount) || 0).toFixed(2)}</td>
+                                </tr>`
+                            ).join('')}
+                            <tr class="table-warning">
+                                <th><strong>TOTALE:</strong></th>
+                                <td class="text-end"><strong>€${totalCost.toFixed(2)}</strong></td>
+                            </tr>
+                        </table>
+                    </div>
+                    
+                    <!-- Azioni Spedizione -->
+                    <div class="mt-3">
+                        <h6><i class="fas fa-tools me-2"></i>Azioni</h6>
+                        <div class="d-grid gap-2">
+                            ${tracking ? `
+                            <button class="btn btn-outline-primary btn-sm" onclick="window.open('/tracking?code=${tracking.tracking_number || shipment.tracking_number}', '_blank')">
+                                <i class="fas fa-search me-1"></i>Tracking Completo
+                            </button>
+                            ` : ''}
+                            <button class="btn btn-outline-success btn-sm" onclick="metricsSystem.printShipmentLabel('${shipment.id}')">
+                                <i class="fas fa-print me-1"></i>Stampa Etichetta
+                            </button>
+                            <button class="btn btn-outline-info btn-sm" onclick="metricsSystem.exportShipmentPDF('${shipment.id}')">
+                                <i class="fas fa-file-pdf me-1"></i>Esporta PDF
+                            </button>
+                        </div>
                     </div>
                 </div>
-                ` : ''}
+                
+                <!-- Informazioni Carrier -->
+                ${this.renderCarrierInfo(shipment)}
             </div>
         `;
         
@@ -1396,6 +1501,72 @@ getLocalStatusConfig() {
         });
         
         return total;
+    }
+        // ✅ CALCOLA GIORNI DI CONSEGNA
+    calculateDeliveryDays(shipment) {
+        if (!shipment.delivery_date) return null;
+        
+        const startDate = new Date(shipment.created_at);
+        const endDate = new Date(shipment.delivery_date);
+        const days = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24));
+        
+        return days > 0 && days < 365 ? days : null;
+    }
+    
+    // ✅ RENDERIZZA INFO CARRIER
+    renderCarrierInfo(shipment) {
+        const carrier = this.rawData.carriers?.find(c => c.id === shipment.carrier_id);
+        if (!carrier) return '';
+        
+        return `
+            <div class="col-12">
+                <div class="border-top pt-3">
+                    <h6><i class="fas fa-shipping-fast me-2"></i>Informazioni Spedizioniere</h6>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <div class="bg-light rounded p-3">
+                                <div class="fw-semibold">${carrier.name}</div>
+                                <small class="text-muted">${carrier.country || 'Paese non specificato'}</small>
+                                ${carrier.email ? `<div class="mt-1"><i class="fas fa-envelope me-1"></i><a href="mailto:${carrier.email}">${carrier.email}</a></div>` : ''}
+                                ${carrier.phone ? `<div><i class="fas fa-phone me-1"></i><a href="tel:${carrier.phone}">${carrier.phone}</a></div>` : ''}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="bg-light rounded p-3">
+                                <div class="small text-muted">Performance Generale</div>
+                                <div class="h6 mb-1">${this.getCarrierPerformance(carrier.id).toFixed(1)}%</div>
+                                <div class="progress" style="height: 6px;">
+                                    <div class="progress-bar ${this.getPerformanceBadgeClass(this.getCarrierPerformance(carrier.id)).replace('bg-', 'bg-')}" 
+                                         style="width: ${this.getCarrierPerformance(carrier.id)}%"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+    
+    // ✅ CALCOLA PERFORMANCE CARRIER
+    getCarrierPerformance(carrierId) {
+        const carrierShipments = this.rawData.shipments.filter(s => s.carrier_id === carrierId);
+        if (carrierShipments.length === 0) return 0;
+        
+        const deliveredCount = carrierShipments.filter(s => s.status === 'delivered' || s.status === 'consegnato').length;
+        return (deliveredCount / carrierShipments.length) * 100;
+    }
+    
+    // ✅ PLACEHOLDER FUNZIONI AZIONI
+    printShipmentLabel(shipmentId) {
+        console.log('🖨️ Print label for shipment:', shipmentId);
+        // TODO: Implementare stampa etichetta
+        alert('Funzione stampa etichetta in sviluppo');
+    }
+    
+    exportShipmentPDF(shipmentId) {
+        console.log('📄 Export PDF for shipment:', shipmentId);
+        // TODO: Implementare export PDF
+        alert('Funzione export PDF in sviluppo');
     }
           // ✅ UTILITY: MAPPATURA ROBUSTA ORIGINE/DESTINAZIONE - VERSIONE MIGLIORATA
     getOriginDestination(shipment, type) {
