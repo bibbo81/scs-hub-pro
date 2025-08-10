@@ -333,21 +333,31 @@ class UnifiedMetricsSystem {
         const deliveredTimes = [];
         
         shipments.forEach(shipment => {
-            // ✅ STATI MULTIPLI PER "CONSEGNATO"
-            const deliveredStates = ['delivered', 'consegnato', 'consegnata', 'completed', 'finished'];
+            // ✅ STATI MULTIPLI PER "CONSEGNATO" - VERSIONE ESTESA
+            const deliveredStates = [
+                'delivered', 'consegnato', 'consegnata', 'completed', 'finished',
+                'discharged', 'scaricato', 'scaricata', 'emrt', 'disc', 'gtot',
+                'arrived', 'arrivato', 'arrivata', 'delivery', 'delivered_to_customer'
+            ];
+            
             const isDelivered = deliveredStates.some(state => 
                 shipment.status?.toLowerCase().includes(state.toLowerCase())
-            );
+            ) || shipment.delivery_date || shipment.actual_delivery;
             
-            if (isDelivered || shipment.delivery_date || shipment.actual_delivery) {
-                console.log(`📦 Spedizione potenzialmente consegnata: ${shipment.id} - Status: ${shipment.status}`);
+            // ✅ CALCOLA PER TUTTE LE SPEDIZIONI CHE HANNO MOVIMENTI VALIDI
+            if (isDelivered) {
+                console.log(`📦 Spedizione consegnata considerata: ${shipment.id} - Status: ${shipment.status}`);
                 
                 // ✅ USA LA NUOVA FUNZIONE calculateDeliveryDays
                 const days = this.calculateDeliveryDays(shipment);
                 if (days !== null && days > 0 && days < 365) {
                     deliveredTimes.push(days);
                     console.log(`✅ Giorni aggiunti al calcolo: ${days}`);
+                } else {
+                    console.log(`⚠️ Giorni non validi per ${shipment.id}: ${days}`);
                 }
+            } else {
+                console.log(`⏸️ Spedizione non considerata: ${shipment.id} - Status: ${shipment.status}`);
             }
         });
         
