@@ -1177,9 +1177,9 @@ renderCarriersDBPerformanceTable() {
                         <td>
                             <strong>${shipment.tracking_number || 'N/A'}</strong>
                         </td>
-                        <td>
+                                                <td>
                             <div class="small">
-                                <strong>${shipment.origin || 'N/A'}</strong> → <strong>${shipment.destination || 'N/A'}</strong>
+                                <strong>${this.getOriginDestination(shipment, 'origin')}</strong> → <strong>${this.getOriginDestination(shipment, 'destination')}</strong>
                             </div>
                         </td>
                         <td>
@@ -1344,7 +1344,34 @@ renderCarriersDBPerformanceTable() {
         
         return total;
     }
+        // ✅ UTILITY: MAPPATURA ROBUSTA ORIGINE/DESTINAZIONE
+    getOriginDestination(shipment, type) {
+        // ✅ POSSIBILI NOMI DEI CAMPI PER ORIGINE
+        const originFields = [
+            'origin', 'origin_port', 'origin_city', 'origin_location', 
+            'pickup_location', 'from_port', 'departure_port',
+            'origin_address', 'pickup_address', 'from_location'
+        ];
+        
+        // ✅ POSSIBILI NOMI DEI CAMPI PER DESTINAZIONE
+        const destinationFields = [
+            'destination', 'destination_port', 'destination_city', 'destination_location',
+            'delivery_location', 'to_port', 'arrival_port',
+            'destination_address', 'delivery_address', 'to_location'
+        ];
+        
+        const fields = type === 'origin' ? originFields : destinationFields;
+        
+        // ✅ CERCA IL PRIMO CAMPO NON VUOTO
+        for (const field of fields) {
+            if (shipment[field] && shipment[field].trim() !== '') {
+                return shipment[field];
+            }
+        }
+        
+        return 'Non specificato';
+    }
     }
 
-    // ✅ ESPORTA SISTEMA
-    export default UnifiedMetricsSystem;
+    // ✅ ESPORTA SISTEMA (FUORI DALLA CLASSE!)
+export default UnifiedMetricsSystem;
