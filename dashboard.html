@@ -86,27 +86,71 @@
             margin-bottom: 1rem;
             color: #1e293b;
         }
-                /* ✅ TABELLA SPEDIZIONIERI PIÙ COMPATTA */
-        #carriersPerformanceBody .badge {
-            font-size: 0.75rem;
-            padding: 0.25em 0.5em;
-            min-width: 2.5rem;
-        }
-        
-        #carriersPerformanceBody .text-muted.d-block {
-            font-size: 0.7rem;
-            line-height: 1.1;
-        }
-        
-        #carriersPerformanceBody td {
-            padding: 0.75rem 0.5rem;
-        }
-        
-        /* ✅ TENDENZA STYLING */
-        .text-success.fw-semibold,
-        .text-danger.fw-semibold {
-            font-size: 0.85rem;
-        }
+                                /* ✅ TABELLE UNIFORMI */
+                .table th,
+                .table td {
+                    padding: 0.75rem 0.5rem;
+                    vertical-align: middle;
+                    font-size: 0.875rem;
+                }
+                
+                .table th {
+                    font-weight: 600;
+                    background-color: #f8fafc;
+                    border-bottom: 2px solid #e2e8f0;
+                }
+                
+                /* ✅ BADGES UNIFORMI */
+                .table .badge {
+                    font-size: 0.75rem;
+                    padding: 0.25em 0.5em;
+                    min-width: 2rem;
+                    text-align: center;
+                }
+                
+                /* ✅ NOMI COMPAGNIA/SPEDIZIONIERE */
+                .table .fw-semibold {
+                    font-size: 0.9rem;
+                    line-height: 1.2;
+                }
+                
+                .table .text-muted {
+                    font-size: 0.8rem;
+                    line-height: 1.1;
+                }
+                
+                /* ✅ TENDENZA STYLING */
+                .text-success.fw-semibold,
+                .text-danger.fw-semibold {
+                    font-size: 0.85rem;
+                }
+                
+                /* ✅ PULSANTI AZIONI */
+                .table .btn-sm {
+                    padding: 0.25rem 0.5rem;
+                    font-size: 0.8rem;
+                }
+                
+                /* ✅ COLONNE CON LARGHEZZA FISSA */
+                .table th:nth-child(2), /* Spedizioni */
+                .table th:nth-child(3), /* Costi/Marittimo */
+                .table th:nth-child(4), /* Peso/Aereo */
+                .table th:nth-child(5), /* Volume/Stradale */
+                .table th:nth-child(6), /* Costo Medio/Corriere */
+                .table th:nth-child(7), /* Performance/Tendenza */
+                .table td:nth-child(2),
+                .table td:nth-child(3),
+                .table td:nth-child(4),
+                .table td:nth-child(5),
+                .table td:nth-child(6),
+                .table td:nth-child(7) {
+                    width: 100px;
+                }
+                
+                .table th:nth-child(8), /* Azioni */
+                .table td:nth-child(8) {
+                    width: 80px;
+                }
     </style>
 </head>
 <body>
@@ -194,59 +238,67 @@
             </div>
         </div>
 
-        <!-- Tabelle -->
-        <div class="sol-card">
-            <div class="sol-card-header">
-                <h3 class="sol-card-title">Performance Compagnie</h3>
-            </div>
-            <div class="sol-card-body">
-                <div class="table-responsive">
-                    <table class="table table-hover">
-                        <thead>
-                            <tr>
-                                <th>Compagnia</th>
-                                <th class="text-end">Spedizioni</th>
-                                <th class="text-end">Costi</th>
-                                <th class="text-end">Peso</th>
-                                <th class="text-end">Volume</th>
-                                <th class="text-end">Costo Medio</th>
-                                <th class="text-end">Performance</th>
-                                <th class="text-center">Azioni</th>
-                            </tr>
-                        </thead>
-                        <tbody id="carriersDetailBody"></tbody>
-                    </table>
+                    <!-- Tabelle Performance -->
+            <div class="row g-4">
+                <!-- Performance Compagnie -->
+                <div class="col-12">
+                    <div class="sol-card">
+                        <div class="sol-card-header">
+                            <h3 class="sol-card-title">Performance Compagnie</h3>
+                            <p class="sol-card-subtitle mb-0">Analisi per compagnia di spedizione</p>
+                        </div>
+                        <div class="sol-card-body">
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>Compagnia</th>
+                                            <th class="text-end">Spedizioni</th>
+                                            <th class="text-end">Costi</th>
+                                            <th class="text-end">Peso</th>
+                                            <th class="text-end">Volume</th>
+                                            <th class="text-end">Costo Medio</th>
+                                            <th class="text-end">Performance</th>
+                                            <th class="text-center">Azioni</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="carriersDetailBody"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+    
+                <!-- Performance Spedizionieri -->
+                <div class="col-12">
+                    <div class="sol-card">
+                        <div class="sol-card-header">
+                            <h3 class="sol-card-title">Performance Spedizionieri</h3>
+                            <p class="sol-card-subtitle mb-0">Analisi per spedizioniere da database</p>
+                        </div>
+                        <div class="sol-card-body">
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>Spedizioniere</th>
+                                            <th class="text-end">Spedizioni</th>
+                                            <th class="text-end">🚢 Marittimo</th>
+                                            <th class="text-end">✈️ Aereo</th>
+                                            <th class="text-end">🚛 Stradale</th>
+                                            <th class="text-end">📦 Corriere</th>
+                                            <th class="text-end">Tendenza</th>
+                                            <th class="text-center">Azioni</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="carriersPerformanceBody"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
-        </div>
-    </main>
-<!-- ✅ NUOVA TABELLA PERFORMANCE SPEDIZIONIERI -->
-        <div class="sol-card mt-4">
-            <div class="sol-card-header">
-                <h3 class="sol-card-title">Performance Spedizionieri</h3>
-                <p class="sol-card-subtitle mb-0">Analisi dettagliata per spedizioniere da database</p>
-            </div>
-            <div class="sol-card-body">
-                <div class="table-responsive">
-                    <table class="table table-hover">
-                                                <thead>
-                            <tr>
-                                <th>Spedizioniere</th>
-                                <th class="text-end">Totale Spedizioni</th>
-                                <th class="text-end">🚢 Marittimo</th>
-                                <th class="text-end">✈️ Aereo</th>
-                                <th class="text-end">🚛 Stradale</th>
-                                <th class="text-end">📦 Corriere</th>
-                                <th class="text-end">Tendenza</th>
-                                <th class="text-center">Azioni</th>
-                            </tr>
-                        </thead>
-                        <tbody id="carriersPerformanceBody"></tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-    </main>
+        </main>
     <!-- Scripts -->
     <script type="module">
         // Inizializza Supabase

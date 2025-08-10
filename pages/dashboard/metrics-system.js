@@ -793,7 +793,7 @@ calculateCarriersDBPerformance() {
             </tr>
         `).join('');
     }
-// ✅ RENDERIZZA TABELLA PERFORMANCE SPEDIZIONIERI - VERSIONE SNELLA
+// ✅ RENDERIZZA TABELLA PERFORMANCE SPEDIZIONIERI - ARMONIZZATA
 renderCarriersDBPerformanceTable() {
     const tbody = document.getElementById('carriersPerformanceBody');
     if (!tbody || !this.processedMetrics.advanced.carriersDBPerformance) return;
@@ -802,11 +802,10 @@ renderCarriersDBPerformanceTable() {
         <tr>
             <td>
                 <div class="fw-semibold">${carrier.name}</div>
-                <small class="text-muted">${carrier.country ? `${carrier.country}` : 'Paese non specificato'}</small>
+                <small class="text-muted">${carrier.country || 'Paese non specificato'}</small>
             </td>
             <td class="text-end">
                 <span class="fw-semibold">${carrier.totalShipments}</span>
-                <small class="text-muted d-block">Ult. 30gg: ${carrier.last30DaysShipments}</small>
             </td>
             <td class="text-end">
                 <span class="badge bg-info">${carrier.shipmentTypes.Marittimo}</span>
