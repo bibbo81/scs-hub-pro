@@ -454,51 +454,66 @@ class UnifiedMetricsSystem {
         return Object.values(modes);
     }
 
-        // ✅ CALCOLA PERFORMANCE CARRIERS - VERSIONE AGGIORNATA
+        // ✅ CALCOLA PERFORMANCE CARRIERS - VERSIONE AGGIORNATA CON TENDENZA
     calculateCarriersPerformance() {
         const performance = {};
         
+        // Calcola date per tendenza (periodo attuale vs precedente)
+        const now = new Date();
+        const periodDays = this.currentFilters.period || 30;
+        const currentPeriodStart = new Date(now.getTime() - (periodDays * 24 * 60 * 60 * 1000));
+        const previousPeriodStart = new Date(now.getTime() - (2 * periodDays * 24 * 60 * 60 * 1000));
+        
         this.rawData.shipments.forEach(shipment => {
-            // ✅ USA CARRIER_NAME PER LE COMPAGNIE (non più per carriers)
             const companyName = shipment.carrier_name || 'Sconosciuto';
+            const shipmentDate = new Date(shipment.created_at);
             
-            // ✅ TROVA CARRIER DA TABELLA CARRIERS SE PRESENTE
-            let carrierName = 'Non specificato';
-            if (shipment.carrier_id) {
-                const carrier = this.rawData.carriers.find(c => c.id === shipment.carrier_id);
-                carrierName = carrier ? carrier.name : `Carrier ID: ${shipment.carrier_id}`;
-            }
-            
-            const key = `${companyName} → ${carrierName}`;
-            
-            if (!performance[key]) {
-                performance[key] = {
-                    name: key,
+            if (!performance[companyName]) {
+                performance[companyName] = {
+                    name: companyName,
                     company: companyName,
-                    carrier: carrierName,
                     shipments: 0,
-                    costs: 0,
+                    currentPeriodShipments: 0,
+                    previousPeriodShipments: 0,
+                    freightCosts: 0, // ✅ SOLO NOLO
+                    otherCosts: 0,   // ✅ DETENTION + DEMURRAGES
                     weight: 0,
                     volume: 0,
                     delivered: 0
                 };
             }
             
-            const p = performance[key];
+            const p = performance[companyName];
             p.shipments++;
-            p.costs += (parseFloat(shipment.freight_cost) || 0) + (parseFloat(shipment.other_costs) || 0);
+            
+            // ✅ CALCOLA SOLO COSTI NOLO E ALTRI COSTI SEPARATI
+            p.freightCosts += (parseFloat(shipment.freight_cost) || 0);
+            p.otherCosts += (parseFloat(shipment.other_costs) || 0) + 
+                           (parseFloat(shipment.detention_charges) || 0) + 
+                           (parseFloat(shipment.demurrage_charges) || 0);
+            
             p.weight += (parseFloat(shipment.total_weight_kg) || 0);
             p.volume += (parseFloat(shipment.total_volume_cbm) || 0);
             
             if (shipment.status === 'delivered') {
                 p.delivered++;
             }
+            
+            // ✅ CALCOLA TENDENZA
+            if (shipmentDate >= currentPeriodStart) {
+                p.currentPeriodShipments++;
+            } else if (shipmentDate >= previousPeriodStart && shipmentDate < currentPeriodStart) {
+                p.previousPeriodShipments++;
+            }
         });
         
         return Object.values(performance).map(p => ({
             ...p,
-            avgCost: p.shipments > 0 ? p.costs / p.shipments : 0,
-            performance: p.shipments > 0 ? (p.delivered / p.shipments * 100) : 0
+            avgFreightCost: p.shipments > 0 ? p.freightCosts / p.shipments : 0,
+            performance: p.shipments > 0 ? (p.delivered / p.shipments * 100) : 0,
+            trendPercentage: p.previousPeriodShipments > 0 
+                ? ((p.currentPeriodShipments - p.previousPeriodShipments) / p.previousPeriodShipments) * 100 
+                : (p.currentPeriodShipments > 0 ? 100 : 0)
         })).sort((a, b) => b.shipments - a.shipments);
     }
 // ✅ CALCOLA PERFORMANCE SPEDIZIONIERI CON TENDENZA
@@ -764,33 +779,31 @@ calculateCarriersDBPerformance() {
         this.renderCarriersDBPerformanceTable(); // ✅ AGGIUNGI QUESTA RIGA
     }
 
-        // ✅ RENDERIZZA TABELLA CARRIERS - VERSIONE AGGIORNATA
-                    renderCarriersTable() {
-                    const tbody = document.getElementById('carriersDetailBody');
-                    if (!tbody || !this.processedMetrics.advanced.carriersPerformance) return;
-                    
-                    tbody.innerHTML = this.processedMetrics.advanced.carriersPerformance.map(item => `
-                        <tr>
-                            <td>
-                                <div class="fw-semibold">${item.company}</div>
-                            </td>            <td class="text-end">${item.shipments}</td>
-                <td class="text-end">€${item.costs.toLocaleString()}</td>
-                <td class="text-end">${item.weight.toLocaleString()} kg</td>
-                <td class="text-end">${item.volume.toFixed(1)} m³</td>
-                <td class="text-end">€${item.avgCost.toFixed(2)}</td>
-                <td class="text-end">
-                    <span class="badge ${item.performance >= 90 ? 'bg-success' : item.performance >= 70 ? 'bg-warning' : 'bg-danger'}">
-                        ${item.performance.toFixed(1)}%
-                    </span>
-                </td>
-                <td class="text-center">
-                    <button class="btn btn-sm btn-outline-primary" onclick="metricsSystem.viewCarrierDetails('${item.name}')">
-                        <i class="fas fa-eye"></i>
-                    </button>
-                </td>
-            </tr>
-        `).join('');
-    }
+                // ✅ RENDERIZZA TABELLA CARRIERS - NUOVE COLONNE
+        renderCarriersTable() {
+            const tbody = document.getElementById('carriersDetailBody');
+            if (!tbody || !this.processedMetrics.advanced.carriersPerformance) return;
+            
+            tbody.innerHTML = this.processedMetrics.advanced.carriersPerformance.map(item => `
+                <tr>
+                    <td>
+                        <div class="fw-semibold">${item.company}</div>
+                    </td>
+                    <td class="text-end">${item.shipments}</td>
+                    <td class="text-end">€${item.freightCosts.toLocaleString()}</td>
+                    <td class="text-end">€${item.avgFreightCost.toFixed(2)}</td>
+                    <td class="text-end">€${item.otherCosts.toLocaleString()}</td>
+                    <td class="text-end">
+                        ${this.formatTrendPercentage(item.trendPercentage)}
+                    </td>
+                    <td class="text-center">
+                        <button class="btn btn-sm btn-outline-primary" onclick="metricsSystem.viewCompanyAnalytics('${item.company}')" title="Analisi compagnia">
+                            <i class="fas fa-chart-line"></i>
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+        }
         // ✅ VISTA SPEDIZIONI CARRIER CON DETTAGLI ANALITICI
     viewCarrierShipments(carrierId) {
         const carrier = this.processedMetrics.advanced.carriersDBPerformance.find(c => c.id === carrierId);
@@ -898,6 +911,84 @@ if (window.ModalSystem) {
         customClass: 'analytics-modal'  // ✅ AGGIUNTO
     });
 }
+    }
+        // ✅ VISTA ANALYTICS COMPAGNIA CON KPI E SPEDIZIONI
+    viewCompanyAnalytics(companyName) {
+        const company = this.processedMetrics.advanced.carriersPerformance.find(c => c.company === companyName);
+        if (!company) return;
+        
+        // Filtra spedizioni per questa compagnia
+        const companyShipments = this.rawData.shipments.filter(s => (s.carrier_name || 'Sconosciuto') === companyName);
+        
+        // Calcola KPI avanzate
+        const analytics = this.calculateCompanyAnalytics(companyShipments);
+        
+        const modalContent = `
+            <div class="row g-4">
+                <!-- KPI Cards Dinamiche -->
+                <div class="col-12">
+                    <div class="row g-3">
+                        ${analytics.kpis.map(kpi => `
+                            <div class="col-md-3">
+                                <div class="border rounded p-3 text-center">
+                                    <div class="h4 mb-1 text-${kpi.color}">${kpi.value}</div>
+                                    <small class="text-muted">${kpi.label}</small>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+                
+                <!-- Breakdown Container Types (se presente mare) -->
+                ${analytics.containerTypes.length > 0 ? `
+                <div class="col-12">
+                    <h6 class="mb-3">📦 Container per Tipologia</h6>
+                    <div class="row g-2">
+                        ${analytics.containerTypes.map(container => `
+                            <div class="col-6 col-md-2">
+                                <span class="badge bg-info me-2">${container.type}</span>
+                                <strong>${container.count}</strong>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+                ` : ''}
+                
+                <!-- Lista Spedizioni -->
+                <div class="col-12">
+                    <h6 class="mb-3">📦 Spedizioni della Compagnia</h6>
+                    <div class="table-responsive" style="max-height: calc(100vh - 400px); overflow-y: auto;">
+                        <table class="table table-sm table-hover">
+                            <thead class="table-light sticky-top">
+                                <tr>
+                                    <th>N. Spedizione</th>
+                                    <th>Origine → Destinazione</th>
+                                    <th>Tracking</th>
+                                    <th>Tipo</th>
+                                    <th>Container</th>
+                                    <th>CBM</th>
+                                    <th>Peso</th>
+                                    <th>Giorni</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${this.renderCompanyShipmentsRows(companyShipments)}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        if (window.ModalSystem) {
+            window.ModalSystem.show({
+                title: `📊 ${companyName} - Analytics Avanzata`,
+                content: modalContent,
+                size: 'xl',
+                customClass: 'analytics-modal'
+            });
+        }
     }
 // ✅ RENDERIZZA TABELLA - ICONA AGGIORNATA
 renderCarriersDBPerformanceTable() {
