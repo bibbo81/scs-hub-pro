@@ -1143,92 +1143,168 @@ calculateCarriersDBPerformance() {
         return descriptions[kpiId] || 'Metrica personalizzata';
     }
 
-    // ✅ RENDERIZZA CHARTS
-    renderCharts() {
-        if (this.processedMetrics.advanced) {
-            this.renderTrendChart();
-            this.renderTransportModeChart();
-        }
+   // ✅ RENDERIZZA TREND CHART CON DARK MODE
+renderTrendChart() {
+    const ctx = document.getElementById('trendChart');
+    if (!ctx || !this.processedMetrics.advanced.trends) return;
+    
+    if (this.charts.has('trendChart')) {
+        this.charts.get('trendChart').destroy();
     }
-
-    renderTrendChart() {
-        const ctx = document.getElementById('trendChart');
-        if (!ctx || !this.processedMetrics.advanced.trends) return;
-        
-        if (this.charts.has('trendChart')) {
-            this.charts.get('trendChart').destroy();
-        }
-        
-        const chart = new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: this.processedMetrics.advanced.trends.map(t => t.month),
-                datasets: [{
+    
+    // ✅ VERIFICA DARK MODE
+    const isDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    
+    const chart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: this.processedMetrics.advanced.trends.map(t => t.month),
+            datasets: [
+                {
                     label: 'Spedizioni',
                     data: this.processedMetrics.advanced.trends.map(t => t.shipments),
                     borderColor: '#3b82f6',
                     backgroundColor: 'rgba(59, 130, 246, 0.1)',
-                    tension: 0.4
-                }, {
+                    tension: 0.4,
+                    yAxisID: 'y'
+                },
+                {
                     label: 'Costi (€)',
                     data: this.processedMetrics.advanced.trends.map(t => t.costs),
-                    borderColor: '#ef4444',
-                    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                    borderColor: '#16a34a',
+                    backgroundColor: 'rgba(22, 163, 74, 0.1)',
                     tension: 0.4,
                     yAxisID: 'y1'
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                scales: {
-                    y: {
-                        type: 'linear',
-                        display: true,
-                        position: 'left'
+                }
+            ]
+        },
+        options: {
+            ...this.getChartOptions(isDarkMode),
+            scales: {
+                ...this.getChartOptions(isDarkMode).scales,
+                y1: {
+                    type: 'linear',
+                    display: true,
+                    position: 'right',
+                    ticks: {
+                        color: isDarkMode ? '#f9fafb' : '#374151',
+                        font: {
+                            size: 11
+                        }
                     },
-                    y1: {
-                        type: 'linear',
-                        display: true,
-                        position: 'right',
-                        grid: { drawOnChartArea: false }
+                    grid: {
+                        drawOnChartArea: false,
+                        color: isDarkMode ? '#4b5563' : '#e5e7eb'
                     }
                 }
             }
-        });
-        
-        this.charts.set('trendChart', chart);
-    }
-
-    renderTransportModeChart() {
-        const ctx = document.getElementById('transportModeChart');
-        if (!ctx || !this.processedMetrics.advanced.transportModes) return;
-        
-        if (this.charts.has('transportModeChart')) {
-            this.charts.get('transportModeChart').destroy();
         }
-        
-        const chart = new Chart(ctx, {
-            type: 'doughnut',
-            data: {
-                labels: this.processedMetrics.advanced.transportModes.map(t => t.name),
-                datasets: [{
-                    data: this.processedMetrics.advanced.transportModes.map(t => t.count),
-                    backgroundColor: ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6']
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: { position: 'bottom' }
+    });
+    
+    this.charts.set('trendChart', chart);
+    console.log('✅ Trend chart rendered with dark mode:', isDarkMode);
+}
+
+// ✅ RENDERIZZA TRANSPORT MODE CHART CON DARK MODE
+renderTransportModeChart() {
+    const ctx = document.getElementById('transportModeChart');
+    if (!ctx || !this.processedMetrics.advanced.transportModes) return;
+    
+    if (this.charts.has('transportModeChart')) {
+        this.charts.get('transportModeChart').destroy();
+    }
+    
+    // ✅ VERIFICA DARK MODE
+    const isDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    
+    const chart = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: this.processedMetrics.advanced.transportModes.map(t => t.name),
+            datasets: [{
+                data: this.processedMetrics.advanced.transportModes.map(t => t.count),
+                backgroundColor: [
+                    '#3b82f6', // Blu
+                    '#16a34a', // Verde
+                    '#f59e0b', // Arancione
+                    '#8b5cf6', // Viola
+                    '#06b6d4'  // Cyan
+                ],
+                borderWidth: isDarkMode ? 2 : 1,
+                borderColor: isDarkMode ? '#374151' : '#ffffff'
+            }]
+        },
+        options: {
+            ...this.getChartOptions(isDarkMode),
+            plugins: {
+                ...this.getChartOptions(isDarkMode).plugins,
+                legend: { 
+                    position: 'bottom',
+                    labels: {
+                        color: isDarkMode ? '#f9fafb' : '#374151',
+                        font: {
+                            size: 12
+                        }
+                    }
                 }
             }
-        });
-        
-        this.charts.set('transportModeChart', chart);
-    }
-
+        }
+    });
+    
+    this.charts.set('transportModeChart', chart);
+    console.log('✅ Transport mode chart rendered with dark mode:', isDarkMode);
+}
+// ✅ AGGIUNGI QUESTA FUNZIONE PER DARK MODE CHARTS
+getChartOptions(isDarkMode = false) {
+    const textColor = isDarkMode ? '#f9fafb' : '#374151';
+    const gridColor = isDarkMode ? '#4b5563' : '#e5e7eb';
+    
+    return {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                labels: {
+                    color: textColor,
+                    font: {
+                        size: 12
+                    }
+                }
+            },
+            tooltip: {
+                backgroundColor: isDarkMode ? '#1f2937' : '#ffffff',
+                titleColor: textColor,
+                bodyColor: textColor,
+                borderColor: gridColor,
+                borderWidth: 1
+            }
+        },
+        scales: {
+            x: {
+                ticks: {
+                    color: textColor,
+                    font: {
+                        size: 11
+                    }
+                },
+                grid: {
+                    color: gridColor
+                }
+            },
+            y: {
+                ticks: {
+                    color: textColor,
+                    font: {
+                        size: 11
+                    }
+                },
+                grid: {
+                    color: gridColor
+                }
+            }
+        }
+    };
+}
         // ✅ RENDERIZZA TABELLE
     renderTables() {
         this.renderCarriersTable();

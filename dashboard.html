@@ -870,39 +870,46 @@
                     color: #9ca3af !important;
                 }
                 
-                /* ✅ KPI CARDS DARK MODE (PALETTE CORRETTA) */
+                /* ✅ KPI CARDS DARK MODE (PALETTE CORRETTA + ICONE COLORATE) */
                 .kpi-card-modern {
                     background: #1f2937 !important;
-                    border-color: #374151 !important;
+                    border-color: #6b7280 !important; /* ✅ BORDER PIÙ CHIARO */
                     color: #f9fafb !important;
+                    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3) !important; /* ✅ OMBRA PIÙ VISIBILE */
                 }
                 
                 .kpi-card-modern:hover {
-                    border-color: #4b5563 !important;
-                    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25) !important;
+                    border-color: #9ca3af !important; /* ✅ HOVER PIÙ CHIARO */
+                    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4) !important;
                 }
                 
                 .kpi-label-modern {
-                    color: #9ca3af !important;
+                    color: #d1d5db !important; /* ✅ PIÙ CHIARO */
                 }
                 
                 .kpi-value-modern {
-                    color: inherit !important;
+                    color: #f9fafb !important; /* ✅ BIANCO PURO */
                 }
                 
-                /* ✅ KPI CARDS VECCHIE (FALLBACK) */
-                .kpi-card {
-                    background: #1f2937 !important;
-                    border-color: #374151 !important;
-                    color: #f9fafb !important;
+                /* ✅ MANTIENI COLORI SPECIFICI DELLE ICONE */
+                .kpi-icon-modern i {
+                    color: inherit !important; /* ✅ MANTIENE IL COLORE ORIGINALE */
                 }
                 
-                .kpi-label-small {
-                    color: #9ca3af !important;
+                /* ✅ TREND BADGES PIÙ VISIBILI */
+                .kpi-trend-badge.growth-positive {
+                    background: #16a34a !important;
+                    color: #ffffff !important;
                 }
                 
-                .kpi-value-small {
-                    color: #f9fafb !important;
+                .kpi-trend-badge.growth-negative {
+                    background: #dc2626 !important;
+                    color: #ffffff !important;
+                }
+                
+                .kpi-trend-badge:not(.growth-positive):not(.growth-negative) {
+                    background: #6b7280 !important;
+                    color: #ffffff !important;
                 }
                 
                 /* ✅ MODAL SYSTEM DARK */
@@ -1051,6 +1058,17 @@
                 
                 .bg-white {
                     background-color: #1f2937 !important;
+                }
+                                /* ✅ CHARTS DARK MODE - TESTI BIANCHI */
+                .chart-container canvas {
+                    filter: brightness(1.1) !important;
+                }
+                
+                /* ✅ CHART.JS OVERRIDE PER TESTI BIANCHI */
+                .chart-container {
+                    --chart-text-color: #f9fafb !important;
+                    --chart-grid-color: #4b5563 !important;
+                    --chart-axis-color: #6b7280 !important;
                 }
             }
 </style>
