@@ -1253,20 +1253,27 @@ renderCarriersDBPerformanceTable() {
         return analytics;
     }
     
-    // ✅ CALCOLA TEMPO MEDIO DI TRANSITO
-    calculateAvgTransitTime(shipments) {
+    // ✅ CALCOLA TEMPO MEDIO DI TRANSITO CON DEBUG TRACKING
+        calculateAvgTransitTime(shipments) {
         const transitTimes = [];
+        const debugInfo = [];
         
         shipments.forEach(shipment => {
-            if (shipment.delivery_date) {
-                const startDate = new Date(shipment.created_at);
-                const endDate = new Date(shipment.delivery_date);
-                const days = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24));
-                
-                if (days > 0 && days < 365) {
-                    transitTimes.push(days);
-                }
+            const days = this.calculateDeliveryDays(shipment);
+            if (days !== null && days > 0) {
+                transitTimes.push(days);
+                debugInfo.push({
+                    id: shipment.id,
+                    tracking: shipment.tracking_number,
+                    days: days
+                });
             }
+        });
+        
+        console.log(`📊 Transit times calcolati per ${shipments.length} spedizioni:`, {
+            trovati: transitTimes.length,
+            media: transitTimes.length > 0 ? (transitTimes.reduce((a, b) => a + b, 0) / transitTimes.length).toFixed(1) : 0,
+            dettagli: debugInfo.slice(0, 5) // Prime 5 per debug
         });
         
         return transitTimes.length > 0 
@@ -1726,17 +1733,129 @@ if (window.ModalSystem) {
         
         return total;
     }
-        // ✅ CALCOLA GIORNI DI CONSEGNA
+        // ✅ CALCOLA GIORNI DI CONSEGNA USANDO TRACKING DATA
     calculateDeliveryDays(shipment) {
-        if (!shipment.delivery_date) return null;
+        // Trova il tracking corrispondente
+        const tracking = this.rawData.trackings.find(t => 
+            t.shipment_id === shipment.id || 
+            t.tracking_number === shipment.tracking_number ||
+            t.tracking_number === shipment.tracking_code
+        );
         
-        const startDate = new Date(shipment.created_at);
-        const endDate = new Date(shipment.delivery_date);
-        const days = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24));
+        if (!tracking) {
+            console.log(`⚠️ Nessun tracking trovato per spedizione ${shipment.id}`);
+            return null;
+        }
         
-        return days > 0 && days < 365 ? days : null;
+        // ✅ USA IL SISTEMA DI TRACKING.HTML PER CALCOLARE I GIORNI
+        try {
+            // Cerca eventi di tracking
+            let events = [];
+            
+            // Se tracking ha eventi strutturati
+            if (tracking.events && Array.isArray(tracking.events)) {
+                events = tracking.events;
+            }
+            // Se tracking ha timeline
+            else if (tracking.timeline && Array.isArray(tracking.timeline)) {
+                events = tracking.timeline;
+            }
+            // Se tracking ha tracking_data come JSON
+            else if (tracking.tracking_data) {
+                const trackingData = typeof tracking.tracking_data === 'string' 
+                    ? JSON.parse(tracking.tracking_data) 
+                    : tracking.tracking_data;
+                
+                events = trackingData.events || trackingData.timeline || [];
+            }
+            
+            if (events.length === 0) {
+                console.log(`⚠️ Nessun evento trovato nel tracking ${tracking.tracking_number}`);
+                return null;
+            }
+            
+            // ✅ TROVA PRIMO E ULTIMO EVENTO
+            const sortedEvents = events
+                .filter(event => event.date || event.timestamp || event.datetime)
+                .sort((a, b) => {
+                    const dateA = new Date(a.date || a.timestamp || a.datetime);
+                    const dateB = new Date(b.date || b.timestamp || b.datetime);
+                    return dateA - dateB;
+                });
+            
+            if (sortedEvents.length < 2) {
+                console.log(`⚠️ Eventi insufficienti per calcolare transito in ${tracking.tracking_number}`);
+                return null;
+            }
+            
+            const firstEvent = sortedEvents[0];
+            const lastEvent = sortedEvents[sortedEvents.length - 1];
+            
+            const startDate = new Date(firstEvent.date || firstEvent.timestamp || firstEvent.datetime);
+            const endDate = new Date(lastEvent.date || lastEvent.timestamp || lastEvent.datetime);
+            
+            // ✅ VERIFICA CHE LE DATE SIANO VALIDE
+            if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+                console.log(`⚠️ Date non valide nel tracking ${tracking.tracking_number}`);
+                return null;
+            }
+            
+            const days = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24));
+            
+            // ✅ VERIFICA RAGIONEVOLEZZA (0-365 giorni)
+            if (days < 0 || days > 365) {
+                console.log(`⚠️ Giorni di transito non ragionevoli: ${days} per ${tracking.tracking_number}`);
+                return null;
+            }
+            
+            console.log(`✅ Tracking ${tracking.tracking_number}: ${days} giorni (${startDate.toLocaleDateString()} → ${endDate.toLocaleDateString()})`);
+            return days;
+            
+        } catch (error) {
+            console.error(`❌ Errore nel calcolo giorni per tracking ${tracking?.tracking_number}:`, error);
+            return null;
+        }
     }
-    
+        // ✅ DEBUG TRACKING DATA PER VERIFICARE STRUTTURA
+    debugTrackingData(limit = 3) {
+        console.log('🔍 ANALISI TRACKING DATA:');
+        
+        const trackingsWithEvents = this.rawData.trackings
+            .filter(t => t.events || t.timeline || t.tracking_data)
+            .slice(0, limit);
+        
+        trackingsWithEvents.forEach((tracking, i) => {
+            console.log(`\n${i+1}. Tracking: ${tracking.tracking_number}`);
+            console.log('   Shipment ID:', tracking.shipment_id);
+            console.log('   Ha events:', !!tracking.events);
+            console.log('   Ha timeline:', !!tracking.timeline);
+            console.log('   Ha tracking_data:', !!tracking.tracking_data);
+            
+            if (tracking.events) {
+                console.log('   Events count:', tracking.events.length);
+                console.log('   Primo evento:', tracking.events[0]);
+            }
+            
+            if (tracking.timeline) {
+                console.log('   Timeline count:', tracking.timeline.length);
+                console.log('   Primo timeline:', tracking.timeline[0]);
+            }
+            
+            if (tracking.tracking_data) {
+                try {
+                    const data = typeof tracking.tracking_data === 'string' 
+                        ? JSON.parse(tracking.tracking_data) 
+                        : tracking.tracking_data;
+                    console.log('   Tracking data keys:', Object.keys(data));
+                    console.log('   Ha events in data:', !!(data.events || data.timeline));
+                } catch (e) {
+                    console.log('   Tracking data (raw):', typeof tracking.tracking_data);
+                }
+            }
+        });
+        
+        console.log(`\n📊 Summary: ${trackingsWithEvents.length}/${this.rawData.trackings.length} trackings hanno eventi`);
+    }
     // ✅ RENDERIZZA INFO CARRIER
     renderCarrierInfo(shipment) {
         const carrier = this.rawData.carriers?.find(c => c.id === shipment.carrier_id);
