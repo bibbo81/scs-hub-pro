@@ -793,6 +793,112 @@ calculateCarriersDBPerformance() {
             </tr>
         `).join('');
     }
+        // ✅ VISTA SPEDIZIONI CARRIER CON DETTAGLI ANALITICI
+    viewCarrierShipments(carrierId) {
+        const carrier = this.processedMetrics.advanced.carriersDBPerformance.find(c => c.id === carrierId);
+        if (!carrier) return;
+        
+        // Filtra spedizioni per questo carrier
+        const carrierShipments = this.rawData.shipments.filter(s => s.carrier_id === carrierId);
+        
+        // Calcola statistiche aggiuntive
+        const stats = this.calculateCarrierStats(carrierShipments);
+        
+        const modalContent = `
+            <div class="row g-4">
+                <!-- Statistiche Riepilogative -->
+                <div class="col-12">
+                    <div class="row g-3">
+                        <div class="col-md-3">
+                            <div class="border rounded p-3 text-center">
+                                <div class="h4 mb-1 text-primary">${carrier.totalShipments}</div>
+                                <small class="text-muted">Totale Spedizioni</small>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="border rounded p-3 text-center">
+                                <div class="h4 mb-1 text-success">€${stats.totalValue.toLocaleString()}</div>
+                                <small class="text-muted">Valore Totale</small>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="border rounded p-3 text-center">
+                                <div class="h4 mb-1 text-info">${stats.avgDeliveryDays.toFixed(1)} gg</div>
+                                <small class="text-muted">Tempo Medio</small>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="border rounded p-3 text-center">
+                                <div class="h4 mb-1 text-warning">${stats.deliveryRate.toFixed(1)}%</div>
+                                <small class="text-muted">Tasso Consegna</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Breakdown Tipi -->
+                <div class="col-12">
+                    <h6 class="mb-3">🚚 Breakdown per Tipo</h6>
+                    <div class="row g-2">
+                        ${Object.entries(carrier.shipmentTypes)
+                            .filter(([, count]) => count > 0)
+                            .map(([type, count]) => `
+                                <div class="col-6 col-md-3">
+                                    <span class="badge ${this.getShipmentTypeColor(type)} me-2">
+                                        ${this.getShipmentTypeIcon(type)} ${type}
+                                    </span>
+                                    <strong>${count}</strong>
+                                    <small class="text-muted">(${((count/carrier.totalShipments)*100).toFixed(1)}%)</small>
+                                </div>
+                            `).join('')}
+                    </div>
+                </div>
+                
+                <!-- Lista Spedizioni -->
+                <div class="col-12">
+                    <h6 class="mb-3">📦 Spedizioni Recenti</h6>
+                    <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+                        <table class="table table-sm table-hover">
+                            <thead class="table-light sticky-top">
+                                <tr>
+                                    <th>Tracking</th>
+                                    <th>Origine → Destinazione</th>
+                                    <th>Tipo</th>
+                                    <th>Stato</th>
+                                    <th>Costo</th>
+                                    <th>Data</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${this.renderCarrierShipmentsRows(carrierShipments)}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                
+                ${carrier.email || carrier.phone ? `
+                <div class="col-12">
+                    <div class="border-top pt-3">
+                        <h6 class="mb-2">📞 Contatti</h6>
+                        <div class="row">
+                            ${carrier.email ? `<div class="col-md-6"><strong>Email:</strong> <a href="mailto:${carrier.email}">${carrier.email}</a></div>` : ''}
+                            ${carrier.phone ? `<div class="col-md-6"><strong>Telefono:</strong> <a href="tel:${carrier.phone}">${carrier.phone}</a></div>` : ''}
+                        </div>
+                    </div>
+                </div>
+                ` : ''}
+            </div>
+        `;
+        
+        if (window.ModalSystem) {
+            window.ModalSystem.show({
+                title: `📊 ${carrier.name} - Analisi Spedizioni`,
+                content: modalContent,
+                size: 'xl'
+            });
+        }
+    }
 // ✅ RENDERIZZA TABELLA - ICONA AGGIORNATA
 renderCarriersDBPerformanceTable() {
     const tbody = document.getElementById('carriersPerformanceBody');
@@ -1238,113 +1344,7 @@ renderCarriersDBPerformanceTable() {
         
         return total;
     }
-                // ✅ VISTA SPEDIZIONI CARRIER CON DETTAGLI ANALITICI
-        viewCarrierShipments(carrierId) {
-            const carrier = this.processedMetrics.advanced.carriersDBPerformance.find(c => c.id === carrierId);
-            if (!carrier) return;
-            
-            // Filtra spedizioni per questo carrier
-            const carrierShipments = this.rawData.shipments.filter(s => s.carrier_id === carrierId);
-            
-            // Calcola statistiche aggiuntive
-            const stats = this.calculateCarrierStats(carrierShipments);
-            
-            const modalContent = `
-                <div class="row g-4">
-                    <!-- Statistiche Riepilogative -->
-                    <div class="col-12">
-                        <div class="row g-3">
-                            <div class="col-md-3">
-                                <div class="border rounded p-3 text-center">
-                                    <div class="h4 mb-1 text-primary">${carrier.totalShipments}</div>
-                                    <small class="text-muted">Totale Spedizioni</small>
-                                </div>
-                            </div>
-                            <div class="col-md-3">
-                                <div class="border rounded p-3 text-center">
-                                    <div class="h4 mb-1 text-success">€${stats.totalValue.toLocaleString()}</div>
-                                    <small class="text-muted">Valore Totale</small>
-                                </div>
-                            </div>
-                            <div class="col-md-3">
-                                <div class="border rounded p-3 text-center">
-                                    <div class="h4 mb-1 text-info">${stats.avgDeliveryDays.toFixed(1)} gg</div>
-                                    <small class="text-muted">Tempo Medio</small>
-                                </div>
-                            </div>
-                            <div class="col-md-3">
-                                <div class="border rounded p-3 text-center">
-                                    <div class="h4 mb-1 text-warning">${stats.deliveryRate.toFixed(1)}%</div>
-                                    <small class="text-muted">Tasso Consegna</small>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Breakdown Tipi -->
-                    <div class="col-12">
-                        <h6 class="mb-3">🚚 Breakdown per Tipo</h6>
-                        <div class="row g-2">
-                            ${Object.entries(carrier.shipmentTypes)
-                                .filter(([, count]) => count > 0)
-                                .map(([type, count]) => `
-                                    <div class="col-6 col-md-3">
-                                        <span class="badge ${this.getShipmentTypeColor(type)} me-2">
-                                            ${this.getShipmentTypeIcon(type)} ${type}
-                                        </span>
-                                        <strong>${count}</strong>
-                                        <small class="text-muted">(${((count/carrier.totalShipments)*100).toFixed(1)}%)</small>
-                                    </div>
-                                `).join('')}
-                        </div>
-                    </div>
-                    
-                    <!-- Lista Spedizioni -->
-                    <div class="col-12">
-                        <h6 class="mb-3">📦 Spedizioni Recenti</h6>
-                        <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
-                            <table class="table table-sm table-hover">
-                                <thead class="table-light sticky-top">
-                                    <tr>
-                                        <th>Tracking</th>
-                                        <th>Origine → Destinazione</th>
-                                        <th>Tipo</th>
-                                        <th>Stato</th>
-                                        <th>Costo</th>
-                                        <th>Data</th>
-                                        <th></th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    ${this.renderCarrierShipmentsRows(carrierShipments)}
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                    
-                    ${carrier.email || carrier.phone ? `
-                    <div class="col-12">
-                        <div class="border-top pt-3">
-                            <h6 class="mb-2">📞 Contatti</h6>
-                            <div class="row">
-                                ${carrier.email ? `<div class="col-md-6"><strong>Email:</strong> <a href="mailto:${carrier.email}">${carrier.email}</a></div>` : ''}
-                                ${carrier.phone ? `<div class="col-md-6"><strong>Telefono:</strong> <a href="tel:${carrier.phone}">${carrier.phone}</a></div>` : ''}
-                            </div>
-                        </div>
-                    </div>
-                    ` : ''}
-                </div>
-            `;
-            
-            if (window.ModalSystem) {
-                window.ModalSystem.show({
-                    title: `📊 ${carrier.name} - Analisi Spedizioni`,
-                    content: modalContent,
-                    size: 'xl'
-                });
-            }
-        }
     }
-    
+
     // ✅ ESPORTA SISTEMA
     export default UnifiedMetricsSystem;
