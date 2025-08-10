@@ -152,6 +152,180 @@
                 .table td:nth-child(8) {
                     width: 80px;
                 }
+                                
+                /* ====== MODAL FULLSCREEN SYSTEM - ANALYTICS ====== */
+                .sol-modal-content.analytics-modal {
+                    max-width: 100vw !important;
+                    width: 100vw !important;
+                    height: 100vh !important;
+                    border-radius: 0 !important;
+                    border: none !important;
+                    display: flex !important;
+                    flex-direction: column !important;
+                    margin: 0 !important;
+                    transform: none !important;
+                }
+
+                .sol-modal-overlay.analytics-modal-overlay {
+                    padding: 0 !important;
+                    margin: 0 !important;
+                    align-items: stretch !important;
+                    justify-content: stretch !important;
+                }
+
+                .sol-modal-content.analytics-modal .sol-modal-header {
+                    flex-shrink: 0 !important;
+                    padding: 20px !important;
+                    border-bottom: 1px solid #e9ecef !important;
+                    background: #f8f9fa !important;
+                }
+
+                .sol-modal-content.analytics-modal .sol-modal-body {
+                    flex: 1 !important;
+                    overflow-y: auto !important;
+                    padding: 20px !important;
+                    max-height: none !important;
+                    background: #ffffff !important;
+                }
+
+                .sol-modal-content.analytics-modal .sol-modal-footer {
+                    flex-shrink: 0 !important;
+                    padding: 20px !important;
+                    border-top: 1px solid #e9ecef !important;
+                    background: #f8f9fa !important;
+                }
+
+                /* ✅ FULLSCREEN RESPONSIVE ADJUSTMENTS */
+                .sol-modal-content.analytics-modal .table-responsive {
+                    max-height: calc(100vh - 400px) !important;
+                    overflow-y: auto !important;
+                }
+
+                .sol-modal-content.analytics-modal .row {
+                    margin: 0 !important;
+                }
+
+                .sol-modal-content.analytics-modal .col-12,
+                .sol-modal-content.analytics-modal .col-md-3,
+                .sol-modal-content.analytics-modal .col-md-6,
+                .sol-modal-content.analytics-modal .col-md-8,
+                .sol-modal-content.analytics-modal .col-md-4 {
+                    padding: 10px !important;
+                }
+
+                /* ✅ STATISTICHE CARDS OTTIMIZZATE FULLSCREEN */
+                .sol-modal-content.analytics-modal .border.rounded.p-3 {
+                    padding: 25px !important;
+                    margin-bottom: 20px !important;
+                    box-shadow: 0 2px 8px rgba(0,0,0,0.1) !important;
+                }
+
+                .sol-modal-content.analytics-modal .h4 {
+                    font-size: 2.5rem !important;
+                    font-weight: 700 !important;
+                }
+
+                .sol-modal-content.analytics-modal .h6 {
+                    font-size: 1.2rem !important;
+                    margin-bottom: 20px !important;
+                }
+
+                /* ✅ TABELLA SPEDIZIONI OTTIMIZZATA */
+                .sol-modal-content.analytics-modal .table {
+                    font-size: 14px !important;
+                }
+
+                .sol-modal-content.analytics-modal .table th,
+                .sol-modal-content.analytics-modal .table td {
+                    padding: 12px 8px !important;
+                    vertical-align: middle !important;
+                }
+
+                .sol-modal-content.analytics-modal .table-hover tbody tr:hover {
+                    background-color: #f8f9fa !important;
+                    cursor: pointer !important;
+                }
+
+                /* ✅ BREAKDOWN TIPI CON SPACING MIGLIORATO */
+                .sol-modal-content.analytics-modal .badge {
+                    font-size: 0.9rem !important;
+                    padding: 8px 12px !important;
+                    margin-right: 10px !important;
+                }
+
+                /* ✅ SEZIONE CONTATTI EVIDENZIATA */
+                .sol-modal-content.analytics-modal .border-top {
+                    border-top: 2px solid #e9ecef !important;
+                    padding-top: 25px !important;
+                    margin-top: 30px !important;
+                }
+
+                /* ✅ MOBILE FULLSCREEN */
+                @media (max-width: 768px) {
+                    .sol-modal-content.analytics-modal .sol-modal-header {
+                        padding: 15px !important;
+                    }
+                    
+                    .sol-modal-content.analytics-modal .sol-modal-body {
+                        padding: 15px !important;
+                    }
+                    
+                    .sol-modal-content.analytics-modal .sol-modal-footer {
+                        padding: 15px !important;
+                    }
+                    
+                    .sol-modal-content.analytics-modal .table-responsive {
+                        max-height: calc(100vh - 300px) !important;
+                    }
+                    
+                    .sol-modal-content.analytics-modal .h4 {
+                        font-size: 1.8rem !important;
+                    }
+                    
+                    .sol-modal-content.analytics-modal .col-md-3 {
+                        margin-bottom: 15px !important;
+                    }
+                    
+                    .sol-modal-content.analytics-modal .border.rounded.p-3 {
+                        padding: 15px !important;
+                    }
+                }
+
+                /* ✅ OTTIMIZZAZIONI SCROLL E LAYOUT */
+                .sol-modal-content.analytics-modal .table-responsive::-webkit-scrollbar {
+                    height: 8px;
+                    width: 8px;
+                }
+
+                .sol-modal-content.analytics-modal .table-responsive::-webkit-scrollbar-track {
+                    background: #f1f1f1;
+                    border-radius: 4px;
+                }
+
+                .sol-modal-content.analytics-modal .table-responsive::-webkit-scrollbar-thumb {
+                    background: #c1c1c1;
+                    border-radius: 4px;
+                }
+
+                .sol-modal-content.analytics-modal .table-responsive::-webkit-scrollbar-thumb:hover {
+                    background: #a8a8a8;
+                }
+
+                /* ✅ ANIMAZIONI SMOOTH */
+                .sol-modal-content.analytics-modal {
+                    animation: fullscreenModalEnter 0.3s ease-out !important;
+                }
+
+                @keyframes fullscreenModalEnter {
+                    0% {
+                        opacity: 0;
+                        transform: scale(0.95);
+                    }
+                    100% {
+                        opacity: 1;
+                        transform: scale(1);
+                    }
+                }
     </style>
 </head>
 <body>
