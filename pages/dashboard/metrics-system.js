@@ -3117,241 +3117,107 @@ renderProductCostsTable() {
     }
 }
 
-
 addProductTableStyles() {
-    // Verifica se gli stili sono già stati aggiunti
-    if (document.getElementById('productTableStyles')) return;
+    // Rimuovi stili esistenti se presenti
+    const existingStyle = document.getElementById('productTableStyles');
+    if (existingStyle) {
+        existingStyle.remove();
+    }
     
     const style = document.createElement('style');
     style.id = 'productTableStyles';
     style.textContent = `
-        /* ✅ DISTRIBUZIONE COLONNE TABELLA ANALISI COSTI PRODOTTI */
+        /* 🎯 RESET COMPLETO - STILI IDENTICI ALLE ALTRE TABELLE */
+        
+        /* ✅ TABELLA BASE - COME LE ALTRE */
         #productCostsTable {
-            table-layout: fixed;
+            table-layout: auto;
             width: 100%;
+            margin-bottom: 0;
         }
         
-        /* ✅ LARGHEZZE COLONNE RIBILANCIATE */
-        #productCostsTable .product-code-col {
-            width: 10% !important;
-            min-width: 80px;
-        }
-        
-        #productCostsTable .product-desc-col {
-            width: 28% !important;
-            min-width: 180px;
-        }
-        
-        #productCostsTable .product-quantity-col {
-            width: 12% !important;
-            min-width: 100px;
-        }
-        
-        #productCostsTable .product-cost-col {
-            width: 12% !important;
-            min-width: 90px;
-        }
-        
-        #productCostsTable .product-trend-col {
-            width: 12% !important;
-            min-width: 100px;
-        }
-        
-        #productCostsTable .product-transport-col {
-            width: 12% !important;
-            min-width: 90px;
-        }
-        
-        #productCostsTable .product-transport-trend-col {
-            width: 12% !important;
-            min-width: 100px;
-        }
-        
-        #productCostsTable .product-actions-col {
-            width: 7% !important;
-            min-width: 50px;
-        }
-        
-        /* ✅ DESCRIZIONE MULTILINEA */
-        .product-desc-multiline {
-            max-width: 100%;
-            overflow: hidden;
-            display: -webkit-box;
-            -webkit-line-clamp: 2;
-            -webkit-box-orient: vertical;
-            line-height: 1.3;
-            max-height: 2.6em;
-        }
-        
-        /* ✅ MIGLIORAMENTI RESPONSIVI */
-        #productCostsTable td {
-            padding: 12px 8px;
+        /* ✅ HEADER - IDENTICO ALLE ALTRE TABELLE */
+        #productCostsTable thead th {
+            background-color: #f8f9fa;
+            color: #6c757d;
+            font-weight: 600;
+            font-size: 0.875rem;
+            padding: 0.75rem 0.5rem;
+            border-bottom: 1px solid #dee2e6;
             vertical-align: middle;
-        }
-        
-        #productCostsTable .text-truncate {
-            max-width: 100%;
-            overflow: hidden;
-            text-overflow: ellipsis;
             white-space: nowrap;
         }
         
-   /* ✅ HEADER TABELLA - IDENTICO ALLE ALTRE TABELLE */
-#productCostsTable thead th {
-    background-color: var(--bs-gray-100) !important;
-    color: var(--bs-gray-800) !important;
-    font-weight: 600;
-    font-size: 0.875rem;
-    padding: 0.75rem;
-    border-bottom: 1px solid var(--bs-border-color) !important;
-    vertical-align: middle;
-}
-        
-        /* ✅ TUTTE LE COLONNE HANNO LO STESSO BACKGROUND (TRASPARENTE) */
-        #productCostsTable .product-code-col,
-        #productCostsTable .product-desc-col,
-        #productCostsTable .product-quantity-col,
-        #productCostsTable .product-cost-col,
-        #productCostsTable .product-trend-col,
-        #productCostsTable .product-transport-col,
-        #productCostsTable .product-transport-trend-col,
-        #productCostsTable .product-actions-col {
-            background-color: transparent !important;
+        /* ✅ CELLE BODY - IDENTICHE ALLE ALTRE */
+        #productCostsTable tbody td {
+            padding: 0.75rem 0.5rem;
+            vertical-align: middle;
+            border-bottom: 1px solid #dee2e6;
+            background-color: transparent;
         }
         
-        /* ✅ EVIDENZIAZIONE SOLO NEL TESTO (NON BACKGROUND) */
-        #productCostsTable .product-quantity-col .text-primary {
-            color: #0d6efd !important;
-            font-weight: 700 !important;
-        }
-        
-        /* ✅ HOVER UNIFORME PER TUTTE LE COLONNE */
+        /* ✅ HOVER - IDENTICO ALLE ALTRE TABELLE */
         #productCostsTable tbody tr:hover {
-            background-color: rgba(0, 123, 255, 0.05) !important;
+            background-color: rgba(0, 0, 0, 0.075);
         }
         
         #productCostsTable tbody tr:hover td {
-            background-color: transparent !important; /* ✅ FORZA TRASPARENTE IN HOVER */
+            background-color: transparent;
         }
-                /* ✅ RIMUOVI HOVER DALL'HEADER - UNIFORME */
+        
+        /* ✅ NESSUN HOVER SU HEADER */
         #productCostsTable thead th:hover {
-            background-color: var(--bs-gray-100) !important;
-            cursor: default !important;
+            background-color: #f8f9fa;
+            cursor: default;
         }
         
-        [data-bs-theme="dark"] #productCostsTable thead th:hover {
-            background-color: var(--bs-gray-800) !important;
-            cursor: default !important;
+        /* ✅ DESCRIZIONE SU DUE RIGHE */
+        .product-desc-multiline {
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            line-height: 1.4;
+            max-height: 2.8em;
         }
         
-        @media (prefers-color-scheme: dark) {
-            #productCostsTable thead th:hover {
-                background-color: var(--bs-gray-800) !important;
-                cursor: default !important;
-            }
-        }
-        
-        #productCostsTable tbody tr:hover {
-            background-color: rgba(0, 123, 255, 0.05) !important;
-        }
-        
-        #productCostsTable tbody tr:hover td {
-            background-color: transparent !important;
-        }
-        
-        /* ✅ DARK MODE - RIMUOVI HOVER DALL'HEADER */
-        [data-bs-theme="dark"] #productCostsTable thead th:hover,
-        @media (prefers-color-scheme: dark) {
-            #productCostsTable thead th:hover {
-                background-color: #343a40 !important; /* ✅ MANTIENI STESSO COLORE DARK */
-                cursor: default !important;
-            }
-        }
-        /* ✅ BADGE STYLING */
-        #productCostsTable .badge {
-            font-size: 0.75rem;
-            padding: 0.35em 0.5em;
-        }
-        
-        /* ✅ EVIDENZIAZIONE NUMERI */
-        #productCostsTable .text-primary {
-            font-weight: 600;
-        }
-        
-                /* ✅ DARK MODE - CORRETTO CON VAR BOOTSTRAP */
-        [data-bs-theme="dark"] #productCostsTable thead th {
-            background-color: var(--bs-gray-800) !important;
-            color: var(--bs-gray-100) !important;
-            border-bottom: 1px solid var(--bs-gray-600) !important;
-        }
-        
+        /* ✅ DARK MODE - IDENTICO ALLE ALTRE */
+        [data-bs-theme="dark"] #productCostsTable thead th,
         @media (prefers-color-scheme: dark) {
             #productCostsTable thead th {
-                background-color: var(--bs-gray-800) !important;
-                color: var(--bs-gray-100) !important;
-                border-bottom: 1px solid var(--bs-gray-600) !important;
+                background-color: #495057;
+                color: #adb5bd;
+                border-bottom: 1px solid #6c757d;
             }
-        }
             
-            /* ✅ TUTTE LE COLONNE TRASPARENTI ANCHE IN DARK MODE */
-            #productCostsTable .product-code-col,
-            #productCostsTable .product-desc-col,
-            #productCostsTable .product-quantity-col,
-            #productCostsTable .product-cost-col,
-            #productCostsTable .product-trend-col,
-            #productCostsTable .product-transport-col,
-            #productCostsTable .product-transport-trend-col,
-            #productCostsTable .product-actions-col {
-                background-color: transparent !important;
+            #productCostsTable tbody td {
+                border-bottom: 1px solid #6c757d;
             }
             
             #productCostsTable tbody tr:hover {
-                background-color: rgba(59, 130, 246, 0.05) !important;
+                background-color: rgba(255, 255, 255, 0.05);
             }
             
-            #productCostsTable tbody tr:hover td {
-                background-color: transparent !important; /* ✅ FORZA TRASPARENTE ANCHE IN DARK MODE */
+            #productCostsTable thead th:hover {
+                background-color: #495057;
             }
         }
         
-        /* ✅ RESPONSIVE PER SCHERMI PICCOLI */
+        /* ✅ RESPONSIVE */
         @media (max-width: 768px) {
-            #productCostsTable .product-code-col {
-                width: 12% !important;
+            #productCostsTable {
+                font-size: 0.875rem;
             }
             
-            #productCostsTable .product-desc-col {
-                width: 35% !important;
-            }
-            
-            #productCostsTable .product-quantity-col {
-                width: 15% !important;
-            }
-            
-            #productCostsTable .product-cost-col,
-            #productCostsTable .product-transport-col {
-                width: 10% !important;
-            }
-            
-            #productCostsTable .product-trend-col,
-            #productCostsTable .product-transport-trend-col {
-                width: 8% !important;
-            }
-            
-            #productCostsTable .product-actions-col {
-                width: 5% !important;
-            }
-            
-            .product-desc-multiline {
-                font-size: 0.9rem;
-                -webkit-line-clamp: 2;
-                max-height: 2.4em;
+            #productCostsTable th,
+            #productCostsTable td {
+                padding: 0.5rem 0.25rem;
             }
         }
     `;
     
     document.head.appendChild(style);
-    console.log('✅ Product table styles updated with uniform column styling');
+    console.log('✅ Product table styles COMPLETELY RECREATED to match other tables');
 }
 
 // ✅ 5. MOSTRA ANALYTICS PRODOTTO (MODAL DETTAGLIATA)
