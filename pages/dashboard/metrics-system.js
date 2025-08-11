@@ -3305,8 +3305,15 @@ addProductTableStyles() {
                     border-bottom: 2px solid #4b5563 !important;
                 }
                 
-                #productCostsTable .product-quantity-col {
-                    background-color: rgba(59, 130, 246, 0.1) !important;
+                /* ✅ DARK MODE - COLONNA QUANTITÀ UNIFORMATA */
+                @media (prefers-color-scheme: dark) {
+                    #productCostsTable .product-quantity-col {
+                        background-color: transparent !important; /* ✅ RIMOSSO ANCHE IN DARK MODE */
+                    }
+                    
+                    #productCostsTable tbody tr:hover .product-quantity-col {
+                        background-color: rgba(59, 130, 246, 0.05) !important; /* ✅ STESSO HOVER */
+                    }
                 }
                 
                 #productCostsTable tbody tr:hover .product-quantity-col {
