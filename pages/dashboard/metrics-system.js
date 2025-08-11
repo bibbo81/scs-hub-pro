@@ -3365,8 +3365,7 @@ viewProductAnalytics(productCode, productDescription) {
                                     <td class="text-end">${shipmentData.quantity}</td>
                                     <td class="text-end">€${shipmentData.unitCost.toFixed(2)}</td>
                                     <td class="text-end"><strong>€${shipmentData.totalCost.toFixed(2)}</strong></td>
-                                    <td class="text-end">€${shipmentData.transportCost.toFixed(2)}</td>
-                                    <td class="small">${shipmentData.carrier}</td>
+                                    <td class="text-end">€${(shipmentData.transportCostPerUnit || 0).toFixed(2)}</td>                                    <td class="small">${shipmentData.carrier}</td>
                                     <td class="small">${shipmentData.origin} → ${shipmentData.destination}</td>
                                     <td><i class="fas fa-chevron-right text-muted"></i></td>
                                 </tr>
