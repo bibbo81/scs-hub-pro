@@ -3196,15 +3196,16 @@ addProductTableStyles() {
             white-space: nowrap;
         }
         
-        /* ✅ HEADER TABELLA UNIFORME */
-        #productCostsTable thead th {
-            background-color: #f8fafc !important;
-            color: #1e293b !important;
-            font-weight: 600;
-            font-size: 0.9rem;
-            padding: 14px 8px;
-            border-bottom: 2px solid #e2e8f0;
-        }
+        /* ✅ HEADER TABELLA UNIFICATO - COME CARRIERS DB PERFORMANCE */
+#productCostsTable thead th {
+    background-color: var(--bs-gray-100) !important;
+    color: var(--bs-gray-700) !important;
+    font-weight: 600;
+    font-size: 0.875rem;
+    padding: 0.75rem;
+    border-bottom: 1px solid var(--bs-border-color);
+    vertical-align: middle;
+}
         
         /* ✅ TUTTE LE COLONNE HANNO LO STESSO BACKGROUND (TRASPARENTE) */
         #productCostsTable .product-code-col,
@@ -3244,13 +3245,13 @@ addProductTableStyles() {
             font-weight: 600;
         }
         
-        /* ✅ DARK MODE UNIFORME */
-        @media (prefers-color-scheme: dark) {
-            #productCostsTable thead th {
-                background-color: #374151 !important;
-                color: #f9fafb !important;
-                border-bottom: 2px solid #4b5563 !important;
-            }
+        /* ✅ DARK MODE UNIFICATO - COME CARRIERS DB PERFORMANCE */
+@media (prefers-color-scheme: dark) {
+    #productCostsTable thead th {
+        background-color: var(--bs-gray-800) !important;
+        color: var(--bs-gray-100) !important;
+        border-bottom: 1px solid var(--bs-gray-600) !important;
+    }
             
             /* ✅ TUTTE LE COLONNE TRASPARENTI ANCHE IN DARK MODE */
             #productCostsTable .product-code-col,
