@@ -276,9 +276,9 @@ class UnifiedMetricsSystem {
                 // ✅ CREA PRODOTTO "VIRTUALE" DAI DATI DISPONIBILI NELL'ITEM
                 const virtualProduct = {
                     id: item.product_id || `virtual_${item.id}`,
-                    name: item.description || item.name || item.product_name || 'Prodotto senza nome',
-                    sku: item.sku || item.product_code || item.code || 'N/A',
-                    description: item.description || item.product_description || 'Nessuna descrizione'
+                    name: item.name || 'Prodotto senza nome',  // ← CAMBIATO DA description A name
+                    sku: item.sku || 'N/A',                    // ← CAMPO CORRETTO
+                    description: item.name || 'Nessuna descrizione'  // ← USA name COME FALLBACK
                 };
                 
                 return {
@@ -2570,66 +2570,71 @@ calculateProductCostsMetrics() {
             
             const metrics = productMetrics.get(productKey);
             
-                        // ✅ ESTRAI COSTI CORRETTI DALLA TABELLA SHIPMENT_ITEMS - VERSIONE CORRETTA
-            let unitCost = parseFloat(shipmentItem.unit_cost) || 0;
-            const totalCost = parseFloat(shipmentItem.total_cost) || 0;
-            const quantity = parseFloat(shipmentItem.quantity) || 1;
-            
-            // ✅ SE unit_cost È 0 MA total_cost ESISTE, CALCOLA unit_cost
-            if (unitCost === 0 && totalCost > 0 && quantity > 0) {
-                unitCost = totalCost / quantity;
-                console.log(`🔧 Calcolato unit_cost per item ${shipmentItem.id}: ${unitCost.toFixed(4)} (${totalCost}/${quantity})`);
-            }
-            
-            // ✅ SE ANCORA 0, PROVA unit_price COME FALLBACK
-            if (unitCost === 0 && shipmentItem.unit_price) {
-                unitCost = parseFloat(shipmentItem.unit_price) || 0;
-                console.log(`🔧 Usato unit_price come fallback per item ${shipmentItem.id}: ${unitCost}`);
-            }
-            
-            // ✅ AGGIORNA ANCHE totalCost SE ERA 0
-            let finalTotalCost = totalCost;
-            if (finalTotalCost === 0 && unitCost > 0) {
-                finalTotalCost = unitCost * quantity;
-                console.log(`🔧 Calcolato total_cost per item ${shipmentItem.id}: ${finalTotalCost.toFixed(2)} (${unitCost}*${quantity})`);
-            }
-            
-            const dutyAmount = parseFloat(shipmentItem.duty_amount) || 0;
-            
-            // ✅ TROVA LA SPEDIZIONE COMPLETA PER CALCOLARE TRASPORTO
-            const fullShipment = this.rawData.shipments.find(s => s.id === shipment.id) || shipment;
-            
-            // ✅ CALCOLA COSTO TRASPORTO PER UNITÀ DI PRODOTTO (NON PER SPEDIZIONE!)
-            const shipmentTransportCost = (parseFloat(fullShipment.freight_cost) || 0) + 
-                                        (parseFloat(fullShipment.other_costs) || 0);
-            
-            // ✅ TROVA QUANTITÀ TOTALE DI TUTTI I PRODOTTI NELLA SPEDIZIONE
-            const shipmentTotalQuantity = this.rawData.shipmentItems
-                .filter(item => item.shipment_id === shipment.id)
-                .reduce((sum, item) => sum + (parseFloat(item.quantity) || 1), 0);
-            
-            // ✅ CALCOLA COSTO TRASPORTO PER UNITÀ DI PRODOTTO (PROPORZIONALE ALLA QUANTITÀ)
-            const transportCostPerUnit = shipmentTotalQuantity > 0 
-                ? (shipmentTransportCost * quantity) / shipmentTotalQuantity 
-                : 0;
-            
-            // ✅ DATI SPEDIZIONE PER HISTORY
-            const shipmentData = {
-                shipmentId: shipment.id,
-                itemId: shipmentItem.id,
-                date: shipmentDate.toISOString(),
-                quantity: quantity,
-                unitCost: unitCost,
-                totalCost: totalCost,
-                dutyAmount: dutyAmount,
-                transportCostPerUnit: transportCostPerUnit / quantity, // Costo trasporto per singola unità
-                totalTransportCost: transportCostPerUnit, // Costo trasporto totale per questo item
-                carrier: shipment.carrier_name || 'N/A',
-                origin: this.getOriginDestination(fullShipment, 'origin'),
-                destination: this.getOriginDestination(fullShipment, 'destination'),
-                trackingNumber: shipment.tracking_number || 'N/A'
-            };
-            
+                                                // ✅ ESTRAI COSTI CORRETTI DALLA TABELLA SHIPMENT_ITEMS - VERSIONE CORRETTA CON CAMPI GIUSTI
+                        let unitCost = parseFloat(shipmentItem.unit_cost) || 0;
+                        const totalCost = parseFloat(shipmentItem.total_cost) || 0;
+                        const quantity = parseFloat(shipmentItem.quantity) || 1;
+                        
+                                                // ✅ SE unit_cost È 0 MA total_cost ESISTE, CALCOLA unit_cost
+                        if (unitCost === 0 && totalCost > 0 && quantity > 0) {
+                            unitCost = totalCost / quantity;
+                            console.log(`🔧 Calcolato unit_cost per item ${shipmentItem.id}: ${unitCost.toFixed(4)} (${totalCost}/${quantity})`);
+                        }
+                        
+                        // ✅ SE ANCORA 0, USA unit_value COME FALLBACK
+                        if (unitCost === 0 && shipmentItem.unit_value && parseFloat(shipmentItem.unit_value) > 0) {
+                            unitCost = parseFloat(shipmentItem.unit_value);
+                            console.log(`🔧 Usato unit_value come fallback per item ${shipmentItem.id}: ${unitCost} (da unit_value)`);
+                        }
+                        
+                        // ✅ SE ANCORA 0, CALCOLA DA total_value/quantity  
+                        if (unitCost === 0 && shipmentItem.total_value && parseFloat(shipmentItem.total_value) > 0 && quantity > 0) {
+                            unitCost = parseFloat(shipmentItem.total_value) / quantity;
+                            console.log(`🔧 Calcolato unit_cost da total_value per item ${shipmentItem.id}: ${unitCost.toFixed(4)} (${shipmentItem.total_value}/${quantity})`);
+                        }
+                        
+                        // ✅ AGGIORNA ANCHE totalCost SE ERA 0
+                        let finalTotalCost = totalCost;
+                        if (finalTotalCost === 0 && unitCost > 0) {
+                            finalTotalCost = unitCost * quantity;
+                            console.log(`🔧 Calcolato total_cost per item ${shipmentItem.id}: ${finalTotalCost.toFixed(2)} (${unitCost}*${quantity})`);
+                        }
+                        
+                        const dutyAmount = parseFloat(shipmentItem.duty_amount) || 0;
+                        
+                        // ✅ TROVA LA SPEDIZIONE COMPLETA PER CALCOLARE TRASPORTO
+                        const fullShipment = this.rawData.shipments.find(s => s.id === shipment.id) || shipment;
+                        
+                        // ✅ CALCOLA COSTO TRASPORTO PER UNITÀ DI PRODOTTO (NON PER SPEDIZIONE!)
+                        const shipmentTransportCost = (parseFloat(fullShipment.freight_cost) || 0) + 
+                                                    (parseFloat(fullShipment.other_costs) || 0);
+                        
+                        // ✅ TROVA QUANTITÀ TOTALE DI TUTTI I PRODOTTI NELLA SPEDIZIONE
+                        const shipmentTotalQuantity = this.rawData.shipmentItems
+                            .filter(item => item.shipment_id === shipment.id)
+                            .reduce((sum, item) => sum + (parseFloat(item.quantity) || 1), 0);
+                        
+                        // ✅ CALCOLA COSTO TRASPORTO PER UNITÀ DI PRODOTTO (PROPORZIONALE ALLA QUANTITÀ)
+                        const transportCostPerUnit = shipmentTotalQuantity > 0 
+                            ? (shipmentTransportCost * quantity) / shipmentTotalQuantity 
+                            : 0;
+                        
+                        // ✅ DATI SPEDIZIONE PER HISTORY
+                        const shipmentData = {
+                            shipmentId: shipment.id,
+                            itemId: shipmentItem.id,
+                            date: shipmentDate.toISOString(),
+                            quantity: quantity,
+                            unitCost: unitCost,  // ← QUESTO ORA DOVREBBE ESSERE 0.003
+                            totalCost: finalTotalCost,  // ← QUESTO ORA DOVREBBE ESSERE 45
+                            dutyAmount: dutyAmount,
+                            transportCostPerUnit: transportCostPerUnit / quantity,
+                            totalTransportCost: transportCostPerUnit,
+                            carrier: shipment.carrier_name || 'N/A',
+                            origin: this.getOriginDestination(fullShipment, 'origin'),
+                            destination: this.getOriginDestination(fullShipment, 'destination'),
+                            trackingNumber: shipment.tracking_number || 'N/A'
+                        };
             // ✅ CLASSIFICA PER PERIODO CON CALCOLI CORRETTI
             const periodData = shipmentDate >= currentPeriodStart ? 'currentPeriod' :
                  (shipmentDate >= previousPeriodStart && shipmentDate < currentPeriodStart) ? 'previousPeriod' : null;
@@ -2685,7 +2690,6 @@ metrics.allTime.shipments.push(shipmentData);
         let currentWeightedAvgCost = 0;
         let previousWeightedAvgCost = 0;
         
-        // ❌ PROBLEMA ERA QUI: Se tutti i unit_cost sono 0, dobbiamo usare total_cost/quantity
         if (product.currentPeriod.unitCostEntries.length > 0) {
             const totalWeightedCost = product.currentPeriod.unitCostEntries.reduce((sum, entry) => {
                 // ✅ SE unit_cost è 0, usa total_cost/quantity come fallback
