@@ -3196,14 +3196,14 @@ addProductTableStyles() {
             white-space: nowrap;
         }
         
-        /* ✅ HEADER TABELLA UNIFICATO - COME CARRIERS DB PERFORMANCE */
+        /* ✅ HEADER TABELLA - IDENTICO A CARRIERS DB PERFORMANCE */
 #productCostsTable thead th {
-    background-color: var(--bs-gray-100) !important;
-    color: var(--bs-gray-700) !important;
+    background-color: #f8f9fa !important; /* Bootstrap table-light */
+    color: #495057 !important;
     font-weight: 600;
     font-size: 0.875rem;
     padding: 0.75rem;
-    border-bottom: 1px solid var(--bs-border-color);
+    border-bottom: 1px solid #dee2e6 !important; /* Bootstrap border-color */
     vertical-align: middle;
 }
         
@@ -3245,12 +3245,13 @@ addProductTableStyles() {
             font-weight: 600;
         }
         
-        /* ✅ DARK MODE UNIFICATO - COME CARRIERS DB PERFORMANCE */
+        /* ✅ DARK MODE - IDENTICO A CARRIERS DB PERFORMANCE */
+[data-bs-theme="dark"] #productCostsTable thead th,
 @media (prefers-color-scheme: dark) {
     #productCostsTable thead th {
-        background-color: var(--bs-gray-800) !important;
-        color: var(--bs-gray-100) !important;
-        border-bottom: 1px solid var(--bs-gray-600) !important;
+        background-color: #343a40 !important; /* Bootstrap dark gray */
+        color: #f8f9fa !important;
+        border-bottom: 1px solid #495057 !important;
     }
             
             /* ✅ TUTTE LE COLONNE TRASPARENTI ANCHE IN DARK MODE */
