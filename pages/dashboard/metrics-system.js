@@ -2443,7 +2443,550 @@ getChartOptions(isDarkMode = false) {
         this.renderCarriersTable();
         this.renderCarriersDBPerformanceTable(); // ✅ AGGIUNGI QUESTA RIGA
     }
+// AGGIUNGI QUESTI METODI ALLA CLASSE UnifiedMetricsSystem (dopo renderTables())
 
+// ✅ 1. AGGIORNA RENDERIZZA TABELLE PER INCLUDERE COSTI
+renderTables() {
+    this.renderCarriersTable();
+    this.renderCarriersDBPerformanceTable();
+    this.renderProductCostsTable(); // ✅ NUOVA TABELLA COSTI PRODOTTI
+}
+
+// ✅ 2. CALCOLA METRICHE COSTI PRODOTTI AVANZATE
+calculateProductCostsMetrics() {
+    const productMetrics = new Map();
+    
+    // Calcola periodo attuale vs precedente per tendenze
+    const now = new Date();
+    const currentPeriodStart = new Date(this.currentFilters.dateFrom || now.getTime() - (30 * 24 * 60 * 60 * 1000));
+    const periodDays = Math.ceil((now - currentPeriodStart) / (1000 * 60 * 60 * 24));
+    const previousPeriodStart = new Date(currentPeriodStart.getTime() - (periodDays * 24 * 60 * 60 * 1000));
+    
+    console.log('📊 Calculating product costs metrics:', {
+        currentPeriod: `${currentPeriodStart.toISOString().split('T')[0]} → ${now.toISOString().split('T')[0]}`,
+        previousPeriod: `${previousPeriodStart.toISOString().split('T')[0]} → ${currentPeriodStart.toISOString().split('T')[0]}`,
+        periodDays: periodDays
+    });
+    
+    // Itera attraverso tutte le spedizioni
+    this.rawData.shipments.forEach(shipment => {
+        const shipmentDate = new Date(this.getShipmentDepartureDate(shipment) || shipment.created_at);
+        
+        // ✅ ESTRAI PRODOTTI DA MULTIPLE FONTI
+        const products = this.extractProductsFromShipment(shipment);
+        
+        products.forEach(product => {
+            if (!product.code && !product.description) return; // Skip prodotti vuoti
+            
+            const productKey = `${product.code || 'NO_CODE'}_${product.description || 'NO_DESC'}`;
+            
+            if (!productMetrics.has(productKey)) {
+                productMetrics.set(productKey, {
+                    code: product.code || 'N/A',
+                    description: product.description || 'Prodotto senza descrizione',
+                    // Periodo attuale
+                    currentPeriod: {
+                        totalCost: 0,
+                        totalQuantity: 0,
+                        totalTransportCost: 0,
+                        shipmentCount: 0,
+                        shipments: []
+                    },
+                    // Periodo precedente
+                    previousPeriod: {
+                        totalCost: 0,
+                        totalQuantity: 0,
+                        totalTransportCost: 0,
+                        shipmentCount: 0,
+                        shipments: []
+                    },
+                    // Totale generale
+                    allTime: {
+                        totalCost: 0,
+                        totalQuantity: 0,
+                        totalTransportCost: 0,
+                        shipmentCount: 0,
+                        shipments: []
+                    }
+                });
+            }
+            
+            const metrics = productMetrics.get(productKey);
+            const productCost = parseFloat(product.cost) || parseFloat(product.value) || parseFloat(product.price) || 0;
+            const quantity = parseFloat(product.quantity) || 1;
+            
+            // Calcola costo trasporto proporzionale
+            const shipmentTransportCost = (parseFloat(shipment.freight_cost) || 0) + 
+                                        (parseFloat(shipment.other_costs) || 0);
+            const shipmentTotalProducts = products.length;
+            const transportCostPerProduct = shipmentTransportCost / Math.max(shipmentTotalProducts, 1);
+            
+            // ✅ DATI SPEDIZIONE PER HISTORY
+            const shipmentData = {
+                shipmentId: shipment.id,
+                date: shipmentDate.toISOString(),
+                quantity: quantity,
+                unitCost: productCost,
+                totalCost: productCost * quantity,
+                transportCost: transportCostPerProduct,
+                carrier: shipment.carrier_name || 'N/A',
+                origin: this.getOriginDestination(shipment, 'origin'),
+                destination: this.getOriginDestination(shipment, 'destination'),
+                trackingNumber: shipment.tracking_number || 'N/A'
+            };
+            
+            // ✅ CLASSIFICA PER PERIODO
+            if (shipmentDate >= currentPeriodStart) {
+                // Periodo attuale
+                metrics.currentPeriod.totalCost += productCost * quantity;
+                metrics.currentPeriod.totalQuantity += quantity;
+                metrics.currentPeriod.totalTransportCost += transportCostPerProduct;
+                metrics.currentPeriod.shipmentCount++;
+                metrics.currentPeriod.shipments.push(shipmentData);
+            } else if (shipmentDate >= previousPeriodStart && shipmentDate < currentPeriodStart) {
+                // Periodo precedente
+                metrics.previousPeriod.totalCost += productCost * quantity;
+                metrics.previousPeriod.totalQuantity += quantity;
+                metrics.previousPeriod.totalTransportCost += transportCostPerProduct;
+                metrics.previousPeriod.shipmentCount++;
+                metrics.previousPeriod.shipments.push(shipmentData);
+            }
+            
+            // Totale generale
+            metrics.allTime.totalCost += productCost * quantity;
+            metrics.allTime.totalQuantity += quantity;
+            metrics.allTime.totalTransportCost += transportCostPerProduct;
+            metrics.allTime.shipmentCount++;
+            metrics.allTime.shipments.push(shipmentData);
+        });
+    });
+    
+    // ✅ CALCOLA MEDIE E TENDENZE
+    const productsArray = Array.from(productMetrics.values()).map(product => {
+        // Calcola medie periodo attuale
+        const currentAvgCost = product.currentPeriod.totalQuantity > 0 
+            ? product.currentPeriod.totalCost / product.currentPeriod.totalQuantity 
+            : 0;
+        const currentAvgTransport = product.currentPeriod.shipmentCount > 0 
+            ? product.currentPeriod.totalTransportCost / product.currentPeriod.shipmentCount 
+            : 0;
+        
+        // Calcola medie periodo precedente
+        const previousAvgCost = product.previousPeriod.totalQuantity > 0 
+            ? product.previousPeriod.totalCost / product.previousPeriod.totalQuantity 
+            : 0;
+        const previousAvgTransport = product.previousPeriod.shipmentCount > 0 
+            ? product.previousPeriod.totalTransportCost / product.previousPeriod.shipmentCount 
+            : 0;
+        
+        // Calcola tendenze
+        const costTrend = previousAvgCost > 0 
+            ? ((currentAvgCost - previousAvgCost) / previousAvgCost) * 100 
+            : (currentAvgCost > 0 ? 100 : 0);
+        
+        const transportTrend = previousAvgTransport > 0 
+            ? ((currentAvgTransport - previousAvgTransport) / previousAvgTransport) * 100 
+            : (currentAvgTransport > 0 ? 100 : 0);
+        
+        return {
+            ...product,
+            avgCost: currentAvgCost,
+            avgTransportCost: currentAvgTransport,
+            costTrend: costTrend,
+            transportTrend: transportTrend,
+            totalQuantity: product.allTime.totalQuantity,
+            totalShipments: product.allTime.shipmentCount
+        };
+    });
+    
+    console.log('📊 Product costs calculated:', productsArray.length, 'products');
+    return productsArray.sort((a, b) => b.totalShipments - a.totalShipments);
+}
+
+// ✅ 3. ESTRAI PRODOTTI DA SPEDIZIONE (MULTIPLE FONTI)
+extractProductsFromShipment(shipment) {
+    const products = [];
+    
+    // ✅ FONTE 1: Campo products (JSON)
+    if (shipment.products) {
+        try {
+            const parsedProducts = typeof shipment.products === 'string' 
+                ? JSON.parse(shipment.products) 
+                : shipment.products;
+            
+            if (Array.isArray(parsedProducts)) {
+                products.push(...parsedProducts);
+            } else if (parsedProducts && typeof parsedProducts === 'object') {
+                products.push(parsedProducts);
+            }
+        } catch (error) {
+            console.warn('⚠️ Error parsing products JSON:', error);
+        }
+    }
+    
+    // ✅ FONTE 2: Campo items (JSON)
+    if (shipment.items) {
+        try {
+            const parsedItems = typeof shipment.items === 'string' 
+                ? JSON.parse(shipment.items) 
+                : shipment.items;
+            
+            if (Array.isArray(parsedItems)) {
+                products.push(...parsedItems);
+            }
+        } catch (error) {
+            console.warn('⚠️ Error parsing items JSON:', error);
+        }
+    }
+    
+    // ✅ FONTE 3: Campi diretti singoli
+    if (shipment.product_code || shipment.product_description || shipment.item_description) {
+        products.push({
+            code: shipment.product_code || shipment.item_code,
+            description: shipment.product_description || shipment.item_description || shipment.goods_description,
+            quantity: shipment.quantity || shipment.total_packages || 1,
+            cost: shipment.product_value || shipment.declared_value || shipment.goods_value,
+            weight: shipment.total_weight_kg,
+            volume: shipment.total_volume_cbm
+        });
+    }
+    
+    // ✅ FONTE 4: Goods description come fallback
+    if (products.length === 0 && shipment.goods_description) {
+        products.push({
+            code: null,
+            description: shipment.goods_description,
+            quantity: shipment.total_packages || 1,
+            cost: shipment.declared_value || 0,
+            weight: shipment.total_weight_kg,
+            volume: shipment.total_volume_cbm
+        });
+    }
+    
+    // ✅ NORMALIZZA PRODOTTI
+    return products.map(product => ({
+        code: product.code || product.product_code || product.sku || null,
+        description: product.description || product.name || product.product_name || 'Prodotto senza descrizione',
+        quantity: parseFloat(product.quantity || product.qty || 1),
+        cost: parseFloat(product.cost || product.price || product.value || product.unit_cost || 0),
+        weight: parseFloat(product.weight || 0),
+        volume: parseFloat(product.volume || 0)
+    }));
+}
+
+// ✅ 4. RENDERIZZA TABELLA COSTI PRODOTTI
+renderProductCostsTable() {
+    const tbody = document.getElementById('productCostsBody');
+    if (!tbody) {
+        console.warn('⚠️ Element productCostsBody not found');
+        return;
+    }
+    
+    const productCosts = this.calculateProductCostsMetrics();
+    
+    tbody.innerHTML = productCosts.slice(0, 50).map(product => `
+        <tr>
+            <td>
+                <div class="fw-semibold">${product.code}</div>
+                ${product.code === 'N/A' ? '<small class="text-muted">Nessun codice</small>' : ''}
+            </td>
+            <td>
+                <div class="fw-semibold">${product.description}</div>
+                <small class="text-muted">${product.totalQuantity} unità totali</small>
+            </td>
+            <td class="text-end">
+                <span class="fw-semibold">€${product.avgCost.toFixed(2)}</span>
+            </td>
+            <td class="text-end">
+                ${this.formatTrendPercentage(product.costTrend)}
+            </td>
+            <td class="text-end">
+                <span class="fw-semibold">€${product.avgTransportCost.toFixed(2)}</span>
+            </td>
+            <td class="text-end">
+                ${this.formatTrendPercentage(product.transportTrend)}
+            </td>
+            <td class="text-center">
+                <button class="btn btn-sm btn-outline-primary" 
+                        onclick="metricsSystem.viewProductAnalytics('${product.code}', '${product.description.replace(/'/g, '\\\'')}')" 
+                        title="Analisi prodotto">
+                    <i class="fas fa-chart-line"></i>
+                </button>
+            </td>
+        </tr>
+    `).join('');
+    
+    console.log('✅ Product costs table rendered with', productCosts.length, 'products');
+}
+
+// ✅ 5. MOSTRA ANALYTICS PRODOTTO (MODAL DETTAGLIATA)
+viewProductAnalytics(productCode, productDescription) {
+    const productCosts = this.calculateProductCostsMetrics();
+    const product = productCosts.find(p => 
+        p.code === productCode && p.description === productDescription
+    );
+    
+    if (!product) {
+        console.error('❌ Prodotto non trovato:', productCode, productDescription);
+        return;
+    }
+    
+    // Ordina spedizioni per data (più recenti prima)
+    const sortedShipments = product.allTime.shipments.sort((a, b) => 
+        new Date(b.date) - new Date(a.date)
+    );
+    
+    // Calcola statistiche avanzate
+    const analytics = this.calculateProductAnalytics(sortedShipments);
+    
+    const modalContent = `
+        <div class="row g-4">
+            <!-- Header Prodotto -->
+            <div class="col-12">
+                <div class="alert alert-primary d-flex align-items-center">
+                    <i class="fas fa-box me-2"></i>
+                    <div>
+                        <strong>${productCode !== 'N/A' ? productCode : 'Codice non disponibile'}</strong>
+                        <div class="small">${productDescription}</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- KPI Riassuntive -->
+            <div class="col-12">
+                <div class="row g-3">
+                    <div class="col-md-3">
+                        <div class="border rounded p-3 text-center bg-light">
+                            <div class="h4 mb-1 text-primary">${product.totalShipments}</div>
+                            <small class="text-muted">Totale Spedizioni</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="border rounded p-3 text-center bg-light">
+                            <div class="h4 mb-1 text-success">${product.totalQuantity}</div>
+                            <small class="text-muted">Quantità Totale</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="border rounded p-3 text-center bg-light">
+                            <div class="h4 mb-1 text-info">€${product.avgCost.toFixed(2)}</div>
+                            <small class="text-muted">Costo Medio Unitario</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="border rounded p-3 text-center bg-light">
+                            <div class="h4 mb-1 text-warning">€${analytics.totalValue.toFixed(2)}</div>
+                            <small class="text-muted">Valore Totale</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Grafici Tendenze -->
+            <div class="col-12">
+                <h6 class="mb-3"><i class="fas fa-chart-line me-2"></i>Analisi Tendenze</h6>
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <div class="border rounded p-3">
+                            <h6 class="text-primary">📈 Costo Prodotto</h6>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span>Tendenza:</span>
+                                ${this.formatTrendPercentage(product.costTrend)}
+                            </div>
+                            <div class="mt-2">
+                                <canvas id="productCostTrendChart" width="200" height="100"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="border rounded p-3">
+                            <h6 class="text-warning">🚚 Costo Trasporto</h6>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span>Tendenza:</span>
+                                ${this.formatTrendPercentage(product.transportTrend)}
+                            </div>
+                            <div class="mt-2">
+                                <canvas id="productTransportTrendChart" width="200" height="100"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Top Spedizionieri per questo Prodotto -->
+            <div class="col-12">
+                <h6 class="mb-3"><i class="fas fa-shipping-fast me-2"></i>Top Spedizionieri</h6>
+                <div class="row g-2">
+                    ${analytics.topCarriers.slice(0, 4).map(carrier => `
+                        <div class="col-md-3">
+                            <div class="bg-light rounded p-2 text-center">
+                                <div class="fw-semibold">${carrier.name}</div>
+                                <small class="text-muted">${carrier.shipments} spedizioni</small>
+                                <div class="small">€${carrier.avgTransport.toFixed(2)} medio</div>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+            
+            <!-- Lista Dettagliata Spedizioni -->
+            <div class="col-12">
+                <h6 class="mb-3"><i class="fas fa-history me-2"></i>Storico Acquisti (${sortedShipments.length} spedizioni)</h6>
+                <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+                    <table class="table table-sm table-hover">
+                        <thead class="table-light sticky-top">
+                            <tr>
+                                <th>Data</th>
+                                <th>Tracking</th>
+                                <th>Quantità</th>
+                                <th>Costo Unit.</th>
+                                <th>Costo Tot.</th>
+                                <th>Trasporto</th>
+                                <th>Spedizioniere</th>
+                                <th>Rotta</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${sortedShipments.map(shipmentData => `
+                                <tr style="cursor: pointer;" onclick="metricsSystem.viewShipmentDetails('${shipmentData.shipmentId}')">
+                                    <td class="small">${new Date(shipmentData.date).toLocaleDateString('it-IT')}</td>
+                                    <td><strong>${shipmentData.trackingNumber}</strong></td>
+                                    <td class="text-end">${shipmentData.quantity}</td>
+                                    <td class="text-end">€${shipmentData.unitCost.toFixed(2)}</td>
+                                    <td class="text-end"><strong>€${shipmentData.totalCost.toFixed(2)}</strong></td>
+                                    <td class="text-end">€${shipmentData.transportCost.toFixed(2)}</td>
+                                    <td class="small">${shipmentData.carrier}</td>
+                                    <td class="small">${shipmentData.origin} → ${shipmentData.destination}</td>
+                                    <td><i class="fas fa-chevron-right text-muted"></i></td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    if (window.ModalSystem) {
+        window.ModalSystem.show({
+            title: `📊 ${productCode !== 'N/A' ? productCode : 'Prodotto'} - Analisi Costi Completa`,
+            content: modalContent,
+            size: 'xl',
+            customClass: 'product-analytics-modal',
+            onShow: () => {
+                // Renderizza mini-charts dopo che la modal è visibile
+                setTimeout(() => this.renderProductTrendCharts(sortedShipments), 100);
+            }
+        });
+    }
+}
+
+// ✅ 6. CALCOLA ANALYTICS AVANZATE PRODOTTO
+calculateProductAnalytics(shipments) {
+    const analytics = {
+        totalValue: 0,
+        topCarriers: [],
+        priceHistory: [],
+        transportHistory: []
+    };
+    
+    // Calcola valore totale
+    analytics.totalValue = shipments.reduce((sum, s) => sum + s.totalCost, 0);
+    
+    // Raggruppa per carrier
+    const carriersMap = new Map();
+    shipments.forEach(s => {
+        if (!carriersMap.has(s.carrier)) {
+            carriersMap.set(s.carrier, {
+                name: s.carrier,
+                shipments: 0,
+                totalTransport: 0
+            });
+        }
+        const carrier = carriersMap.get(s.carrier);
+        carrier.shipments++;
+        carrier.totalTransport += s.transportCost;
+    });
+    
+    analytics.topCarriers = Array.from(carriersMap.values())
+        .map(carrier => ({
+            ...carrier,
+            avgTransport: carrier.totalTransport / carrier.shipments
+        }))
+        .sort((a, b) => b.shipments - a.shipments);
+    
+    return analytics;
+}
+
+// ✅ 7. RENDERIZZA MINI-CHARTS TENDENZE
+renderProductTrendCharts(shipments) {
+    // Chart costo prodotto
+    const costCtx = document.getElementById('productCostTrendChart');
+    if (costCtx) {
+        const last12Shipments = shipments.slice(0, 12).reverse();
+        
+        new Chart(costCtx, {
+            type: 'line',
+            data: {
+                labels: last12Shipments.map((_, i) => `${i+1}`),
+                datasets: [{
+                    label: 'Costo Unit.',
+                    data: last12Shipments.map(s => s.unitCost),
+                    borderColor: '#3b82f6',
+                    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                    tension: 0.4,
+                    pointRadius: 3
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: { display: false },
+                    y: { 
+                        display: true,
+                        ticks: { font: { size: 10 } }
+                    }
+                }
+            }
+        });
+    }
+    
+    // Chart costo trasporto
+    const transportCtx = document.getElementById('productTransportTrendChart');
+    if (transportCtx) {
+        const last12Shipments = shipments.slice(0, 12).reverse();
+        
+        new Chart(transportCtx, {
+            type: 'line',
+            data: {
+                labels: last12Shipments.map((_, i) => `${i+1}`),
+                datasets: [{
+                    label: 'Costo Trasporto',
+                    data: last12Shipments.map(s => s.transportCost),
+                    borderColor: '#f59e0b',
+                    backgroundColor: 'rgba(245, 158, 11, 0.1)',
+                    tension: 0.4,
+                    pointRadius: 3
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: { display: false },
+                    y: { 
+                        display: true,
+                        ticks: { font: { size: 10 } }
+                    }
+                }
+            }
+        });
+    }
+}
                 // ✅ RENDERIZZA TABELLA CARRIERS - NUOVE COLONNE
         renderCarriersTable() {
             const tbody = document.getElementById('carriersDetailBody');
@@ -2469,6 +3012,7 @@ getChartOptions(isDarkMode = false) {
                 </tr>
             `).join('');
         }
+        
         // ✅ VISTA SPEDIZIONI CARRIER CON DETTAGLI ANALITICI
     viewCarrierShipments(carrierId) {
         const carrier = this.processedMetrics.advanced.carriersDBPerformance.find(c => c.id === carrierId);
@@ -3761,7 +4305,83 @@ debugShipmentDates() {
         
         console.log(`   Has specific dates: ${hasSpecificDates}`);
         console.log('');
+        
     });
+}
+// ✅ EXPORT EXCEL COSTI PRODOTTI
+exportProductCosts() {
+    const productCosts = this.calculateProductCostsMetrics();
+    
+    if (productCosts.length === 0) {
+        if (window.notificationSystem) {
+            window.notificationSystem.show('warning', 'Nessun Dato', 'Nessun dato prodotto da esportare');
+        }
+        return;
+    }
+
+    // Prepara dati per export
+    const exportData = productCosts.map(product => ({
+        'Codice Prodotto': product.code,
+        'Descrizione Prodotto': product.description,
+        'Costo Medio Prodotto (€)': product.avgCost.toFixed(2),
+        'Tendenza Costo Prodotto (%)': product.costTrend.toFixed(1),
+        'Costo Medio Trasporto (€)': product.avgTransportCost.toFixed(2),
+        'Tendenza Costo Trasporto (%)': product.transportTrend.toFixed(1),
+        'Quantità Totale': product.totalQuantity,
+        'Numero Spedizioni': product.totalShipments,
+        'Valore Totale (€)': (product.avgCost * product.totalQuantity).toFixed(2)
+    }));
+
+    // Crea CSV
+    const headers = Object.keys(exportData[0]);
+    const csvContent = [
+        headers.join(','),
+        ...exportData.map(row => 
+            headers.map(header => `"${row[header]}"`).join(',')
+        )
+    ].join('\n');
+
+    // Download file
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    
+    const dateStr = new Date().toISOString().split('T')[0];
+    link.setAttribute('download', `Analisi_Costi_Prodotti_${dateStr}.csv`);
+    
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    if (window.notificationSystem) {
+        window.notificationSystem.show('success', 'Export Completato', `📊 Export costi prodotti completato! (${productCosts.length} prodotti)`);
+    }
+
+    console.log('✅ Product costs exported:', productCosts.length, 'products');
+}
+// ✅ HELPER PER ESTRAI ORIGINE/DESTINAZIONE
+getOriginDestination(shipment, type) {
+    const originFields = [
+        'origin', 'origin_port', 'origin_city', 'origin_location', 
+        'pickup_location', 'from_port', 'departure_port'
+    ];
+    
+    const destinationFields = [
+        'destination', 'destination_port', 'destination_city', 'destination_location',
+        'delivery_location', 'to_port', 'arrival_port'
+    ];
+    
+    const fields = type === 'origin' ? originFields : destinationFields;
+    
+    for (const field of fields) {
+        if (shipment[field] && shipment[field].trim() !== '') {
+            return shipment[field];
+        }
+    }
+    
+    return 'Non specificato';
 }
 }
 

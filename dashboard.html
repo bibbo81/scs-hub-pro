@@ -1325,6 +1325,44 @@
                                 </table>
                             </div>
                         </div>
+                                        <!-- AGGIUNGI DOPO LE ALTRE TABELLE -->
+                    <div class="row mt-4">
+                        <div class="col-12">
+                            <div class="card">
+                                <div class="card-header d-flex justify-content-between align-items-center">
+                                    <h5 class="mb-0">
+                                        <i class="fas fa-euro-sign me-2 text-warning"></i>
+                                        Analisi Costi Prodotti
+                                    </h5>
+                                    <div class="btn-group">
+                                        <button class="btn btn-outline-success btn-sm" onclick="metricsSystem.exportProductCosts()">
+                                            <i class="fas fa-file-excel me-1"></i>Esporta Excel
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="card-body">
+                                    <div class="table-responsive">
+                                        <table class="table table-hover table-sm">
+                                            <thead class="table-light">
+                                                <tr>
+                                                    <th>Codice Prodotto</th>
+                                                    <th>Descrizione Prodotto</th>
+                                                    <th>Costo Medio Prodotto</th>
+                                                    <th>Tendenza Costo Prodotto %</th>
+                                                    <th>Costo Medio Un. Trasporto</th>
+                                                    <th>Tendenza Costo Trasporto %</th>
+                                                    <th class="text-center">Azioni</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="productCostsBody">
+                                                <!-- Dinamico via JS -->
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                     </div>
                 </div>
             </div>
