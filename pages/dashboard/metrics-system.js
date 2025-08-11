@@ -937,8 +937,14 @@ renderCharts() {
     console.log('📊 Rendering all charts...');
     
     try {
+        // Charts esistenti
         this.renderTrendChart();
         this.renderTransportModeChart();
+        
+        // Nuovi charts specifici
+        this.renderCarriersPerformanceChart();
+        this.renderTransitTimeChart();
+        this.renderTransitTimeByModeChart();
         
         console.log('✅ All charts rendered successfully');
         
@@ -1324,6 +1330,374 @@ renderTransportModeChart() {
     
     this.charts.set('transportModeChart', chart);
     console.log('✅ Transport mode chart rendered with dark mode:', isDarkMode);
+}
+// ✅ RENDERIZZA PERFORMANCE SPEDIZIONIERI (ISTOGRAMMA)
+renderCarriersPerformanceChart() {
+    const ctx = document.getElementById('carriersPerformanceChart');
+    if (!ctx) return;
+    
+    if (this.charts.has('carriersPerformanceChart')) {
+        this.charts.get('carriersPerformanceChart').destroy();
+    }
+    
+    const isDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    
+    // Calcola performance spedizionieri
+    const carriersData = this.calculateCarriersPerformance();
+    
+    const chart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: carriersData.labels,
+            datasets: [{
+                label: 'Numero Spedizioni',
+                data: carriersData.shipments,
+                backgroundColor: 'rgba(59, 130, 246, 0.7)',
+                borderColor: '#3b82f6',
+                borderWidth: 2,
+                borderRadius: 4,
+                borderSkipped: false
+            }]
+        },
+        options: {
+            ...this.getChartOptions(isDarkMode),
+            indexAxis: 'y', // ✅ GRAFICO ORIZZONTALE
+            scales: {
+                ...this.getChartOptions(isDarkMode).scales,
+                x: {
+                    ...this.getChartOptions(isDarkMode).scales.x,
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: 'Numero Spedizioni',
+                        color: isDarkMode ? '#f9fafb' : '#374151'
+                    }
+                },
+                y: {
+                    ...this.getChartOptions(isDarkMode).scales.y,
+                    title: {
+                        display: true,
+                        text: 'Spedizionieri',
+                        color: isDarkMode ? '#f9fafb' : '#374151'
+                    }
+                }
+            },
+            plugins: {
+                ...this.getChartOptions(isDarkMode).plugins,
+                legend: {
+                    display: false
+                }
+            }
+        }
+    });
+    
+    this.charts.set('carriersPerformanceChart', chart);
+    console.log('✅ Carriers performance chart rendered');
+}
+
+// ✅ RENDERIZZA TEMPI DI TRANSITO PER COMPAGNIA
+renderTransitTimeChart() {
+    const ctx = document.getElementById('transitTimeChart');
+    if (!ctx) return;
+    
+    if (this.charts.has('transitTimeChart')) {
+        this.charts.get('transitTimeChart').destroy();
+    }
+    
+    const isDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    
+    // Calcola tempi di transito per compagnia
+    const transitData = this.calculateTransitTimesByCompany();
+    
+    const chart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: transitData.labels,
+            datasets: [{
+                label: 'Tempo Medio (giorni)',
+                data: transitData.avgDays,
+                backgroundColor: 'rgba(16, 163, 74, 0.7)',
+                borderColor: '#16a34a',
+                borderWidth: 2,
+                borderRadius: 4,
+                borderSkipped: false
+            }]
+        },
+        options: {
+            ...this.getChartOptions(isDarkMode),
+            scales: {
+                ...this.getChartOptions(isDarkMode).scales,
+                y: {
+                    ...this.getChartOptions(isDarkMode).scales.y,
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: 'Giorni',
+                        color: isDarkMode ? '#f9fafb' : '#374151'
+                    }
+                },
+                x: {
+                    ...this.getChartOptions(isDarkMode).scales.x,
+                    title: {
+                        display: true,
+                        text: 'Compagnie',
+                        color: isDarkMode ? '#f9fafb' : '#374151'
+                    }
+                }
+            },
+            plugins: {
+                ...this.getChartOptions(isDarkMode).plugins,
+                legend: {
+                    display: false
+                }
+            }
+        }
+    });
+    
+    this.charts.set('transitTimeChart', chart);
+    console.log('✅ Transit time chart rendered');
+}
+
+// ✅ RENDERIZZA TEMPI DI TRANSITO PER METODO TRASPORTO
+renderTransitTimeByModeChart() {
+    const ctx = document.getElementById('transitTimeByModeChart');
+    if (!ctx) return;
+    
+    if (this.charts.has('transitTimeByModeChart')) {
+        this.charts.get('transitTimeByModeChart').destroy();
+    }
+    
+    const isDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    
+    // Calcola tempi per metodo
+    const modeData = this.calculateTransitTimesByMode();
+    
+    const chart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: modeData.labels,
+            datasets: [{
+                label: 'Tempo Medio (giorni)',
+                data: modeData.avgDays,
+                backgroundColor: [
+                    'rgba(59, 130, 246, 0.7)',  // Mare - Blu
+                    'rgba(16, 163, 74, 0.7)',   // Aereo - Verde
+                    'rgba(245, 158, 11, 0.7)',  // Strada - Arancione
+                    'rgba(139, 92, 246, 0.7)'   // Corriere - Viola
+                ],
+                borderColor: [
+                    '#3b82f6',  // Mare
+                    '#16a34a',  // Aereo
+                    '#f59e0b',  // Strada
+                    '#8b5cf6'   // Corriere
+                ],
+                borderWidth: 2,
+                borderRadius: 8,
+                borderSkipped: false
+            }]
+        },
+        options: {
+            ...this.getChartOptions(isDarkMode),
+            scales: {
+                ...this.getChartOptions(isDarkMode).scales,
+                y: {
+                    ...this.getChartOptions(isDarkMode).scales.y,
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: 'Giorni Medi',
+                        color: isDarkMode ? '#f9fafb' : '#374151'
+                    }
+                },
+                x: {
+                    ...this.getChartOptions(isDarkMode).scales.x,
+                    title: {
+                        display: true,
+                        text: 'Metodi di Trasporto',
+                        color: isDarkMode ? '#f9fafb' : '#374151'
+                    }
+                }
+            },
+            plugins: {
+                ...this.getChartOptions(isDarkMode).plugins,
+                legend: {
+                    display: false
+                },
+                tooltip: {
+                    ...this.getChartOptions(isDarkMode).plugins.tooltip,
+                    callbacks: {
+                        label: function(context) {
+                            return `${context.dataset.label}: ${context.parsed.y} giorni`;
+                        }
+                    }
+                }
+            }
+        }
+    });
+    
+    this.charts.set('transitTimeByModeChart', chart);
+    console.log('✅ Transit time by mode chart rendered');
+}
+// ✅ CALCOLA PERFORMANCE SPEDIZIONIERI
+calculateCarriersPerformance() {
+    const carriersMap = new Map();
+    
+    // Raggruppa per spedizioniere
+    this.rawData.shipments.forEach(shipment => {
+        const carrierName = shipment.carrier_name || 'Non specificato';
+        
+        if (!carriersMap.has(carrierName)) {
+            carriersMap.set(carrierName, {
+                name: carrierName,
+                shipments: 0
+            });
+        }
+        
+        carriersMap.get(carrierName).shipments++;
+    });
+    
+    // Converti in array e ordina per numero spedizioni
+    const carriersArray = Array.from(carriersMap.values())
+        .sort((a, b) => b.shipments - a.shipments)
+        .slice(0, 10); // Top 10
+    
+    return {
+        labels: carriersArray.map(c => c.name),
+        shipments: carriersArray.map(c => c.shipments)
+    };
+}
+
+// ✅ CALCOLA TEMPI DI TRANSITO PER COMPAGNIA - VERSIONE CORRETTA
+calculateTransitTimesByCompany() {
+    const companiesMap = new Map();
+    
+    this.rawData.shipments.forEach(shipment => {
+        const companyName = shipment.carrier_name || 'Non specificato';
+        const transitDays = this.calculateDeliveryDays(shipment); // ✅ USA FUNZIONE ESISTENTE
+        
+        if (transitDays > 0) {
+            if (!companiesMap.has(companyName)) {
+                companiesMap.set(companyName, {
+                    name: companyName,
+                    totalDays: 0,
+                    count: 0
+                });
+            }
+            
+            const company = companiesMap.get(companyName);
+            company.totalDays += transitDays;
+            company.count++;
+        }
+    });
+    
+    // Calcola medie e ordina
+    const companiesArray = Array.from(companiesMap.values())
+        .map(company => ({
+            name: company.name,
+            avgDays: Math.round(company.totalDays / company.count)
+        }))
+        .filter(company => company.avgDays > 0)
+        .sort((a, b) => a.avgDays - b.avgDays)
+        .slice(0, 8); // Top 8
+    
+    console.log('📊 Transit times by company calculated:', companiesArray);
+    
+    return {
+        labels: companiesArray.map(c => c.name),
+        avgDays: companiesArray.map(c => c.avgDays)
+    };
+}
+
+// ✅ CALCOLA TEMPI DI TRANSITO PER METODO TRASPORTO - VERSIONE CORRETTA
+calculateTransitTimesByMode() {
+    const modesMap = new Map([
+        ['sea', { name: '🚢 Marittimo', totalDays: 0, count: 0 }],
+        ['air', { name: '✈️ Aereo', totalDays: 0, count: 0 }],
+        ['road', { name: '🚛 Stradale', totalDays: 0, count: 0 }],
+        ['parcel', { name: '📦 Corriere', totalDays: 0, count: 0 }]
+    ]);
+    
+    this.rawData.shipments.forEach(shipment => {
+        const mode = this.determineShipmentMode(shipment, this.rawData.trackings); // ✅ PASSA TRACKINGS
+        const transitDays = this.calculateDeliveryDays(shipment); // ✅ USA FUNZIONE ESISTENTE
+        
+        if (transitDays > 0 && modesMap.has(mode)) {
+            const modeData = modesMap.get(mode);
+            modeData.totalDays += transitDays;
+            modeData.count++;
+        }
+    });
+    
+    // Calcola medie e filtra
+    const modesArray = Array.from(modesMap.values())
+        .map(mode => ({
+            name: mode.name,
+            avgDays: mode.count > 0 ? Math.round(mode.totalDays / mode.count) : 0
+        }))
+        .filter(mode => mode.avgDays > 0);
+    
+    console.log('📊 Transit times by mode calculated:', modesArray);
+    
+    return {
+        labels: modesArray.map(m => m.name),
+        avgDays: modesArray.map(m => m.avgDays)
+    };
+}
+
+// ✅ CALCOLA GIORNI DI TRANSITO PER SINGOLA SPEDIZIONE
+calculateShipmentTransitDays(shipment) {
+    const tracking = this.rawData.trackings?.find(t => t.shipment_id === shipment.id);
+    
+    if (!tracking || !tracking.metadata) return 0;
+    
+    try {
+        const metadata = typeof tracking.metadata === 'string' 
+            ? JSON.parse(tracking.metadata) 
+            : tracking.metadata;
+        
+        // Per container (mare/strada)
+        if (metadata.container_movements) {
+            const movements = Array.isArray(metadata.container_movements) 
+                ? metadata.container_movements 
+                : [metadata.container_movements];
+            
+            if (movements.length >= 2) {
+                const firstMovement = movements[0];
+                const lastMovement = movements[movements.length - 1];
+                
+                const startDate = new Date(firstMovement.date);
+                const endDate = new Date(lastMovement.date);
+                
+                if (!isNaN(startDate.getTime()) && !isNaN(endDate.getTime())) {
+                    return Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24));
+                }
+            }
+        }
+        
+        // Per AWB (aereo/corriere)
+        if (metadata.awb_movements) {
+            const movements = Array.isArray(metadata.awb_movements) 
+                ? metadata.awb_movements 
+                : [metadata.awb_movements];
+            
+            if (movements.length >= 2) {
+                const firstMovement = movements[0];
+                const lastMovement = movements[movements.length - 1];
+                
+                const startDate = new Date(firstMovement.date);
+                const endDate = new Date(lastMovement.date);
+                
+                if (!isNaN(startDate.getTime()) && !isNaN(endDate.getTime())) {
+                    return Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24));
+                }
+            }
+        }
+        
+    } catch (error) {
+        console.warn(`Error calculating transit days for shipment ${shipment.id}:`, error);
+    }
+    
+    return 0;
 }
 // ✅ AGGIUNGI QUESTA FUNZIONE PER DARK MODE CHARTS
 getChartOptions(isDarkMode = false) {

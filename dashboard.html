@@ -1174,18 +1174,51 @@
                     </div>
                 </div>
 
-        <!-- Charts -->
+                <!-- Charts Expandeded -->
         <div class="row g-4 mb-4">
+            <!-- Trend Chart Esistente -->
             <div class="col-lg-8">
                 <div class="chart-container">
-                    <div class="chart-title">Trend Spedizioni e Costi</div>
+                    <div class="chart-title">📈 Trend Spedizioni e Costi</div>
                     <canvas id="trendChart"></canvas>
                 </div>
             </div>
+            
+            <!-- Transport Mode Esistente -->
             <div class="col-lg-4">
                 <div class="chart-container">
-                    <div class="chart-title">Modi di Trasporto</div>
+                    <div class="chart-title">🚛 Modi di Trasporto</div>
                     <canvas id="transportModeChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- ✅ NUOVI GRAFICI SPECIFICI -->
+        <div class="row g-4 mb-4">
+            <!-- Performance Spedizionieri (Istogramma) -->
+            <div class="col-lg-6">
+                <div class="chart-container">
+                    <div class="chart-title">📊 Performance Spedizionieri (N. Spedizioni)</div>
+                    <canvas id="carriersPerformanceChart"></canvas>
+                </div>
+            </div>
+            
+            <!-- Tempi di Transito per Compagnia -->
+            <div class="col-lg-6">
+                <div class="chart-container">
+                    <div class="chart-title">⏱️ Tempi di Transito Medi</div>
+                    <canvas id="transitTimeChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- ✅ GRAFICI DETTAGLIO METODI TRASPORTO -->
+        <div class="row g-4 mb-4">
+            <!-- Breakdown per Metodo di Trasporto -->
+            <div class="col-lg-12">
+                <div class="chart-container">
+                    <div class="chart-title">🚢✈️🚛📦 Tempi di Transito per Metodo di Trasporto</div>
+                    <canvas id="transitTimeByModeChart"></canvas>
                 </div>
             </div>
         </div>
