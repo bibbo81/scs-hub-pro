@@ -2494,7 +2494,7 @@ calculateProductCostsMetrics() {
     const periodDays = Math.ceil((now - currentPeriodStart) / (1000 * 60 * 60 * 24));
     const previousPeriodStart = new Date(currentPeriodStart.getTime() - (periodDays * 24 * 60 * 60 * 1000));
     
-    console.log('📊 Calculating product costs from shipment_items (with virtual products):', {
+    console.log('📊 Calculating product costs CORRECTLY from shipment_items:', {
         currentPeriod: `${currentPeriodStart.toISOString().split('T')[0]} → ${now.toISOString().split('T')[0]}`,
         previousPeriod: `${previousPeriodStart.toISOString().split('T')[0]} → ${currentPeriodStart.toISOString().split('T')[0]}`,
         periodDays: periodDays,
@@ -2502,7 +2502,7 @@ calculateProductCostsMetrics() {
     });
     
     try {
-        // ✅ ITERA ATTRAVERSO GLI SHIPMENT_ITEMS CON PRODOTTI VIRTUALI
+        // ✅ ITERA ATTRAVERSO GLI SHIPMENT_ITEMS CON CALCOLO CORRETTO
         this.rawData.shipmentItems.forEach((shipmentItem, index) => {
             if (!shipmentItem) {
                 console.warn(`⚠️ Shipment item at index ${index} is null/undefined`);
@@ -2530,25 +2530,38 @@ calculateProductCostsMetrics() {
                     description: product.name || product.description || 'Prodotto senza nome',
                     // Periodo attuale
                     currentPeriod: {
-                        totalCost: 0,
-                        totalQuantity: 0,
-                        totalTransportCost: 0,
+                        // ✅ COSTI PRODOTTO: SOMMA DEI COSTI UNITARI E QUANTITÀ SEPARATE
+                        totalUnitCosts: 0,      // Somma unit_cost per calcolo media
+                        totalQuantity: 0,       // Quantità totale
+                        totalValue: 0,          // Valore totale (unit_cost * quantity)
+                        unitCostEntries: [],    // Array dei costi unitari per media ponderata
+                        
+                        // ✅ COSTI TRASPORTO: PER UNITÀ DI PRODOTTO
+                        totalTransportCost: 0,  // Costo trasporto totale allocato
+                        transportPerUnit: [],   // Array costo trasporto per unità
+                        
                         shipmentCount: 0,
                         shipments: []
                     },
                     // Periodo precedente
                     previousPeriod: {
-                        totalCost: 0,
+                        totalUnitCosts: 0,
                         totalQuantity: 0,
+                        totalValue: 0,
+                        unitCostEntries: [],
                         totalTransportCost: 0,
+                        transportPerUnit: [],
                         shipmentCount: 0,
                         shipments: []
                     },
                     // Totale generale
                     allTime: {
-                        totalCost: 0,
+                        totalUnitCosts: 0,
                         totalQuantity: 0,
+                        totalValue: 0,
+                        unitCostEntries: [],
                         totalTransportCost: 0,
+                        transportPerUnit: [],
                         shipmentCount: 0,
                         shipments: []
                     }
@@ -2557,7 +2570,7 @@ calculateProductCostsMetrics() {
             
             const metrics = productMetrics.get(productKey);
             
-            // ✅ USA I COSTI DALLA TABELLA SHIPMENT_ITEMS
+            // ✅ ESTRAI COSTI CORRETTI DALLA TABELLA SHIPMENT_ITEMS
             const unitCost = parseFloat(shipmentItem.unit_cost) || 0;
             const totalCost = parseFloat(shipmentItem.total_cost) || (unitCost * (shipmentItem.quantity || 1));
             const quantity = parseFloat(shipmentItem.quantity) || 1;
@@ -2566,16 +2579,19 @@ calculateProductCostsMetrics() {
             // ✅ TROVA LA SPEDIZIONE COMPLETA PER CALCOLARE TRASPORTO
             const fullShipment = this.rawData.shipments.find(s => s.id === shipment.id) || shipment;
             
-            // ✅ CALCOLA COSTO TRASPORTO PROPORZIONALE DALLA SPEDIZIONE
+            // ✅ CALCOLA COSTO TRASPORTO PER UNITÀ DI PRODOTTO (NON PER SPEDIZIONE!)
             const shipmentTransportCost = (parseFloat(fullShipment.freight_cost) || 0) + 
                                         (parseFloat(fullShipment.other_costs) || 0);
             
-            // Trova tutti gli items di questa spedizione per calcolare proporzione
-            const shipmentItemsCount = this.rawData.shipmentItems.filter(item => 
-                item.shipment_id === shipment.id
-            ).length;
+            // ✅ TROVA QUANTITÀ TOTALE DI TUTTI I PRODOTTI NELLA SPEDIZIONE
+            const shipmentTotalQuantity = this.rawData.shipmentItems
+                .filter(item => item.shipment_id === shipment.id)
+                .reduce((sum, item) => sum + (parseFloat(item.quantity) || 1), 0);
             
-            const transportCostPerProduct = shipmentTransportCost / Math.max(shipmentItemsCount, 1);
+            // ✅ CALCOLA COSTO TRASPORTO PER UNITÀ DI PRODOTTO (PROPORZIONALE ALLA QUANTITÀ)
+            const transportCostPerUnit = shipmentTotalQuantity > 0 
+                ? (shipmentTransportCost * quantity) / shipmentTotalQuantity 
+                : 0;
             
             // ✅ DATI SPEDIZIONE PER HISTORY
             const shipmentData = {
@@ -2586,34 +2602,54 @@ calculateProductCostsMetrics() {
                 unitCost: unitCost,
                 totalCost: totalCost,
                 dutyAmount: dutyAmount,
-                transportCost: transportCostPerProduct,
+                transportCostPerUnit: transportCostPerUnit / quantity, // Costo trasporto per singola unità
+                totalTransportCost: transportCostPerUnit, // Costo trasporto totale per questo item
                 carrier: shipment.carrier_name || 'N/A',
                 origin: this.getOriginDestination(fullShipment, 'origin'),
                 destination: this.getOriginDestination(fullShipment, 'destination'),
                 trackingNumber: shipment.tracking_number || 'N/A'
             };
             
-            // ✅ CLASSIFICA PER PERIODO
-            if (shipmentDate >= currentPeriodStart) {
-                // Periodo attuale
-                metrics.currentPeriod.totalCost += totalCost;
-                metrics.currentPeriod.totalQuantity += quantity;
-                metrics.currentPeriod.totalTransportCost += transportCostPerProduct;
-                metrics.currentPeriod.shipmentCount++;
-                metrics.currentPeriod.shipments.push(shipmentData);
-            } else if (shipmentDate >= previousPeriodStart && shipmentDate < currentPeriodStart) {
-                // Periodo precedente
-                metrics.previousPeriod.totalCost += totalCost;
-                metrics.previousPeriod.totalQuantity += quantity;
-                metrics.previousPeriod.totalTransportCost += transportCostPerProduct;
-                metrics.previousPeriod.shipmentCount++;
-                metrics.previousPeriod.shipments.push(shipmentData);
+            // ✅ CLASSIFICA PER PERIODO CON CALCOLI CORRETTI
+            const periodData = shipmentDate >= currentPeriodStart ? 'currentPeriod' :
+                             (shipmentDate >= previousPeriodStart && shipmentDate < currentPeriodStart) ? 'previousPeriod' : null;
+            
+            if (periodData) {
+                // ✅ COSTI PRODOTTO: SOMMA CORRETTA
+                metrics[periodData].totalUnitCosts += unitCost;
+                metrics[periodData].totalQuantity += quantity;
+                metrics[periodData].totalValue += totalCost;
+                metrics[periodData].unitCostEntries.push({
+                    unitCost: unitCost,
+                    quantity: quantity,
+                    weight: quantity // Peso per media ponderata
+                });
+                
+                // ✅ COSTI TRASPORTO: PER UNITÀ
+                metrics[periodData].totalTransportCost += transportCostPerUnit;
+                metrics[periodData].transportPerUnit.push({
+                    costPerUnit: transportCostPerUnit / quantity,
+                    quantity: quantity
+                });
+                
+                metrics[periodData].shipmentCount++;
+                metrics[periodData].shipments.push(shipmentData);
             }
             
-            // Totale generale
-            metrics.allTime.totalCost += totalCost;
+            // ✅ TOTALE GENERALE
+            metrics.allTime.totalUnitCosts += unitCost;
             metrics.allTime.totalQuantity += quantity;
-            metrics.allTime.totalTransportCost += transportCostPerProduct;
+            metrics.allTime.totalValue += totalCost;
+            metrics.allTime.unitCostEntries.push({
+                unitCost: unitCost,
+                quantity: quantity,
+                weight: quantity
+            });
+            metrics.allTime.totalTransportCost += transportCostPerUnit;
+            metrics.allTime.transportPerUnit.push({
+                costPerUnit: transportCostPerUnit / quantity,
+                quantity: quantity
+            });
             metrics.allTime.shipmentCount++;
             metrics.allTime.shipments.push(shipmentData);
         });
@@ -2623,48 +2659,114 @@ calculateProductCostsMetrics() {
         return [];
     }
     
-    // ✅ CALCOLA MEDIE E TENDENZE
+    // ✅ CALCOLA MEDIE CORRETTE
     const productsArray = Array.from(productMetrics.values()).map(product => {
-        // Calcola medie periodo attuale
-        const currentAvgCost = product.currentPeriod.totalQuantity > 0 
-            ? product.currentPeriod.totalCost / product.currentPeriod.totalQuantity 
-            : 0;
-        const currentAvgTransport = product.currentPeriod.shipmentCount > 0 
-            ? product.currentPeriod.totalTransportCost / product.currentPeriod.shipmentCount 
+        // ✅ COSTO MEDIO PRODOTTO: MEDIA PONDERATA DEI COSTI UNITARI
+        const currentWeightedAvgCost = product.currentPeriod.unitCostEntries.length > 0 
+            ? product.currentPeriod.unitCostEntries.reduce((sum, entry) => sum + (entry.unitCost * entry.weight), 0) /
+              product.currentPeriod.unitCostEntries.reduce((sum, entry) => sum + entry.weight, 0)
             : 0;
         
-        // Calcola medie periodo precedente
-        const previousAvgCost = product.previousPeriod.totalQuantity > 0 
-            ? product.previousPeriod.totalCost / product.previousPeriod.totalQuantity 
-            : 0;
-        const previousAvgTransport = product.previousPeriod.shipmentCount > 0 
-            ? product.previousPeriod.totalTransportCost / product.previousPeriod.shipmentCount 
+        const previousWeightedAvgCost = product.previousPeriod.unitCostEntries.length > 0 
+            ? product.previousPeriod.unitCostEntries.reduce((sum, entry) => sum + (entry.unitCost * entry.weight), 0) /
+              product.previousPeriod.unitCostEntries.reduce((sum, entry) => sum + entry.weight, 0)
             : 0;
         
-        // Calcola tendenze
-        const costTrend = previousAvgCost > 0 
-            ? ((currentAvgCost - previousAvgCost) / previousAvgCost) * 100 
-            : (currentAvgCost > 0 ? 100 : 0);
+        // ✅ COSTO TRASPORTO MEDIO PER UNITÀ: MEDIA PONDERATA
+        const currentAvgTransportPerUnit = product.currentPeriod.transportPerUnit.length > 0 
+            ? product.currentPeriod.transportPerUnit.reduce((sum, entry) => sum + (entry.costPerUnit * entry.quantity), 0) /
+              product.currentPeriod.transportPerUnit.reduce((sum, entry) => sum + entry.quantity, 0)
+            : 0;
         
-        const transportTrend = previousAvgTransport > 0 
-            ? ((currentAvgTransport - previousAvgTransport) / previousAvgTransport) * 100 
-            : (currentAvgTransport > 0 ? 100 : 0);
+        const previousAvgTransportPerUnit = product.previousPeriod.transportPerUnit.length > 0 
+            ? product.previousPeriod.transportPerUnit.reduce((sum, entry) => sum + (entry.costPerUnit * entry.quantity), 0) /
+              product.previousPeriod.transportPerUnit.reduce((sum, entry) => sum + entry.quantity, 0)
+            : 0;
+        
+        // ✅ CALCOLA TENDENZE CORRETTE
+        const costTrend = previousWeightedAvgCost > 0 
+            ? ((currentWeightedAvgCost - previousWeightedAvgCost) / previousWeightedAvgCost) * 100 
+            : (currentWeightedAvgCost > 0 ? 100 : 0);
+        
+        const transportTrend = previousAvgTransportPerUnit > 0 
+            ? ((currentAvgTransportPerUnit - previousAvgTransportPerUnit) / previousAvgTransportPerUnit) * 100 
+            : (currentAvgTransportPerUnit > 0 ? 100 : 0);
         
         return {
             ...product,
-            avgCost: currentAvgCost,
-            avgTransportCost: currentAvgTransport,
+            // ✅ METRICHE CORRETTE
+            avgCost: currentWeightedAvgCost,              // Media ponderata costi unitari
+            avgTransportCost: currentAvgTransportPerUnit, // Media ponderata trasporto per unità
             costTrend: costTrend,
             transportTrend: transportTrend,
             totalQuantity: product.allTime.totalQuantity,
-            totalShipments: product.allTime.shipmentCount
+            totalShipments: product.allTime.shipmentCount,
+            
+            // ✅ AGGIUNGI METRICHE AGGIUNTIVE PER DEBUG
+            totalValue: product.allTime.totalValue,
+            avgUnitCostAllTime: product.allTime.totalQuantity > 0 
+                ? product.allTime.totalValue / product.allTime.totalQuantity 
+                : 0
         };
     });
     
-    console.log('📊 Product costs calculated from virtual products:', productsArray.length, 'products');
+    console.log('📊 Product costs calculated CORRECTLY:', productsArray.length, 'products');
+    console.log('📊 Sample product metrics:', productsArray[0]);
+    
     return productsArray.sort((a, b) => b.totalShipments - a.totalShipments);
 }
 
+// ✅ DEBUG CAMPI SHIPMENT_ITEMS
+debugShipmentItemsFields() {
+    if (!this.rawData || !this.rawData.shipmentItems || this.rawData.shipmentItems.length === 0) {
+        console.log('❌ No shipment items to debug');
+        return;
+    }
+    
+    console.log('🔍 ANALISI CAMPI SHIPMENT_ITEMS:');
+    
+    const sampleItem = this.rawData.shipmentItems[0];
+    console.log('📦 Sample shipment item fields:', Object.keys(sampleItem));
+    console.log('📦 Sample shipment item data:', sampleItem);
+    
+    // Analizza campi costo
+    const costFields = Object.keys(sampleItem).filter(key => 
+        key.toLowerCase().includes('cost') || 
+        key.toLowerCase().includes('price') || 
+        key.toLowerCase().includes('value') ||
+        key.toLowerCase().includes('amount')
+    );
+    
+    console.log('💰 Cost-related fields found:', costFields);
+    
+    costFields.forEach(field => {
+        console.log(`   ${field}:`, sampleItem[field], '(type:', typeof sampleItem[field], ')');
+    });
+    
+    // Analizza campi quantità
+    const quantityFields = Object.keys(sampleItem).filter(key => 
+        key.toLowerCase().includes('quantity') || 
+        key.toLowerCase().includes('qty') || 
+        key.toLowerCase().includes('count') ||
+        key.toLowerCase().includes('amount') ||
+        key.toLowerCase().includes('number')
+    );
+    
+    console.log('📊 Quantity-related fields found:', quantityFields);
+    
+    quantityFields.forEach(field => {
+        console.log(`   ${field}:`, sampleItem[field], '(type:', typeof sampleItem[field], ')');
+    });
+    
+    // Verifica relazioni
+    if (sampleItem.product) {
+        console.log('🏷️ Product data:', sampleItem.product);
+    }
+    
+    if (sampleItem.shipment) {
+        console.log('📦 Shipment data keys:', Object.keys(sampleItem.shipment));
+    }
+}
 // ✅ FALLBACK: ESTRAI PRODOTTI DAI METADATI SPEDIZIONI
 calculateProductCostsFromShipmentMetadata() {
     console.log('📊 Fallback: Extracting products from shipment metadata');
