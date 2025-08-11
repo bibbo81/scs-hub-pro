@@ -368,9 +368,11 @@ getShipmentDepartureDate(shipment) {
     }
     
     // 🎯 PRIORITÀ 2: METADATA SHIPSGO V2 (USA STESSA LOGICA DI calculateDeliveryDays)
-    const tracking = this.rawData.trackings?.find(t => 
-        t.tracking_number === shipment.tracking_number
-    );
+    const tracking = this.rawData.trackings.find(t => 
+    t.shipment_id === shipment.id || 
+    t.tracking_number === shipment.tracking_number ||
+    t.tracking_number === shipment.tracking_code
+);
     
     if (tracking?.metadata?.raw?.shipment?.containers?.[0]?.movements) {
         try {
