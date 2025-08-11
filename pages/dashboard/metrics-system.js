@@ -345,14 +345,6 @@ class UnifiedMetricsSystem {
     console.log(`✅ Date filtering complete: ${keptCount} kept, ${filteredCount} filtered out`);
 }
             
-            this.rawData = {
-                shipments: rawShipments,
-                trackings: this.extractData(trackingsResult, 'trackings'),
-                additionalCosts: this.extractData(costsResult, 'additional_costs'),
-                carriers: this.extractData(carriersResult, 'carriers'),
-                loadedAt: new Date().toISOString()
-            };
-            
             console.log('✅ Raw data loaded with DEPARTURE-based date filters:', {
                 shipments: this.rawData.shipments.length,
                 trackings: this.rawData.trackings.length,
