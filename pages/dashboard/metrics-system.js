@@ -345,6 +345,7 @@ class UnifiedMetricsSystem {
         return `${earliest} → ${latest}`;
     }
     // ✅ ESTRAI DATI DA RISULTATI QUERY        
+
 getShipmentDepartureDate(shipment) {
     console.log(`🔍 Processing departure date for shipment ${shipment.id}`);
     
@@ -364,16 +365,16 @@ getShipmentDepartureDate(shipment) {
     }
     
     // 🎯 PRIORITÀ 2: USA LA STESSA IDENTICA LOGICA DI calculateDeliveryDays CHE FUNZIONA!
-    const tracking = this.rawData.trackings.find(t => 
+    const tracking = this.rawData.trackings?.find(t => 
         t.shipment_id === shipment.id || 
         t.tracking_number === shipment.tracking_number ||
         t.tracking_number === shipment.tracking_code
     );
     
     if (!tracking || !tracking.metadata) {
-        console.log(`⚠️ No tracking or metadata found for shipment ${shipment.id}`);
-        console.log(`⚠️ Using created_at fallback for ${shipment.id}: ${shipment.created_at}`);
-        return shipment.created_at;
+        console.log(`⚠️ No tracking or metadata found for shipment ${shipment.id} - using fallback`);
+        // ✅ USA IL FALLBACK INVECE DI created_at DIRETTO
+        return this.getFallbackDepartureDate(shipment);
     }
     
     try {
@@ -399,8 +400,9 @@ getShipmentDepartureDate(shipment) {
         }
         
         if (movements.length === 0) {
-            console.log(`❌ No movements found in metadata for departure - using created_at`);
-            return shipment.created_at;
+            console.log(`❌ No movements found in metadata for departure - using fallback`);
+            // ✅ USA IL FALLBACK INVECE DI created_at DIRETTO
+            return this.getFallbackDepartureDate(shipment);
         }
         
         // 🔥 TROVA IL PRIMO MOVIMENTO (DEPARTURE DATE)
@@ -413,8 +415,9 @@ getShipmentDepartureDate(shipment) {
             });
         
         if (sortedMovements.length === 0) {
-            console.log(`⚠️ No valid timestamps in movements - using created_at`);
-            return shipment.created_at;
+            console.log(`⚠️ No valid timestamps in movements - using fallback`);
+            // ✅ USA IL FALLBACK INVECE DI created_at DIRETTO
+            return this.getFallbackDepartureDate(shipment);
         }
         
         const firstMovement = sortedMovements[0];
@@ -422,8 +425,9 @@ getShipmentDepartureDate(shipment) {
         
         // ✅ VERIFICA DATE VALIDE
         if (isNaN(firstMovementDate.getTime())) {
-            console.log(`❌ Invalid first movement date - using created_at`);
-            return shipment.created_at;
+            console.log(`❌ Invalid first movement date - using fallback`);
+            // ✅ USA IL FALLBACK INVECE DI created_at DIRETTO
+            return this.getFallbackDepartureDate(shipment);
         }
         
         console.log(`✅ DEPARTURE from metadata: ${firstMovementDate.toISOString()}`);
@@ -433,41 +437,11 @@ getShipmentDepartureDate(shipment) {
         
     } catch (error) {
         console.error(`❌ Error parsing metadata for departure date ${shipment.id}:`, error);
-        console.log(`⚠️ Error fallback - using created_at for ${shipment.id}`);
-        return shipment.created_at;
+        console.log(`⚠️ Error fallback - using getFallbackDepartureDate for ${shipment.id}`);
+        // ✅ USA IL FALLBACK INVECE DI created_at DIRETTO
+        return this.getFallbackDepartureDate(shipment);
     }
 }
-    
-    // ✅ AGGIUNGI QUESTA NUOVA FUNZIONE DI FALLBACK
-    getFallbackDepartureDate(shipment) {
-        // 🎯 PRIORITÀ 2: Cerca campi data diretti nella spedizione
-        const dateFields = [
-            'departure_date', 'date_of_departure', 'shipped_date', 'etd', 
-            'date_of_loading', 'sailing_date', 'flight_date', 'pickup_date',
-            'shipment_date', 'actual_departure'
-        ];
-        
-        for (const field of dateFields) {
-            if (shipment[field]) {
-                console.log(`📅 Using direct field ${field}: ${shipment[field]}`);
-                return shipment[field];
-            }
-        }
-        
-        // 🎯 ULTIMA RISORSA: created_at con offset deterministico
-        const baseDate = new Date(shipment.created_at);
-        const trackingNumber = shipment.tracking_number || shipment.id;
-        let hash = 0;
-        for (let i = 0; i < trackingNumber.length; i++) {
-            hash = ((hash << 5) - hash + trackingNumber.charCodeAt(i)) & 0xffffffff;
-        }
-        const offset = Math.abs(hash) % 30 - 15; // Offset tra -15 e +15 giorni
-        
-        baseDate.setDate(baseDate.getDate() + offset);
-        
-        console.log(`⚠️ FALLBACK with offset for ${shipment.id}: ${baseDate.toISOString().split('T')[0]} (offset: ${offset} days)`);
-        return baseDate.toISOString();
-    }
     initializeDateFilters() {
         const today = new Date();
         const sevenDaysAgo = new Date(); // ✅ RIDOTTO DA 30 A 7 GIORNI
