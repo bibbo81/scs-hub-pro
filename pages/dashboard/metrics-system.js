@@ -2658,21 +2658,53 @@ calculateProductCostsMetrics() {
         console.error('❌ Error processing shipment items for product costs:', error);
         return [];
     }
-    
-    // ✅ CALCOLA MEDIE CORRETTE
+        
+    // ✅ CALCOLA MEDIE CORRETTE - VERSIONE FIXATA
     const productsArray = Array.from(productMetrics.values()).map(product => {
-        // ✅ COSTO MEDIO PRODOTTO: MEDIA PONDERATA DEI COSTI UNITARI
-        const currentWeightedAvgCost = product.currentPeriod.unitCostEntries.length > 0 
-            ? product.currentPeriod.unitCostEntries.reduce((sum, entry) => sum + (entry.unitCost * entry.weight), 0) /
-              product.currentPeriod.unitCostEntries.reduce((sum, entry) => sum + entry.weight, 0)
-            : 0;
+        // ✅ COSTO MEDIO PRODOTTO: CORREGGI IL CALCOLO
+        let currentWeightedAvgCost = 0;
+        let previousWeightedAvgCost = 0;
         
-        const previousWeightedAvgCost = product.previousPeriod.unitCostEntries.length > 0 
-            ? product.previousPeriod.unitCostEntries.reduce((sum, entry) => sum + (entry.unitCost * entry.weight), 0) /
-              product.previousPeriod.unitCostEntries.reduce((sum, entry) => sum + entry.weight, 0)
-            : 0;
+        // ❌ PROBLEMA ERA QUI: Se tutti i unit_cost sono 0, dobbiamo usare total_cost/quantity
+        if (product.currentPeriod.unitCostEntries.length > 0) {
+            const totalWeightedCost = product.currentPeriod.unitCostEntries.reduce((sum, entry) => {
+                // ✅ SE unit_cost è 0, usa total_cost/quantity come fallback
+                const effectiveUnitCost = entry.unitCost > 0 ? entry.unitCost : 
+                    (product.currentPeriod.totalValue > 0 ? 
+                        product.currentPeriod.totalValue / product.currentPeriod.totalQuantity : 0);
+                
+                return sum + (effectiveUnitCost * entry.weight);
+            }, 0);
+            
+            const totalWeight = product.currentPeriod.unitCostEntries.reduce((sum, entry) => sum + entry.weight, 0);
+            currentWeightedAvgCost = totalWeight > 0 ? totalWeightedCost / totalWeight : 0;
+            
+            // ✅ SE ANCORA 0, USA DIRETTAMENTE totalValue/totalQuantity
+            if (currentWeightedAvgCost === 0 && product.currentPeriod.totalValue > 0) {
+                currentWeightedAvgCost = product.currentPeriod.totalValue / product.currentPeriod.totalQuantity;
+            }
+        }
         
-        // ✅ COSTO TRASPORTO MEDIO PER UNITÀ: MEDIA PONDERATA
+        if (product.previousPeriod.unitCostEntries.length > 0) {
+            const totalWeightedCost = product.previousPeriod.unitCostEntries.reduce((sum, entry) => {
+                // ✅ SE unit_cost è 0, usa total_cost/quantity come fallback
+                const effectiveUnitCost = entry.unitCost > 0 ? entry.unitCost : 
+                    (product.previousPeriod.totalValue > 0 ? 
+                        product.previousPeriod.totalValue / product.previousPeriod.totalQuantity : 0);
+                
+                return sum + (effectiveUnitCost * entry.weight);
+            }, 0);
+            
+            const totalWeight = product.previousPeriod.unitCostEntries.reduce((sum, entry) => sum + entry.weight, 0);
+            previousWeightedAvgCost = totalWeight > 0 ? totalWeightedCost / totalWeight : 0;
+            
+            // ✅ SE ANCORA 0, USA DIRETTAMENTE totalValue/totalQuantity
+            if (previousWeightedAvgCost === 0 && product.previousPeriod.totalValue > 0) {
+                previousWeightedAvgCost = product.previousPeriod.totalValue / product.previousPeriod.totalQuantity;
+            }
+        }
+        
+        // ✅ COSTO TRASPORTO MEDIO PER UNITÀ: QUESTO È GIÀ CORRETTO
         const currentAvgTransportPerUnit = product.currentPeriod.transportPerUnit.length > 0 
             ? product.currentPeriod.transportPerUnit.reduce((sum, entry) => sum + (entry.costPerUnit * entry.quantity), 0) /
               product.currentPeriod.transportPerUnit.reduce((sum, entry) => sum + entry.quantity, 0)
@@ -2692,10 +2724,24 @@ calculateProductCostsMetrics() {
             ? ((currentAvgTransportPerUnit - previousAvgTransportPerUnit) / previousAvgTransportPerUnit) * 100 
             : (currentAvgTransportPerUnit > 0 ? 100 : 0);
         
+        // ✅ AGGIUNGI DEBUG PER VERIFICA
+        if (product.code === '16421') {
+            console.log('🔍 DEBUG CALCOLO PRODOTTO 16421:', {
+                currentPeriod: {
+                    totalValue: product.currentPeriod.totalValue,
+                    totalQuantity: product.currentPeriod.totalQuantity,
+                    unitCostEntries: product.currentPeriod.unitCostEntries
+                },
+                calculatedAvgCost: currentWeightedAvgCost,
+                avgTransportCost: currentAvgTransportPerUnit,
+                fallbackCalc: product.currentPeriod.totalValue / product.currentPeriod.totalQuantity
+            });
+        }
+        
         return {
             ...product,
             // ✅ METRICHE CORRETTE
-            avgCost: currentWeightedAvgCost,              // Media ponderata costi unitari
+            avgCost: currentWeightedAvgCost,              // Media ponderata costi unitari CORRETTA
             avgTransportCost: currentAvgTransportPerUnit, // Media ponderata trasporto per unità
             costTrend: costTrend,
             transportTrend: transportTrend,
@@ -2715,7 +2761,35 @@ calculateProductCostsMetrics() {
     
     return productsArray.sort((a, b) => b.totalShipments - a.totalShipments);
 }
-
+// ✅ DEBUG CALCOLO DETTAGLIATO PRODOTTI
+debugProductCalculation() {
+    console.log('🔍 DEBUG CALCOLO DETTAGLIATO PRODOTTI:');
+    
+    // Prendi il primo shipment_item come esempio
+    const sampleItem = this.rawData.shipmentItems[0];
+    console.log('📦 Sample item completo:', sampleItem);
+    
+    console.log('💰 Campi costo:');
+    console.log('   unit_cost:', sampleItem.unit_cost, '(type:', typeof sampleItem.unit_cost, ')');
+    console.log('   total_cost:', sampleItem.total_cost, '(type:', typeof sampleItem.total_cost, ')');
+    console.log('   quantity:', sampleItem.quantity, '(type:', typeof sampleItem.quantity, ')');
+    
+    console.log('🧮 Calcolo manuale:');
+    console.log('   total_cost / quantity =', sampleItem.total_cost / sampleItem.quantity);
+    console.log('   Dovrebbe essere il costo unitario effettivo');
+    
+    // Test il metodo calculateProductCostsMetrics
+    const products = this.calculateProductCostsMetrics();
+    const firstProduct = products[0];
+    
+    console.log('📊 Primo prodotto calcolato:', {
+        code: firstProduct.code,
+        avgCost: firstProduct.avgCost,
+        totalValue: firstProduct.totalValue,
+        totalQuantity: firstProduct.totalQuantity,
+        calcManuale: firstProduct.totalValue / firstProduct.totalQuantity
+    });
+}
 // ✅ DEBUG CAMPI SHIPMENT_ITEMS
 debugShipmentItemsFields() {
     if (!this.rawData || !this.rawData.shipmentItems || this.rawData.shipmentItems.length === 0) {
