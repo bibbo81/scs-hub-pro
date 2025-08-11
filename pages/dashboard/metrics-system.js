@@ -258,41 +258,48 @@ class UnifiedMetricsSystem {
             
             // ✅ APPLICA FILTRO DATE CLIENT-SIDE USANDO DATE DI PARTENZA
             if (this.currentFilters.dateFrom || this.currentFilters.dateTo) {
-                console.log('📅 Applying CLIENT-SIDE date filters based on DEPARTURE dates:', {
-                    from: this.currentFilters.dateFrom,
-                    to: this.currentFilters.dateTo,
-                    totalShipments: rawShipments.length
-                });
-                
-                rawShipments = rawShipments.filter(shipment => {
-                    // ✅ USA LA FUNZIONE getShipmentDepartureDate
-                    const departureDate = this.getShipmentDepartureDate(shipment);
-                    
-                    if (!departureDate) {
-                        console.log(`⚠️ No departure date found for shipment ${shipment.id}, keeping it`);
-                        return true; // Mantieni se non ha data di partenza
-                    }
-                    
-                    const shipmentDate = new Date(departureDate);
-                    const dateStr = shipmentDate.toISOString().split('T')[0];
-                    
-                    // Verifica range
-                    if (this.currentFilters.dateFrom && dateStr < this.currentFilters.dateFrom) {
-                        console.log(`📅 Filtered OUT ${shipment.id}: departure ${dateStr} < ${this.currentFilters.dateFrom}`);
-                        return false;
-                    }
-                    
-                    if (this.currentFilters.dateTo && dateStr > this.currentFilters.dateTo) {
-                        console.log(`📅 Filtered OUT ${shipment.id}: departure ${dateStr} > ${this.currentFilters.dateTo}`);
-                        return false;
-                    }
-                    
-                    console.log(`📅 Filtered IN ${shipment.id}: departure ${dateStr} in range`);
-                    return true;
-                });
-                
-                console.log(`✅ Date filtering: ${rawShipments.length} shipments remain after filtering`);
-            }
+    console.log('📅 Applying CLIENT-SIDE date filters based on DEPARTURE dates:', {
+        from: this.currentFilters.dateFrom,
+        to: this.currentFilters.dateTo,
+        totalShipments: rawShipments.length
+    });
+    
+    let filteredCount = 0;
+    let keptCount = 0;
+    
+    rawShipments = rawShipments.filter(shipment => {
+        // ✅ USA LA FUNZIONE getShipmentDepartureDate
+        const departureDate = this.getShipmentDepartureDate(shipment);
+        
+        if (!departureDate) {
+            console.log(`⚠️ No departure date found for shipment ${shipment.id}, EXCLUDING it`);
+            filteredCount++;
+            return false; // ✅ ESCLUDI SE NON HA DATA DI PARTENZA
+        }
+        
+        const shipmentDate = new Date(departureDate);
+        const dateStr = shipmentDate.toISOString().split('T')[0];
+        
+        // Verifica range
+        if (this.currentFilters.dateFrom && dateStr < this.currentFilters.dateFrom) {
+            console.log(`📅 Filtered OUT ${shipment.id}: departure ${dateStr} < ${this.currentFilters.dateFrom}`);
+            filteredCount++;
+            return false;
+        }
+        
+        if (this.currentFilters.dateTo && dateStr > this.currentFilters.dateTo) {
+            console.log(`📅 Filtered OUT ${shipment.id}: departure ${dateStr} > ${this.currentFilters.dateTo}`);
+            filteredCount++;
+            return false;
+        }
+        
+        console.log(`📅 Filtered IN ${shipment.id}: departure ${dateStr} in range`);
+        keptCount++;
+        return true;
+    });
+    
+    console.log(`✅ Date filtering complete: ${keptCount} kept, ${filteredCount} filtered out`);
+}
             
             this.rawData = {
                 shipments: rawShipments,
@@ -338,41 +345,89 @@ class UnifiedMetricsSystem {
         return `${earliest} → ${latest}`;
     }
     
-    // ✅ MIGLIORA LA FUNZIONE getShipmentDepartureDate ESISTENTE
     getShipmentDepartureDate(shipment) {
-        // ✅ PRIORITÀ: Date di partenza reali prima di created_at
-        const dateFields = [
-            'departure_date',     // Data partenza effettiva
-            'etd',               // Estimated Time of Departure
-            'sailing_date',      // Data navigazione (mare)
-            'flight_date',       // Data volo (aereo)
-            'pickup_date',       // Data ritiro (corriere)
-            'shipment_date',     // Data spedizione generica
-            'actual_departure',  // Partenza effettiva
-            'loading_date',      // Data carico
-            'booking_date'       // Data prenotazione
-        ];
-        
-        // Trova la prima data valida (NON created_at)
-        for (const field of dateFields) {
-            if (shipment[field]) {
-                const date = new Date(shipment[field]);
-                if (!isNaN(date.getTime())) {
-                    console.log(`📅 Using ${field} for shipment ${shipment.id}: ${date.toISOString().split('T')[0]}`);
-                    return shipment[field];
-                }
+    // ✅ PRIORITÀ: Date di partenza reali PRIMA di created_at
+    const dateFields = [
+        'departure_date',     // Data partenza effettiva
+        'etd',               // Estimated Time of Departure  
+        'sailing_date',      // Data navigazione (mare)
+        'flight_date',       // Data volo (aereo)
+        'pickup_date',       // Data ritiro (corriere)
+        'shipment_date',     // Data spedizione generica
+        'actual_departure',  // Partenza effettiva
+        'loading_date',      // Data carico
+        'booking_date'       // Data prenotazione
+    ];
+    
+    // ✅ TROVA LA PRIMA DATA VALIDA (NON created_at)
+    for (const field of dateFields) {
+        if (shipment[field]) {
+            const date = new Date(shipment[field]);
+            if (!isNaN(date.getTime())) {
+                console.log(`📅 Using ${field} for shipment ${shipment.id}: ${date.toISOString().split('T')[0]}`);
+                return shipment[field];
             }
         }
-        
-        // ✅ SOLO SE NON CI SONO DATE SPECIFICHE, USA CREATED_AT
-        if (shipment.created_at) {
-            console.log(`📅 FALLBACK to created_at for shipment ${shipment.id}: ${new Date(shipment.created_at).toISOString().split('T')[0]}`);
-            return shipment.created_at;
-        }
-        
-        console.warn(`⚠️ No valid departure date found for shipment ${shipment.id}`);
-        return null;
     }
+    
+    // ✅ SE NON TROVA DATE SPECIFICHE, CALCOLA DAL TRACKING METADATA
+    const tracking = this.rawData.trackings.find(t => 
+        t.shipment_id === shipment.id || 
+        t.tracking_number === shipment.tracking_number
+    );
+    
+    if (tracking?.metadata) {
+        try {
+            const metadata = typeof tracking.metadata === 'string' 
+                ? JSON.parse(tracking.metadata) 
+                : tracking.metadata;
+            
+            // ✅ ESTRAI PRIMA DATA DAI MOVIMENTI
+            let movements = [];
+            
+            // Container movements
+            if (metadata.raw?.shipment?.containers?.[0]?.movements) {
+                movements = metadata.raw.shipment.containers[0].movements;
+            } 
+            // AWB movements
+            else if (metadata.raw?.movements) {
+                movements = metadata.raw.movements;
+            }
+            // AWB mapped movements
+            else if (metadata.mapped?._raw_api_response?.movements) {
+                movements = metadata.mapped._raw_api_response.movements;
+            }
+            
+            if (movements.length > 0) {
+                const firstMovement = movements
+                    .filter(m => m.timestamp || m.date)
+                    .sort((a, b) => {
+                        const dateA = new Date(a.timestamp || a.date);
+                        const dateB = new Date(b.timestamp || b.date);
+                        return dateA - dateB;
+                    })[0];
+                
+                if (firstMovement) {
+                    const departureDate = firstMovement.timestamp || firstMovement.date;
+                    console.log(`📅 Using FIRST MOVEMENT for shipment ${shipment.id}: ${new Date(departureDate).toISOString().split('T')[0]}`);
+                    return departureDate;
+                }
+            }
+            
+        } catch (error) {
+            console.warn(`⚠️ Error parsing metadata for departure date:`, error);
+        }
+    }
+    
+    // ✅ ULTIMA RISORSA: USA created_at MA MOSTRA WARNING
+    if (shipment.created_at) {
+        console.warn(`⚠️ FALLBACK to created_at for shipment ${shipment.id}: ${new Date(shipment.created_at).toISOString().split('T')[0]} (no real departure date found)`);
+        return shipment.created_at;
+    }
+    
+    console.error(`❌ No valid departure date found for shipment ${shipment.id}`);
+    return null;
+}
     
     // ✅ SOSTITUISCI IL METODO initializeDateFilters (circa riga 2750)
     initializeDateFilters() {
@@ -3630,6 +3685,29 @@ if (window.ModalSystem) {
         // Applica filtri
         this.applyDateFilters();
     }
+// ✅ AGGIUNGI QUESTA FUNZIONE DI DEBUG (alla fine della classe, prima dell'ultima })
+debugShipmentDates() {
+    console.log('🔍 ANALISI DATE SPEDIZIONI:');
+    
+    this.rawData.shipments.forEach((shipment, i) => {
+        const departureDate = this.getShipmentDepartureDate(shipment);
+        const createdDate = shipment.created_at;
+        
+        console.log(`${i+1}. Shipment ${shipment.id}:`);
+        console.log(`   Created: ${new Date(createdDate).toISOString().split('T')[0]}`);
+        console.log(`   Departure: ${departureDate ? new Date(departureDate).toISOString().split('T')[0] : 'NONE'}`);
+        console.log(`   Same?: ${departureDate && new Date(departureDate).toISOString().split('T')[0] === new Date(createdDate).toISOString().split('T')[0]}`);
+        
+        // Verifica se ha date specifiche
+        const hasSpecificDates = [
+            'departure_date', 'etd', 'sailing_date', 'flight_date', 
+            'pickup_date', 'shipment_date', 'actual_departure'
+        ].some(field => shipment[field]);
+        
+        console.log(`   Has specific dates: ${hasSpecificDates}`);
+        console.log('');
+    });
+}
 }
 
 // ✅ ESPORTA SISTEMA (FUORI DALLA CLASSE!)
