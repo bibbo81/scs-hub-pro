@@ -348,7 +348,7 @@ class UnifiedMetricsSystem {
     getShipmentDepartureDate(shipment) {
         console.log(`🔍 Processing departure date for shipment ${shipment.id}`);
         
-        // 🎯 PRIORITÀ 1: Usa la STESSA LOGICA di calculateDeliveryDays per estrarre il PRIMO movimento
+        // 🎯 USA LA STESSA LOGICA DI calculateDeliveryDays() CHE FUNZIONA!
         const tracking = this.rawData.trackings?.find(t => 
             t.shipment_id === shipment.id || 
             t.tracking_number === shipment.tracking_number ||
@@ -364,7 +364,7 @@ class UnifiedMetricsSystem {
             let movements = [];
             let firstMovementDate = null;
             
-            // ✅ ESTRAI MOVEMENTS DA METADATA - STESSA LOGICA DI calculateDeliveryDays
+            // 🔥 USA LA STESSA LOGICA DI calculateDeliveryDays() CHE FUNZIONA
             if (tracking.metadata.raw && tracking.metadata.raw.shipment && tracking.metadata.raw.shipment.containers) {
                 // Tipo Container: movimenti nei containers
                 const container = tracking.metadata.raw.shipment.containers[0];
@@ -387,7 +387,7 @@ class UnifiedMetricsSystem {
                 return this.getFallbackDepartureDate(shipment);
             }
             
-            // ✅ TROVA IL PRIMO MOVIMENTO (DEPARTURE DATE)
+            // 🔥 TROVA IL PRIMO MOVIMENTO (DEPARTURE DATE) - STESSA LOGICA
             const sortedMovements = movements
                 .filter(m => m.timestamp || m.date)
                 .sort((a, b) => {
