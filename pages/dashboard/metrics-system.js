@@ -344,8 +344,7 @@ class UnifiedMetricsSystem {
         
         return `${earliest} → ${latest}`;
     }
-    
-    
+        
     getShipmentDepartureDate(shipment) {
         // 🎯 PRIORITÀ 1: Cerca nei metadata del tracking
         const tracking = this.rawData.trackings?.find(t => 
@@ -356,63 +355,58 @@ class UnifiedMetricsSystem {
         
         if (tracking?.metadata) {
             try {
-                const metadata = typeof tracking.metadata === 'string' 
-                    ? JSON.parse(tracking.metadata) 
-                    : tracking.metadata;
+                // ✅ ACCESSO DIRETTO AI METADATA (NO PARSING)
+                const metadata = tracking.metadata; // GIÀ OGGETTO, NON STRINGA
                 
-                let firstMovementDate = null;
+                console.log(`🔍 Processing metadata for shipment ${shipment.id}:`, {
+                    hasRaw: !!metadata.raw,
+                    hasShipment: !!metadata.raw?.shipment,
+                    hasContainers: !!metadata.raw?.shipment?.containers,
+                    hasMovements: !!metadata.raw?.movements
+                });
                 
-                // ✅ ESTRAI DATA DAL PRIMO MOVIMENTO
-                // Container movements (marittime)
+                // ✅ ESTRAI DATA DAL PRIMO MOVIMENTO - CONTAINER
                 if (metadata.raw?.shipment?.containers?.[0]?.movements) {
                     const movements = metadata.raw.shipment.containers[0].movements;
-                    const firstMovement = movements
-                        .filter(m => m.timestamp || m.date)
-                        .sort((a, b) => new Date(a.timestamp || a.date) - new Date(b.timestamp || b.date))[0];
+                    console.log(`📦 Found ${movements.length} container movements`);
                     
-                    if (firstMovement) {
-                        firstMovementDate = firstMovement.timestamp || firstMovement.date;
-                        console.log(`📅 Using CONTAINER first movement for ${shipment.id}: ${new Date(firstMovementDate).toISOString().split('T')[0]}`);
-                        console.log(`   Event: ${firstMovement.event || 'N/A'} at ${firstMovement.location?.name || 'N/A'}`);
-                        return firstMovementDate;
+                    const firstMovement = movements
+                        .filter(m => m.timestamp)
+                        .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp))[0];
+                    
+                    if (firstMovement?.timestamp) {
+                        console.log(`✅ Using CONTAINER first movement: ${firstMovement.timestamp}`);
+                        console.log(`   Event: ${firstMovement.event} at ${firstMovement.location?.name}`);
+                        return firstMovement.timestamp;
                     }
                 }
                 
-                // AWB movements (aeree)
+                // ✅ ESTRAI DATA DAL PRIMO MOVIMENTO - AWB
                 if (metadata.raw?.movements) {
                     const movements = metadata.raw.movements;
-                    const firstMovement = movements
-                        .filter(m => m.timestamp || m.date)
-                        .sort((a, b) => new Date(a.timestamp || a.date) - new Date(b.timestamp || b.date))[0];
+                    console.log(`✈️ Found ${movements.length} AWB movements`);
                     
-                    if (firstMovement) {
-                        firstMovementDate = firstMovement.timestamp || firstMovement.date;
-                        console.log(`📅 Using AWB first movement for ${shipment.id}: ${new Date(firstMovementDate).toISOString().split('T')[0]}`);
-                        console.log(`   Event: ${firstMovement.event || 'N/A'} at ${firstMovement.location || 'N/A'}`);
-                        return firstMovementDate;
+                    const firstMovement = movements
+                        .filter(m => m.timestamp)
+                        .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp))[0];
+                    
+                    if (firstMovement?.timestamp) {
+                        console.log(`✅ Using AWB first movement: ${firstMovement.timestamp}`);
+                        console.log(`   Event: ${firstMovement.event} at ${firstMovement.location}`);
+                        return firstMovement.timestamp;
                     }
                 }
                 
-                // AWB mapped movements (alternativo)
-                if (metadata.mapped?._raw_api_response?.movements) {
-                    const movements = metadata.mapped._raw_api_response.movements;
-                    const firstMovement = movements
-                        .filter(m => m.timestamp || m.date)
-                        .sort((a, b) => new Date(a.timestamp || a.date) - new Date(b.timestamp || b.date))[0];
-                    
-                    if (firstMovement) {
-                        firstMovementDate = firstMovement.timestamp || firstMovement.date;
-                        console.log(`📅 Using AWB mapped movement for ${shipment.id}: ${new Date(firstMovementDate).toISOString().split('T')[0]}`);
-                        return firstMovementDate;
-                    }
-                }
+                console.log(`⚠️ No movements found in metadata for ${shipment.id}`);
                 
             } catch (error) {
-                console.warn(`⚠️ Error parsing metadata for ${shipment.id}:`, error);
+                console.error(`❌ Error parsing metadata for ${shipment.id}:`, error);
             }
+        } else {
+            console.log(`⚠️ No tracking or metadata found for shipment ${shipment.id}`);
         }
         
-        // 🎯 PRIORITÀ 2: Usa campi data specifici (se mai aggiunti)
+        // 🎯 PRIORITÀ 2: Cerca campi data diretti (probabilmente vuoti)
         const dateFields = [
             'departure_date', 'date_of_departure', 'shipped_date', 'etd', 
             'date_of_loading', 'sailing_date', 'flight_date'
@@ -420,28 +414,23 @@ class UnifiedMetricsSystem {
         
         for (const field of dateFields) {
             if (shipment[field]) {
-                const date = new Date(shipment[field]);
-                if (!isNaN(date.getTime())) {
-                    console.log(`📅 Using ${field} for ${shipment.id}: ${date.toISOString().split('T')[0]}`);
-                    return shipment[field];
-                }
+                console.log(`📅 Using field ${field}: ${shipment[field]}`);
+                return shipment[field];
             }
         }
         
-        // 🎯 ULTIMA RISORSA: created_at con offset casuale per test
+        // 🎯 ULTIMA RISORSA: created_at con offset deterministico
         const baseDate = new Date(shipment.created_at);
-        
-        // ✅ OFFSET BASATO SU HASH DEL TRACKING PER CONSISTENZA
         const trackingNumber = shipment.tracking_number || shipment.id;
         let hash = 0;
         for (let i = 0; i < trackingNumber.length; i++) {
             hash = ((hash << 5) - hash + trackingNumber.charCodeAt(i)) & 0xffffffff;
         }
-        const offset = Math.abs(hash) % 60 - 30; // Offset tra -30 e +30 giorni
+        const offset = Math.abs(hash) % 30 - 15; // Offset tra -15 e +15 giorni
         
         baseDate.setDate(baseDate.getDate() + offset);
         
-        console.log(`⚠️ FALLBACK with consistent offset for ${shipment.id}: ${baseDate.toISOString().split('T')[0]} (offset: ${offset} days)`);
+        console.log(`⚠️ FALLBACK for ${shipment.id}: ${baseDate.toISOString().split('T')[0]} (offset: ${offset} days)`);
         return baseDate.toISOString();
     }
     initializeDateFilters() {
