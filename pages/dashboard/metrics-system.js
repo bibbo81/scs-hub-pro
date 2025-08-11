@@ -245,9 +245,25 @@ class UnifiedMetricsSystem {
                 shipmentsQuery = shipmentsQuery.eq('status', this.currentFilters.status);
             }
             
+            // ✅ APPLICA FILTRO DATE DIRETTAMENTE NELLA QUERY (PIÙ EFFICIENTE)
+            if (this.currentFilters.dateFrom || this.currentFilters.dateTo) {
+                console.log('📅 Applying database date filters:', {
+                    from: this.currentFilters.dateFrom,
+                    to: this.currentFilters.dateTo
+                });
+                
+                if (this.currentFilters.dateFrom) {
+                    shipmentsQuery = shipmentsQuery.gte('created_at', this.currentFilters.dateFrom + 'T00:00:00.000Z');
+                }
+                
+                if (this.currentFilters.dateTo) {
+                    shipmentsQuery = shipmentsQuery.lte('created_at', this.currentFilters.dateTo + 'T23:59:59.999Z');
+                }
+            }
+            
             // Esegui query in parallelo
             const [shipmentsResult, trackingsResult, costsResult, carriersResult] = await Promise.allSettled([
-                shipmentsQuery.order('created_at', { ascending: false }).limit(5000),
+                shipmentsQuery.order('created_at', { ascending: false }).limit(1000), // ✅ RIDOTTO LIMITE
                 trackingsQuery.order('created_at', { ascending: false }).limit(5000),
                 costsQuery.order('created_at', { ascending: false }).limit(2000),
                 carriersQuery.order('name', { ascending: true }).limit(500)
@@ -262,41 +278,185 @@ class UnifiedMetricsSystem {
                 loadedAt: new Date().toISOString()
             };
             
-            // ✅ FILTRO DATE SOLO LATO CLIENT (PIÙ SEMPLICE E AFFIDABILE)
-            if (this.currentFilters.dateFrom || this.currentFilters.dateTo) {
-                console.log('📅 Applying client-side date filters:', {
-                    from: this.currentFilters.dateFrom,
-                    to: this.currentFilters.dateTo
-                });
-                
-                this.rawData.shipments = this.rawData.shipments.filter(shipment => {
-                    const shipmentDate = this.getShipmentDepartureDate(shipment);
-                    if (!shipmentDate) {
-                        // Se non ha data di partenza, usa created_at come fallback
-                        if (!shipment.created_at) return false;
-                        const createdDate = new Date(shipment.created_at);
-                        return this.isDateInRange(createdDate);
-                    }
-                    
-                    const dateObj = new Date(shipmentDate);
-                    return this.isDateInRange(dateObj);
-                });
-            }
-            
-            console.log('✅ Raw data loaded with date filters:', {
+            console.log('✅ Raw data loaded with database filters:', {
                 shipments: this.rawData.shipments.length,
                 trackings: this.rawData.trackings.length,
                 additionalCosts: this.rawData.additionalCosts.length,
                 carriers: this.rawData.carriers.length,
                 dateRange: this.currentFilters.dateFrom && this.currentFilters.dateTo 
                     ? `${this.currentFilters.dateFrom} → ${this.currentFilters.dateTo}`
-                    : 'Nessun filtro data'
+                    : 'Nessun filtro data',
+                firstShipment: this.rawData.shipments[0]?.created_at,
+                lastShipment: this.rawData.shipments[this.rawData.shipments.length - 1]?.created_at
             });
             
         } catch (error) {
             console.error('❌ Error loading raw data:', error);
             throw error;
         }
+    }
+    
+    // ✅ SOSTITUISCI IL METODO initializeDateFilters (circa riga 2750)
+    initializeDateFilters() {
+        const today = new Date();
+        const sevenDaysAgo = new Date(); // ✅ RIDOTTO DA 30 A 7 GIORNI
+        sevenDaysAgo.setDate(today.getDate() - 7);
+        
+        // Imposta valori di default
+        const dateFromInput = document.getElementById('dateFromFilter');
+        const dateToInput = document.getElementById('dateToFilter');
+        
+        if (dateFromInput) {
+            dateFromInput.value = sevenDaysAgo.toISOString().split('T')[0];
+        }
+        
+        if (dateToInput) {
+            dateToInput.value = today.toISOString().split('T')[0];
+        }
+        
+        // Imposta filtri attuali
+        this.currentFilters.dateFrom = sevenDaysAgo.toISOString().split('T')[0];
+        this.currentFilters.dateTo = today.toISOString().split('T')[0];
+        
+        console.log('📅 Date filters initialized (7 days):', {
+            from: this.currentFilters.dateFrom,
+            to: this.currentFilters.dateTo
+        });
+    }
+    
+    // ✅ SOSTITUISCI IL METODO applyDateFilters (circa riga 2770)
+    async applyDateFilters() {
+        const dateFromInput = document.getElementById('dateFromFilter');
+        const dateToInput = document.getElementById('dateToFilter');
+        
+        const dateFrom = dateFromInput?.value;
+        const dateTo = dateToInput?.value;
+        
+        // Validazione range
+        if (dateFrom && dateTo && new Date(dateFrom) > new Date(dateTo)) {
+            alert('⚠️ La data "Da" non può essere successiva alla data "A"');
+            return;
+        }
+        
+        // ✅ VERIFICA SE I FILTRI SONO REALMENTE CAMBIATI
+        const filtersChanged = 
+            this.currentFilters.dateFrom !== dateFrom || 
+            this.currentFilters.dateTo !== dateTo;
+        
+        if (!filtersChanged) {
+            console.log('📅 Date filters unchanged, skipping reload');
+            return;
+        }
+        
+        // Aggiorna filtri
+        this.currentFilters.dateFrom = dateFrom;
+        this.currentFilters.dateTo = dateTo;
+        
+        console.log('📅 Applying NEW date filters:', {
+            from: dateFrom,
+            to: dateTo,
+            changed: filtersChanged
+        });
+        
+        // ✅ SHOW LOADING STATE
+        const container = document.getElementById('kpiCards');
+        if (container) {
+            container.innerHTML = `
+                <div class="col-12 text-center">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Caricamento...</span>
+                    </div>
+                    <div class="mt-2">Applicando filtri data...</div>
+                </div>
+            `;
+        }
+        
+        try {
+            // Ricarica dati e dashboard
+            await this.loadRawData();
+            await this.calculateAllMetrics();
+            this.renderDashboard();
+            
+            // ✅ NOTIFICA CON CONTEGGIO RISULTATI
+            if (window.notificationSystem) {
+                const rangeText = dateFrom && dateTo 
+                    ? `${new Date(dateFrom).toLocaleDateString('it-IT')} - ${new Date(dateTo).toLocaleDateString('it-IT')}`
+                    : 'Nessun filtro';
+                    
+                window.notificationSystem.show(
+                    'success',
+                    'Filtri Data Applicati',
+                    `Trovate ${this.rawData.shipments.length} spedizioni nel periodo: ${rangeText}`
+                );
+            }
+            
+        } catch (error) {
+            console.error('❌ Error applying date filters:', error);
+            
+            if (window.notificationSystem) {
+                window.notificationSystem.show(
+                    'error',
+                    'Errore Filtri',
+                    'Errore nell\'applicazione dei filtri data'
+                );
+            }
+        }
+    }
+    
+    // ✅ AGGIUNGI QUESTI NUOVI PRESET PIÙ PRECISI
+    applyDatePreset(preset) {
+        const today = new Date();
+        let fromDate, toDate;
+        
+        switch (preset) {
+            case 'today':
+                fromDate = toDate = today;
+                break;
+            case 'yesterday':
+                fromDate = toDate = new Date(today.getTime() - 24 * 60 * 60 * 1000);
+                break;
+            case 'week':
+                fromDate = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
+                toDate = today;
+                break;
+            case 'month':
+                fromDate = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
+                toDate = today;
+                break;
+            case 'quarter':
+                fromDate = new Date(today.getTime() - 90 * 24 * 60 * 60 * 1000);
+                toDate = today;
+                break;
+            case 'year':
+                fromDate = new Date(today.getTime() - 365 * 24 * 60 * 60 * 1000);
+                toDate = today;
+                break;
+            // ✅ NUOVI PRESET SPECIFICI
+            case 'last3days':
+                fromDate = new Date(today.getTime() - 3 * 24 * 60 * 60 * 1000);
+                toDate = today;
+                break;
+            case 'lastWeek':
+                toDate = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
+                fromDate = new Date(toDate.getTime() - 7 * 24 * 60 * 60 * 1000);
+                break;
+            case 'lastMonth':
+                toDate = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
+                fromDate = new Date(toDate.getTime() - 30 * 24 * 60 * 60 * 1000);
+                break;
+            default:
+                return;
+        }
+        
+        // Aggiorna inputs
+        const dateFromInput = document.getElementById('dateFromFilter');
+        const dateToInput = document.getElementById('dateToFilter');
+        
+        if (dateFromInput) dateFromInput.value = fromDate.toISOString().split('T')[0];
+        if (dateToInput) dateToInput.value = toDate.toISOString().split('T')[0];
+        
+        // Applica filtri
+        this.applyDateFilters();
     }
     
     // ✅ HELPER PER VERIFICA RANGE DATE
