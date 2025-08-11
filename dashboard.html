@@ -1343,19 +1343,19 @@
                                 </div>
                                 <!-- ✅ USA sol-card-body INVECE DI card-body -->
                                 <div class="sol-card-body">
+                                    <!-- ✅ RENDI LA TABELLA RESPONSIVE -->                                    
                                     <div class="table-responsive">
-                                        <!-- ✅ STESSA TABELLA DELLE ALTRE (che funzionano in dark mode) -->
-                                        <table class="table table-hover">
-                                            <!-- ✅ RIMUOVI table-light che non ha dark mode -->
+                                        <!-- ✅ AGGIUNGI ID="productCostsTable" -->
+                                        <table class="table table-hover" id="productCostsTable">
                                             <thead>
                                                 <tr>
-                                                    <th>Codice Prodotto</th>
-                                                    <th>Descrizione Prodotto</th>
-                                                    <th>Costo Medio Prodotto</th>
-                                                    <th>Tendenza Costo Prodotto %</th>
-                                                    <th>Costo Medio Un. Trasporto</th>
-                                                    <th>Tendenza Costo Trasporto %</th>
-                                                    <th class="text-center">Azioni</th>
+                                                    <th style="width: 12%;">Codice Prodotto</th>
+                                                    <th style="width: 35%;">Descrizione Prodotto</th>
+                                                    <th style="width: 13%;" class="text-end">Costo Medio Prodotto</th>
+                                                    <th style="width: 13%;" class="text-end">Tendenza Costo Prodotto %</th>
+                                                    <th style="width: 13%;" class="text-end">Costo Medio Un. Trasporto</th>
+                                                    <th style="width: 13%;" class="text-end">Tendenza Costo Trasporto %</th>
+                                                    <th style="width: 8%;" class="text-center">Azioni</th>
                                                 </tr>
                                             </thead>
                                             <tbody id="productCostsBody">
