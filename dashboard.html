@@ -1324,26 +1324,30 @@
                                     <tbody id="carriersPerformanceBody"></tbody>
                                 </table>
                             </div>
-                        </div>
-                                        <!-- AGGIUNGI DOPO LE ALTRE TABELLE -->
+                        </div>                    
                     <div class="row mt-4">
                         <div class="col-12">
-                            <div class="card">
-                                <div class="card-header d-flex justify-content-between align-items-center">
-                                    <h5 class="mb-0">
+                            <!-- ✅ USA sol-card INVECE DI card -->
+                            <div class="sol-card">
+                                <!-- ✅ USA sol-card-header INVECE DI card-header -->
+                                <div class="sol-card-header d-flex justify-content-between align-items-center">
+                                    <h3 class="sol-card-title">
                                         <i class="fas fa-euro-sign me-2 text-warning"></i>
                                         Analisi Costi Prodotti
-                                    </h5>
+                                    </h3>
                                     <div class="btn-group">
                                         <button class="btn btn-outline-success btn-sm" onclick="metricsSystem.exportProductCosts()">
                                             <i class="fas fa-file-excel me-1"></i>Esporta Excel
                                         </button>
                                     </div>
                                 </div>
-                                <div class="card-body">
+                                <!-- ✅ USA sol-card-body INVECE DI card-body -->
+                                <div class="sol-card-body">
                                     <div class="table-responsive">
-                                        <table class="table table-hover table-sm">
-                                            <thead class="table-light">
+                                        <!-- ✅ STESSA TABELLA DELLE ALTRE (che funzionano in dark mode) -->
+                                        <table class="table table-hover">
+                                            <!-- ✅ RIMUOVI table-light che non ha dark mode -->
+                                            <thead>
                                                 <tr>
                                                     <th>Codice Prodotto</th>
                                                     <th>Descrizione Prodotto</th>
@@ -1362,8 +1366,7 @@
                                 </div>
                             </div>
                         </div>
-                    </div>
-                    </div>
+                    </div></div>
                 </div>
             </div>
         </main>
