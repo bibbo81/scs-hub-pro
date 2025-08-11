@@ -215,6 +215,7 @@ class UnifiedMetricsSystem {
     }
 
          // ✅ CARICA RAW DATA CON FILTRO DATE SEMPLIFICATO
+
     async loadRawData() {
         console.log('📥 Loading raw data...');
         
@@ -225,16 +226,26 @@ class UnifiedMetricsSystem {
             let costsQuery = this.supabase.from('additional_costs').select('*');
             let carriersQuery = this.supabase.from('carriers').select('*');
             
+            // ✅ NUOVA QUERY PER SHIPMENT_ITEMS CON JOIN AI PRODOTTI
+            let shipmentItemsQuery = this.supabase
+                .from('shipment_items')
+                .select(`
+                    *,
+                    product:products!inner(id, name, sku, description),
+                    shipment:shipments!inner(id, shipment_number, tracking_number, carrier_name, created_at)
+                `);
+            
             if (this.organizationId) {
                 shipmentsQuery = shipmentsQuery.eq('organization_id', this.organizationId);
                 trackingsQuery = trackingsQuery.eq('organization_id', this.organizationId);
                 costsQuery = costsQuery.eq('organization_id', this.organizationId);
                 carriersQuery = carriersQuery.eq('organization_id', this.organizationId);
+                shipmentItemsQuery = shipmentItemsQuery.eq('shipment.organization_id', this.organizationId);
             }
             
             // ✅ FILTRI ALTRI CAMPI
             if (this.currentFilters.company) {
-                shipmentsQuery = shipmentsQuery.eq('carrier_name', this.currentFilters.company);
+                shipmentsQuery = shipmentsQuery.ilike('carrier_name', `%${this.currentFilters.company}%`);
             }
             
             if (this.currentFilters.carrier) {
@@ -245,115 +256,100 @@ class UnifiedMetricsSystem {
                 shipmentsQuery = shipmentsQuery.eq('status', this.currentFilters.status);
             }
             
-            // Esegui query in parallelo SENZA filtro date nel database
-            const [shipmentsResult, trackingsResult, costsResult, carriersResult] = await Promise.allSettled([
-                shipmentsQuery.order('created_at', { ascending: false }).limit(2000), // ✅ AUMENTATO LIMITE
+            // Esegui query in parallelo INCLUSO SHIPMENT_ITEMS
+            const [shipmentsResult, trackingsResult, costsResult, carriersResult, shipmentItemsResult] = await Promise.allSettled([
+                shipmentsQuery.order('created_at', { ascending: false }).limit(2000),
                 trackingsQuery.order('created_at', { ascending: false }).limit(5000),
                 costsQuery.order('created_at', { ascending: false }).limit(2000),
-                carriersQuery.order('name', { ascending: true }).limit(500)
+                carriersQuery.order('name', { ascending: true }).limit(500),
+                shipmentItemsQuery.order('created_at', { ascending: false }).limit(10000) // ✅ NUOVO
             ]);
             
             // Estrai dati
             let rawShipments = this.extractData(shipmentsResult, 'shipments');
+            let rawShipmentItems = this.extractData(shipmentItemsResult, 'shipment_items'); // ✅ NUOVO
             
             // ✅ APPLICA FILTRO DATE CLIENT-SIDE USANDO DATE DI PARTENZA
             if (this.currentFilters.dateFrom || this.currentFilters.dateTo) {
-    console.log('📅 Applying CLIENT-SIDE date filters based on DEPARTURE dates:', {
-        from: this.currentFilters.dateFrom,
-        to: this.currentFilters.dateTo,
-        totalShipments: rawShipments.length
-    });
-    
-    let filteredCount = 0;
-    let keptCount = 0;
-    
-    rawShipments = rawShipments.filter(shipment => {
-        // ✅ USA LA FUNZIONE getShipmentDepartureDate
-        const departureDate = this.getShipmentDepartureDate(shipment);
-        
-        if (!departureDate) {
-            console.log(`⚠️ No departure date found for shipment ${shipment.id}, EXCLUDING it`);
-            filteredCount++;
-            return false; // ✅ ESCLUDI SE NON HA DATA DI PARTENZA
-        }
-        
-        const shipmentDate = new Date(departureDate);
-        const dateStr = shipmentDate.toISOString().split('T')[0];
-        
-        // Verifica range
-        if (this.currentFilters.dateFrom && dateStr < this.currentFilters.dateFrom) {
-            console.log(`📅 Filtered OUT ${shipment.id}: departure ${dateStr} < ${this.currentFilters.dateFrom}`);
-            filteredCount++;
-            return false;
-        }
-        
-        if (this.currentFilters.dateTo && dateStr > this.currentFilters.dateTo) {
-            console.log(`📅 Filtered OUT ${shipment.id}: departure ${dateStr} > ${this.currentFilters.dateTo}`);
-            filteredCount++;
-            return false;
-        }
-        
-        console.log(`📅 Filtered IN ${shipment.id}: departure ${dateStr} in range`);
-        keptCount++;
-        return true;
-    });
-    
-    // ✅ FILTRA ANCHE ADDITIONAL COSTS PER DATA
-    let filteredAdditionalCosts = this.extractData(costsResult, 'additional_costs');
-    
-    if (this.currentFilters.dateFrom || this.currentFilters.dateTo) {
-        console.log('📅 Filtering additional costs by date range');
-        
-        const initialCostsCount = filteredAdditionalCosts.length;
-        
-        filteredAdditionalCosts = filteredAdditionalCosts.filter(cost => {
-            // ✅ USA created_at dei costi aggiuntivi per il filtro
-            if (!cost.created_at) {
-                console.log(`⚠️ Additional cost ${cost.id} has no created_at, EXCLUDING`);
-                return false;
+                const dateFrom = this.currentFilters.dateFrom ? new Date(this.currentFilters.dateFrom + 'T00:00:00') : null;
+                const dateTo = this.currentFilters.dateTo ? new Date(this.currentFilters.dateTo + 'T23:59:59') : null;
+                
+                console.log('📅 Applying date filters to shipments and items:', { dateFrom, dateTo });
+                
+                // Filtra spedizioni per data di partenza
+                rawShipments = rawShipments.filter(shipment => {
+                    const departureDate = new Date(this.getShipmentDepartureDate(shipment) || shipment.created_at);
+                    
+                    if (dateFrom && departureDate < dateFrom) {
+                        console.log(`📅 Filtered OUT shipment ${shipment.id}: departure ${departureDate.toISOString().split('T')[0]} < ${this.currentFilters.dateFrom}`);
+                        return false;
+                    }
+                    
+                    if (dateTo && departureDate > dateTo) {
+                        console.log(`📅 Filtered OUT shipment ${shipment.id}: departure ${departureDate.toISOString().split('T')[0]} > ${this.currentFilters.dateTo}`);
+                        return false;
+                    }
+                    
+                    return true;
+                });
+                
+                // ✅ FILTRA ANCHE SHIPMENT_ITEMS BASANDOSI SULLE SPEDIZIONI FILTRATE
+                const filteredShipmentIds = new Set(rawShipments.map(s => s.id));
+                rawShipmentItems = rawShipmentItems.filter(item => {
+                    const keep = filteredShipmentIds.has(item.shipment_id);
+                    if (!keep) {
+                        console.log(`📅 Item filtered OUT: ${item.id} (shipment ${item.shipment_id} not in date range)`);
+                    }
+                    return keep;
+                });
+                
+                console.log('✅ Date filtering complete:', rawShipments.length, 'shipments kept,', rawShipmentItems.length, 'items kept');
             }
             
-            const costDate = new Date(cost.created_at);
-            const dateStr = costDate.toISOString().split('T')[0];
-            
-            // Verifica range
-            if (this.currentFilters.dateFrom && dateStr < this.currentFilters.dateFrom) {
-                console.log(`📅 Cost filtered OUT: ${cost.id} date ${dateStr} < ${this.currentFilters.dateFrom}`);
-                return false;
+            // ✅ FILTRA ANCHE ADDITIONAL COSTS PER DATA
+            let filteredAdditionalCosts = this.extractData(costsResult, 'additional_costs');
+            if (this.currentFilters.dateFrom || this.currentFilters.dateTo) {
+                const dateFrom = this.currentFilters.dateFrom ? new Date(this.currentFilters.dateFrom + 'T00:00:00') : null;
+                const dateTo = this.currentFilters.dateTo ? new Date(this.currentFilters.dateTo + 'T23:59:59') : null;
+                
+                filteredAdditionalCosts = filteredAdditionalCosts.filter(cost => {
+                    const costDate = new Date(cost.date || cost.created_at);
+                    
+                    if (dateFrom && costDate < dateFrom) {
+                        console.log(`📅 Cost filtered OUT: ${cost.id} date ${costDate.toISOString().split('T')[0]} < ${this.currentFilters.dateFrom}`);
+                        return false;
+                    }
+                    
+                    if (dateTo && costDate > dateTo) {
+                        console.log(`📅 Cost filtered OUT: ${cost.id} date ${costDate.toISOString().split('T')[0]} > ${this.currentFilters.dateTo}`);
+                        return false;
+                    }
+                    
+                    return true;
+                });
+                
+                console.log('✅ Additional costs filtering:', filteredAdditionalCosts.length, 'kept,', (this.extractData(costsResult, 'additional_costs').length - filteredAdditionalCosts.length), 'filtered out');
             }
             
-            if (this.currentFilters.dateTo && dateStr > this.currentFilters.dateTo) {
-                console.log(`📅 Cost filtered OUT: ${cost.id} date ${dateStr} > ${this.currentFilters.dateTo}`);
-                return false;
-            }
+            // ✅ AGGIORNA L'OGGETTO rawData CON I DATI CORRETTI
+            this.rawData = {
+                shipments: rawShipments,
+                trackings: this.extractData(trackingsResult, 'trackings'),
+                additionalCosts: filteredAdditionalCosts,
+                carriers: this.extractData(carriersResult, 'carriers'),
+                shipmentItems: rawShipmentItems, // ✅ NUOVO CAMPO
+                loadedAt: new Date().toISOString()
+            };
             
-            console.log(`📅 Cost filtered IN: ${cost.id} date ${dateStr} in range`);
-            return true;
-        });
-        
-        console.log(`✅ Additional costs filtering: ${filteredAdditionalCosts.length} kept, ${initialCostsCount - filteredAdditionalCosts.length} filtered out`);
-    }
-    
-    // ✅ AGGIORNA L'OGGETTO rawData CON I COSTI FILTRATI
-    this.rawData = {
-        shipments: rawShipments,
-        trackings: this.extractData(trackingsResult, 'trackings'),
-        additionalCosts: filteredAdditionalCosts, // ✅ USA I COSTI FILTRATI
-        carriers: this.extractData(carriersResult, 'carriers'),
-        loadedAt: new Date().toISOString()
-    };
-    console.log(`✅ Date filtering complete: ${keptCount} kept, ${filteredCount} filtered out`);
-}
-            
-            console.log('✅ Raw data loaded with DEPARTURE-based date filters:', {
+            console.log('✅ Raw data loaded with STRUCTURED ITEMS:', {
                 shipments: this.rawData.shipments.length,
                 trackings: this.rawData.trackings.length,
                 additionalCosts: this.rawData.additionalCosts.length,
                 carriers: this.rawData.carriers.length,
+                shipmentItems: this.rawData.shipmentItems.length, // ✅ NUOVO
                 dateRange: this.currentFilters.dateFrom && this.currentFilters.dateTo 
                     ? `${this.currentFilters.dateFrom} → ${this.currentFilters.dateTo}`
                     : 'Nessun filtro data',
-                // ✅ MOSTRA RANGE DATE DI PARTENZA EFFETTIVE
                 actualDateRange: this.getActualDateRange()
             });
             
@@ -2452,15 +2448,16 @@ renderTables() {
 }
 
 // ✅ 2. CALCOLA METRICHE PRODOTTI CON GUARDS
+
 calculateProductCostsMetrics() {
-    // ✅ VERIFICA CHE I DATI ESISTANO
-    if (!this.rawData || !this.rawData.shipments) {
-        console.warn('⚠️ No shipments data available for product costs');
+    // ✅ VERIFICA CHE I DATI SHIPMENT_ITEMS ESISTANO
+    if (!this.rawData || !this.rawData.shipmentItems) {
+        console.warn('⚠️ No shipment items data available for product costs');
         return [];
     }
     
-    if (!Array.isArray(this.rawData.shipments)) {
-        console.warn('⚠️ Shipments is not an array:', typeof this.rawData.shipments);
+    if (!Array.isArray(this.rawData.shipmentItems)) {
+        console.warn('⚠️ Shipment items is not an array:', typeof this.rawData.shipmentItems);
         return [];
     }
     
@@ -2472,125 +2469,133 @@ calculateProductCostsMetrics() {
     const periodDays = Math.ceil((now - currentPeriodStart) / (1000 * 60 * 60 * 24));
     const previousPeriodStart = new Date(currentPeriodStart.getTime() - (periodDays * 24 * 60 * 60 * 1000));
     
-    console.log('📊 Calculating product costs metrics:', {
+    console.log('📊 Calculating product costs from shipment_items:', {
         currentPeriod: `${currentPeriodStart.toISOString().split('T')[0]} → ${now.toISOString().split('T')[0]}`,
         previousPeriod: `${previousPeriodStart.toISOString().split('T')[0]} → ${currentPeriodStart.toISOString().split('T')[0]}`,
         periodDays: periodDays,
-        shipmentsCount: this.rawData.shipments.length
+        shipmentItemsCount: this.rawData.shipmentItems.length
     });
     
     try {
-        // ✅ ITERA CON PROTEZIONE
-        this.rawData.shipments.forEach((shipment, index) => {
-            if (!shipment) {
-                console.warn(`⚠️ Shipment at index ${index} is null/undefined`);
+        // ✅ ITERA ATTRAVERSO GLI SHIPMENT_ITEMS (NON LE SPEDIZIONI!)
+        this.rawData.shipmentItems.forEach((shipmentItem, index) => {
+            if (!shipmentItem) {
+                console.warn(`⚠️ Shipment item at index ${index} is null/undefined`);
                 return;
             }
             
+            // ✅ USA I DATI STRUTTURATI DALLA TABELLA
+            const product = shipmentItem.product;
+            const shipment = shipmentItem.shipment;
+            
+            if (!product || !shipment) {
+                console.warn(`⚠️ Missing product or shipment data for item ${shipmentItem.id}`);
+                return;
+            }
+            
+            // ✅ USA DATA SPEDIZIONE PER PERIODO
             const shipmentDate = new Date(this.getShipmentDepartureDate(shipment) || shipment.created_at);
             
-            // ✅ ESTRAI PRODOTTI CON PROTEZIONE
-            const products = this.extractProductsFromShipment(shipment);
+            // ✅ CHIAVE PRODOTTO: USA SKU + NOME
+            const productKey = `${product.sku || 'NO_SKU'}_${product.name || product.description || 'NO_NAME'}`;
             
-            if (!Array.isArray(products)) {
-                console.warn(`⚠️ Products not an array for shipment ${shipment.id}:`, products);
-                return;
+            if (!productMetrics.has(productKey)) {
+                productMetrics.set(productKey, {
+                    code: product.sku || 'N/A',
+                    description: product.name || product.description || 'Prodotto senza nome',
+                    // Periodo attuale
+                    currentPeriod: {
+                        totalCost: 0,
+                        totalQuantity: 0,
+                        totalTransportCost: 0,
+                        shipmentCount: 0,
+                        shipments: []
+                    },
+                    // Periodo precedente
+                    previousPeriod: {
+                        totalCost: 0,
+                        totalQuantity: 0,
+                        totalTransportCost: 0,
+                        shipmentCount: 0,
+                        shipments: []
+                    },
+                    // Totale generale
+                    allTime: {
+                        totalCost: 0,
+                        totalQuantity: 0,
+                        totalTransportCost: 0,
+                        shipmentCount: 0,
+                        shipments: []
+                    }
+                });
             }
             
-            products.forEach(product => {
-                if (!product) return; // Skip prodotti null
-                
-                if (!product.code && !product.description) return; // Skip prodotti vuoti
-                
-                const productKey = `${product.code || 'NO_CODE'}_${product.description || 'NO_DESC'}`;
-                
-                if (!productMetrics.has(productKey)) {
-                    productMetrics.set(productKey, {
-                        code: product.code || 'N/A',
-                        description: product.description || 'Prodotto senza descrizione',
-                        // Periodo attuale
-                        currentPeriod: {
-                            totalCost: 0,
-                            totalQuantity: 0,
-                            totalTransportCost: 0,
-                            shipmentCount: 0,
-                            shipments: []
-                        },
-                        // Periodo precedente
-                        previousPeriod: {
-                            totalCost: 0,
-                            totalQuantity: 0,
-                            totalTransportCost: 0,
-                            shipmentCount: 0,
-                            shipments: []
-                        },
-                        // Totale generale
-                        allTime: {
-                            totalCost: 0,
-                            totalQuantity: 0,
-                            totalTransportCost: 0,
-                            shipmentCount: 0,
-                            shipments: []
-                        }
-                    });
-                }
-                
-                const metrics = productMetrics.get(productKey);
-                const productCost = parseFloat(product.cost) || parseFloat(product.value) || parseFloat(product.price) || 0;
-                const quantity = parseFloat(product.quantity) || 1;
-                
-                // Calcola costo trasporto proporzionale
-                const shipmentTransportCost = (parseFloat(shipment.freight_cost) || 0) + 
-                                            (parseFloat(shipment.other_costs) || 0);
-                const shipmentTotalProducts = products.length;
-                const transportCostPerProduct = shipmentTransportCost / Math.max(shipmentTotalProducts, 1);
-                
-                // ✅ DATI SPEDIZIONE PER HISTORY
-                const shipmentData = {
-                    shipmentId: shipment.id,
-                    date: shipmentDate.toISOString(),
-                    quantity: quantity,
-                    unitCost: productCost,
-                    totalCost: productCost * quantity,
-                    transportCost: transportCostPerProduct,
-                    carrier: shipment.carrier_name || 'N/A',
-                    origin: this.getOriginDestination(shipment, 'origin'),
-                    destination: this.getOriginDestination(shipment, 'destination'),
-                    trackingNumber: shipment.tracking_number || 'N/A'
-                };
-                
-                // ✅ CLASSIFICA PER PERIODO
-                if (shipmentDate >= currentPeriodStart) {
-                    // Periodo attuale
-                    metrics.currentPeriod.totalCost += productCost * quantity;
-                    metrics.currentPeriod.totalQuantity += quantity;
-                    metrics.currentPeriod.totalTransportCost += transportCostPerProduct;
-                    metrics.currentPeriod.shipmentCount++;
-                    metrics.currentPeriod.shipments.push(shipmentData);
-                } else if (shipmentDate >= previousPeriodStart && shipmentDate < currentPeriodStart) {
-                    // Periodo precedente
-                    metrics.previousPeriod.totalCost += productCost * quantity;
-                    metrics.previousPeriod.totalQuantity += quantity;
-                    metrics.previousPeriod.totalTransportCost += transportCostPerProduct;
-                    metrics.previousPeriod.shipmentCount++;
-                    metrics.previousPeriod.shipments.push(shipmentData);
-                }
-                
-                // Totale generale
-                metrics.allTime.totalCost += productCost * quantity;
-                metrics.allTime.totalQuantity += quantity;
-                metrics.allTime.totalTransportCost += transportCostPerProduct;
-                metrics.allTime.shipmentCount++;
-                metrics.allTime.shipments.push(shipmentData);
-            });
+            const metrics = productMetrics.get(productKey);
+            
+            // ✅ USA I COSTI DALLA TABELLA SHIPMENT_ITEMS
+            const unitCost = parseFloat(shipmentItem.unit_cost) || 0;
+            const totalCost = parseFloat(shipmentItem.total_cost) || (unitCost * (shipmentItem.quantity || 1));
+            const quantity = parseFloat(shipmentItem.quantity) || 1;
+            const dutyAmount = parseFloat(shipmentItem.duty_amount) || 0;
+            
+            // ✅ CALCOLA COSTO TRASPORTO PROPORZIONALE DALLA SPEDIZIONE
+            const shipmentTransportCost = (parseFloat(shipment.freight_cost) || 0) + 
+                                        (parseFloat(shipment.other_costs) || 0);
+            
+            // Trova tutti gli items di questa spedizione per calcolare proporzione
+            const shipmentItemsCount = this.rawData.shipmentItems.filter(item => 
+                item.shipment_id === shipment.id
+            ).length;
+            
+            const transportCostPerProduct = shipmentTransportCost / Math.max(shipmentItemsCount, 1);
+            
+            // ✅ DATI SPEDIZIONE PER HISTORY
+            const shipmentData = {
+                shipmentId: shipment.id,
+                itemId: shipmentItem.id,
+                date: shipmentDate.toISOString(),
+                quantity: quantity,
+                unitCost: unitCost,
+                totalCost: totalCost,
+                dutyAmount: dutyAmount,
+                transportCost: transportCostPerProduct,
+                carrier: shipment.carrier_name || 'N/A',
+                origin: this.getOriginDestination(shipment, 'origin'),
+                destination: this.getOriginDestination(shipment, 'destination'),
+                trackingNumber: shipment.tracking_number || 'N/A'
+            };
+            
+            // ✅ CLASSIFICA PER PERIODO
+            if (shipmentDate >= currentPeriodStart) {
+                // Periodo attuale
+                metrics.currentPeriod.totalCost += totalCost;
+                metrics.currentPeriod.totalQuantity += quantity;
+                metrics.currentPeriod.totalTransportCost += transportCostPerProduct;
+                metrics.currentPeriod.shipmentCount++;
+                metrics.currentPeriod.shipments.push(shipmentData);
+            } else if (shipmentDate >= previousPeriodStart && shipmentDate < currentPeriodStart) {
+                // Periodo precedente
+                metrics.previousPeriod.totalCost += totalCost;
+                metrics.previousPeriod.totalQuantity += quantity;
+                metrics.previousPeriod.totalTransportCost += transportCostPerProduct;
+                metrics.previousPeriod.shipmentCount++;
+                metrics.previousPeriod.shipments.push(shipmentData);
+            }
+            
+            // Totale generale
+            metrics.allTime.totalCost += totalCost;
+            metrics.allTime.totalQuantity += quantity;
+            metrics.allTime.totalTransportCost += transportCostPerProduct;
+            metrics.allTime.shipmentCount++;
+            metrics.allTime.shipments.push(shipmentData);
         });
         
     } catch (error) {
-        console.error('❌ Error processing shipments for product costs:', error);
+        console.error('❌ Error processing shipment items for product costs:', error);
         return [];
     }
     
-    // ✅ CALCOLA MEDIE E TENDENZE CON PROTEZIONE
+    // ✅ CALCOLA MEDIE E TENDENZE
     const productsArray = Array.from(productMetrics.values()).map(product => {
         // Calcola medie periodo attuale
         const currentAvgCost = product.currentPeriod.totalQuantity > 0 
@@ -2628,7 +2633,7 @@ calculateProductCostsMetrics() {
         };
     });
     
-    console.log('📊 Product costs calculated:', productsArray.length, 'products');
+    console.log('📊 Product costs calculated from shipment_items:', productsArray.length, 'products');
     return productsArray.sort((a, b) => b.totalShipments - a.totalShipments);
 }
 
