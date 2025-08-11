@@ -3234,6 +3234,28 @@ addProductTableStyles() {
             background-color: transparent !important; /* ✅ FORZA TRASPARENTE IN HOVER */
         }
         
+        /* ✅ RIMUOVI HOVER DALL'HEADER - COME LE ALTRE TABELLE */
+        #productCostsTable thead th:hover {
+            background-color: #f8f9fa !important; /* ✅ MANTIENI STESSO COLORE */
+            cursor: default !important; /* ✅ RIMUOVI POINTER */
+        }
+        
+        #productCostsTable tbody tr:hover {
+            background-color: rgba(0, 123, 255, 0.05) !important;
+        }
+        
+        #productCostsTable tbody tr:hover td {
+            background-color: transparent !important;
+        }
+        
+        /* ✅ DARK MODE - RIMUOVI HOVER DALL'HEADER */
+        [data-bs-theme="dark"] #productCostsTable thead th:hover,
+        @media (prefers-color-scheme: dark) {
+            #productCostsTable thead th:hover {
+                background-color: #343a40 !important; /* ✅ MANTIENI STESSO COLORE DARK */
+                cursor: default !important;
+            }
+        }
         /* ✅ BADGE STYLING */
         #productCostsTable .badge {
             font-size: 0.75rem;
