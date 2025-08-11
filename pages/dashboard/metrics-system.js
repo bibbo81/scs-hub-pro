@@ -352,7 +352,7 @@ getShipmentDepartureDate(shipment) {
         }
     }
 
-    // ✅ CALCOLA TUTTE LE METRICHE
+        // ✅ CALCOLA TUTTE LE METRICHE
     async calculateAllMetrics() {
         console.log('🔢 Calculating all metrics...');
         
@@ -370,12 +370,12 @@ getShipmentDepartureDate(shipment) {
                 }
             });
             
-            // ✅ AGGIUNGI NUOVA METRICA
+            // ✅ AGGIUNGI NUOVA METRICA - CORREZIONE
             const advancedMetrics = {
                 trends: this.calculateTrends(),
                 transportModes: this.calculateTransportModes(),
-                carriersPerformance: this.calculateCarriersPerformance(),
-                carriersDBPerformance: this.calculateCarriersDBPerformance(), // ✅ NUOVA
+                carriersPerformance: this.calculateCarriersPerformanceOld(), // ✅ USA QUELLA VECCHIA PER LE TABELLE
+                carriersDBPerformance: this.calculateCarriersDBPerformance(),
                 geographicalData: this.calculateGeographicalData()
             };
             
@@ -725,8 +725,8 @@ determineShipmentMode(shipment, trackings) {
     }
 
         // ✅ CALCOLA PERFORMANCE CARRIERS - VERSIONE AGGIORNATA CON TENDENZA
-    calculateCarriersPerformance() {
-        const performance = {};
+        calculateCarriersPerformanceOld() {
+            const performance = {};
         
         // Calcola date per tendenza (periodo attuale vs precedente)
         const now = new Date();
@@ -1343,8 +1343,7 @@ renderCarriersPerformanceChart() {
     const isDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches;
     
     // Calcola performance spedizionieri
-    const carriersData = this.calculateCarriersPerformance();
-    
+    const carriersData = this.calculateCarriersPerformanceChart();    
     const chart = new Chart(ctx, {
         type: 'bar',
         data: {
@@ -1643,7 +1642,36 @@ calculateTransitTimesByMode() {
         avgDays: modesArray.map(m => m.avgDays)
     };
 }
-
+// ✅ CALCOLA PERFORMANCE SPEDIZIONIERI PER GRAFICI
+calculateCarriersPerformanceChart() {
+    const carriersMap = new Map();
+    
+    // Raggruppa per spedizioniere
+    this.rawData.shipments.forEach(shipment => {
+        const carrierName = shipment.carrier_name || 'Non specificato';
+        
+        if (!carriersMap.has(carrierName)) {
+            carriersMap.set(carrierName, {
+                name: carrierName,
+                shipments: 0
+            });
+        }
+        
+        carriersMap.get(carrierName).shipments++;
+    });
+    
+    // Converti in array e ordina per numero spedizioni
+    const carriersArray = Array.from(carriersMap.values())
+        .sort((a, b) => b.shipments - a.shipments)
+        .slice(0, 10); // Top 10
+    
+    console.log('📊 Carriers performance for chart calculated:', carriersArray);
+    
+    return {
+        labels: carriersArray.map(c => c.name),
+        shipments: carriersArray.map(c => c.shipments)
+    };
+}
 // ✅ CALCOLA GIORNI DI TRANSITO PER SINGOLA SPEDIZIONE
 calculateShipmentTransitDays(shipment) {
     const tracking = this.rawData.trackings?.find(t => t.shipment_id === shipment.id);
