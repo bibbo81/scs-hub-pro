@@ -619,34 +619,7 @@ getShipmentDepartureDate(shipment) {
         
         return true;
     }
-// ✅ OTTIENI DATA DI PARTENZA EFFETTIVA DELLA SPEDIZIONE
-getShipmentDepartureDate(shipment) {
-    // ✅ PRIORITÀ: Date di partenza reali prima di created_at
-    const dateFields = [
-        'departure_date',     // Data partenza effettiva
-        'etd',               // Estimated Time of Departure
-        'sailing_date',      // Data navigazione (mare)
-        'flight_date',       // Data volo (aereo)
-        'pickup_date',       // Data ritiro (corriere)
-        'shipment_date',     // Data spedizione generica
-        'actual_departure',  // Partenza effettiva
-        'created_at'         // Fallback su data creazione
-    ];
-    
-    // Trova la prima data valida
-    for (const field of dateFields) {
-        if (shipment[field]) {
-            const date = new Date(shipment[field]);
-            if (!isNaN(date.getTime())) {
-                console.log(`📅 Using ${field} for shipment ${shipment.id}: ${date.toISOString().split('T')[0]}`);
-                return shipment[field];
-            }
-        }
-    }
-    
-    console.warn(`⚠️ No valid departure date found for shipment ${shipment.id}`);
-    return null;
-}
+
     // ✅ ESTRAI DATI DA RISULTATI PROMISE
     extractData(result, name) {
         if (result.status === 'fulfilled' && result.value.data && !result.value.error) {
