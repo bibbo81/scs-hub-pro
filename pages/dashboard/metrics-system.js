@@ -344,143 +344,95 @@ class UnifiedMetricsSystem {
         
         return `${earliest} → ${latest}`;
     }
-    // ✅ ESTRAI DATI DA RISULTATI QUERY    
+    // ✅ ESTRAI DATI DA RISULTATI QUERY        
     getShipmentDepartureDate(shipment) {
-        // 🎯 PRIORITÀ 1: Cerca nei metadata del tracking SHIPSGO V2
+        console.log(`🔍 Processing departure date for shipment ${shipment.id}`);
+        
+        // 🎯 PRIORITÀ 1: Usa la STESSA LOGICA di calculateDeliveryDays per estrarre il PRIMO movimento
         const tracking = this.rawData.trackings?.find(t => 
             t.shipment_id === shipment.id || 
             t.tracking_number === shipment.tracking_number ||
             t.tracking_number === shipment.tracking_code
         );
         
-        if (tracking?.metadata?.raw) {
-            try {
-                const raw = tracking.metadata.raw;
-                
-                console.log(`🔍 Processing ShipsGo v2 metadata for shipment ${shipment.id}:`, {
-                    hasShipment: !!raw.shipment,
-                    hasShipments: !!raw.shipments,
-                    trackingType: tracking.tracking_type
-                });
-                
-                // ✅ AEREO - ARRAY SHIPMENTS (AWB)
-                if (raw.shipments && Array.isArray(raw.shipments) && raw.shipments.length > 0) {
-                    const shipmentData = raw.shipments[0];
-                    
-                    // Cerca date_of_dep nella route.origin
-                    if (shipmentData.route?.origin?.date_of_dep) {
-                        console.log(`✈️ Found AWB departure date: ${shipmentData.route.origin.date_of_dep}`);
-                        return shipmentData.route.origin.date_of_dep;
-                    }
-                    
-                    // Fallback: data di creazione del tracking
-                    if (shipmentData.created_at) {
-                        console.log(`✈️ Using AWB created_at: ${shipmentData.created_at}`);
-                        return shipmentData.created_at;
-                    }
+        if (!tracking || !tracking.metadata) {
+            console.log(`⚠️ No tracking or metadata found for shipment ${shipment.id}`);
+            return this.getFallbackDepartureDate(shipment);
+        }
+        
+        try {
+            let movements = [];
+            let firstMovementDate = null;
+            
+            // ✅ ESTRAI MOVEMENTS DA METADATA - STESSA LOGICA DI calculateDeliveryDays
+            if (tracking.metadata.raw && tracking.metadata.raw.shipment && tracking.metadata.raw.shipment.containers) {
+                // Tipo Container: movimenti nei containers
+                const container = tracking.metadata.raw.shipment.containers[0];
+                if (container && container.movements) {
+                    movements = container.movements;
+                    console.log(`📦 Container movements trovati: ${movements.length} eventi`);
                 }
-                
-                // ✅ MARE - SINGLE SHIPMENT (CONTAINER)
-                if (raw.shipment) {
-                    const shipmentData = raw.shipment;
-                    
-                    // 🎯 PRIORITÀ 1: Date_of_loading dalla route
-                    if (shipmentData.route?.port_of_loading?.date_of_loading) {
-                        console.log(`🚢 Found container loading date: ${shipmentData.route.port_of_loading.date_of_loading}`);
-                        return shipmentData.route.port_of_loading.date_of_loading;
-                    }
-                    
-                    // 🎯 PRIORITÀ 2: Primo movimento container con timestamp
-                    if (shipmentData.containers?.[0]?.movements) {
-                        const movements = shipmentData.containers[0].movements;
-                        console.log(`📦 Found ${movements.length} container movements`);
-                        
-                        // Trova primo movimento con timestamp (ordina per sicurezza)
-                        const firstMovement = movements
-                            .filter(m => m.timestamp && m.status === 'ACT') // Solo movimenti confermati
-                            .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp))[0];
-                        
-                        if (firstMovement?.timestamp) {
-                            console.log(`🚢 Using first container movement: ${firstMovement.timestamp}`);
-                            console.log(`   Event: ${firstMovement.event} at ${firstMovement.location?.name}`);
-                            return firstMovement.timestamp;
-                        }
-                    }
-                    
-                    // 🎯 PRIORITÀ 3: Data creazione shipment
-                    if (shipmentData.created_at) {
-                        console.log(`🚢 Using container created_at: ${shipmentData.created_at}`);
-                        return shipmentData.created_at;
-                    }
-                }
-                
-            } catch (error) {
-                console.error(`❌ Error parsing ShipsGo v2 metadata for ${shipment.id}:`, error);
+            } else if (tracking.metadata.raw && tracking.metadata.raw.movements) {
+                // Tipo AWB: movimenti diretti
+                movements = tracking.metadata.raw.movements;
+                console.log(`✈️ AWB movements trovati: ${movements.length} eventi`);
+            } else if (tracking.metadata.mapped && tracking.metadata.mapped._raw_api_response && tracking.metadata.mapped._raw_api_response.movements) {
+                // Tipo AWB alternativo
+                movements = tracking.metadata.mapped._raw_api_response.movements;
+                console.log(`✈️ AWB mapped movements trovati: ${movements.length} eventi`);
             }
-        } else {
-            console.log(`⚠️ No ShipsGo v2 metadata found for shipment ${shipment.id}`);
+            
+            if (movements.length === 0) {
+                console.log(`❌ Nessun movimento trovato nel metadata per ${shipment.id}`);
+                return this.getFallbackDepartureDate(shipment);
+            }
+            
+            // ✅ TROVA IL PRIMO MOVIMENTO (DEPARTURE DATE)
+            const sortedMovements = movements
+                .filter(m => m.timestamp || m.date)
+                .sort((a, b) => {
+                    const dateA = new Date(a.timestamp || a.date);
+                    const dateB = new Date(b.timestamp || b.date);
+                    return dateA - dateB;
+                });
+            
+            if (sortedMovements.length === 0) {
+                console.log(`⚠️ Nessun movimento con timestamp valido per ${shipment.id}`);
+                return this.getFallbackDepartureDate(shipment);
+            }
+            
+            const firstMovement = sortedMovements[0];
+            firstMovementDate = new Date(firstMovement.timestamp || firstMovement.date);
+            
+            // ✅ VERIFICA DATE VALIDE
+            if (isNaN(firstMovementDate.getTime())) {
+                console.log(`❌ Data primo movimento non valida per ${shipment.id}`);
+                return this.getFallbackDepartureDate(shipment);
+            }
+            
+            console.log(`✅ DEPARTURE from metadata: ${firstMovementDate.toISOString()}`);
+            console.log(`   First event: ${firstMovement.event || 'N/A'} at ${firstMovement.location?.name || firstMovement.location || 'N/A'}`);
+            
+            return firstMovementDate.toISOString();
+            
+        } catch (error) {
+            console.error(`❌ Error parsing metadata for departure date ${shipment.id}:`, error);
+            return this.getFallbackDepartureDate(shipment);
         }
+    }
+    
+    // ✅ AGGIUNGI QUESTA NUOVA FUNZIONE DI FALLBACK
+    getFallbackDepartureDate(shipment) {
+        // 🎯 PRIORITÀ 2: Cerca campi data diretti nella spedizione
+        const dateFields = [
+            'departure_date', 'date_of_departure', 'shipped_date', 'etd', 
+            'date_of_loading', 'sailing_date', 'flight_date', 'pickup_date',
+            'shipment_date', 'actual_departure'
+        ];
         
-        // 🎯 PRIORITÀ 2: Determina tipo spedizione e cerca campi appropriati
-        const shipmentType = this.determineShipmentMode(shipment, this.rawData.trackings);
-        
-        let dateFields = [];
-        
-        switch (shipmentType) {
-            case 'sea':
-                // ✅ PER MARE: date_of_loading ha priorità su date_of_departure
-                dateFields = [
-                    'date_of_loading',      // ✅ PRIORITÀ 1 per mare
-                    'sailing_date',         
-                    'etd',                  
-                    'date_of_departure',    // ✅ PRIORITÀ BASSA per mare
-                    'departure_date',
-                    'shipped_date'
-                ];
-                console.log(`🚢 Using SEA date fields priority for ${shipment.id}`);
-                break;
-                
-            case 'air':
-                // ✅ PER AEREO: date_of_departure ha priorità
-                dateFields = [
-                    'date_of_departure',    // ✅ PRIORITÀ 1 per aereo
-                    'flight_date',          
-                    'etd',                  
-                    'departure_date',       
-                    'shipped_date',
-                    'date_of_loading'       // ✅ PRIORITÀ BASSA per aereo
-                ];
-                console.log(`✈️ Using AIR date fields priority for ${shipment.id}`);
-                break;
-                
-            case 'parcel':
-                // ✅ PER CORRIERE: pickup_date/shipped_date priorità
-                dateFields = [
-                    'pickup_date',
-                    'shipped_date',
-                    'departure_date',
-                    'date_of_departure',
-                    'collection_date'
-                ];
-                console.log(`📦 Using PARCEL date fields priority for ${shipment.id}`);
-                break;
-                
-            default: // road
-                // ✅ PER STRADALE: departure_date generico
-                dateFields = [
-                    'departure_date',
-                    'pickup_date',
-                    'date_of_departure',
-                    'shipped_date',
-                    'loading_date'
-                ];
-                console.log(`🚛 Using ROAD date fields priority for ${shipment.id}`);
-        }
-        
-        // Cerca nei campi appropriati per il tipo
         for (const field of dateFields) {
             if (shipment[field]) {
-                console.log(`📅 Using ${field} for ${shipmentType} shipment ${shipment.id}: ${shipment[field]}`);
+                console.log(`📅 Using direct field ${field}: ${shipment[field]}`);
                 return shipment[field];
             }
         }
@@ -496,7 +448,7 @@ class UnifiedMetricsSystem {
         
         baseDate.setDate(baseDate.getDate() + offset);
         
-        console.log(`⚠️ FALLBACK for ${shipmentType} shipment ${shipment.id}: ${baseDate.toISOString().split('T')[0]} (offset: ${offset} days)`);
+        console.log(`⚠️ FALLBACK with offset for ${shipment.id}: ${baseDate.toISOString().split('T')[0]} (offset: ${offset} days)`);
         return baseDate.toISOString();
     }
     initializeDateFilters() {
