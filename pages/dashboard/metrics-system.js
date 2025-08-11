@@ -2439,21 +2439,31 @@ getChartOptions(isDarkMode = false) {
     };
 }
         // ✅ RENDERIZZA TABELLE
-    renderTables() {
-        this.renderCarriersTable();
-        this.renderCarriersDBPerformanceTable(); // ✅ AGGIUNGI QUESTA RIGA
-    }
-// AGGIUNGI QUESTI METODI ALLA CLASSE UnifiedMetricsSystem (dopo renderTables())
 
-// ✅ 1. AGGIORNA RENDERIZZA TABELLE PER INCLUDERE COSTI
+// ✅ 1. RENDERIZZA TABELLE CON GUARD
 renderTables() {
-    this.renderCarriersTable();
-    this.renderCarriersDBPerformanceTable();
-    this.renderProductCostsTable(); // ✅ NUOVA TABELLA COSTI PRODOTTI
+    try {
+        this.renderCarriersTable();
+        this.renderCarriersDBPerformanceTable();
+        this.renderProductCostsTable(); // ✅ PROTETTA DA TRY/CATCH
+    } catch (error) {
+        console.error('❌ Error rendering tables:', error);
+    }
 }
 
-// ✅ 2. CALCOLA METRICHE COSTI PRODOTTI AVANZATE
+// ✅ 2. CALCOLA METRICHE PRODOTTI CON GUARDS
 calculateProductCostsMetrics() {
+    // ✅ VERIFICA CHE I DATI ESISTANO
+    if (!this.rawData || !this.rawData.shipments) {
+        console.warn('⚠️ No shipments data available for product costs');
+        return [];
+    }
+    
+    if (!Array.isArray(this.rawData.shipments)) {
+        console.warn('⚠️ Shipments is not an array:', typeof this.rawData.shipments);
+        return [];
+    }
+    
     const productMetrics = new Map();
     
     // Calcola periodo attuale vs precedente per tendenze
@@ -2465,103 +2475,122 @@ calculateProductCostsMetrics() {
     console.log('📊 Calculating product costs metrics:', {
         currentPeriod: `${currentPeriodStart.toISOString().split('T')[0]} → ${now.toISOString().split('T')[0]}`,
         previousPeriod: `${previousPeriodStart.toISOString().split('T')[0]} → ${currentPeriodStart.toISOString().split('T')[0]}`,
-        periodDays: periodDays
+        periodDays: periodDays,
+        shipmentsCount: this.rawData.shipments.length
     });
     
-    // Itera attraverso tutte le spedizioni
-    this.rawData.shipments.forEach(shipment => {
-        const shipmentDate = new Date(this.getShipmentDepartureDate(shipment) || shipment.created_at);
-        
-        // ✅ ESTRAI PRODOTTI DA MULTIPLE FONTI
-        const products = this.extractProductsFromShipment(shipment);
-        
-        products.forEach(product => {
-            if (!product.code && !product.description) return; // Skip prodotti vuoti
+    try {
+        // ✅ ITERA CON PROTEZIONE
+        this.rawData.shipments.forEach((shipment, index) => {
+            if (!shipment) {
+                console.warn(`⚠️ Shipment at index ${index} is null/undefined`);
+                return;
+            }
             
-            const productKey = `${product.code || 'NO_CODE'}_${product.description || 'NO_DESC'}`;
+            const shipmentDate = new Date(this.getShipmentDepartureDate(shipment) || shipment.created_at);
             
-            if (!productMetrics.has(productKey)) {
-                productMetrics.set(productKey, {
-                    code: product.code || 'N/A',
-                    description: product.description || 'Prodotto senza descrizione',
+            // ✅ ESTRAI PRODOTTI CON PROTEZIONE
+            const products = this.extractProductsFromShipment(shipment);
+            
+            if (!Array.isArray(products)) {
+                console.warn(`⚠️ Products not an array for shipment ${shipment.id}:`, products);
+                return;
+            }
+            
+            products.forEach(product => {
+                if (!product) return; // Skip prodotti null
+                
+                if (!product.code && !product.description) return; // Skip prodotti vuoti
+                
+                const productKey = `${product.code || 'NO_CODE'}_${product.description || 'NO_DESC'}`;
+                
+                if (!productMetrics.has(productKey)) {
+                    productMetrics.set(productKey, {
+                        code: product.code || 'N/A',
+                        description: product.description || 'Prodotto senza descrizione',
+                        // Periodo attuale
+                        currentPeriod: {
+                            totalCost: 0,
+                            totalQuantity: 0,
+                            totalTransportCost: 0,
+                            shipmentCount: 0,
+                            shipments: []
+                        },
+                        // Periodo precedente
+                        previousPeriod: {
+                            totalCost: 0,
+                            totalQuantity: 0,
+                            totalTransportCost: 0,
+                            shipmentCount: 0,
+                            shipments: []
+                        },
+                        // Totale generale
+                        allTime: {
+                            totalCost: 0,
+                            totalQuantity: 0,
+                            totalTransportCost: 0,
+                            shipmentCount: 0,
+                            shipments: []
+                        }
+                    });
+                }
+                
+                const metrics = productMetrics.get(productKey);
+                const productCost = parseFloat(product.cost) || parseFloat(product.value) || parseFloat(product.price) || 0;
+                const quantity = parseFloat(product.quantity) || 1;
+                
+                // Calcola costo trasporto proporzionale
+                const shipmentTransportCost = (parseFloat(shipment.freight_cost) || 0) + 
+                                            (parseFloat(shipment.other_costs) || 0);
+                const shipmentTotalProducts = products.length;
+                const transportCostPerProduct = shipmentTransportCost / Math.max(shipmentTotalProducts, 1);
+                
+                // ✅ DATI SPEDIZIONE PER HISTORY
+                const shipmentData = {
+                    shipmentId: shipment.id,
+                    date: shipmentDate.toISOString(),
+                    quantity: quantity,
+                    unitCost: productCost,
+                    totalCost: productCost * quantity,
+                    transportCost: transportCostPerProduct,
+                    carrier: shipment.carrier_name || 'N/A',
+                    origin: this.getOriginDestination(shipment, 'origin'),
+                    destination: this.getOriginDestination(shipment, 'destination'),
+                    trackingNumber: shipment.tracking_number || 'N/A'
+                };
+                
+                // ✅ CLASSIFICA PER PERIODO
+                if (shipmentDate >= currentPeriodStart) {
                     // Periodo attuale
-                    currentPeriod: {
-                        totalCost: 0,
-                        totalQuantity: 0,
-                        totalTransportCost: 0,
-                        shipmentCount: 0,
-                        shipments: []
-                    },
+                    metrics.currentPeriod.totalCost += productCost * quantity;
+                    metrics.currentPeriod.totalQuantity += quantity;
+                    metrics.currentPeriod.totalTransportCost += transportCostPerProduct;
+                    metrics.currentPeriod.shipmentCount++;
+                    metrics.currentPeriod.shipments.push(shipmentData);
+                } else if (shipmentDate >= previousPeriodStart && shipmentDate < currentPeriodStart) {
                     // Periodo precedente
-                    previousPeriod: {
-                        totalCost: 0,
-                        totalQuantity: 0,
-                        totalTransportCost: 0,
-                        shipmentCount: 0,
-                        shipments: []
-                    },
-                    // Totale generale
-                    allTime: {
-                        totalCost: 0,
-                        totalQuantity: 0,
-                        totalTransportCost: 0,
-                        shipmentCount: 0,
-                        shipments: []
-                    }
-                });
-            }
-            
-            const metrics = productMetrics.get(productKey);
-            const productCost = parseFloat(product.cost) || parseFloat(product.value) || parseFloat(product.price) || 0;
-            const quantity = parseFloat(product.quantity) || 1;
-            
-            // Calcola costo trasporto proporzionale
-            const shipmentTransportCost = (parseFloat(shipment.freight_cost) || 0) + 
-                                        (parseFloat(shipment.other_costs) || 0);
-            const shipmentTotalProducts = products.length;
-            const transportCostPerProduct = shipmentTransportCost / Math.max(shipmentTotalProducts, 1);
-            
-            // ✅ DATI SPEDIZIONE PER HISTORY
-            const shipmentData = {
-                shipmentId: shipment.id,
-                date: shipmentDate.toISOString(),
-                quantity: quantity,
-                unitCost: productCost,
-                totalCost: productCost * quantity,
-                transportCost: transportCostPerProduct,
-                carrier: shipment.carrier_name || 'N/A',
-                origin: this.getOriginDestination(shipment, 'origin'),
-                destination: this.getOriginDestination(shipment, 'destination'),
-                trackingNumber: shipment.tracking_number || 'N/A'
-            };
-            
-            // ✅ CLASSIFICA PER PERIODO
-            if (shipmentDate >= currentPeriodStart) {
-                // Periodo attuale
-                metrics.currentPeriod.totalCost += productCost * quantity;
-                metrics.currentPeriod.totalQuantity += quantity;
-                metrics.currentPeriod.totalTransportCost += transportCostPerProduct;
-                metrics.currentPeriod.shipmentCount++;
-                metrics.currentPeriod.shipments.push(shipmentData);
-            } else if (shipmentDate >= previousPeriodStart && shipmentDate < currentPeriodStart) {
-                // Periodo precedente
-                metrics.previousPeriod.totalCost += productCost * quantity;
-                metrics.previousPeriod.totalQuantity += quantity;
-                metrics.previousPeriod.totalTransportCost += transportCostPerProduct;
-                metrics.previousPeriod.shipmentCount++;
-                metrics.previousPeriod.shipments.push(shipmentData);
-            }
-            
-            // Totale generale
-            metrics.allTime.totalCost += productCost * quantity;
-            metrics.allTime.totalQuantity += quantity;
-            metrics.allTime.totalTransportCost += transportCostPerProduct;
-            metrics.allTime.shipmentCount++;
-            metrics.allTime.shipments.push(shipmentData);
+                    metrics.previousPeriod.totalCost += productCost * quantity;
+                    metrics.previousPeriod.totalQuantity += quantity;
+                    metrics.previousPeriod.totalTransportCost += transportCostPerProduct;
+                    metrics.previousPeriod.shipmentCount++;
+                    metrics.previousPeriod.shipments.push(shipmentData);
+                }
+                
+                // Totale generale
+                metrics.allTime.totalCost += productCost * quantity;
+                metrics.allTime.totalQuantity += quantity;
+                metrics.allTime.totalTransportCost += transportCostPerProduct;
+                metrics.allTime.shipmentCount++;
+                metrics.allTime.shipments.push(shipmentData);
+            });
         });
-    });
+        
+    } catch (error) {
+        console.error('❌ Error processing shipments for product costs:', error);
+        return [];
+    }
     
-    // ✅ CALCOLA MEDIE E TENDENZE
+    // ✅ CALCOLA MEDIE E TENDENZE CON PROTEZIONE
     const productsArray = Array.from(productMetrics.values()).map(product => {
         // Calcola medie periodo attuale
         const currentAvgCost = product.currentPeriod.totalQuantity > 0 
@@ -2603,78 +2632,93 @@ calculateProductCostsMetrics() {
     return productsArray.sort((a, b) => b.totalShipments - a.totalShipments);
 }
 
-// ✅ 3. ESTRAI PRODOTTI DA SPEDIZIONE (MULTIPLE FONTI)
+// ✅ 3. ESTRAI PRODOTTI CON PROTEZIONE COMPLETA
 extractProductsFromShipment(shipment) {
+    if (!shipment) {
+        console.warn('⚠️ Shipment is null/undefined in extractProductsFromShipment');
+        return [];
+    }
+    
     const products = [];
     
-    // ✅ FONTE 1: Campo products (JSON)
-    if (shipment.products) {
-        try {
-            const parsedProducts = typeof shipment.products === 'string' 
-                ? JSON.parse(shipment.products) 
-                : shipment.products;
-            
-            if (Array.isArray(parsedProducts)) {
-                products.push(...parsedProducts);
-            } else if (parsedProducts && typeof parsedProducts === 'object') {
-                products.push(parsedProducts);
+    try {
+        // ✅ FONTE 1: Campo products (JSON)
+        if (shipment.products) {
+            try {
+                const parsedProducts = typeof shipment.products === 'string' 
+                    ? JSON.parse(shipment.products) 
+                    : shipment.products;
+                
+                if (Array.isArray(parsedProducts)) {
+                    products.push(...parsedProducts);
+                } else if (parsedProducts && typeof parsedProducts === 'object') {
+                    products.push(parsedProducts);
+                }
+            } catch (error) {
+                console.warn('⚠️ Error parsing products JSON:', error);
             }
-        } catch (error) {
-            console.warn('⚠️ Error parsing products JSON:', error);
         }
-    }
-    
-    // ✅ FONTE 2: Campo items (JSON)
-    if (shipment.items) {
-        try {
-            const parsedItems = typeof shipment.items === 'string' 
-                ? JSON.parse(shipment.items) 
-                : shipment.items;
-            
-            if (Array.isArray(parsedItems)) {
-                products.push(...parsedItems);
+        
+        // ✅ FONTE 2: Campo items (JSON)
+        if (shipment.items) {
+            try {
+                const parsedItems = typeof shipment.items === 'string' 
+                    ? JSON.parse(shipment.items) 
+                    : shipment.items;
+                
+                if (Array.isArray(parsedItems)) {
+                    products.push(...parsedItems);
+                }
+            } catch (error) {
+                console.warn('⚠️ Error parsing items JSON:', error);
             }
-        } catch (error) {
-            console.warn('⚠️ Error parsing items JSON:', error);
         }
+        
+        // ✅ FONTE 3: Campi diretti singoli
+        if (shipment.product_code || shipment.product_description || shipment.item_description) {
+            products.push({
+                code: shipment.product_code || shipment.item_code,
+                description: shipment.product_description || shipment.item_description || shipment.goods_description,
+                quantity: shipment.quantity || shipment.total_packages || 1,
+                cost: shipment.product_value || shipment.declared_value || shipment.goods_value,
+                weight: shipment.total_weight_kg,
+                volume: shipment.total_volume_cbm
+            });
+        }
+        
+        // ✅ FONTE 4: Goods description come fallback
+        if (products.length === 0 && shipment.goods_description) {
+            products.push({
+                code: null,
+                description: shipment.goods_description,
+                quantity: shipment.total_packages || 1,
+                cost: shipment.declared_value || 0,
+                weight: shipment.total_weight_kg,
+                volume: shipment.total_volume_cbm
+            });
+        }
+        
+    } catch (error) {
+        console.error('❌ Error in extractProductsFromShipment:', error);
+        return [];
     }
     
-    // ✅ FONTE 3: Campi diretti singoli
-    if (shipment.product_code || shipment.product_description || shipment.item_description) {
-        products.push({
-            code: shipment.product_code || shipment.item_code,
-            description: shipment.product_description || shipment.item_description || shipment.goods_description,
-            quantity: shipment.quantity || shipment.total_packages || 1,
-            cost: shipment.product_value || shipment.declared_value || shipment.goods_value,
-            weight: shipment.total_weight_kg,
-            volume: shipment.total_volume_cbm
-        });
-    }
-    
-    // ✅ FONTE 4: Goods description come fallback
-    if (products.length === 0 && shipment.goods_description) {
-        products.push({
-            code: null,
-            description: shipment.goods_description,
-            quantity: shipment.total_packages || 1,
-            cost: shipment.declared_value || 0,
-            weight: shipment.total_weight_kg,
-            volume: shipment.total_volume_cbm
-        });
-    }
-    
-    // ✅ NORMALIZZA PRODOTTI
-    return products.map(product => ({
-        code: product.code || product.product_code || product.sku || null,
-        description: product.description || product.name || product.product_name || 'Prodotto senza descrizione',
-        quantity: parseFloat(product.quantity || product.qty || 1),
-        cost: parseFloat(product.cost || product.price || product.value || product.unit_cost || 0),
-        weight: parseFloat(product.weight || 0),
-        volume: parseFloat(product.volume || 0)
-    }));
+    // ✅ NORMALIZZA PRODOTTI CON PROTEZIONE
+    return products.map(product => {
+        if (!product) return null;
+        
+        return {
+            code: product.code || product.product_code || product.sku || null,
+            description: product.description || product.name || product.product_name || 'Prodotto senza descrizione',
+            quantity: parseFloat(product.quantity || product.qty || 1),
+            cost: parseFloat(product.cost || product.price || product.value || product.unit_cost || 0),
+            weight: parseFloat(product.weight || 0),
+            volume: parseFloat(product.volume || 0)
+        };
+    }).filter(product => product !== null); // ✅ RIMUOVI PRODOTTI NULL
 }
 
-// ✅ 4. RENDERIZZA TABELLA COSTI PRODOTTI
+// ✅ 4. RENDERIZZA TABELLA CON PROTEZIONE
 renderProductCostsTable() {
     const tbody = document.getElementById('productCostsBody');
     if (!tbody) {
@@ -2682,41 +2726,59 @@ renderProductCostsTable() {
         return;
     }
     
-    const productCosts = this.calculateProductCostsMetrics();
-    
-    tbody.innerHTML = productCosts.slice(0, 50).map(product => `
-        <tr>
-            <td>
-                <div class="fw-semibold">${product.code}</div>
-                ${product.code === 'N/A' ? '<small class="text-muted">Nessun codice</small>' : ''}
-            </td>
-            <td>
-                <div class="fw-semibold">${product.description}</div>
-                <small class="text-muted">${product.totalQuantity} unità totali</small>
-            </td>
-            <td class="text-end">
-                <span class="fw-semibold">€${product.avgCost.toFixed(2)}</span>
-            </td>
-            <td class="text-end">
-                ${this.formatTrendPercentage(product.costTrend)}
-            </td>
-            <td class="text-end">
-                <span class="fw-semibold">€${product.avgTransportCost.toFixed(2)}</span>
-            </td>
-            <td class="text-end">
-                ${this.formatTrendPercentage(product.transportTrend)}
-            </td>
-            <td class="text-center">
-                <button class="btn btn-sm btn-outline-primary" 
-                        onclick="metricsSystem.viewProductAnalytics('${product.code}', '${product.description.replace(/'/g, '\\\'')}')" 
-                        title="Analisi prodotto">
-                    <i class="fas fa-chart-line"></i>
-                </button>
-            </td>
-        </tr>
-    `).join('');
-    
-    console.log('✅ Product costs table rendered with', productCosts.length, 'products');
+    try {
+        const productCosts = this.calculateProductCostsMetrics();
+        
+        // ✅ VERIFICA CHE SIA UN ARRAY
+        if (!Array.isArray(productCosts)) {
+            console.warn('⚠️ Product costs is not an array:', typeof productCosts);
+            tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted">Errore nel caricamento dati prodotti</td></tr>';
+            return;
+        }
+        
+        if (productCosts.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted">Nessun dato prodotto disponibile</td></tr>';
+            return;
+        }
+        
+        tbody.innerHTML = productCosts.slice(0, 50).map(product => `
+            <tr>
+                <td>
+                    <div class="fw-semibold">${product.code || 'N/A'}</div>
+                    ${product.code === 'N/A' ? '<small class="text-muted">Nessun codice</small>' : ''}
+                </td>
+                <td>
+                    <div class="fw-semibold">${product.description || 'N/A'}</div>
+                    <small class="text-muted">${product.totalQuantity || 0} unità totali</small>
+                </td>
+                <td class="text-end">
+                    <span class="fw-semibold">€${(product.avgCost || 0).toFixed(2)}</span>
+                </td>
+                <td class="text-end">
+                    ${this.formatTrendPercentage(product.costTrend || 0)}
+                </td>
+                <td class="text-end">
+                    <span class="fw-semibold">€${(product.avgTransportCost || 0).toFixed(2)}</span>
+                </td>
+                <td class="text-end">
+                    ${this.formatTrendPercentage(product.transportTrend || 0)}
+                </td>
+                <td class="text-center">
+                    <button class="btn btn-sm btn-outline-primary" 
+                            onclick="metricsSystem.viewProductAnalytics('${product.code || 'N/A'}', '${(product.description || 'N/A').replace(/'/g, '\\\'')}')" 
+                            title="Analisi prodotto">
+                        <i class="fas fa-chart-line"></i>
+                    </button>
+                </td>
+            </tr>
+        `).join('');
+        
+        console.log('✅ Product costs table rendered with', productCosts.length, 'products');
+        
+    } catch (error) {
+        console.error('❌ Error rendering product costs table:', error);
+        tbody.innerHTML = '<tr><td colspan="7" class="text-center text-danger">Errore nel rendering della tabella</td></tr>';
+    }
 }
 
 // ✅ 5. MOSTRA ANALYTICS PRODOTTO (MODAL DETTAGLIATA)
