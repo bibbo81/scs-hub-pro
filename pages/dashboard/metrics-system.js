@@ -3238,10 +3238,25 @@ addProductTableStyles() {
                 font-size: 0.8rem;
             }
         }
-        
-        /* ✅ STILI COLONNA QUANTITÀ */
+                
+        /* ✅ STILI COLONNA QUANTITÀ - UNIFORMATA */
         #productCostsTable .product-quantity-col {
-            background-color: rgba(13, 110, 253, 0.05);
+            background-color: transparent !important; /* ✅ RIMOSSO SFONDO COLORATO */
+        }
+        
+        /* ✅ EVIDENZIAZIONE NUMERO QUANTITÀ (invece del background) */
+        #productCostsTable .product-quantity-col .text-primary {
+            color: #0d6efd !important;
+            font-weight: 700 !important;
+        }
+        
+        /* ✅ HOVER UNIFORME PER TUTTE LE COLONNE */
+        #productCostsTable tbody tr:hover {
+            background-color: rgba(0, 123, 255, 0.05) !important;
+        }
+        
+        #productCostsTable tbody tr:hover .product-quantity-col {
+            background-color: rgba(0, 123, 255, 0.05) !important; /* ✅ STESSO HOVER DELLE ALTRE */
         }
         
         /* ✅ MIGLIORAMENTI HEADER TABELLA */
