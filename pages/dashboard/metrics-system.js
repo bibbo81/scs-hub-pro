@@ -3071,6 +3071,7 @@ renderProductCostsTable() {
         // ✅ AGGIUNGI STILI COLONNA ALLA TABELLA SE NON ESISTONO
         this.addProductTableStyles();
         
+        
         tbody.innerHTML = productCosts.slice(0, 50).map(product => `
             <tr>
                 <td class="product-code-col">
@@ -3078,8 +3079,13 @@ renderProductCostsTable() {
                     ${product.code === 'N/A' ? '<small class="text-muted">Nessun codice</small>' : ''}
                 </td>
                 <td class="product-desc-col">
-                    <div class="fw-semibold text-truncate" title="${product.description || 'N/A'}">${product.description || 'N/A'}</div>
-                    <small class="text-muted">${product.totalQuantity || 0} unità totali</small>
+                    <div class="fw-semibold product-desc-multiline" title="${product.description || 'N/A'}">
+                        ${product.description || 'N/A'}
+                    </div>
+                </td>
+                <td class="product-quantity-col text-end">
+                    <span class="fw-semibold text-primary">${(product.totalQuantity || 0).toLocaleString()}</span>
+                    <div class="small text-muted">${product.totalShipments || 0} spedizioni</div>
                 </td>
                 <td class="product-cost-col text-end">
                     <span class="fw-semibold">€${(product.avgCost || 0).toFixed(2)}</span>
@@ -3112,6 +3118,7 @@ renderProductCostsTable() {
 }
 
 // ✅ AGGIUNGI QUESTO NUOVO METODO
+
 addProductTableStyles() {
     // Verifica se gli stili sono già stati aggiunti
     if (document.getElementById('productTableStyles')) return;
@@ -3119,46 +3126,62 @@ addProductTableStyles() {
     const style = document.createElement('style');
     style.id = 'productTableStyles';
     style.textContent = `
-        /* ✅ DISTRIBUZIONE COLONNE TABELLA ANALISI COSTI PRODOTTI */
+        /* ✅ DISTRIBUZIONE COLONNE TABELLA ANALISI COSTI PRODOTTI - AGGIORNATA */
         #productCostsTable {
             table-layout: fixed;
             width: 100%;
         }
         
-        /* ✅ LARGHEZZE COLONNE BILANCIATE */
+        /* ✅ LARGHEZZE COLONNE RIBILANCIATE CON COLONNA QUANTITÀ */
         #productCostsTable .product-code-col {
+            width: 10% !important;
+            min-width: 80px;
+        }
+        
+        #productCostsTable .product-desc-col {
+            width: 28% !important;
+            min-width: 180px;
+        }
+        
+        #productCostsTable .product-quantity-col {
             width: 12% !important;
             min-width: 100px;
         }
         
-        #productCostsTable .product-desc-col {
-            width: 35% !important;
-            min-width: 200px;
-        }
-        
         #productCostsTable .product-cost-col {
-            width: 13% !important;
-            min-width: 100px;
+            width: 12% !important;
+            min-width: 90px;
         }
         
         #productCostsTable .product-trend-col {
-            width: 13% !important;
-            min-width: 110px;
-        }
-        
-        #productCostsTable .product-transport-col {
-            width: 13% !important;
+            width: 12% !important;
             min-width: 100px;
         }
         
+        #productCostsTable .product-transport-col {
+            width: 12% !important;
+            min-width: 90px;
+        }
+        
         #productCostsTable .product-transport-trend-col {
-            width: 13% !important;
-            min-width: 110px;
+            width: 12% !important;
+            min-width: 100px;
         }
         
         #productCostsTable .product-actions-col {
-            width: 8% !important;
-            min-width: 60px;
+            width: 7% !important;
+            min-width: 50px;
+        }
+        
+        /* ✅ DESCRIZIONE MULTILINEA */
+        .product-desc-multiline {
+            max-width: 100%;
+            overflow: hidden;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            line-height: 1.3;
+            max-height: 2.6em;
         }
         
         /* ✅ MIGLIORAMENTI RESPONSIVI */
@@ -3177,25 +3200,36 @@ addProductTableStyles() {
         /* ✅ RESPONSIVE PER SCHERMI PICCOLI */
         @media (max-width: 768px) {
             #productCostsTable .product-code-col {
-                width: 15% !important;
+                width: 12% !important;
             }
             
             #productCostsTable .product-desc-col {
-                width: 40% !important;
+                width: 35% !important;
+            }
+            
+            #productCostsTable .product-quantity-col {
+                width: 15% !important;
             }
             
             #productCostsTable .product-cost-col,
             #productCostsTable .product-transport-col {
-                width: 12% !important;
+                width: 10% !important;
             }
             
             #productCostsTable .product-trend-col,
             #productCostsTable .product-transport-trend-col {
-                width: 10% !important;
+                width: 8% !important;
             }
             
             #productCostsTable .product-actions-col {
-                width: 6% !important;
+                width: 5% !important;
+            }
+            
+            /* Descrizione più compatta su mobile */
+            .product-desc-multiline {
+                font-size: 0.9rem;
+                -webkit-line-clamp: 2;
+                max-height: 2.4em;
             }
             
             /* Nascondi testo trend su mobile, mostra solo icone */
@@ -3203,6 +3237,11 @@ addProductTableStyles() {
             #productCostsTable .product-transport-trend-col span {
                 font-size: 0.8rem;
             }
+        }
+        
+        /* ✅ STILI COLONNA QUANTITÀ */
+        #productCostsTable .product-quantity-col {
+            background-color: rgba(13, 110, 253, 0.05);
         }
         
         /* ✅ MIGLIORAMENTI HEADER TABELLA */
@@ -3218,15 +3257,51 @@ addProductTableStyles() {
             background-color: rgba(0, 123, 255, 0.05);
         }
         
+        #productCostsTable tbody tr:hover .product-quantity-col {
+            background-color: rgba(13, 110, 253, 0.1);
+        }
+        
         /* ✅ BADGE STYLING MIGLIORATO */
         #productCostsTable .badge {
             font-size: 0.75rem;
             padding: 0.35em 0.5em;
         }
+        
+        /* ✅ EVIDENZIAZIONE NUMERI */
+        #productCostsTable .text-primary {
+            font-weight: 600;
+        }
+            
+            /* ✅ HEADER TABELLA CON SUPPORTO DARK MODE */
+            #productCostsTable thead th {
+                background-color: #f8fafc !important;
+                color: #1e293b !important;
+                font-weight: 600;
+                font-size: 0.9rem;
+                padding: 14px 8px;
+                border-bottom: 2px solid var(--bs-border-color);
+            }
+            
+            /* ✅ DARK MODE OVERRIDE */
+            @media (prefers-color-scheme: dark) {
+                #productCostsTable thead th {
+                    background-color: #374151 !important;
+                    color: #f9fafb !important;
+                    border-bottom: 2px solid #4b5563 !important;
+                }
+                
+                #productCostsTable .product-quantity-col {
+                    background-color: rgba(59, 130, 246, 0.1) !important;
+                }
+                
+                #productCostsTable tbody tr:hover .product-quantity-col {
+                    background-color: rgba(59, 130, 246, 0.15) !important;
+                }
+            }
     `;
     
     document.head.appendChild(style);
-    console.log('✅ Product table styles added');
+    console.log('✅ Product table styles updated with quantity column');
 }
 
 // ✅ 5. MOSTRA ANALYTICS PRODOTTO (MODAL DETTAGLIATA)

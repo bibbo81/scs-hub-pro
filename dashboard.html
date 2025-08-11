@@ -1346,18 +1346,18 @@
                                     <!-- ✅ RENDI LA TABELLA RESPONSIVE -->                                    
                                     <div class="table-responsive">
                                         <!-- ✅ AGGIUNGI ID="productCostsTable" -->
-                                        <table class="table table-hover" id="productCostsTable">
-                                            <thead>
-                                                <tr>
-                                                    <th style="width: 12%;">Codice Prodotto</th>
-                                                    <th style="width: 35%;">Descrizione Prodotto</th>
-                                                    <th style="width: 13%;" class="text-end">Costo Medio Prodotto</th>
-                                                    <th style="width: 13%;" class="text-end">Tendenza Costo Prodotto %</th>
-                                                    <th style="width: 13%;" class="text-end">Costo Medio Un. Trasporto</th>
-                                                    <th style="width: 13%;" class="text-end">Tendenza Costo Trasporto %</th>
-                                                    <th style="width: 8%;" class="text-center">Azioni</th>
-                                                </tr>
-                                            </thead>
+<thead>
+        <tr>
+        <th class="product-code-col">Codice</th>
+        <th class="product-desc-col">Descrizione</th>
+        <th class="product-quantity-col text-end">Unità Totali</th>
+        <th class="product-cost-col text-end">Costo Medio</th>
+        <th class="product-trend-col text-end">Tendenza Costo</th>
+        <th class="product-transport-col text-end">Trasporto</th>
+        <th class="product-transport-trend-col text-end">Tend. Trasp.</th>
+        <th class="product-actions-col text-center">Azioni</th>
+    </tr>
+</thead>
                                             <tbody id="productCostsBody">
                                                 <!-- Dinamico via JS -->
                                             </tbody>
