@@ -2633,6 +2633,7 @@ calculateProductCostsMetrics() {
 }
 
 // ✅ 3. ESTRAI PRODOTTI CON PROTEZIONE COMPLETA
+
 extractProductsFromShipment(shipment) {
     if (!shipment) {
         console.warn('⚠️ Shipment is null/undefined in extractProductsFromShipment');
@@ -2698,6 +2699,18 @@ extractProductsFromShipment(shipment) {
             });
         }
         
+        // ✅ FONTE 5: FALLBACK COMPLETO - Crea prodotto generico dalla spedizione
+        if (products.length === 0) {
+            products.push({
+                code: 'GENERIC',
+                description: `Spedizione ${shipment.tracking_number || shipment.id}`,
+                quantity: shipment.total_packages || 1,
+                cost: shipment.declared_value || shipment.freight_cost || 0,
+                weight: shipment.total_weight_kg || 0,
+                volume: shipment.total_volume_cbm || 0
+            });
+        }
+        
     } catch (error) {
         console.error('❌ Error in extractProductsFromShipment:', error);
         return [];
@@ -2718,6 +2731,34 @@ extractProductsFromShipment(shipment) {
     }).filter(product => product !== null); // ✅ RIMUOVI PRODOTTI NULL
 }
 
+// ✅ DEBUG PRODOTTI NELLE SPEDIZIONI
+debugProductsInShipments() {
+    console.log('🔍 ANALISI PRODOTTI NELLE SPEDIZIONI:');
+    
+    this.rawData.shipments.slice(0, 5).forEach((shipment, i) => {
+        console.log(`\n${i+1}. Shipment ${shipment.id}:`);
+        console.log('   All fields:', Object.keys(shipment));
+        
+        // Cerca campi che potrebbero contenere prodotti
+        const productFields = Object.keys(shipment).filter(key => 
+            key.toLowerCase().includes('product') || 
+            key.toLowerCase().includes('item') || 
+            key.toLowerCase().includes('goods') ||
+            key.toLowerCase().includes('cargo') ||
+            key.toLowerCase().includes('merchandise')
+        );
+        
+        console.log('   Product-related fields:', productFields);
+        
+        productFields.forEach(field => {
+            console.log(`   ${field}:`, shipment[field]);
+        });
+        
+        // Test estrazione prodotti
+        const extractedProducts = this.extractProductsFromShipment(shipment);
+        console.log('   Products extracted:', extractedProducts.length, extractedProducts);
+    });
+}
 // ✅ 4. RENDERIZZA TABELLA CON PROTEZIONE
 renderProductCostsTable() {
     const tbody = document.getElementById('productCostsBody');
@@ -4444,6 +4485,47 @@ getOriginDestination(shipment, type) {
     }
     
     return 'Non specificato';
+}
+// AGGIUNGI QUESTO METODO ALLA FINE DELLA CLASSE (prima dell'ultima })
+
+// ✅ DEBUG PRODOTTI NELLE SPEDIZIONI
+debugProductsInShipments() {
+    console.log('🔍 ANALISI PRODOTTI NELLE SPEDIZIONI:');
+    
+    this.rawData.shipments.slice(0, 5).forEach((shipment, i) => {
+        console.log(`\n${i+1}. Shipment ${shipment.id}:`);
+        console.log('   All fields:', Object.keys(shipment));
+        
+        // Cerca campi che potrebbero contenere prodotti
+        const productFields = Object.keys(shipment).filter(key => 
+            key.toLowerCase().includes('product') || 
+            key.toLowerCase().includes('item') || 
+            key.toLowerCase().includes('goods') ||
+            key.toLowerCase().includes('cargo') ||
+            key.toLowerCase().includes('merchandise')
+        );
+        
+        console.log('   Product-related fields:', productFields);
+        
+        productFields.forEach(field => {
+            console.log(`   ${field}:`, shipment[field]);
+        });
+        
+        // Verifica se ci sono campi JSON
+        Object.keys(shipment).forEach(key => {
+            if (typeof shipment[key] === 'string' && (shipment[key].startsWith('[') || shipment[key].startsWith('{'))) {
+                console.log(`   JSON field ${key}:`, shipment[key].substring(0, 100) + '...');
+            }
+        });
+    });
+    
+    // Test estrazione prodotti
+    console.log('\n🧪 TEST ESTRAZIONE PRODOTTI:');
+    const firstShipment = this.rawData.shipments[0];
+    if (firstShipment) {
+        const extractedProducts = this.extractProductsFromShipment(firstShipment);
+        console.log('   Products extracted:', extractedProducts);
+    }
 }
 }
 
