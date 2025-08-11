@@ -2845,6 +2845,7 @@ debugProductsInShipments() {
     });
 }
 // ✅ 4. RENDERIZZA TABELLA CON PROTEZIONE
+
 renderProductCostsTable() {
     const tbody = document.getElementById('productCostsBody');
     if (!tbody) {
@@ -2867,29 +2868,32 @@ renderProductCostsTable() {
             return;
         }
         
+        // ✅ AGGIUNGI STILI COLONNA ALLA TABELLA SE NON ESISTONO
+        this.addProductTableStyles();
+        
         tbody.innerHTML = productCosts.slice(0, 50).map(product => `
             <tr>
-                <td>
-                    <div class="fw-semibold">${product.code || 'N/A'}</div>
+                <td class="product-code-col">
+                    <div class="fw-semibold text-truncate" title="${product.code || 'N/A'}">${product.code || 'N/A'}</div>
                     ${product.code === 'N/A' ? '<small class="text-muted">Nessun codice</small>' : ''}
                 </td>
-                <td>
-                    <div class="fw-semibold">${product.description || 'N/A'}</div>
+                <td class="product-desc-col">
+                    <div class="fw-semibold text-truncate" title="${product.description || 'N/A'}">${product.description || 'N/A'}</div>
                     <small class="text-muted">${product.totalQuantity || 0} unità totali</small>
                 </td>
-                <td class="text-end">
+                <td class="product-cost-col text-end">
                     <span class="fw-semibold">€${(product.avgCost || 0).toFixed(2)}</span>
                 </td>
-                <td class="text-end">
+                <td class="product-trend-col text-end">
                     ${this.formatTrendPercentage(product.costTrend || 0)}
                 </td>
-                <td class="text-end">
+                <td class="product-transport-col text-end">
                     <span class="fw-semibold">€${(product.avgTransportCost || 0).toFixed(2)}</span>
                 </td>
-                <td class="text-end">
+                <td class="product-transport-trend-col text-end">
                     ${this.formatTrendPercentage(product.transportTrend || 0)}
                 </td>
-                <td class="text-center">
+                <td class="product-actions-col text-center">
                     <button class="btn btn-sm btn-outline-primary" 
                             onclick="metricsSystem.viewProductAnalytics('${product.code || 'N/A'}', '${(product.description || 'N/A').replace(/'/g, '\\\'')}')" 
                             title="Analisi prodotto">
@@ -2899,12 +2903,130 @@ renderProductCostsTable() {
             </tr>
         `).join('');
         
-        console.log('✅ Product costs table rendered with', productCosts.length, 'products');
+        console.log('✅ Product costs table rendered with', productCosts.length, 'products and balanced columns');
         
     } catch (error) {
         console.error('❌ Error rendering product costs table:', error);
         tbody.innerHTML = '<tr><td colspan="7" class="text-center text-danger">Errore nel rendering della tabella</td></tr>';
     }
+}
+
+// ✅ AGGIUNGI QUESTO NUOVO METODO
+addProductTableStyles() {
+    // Verifica se gli stili sono già stati aggiunti
+    if (document.getElementById('productTableStyles')) return;
+    
+    const style = document.createElement('style');
+    style.id = 'productTableStyles';
+    style.textContent = `
+        /* ✅ DISTRIBUZIONE COLONNE TABELLA ANALISI COSTI PRODOTTI */
+        #productCostsTable {
+            table-layout: fixed;
+            width: 100%;
+        }
+        
+        /* ✅ LARGHEZZE COLONNE BILANCIATE */
+        #productCostsTable .product-code-col {
+            width: 12% !important;
+            min-width: 100px;
+        }
+        
+        #productCostsTable .product-desc-col {
+            width: 35% !important;
+            min-width: 200px;
+        }
+        
+        #productCostsTable .product-cost-col {
+            width: 13% !important;
+            min-width: 100px;
+        }
+        
+        #productCostsTable .product-trend-col {
+            width: 13% !important;
+            min-width: 110px;
+        }
+        
+        #productCostsTable .product-transport-col {
+            width: 13% !important;
+            min-width: 100px;
+        }
+        
+        #productCostsTable .product-transport-trend-col {
+            width: 13% !important;
+            min-width: 110px;
+        }
+        
+        #productCostsTable .product-actions-col {
+            width: 8% !important;
+            min-width: 60px;
+        }
+        
+        /* ✅ MIGLIORAMENTI RESPONSIVI */
+        #productCostsTable td {
+            padding: 12px 8px;
+            vertical-align: middle;
+        }
+        
+        #productCostsTable .text-truncate {
+            max-width: 100%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        
+        /* ✅ RESPONSIVE PER SCHERMI PICCOLI */
+        @media (max-width: 768px) {
+            #productCostsTable .product-code-col {
+                width: 15% !important;
+            }
+            
+            #productCostsTable .product-desc-col {
+                width: 40% !important;
+            }
+            
+            #productCostsTable .product-cost-col,
+            #productCostsTable .product-transport-col {
+                width: 12% !important;
+            }
+            
+            #productCostsTable .product-trend-col,
+            #productCostsTable .product-transport-trend-col {
+                width: 10% !important;
+            }
+            
+            #productCostsTable .product-actions-col {
+                width: 6% !important;
+            }
+            
+            /* Nascondi testo trend su mobile, mostra solo icone */
+            #productCostsTable .product-trend-col span,
+            #productCostsTable .product-transport-trend-col span {
+                font-size: 0.8rem;
+            }
+        }
+        
+        /* ✅ MIGLIORAMENTI HEADER TABELLA */
+        #productCostsTable th {
+            font-weight: 600;
+            font-size: 0.9rem;
+            padding: 14px 8px;
+            border-bottom: 2px solid var(--bs-border-color);
+        }
+        
+        /* ✅ HOVER EFFECTS */
+        #productCostsTable tbody tr:hover {
+            background-color: rgba(0, 123, 255, 0.05);
+        }
+        
+        /* ✅ BADGE STYLING MIGLIORATO */
+        #productCostsTable .badge {
+            font-size: 0.75rem;
+            padding: 0.35em 0.5em;
+        }
+    `;
+    
+    document.head.appendChild(style);
+    console.log('✅ Product table styles added');
 }
 
 // ✅ 5. MOSTRA ANALYTICS PRODOTTO (MODAL DETTAGLIATA)
