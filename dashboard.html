@@ -1346,22 +1346,23 @@
                                     <!-- ✅ RENDI LA TABELLA RESPONSIVE -->                                    
                                     <div class="table-responsive">
                                         <!-- ✅ AGGIUNGI ID="productCostsTable" -->
-<thead>
+<table class="table table-hover" id="productCostsTable">
+    <thead>
         <tr>
-        <th class="product-code-col">Codice</th>
-        <th class="product-desc-col">Descrizione</th>
-        <th class="product-quantity-col text-end">Unità Totali</th>
-        <th class="product-cost-col text-end">Costo Medio</th>
-        <th class="product-trend-col text-end">Tendenza Costo</th>
-        <th class="product-transport-col text-end">Trasporto</th>
-        <th class="product-transport-trend-col text-end">Tend. Trasp.</th>
-        <th class="product-actions-col text-center">Azioni</th>
-    </tr>
-</thead>
-                                            <tbody id="productCostsBody">
-                                                <!-- Dinamico via JS -->
-                                            </tbody>
-                                        </table>
+            <th class="product-code-col">Codice</th>
+            <th class="product-desc-col">Descrizione</th>
+            <th class="product-quantity-col text-end">Unità Totali</th>
+            <th class="product-cost-col text-end">Costo Medio</th>
+            <th class="product-trend-col text-end">Tendenza Costo</th>
+            <th class="product-transport-col text-end">Trasporto</th>
+            <th class="product-transport-trend-col text-end">Tend. Trasp.</th>
+            <th class="product-actions-col text-center">Azioni</th>
+        </tr>
+    </thead>
+    <tbody id="productCostsBody">
+        <!-- Dinamico via JS -->
+    </tbody>
+</table>
                                     </div>
                                 </div>
                             </div>
