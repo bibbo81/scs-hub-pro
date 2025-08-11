@@ -944,13 +944,325 @@ renderCharts() {
         // Nuovi charts specifici
         this.renderCarriersPerformanceChart();
         this.renderTransitTimeChart();
-        this.renderTransitTimeByModeChart();
+        
+        // ✅ GRAFICI SEPARATI PER METODO DI TRASPORTO
+        this.renderSeaTransitChart();
+        this.renderAirTransitChart();
+        this.renderRoadTransitChart();
+        this.renderParcelTransitChart();
         
         console.log('✅ All charts rendered successfully');
         
     } catch (error) {
         console.error('❌ Error rendering charts:', error);
     }
+}
+
+// ✅ AGGIUNGI QUESTI 4 NUOVI METODI DOPO IL METODO renderTransitTimeByModeChart
+
+// 🚢 GRAFICO TEMPI MARE
+renderSeaTransitChart() {
+    const ctx = document.getElementById('seaTransitChart');
+    if (!ctx) return;
+    
+    if (this.charts.has('seaTransitChart')) {
+        this.charts.get('seaTransitChart').destroy();
+    }
+    
+    const isDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    const seaData = this.calculateTransitTimesByModeDetailed('sea');
+    
+    const chart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: seaData.labels,
+            datasets: [{
+                label: 'Giorni',
+                data: seaData.avgDays,
+                backgroundColor: 'rgba(6, 182, 212, 0.7)',
+                borderColor: '#06b6d4',
+                borderWidth: 2,
+                borderRadius: 6,
+                borderSkipped: false
+            }]
+        },
+        options: {
+            ...this.getChartOptions(isDarkMode),
+            scales: {
+                ...this.getChartOptions(isDarkMode).scales,
+                y: {
+                    ...this.getChartOptions(isDarkMode).scales.y,
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: 'Giorni',
+                        color: isDarkMode ? '#f9fafb' : '#374151'
+                    }
+                }
+            },
+            plugins: {
+                ...this.getChartOptions(isDarkMode).plugins,
+                legend: { display: false },
+                tooltip: {
+                    ...this.getChartOptions(isDarkMode).plugins.tooltip,
+                    callbacks: {
+                        title: function(context) {
+                            return `🚢 ${context[0].label}`;
+                        },
+                        label: function(context) {
+                            return `Tempo medio: ${context.parsed.y} giorni`;
+                        }
+                    }
+                }
+            }
+        }
+    });
+    
+    this.charts.set('seaTransitChart', chart);
+    console.log('✅ Sea transit chart rendered');
+}
+
+// ✈️ GRAFICO TEMPI AEREO
+renderAirTransitChart() {
+    const ctx = document.getElementById('airTransitChart');
+    if (!ctx) return;
+    
+    if (this.charts.has('airTransitChart')) {
+        this.charts.get('airTransitChart').destroy();
+    }
+    
+    const isDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    const airData = this.calculateTransitTimesByModeDetailed('air');
+    
+    const chart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: airData.labels,
+            datasets: [{
+                label: 'Giorni',
+                data: airData.avgDays,
+                backgroundColor: 'rgba(245, 158, 11, 0.7)',
+                borderColor: '#f59e0b',
+                borderWidth: 2,
+                borderRadius: 6,
+                borderSkipped: false
+            }]
+        },
+        options: {
+            ...this.getChartOptions(isDarkMode),
+            scales: {
+                ...this.getChartOptions(isDarkMode).scales,
+                y: {
+                    ...this.getChartOptions(isDarkMode).scales.y,
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: 'Giorni',
+                        color: isDarkMode ? '#f9fafb' : '#374151'
+                    }
+                }
+            },
+            plugins: {
+                ...this.getChartOptions(isDarkMode).plugins,
+                legend: { display: false },
+                tooltip: {
+                    ...this.getChartOptions(isDarkMode).plugins.tooltip,
+                    callbacks: {
+                        title: function(context) {
+                            return `✈️ ${context[0].label}`;
+                        },
+                        label: function(context) {
+                            return `Tempo medio: ${context.parsed.y} giorni`;
+                        }
+                    }
+                }
+            }
+        }
+    });
+    
+    this.charts.set('airTransitChart', chart);
+    console.log('✅ Air transit chart rendered');
+}
+
+// 🚛 GRAFICO TEMPI STRADALE
+renderRoadTransitChart() {
+    const ctx = document.getElementById('roadTransitChart');
+    if (!ctx) return;
+    
+    if (this.charts.has('roadTransitChart')) {
+        this.charts.get('roadTransitChart').destroy();
+    }
+    
+    const isDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    const roadData = this.calculateTransitTimesByModeDetailed('road');
+    
+    const chart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: roadData.labels,
+            datasets: [{
+                label: 'Giorni',
+                data: roadData.avgDays,
+                backgroundColor: 'rgba(107, 114, 128, 0.7)',
+                borderColor: '#6b7280',
+                borderWidth: 2,
+                borderRadius: 6,
+                borderSkipped: false
+            }]
+        },
+        options: {
+            ...this.getChartOptions(isDarkMode),
+            scales: {
+                ...this.getChartOptions(isDarkMode).scales,
+                y: {
+                    ...this.getChartOptions(isDarkMode).scales.y,
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: 'Giorni',
+                        color: isDarkMode ? '#f9fafb' : '#374151'
+                    }
+                }
+            },
+            plugins: {
+                ...this.getChartOptions(isDarkMode).plugins,
+                legend: { display: false },
+                tooltip: {
+                    ...this.getChartOptions(isDarkMode).plugins.tooltip,
+                    callbacks: {
+                        title: function(context) {
+                            return `🚛 ${context[0].label}`;
+                        },
+                        label: function(context) {
+                            return `Tempo medio: ${context.parsed.y} giorni`;
+                        }
+                    }
+                }
+            }
+        }
+    });
+    
+    this.charts.set('roadTransitChart', chart);
+    console.log('✅ Road transit chart rendered');
+}
+
+// 📦 GRAFICO TEMPI CORRIERE
+renderParcelTransitChart() {
+    const ctx = document.getElementById('parcelTransitChart');
+    if (!ctx) return;
+    
+    if (this.charts.has('parcelTransitChart')) {
+        this.charts.get('parcelTransitChart').destroy();
+    }
+    
+    const isDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    const parcelData = this.calculateTransitTimesByModeDetailed('parcel');
+    
+    const chart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: parcelData.labels,
+            datasets: [{
+                label: 'Giorni',
+                data: parcelData.avgDays,
+                backgroundColor: 'rgba(139, 92, 246, 0.7)',
+                borderColor: '#8b5cf6',
+                borderWidth: 2,
+                borderRadius: 6,
+                borderSkipped: false
+            }]
+        },
+        options: {
+            ...this.getChartOptions(isDarkMode),
+            scales: {
+                ...this.getChartOptions(isDarkMode).scales,
+                y: {
+                    ...this.getChartOptions(isDarkMode).scales.y,
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: 'Giorni',
+                        color: isDarkMode ? '#f9fafb' : '#374151'
+                    }
+                }
+            },
+            plugins: {
+                ...this.getChartOptions(isDarkMode).plugins,
+                legend: { display: false },
+                tooltip: {
+                    ...this.getChartOptions(isDarkMode).plugins.tooltip,
+                    callbacks: {
+                        title: function(context) {
+                            return `📦 ${context[0].label}`;
+                        },
+                        label: function(context) {
+                            return `Tempo medio: ${context.parsed.y} giorni`;
+                        }
+                    }
+                }
+            }
+        }
+    });
+    
+    this.charts.set('parcelTransitChart', chart);
+    console.log('✅ Parcel transit chart rendered');
+}
+
+// ✅ AGGIUNGI QUESTO NUOVO METODO DI SUPPORTO
+calculateTransitTimesByModeDetailed(targetMode) {
+    const companiesMap = new Map();
+    
+    this.rawData.shipments.forEach(shipment => {
+        const mode = this.determineShipmentMode(shipment, this.rawData.trackings);
+        
+        // Filtra solo per il metodo richiesto
+        if (mode !== targetMode) return;
+        
+        const companyName = shipment.carrier_name || 'Non specificato';
+        const transitDays = this.calculateDeliveryDays(shipment);
+        
+        if (transitDays > 0 && transitDays < 365) {
+            if (!companiesMap.has(companyName)) {
+                companiesMap.set(companyName, {
+                    name: companyName,
+                    totalDays: 0,
+                    count: 0
+                });
+            }
+            
+            const company = companiesMap.get(companyName);
+            company.totalDays += transitDays;
+            company.count++;
+        }
+    });
+    
+    // Calcola medie e ordina
+    const companiesArray = Array.from(companiesMap.values())
+        .map(company => ({
+            name: company.name,
+            avgDays: Math.round(company.totalDays / company.count),
+            count: company.count
+        }))
+        .filter(company => company.avgDays > 0 && company.count >= 2) // Min 2 spedizioni
+        .sort((a, b) => a.avgDays - b.avgDays)
+        .slice(0, 8); // Top 8
+    
+    console.log(`📊 ${targetMode} transit times calculated:`, companiesArray);
+    
+    // Se non ci sono dati, mostra messaggio
+    if (companiesArray.length === 0) {
+        return {
+            labels: ['Nessun dato'],
+            avgDays: [0],
+            hasData: false
+        };
+    }
+    
+    return {
+        labels: companiesArray.map(c => c.name),
+        avgDays: companiesArray.map(c => c.avgDays),
+        hasData: true
+    };
 }
     // ✅ RENDERIZZA KPI CON SELEZIONE PERSONALIZZATA
     renderKPIs() {
