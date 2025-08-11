@@ -298,6 +298,50 @@ class UnifiedMetricsSystem {
         return true;
     });
     
+    // ✅ FILTRA ANCHE ADDITIONAL COSTS PER DATA
+    let filteredAdditionalCosts = this.extractData(costsResult, 'additional_costs');
+    
+    if (this.currentFilters.dateFrom || this.currentFilters.dateTo) {
+        console.log('📅 Filtering additional costs by date range');
+        
+        const initialCostsCount = filteredAdditionalCosts.length;
+        
+        filteredAdditionalCosts = filteredAdditionalCosts.filter(cost => {
+            // ✅ USA created_at dei costi aggiuntivi per il filtro
+            if (!cost.created_at) {
+                console.log(`⚠️ Additional cost ${cost.id} has no created_at, EXCLUDING`);
+                return false;
+            }
+            
+            const costDate = new Date(cost.created_at);
+            const dateStr = costDate.toISOString().split('T')[0];
+            
+            // Verifica range
+            if (this.currentFilters.dateFrom && dateStr < this.currentFilters.dateFrom) {
+                console.log(`📅 Cost filtered OUT: ${cost.id} date ${dateStr} < ${this.currentFilters.dateFrom}`);
+                return false;
+            }
+            
+            if (this.currentFilters.dateTo && dateStr > this.currentFilters.dateTo) {
+                console.log(`📅 Cost filtered OUT: ${cost.id} date ${dateStr} > ${this.currentFilters.dateTo}`);
+                return false;
+            }
+            
+            console.log(`📅 Cost filtered IN: ${cost.id} date ${dateStr} in range`);
+            return true;
+        });
+        
+        console.log(`✅ Additional costs filtering: ${filteredAdditionalCosts.length} kept, ${initialCostsCount - filteredAdditionalCosts.length} filtered out`);
+    }
+    
+    // ✅ AGGIORNA L'OGGETTO rawData CON I COSTI FILTRATI
+    this.rawData = {
+        shipments: rawShipments,
+        trackings: this.extractData(trackingsResult, 'trackings'),
+        additionalCosts: filteredAdditionalCosts, // ✅ USA I COSTI FILTRATI
+        carriers: this.extractData(carriersResult, 'carriers'),
+        loadedAt: new Date().toISOString()
+    };
     console.log(`✅ Date filtering complete: ${keptCount} kept, ${filteredCount} filtered out`);
 }
             
