@@ -3196,14 +3196,14 @@ addProductTableStyles() {
             white-space: nowrap;
         }
         
-        /* ✅ HEADER TABELLA - IDENTICO A CARRIERS DB PERFORMANCE */
+   /* ✅ HEADER TABELLA - IDENTICO ALLE ALTRE TABELLE */
 #productCostsTable thead th {
-    background-color: #f8f9fa !important; /* Bootstrap table-light */
-    color: #495057 !important;
+    background-color: var(--bs-gray-100) !important;
+    color: var(--bs-gray-800) !important;
     font-weight: 600;
     font-size: 0.875rem;
     padding: 0.75rem;
-    border-bottom: 1px solid #dee2e6 !important; /* Bootstrap border-color */
+    border-bottom: 1px solid var(--bs-border-color) !important;
     vertical-align: middle;
 }
         
@@ -3233,11 +3233,22 @@ addProductTableStyles() {
         #productCostsTable tbody tr:hover td {
             background-color: transparent !important; /* ✅ FORZA TRASPARENTE IN HOVER */
         }
-        
-        /* ✅ RIMUOVI HOVER DALL'HEADER - COME LE ALTRE TABELLE */
+                /* ✅ RIMUOVI HOVER DALL'HEADER - UNIFORME */
         #productCostsTable thead th:hover {
-            background-color: #f8f9fa !important; /* ✅ MANTIENI STESSO COLORE */
-            cursor: default !important; /* ✅ RIMUOVI POINTER */
+            background-color: var(--bs-gray-100) !important;
+            cursor: default !important;
+        }
+        
+        [data-bs-theme="dark"] #productCostsTable thead th:hover {
+            background-color: var(--bs-gray-800) !important;
+            cursor: default !important;
+        }
+        
+        @media (prefers-color-scheme: dark) {
+            #productCostsTable thead th:hover {
+                background-color: var(--bs-gray-800) !important;
+                cursor: default !important;
+            }
         }
         
         #productCostsTable tbody tr:hover {
@@ -3267,14 +3278,20 @@ addProductTableStyles() {
             font-weight: 600;
         }
         
-        /* ✅ DARK MODE - IDENTICO A CARRIERS DB PERFORMANCE */
-[data-bs-theme="dark"] #productCostsTable thead th,
-@media (prefers-color-scheme: dark) {
-    #productCostsTable thead th {
-        background-color: #343a40 !important; /* Bootstrap dark gray */
-        color: #f8f9fa !important;
-        border-bottom: 1px solid #495057 !important;
-    }
+                /* ✅ DARK MODE - CORRETTO CON VAR BOOTSTRAP */
+        [data-bs-theme="dark"] #productCostsTable thead th {
+            background-color: var(--bs-gray-800) !important;
+            color: var(--bs-gray-100) !important;
+            border-bottom: 1px solid var(--bs-gray-600) !important;
+        }
+        
+        @media (prefers-color-scheme: dark) {
+            #productCostsTable thead th {
+                background-color: var(--bs-gray-800) !important;
+                color: var(--bs-gray-100) !important;
+                border-bottom: 1px solid var(--bs-gray-600) !important;
+            }
+        }
             
             /* ✅ TUTTE LE COLONNE TRASPARENTI ANCHE IN DARK MODE */
             #productCostsTable .product-code-col,
