@@ -731,33 +731,85 @@ calculateKPIs() {
         const avgRoadDeliveryTime = this.avgDeliveryTimeByMode(this.rawData.shipments, this.rawData.trackings, 'road');
         const avgParcelDeliveryTime = this.avgDeliveryTimeByMode(this.rawData.shipments, this.rawData.trackings, 'parcel');
         
-        // 🔧 NUOVI KPI: COSTI TOTALI PER TIPOLOGIA
-        const seaCosts = this.rawData.shipments
-            .filter(s => this.determineShipmentMode(s, this.rawData.trackings) === 'sea')
-            .reduce((sum, s) => sum + (parseFloat(s.freight_cost) || 0), 0);
-
-        const airCosts = this.rawData.shipments
-            .filter(s => this.determineShipmentMode(s, this.rawData.trackings) === 'air')
-            .reduce((sum, s) => sum + (parseFloat(s.freight_cost) || 0), 0);
-
-        const roadCosts = this.rawData.shipments
-            .filter(s => this.determineShipmentMode(s, this.rawData.trackings) === 'road')
-            .reduce((sum, s) => sum + (parseFloat(s.freight_cost) || 0), 0);
-
-        const parcelCosts = this.rawData.shipments
-            .filter(s => this.determineShipmentMode(s, this.rawData.trackings) === 'parcel')
-            .reduce((sum, s) => sum + (parseFloat(s.freight_cost) || 0), 0);
-
+                // 🔧 NUOVI KPI: COSTI TOTALI PER TIPOLOGIA - CON DEBUG
+        console.log('🔍 DEBUG MAPPING MODALITÀ TRASPORTO:');
+        
+        // Debug prima di filtrare
+        const allShipmentsWithMode = this.rawData.shipments.map(s => {
+            const mode = this.determineShipmentMode(s, this.rawData.trackings);
+            const cost = parseFloat(s.freight_cost) || 0;
+            return {
+                id: s.id,
+                tracking: s.tracking_number,
+                carrier: s.carrier_name,
+                mode: mode,
+                cost: cost,
+                hasTracking: !!this.rawData.trackings.find(t => t.shipment_id === s.id)
+            };
+        });
+        
+        console.log('📊 Breakdown modalità:', allShipmentsWithMode.reduce((acc, s) => {
+            acc[s.mode] = (acc[s.mode] || 0) + 1;
+            return acc;
+        }, {}));
+        
+        console.log('💰 Costi per modalità:', allShipmentsWithMode.reduce((acc, s) => {
+            if (!acc[s.mode]) acc[s.mode] = { count: 0, totalCost: 0 };
+            acc[s.mode].count++;
+            acc[s.mode].totalCost += s.cost;
+            return acc;
+        }, {}));
+        
+        // Filtra per modalità con debug
+        const seaShipments = this.rawData.shipments.filter(s => {
+            const mode = this.determineShipmentMode(s, this.rawData.trackings);
+            return mode === 'sea';
+        });
+        
+        const airShipments = this.rawData.shipments.filter(s => {
+            const mode = this.determineShipmentMode(s, this.rawData.trackings);
+            return mode === 'air';
+        });
+        
+        const roadShipments = this.rawData.shipments.filter(s => {
+            const mode = this.determineShipmentMode(s, this.rawData.trackings);
+            return mode === 'road';
+        });
+        
+        const parcelShipments = this.rawData.shipments.filter(s => {
+            const mode = this.determineShipmentMode(s, this.rawData.trackings);
+            return mode === 'parcel';
+        });
+        
+        console.log('📦 Spedizioni per modalità:');
+        console.log(`   Mare: ${seaShipments.length} spedizioni`);
+        console.log(`   Aereo: ${airShipments.length} spedizioni`);
+        console.log(`   Stradale: ${roadShipments.length} spedizioni`);
+        console.log(`   Corriere: ${parcelShipments.length} spedizioni`);
+        
+        // Calcola costi
+        const seaCosts = seaShipments.reduce((sum, s) => sum + (parseFloat(s.freight_cost) || 0), 0);
+        const airCosts = airShipments.reduce((sum, s) => sum + (parseFloat(s.freight_cost) || 0), 0);
+        const roadCosts = roadShipments.reduce((sum, s) => sum + (parseFloat(s.freight_cost) || 0), 0);
+        const parcelCosts = parcelShipments.reduce((sum, s) => sum + (parseFloat(s.freight_cost) || 0), 0);
+        
+        console.log('💰 Costi calcolati:');
+        console.log(`   Mare: €${seaCosts.toFixed(2)}`);
+        console.log(`   Aereo: €${airCosts.toFixed(2)}`);
+        console.log(`   Stradale: €${roadCosts.toFixed(2)}`);
+        console.log(`   Corriere: €${parcelCosts.toFixed(2)}`);
+        
         // 🔧 COSTI MEDI PER TIPOLOGIA
-        const seaShipments = this.rawData.shipments.filter(s => this.determineShipmentMode(s, this.rawData.trackings) === 'sea');
-        const airShipments = this.rawData.shipments.filter(s => this.determineShipmentMode(s, this.rawData.trackings) === 'air');
-        const roadShipments = this.rawData.shipments.filter(s => this.determineShipmentMode(s, this.rawData.trackings) === 'road');
-        const parcelShipments = this.rawData.shipments.filter(s => this.determineShipmentMode(s, this.rawData.trackings) === 'parcel');
-
         const seaAvgCost = seaShipments.length > 0 ? seaCosts / seaShipments.length : 0;
         const airAvgCost = airShipments.length > 0 ? airCosts / airShipments.length : 0;
         const roadAvgCost = roadShipments.length > 0 ? roadCosts / roadShipments.length : 0;
         const parcelAvgCost = parcelShipments.length > 0 ? parcelCosts / parcelShipments.length : 0;
+        
+        console.log('📊 Costi medi:');
+        console.log(`   Mare: €${seaAvgCost.toFixed(2)}`);
+        console.log(`   Aereo: €${airAvgCost.toFixed(2)}`);
+        console.log(`   Stradale: €${roadAvgCost.toFixed(2)}`);
+        console.log(`   Corriere: €${parcelAvgCost.toFixed(2)}`);
 
         // ✅ RETURN TUTTI I KPI
         return {
@@ -1127,8 +1179,13 @@ avgDeliveryTimeByMode(shipments, trackings, mode) {
         : 0;
 }
 
-// ✅ DETERMINA MODALITÀ SPEDIZIONE - VERSIONE ROBUSTA
+// ✅ DETERMINA MODALITÀ SPEDIZIONE - VERSIONE DEBUG MIGLIORATA
 determineShipmentMode(shipment, trackings) {
+    const shipmentId = shipment.id;
+    const carrierName = shipment.carrier_name || '';
+    
+    console.log(`🔍 DEBUG MODE per ${shipmentId} (${carrierName}):`);
+    
     // 🎯 PRIORITÀ 1: Trova tracking corrispondente
     const tracking = trackings.find(t => 
         t.shipment_id === shipment.id || 
@@ -1136,21 +1193,32 @@ determineShipmentMode(shipment, trackings) {
         t.tracking_number === shipment.tracking_code
     );
     
+    if (!tracking) {
+        console.log(`   ❌ Nessun tracking trovato per ${shipmentId}`);
+    } else {
+        console.log(`   ✅ Tracking trovato: ${tracking.tracking_number}, type: ${tracking.tracking_type}`);
+    }
+    
     // 🎯 PRIORITÀ 2: Usa tracking_type se disponibile
     if (tracking?.tracking_type) {
         const trackingType = tracking.tracking_type.toLowerCase();
+        console.log(`   📋 Tracking type: ${trackingType}`);
         
         // Mapping definitivo tracking types
         if (['container', 'bl', 'bill_of_lading', 'sea'].includes(trackingType)) {
+            console.log(`   🚢 MODALITÀ: MARE (da tracking_type)`);
             return 'sea';
         }
         if (['awb', 'air_waybill', 'airway_bill', 'air'].includes(trackingType)) {
+            console.log(`   ✈️ MODALITÀ: AEREO (da tracking_type)`);
             return 'air';
         }
         if (['parcel', 'package', 'courier', 'express'].includes(trackingType)) {
+            console.log(`   📦 MODALITÀ: CORRIERE (da tracking_type)`);
             return 'parcel';
         }
         if (['truck', 'road', 'rail', 'train'].includes(trackingType)) {
+            console.log(`   🚛 MODALITÀ: STRADALE (da tracking_type)`);
             return 'road';
         }
     }
@@ -1158,32 +1226,33 @@ determineShipmentMode(shipment, trackings) {
     // 🎯 PRIORITÀ 3: Analizza carrier_name per pattern
     if (shipment.carrier_name) {
         const carrierName = shipment.carrier_name.toLowerCase();
+        console.log(`   🏢 Analizza carrier: ${carrierName}`);
         
         // Pattern spedizionieri marittimi
         const seaPatterns = ['msc', 'maersk', 'cosco', 'evergreen', 'cma', 'cgm', 'hapag', 'lloyd', 'one', 'shipping', 'line', 'ocean'];
         if (seaPatterns.some(pattern => carrierName.includes(pattern))) {
-            console.log(`🚢 Detected SEA from carrier: ${shipment.carrier_name}`);
+            console.log(`   🚢 MODALITÀ: MARE (da carrier pattern)`);
             return 'sea';
         }
         
         // Pattern spedizionieri aerei
         const airPatterns = ['lufthansa', 'cargo', 'air', 'emirates', 'klm', 'alitalia', 'dhl', 'fedex'];
         if (airPatterns.some(pattern => carrierName.includes(pattern))) {
-            console.log(`✈️ Detected AIR from carrier: ${shipment.carrier_name}`);
+            console.log(`   ✈️ MODALITÀ: AEREO (da carrier pattern)`);
             return 'air';
         }
         
         // Pattern corrieri
         const parcelPatterns = ['ups', 'tnt', 'gls', 'sda', 'bartolini', 'express', 'courier'];
         if (parcelPatterns.some(pattern => carrierName.includes(pattern))) {
-            console.log(`📦 Detected PARCEL from carrier: ${shipment.carrier_name}`);
+            console.log(`   📦 MODALITÀ: CORRIERE (da carrier pattern)`);
             return 'parcel';
         }
         
         // Pattern stradali
         const roadPatterns = ['truck', 'trasporti', 'logistics', 'spedizioni', 'autotrasporti'];
         if (roadPatterns.some(pattern => carrierName.includes(pattern))) {
-            console.log(`🚛 Detected ROAD from carrier: ${shipment.carrier_name}`);
+            console.log(`   🚛 MODALITÀ: STRADALE (da carrier pattern)`);
             return 'road';
         }
     }
@@ -1191,13 +1260,13 @@ determineShipmentMode(shipment, trackings) {
     // 🎯 PRIORITÀ 4: Analizza campi spedizione
     // Container info = Mare
     if (shipment.container_type || shipment.container_size || shipment.bl_number || shipment.booking_number) {
-        console.log(`🚢 Detected SEA from container fields: ${shipment.id}`);
+        console.log(`   🚢 MODALITÀ: MARE (da campi container)`);
         return 'sea';
     }
     
     // Flight number = Aereo  
     if (shipment.flight_number || shipment.awb_number) {
-        console.log(`✈️ Detected AIR from flight fields: ${shipment.id}`);
+        console.log(`   ✈️ MODALITÀ: AEREO (da campi flight)`);
         return 'air';
     }
     
@@ -1207,17 +1276,17 @@ determineShipmentMode(shipment, trackings) {
             const metadataStr = JSON.stringify(tracking.metadata).toLowerCase();
             
             if (metadataStr.includes('container') || metadataStr.includes('vessel') || metadataStr.includes('port')) {
-                console.log(`🚢 Detected SEA from metadata: ${tracking.tracking_number}`);
+                console.log(`   🚢 MODALITÀ: MARE (da metadata)`);
                 return 'sea';
             }
             
             if (metadataStr.includes('flight') || metadataStr.includes('airport') || metadataStr.includes('awb')) {
-                console.log(`✈️ Detected AIR from metadata: ${tracking.tracking_number}`);
+                console.log(`   ✈️ MODALITÀ: AEREO (da metadata)`);
                 return 'air';
             }
             
             if (metadataStr.includes('parcel') || metadataStr.includes('package') || metadataStr.includes('delivery')) {
-                console.log(`📦 Detected PARCEL from metadata: ${tracking.tracking_number}`);
+                console.log(`   📦 MODALITÀ: CORRIERE (da metadata)`);
                 return 'parcel';
             }
         } catch (error) {
@@ -1228,24 +1297,25 @@ determineShipmentMode(shipment, trackings) {
     // 🎯 FALLBACK: Analizza peso/volume per guess intelligente
     const weight = parseFloat(shipment.total_weight_kg) || 0;
     const volume = parseFloat(shipment.total_volume_cbm) || 0;
+    console.log(`   ⚖️ Peso: ${weight}kg, Volume: ${volume}m³`);
     
     // Logica euristica basata su peso/volume
     if (volume > 50 || weight > 5000) {
         // Grandi volumi/pesi = Mare
-        console.log(`🚢 Detected SEA from weight/volume: ${weight}kg, ${volume}m³`);
+        console.log(`   🚢 MODALITÀ: MARE (da peso/volume grande)`);
         return 'sea';
     } else if (weight < 100 && volume < 1) {
         // Piccoli pesi/volumi = Parcel/Corriere
-        console.log(`📦 Detected PARCEL from weight/volume: ${weight}kg, ${volume}m³`);
+        console.log(`   📦 MODALITÀ: CORRIERE (da peso/volume piccolo)`);
         return 'parcel';
     } else if (weight < 1000 && volume < 10) {
         // Pesi medi = Potenzialmente aereo
-        console.log(`✈️ Detected AIR from weight/volume: ${weight}kg, ${volume}m³`);
+        console.log(`   ✈️ MODALITÀ: AEREO (da peso/volume medio)`);
         return 'air';
     }
     
     // Default = Road (stradale/terrestre)
-    console.log(`🚛 Default ROAD for shipment: ${shipment.id}`);
+    console.log(`   🚛 MODALITÀ: STRADALE (default fallback)`);
     return 'road';
 }
 
