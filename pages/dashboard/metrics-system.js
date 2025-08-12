@@ -1979,7 +1979,7 @@ calculateTransitTimesByModeDetailed(targetMode) {
     
     // ✅ MOSTRA SELETTORE KPI
     showKPISelector() {
-        const allKPIs = this.METRICS_CONFIG.kpis;
+        const allKPIs = this.getAvailableKPIs();
         const selectedKPIs = this.getSelectedKPIs();
         
         const modalContent = `
@@ -1990,27 +1990,27 @@ calculateTransitTimesByModeDetailed(targetMode) {
                 </p>
                 
                 <div class="row g-3">
-                    ${allKPIs.map(kpi => `
-                        <div class="col-md-6">
-                            <div class="form-check kpi-check-item">
-                                <input class="form-check-input" type="checkbox" 
-                                       id="kpi_${kpi.id}" value="${kpi.id}"
-                                       ${selectedKPIs.includes(kpi.id) ? 'checked' : ''}>
-                                <label class="form-check-label w-100" for="kpi_${kpi.id}">
-                                    <div class="d-flex align-items-center">
-                                        <div class="kpi-mini-icon me-3" style="background: linear-gradient(135deg, ${kpi.color}15, ${kpi.color}25);">
-                                            <i class="${kpi.icon}" style="color: ${kpi.color};"></i>
-                                        </div>
-                                        <div class="flex-grow-1">
-                                            <div class="fw-semibold">${kpi.name}</div>
-                                            <div class="small text-muted">${this.getKPIDescription(kpi.id)}</div>
-                                        </div>
-                                    </div>
-                                </label>
-                            </div>
+    ${allKPIs.map(kpi => `
+        <div class="col-md-6">
+            <div class="form-check kpi-check-item">
+                <input class="form-check-input" type="checkbox" 
+                       id="kpi_${kpi.key}" value="${kpi.key}"
+                       ${selectedKPIs.includes(kpi.key) ? 'checked' : ''}>
+                <label class="form-check-label w-100" for="kpi_${kpi.key}">
+                    <div class="d-flex align-items-center">
+                        <div class="kpi-mini-icon me-3">
+                            <span style="font-size: 1.2rem;">${kpi.label.split(' ')[0]}</span>
                         </div>
-                    `).join('')}
-                </div>
+                        <div class="flex-grow-1">
+                            <div class="fw-semibold">${kpi.label}</div>
+                            <div class="small text-muted">${kpi.category}</div>
+                        </div>
+                    </div>
+                </label>
+            </div>
+        </div>
+    `).join('')}
+</div>
                 
                 <div class="mt-4 pt-3 border-top">
                     <div class="row g-2">
@@ -2074,6 +2074,7 @@ calculateTransitTimesByModeDetailed(targetMode) {
     }
     
     // ✅ PRESET KPI
+    
     selectKPIPreset(presetType) {
         const checkboxes = document.querySelectorAll('.kpi-selector input[type="checkbox"]');
         
@@ -2100,11 +2101,9 @@ calculateTransitTimesByModeDetailed(targetMode) {
                     'avg_delivery_time',
                     'avg_sea_delivery_time',
                     'avg_air_delivery_time',
-                    'avg_parcel_delivery_time',
-                    'avg_road_delivery_time',
-                    'total_weight',
-                    'total_volume',
-                    'avg_cost_per_shipment'
+                    'seaTotalCost',
+                    'airTotalCost',
+                    'parcelTotalCost'
                 ];
                 break;
         }
