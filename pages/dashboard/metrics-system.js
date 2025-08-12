@@ -714,47 +714,301 @@ getFallbackDepartureDate(shipment) {
             return [];
         }
     }
-
-        // ✅ CALCOLA TUTTE LE METRICHE
-    async calculateAllMetrics() {
-        console.log('🔢 Calculating all metrics...');
+// ✅ CALCOLA KPI PRINCIPALI CON COSTI PER TIPOLOGIA
+calculateKPIs() {
+    try {
+        // KPI Base esistenti
+        const totalShipments = this.rawData.shipments.length;
+        const totalCosts = this.sumCosts(this.rawData.shipments, this.rawData.additionalCosts);
+        const avgCostPerShipment = this.avgCostPerShipment(this.rawData.shipments, this.rawData.additionalCosts);
+        const totalWeight = this.sumWeight(this.rawData.shipments);
+        const totalVolume = this.sumVolume(this.rawData.shipments);
+        const avgDeliveryTime = this.avgDeliveryTime(this.rawData.shipments, this.rawData.trackings);
         
-        try {
-            // Calcola KPI principali
-            const kpis = {};
-            this.METRICS_CONFIG.kpis.forEach(kpi => {
-                const calculation = this.METRICS_CONFIG.calculations[kpi.calculation];
-                if (calculation) {
-                    kpis[kpi.id] = {
-                        ...kpi,
-                        value: calculation(this.rawData),
-                        trend: this.calculateTrend(kpi.id)
-                    };
-                }
-            });
+        // KPI per modalità trasporto
+        const avgSeaDeliveryTime = this.avgDeliveryTimeByMode(this.rawData.shipments, this.rawData.trackings, 'sea');
+        const avgAirDeliveryTime = this.avgDeliveryTimeByMode(this.rawData.shipments, this.rawData.trackings, 'air');
+        const avgRoadDeliveryTime = this.avgDeliveryTimeByMode(this.rawData.shipments, this.rawData.trackings, 'road');
+        const avgParcelDeliveryTime = this.avgDeliveryTimeByMode(this.rawData.shipments, this.rawData.trackings, 'parcel');
+        
+        // 🔧 NUOVI KPI: COSTI TOTALI PER TIPOLOGIA
+        const seaCosts = this.rawData.shipments
+            .filter(s => this.determineShipmentMode(s, this.rawData.trackings) === 'sea')
+            .reduce((sum, s) => sum + (parseFloat(s.freight_cost) || 0), 0);
+
+        const airCosts = this.rawData.shipments
+            .filter(s => this.determineShipmentMode(s, this.rawData.trackings) === 'air')
+            .reduce((sum, s) => sum + (parseFloat(s.freight_cost) || 0), 0);
+
+        const roadCosts = this.rawData.shipments
+            .filter(s => this.determineShipmentMode(s, this.rawData.trackings) === 'road')
+            .reduce((sum, s) => sum + (parseFloat(s.freight_cost) || 0), 0);
+
+        const parcelCosts = this.rawData.shipments
+            .filter(s => this.determineShipmentMode(s, this.rawData.trackings) === 'parcel')
+            .reduce((sum, s) => sum + (parseFloat(s.freight_cost) || 0), 0);
+
+        // 🔧 COSTI MEDI PER TIPOLOGIA
+        const seaShipments = this.rawData.shipments.filter(s => this.determineShipmentMode(s, this.rawData.trackings) === 'sea');
+        const airShipments = this.rawData.shipments.filter(s => this.determineShipmentMode(s, this.rawData.trackings) === 'air');
+        const roadShipments = this.rawData.shipments.filter(s => this.determineShipmentMode(s, this.rawData.trackings) === 'road');
+        const parcelShipments = this.rawData.shipments.filter(s => this.determineShipmentMode(s, this.rawData.trackings) === 'parcel');
+
+        const seaAvgCost = seaShipments.length > 0 ? seaCosts / seaShipments.length : 0;
+        const airAvgCost = airShipments.length > 0 ? airCosts / airShipments.length : 0;
+        const roadAvgCost = roadShipments.length > 0 ? roadCosts / roadShipments.length : 0;
+        const parcelAvgCost = parcelShipments.length > 0 ? parcelCosts / parcelShipments.length : 0;
+
+        // ✅ RETURN TUTTI I KPI
+        return {
+            // KPI Base
+            total_shipments: {
+                id: 'total_shipments',
+                name: 'Spedizioni Totali',
+                icon: 'fas fa-shipping-fast',
+                color: '#3b82f6',
+                format: 'number',
+                value: totalShipments,
+                trend: this.calculateTrend('total_shipments')
+            },
             
-            // ✅ AGGIUNGI NUOVA METRICA - CORREZIONE
-            const advancedMetrics = {
-                trends: this.calculateTrends(),
-                transportModes: this.calculateTransportModes(),
-                carriersPerformance: this.calculateCarriersPerformanceOld(), // ✅ USA QUELLA VECCHIA PER LE TABELLE
-                carriersDBPerformance: this.calculateCarriersDBPerformance(),
-                geographicalData: this.calculateGeographicalData()
-            };
+            total_costs: {
+                id: 'total_costs',
+                name: 'Costi Totali',
+                icon: 'fas fa-receipt',
+                color: '#ef4444',
+                format: 'currency',
+                value: totalCosts,
+                trend: this.calculateTrend('total_costs')
+            },
             
-            this.processedMetrics = {
-                kpis,
-                advanced: advancedMetrics,
-                calculatedAt: new Date().toISOString()
-            };
+            avg_cost_per_shipment: {
+                id: 'avg_cost_per_shipment',
+                name: 'Costo Medio',
+                icon: 'fas fa-calculator',
+                color: '#f59e0b',
+                format: 'currency',
+                value: avgCostPerShipment,
+                trend: this.calculateTrend('avg_cost_per_shipment')
+            },
             
-            console.log('✅ All metrics calculated:', this.processedMetrics);
+            total_weight: {
+                id: 'total_weight',
+                name: 'Peso Totale',
+                icon: 'fas fa-weight-hanging',
+                color: '#10b981',
+                format: 'weight',
+                value: totalWeight,
+                trend: this.calculateTrend('total_weight')
+            },
             
-        } catch (error) {
-            console.error('❌ Error calculating metrics:', error);
-            throw error;
-        }
+            total_volume: {
+                id: 'total_volume',
+                name: 'Volume Totale',
+                icon: 'fas fa-cube',
+                color: '#8b5cf6',
+                format: 'volume',
+                value: totalVolume,
+                trend: this.calculateTrend('total_volume')
+            },
+            
+            avg_delivery_time: {
+                id: 'avg_delivery_time',
+                name: 'Tempo Medio Consegna',
+                icon: 'fas fa-clock',
+                color: '#06b6d4',
+                format: 'days',
+                value: avgDeliveryTime,
+                trend: this.calculateTrend('avg_delivery_time')
+            },
+            
+            // KPI Tempi per Modalità
+            avg_sea_delivery_time: {
+                id: 'avg_sea_delivery_time',
+                name: 'Tempo Medio Via Mare',
+                icon: 'fas fa-ship',
+                color: '#0891b2',
+                format: 'days',
+                value: avgSeaDeliveryTime,
+                trend: this.calculateTrend('avg_sea_delivery_time')
+            },
+            
+            avg_air_delivery_time: {
+                id: 'avg_air_delivery_time',
+                name: 'Tempo Medio Via Aerea',
+                icon: 'fas fa-plane',
+                color: '#f59e0b',
+                format: 'days',
+                value: avgAirDeliveryTime,
+                trend: this.calculateTrend('avg_air_delivery_time')
+            },
+            
+            avg_road_delivery_time: {
+                id: 'avg_road_delivery_time',
+                name: 'Tempo Medio Stradale',
+                icon: 'fas fa-truck',
+                color: '#64748b',
+                format: 'days',
+                value: avgRoadDeliveryTime,
+                trend: this.calculateTrend('avg_road_delivery_time')
+            },
+            
+            avg_parcel_delivery_time: {
+                id: 'avg_parcel_delivery_time',
+                name: 'Tempo Medio Parcel',
+                icon: 'fas fa-box',
+                color: '#8b5cf6',
+                format: 'days',
+                value: avgParcelDeliveryTime,
+                trend: this.calculateTrend('avg_parcel_delivery_time')
+            },
+            
+            // 🔧 NUOVI KPI: COSTI TOTALI PER TIPOLOGIA
+            seaTotalCost: {
+                id: 'seaTotalCost',
+                name: 'Costo Totale Mare',
+                icon: 'fas fa-ship',
+                color: '#3b82f6',
+                format: 'currency',
+                value: seaCosts,
+                trend: this.calculateTrend('seaTotalCost')
+            },
+            
+            airTotalCost: {
+                id: 'airTotalCost',
+                name: 'Costo Totale Aereo',
+                icon: 'fas fa-plane',
+                color: '#f59e0b',
+                format: 'currency',
+                value: airCosts,
+                trend: this.calculateTrend('airTotalCost')
+            },
+            
+            roadTotalCost: {
+                id: 'roadTotalCost',
+                name: 'Costo Totale Stradale',
+                icon: 'fas fa-truck',
+                color: '#6b7280',
+                format: 'currency',
+                value: roadCosts,
+                trend: this.calculateTrend('roadTotalCost')
+            },
+            
+            parcelTotalCost: {
+                id: 'parcelTotalCost',
+                name: 'Costo Totale Corriere',
+                icon: 'fas fa-box',
+                color: '#8b5cf6',
+                format: 'currency',
+                value: parcelCosts,
+                trend: this.calculateTrend('parcelTotalCost')
+            },
+            
+            // 🔧 COSTI MEDI PER TIPOLOGIA
+            seaAvgCost: {
+                id: 'seaAvgCost',
+                name: 'Costo Medio Mare',
+                icon: 'fas fa-ship',
+                color: '#06b6d4',
+                format: 'currency',
+                value: seaAvgCost,
+                trend: this.calculateTrend('seaAvgCost')
+            },
+            
+            airAvgCost: {
+                id: 'airAvgCost',
+                name: 'Costo Medio Aereo',
+                icon: 'fas fa-plane',
+                color: '#f97316',
+                format: 'currency',
+                value: airAvgCost,
+                trend: this.calculateTrend('airAvgCost')
+            },
+            
+            roadAvgCost: {
+                id: 'roadAvgCost',
+                name: 'Costo Medio Stradale',
+                icon: 'fas fa-truck',
+                color: '#64748b',
+                format: 'currency',
+                value: roadAvgCost,
+                trend: this.calculateTrend('roadAvgCost')
+            },
+            
+            parcelAvgCost: {
+                id: 'parcelAvgCost',
+                name: 'Costo Medio Corriere',
+                icon: 'fas fa-box',
+                color: '#a855f7',
+                format: 'currency',
+                value: parcelAvgCost,
+                trend: this.calculateTrend('parcelAvgCost')
+            }
+        };
+        
+    } catch (error) {
+        console.error('❌ Error calculating KPIs:', error);
+        return {};
     }
+}
+// ✅ OTTIENI LISTA KPI DISPONIBILI PER IL SELETTORE
+getAvailableKPIs() {
+    return [
+        // KPI Base
+        { key: 'total_shipments', label: '📦 Spedizioni Totali', category: 'Generali' },
+        { key: 'total_costs', label: '💰 Costi Totali', category: 'Generali' },
+        { key: 'avg_cost_per_shipment', label: '📊 Costo Medio', category: 'Generali' },
+        { key: 'total_weight', label: '⚖️ Peso Totale', category: 'Generali' },
+        { key: 'total_volume', label: '📐 Volume Totale', category: 'Generali' },
+        { key: 'avg_delivery_time', label: '⏱️ Tempo Medio Consegna', category: 'Tempi' },
+        
+        // Tempi per Modalità
+        { key: 'avg_sea_delivery_time', label: '🚢 Tempo Medio Mare', category: 'Tempi per Modalità' },
+        { key: 'avg_air_delivery_time', label: '✈️ Tempo Medio Aereo', category: 'Tempi per Modalità' },
+        { key: 'avg_road_delivery_time', label: '🚛 Tempo Medio Stradale', category: 'Tempi per Modalità' },
+        { key: 'avg_parcel_delivery_time', label: '📦 Tempo Medio Parcel', category: 'Tempi per Modalità' },
+        
+        // Costi Totali per Tipologia
+        { key: 'seaTotalCost', label: '🚢 Costo Totale Mare', category: 'Costi per Tipologia' },
+        { key: 'airTotalCost', label: '✈️ Costo Totale Aereo', category: 'Costi per Tipologia' },
+        { key: 'roadTotalCost', label: '🚛 Costo Totale Stradale', category: 'Costi per Tipologia' },
+        { key: 'parcelTotalCost', label: '📦 Costo Totale Corriere', category: 'Costi per Tipologia' },
+        
+        // Costi Medi per Tipologia
+        { key: 'seaAvgCost', label: '🚢 Costo Medio Mare', category: 'Costi per Tipologia' },
+        { key: 'airAvgCost', label: '✈️ Costo Medio Aereo', category: 'Costi per Tipologia' },
+        { key: 'roadAvgCost', label: '🚛 Costo Medio Stradale', category: 'Costi per Tipologia' },
+        { key: 'parcelAvgCost', label: '📦 Costo Medio Corriere', category: 'Costi per Tipologia' }
+    ];
+}
+                // ✅ CALCOLA TUTTE LE METRICHE
+        async calculateAllMetrics() {
+            console.log('🔢 Calculating all metrics...');
+            
+            try {
+                const kpis = this.calculateKPIs();
+                
+                const advancedMetrics = {
+                    trends: this.calculateTrends(),
+                    transportModes: this.calculateTransportModes(),
+                    carriersPerformance: this.calculateCarriersPerformanceOld(),
+                    carriersDBPerformance: this.calculateCarriersDBPerformance(),
+                    geographicalData: this.calculateGeographicalData()
+                };
+                
+                this.processedMetrics = {
+                    kpis,
+                    advanced: advancedMetrics,
+                    calculatedAt: new Date().toISOString()
+                };
+                
+                console.log('✅ All metrics calculated:', this.processedMetrics);
+                
+            } catch (error) {
+                console.error('❌ Error calculating metrics:', error);
+                throw error;
+            }
+        }
 
     // ✅ METODI DI CALCOLO SPECIFICI
     sumCosts(shipments, additionalCosts) {
