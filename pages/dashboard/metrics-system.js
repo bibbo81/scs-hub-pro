@@ -2030,22 +2030,40 @@ calculateTransitTimesByModeDetailed(targetMode) {
         `;
         
         if (window.ModalSystem) {
-            window.ModalSystem.show({
-                title: '⚙️ Personalizza KPI Dashboard',
-                content: modalContent,
-                size: 'lg',
-                customClass: 'kpi-selector-modal',
-                onConfirm: () => this.applyKPISelection(),
-                confirmText: 'Applica Selezione',
-                cancelText: 'Annulla'
-            });
-        }
+    window.ModalSystem.show({
+        title: '⚙️ Personalizza KPI Dashboard',
+        content: modalContent,
+        size: 'lg',
+        customClass: 'kpi-selector-modal',
+        buttons: [
+            {
+                text: 'Annulla',
+                class: 'btn-secondary',
+                dismiss: true
+            },
+            {
+                text: '<i class="fas fa-check me-1"></i>Applica Selezione',
+                class: 'btn-primary',
+                onclick: () => {
+                    const result = this.applyKPISelection();
+                    if (result) {
+                        window.ModalSystem.hide();
+                        return true;
+                    }
+                    return false;
+                }
+            }
+        ]
+    });
+}
     }
     
-    // ✅ APPLICA SELEZIONE KPI
+        // ✅ APPLICA SELEZIONE KPI - VERSIONE CORRETTA
     applyKPISelection() {
         const checkboxes = document.querySelectorAll('.kpi-selector input[type="checkbox"]:checked');
         const selectedIds = Array.from(checkboxes).map(cb => cb.value);
+        
+        console.log('🔧 Applying KPI selection:', selectedIds);
         
         if (selectedIds.length === 0) {
             alert('⚠️ Seleziona almeno un KPI');
@@ -2057,22 +2075,34 @@ calculateTransitTimesByModeDetailed(targetMode) {
             return false;
         }
         
+        // ✅ SALVA E RENDERIZZA
         this.saveSelectedKPIs(selectedIds);
         this.renderKPIs(); // Re-renderizza immediatamente
         
         // ✅ NOTIFICA SUCCESSO
-        if (window.NotificationSystem) {
-            window.NotificationSystem.show({
-                type: 'success',
-                title: 'KPI Aggiornati',
-                message: `Dashboard aggiornata con ${selectedIds.length} KPI selezionati`,
-                duration: 3000
-            });
+        if (window.notificationSystem) {
+            window.notificationSystem.show(
+                'success',
+                'KPI Aggiornati',
+                `Dashboard aggiornata con ${selectedIds.length} KPI selezionati`
+            );
         }
         
+        console.log('✅ KPI selection applied successfully');
         return true;
     }
-    
+        // ✅ DEBUG KPI SELECTION
+    debugKPISelection() {
+        console.log('🔍 DEBUG KPI SELECTION:');
+        console.log('Available KPIs:', this.getAvailableKPIs().length);
+        console.log('Selected KPIs:', this.getSelectedKPIs());
+        console.log('Processed KPIs:', Object.keys(this.processedMetrics?.kpis || {}));
+        
+        // Test salvataggio
+        const testSelection = ['total_shipments', 'total_costs', 'avg_delivery_time'];
+        this.saveSelectedKPIs(testSelection);
+        console.log('Test saved, retrieved:', this.getSelectedKPIs());
+    }
     // ✅ PRESET KPI
     
     selectKPIPreset(presetType) {
