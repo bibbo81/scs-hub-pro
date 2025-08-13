@@ -704,91 +704,108 @@ getShipmentArrivalDate(shipment) {
     return null;
 }
 
-// ✅ SOSTITUISCI IL METODO loadControlShipments (circa riga 3083)
-async loadControlShipments() {
-    try {
-        console.log('📊 Loading control shipments...');
-        
-        if (!this.rawData || !this.rawData.shipments) {
-            await this.loadRawData();
+getShipmentArrivalDate(shipment) {
+    console.log(`� Processing arrival date for shipment ${shipment.id}`);
+    
+    // 🎯 PRIORITÀ 1: CAMPI DATE ARRIVO SPECIFICI
+    const arrivalDateFields = [
+        'actual_delivery',      // ✈️ Aereo
+        'date_of_discharge',    // 🚢 Mare  
+        'arrival_date',
+        'ata',                  // Actual Time of Arrival
+        'actual_arrival',
+        'delivered_date',
+        'completion_date',
+        'discharge_date'
+    ];
+    
+    for (const field of arrivalDateFields) {
+        if (shipment[field]) {
+            const date = new Date(shipment[field]);
+            if (!isNaN(date.getTime())) {
+                console.log(`✅ Using arrival field ${field}: ${date.toISOString().split('T')[0]}`);
+                return shipment[field];
+            }
         }
-        
-        // Calcola date di riferimento
-        const now = new Date();
-        const sevenDaysAgo = new Date(now.getTime() - (7 * 24 * 60 * 60 * 1000));
-        
-        console.log('📅 Control shipments date range:', {
-            now: now.toISOString().split('T')[0],
-            sevenDaysAgo: sevenDaysAgo.toISOString().split('T')[0]
-        });
-        
-        // ✅ LOGICA CORRETTA CON DATE MAPPATE
-        const controlShipments = this.rawData.shipments.filter(shipment => {
-            const currentStatus = (shipment.status || '').toLowerCase();
-            
-            // 1. Stati "IN TRANSITO" - devono avere data di partenza ma non di arrivo
-            const transitStates = [
-                'in_transit', 'sailing', 'shipped', 'departed', 'loading', 
-                'loaded', 'on_vessel', 'at_sea', 'navigando', 'in_mare'
-            ];
-            
-            if (transitStates.some(state => currentStatus.includes(state))) {
-                const departureDate = this.getShipmentDepartureDate(shipment);
-                const arrivalDate = this.getShipmentArrivalDate(shipment);
-                
-                // ✅ IN TRANSITO: ha data partenza ma non arrivo (o arrivo futuro)
-                if (departureDate && !arrivalDate) {
-                    console.log(`✅ In transit (no arrival): ${shipment.tracking_number} - Status: ${currentStatus}`);
-                    return true;
-                }
-                
-                // ✅ VERIFICA CHE NON SIA GIÀ ARRIVATO
-                if (departureDate && arrivalDate) {
-                    const arrivalDateObj = new Date(arrivalDate);
-                    if (arrivalDateObj > now) {
-                        console.log(`✅ In transit (future arrival): ${shipment.tracking_number} - ETA: ${arrivalDateObj.toISOString().split('T')[0]}`);
-                        return true;
-                    }
-                }
-            }
-            
-            // 2. Stati "ARRIVATO/CONSEGNATO" - verifica data arrivo recente
-            const arrivedStates = [
-                'arrived', 'delivered', 'discharged', 'completed', 
-                'arrivato', 'consegnato', 'scaricato', 'terminato'
-            ];
-            
-            if (arrivedStates.some(state => currentStatus.includes(state))) {
-                const arrivalDate = this.getShipmentArrivalDate(shipment);
-                
-                if (arrivalDate) {
-                    const arrivalDateObj = new Date(arrivalDate);
-                    const isRecentArrival = arrivalDateObj >= sevenDaysAgo && arrivalDateObj <= now;
-                    
-                    if (isRecentArrival) {
-                        console.log(`✅ Recent arrival: ${shipment.tracking_number} - Status: ${currentStatus} - Date: ${arrivalDateObj.toISOString().split('T')[0]}`);
-                        return true;
-                    } else {
-                        console.log(`❌ Old arrival: ${shipment.tracking_number} - Date: ${arrivalDateObj.toISOString().split('T')[0]} (too old)`);
-                    }
-                } else {
-                    console.log(`⚠️ Arrived status but no arrival date: ${shipment.tracking_number}`);
-                }
-            }
-            
-            return false;
-        });
-        
-        console.log(`📊 Control shipments found: ${controlShipments.length} total`);
-        
-        // Salva per filtri successivi
-        this.controlShipments = controlShipments;
-        this.renderControlShipments(controlShipments);
-        this.updateControlCounts(controlShipments);
-        
-    } catch (error) {
-        console.error('❌ Error loading control shipments:', error);
     }
+    
+    // 🎯 PRIORITÀ 2: CERCA ULTIMO MOVIMENTO NELLA METADATA
+    const tracking = this.rawData.trackings?.find(t => 
+        t.shipment_id === shipment.id || 
+        t.tracking_number === shipment.tracking_number ||
+        t.tracking_number === shipment.tracking_code
+    );
+    
+    if (tracking?.metadata) {
+        try {
+            let movements = [];
+            
+            if (tracking.metadata.raw?.shipment?.containers?.[0]?.movements) {
+                movements = tracking.metadata.raw.shipment.containers[0].movements;
+            } else if (tracking.metadata.raw?.movements) {
+                movements = tracking.metadata.raw.movements;
+            } else if (tracking.metadata.mapped?._raw_api_response?.movements) {
+                movements = tracking.metadata.mapped._raw_api_response.movements;
+            }
+            
+            if (movements.length > 0) {
+                // ✅ CERCA EVENTI DI ARRIVO/CONSEGNA
+                const arrivalEvents = ['DISC', 'DELIVERED', 'ARRIVAL', 'DISCHARGE', 'ARRIVED', 'COMPLETED'];
+                const arrivalMovement = movements
+                    .filter(m => m.timestamp || m.date)
+                    .find(m => arrivalEvents.some(event => (m.event || '').toUpperCase().includes(event)));
+                
+                if (arrivalMovement) {
+                    const arrivalDate = new Date(arrivalMovement.timestamp || arrivalMovement.date);
+                    if (!isNaN(arrivalDate.getTime())) {
+                        console.log(`✅ ARRIVAL from metadata: ${arrivalDate.toISOString()}`);
+                        console.log(`   Event: ${arrivalMovement.event || 'N/A'} at ${arrivalMovement.location?.name || arrivalMovement.location || 'N/A'}`);
+                        return arrivalDate.toISOString();
+                    }
+                }
+                
+                // ✅ FALLBACK: ULTIMO MOVIMENTO GENERALE
+                const sortedMovements = movements
+                    .filter(m => m.timestamp || m.date)
+                    .sort((a, b) => {
+                        const dateA = new Date(a.timestamp || a.date);
+                        const dateB = new Date(b.timestamp || b.date);
+                        return dateB - dateA; // ORDINE DECRESCENTE
+                    });
+                
+                if (sortedMovements.length > 0) {
+                    const lastMovement = sortedMovements[0];
+                    const lastDate = new Date(lastMovement.timestamp || lastMovement.date);
+                    
+                    // ✅ VERIFICA CHE SIA UN EVENTO DI COMPLETAMENTO
+                    const completionEvents = ['DISC', 'DELIVERED', 'ARRIVAL', 'DISCHARGE', 'ARRIVED', 'COMPLETED', 'EMRT', 'GTOT'];
+                    const isCompletionEvent = completionEvents.some(event => 
+                        (lastMovement.event || '').toUpperCase().includes(event)
+                    );
+                    
+                    if (isCompletionEvent && !isNaN(lastDate.getTime())) {
+                        console.log(`✅ ARRIVAL from last movement: ${lastDate.toISOString()}`);
+                        console.log(`   Last event: ${lastMovement.event || 'N/A'} at ${lastMovement.location?.name || lastMovement.location || 'N/A'}`);
+                        return lastDate.toISOString();
+                    }
+                }
+            }
+        } catch (error) {
+            console.error(`❌ Error parsing arrival metadata for ${shipment.id}:`, error);
+        }
+    }
+    
+    // 🎯 PRIORITÀ 3: USA updated_at SOLO SE STATO È CHIARAMENTE "ARRIVATO"
+    const arrivedStates = ['arrived', 'delivered', 'discharged', 'completed'];
+    const currentStatus = (shipment.status || '').toLowerCase();
+    
+    if (arrivedStates.some(state => currentStatus.includes(state))) {
+        console.log(`✅ Using updated_at for confirmed arrival status: ${shipment.updated_at}`);
+        return shipment.updated_at;
+    }
+    
+    console.log(`❌ No arrival date found for ${shipment.id} - likely still in transit`);
+    return null;
 }
 
 // ✅ AGGIORNA IL METODO updateControlCounts (circa riga 3470)
