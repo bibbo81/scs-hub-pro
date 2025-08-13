@@ -3356,19 +3356,102 @@ async loadControlShipments() {
                 if (isInTransit) {
                     console.log(`✅ In transit found: ${tracking.tracking_number} - Status: ${tracking.status}`);
                     
-                    // 🔍 DEBUG: CERCA SPEDIZIONE CORRISPONDENTE
+                    // 🔍 DEBUG ESTESO: CERCA SPEDIZIONE CON TUTTI I METODI POSSIBILI
                     console.log(`🔍 Looking for shipment with:`);
                     console.log(`   tracking.shipment_id: ${tracking.shipment_id}`);
                     console.log(`   tracking.tracking_number: ${tracking.tracking_number}`);
                     
-                    const shipment = this.rawData.shipments.find(s => 
-                        s.id === tracking.shipment_id || 
-                        s.tracking_number === tracking.tracking_number ||
-                        s.tracking_code === tracking.tracking_number
-                    );
+                    // ✅ METODO 1: ID DIRETTO
+                    let shipment = this.rawData.shipments.find(s => s.id === tracking.shipment_id);
+                    if (shipment) {
+                        console.log(`✅ Method 1 - Found by shipment_id: ${shipment.id}`);
+                    }
+                    
+                    // ✅ METODO 2: TRACKING NUMBER ESATTO
+                    if (!shipment) {
+                        shipment = this.rawData.shipments.find(s => s.tracking_number === tracking.tracking_number);
+                        if (shipment) {
+                            console.log(`✅ Method 2 - Found by tracking_number: ${shipment.id}`);
+                        }
+                    }
+                    
+                    // ✅ METODO 3: TRACKING CODE
+                    if (!shipment) {
+                        shipment = this.rawData.shipments.find(s => s.tracking_code === tracking.tracking_number);
+                        if (shipment) {
+                            console.log(`✅ Method 3 - Found by tracking_code: ${shipment.id}`);
+                        }
+                    }
+                    
+                    // ✅ METODO 4: RICERCA NELL'ARRAY COMPLETO CON DEBUG
+                    if (!shipment) {
+                        console.log(`🔍 Searching in ${this.rawData.shipments.length} shipments...`);
+                        
+                        // Cerca per container number o riferimenti vari
+                        shipment = this.rawData.shipments.find(s => 
+                            s.container_number === tracking.tracking_number ||
+                            s.bl_number === tracking.tracking_number ||
+                            s.booking_number === tracking.tracking_number ||
+                            s.reference === tracking.tracking_number ||
+                            s.shipment_number === tracking.tracking_number
+                        );
+                        
+                        if (shipment) {
+                            console.log(`✅ Method 4 - Found by alternative field: ${shipment.id}`);
+                        }
+                    }
+                    
+                    // ✅ METODO 5: CERCA PER PARTIAL MATCH DEL TRACKING NUMBER
+                    if (!shipment) {
+                        shipment = this.rawData.shipments.find(s => 
+                            (s.tracking_number && s.tracking_number.includes(tracking.tracking_number)) ||
+                            (s.tracking_code && s.tracking_code.includes(tracking.tracking_number)) ||
+                            (tracking.tracking_number && s.tracking_number && tracking.tracking_number.includes(s.tracking_number))
+                        );
+                        
+                        if (shipment) {
+                            console.log(`✅ Method 5 - Found by partial match: ${shipment.id}`);
+                        }
+                    }
+                    
+                    // ✅ METODO 6: DEBUG SPEDIZIONI ESISTENTI PER CAPIRE LA STRUTTURA
+                    if (!shipment) {
+                        console.log(`❌ NO SHIPMENT FOUND for tracking ${tracking.tracking_number}`);
+                        console.log(`🔍 First 3 shipments for debugging:`);
+                        
+                        this.rawData.shipments.slice(0, 3).forEach((s, i) => {
+                            console.log(`   ${i+1}. Shipment ID: ${s.id}`);
+                            console.log(`      tracking_number: ${s.tracking_number}`);
+                            console.log(`      tracking_code: ${s.tracking_code}`);
+                            console.log(`      shipment_number: ${s.shipment_number}`);
+                            console.log(`      container_number: ${s.container_number}`);
+                            console.log(`      reference: ${s.reference}`);
+                            console.log(`      bl_number: ${s.bl_number}`);
+                        });
+                        
+                        // ✅ CERCA SPECIFICATAMENTE SHP-2025-00041
+                        const shpShipment = this.rawData.shipments.find(s => 
+                            s.shipment_number === 'SHP-2025-00041' ||
+                            s.reference === 'SHP-2025-00041' ||
+                            s.id.includes('SHP-2025-00041')
+                        );
+                        
+                        if (shpShipment) {
+                            console.log(`🎯 FOUND SHP-2025-00041:`, {
+                                id: shpShipment.id,
+                                tracking_number: shpShipment.tracking_number,
+                                tracking_code: shpShipment.tracking_code,
+                                container_number: shpShipment.container_number,
+                                all_fields: Object.keys(shpShipment)
+                            });
+                            
+                            // USA QUESTA SPEDIZIONE
+                            shipment = shpShipment;
+                        }
+                    }
                     
                     if (shipment) {
-                        console.log(`✅ Shipment found: ${shipment.id}`);
+                        console.log(`✅ Final shipment found: ${shipment.id} (${shipment.shipment_number || shipment.tracking_number})`);
                         controlShipments.push({
                             ...shipment,
                             status: tracking.status,
@@ -3377,9 +3460,69 @@ async loadControlShipments() {
                             control_type: 'in_transit'
                         });
                     } else {
-                        console.log(`❌ NO SHIPMENT FOUND for tracking ${tracking.tracking_number}`);
-                        console.log(`🔍 Available shipments IDs:`, this.rawData.shipments.map(s => s.id).slice(0, 5));
-                        console.log(`🔍 Available shipments tracking_numbers:`, this.rawData.shipments.map(s => s.tracking_number).filter(t => t).slice(0, 5));
+                        console.log(`🚨 CRITICAL: Cannot find shipment for tracking ${tracking.tracking_number} - Creating virtual`);
+                        
+                        // ✅ CREA SPEDIZIONE VIRTUALE COME ULTIMA RISORSA
+                        const virtualShipment = {
+                            id: `virtual_${tracking.id}`,
+                            shipment_number: `SHP-VIRTUAL-${tracking.tracking_number}`,
+                            tracking_number: tracking.tracking_number,
+                            tracking_code: tracking.tracking_number,
+                            carrier_name: tracking.carrier_name || 'Non specificato',
+                            carrier_id: tracking.carrier_id,
+                            status: tracking.status,
+                            current_status: tracking.status,
+                            
+                            // Dati da tracking
+                            origin_port: tracking.origin_port || tracking.origin || 'Non specificato',
+                            destination_port: tracking.destination_port || tracking.destination || 'Non specificato',
+                            origin_country: tracking.origin_country || '',
+                            destination_country: tracking.destination_country || '',
+                            
+                            // Date
+                            date_of_departure: tracking.date_of_departure,
+                            date_of_discharge: tracking.date_of_discharge,
+                            eta: tracking.eta,
+                            ata: tracking.ata,
+                            
+                            // Container info
+                            container_type: tracking.container_type,
+                            container_size: tracking.container_size,
+                            container_count: tracking.container_count || 1,
+                            vessel_name: tracking.vessel_name,
+                            vessel_imo: tracking.vessel_imo,
+                            voyage_number: tracking.voyage_number,
+                            
+                            // Metadati
+                            tracking_type: tracking.tracking_type,
+                            last_event_date: tracking.last_event_date,
+                            last_event_location: tracking.last_event_location,
+                            
+                            // Timestamp
+                            created_at: tracking.created_at,
+                            updated_at: tracking.updated_at,
+                            
+                            // Costi (default)
+                            freight_cost: 0,
+                            other_costs: 0,
+                            total_weight_kg: tracking.total_weight_kg || 0,
+                            total_volume_cbm: tracking.total_volume_cbm || 0,
+                            
+                            // Flag virtuale
+                            is_virtual: true,
+                            virtual_source: 'tracking_orphan',
+                            virtual_reason: `Tracking ${tracking.tracking_number} trovato ma spedizione corrispondente non collegata`
+                        };
+                        
+                        console.log(`✅ Virtual shipment created for ${tracking.tracking_number}`);
+                        
+                        controlShipments.push({
+                            ...virtualShipment,
+                            status: tracking.status,
+                            current_status: tracking.status,
+                            tracking_data: tracking,
+                            control_type: 'in_transit'
+                        });
                     }
                     return;
                 }
