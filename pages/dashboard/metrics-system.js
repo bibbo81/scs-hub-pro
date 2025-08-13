@@ -2208,7 +2208,7 @@ calculateTransitTimesByModeDetailed(targetMode) {
                         </div>
                         <div class="col-6">
                             <button class="btn btn-outline-info w-100" onclick="metricsSystem.selectKPIPreset('advanced')">
-                                <i class="fas fa-chart-line me-1"></i>Avanzato (10)
+                                <i class="fas fa-chart-line me-1"></i>Avanzato (12)
                             </button>
                         </div>
                     </div>
@@ -2257,8 +2257,8 @@ calculateTransitTimesByModeDetailed(targetMode) {
             return false;
         }
         
-        if (selectedIds.length > 8) {
-            alert('⚠️ Puoi selezionare massimo 8 KPI per una visualizzazione ottimale');
+        if (selectedIds.length > 12) {
+            alert('⚠️ Puoi selezionare massimo 12 KPI per una visualizzazione ottimale');
             return false;
         }
         
@@ -2311,17 +2311,21 @@ calculateTransitTimesByModeDetailed(targetMode) {
                 ];
                 break;
             case 'advanced':
-                presetIds = [
-                    'total_shipments',
-                    'total_costs',
-                    'avg_delivery_time',
-                    'avg_sea_delivery_time',
-                    'avg_air_delivery_time',
-                    'cost_per_kg',
-                    'cost_per_cbm',
-                    'on_time_delivery_rate'
-                ];
-                break;
+    presetIds = [
+        'total_shipments',
+        'total_costs',
+        'avg_delivery_time',
+        'avg_sea_delivery_time',
+        'avg_air_delivery_time',
+        'avg_road_delivery_time',
+        'avg_parcel_delivery_time',
+        'cost_per_kg',
+        'cost_per_cbm',
+        'on_time_delivery_rate',
+        'container_utilization',
+        'seasonal_variation'
+    ];
+    break;
         }
         
         // Seleziona preset
