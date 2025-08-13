@@ -218,175 +218,244 @@ class UnifiedMetricsSystem {
 
          // ✅ CARICA RAW DATA CON FILTRO DATE SEMPLIFICATO
         
-        async loadRawData() {
-        console.log('📥 Loading raw data...');
+   async loadRawData() {
+    console.log('📥 Loading raw data...');
+    
+    try {
+        // Costruisci query con filtro organization opzionale
+        let shipmentsQuery = this.supabase.from('shipments').select('*');
+        let trackingsQuery = this.supabase.from('trackings').select('*');
+        let costsQuery = this.supabase.from('additional_costs').select('*');
+        let carriersQuery = this.supabase.from('carriers').select('*');
         
-        try {
-            // Costruisci query con filtro organization opzionale
-            let shipmentsQuery = this.supabase.from('shipments').select('*');
-            let trackingsQuery = this.supabase.from('trackings').select('*');
-            let costsQuery = this.supabase.from('additional_costs').select('*');
-            let carriersQuery = this.supabase.from('carriers').select('*');
+        // ✅ QUERY SHIPMENT_ITEMS SENZA PRODUCTS (FALLBACK)
+        let shipmentItemsQuery = this.supabase.from('shipment_items').select('*');
+        
+        if (this.organizationId) {
+            shipmentsQuery = shipmentsQuery.eq('organization_id', this.organizationId);
+            trackingsQuery = trackingsQuery.eq('organization_id', this.organizationId);
+            costsQuery = costsQuery.eq('organization_id', this.organizationId);
+            carriersQuery = carriersQuery.eq('organization_id', this.organizationId);
+        }
+        
+        // ✅ FILTRI ALTRI CAMPI
+        if (this.currentFilters.company) {
+            shipmentsQuery = shipmentsQuery.ilike('carrier_name', `%${this.currentFilters.company}%`);
+        }
+        
+        if (this.currentFilters.carrier) {
+            shipmentsQuery = shipmentsQuery.eq('carrier_id', this.currentFilters.carrier);
+        }
+        
+        if (this.currentFilters.status) {
+            shipmentsQuery = shipmentsQuery.eq('status', this.currentFilters.status);
+        }
+        
+        // ✅ ESEGUI QUERY
+        const [shipmentsResult, trackingsResult, costsResult, carriersResult, shipmentItemsResult] = await Promise.allSettled([
+            shipmentsQuery.order('created_at', { ascending: false }).limit(2000),
+            trackingsQuery.order('created_at', { ascending: false }).limit(5000),
+            costsQuery.order('created_at', { ascending: false }).limit(2000),
+            carriersQuery.order('name', { ascending: true }).limit(500),
+            shipmentItemsQuery.order('created_at', { ascending: false }).limit(10000)
+        ]);
+        
+        // Estrai dati
+        let rawShipments = this.extractData(shipmentsResult, 'shipments');
+        let rawShipmentItems = this.extractData(shipmentItemsResult, 'shipment_items');
+        
+        // ✅ DEBUG CAMPI SHIPMENT_ITEMS REALI
+        if (rawShipmentItems.length > 0) {
+            console.log('🔍 CAMPI REALI SHIPMENT_ITEMS:', Object.keys(rawShipmentItems[0]));
+            console.log('📦 SAMPLE ITEM:', rawShipmentItems[0]);
+        }
+        
+        // ✅ **APPLICA MAPPING UNIFICATO AI DATI SHIPMENTS**
+        if (window.TrackingUnifiedMapping) {
+            console.log('🔄 Applying unified mapping to raw shipments data...');
             
-            // ✅ QUERY SHIPMENT_ITEMS SENZA PRODUCTS (FALLBACK)
-            let shipmentItemsQuery = this.supabase.from('shipment_items').select('*');
-            
-            if (this.organizationId) {
-                shipmentsQuery = shipmentsQuery.eq('organization_id', this.organizationId);
-                trackingsQuery = trackingsQuery.eq('organization_id', this.organizationId);
-                costsQuery = costsQuery.eq('organization_id', this.organizationId);
-                carriersQuery = carriersQuery.eq('organization_id', this.organizationId);
-            }
-            
-            // ✅ FILTRI ALTRI CAMPI
-            if (this.currentFilters.company) {
-                shipmentsQuery = shipmentsQuery.ilike('carrier_name', `%${this.currentFilters.company}%`);
-            }
-            
-            if (this.currentFilters.carrier) {
-                shipmentsQuery = shipmentsQuery.eq('carrier_id', this.currentFilters.carrier);
-            }
-            
-            if (this.currentFilters.status) {
-                shipmentsQuery = shipmentsQuery.eq('status', this.currentFilters.status);
-            }
-            
-            // ✅ ESEGUI QUERY
-            const [shipmentsResult, trackingsResult, costsResult, carriersResult, shipmentItemsResult] = await Promise.allSettled([
-                shipmentsQuery.order('created_at', { ascending: false }).limit(2000),
-                trackingsQuery.order('created_at', { ascending: false }).limit(5000),
-                costsQuery.order('created_at', { ascending: false }).limit(2000),
-                carriersQuery.order('name', { ascending: true }).limit(500),
-                shipmentItemsQuery.order('created_at', { ascending: false }).limit(10000)
-            ]);
-            
-            // Estrai dati
-            let rawShipments = this.extractData(shipmentsResult, 'shipments');
-            let rawShipmentItems = this.extractData(shipmentItemsResult, 'shipment_items');
-            
-            // ✅ DEBUG CAMPI SHIPMENT_ITEMS REALI
-            if (rawShipmentItems.length > 0) {
-                console.log('🔍 CAMPI REALI SHIPMENT_ITEMS:', Object.keys(rawShipmentItems[0]));
-                console.log('📦 SAMPLE ITEM:', rawShipmentItems[0]);
-            }
-            
-            // ✅ FILTRA SHIPMENT_ITEMS BASANDOSI SULLE SPEDIZIONI CARICATE
-            if (this.organizationId && rawShipments.length > 0) {
-                const shipmentIds = new Set(rawShipments.map(s => s.id));
-                rawShipmentItems = rawShipmentItems.filter(item => shipmentIds.has(item.shipment_id));
-                console.log('✅ Filtered shipment_items by organization:', rawShipmentItems.length, 'items');
-            }
-            
-            // ✅ ARRICCHISCI SHIPMENT_ITEMS CON MAPPATURA CORRETTA
-            rawShipmentItems = rawShipmentItems.map(item => {
-                const shipment = rawShipments.find(s => s.id === item.shipment_id);
+            rawShipments = rawShipments.map(shipment => {
+                const mappedShipment = { ...shipment }; // Mantieni dati originali
                 
-                // ✅ MAPPATURA CORRETTA DEI CAMPI (USA I CAMPI REALI DAL DATABASE)
-                const virtualProduct = {
-                    id: item.product_id || `virtual_${item.id}`,
-                    // ✅ USA I CAMPI CHE ESISTONO REALMENTE
-                    name: item.product_name || item.description || item.name || 'Prodotto senza nome',
-                    sku: item.product_code || item.sku || item.code || 'N/A',
-                    description: item.product_description || item.product_name || item.description || item.name || 'Nessuna descrizione'
-                };
+                // ✅ APPLICA MAPPING PER CAMPI CHIAVE
+                mappedShipment.origin = window.TrackingUnifiedMapping.mapField(shipment, 'origin') || shipment.origin;
+                mappedShipment.destination = window.TrackingUnifiedMapping.mapField(shipment, 'destination') || shipment.destination;
+                mappedShipment.carrier = window.TrackingUnifiedMapping.mapField(shipment, 'carrier_name') || shipment.carrier_name;
+                mappedShipment.status_mapped = window.TrackingUnifiedMapping.mapStatus(shipment.status);
                 
-                return {
-                    ...item,
-                    product: virtualProduct,
-                    shipment: shipment || {
-                        id: item.shipment_id,
-                        shipment_number: 'N/A',
-                        tracking_number: 'N/A',
-                        carrier_name: 'N/A',
-                        created_at: new Date().toISOString()
-                    }
-                };
+                // ✅ APPLICA ALTRI CAMPI ESSENZIALI
+                mappedShipment.departure_date = window.TrackingUnifiedMapping.mapField(shipment, 'departure_date') || shipment.departure_date;
+                mappedShipment.arrival_date = window.TrackingUnifiedMapping.mapField(shipment, 'arrival_date') || shipment.arrival_date;
+                mappedShipment.tracking_number = window.TrackingUnifiedMapping.mapField(shipment, 'tracking_number') || shipment.tracking_number;
+                
+                // Mantieni anche campi originali per compatibilità
+                return mappedShipment;
             });
             
-            // ✅ APPLICA FILTRO DATE CLIENT-SIDE USANDO DATE DI PARTENZA
-            if (this.currentFilters.dateFrom || this.currentFilters.dateTo) {
-                const dateFrom = this.currentFilters.dateFrom ? new Date(this.currentFilters.dateFrom + 'T00:00:00') : null;
-                const dateTo = this.currentFilters.dateTo ? new Date(this.currentFilters.dateTo + 'T23:59:59') : null;
-                
-                console.log('📅 Applying date filters to shipments and items:', { dateFrom, dateTo });
-                
-                // Filtra spedizioni per data di partenza
-                rawShipments = rawShipments.filter(shipment => {
-                    const departureDate = new Date(this.getShipmentDepartureDate(shipment) || shipment.created_at);
-                    
-                    if (dateFrom && departureDate < dateFrom) {
-                        return false;
-                    }
-                    
-                    if (dateTo && departureDate > dateTo) {
-                        return false;
-                    }
-                    
-                    return true;
-                });
-                
-                // ✅ FILTRA ANCHE SHIPMENT_ITEMS BASANDOSI SULLE SPEDIZIONI FILTRATE
-                const filteredShipmentIds = new Set(rawShipments.map(s => s.id));
-                rawShipmentItems = rawShipmentItems.filter(item => {
-                    return filteredShipmentIds.has(item.shipment_id);
-                });
-                
-                console.log('✅ Date filtering complete:', rawShipments.length, 'shipments kept,', rawShipmentItems.length, 'items kept');
-            }
+            console.log('✅ Shipments mapping applied:', rawShipments.length, 'records');
             
-            // ✅ FILTRA ANCHE ADDITIONAL COSTS PER DATA
-            let filteredAdditionalCosts = this.extractData(costsResult, 'additional_costs');
-            if (this.currentFilters.dateFrom || this.currentFilters.dateTo) {
-                const dateFrom = this.currentFilters.dateFrom ? new Date(this.currentFilters.dateFrom + 'T00:00:00') : null;
-                const dateTo = this.currentFilters.dateTo ? new Date(this.currentFilters.dateTo + 'T23:59:59') : null;
-                
-                filteredAdditionalCosts = filteredAdditionalCosts.filter(cost => {
-                    const costDate = new Date(cost.date || cost.created_at);
-                    
-                    if (dateFrom && costDate < dateFrom) {
-                        return false;
-                    }
-                    
-                    if (dateTo && costDate > dateTo) {
-                        return false;
-                    }
-                    
-                    return true;
+            // ✅ DEBUG SAMPLE MAPPED SHIPMENT
+            if (rawShipments.length > 0) {
+                const sampleShipment = rawShipments[0];
+                console.log('🔍 SAMPLE MAPPED SHIPMENT:', {
+                    id: sampleShipment.id,
+                    original_origin_port: sampleShipment.origin_port,
+                    mapped_origin: sampleShipment.origin,
+                    original_destination_port: sampleShipment.destination_port,
+                    mapped_destination: sampleShipment.destination,
+                    original_carrier_name: sampleShipment.carrier_name,
+                    mapped_carrier: sampleShipment.carrier,
+                    original_status: sampleShipment.status,
+                    mapped_status: sampleShipment.status_mapped
                 });
-                
-                console.log('✅ Additional costs filtering:', filteredAdditionalCosts.length, 'kept');
             }
+        } else {
+            console.warn('⚠️ TrackingUnifiedMapping not available, using raw field names');
+        }
+        
+        // ✅ FILTRA SHIPMENT_ITEMS BASANDOSI SULLE SPEDIZIONI CARICATE
+        if (this.organizationId && rawShipments.length > 0) {
+            const shipmentIds = new Set(rawShipments.map(s => s.id));
+            rawShipmentItems = rawShipmentItems.filter(item => shipmentIds.has(item.shipment_id));
+            console.log('✅ Filtered shipment_items by organization:', rawShipmentItems.length, 'items');
+        }
+        
+        // ✅ ARRICCHISCI SHIPMENT_ITEMS CON MAPPATURA CORRETTA
+        rawShipmentItems = rawShipmentItems.map(item => {
+            const shipment = rawShipments.find(s => s.id === item.shipment_id);
             
-            // ✅ AGGIORNA L'OGGETTO rawData
-            this.rawData = {
-                shipments: rawShipments,
-                trackings: this.extractData(trackingsResult, 'trackings'),
-                additionalCosts: filteredAdditionalCosts,
-                carriers: this.extractData(carriersResult, 'carriers'),
-                shipmentItems: rawShipmentItems,
-                products: [],
-                loadedAt: new Date().toISOString()
+            // ✅ MAPPATURA CORRETTA DEI CAMPI (USA I CAMPI REALI DAL DATABASE)
+            const virtualProduct = {
+                id: item.product_id || `virtual_${item.id}`,
+                // ✅ USA I CAMPI CHE ESISTONO REALMENTE
+                name: item.product_name || item.description || item.name || 'Prodotto senza nome',
+                sku: item.product_code || item.sku || item.code || 'N/A',
+                description: item.product_description || item.product_name || item.description || item.name || 'Nessuna descrizione'
             };
             
-            console.log('✅ Raw data loaded WITH CORRECT FIELD MAPPING:', {
-                shipments: this.rawData.shipments.length,
-                trackings: this.rawData.trackings.length,
-                additionalCosts: this.rawData.additionalCosts.length,
-                carriers: this.rawData.carriers.length,
-                shipmentItems: this.rawData.shipmentItems.length,
-                virtualProducts: rawShipmentItems.length,
-                dateRange: this.currentFilters.dateFrom && this.currentFilters.dateTo 
-                    ? `${this.currentFilters.dateFrom} → ${this.currentFilters.dateTo}`
-                    : 'Nessun filtro data',
-                actualDateRange: this.getActualDateRange()
+            return {
+                ...item,
+                product: virtualProduct,
+                shipment: shipment || {
+                    id: item.shipment_id,
+                    shipment_number: 'N/A',
+                    tracking_number: 'N/A',
+                    carrier_name: 'N/A',
+                    created_at: new Date().toISOString()
+                }
+            };
+        });
+        
+        // ✅ APPLICA FILTRO DATE CLIENT-SIDE USANDO DATE DI PARTENZA
+        if (this.currentFilters.dateFrom || this.currentFilters.dateTo) {
+            const dateFrom = this.currentFilters.dateFrom ? new Date(this.currentFilters.dateFrom + 'T00:00:00') : null;
+            const dateTo = this.currentFilters.dateTo ? new Date(this.currentFilters.dateTo + 'T23:59:59') : null;
+            
+            console.log('📅 Applying date filters to mapped shipments and items:', { dateFrom, dateTo });
+            
+            // Filtra spedizioni per data di partenza
+            rawShipments = rawShipments.filter(shipment => {
+                const departureDate = this.getShipmentDepartureDate(shipment);
+                if (!departureDate) return true; // Mantieni se non ha data
+                
+                const shipmentDate = new Date(departureDate);
+                if (dateFrom && shipmentDate < dateFrom) return false;
+                if (dateTo && shipmentDate > dateTo) return false;
+                return true;
             });
             
-        } catch (error) {
-            console.error('❌ Error loading raw data:', error);
-            throw error;
+            // ✅ FILTRA ANCHE SHIPMENT_ITEMS BASANDOSI SULLE SPEDIZIONI FILTRATE
+            const filteredShipmentIds = new Set(rawShipments.map(s => s.id));
+            rawShipmentItems = rawShipmentItems.filter(item => filteredShipmentIds.has(item.shipment_id));
+            
+            console.log('✅ Date filtering complete:', rawShipments.length, 'shipments kept,', rawShipmentItems.length, 'items kept');
         }
+        
+        // ✅ FILTRA ANCHE ADDITIONAL COSTS PER DATA
+        let filteredAdditionalCosts = this.extractData(costsResult, 'additional_costs');
+        if (this.currentFilters.dateFrom || this.currentFilters.dateTo) {
+            const dateFrom = this.currentFilters.dateFrom ? new Date(this.currentFilters.dateFrom + 'T00:00:00') : null;
+            const dateTo = this.currentFilters.dateTo ? new Date(this.currentFilters.dateTo + 'T23:59:59') : null;
+            
+            filteredAdditionalCosts = filteredAdditionalCosts.filter(cost => {
+                const costDate = new Date(cost.date || cost.created_at);
+                if (dateFrom && costDate < dateFrom) return false;
+                if (dateTo && costDate > dateTo) return false;
+                return true;
+            });
+            
+            console.log('✅ Additional costs filtering:', filteredAdditionalCosts.length, 'kept');
+        }
+        
+        // ✅ AGGIORNA L'OGGETTO rawData CON DATI MAPPATI
+        this.rawData = {
+            shipments: rawShipments,
+            trackings: this.extractData(trackingsResult, 'trackings'),
+            additionalCosts: filteredAdditionalCosts,
+            carriers: this.extractData(carriersResult, 'carriers'),
+            shipmentItems: rawShipmentItems,
+            products: [],
+            loadedAt: new Date().toISOString()
+        };
+        
+        console.log('✅ Raw data loaded WITH UNIFIED MAPPING APPLIED:', {
+            shipments: this.rawData.shipments.length,
+            trackings: this.rawData.trackings.length,
+            additionalCosts: this.rawData.additionalCosts.length,
+            carriers: this.rawData.carriers.length,
+            shipmentItems: this.rawData.shipmentItems.length,
+            mappingApplied: !!window.TrackingUnifiedMapping,
+            dateRange: this.currentFilters.dateFrom && this.currentFilters.dateTo 
+                ? `${this.currentFilters.dateFrom} → ${this.currentFilters.dateTo}`
+                : 'Nessun filtro data',
+            actualDateRange: this.getActualDateRange()
+        });
+        
+    } catch (error) {
+        console.error('❌ Error loading raw data:', error);
+        throw error;
+    }
+}
+ // ✅ NUOVO: MAPPA QUALSIASI CAMPO USANDO IL SISTEMA UNIFICATO
+    mapShipmentField(shipment, targetField) {
+        if (!shipment || !window.TrackingUnifiedMapping) {
+            return shipment[targetField] || null;
+        }
+        
+        // Usa il reverse mapping per trovare tutti i possibili nomi di campo
+        const reverseMapping = window.TrackingUnifiedMapping.getReverseColumnMapping();
+        const possibleFieldNames = [];
+        
+        // Aggiungi il nome target diretto
+        possibleFieldNames.push(targetField);
+        
+        // Aggiungi varianti dal mapping
+        for (const [sourceField, mappedField] of Object.entries(window.TrackingUnifiedMapping.COLUMN_MAPPING)) {
+            if (mappedField === targetField) {
+                possibleFieldNames.push(sourceField.toLowerCase().replace(/\s+/g, '_'));
+            }
+        }
+        
+        // Prova tutti i possibili nomi
+        for (const fieldName of possibleFieldNames) {
+            if (shipment[fieldName] && shipment[fieldName].toString().trim() !== '') {
+                return shipment[fieldName];
+            }
+        }
+        
+        return null;
     }
     
+    // ✅ NUOVO: OTTIENI CAMPO MAPPATO CON FALLBACK
+    getShipmentField(shipment, ...fieldNames) {
+        for (const fieldName of fieldNames) {
+            const value = this.mapShipmentField(shipment, fieldName);
+            if (value && value.toString().trim() !== '') {
+                return value.toString().trim();
+            }
+        }
+        return null;
+    }
     // ✅ AGGIUNGI QUESTO NUOVO METODO
     getActualDateRange() {
         if (this.rawData?.shipments?.length === 0) return 'Nessuna spedizione';
@@ -4802,32 +4871,27 @@ renderCarriersDBPerformanceTable() {
         }
     }
     
-   // ✅ BADGE STATO SPEDIZIONE - USANDO MAPPING UNIFICATO
+// ✅ BADGE STATO SPEDIZIONE - USANDO MAPPING UNIFICATO COMPLETO
 getStatusBadge(status) {
-    if (!status) return '<span class="badge bg-light text-dark">❓ Non specificato</span>';
+    if (!status) return '<span class="badge bg-secondary">❓ Non specificato</span>';
     
-    // ✅ USA IL TUO SISTEMA UNIFICATO DI MAPPING
+    // ✅ USA IL MAPPING UNIFICATO SEMPRE
     let normalizedStatus = status;
+    let displayConfig = {};
     
-    // Se il mapping unificato è disponibile, usalo
     if (window.TrackingUnifiedMapping) {
         normalizedStatus = window.TrackingUnifiedMapping.mapStatus(status);
+        displayConfig = window.TrackingUnifiedMapping.STATUS_DISPLAY_CONFIG[normalizedStatus] || 
+                       window.TrackingUnifiedMapping.STATUS_DISPLAY_CONFIG['default'];
     } else {
         // Fallback locale se il mapping non è caricato
         normalizedStatus = this.mapStatusLocal(status);
+        displayConfig = this.getLocalStatusConfig()[normalizedStatus] || 
+                       this.getLocalStatusConfig()['default'];
     }
     
-    // ✅ USA LA TUA CONFIGURAZIONE DISPLAY
-    const displayConfig = window.TrackingUnifiedMapping?.STATUS_DISPLAY_CONFIG || this.getLocalStatusConfig();
-    
-    const config = displayConfig[normalizedStatus] || displayConfig['default'] || {
-        label: status,
-        class: 'secondary',
-        icon: 'fa-question-circle'
-    };
-    
-    return `<span class="badge bg-${config.class}" title="Stato originale: ${status}">
-        <i class="fas ${config.icon} me-1"></i>${config.label}
+    return `<span class="badge bg-${displayConfig.class}" title="Stato originale: ${status}">
+        <i class="fas ${displayConfig.icon} me-1"></i>${displayConfig.label}
     </span>`;
 }
 
