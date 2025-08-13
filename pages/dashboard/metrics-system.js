@@ -3130,43 +3130,65 @@ async loadControlShipments() {
 }
 // ✅ MAPPA DATI SPEDIZIONE PER VISUALIZZAZIONE
 getShipmentDisplayData(shipment) {
-    const mapping = TrackingUnifiedMapping.COLUMN_MAPPING;
+    console.log('🔍 DEBUG getShipmentDisplayData for shipment:', shipment.id);
+    console.log('📦 Raw shipment data:', shipment);
     
-    // ✅ FUNZIONE DI MAPPING CORRETTA
+    // ✅ FUNZIONE DI MAPPING DIRETTA - BYPASSA IL SISTEMA COMPLESSO
     const getField = (fieldName) => {
-        // Cerca il campo nel mapping (chiave -> valore standard)
-        for (const [key, standardField] of Object.entries(mapping)) {
-            if (standardField === fieldName && shipment[key] !== undefined) {
-                return shipment[key];
-            }
-        }
-        
-        // Fallback: cerca direttamente nel shipment
-        if (shipment[fieldName] !== undefined) {
-            return shipment[fieldName];
-        }
-        
-        // Cerca varianti comuni
-        const variants = {
-            tracking_number: ['Container', 'ContainerNumber', 'Container Number', 'tracking_number', 'trackingNumber'],
-            origin: ['Origin', 'departure_port', 'origin_port', 'POL', 'origin'],
-            destination: ['Destination', 'arrival_port', 'destination_port', 'POD', 'destination'],
-            carrier: ['Carrier', 'shipping_line', 'carrier_name', 'carrier'],
-            reference: ['Reference', 'booking', 'BookingNumber', 'reference'],
-            departure_date: ['departure_date', 'ETD', 'sailing_date', 'departureDate'],
-            eta: ['ETA', 'arrival_date', 'estimated_arrival', 'eta'],
-            arrival_date: ['arrival_date', 'actual_arrival', 'arrived_date', 'arrivalDate'],
-            status: ['Status', 'current_status', 'status']
+        // 🎯 MAPPING DIRETTO DEI CAMPI PIÙ COMUNI
+        const fieldMapping = {
+            tracking_number: [
+                'tracking_number', 'tracking_code', 'container_number', 
+                'awb_number', 'bl_number', 'booking_number',
+                'Container', 'ContainerNumber', 'Container Number'
+            ],
+            status: [
+                'status', 'current_status', 'shipment_status',
+                'Status', 'CurrentStatus'
+            ],
+            carrier: [
+                'carrier_name', 'shipping_line', 'airline', 'forwarder_name',
+                'Carrier', 'ShippingLine', 'carrier'
+            ],
+            reference: [
+                'reference', 'booking_reference', 'customer_reference',
+                'Reference', 'BookingReference', 'booking_number'
+            ],
+            origin: [
+                'origin_port', 'origin', 'departure_port', 'origin_city',
+                'from_port', 'pickup_location', 'origin_location',
+                'Origin', 'OriginPort', 'POL'
+            ],
+            destination: [
+                'destination_port', 'destination', 'arrival_port', 'destination_city',
+                'to_port', 'delivery_location', 'destination_location',
+                'Destination', 'DestinationPort', 'POD'
+            ],
+            departure_date: [
+                'departure_date', 'etd', 'sailing_date', 'flight_date',
+                'ETD', 'SailingDate', 'DepartureDate'
+            ],
+            eta: [
+                'eta', 'estimated_arrival', 'estimated_delivery',
+                'ETA', 'EstimatedArrival'
+            ],
+            arrival_date: [
+                'arrival_date', 'ata', 'actual_arrival', 'delivered_date',
+                'ATA', 'ActualArrival', 'arrival_date'
+            ]
         };
         
-        if (variants[fieldName]) {
-            for (const variant of variants[fieldName]) {
-                if (shipment[variant] !== undefined) {
-                    return shipment[variant];
-                }
+        const possibleFields = fieldMapping[fieldName] || [fieldName];
+        
+        // Prova tutti i possibili nomi di campo
+        for (const field of possibleFields) {
+            if (shipment[field] !== undefined && shipment[field] !== null && shipment[field] !== '') {
+                console.log(`✅ Found ${fieldName} in field '${field}':`, shipment[field]);
+                return shipment[field];
             }
         }
         
+        console.log(`❌ Field '${fieldName}' not found in any variant`);
         return null;
     };
     
@@ -3183,26 +3205,37 @@ getShipmentDisplayData(shipment) {
                 year: '2-digit'
             });
         } catch (e) {
+            console.error('Error formatting date:', e);
             return null;
         }
     };
     
-    return {
-        tracking_number: getField('tracking_number') || 'N/A',
-        status: getField('status') || 'unknown',
-        carrier: getField('carrier') || 'N/A',
-        reference: getField('reference') || 'N/A',
-        origin: getField('origin') || 'N/A',
-        destination: getField('destination') || 'N/A',
-        departure_date: formatDate(getField('departure_date')),
+    // ✅ ESTRAI TUTTI I CAMPI CON FALLBACK INTELLIGENTI
+    const result = {
+        tracking_number: getField('tracking_number') || `SHIP-${shipment.id}`,
+        status: getField('status') || 'registered',
+        carrier: getField('carrier') || 'Non specificato',
+        reference: getField('reference') || shipment.shipment_number || shipment.id,
+        origin: getField('origin') || 'Non specificato',
+        destination: getField('destination') || 'Non specificato',
+        departure_date: formatDate(getField('departure_date')) || formatDate(shipment.created_at),
         eta: formatDate(getField('eta')),
         arrival_date: formatDate(getField('arrival_date')),
         raw: shipment // ✅ MANTIENI DATI RAW PER DEBUG
     };
+    
+    console.log('✅ Mapped shipment data:', result);
+    return result;
 }
+// Sostituisci renderControlShipments (circa riga 1080) con questa versione:
+
 renderControlShipments(shipments = []) {
     const tbody = document.getElementById('controlShipmentsBody');
     const emptyState = document.getElementById('controlShipmentsEmpty');
+    const loadingState = document.getElementById('controlShipmentsLoading');
+    
+    // Nascondi loading
+    if (loadingState) loadingState.style.display = 'none';
     
     if (!tbody) {
         console.warn('⚠️ Control shipments table body not found');
@@ -3218,19 +3251,37 @@ renderControlShipments(shipments = []) {
     
     if (emptyState) emptyState.style.display = 'none';
     
-    // ✅ RENDER RIGHE CORRETTE
+    // ✅ RENDER RIGHE CON STATUS MAPPING SEMPLIFICATO
     const rows = shipments.map(shipment => {
         const data = this.getShipmentDisplayData(shipment);
-        const statusInfo = TrackingUnifiedMapping.mapStatus(data.status);
+        
+        // ✅ STATUS MAPPING SEMPLIFICATO
+        let statusClass = 'bg-secondary';
+        let statusLabel = data.status;
+        
+        const status = data.status.toLowerCase();
+        if (status.includes('transit') || status.includes('sailing')) {
+            statusClass = 'bg-primary';
+            statusLabel = 'In Transito';
+        } else if (status.includes('delivered') || status.includes('consegnato')) {
+            statusClass = 'bg-success';
+            statusLabel = 'Consegnato';
+        } else if (status.includes('arrived') || status.includes('arrivato')) {
+            statusClass = 'bg-info';
+            statusLabel = 'Arrivato';
+        } else if (status.includes('discharged') || status.includes('scaricato')) {
+            statusClass = 'bg-warning';
+            statusLabel = 'Scaricato';
+        }
         
         return `
-            <tr onclick="this.showShipmentDetails && this.showShipmentDetails('${data.tracking_number}')" style="cursor: pointer;">
+            <tr onclick="metricsSystem.openShipmentDetails('${shipment.id}')" style="cursor: pointer;">
                 <td>
                     <span class="fw-semibold">${data.tracking_number}</span>
                 </td>
                 <td class="text-center">
-                    <span class="badge ${statusInfo.className} control-status-badge">
-                        ${statusInfo.label}
+                    <span class="badge ${statusClass} control-status-badge">
+                        ${statusLabel}
                     </span>
                 </td>
                 <td>
@@ -3258,8 +3309,8 @@ renderControlShipments(shipments = []) {
                 </td>
                 <td class="text-center">
                     <div class="control-actions">
-                        <button class="btn btn-sm btn-outline-primary" onclick="event.stopPropagation(); this.showShipmentDetails && this.showShipmentDetails('${data.tracking_number}')" title="Dettagli">
-                            <i class="fas fa-eye"></i>
+                        <button class="btn btn-sm btn-outline-primary" onclick="event.stopPropagation(); metricsSystem.trackShipment('${data.tracking_number}')" title="Traccia">
+                            <i class="fas fa-search"></i>
                         </button>
                     </div>
                 </td>
@@ -3269,7 +3320,7 @@ renderControlShipments(shipments = []) {
     
     tbody.innerHTML = rows;
     
-    console.log(`✅ Rendered ${shipments.length} control shipments`);
+    console.log(`✅ Rendered ${shipments.length} control shipments with corrected mapping`);
 }
 
 getStatusBadge(status) {
