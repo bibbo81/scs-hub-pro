@@ -1529,38 +1529,62 @@
                 
                 <!-- ✅ IMPORTA MAPPING UNIFICATO -->
                 <script src="./pages/tracking/tracking-unified-mapping.js"></script>
-                    
-                <!-- ✅ SCRIPT PRINCIPALE -->
-                    <script type="module">
-                    // Inizializza Supabase
-                    if (!window.supabase) {
-                        const { createClient } = supabase;
-                        window.supabase = createClient(
-                            'https://gnlrmnsdmpjzitsysowq.supabase.co',
-                            'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdubnJtbnNkbXBqeml0c3lzb3dxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mjk3OTI3OTQsImV4cCI6MjA0NTM2ODc5NH0.nBBLNL4OGHqXcj_0qXUYx95UwjJDcZXuKvQDmjq5B3k'
-                        );
+                <!-- ✅ ASPETTA CHE IL MAPPING SIA CARICATO -->
+<script>
+    // Verifica che il mapping sia caricato
+    window.waitForTrackingMapping = function() {
+        return new Promise((resolve) => {
+            if (window.TrackingUnifiedMapping) {
+                console.log('✅ TrackingUnifiedMapping già caricato');
+                resolve();
+            } else {
+                console.log('⏳ Aspettando TrackingUnifiedMapping...');
+                const checkInterval = setInterval(() => {
+                    if (window.TrackingUnifiedMapping) {
+                        console.log('✅ TrackingUnifiedMapping caricato!');
+                        clearInterval(checkInterval);
+                        resolve();
                     }
-            
-                    // Import sistema modal
-                    const { default: ModalSystem } = await import('./core/modal-system.js');
-                    window.ModalSystem = ModalSystem;
-            
-                    // Import e inizializza sistema unificato
-                    const { default: UnifiedMetricsSystem } = await import('./pages/dashboard/metrics-system.js');
-                    const { default: headerComponent } = await import('./core/header-component.js');
-                    const { default: notificationSystem } = await import('./core/notification-system.js');
+                }, 100);
+            }
+        });
+    };
+</script>
                     
-                    // Rendi disponibili globalmente
-                    window.notificationSystem = notificationSystem;
-                    window.headerComponent = headerComponent;
-                    
-                    // Inizializza sistema metriche
-                    window.metricsSystem = new UnifiedMetricsSystem();
-                    await window.metricsSystem.init();
-                    
-                    console.log('✅ Dashboard pronto con sistema unificato!');
-                    console.log('✅ Modal System loaded and ready');
-                </script>            
+                <!-- ✅ SCRIPT PRINCIPALE (MODIFICATO) -->
+<script type="module">
+    // Aspetta che il mapping sia caricato
+    await window.waitForTrackingMapping();
+    
+    // Inizializza Supabase
+    if (!window.supabase) {
+        const { createClient } = supabase;
+        window.supabase = createClient(
+            'https://gnlrmnsdmpjzitsysowq.supabase.co',
+            'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdubnJtbnNkbXBqeml0c3lzb3dxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mjk3OTI3OTQsImV4cCI6MjA0NTM2ODc5NH0.nBBLNL4OGHqXcj_0qXUYx95UwjJDcZXuKvQDmjq5B3k'
+        );
+    }
+
+    // Import sistema modal
+    const { default: ModalSystem } = await import('./core/modal-system.js');
+    window.ModalSystem = ModalSystem;
+
+    // Import e inizializza sistema unificato
+    const { default: UnifiedMetricsSystem } = await import('./pages/dashboard/metrics-system.js');
+    const { default: headerComponent } = await import('./core/header-component.js');
+    const { default: notificationSystem } = await import('./core/notification-system.js');
+    
+    // Rendi disponibili globalmente
+    window.notificationSystem = notificationSystem;
+    window.headerComponent = headerComponent;
+    
+    // Inizializza sistema metriche
+    window.metricsSystem = new UnifiedMetricsSystem();
+    await window.metricsSystem.init();
+    
+    console.log('✅ Dashboard pronto con sistema unificato!');
+    console.log('✅ Modal System loaded and ready');
+</script>            
             
             <script>
                 // ✅ FUNZIONI FILTRI AGGIORNATE

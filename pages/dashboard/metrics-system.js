@@ -269,49 +269,110 @@ class UnifiedMetricsSystem {
             console.log('🔍 CAMPI REALI SHIPMENT_ITEMS:', Object.keys(rawShipmentItems[0]));
             console.log('📦 SAMPLE ITEM:', rawShipmentItems[0]);
         }
-        
-        // ✅ **APPLICA MAPPING UNIFICATO AI DATI SHIPMENTS**
         if (window.TrackingUnifiedMapping) {
-            console.log('🔄 Applying unified mapping to raw shipments data...');
-            
-            rawShipments = rawShipments.map(shipment => {
-                const mappedShipment = { ...shipment }; // Mantieni dati originali
-                
-                // ✅ APPLICA MAPPING PER CAMPI CHIAVE
+    console.log('🔍 DEBUG TrackingUnifiedMapping structure:');
+    console.log('   Available methods:', Object.getOwnPropertyNames(window.TrackingUnifiedMapping));
+    console.log('   Has mapField:', typeof window.TrackingUnifiedMapping.mapField);
+    console.log('   Has COLUMN_MAPPING:', !!window.TrackingUnifiedMapping.COLUMN_MAPPING);
+    console.log('   Constructor name:', window.TrackingUnifiedMapping.constructor.name);
+    
+    if (window.TrackingUnifiedMapping.COLUMN_MAPPING) {
+        console.log('   Available mappings:', Object.keys(window.TrackingUnifiedMapping.COLUMN_MAPPING));
+    }
+}
+if (window.TrackingUnifiedMapping) {
+    console.log('🔄 Applying unified mapping to raw shipments data...');
+    
+    rawShipments = rawShipments.map(shipment => {
+        const mappedShipment = { ...shipment }; // Mantieni dati originali
+        
+        try {
+            // ✅ USA IL METODO CORRETTO
+            if (typeof window.TrackingUnifiedMapping.mapField === 'function') {
+                // Metodo mapField disponibile
                 mappedShipment.origin = window.TrackingUnifiedMapping.mapField(shipment, 'origin') || shipment.origin;
                 mappedShipment.destination = window.TrackingUnifiedMapping.mapField(shipment, 'destination') || shipment.destination;
                 mappedShipment.carrier = window.TrackingUnifiedMapping.mapField(shipment, 'carrier_name') || shipment.carrier_name;
-                mappedShipment.status_mapped = window.TrackingUnifiedMapping.mapStatus(shipment.status);
-                
-                // ✅ APPLICA ALTRI CAMPI ESSENZIALI
-                mappedShipment.departure_date = window.TrackingUnifiedMapping.mapField(shipment, 'departure_date') || shipment.departure_date;
-                mappedShipment.arrival_date = window.TrackingUnifiedMapping.mapField(shipment, 'arrival_date') || shipment.arrival_date;
                 mappedShipment.tracking_number = window.TrackingUnifiedMapping.mapField(shipment, 'tracking_number') || shipment.tracking_number;
+            } else if (window.TrackingUnifiedMapping.COLUMN_MAPPING) {
+                // ✅ FALLBACK: USA COLUMN_MAPPING DIRETTAMENTE
+                console.log('⚠️ Using fallback mapping with COLUMN_MAPPING');
                 
-                // Mantieni anche campi originali per compatibilità
-                return mappedShipment;
-            });
-            
-            console.log('✅ Shipments mapping applied:', rawShipments.length, 'records');
-            
-            // ✅ DEBUG SAMPLE MAPPED SHIPMENT
-            if (rawShipments.length > 0) {
-                const sampleShipment = rawShipments[0];
-                console.log('🔍 SAMPLE MAPPED SHIPMENT:', {
-                    id: sampleShipment.id,
-                    original_origin_port: sampleShipment.origin_port,
-                    mapped_origin: sampleShipment.origin,
-                    original_destination_port: sampleShipment.destination_port,
-                    mapped_destination: sampleShipment.destination,
-                    original_carrier_name: sampleShipment.carrier_name,
-                    mapped_carrier: sampleShipment.carrier,
-                    original_status: sampleShipment.status,
-                    mapped_status: sampleShipment.status_mapped
-                });
+                // Mappa origine
+                const originFields = window.TrackingUnifiedMapping.COLUMN_MAPPING.origin || [];
+                for (const field of originFields) {
+                    if (shipment[field] && shipment[field].trim() !== '') {
+                        mappedShipment.origin = shipment[field];
+                        break;
+                    }
+                }
+                
+                // Mappa destinazione
+                const destinationFields = window.TrackingUnifiedMapping.COLUMN_MAPPING.destination || [];
+                for (const field of destinationFields) {
+                    if (shipment[field] && shipment[field].trim() !== '') {
+                        mappedShipment.destination = shipment[field];
+                        break;
+                    }
+                }
+                
+                // Mappa carrier
+                const carrierFields = window.TrackingUnifiedMapping.COLUMN_MAPPING.carrier_name || [];
+                for (const field of carrierFields) {
+                    if (shipment[field] && shipment[field].trim() !== '') {
+                        mappedShipment.carrier = shipment[field];
+                        break;
+                    }
+                }
+                
+                // Mappa tracking number
+                const trackingFields = window.TrackingUnifiedMapping.COLUMN_MAPPING.tracking_number || [];
+                for (const field of trackingFields) {
+                    if (shipment[field] && shipment[field].trim() !== '') {
+                        mappedShipment.tracking_number = shipment[field];
+                        break;
+                    }
+                }
+            } else {
+                console.warn('⚠️ TrackingUnifiedMapping structure not recognized');
             }
-        } else {
-            console.warn('⚠️ TrackingUnifiedMapping not available, using raw field names');
+            
+            // ✅ MAPPA STATUS SE DISPONIBILE
+            if (typeof window.TrackingUnifiedMapping.mapStatus === 'function') {
+                mappedShipment.status_mapped = window.TrackingUnifiedMapping.mapStatus(shipment.status);
+            } else {
+                mappedShipment.status_mapped = shipment.status;
+            }
+            
+        } catch (error) {
+            console.warn('⚠️ Error applying mapping to shipment:', shipment.id, error);
+            // Mantieni dati originali in caso di errore
         }
+        
+        // Mantieni anche campi originali per compatibilità
+        return mappedShipment;
+    });
+    
+    console.log('✅ Shipments mapping applied:', rawShipments.length, 'records');
+    
+    // ✅ DEBUG SAMPLE MAPPED SHIPMENT
+    if (rawShipments.length > 0) {
+        const sampleShipment = rawShipments[0];
+        console.log('🔍 SAMPLE MAPPED SHIPMENT:', {
+            id: sampleShipment.id,
+            original_origin_port: sampleShipment.origin_port,
+            mapped_origin: sampleShipment.origin,
+            original_destination_port: sampleShipment.destination_port,
+            mapped_destination: sampleShipment.destination,
+            original_carrier_name: sampleShipment.carrier_name,
+            mapped_carrier: sampleShipment.carrier,
+            original_status: sampleShipment.status,
+            mapped_status: sampleShipment.status_mapped
+        });
+    }
+} else {
+    console.warn('⚠️ TrackingUnifiedMapping not available, using raw field names');
+}
         
         // ✅ FILTRA SHIPMENT_ITEMS BASANDOSI SULLE SPEDIZIONI CARICATE
         if (this.organizationId && rawShipments.length > 0) {
