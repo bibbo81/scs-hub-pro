@@ -2173,7 +2173,7 @@ calculateTransitTimesByModeDetailed(targetMode) {
             <div class="kpi-selector">
                 <p class="text-muted mb-4">
                     <i class="fas fa-info-circle me-2"></i>
-                    Seleziona i KPI che vuoi visualizzare nella dashboard. Puoi scegliere fino a 8 KPI per una visualizzazione ottimale.
+                    Seleziona i KPI che vuoi visualizzare nella dashboard. Puoi scegliere fino a 12 KPI per una visualizzazione ottimale.
                 </p>
                 
                 <div class="row g-3">
