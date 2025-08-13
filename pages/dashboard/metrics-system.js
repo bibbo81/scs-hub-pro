@@ -3028,17 +3028,17 @@ renderControlShipments(shipments = []) {
             <tr onclick="this.classList.toggle('table-active')">
                 <td>
                     <div class="fw-semibold">${shipment.tracking_number}</div>
-                    <small class="text-muted">${shipment.tracking_type}</small>
+                    <small class="text-muted">${shipment.tracking_type || 'N/A'}</small>
                 </td>
                 <td class="text-center">${statusBadge}</td>
                 <td>
-                    <div class="fw-semibold">${shipment.carrier_name}</div>
+                    <div class="fw-semibold">${shipment.carrier_name || 'N/A'}</div>
                 </td>
                 <td>
                     <span class="badge bg-light text-dark">${shipment.reference || 'N/A'}</span>
                 </td>
-                <td>${shipment.departure_port || 'N/A'}</td>
-                <td>${shipment.arrival_port || 'N/A'}</td>
+                <td>${shipment.departure_port || shipment.origin || 'N/A'}</td>
+                <td>${shipment.arrival_port || shipment.destination || 'N/A'}</td>
                 <td class="text-center">
                     <small>${departureDate}</small>
                 </td>
@@ -3050,10 +3050,10 @@ renderControlShipments(shipments = []) {
                 </td>
                 <td class="text-center">
                     <div class="control-actions">
-                        <button class="btn btn-outline-primary btn-sm" onclick="event.stopPropagation(); this.openShipmentDetails('${shipment.id}')" title="Dettagli">
+                        <button class="btn btn-outline-primary btn-sm" onclick="event.stopPropagation(); metricsSystem.openShipmentDetails('${shipment.id}')" title="Dettagli">
                             <i class="fas fa-eye"></i>
                         </button>
-                        <button class="btn btn-outline-info btn-sm" onclick="event.stopPropagation(); this.trackShipment('${shipment.tracking_number}')" title="Traccia">
+                        <button class="btn btn-outline-info btn-sm" onclick="event.stopPropagation(); metricsSystem.trackShipment('${shipment.tracking_number || 'N/A'}')" title="Traccia">
                             <i class="fas fa-search"></i>
                         </button>
                     </div>
@@ -5833,6 +5833,111 @@ getExpectedDeliveryDays(shipment) {
     return expectedDays[mode] || 30; // Default 30 giorni
 }
 debugShipmentItemsFieldsReal
+// ✅ DEBUG CAMPI SHIPMENT_ITEMS REALI
+debugShipmentItemsFieldsReal() {
+    if (!this.rawData || !this.rawData.shipmentItems || this.rawData.shipmentItems.length === 0) {
+        console.log('❌ No shipment items to debug');
+        return;
+    }
+    
+    console.log('🔍 ANALISI CAMPI REALI SHIPMENT_ITEMS:');
+    
+    const sampleItem = this.rawData.shipmentItems[0];
+    console.log('📦 All fields found:', Object.keys(sampleItem));
+    console.log('📦 Sample item data:', sampleItem);
+    
+    // Analizza campi costo
+    const costFields = Object.keys(sampleItem).filter(key => 
+        key.toLowerCase().includes('cost') || 
+        key.toLowerCase().includes('price') || 
+        key.toLowerCase().includes('value') ||
+        key.toLowerCase().includes('amount')
+    );
+    
+    console.log('💰 Cost-related fields found:', costFields);
+    costFields.forEach(field => {
+        console.log(`   ${field}:`, sampleItem[field], '(type:', typeof sampleItem[field], ')');
+    });
+    
+    // Analizza campi quantità
+    const quantityFields = Object.keys(sampleItem).filter(key => 
+        key.toLowerCase().includes('quantity') || 
+        key.toLowerCase().includes('qty') || 
+        key.toLowerCase().includes('count') ||
+        key.toLowerCase().includes('amount') ||
+        key.toLowerCase().includes('pieces') ||
+        key.toLowerCase().includes('units')
+    );
+    
+    console.log('📊 Quantity-related fields found:', quantityFields);
+    quantityFields.forEach(field => {
+        console.log(`   ${field}:`, sampleItem[field], '(type:', typeof sampleItem[field], ')');
+    });
+    
+    // Analizza campi prodotto
+    const productFields = Object.keys(sampleItem).filter(key => 
+        key.toLowerCase().includes('product') || 
+        key.toLowerCase().includes('name') || 
+        key.toLowerCase().includes('description') ||
+        key.toLowerCase().includes('code') ||
+        key.toLowerCase().includes('sku')
+    );
+    
+    console.log('🏷️ Product-related fields found:', productFields);
+    productFields.forEach(field => {
+        console.log(`   ${field}:`, sampleItem[field], '(type:', typeof sampleItem[field], ')');
+    });
+    
+    // Summary mappatura corretta
+    console.log('\n✅ MAPPATURA CORRETTA TROVATA:');
+    console.log('   Costi: unit_cost, unit_value, total_cost, total_value');
+    console.log('   Quantità: quantity');
+    console.log('   Prodotti: product_name, product_code, description');
+}
+// ✅ APRI DETTAGLI SPEDIZIONE (CONTROL SHIPMENTS)
+openShipmentDetails(shipmentId) {
+    console.log('🔍 Opening shipment details for:', shipmentId);
+    
+    // Usa il metodo esistente viewShipmentDetails
+    this.viewShipmentDetails(shipmentId);
+}
+
+// ✅ TRACCIA SPEDIZIONE
+trackShipment(trackingNumber) {
+    console.log('🔍 Tracking shipment:', trackingNumber);
+    
+    if (!trackingNumber || trackingNumber === 'N/A') {
+        alert('❌ Numero tracking non disponibile');
+        return;
+    }
+    
+    // Apri pagina tracking in nuova finestra
+    const trackingUrl = `/tracking?code=${encodeURIComponent(trackingNumber)}`;
+    window.open(trackingUrl, '_blank');
+}
+
+// ✅ UTILITY: FORMATTA STATO SPEDIZIONE CONTROL
+formatControlStatus(status) {
+    if (!status) return '<span class="badge bg-secondary">❓ Sconosciuto</span>';
+    
+    const statusMap = {
+        'in_transit': { label: 'In Viaggio', class: 'bg-primary', icon: '🚛' },
+        'sailing': { label: 'Navigando', class: 'bg-info', icon: '🚢' },
+        'arrived': { label: 'Arrivato', class: 'bg-success', icon: '✅' },
+        'delivered': { label: 'Consegnato', class: 'bg-success', icon: '📦' },
+        'discharged': { label: 'Scaricato', class: 'bg-warning', icon: '📤' },
+        'pending': { label: 'In Attesa', class: 'bg-secondary', icon: '⏳' }
+    };
+    
+    const normalizedStatus = status.toLowerCase().replace(/[^a-z]/g, '_');
+    const config = statusMap[normalizedStatus] || { 
+        label: status, 
+        class: 'bg-secondary', 
+        icon: '❓' 
+    };
+    
+    return `<span class="badge ${config.class}">${config.icon} ${config.label}</span>`;
+}
 }
 
 // ✅ ESPORTA SISTEMA (FUORI DALLA CLASSE!)
