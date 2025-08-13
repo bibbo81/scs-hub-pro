@@ -5832,7 +5832,6 @@ getExpectedDeliveryDays(shipment) {
     
     return expectedDays[mode] || 30; // Default 30 giorni
 }
-debugShipmentItemsFieldsReal
 // ✅ DEBUG CAMPI SHIPMENT_ITEMS REALI
 debugShipmentItemsFieldsReal() {
     if (!this.rawData || !this.rawData.shipmentItems || this.rawData.shipmentItems.length === 0) {
