@@ -810,6 +810,30 @@ calculateKPIs() {
         console.log(`   Aereo: €${airAvgCost.toFixed(2)}`);
         console.log(`   Stradale: €${roadAvgCost.toFixed(2)}`);
         console.log(`   Corriere: €${parcelAvgCost.toFixed(2)}`);
+        
+        // 💰 KPI FINANZIARI AVANZATI
+        const costPerKg = totalWeight > 0 ? totalCosts / totalWeight : 0;
+        const costPerCbm = totalVolume > 0 ? totalCosts / totalVolume : 0;
+        
+        // ⏱️ KPI PERFORMANCE
+        const onTimeRate = this.calculateOnTimeDeliveryRate();
+        const containerUtilization = this.calculateContainerUtilization();
+        
+        // 🌍 KPI GEOGRAFICI
+        const topRoutesCost = this.calculateTopRoutesCosts();
+        
+        // 🍂 KPI TENDENZE AVANZATI
+        const seasonalVariation = this.calculateSeasonalVariation();
+        const forecastAccuracy = this.calculateForecastAccuracy();
+        
+        console.log('📊 KPI Avanzati calcolati:');
+        console.log(`   Costo per Kg: €${costPerKg.toFixed(4)}`);
+        console.log(`   Costo per m³: €${costPerCbm.toFixed(2)}`);
+        console.log(`   Consegne puntuali: ${onTimeRate.toFixed(1)}%`);
+        console.log(`   Utilizzo container: ${containerUtilization.toFixed(1)}%`);
+        console.log(`   Costo top rotte: €${topRoutesCost.toFixed(2)}`);
+        console.log(`   Variazione stagionale: ${seasonalVariation.toFixed(1)}%`);
+        console.log(`   Accuratezza previsioni: ${forecastAccuracy.toFixed(1)}%`);
 
         // ✅ RETURN TUTTI I KPI
         return {
@@ -995,7 +1019,82 @@ calculateKPIs() {
                 format: 'currency',
                 value: parcelAvgCost,
                 trend: this.calculateTrend('parcelAvgCost')
+            },
+
+            // 💰 KPI FINANZIARI AVANZATI
+            cost_per_kg: {
+                id: 'cost_per_kg',
+                name: 'Costo per Kg',
+                icon: 'fas fa-weight-hanging',
+                color: '#7c3aed',
+                format: 'currency',
+                value: costPerKg,
+                trend: this.calculateTrend('cost_per_kg')
+            },
+            
+            cost_per_cbm: {
+                id: 'cost_per_cbm',
+                name: 'Costo per m³',
+                icon: 'fas fa-cube',
+                color: '#059669',
+                format: 'currency',
+                value: costPerCbm,
+                trend: this.calculateTrend('cost_per_cbm')
+            },
+            
+            // ⏱️ KPI PERFORMANCE
+            on_time_delivery_rate: {
+                id: 'on_time_delivery_rate',
+                name: 'Tasso Consegne Puntuali',
+                icon: 'fas fa-clock',
+                color: '#0891b2',
+                format: 'percentage',
+                value: onTimeRate,
+                trend: this.calculateTrend('on_time_delivery_rate')
+            },
+            
+            container_utilization: {
+                id: 'container_utilization',
+                name: 'Utilizzo Container',
+                icon: 'fas fa-cubes',
+                color: '#dc2626',
+                format: 'percentage',
+                value: containerUtilization,
+                trend: this.calculateTrend('container_utilization')
+            },
+            
+            // 🌍 KPI GEOGRAFICI
+            top_routes_cost: {
+                id: 'top_routes_cost',
+                name: 'Costo Rotte Principali',
+                icon: 'fas fa-route',
+                color: '#f59e0b',
+                format: 'currency',
+                value: topRoutesCost,
+                trend: this.calculateTrend('top_routes_cost')
+            },
+            
+            // 🍂 KPI TENDENZE AVANZATI
+            seasonal_variation: {
+                id: 'seasonal_variation',
+                name: 'Variazione Stagionale',
+                icon: 'fas fa-leaf',
+                color: '#10b981',
+                format: 'percentage',
+                value: seasonalVariation,
+                trend: this.calculateTrend('seasonal_variation')
+            },
+            
+            forecast_accuracy: {
+                id: 'forecast_accuracy',
+                name: 'Accuratezza Previsioni',
+                icon: 'fas fa-crystal-ball',
+                color: '#8b5cf6',
+                format: 'percentage',
+                value: forecastAccuracy,
+                trend: this.calculateTrend('forecast_accuracy')
             }
+            
         };
         
     } catch (error) {
@@ -1030,8 +1129,26 @@ getAvailableKPIs() {
         { key: 'seaAvgCost', label: '🚢 Costo Medio Mare', category: 'Costi per Tipologia' },
         { key: 'airAvgCost', label: '✈️ Costo Medio Aereo', category: 'Costi per Tipologia' },
         { key: 'roadAvgCost', label: '🚛 Costo Medio Stradale', category: 'Costi per Tipologia' },
-        { key: 'parcelAvgCost', label: '📦 Costo Medio Corriere', category: 'Costi per Tipologia' }
-    ];
+        { key: 'parcelAvgCost', label: '📦 Costo Medio Corriere', category: 'Costi per Tipologia' },
+
+        // KPI Finanziari Avanzati
+        // Finanziari Avanzati
+{ key: 'cost_per_kg', label: '⚖️ Costo per Kg', category: 'Finanziari Avanzati' },
+{ key: 'cost_per_cbm', label: '📐 Costo per m³', category: 'Finanziari Avanzati' },
+
+// Performance Operativa  
+{ key: 'on_time_delivery_rate', label: '⏱️ Consegne Puntuali', category: 'Performance Operativa' },
+{ key: 'container_utilization', label: '📊 Utilizzo Container', category: 'Performance Operativa' },
+
+// Geografici
+{ key: 'top_routes_cost', label: '🛣️ Costo Top Rotte', category: 'Geografici' },
+
+// Tendenze Avanzate
+{ key: 'seasonal_variation', label: '🍂 Variazione Stagionale', category: 'Tendenze Avanzate' },
+{ key: 'forecast_accuracy', label: '🔮 Accuratezza Previsioni', category: 'Tendenze Avanzate' }
+
+];
+    
 }
                 // ✅ CALCOLA TUTTE LE METRICHE
         async calculateAllMetrics() {
@@ -2174,8 +2291,7 @@ calculateTransitTimesByModeDetailed(targetMode) {
         console.log('Test saved, retrieved:', this.getSelectedKPIs());
     }
     // ✅ PRESET KPI
-    
-    selectKPIPreset(presetType) {
+        selectKPIPreset(presetType) {
         const checkboxes = document.querySelectorAll('.kpi-selector input[type="checkbox"]');
         
         // Deseleziona tutti
@@ -2201,9 +2317,9 @@ calculateTransitTimesByModeDetailed(targetMode) {
                     'avg_delivery_time',
                     'avg_sea_delivery_time',
                     'avg_air_delivery_time',
-                    'seaTotalCost',
-                    'airTotalCost',
-                    'parcelTotalCost'
+                    'cost_per_kg',
+                    'cost_per_cbm',
+                    'on_time_delivery_rate'
                 ];
                 break;
         }
@@ -4158,7 +4274,7 @@ renderCarriersDBPerformanceTable() {
     }
 
             // ✅ UTILITY METHODS
-        formatValue(value, format) {
+                formatValue(value, format) {
             switch (format) {
                 case 'currency':
                     return new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR' }).format(value);
@@ -4168,6 +4284,8 @@ renderCarriersDBPerformanceTable() {
                     return `${value.toFixed(1)} m³`;
                 case 'days':
                     return `${value.toFixed(1)} gg`;
+                case 'percentage':
+                    return `${value.toFixed(1)}%`;
                 case 'number':
                 default:
                     return new Intl.NumberFormat('it-IT').format(Math.round(value));
@@ -5236,7 +5354,6 @@ getOriginDestination(shipment, type) {
     
     return 'Non specificato';
 }
-// AGGIUNGI QUESTO METODO ALLA FINE DELLA CLASSE (prima dell'ultima })
 
 // ✅ DEBUG PRODOTTI NELLE SPEDIZIONI
 debugProductsInShipments() {
@@ -5276,6 +5393,263 @@ debugProductsInShipments() {
         const extractedProducts = this.extractProductsFromShipment(firstShipment);
         console.log('   Products extracted:', extractedProducts);
     }
+}
+// ⏱️ CALCOLA TASSO CONSEGNE PUNTUALI
+calculateOnTimeDeliveryRate() {
+    try {
+        const shipmentsWithDays = this.rawData.shipments.filter(s => {
+            const days = this.calculateDeliveryDays(s);
+            return days !== null && days > 0;
+        });
+        
+        if (shipmentsWithDays.length === 0) return 0;
+        
+        const onTimeShipments = shipmentsWithDays.filter(shipment => {
+            const actualDays = this.calculateDeliveryDays(shipment);
+            const expectedDays = this.getExpectedDeliveryDays(shipment);
+            return actualDays <= expectedDays;
+        });
+        
+        return (onTimeShipments.length / shipmentsWithDays.length) * 100;
+    } catch (error) {
+        console.error('❌ Error calculating on-time delivery rate:', error);
+        return 0;
+    }
+}
+
+// 📦 CALCOLA UTILIZZO CONTAINER
+calculateContainerUtilization() {
+    try {
+        const containerShipments = this.rawData.shipments.filter(s => 
+            this.determineShipmentMode(s, this.rawData.trackings) === 'sea' &&
+            (s.container_type || s.container_size)
+        );
+        
+        if (containerShipments.length === 0) return 0;
+        
+        let totalUtilization = 0;
+        let validContainers = 0;
+        
+        containerShipments.forEach(shipment => {
+            const containerCapacity = this.getContainerCapacity(shipment.container_type || shipment.container_size);
+            const usedVolume = parseFloat(shipment.total_volume_cbm) || 0;
+            
+            if (containerCapacity > 0 && usedVolume > 0) {
+                const utilization = Math.min((usedVolume / containerCapacity) * 100, 100);
+                totalUtilization += utilization;
+                validContainers++;
+            }
+        });
+        
+        return validContainers > 0 ? totalUtilization / validContainers : 0;
+    } catch (error) {
+        console.error('❌ Error calculating container utilization:', error);
+        return 0;
+    }
+}
+
+// 🛣️ CALCOLA COSTO TOP ROTTE
+calculateTopRoutesCosts() {
+    try {
+        const routeCosts = new Map();
+        
+        this.rawData.shipments.forEach(shipment => {
+            const origin = this.getOriginDestination(shipment, 'origin');
+            const destination = this.getOriginDestination(shipment, 'destination');
+            const route = `${origin} → ${destination}`;
+            
+            if (origin !== 'Non specificato' && destination !== 'Non specificato') {
+                const cost = (parseFloat(shipment.freight_cost) || 0) + 
+                           (parseFloat(shipment.other_costs) || 0);
+                
+                if (!routeCosts.has(route)) {
+                    routeCosts.set(route, { totalCost: 0, shipments: 0 });
+                }
+                
+                const routeData = routeCosts.get(route);
+                routeData.totalCost += cost;
+                routeData.shipments++;
+            }
+        });
+        
+        // Top 5 rotte per costo totale
+        const topRoutes = Array.from(routeCosts.entries())
+            .sort((a, b) => b[1].totalCost - a[1].totalCost)
+            .slice(0, 5);
+        
+        return topRoutes.length > 0 ? topRoutes[0][1].totalCost : 0;
+    } catch (error) {
+        console.error('❌ Error calculating top routes cost:', error);
+        return 0;
+    }
+}
+
+// 🍂 CALCOLA VARIAZIONE STAGIONALE (ALGORITMO INTELLIGENTE)
+calculateSeasonalVariation() {
+    try {
+        // Raggruppa spedizioni per mese
+        const monthlyData = {};
+        
+        this.rawData.shipments.forEach(shipment => {
+            const date = new Date(shipment.departure_date || shipment.created_at);
+            if (isNaN(date.getTime())) return;
+            
+            const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+            
+            if (!monthlyData[monthKey]) {
+                monthlyData[monthKey] = {
+                    shipments: 0,
+                    totalCost: 0,
+                    totalVolume: 0
+                };
+            }
+            
+            monthlyData[monthKey].shipments++;
+            monthlyData[monthKey].totalCost += parseFloat(shipment.freight_cost) || 0;
+            monthlyData[monthKey].totalVolume += parseFloat(shipment.total_volume_cbm) || 0;
+        });
+        
+        const months = Object.keys(monthlyData);
+        if (months.length < 3) {
+            // Se abbiamo meno di 3 mesi, facciamo un calcolo week-over-week
+            return this.calculateWeeklyVariation();
+        }
+        
+        // Calcola variazione mensile
+        const monthlyValues = months.map(month => monthlyData[month].totalCost);
+        const avgMonthlyCost = monthlyValues.reduce((a, b) => a + b, 0) / monthlyValues.length;
+        const maxVariation = Math.max(...monthlyValues.map(val => Math.abs(val - avgMonthlyCost)));
+        
+        return avgMonthlyCost > 0 ? (maxVariation / avgMonthlyCost) * 100 : 0;
+        
+    } catch (error) {
+        console.error('❌ Error calculating seasonal variation:', error);
+        return 0;
+    }
+}
+
+// 📅 CALCOLA VARIAZIONE SETTIMANALE (FALLBACK)
+calculateWeeklyVariation() {
+    try {
+        const weeklyData = {};
+        
+        this.rawData.shipments.forEach(shipment => {
+            const date = new Date(shipment.departure_date || shipment.created_at);
+            if (isNaN(date.getTime())) return;
+            
+            // Ottieni settimana dell'anno
+            const startOfYear = new Date(date.getFullYear(), 0, 1);
+            const days = Math.floor((date - startOfYear) / (24 * 60 * 60 * 1000));
+            const week = Math.ceil((days + startOfYear.getDay()) / 7);
+            const weekKey = `${date.getFullYear()}-W${week}`;
+            
+            if (!weeklyData[weekKey]) {
+                weeklyData[weekKey] = { shipments: 0, totalCost: 0 };
+            }
+            
+            weeklyData[weekKey].shipments++;
+            weeklyData[weekKey].totalCost += parseFloat(shipment.freight_cost) || 0;
+        });
+        
+        const weeks = Object.keys(weeklyData);
+        if (weeks.length < 2) return 0;
+        
+        const weeklyValues = weeks.map(week => weeklyData[week].totalCost);
+        const avgWeeklyCost = weeklyValues.reduce((a, b) => a + b, 0) / weeklyValues.length;
+        const maxVariation = Math.max(...weeklyValues.map(val => Math.abs(val - avgWeeklyCost)));
+        
+        return avgWeeklyCost > 0 ? (maxVariation / avgWeeklyCost) * 100 : 0;
+        
+    } catch (error) {
+        console.error('❌ Error calculating weekly variation:', error);
+        return 0;
+    }
+}
+
+// 🔮 CALCOLA ACCURATEZZA PREVISIONI (ALGORITMO PREDITTIVO SEMPLICE)
+calculateForecastAccuracy() {
+    try {
+        // Algoritmo: Usa trend passato per predire e confronta con reale
+        const sortedShipments = this.rawData.shipments
+            .filter(s => s.departure_date || s.created_at)
+            .sort((a, b) => new Date(a.departure_date || a.created_at) - new Date(b.departure_date || b.created_at));
+        
+        if (sortedShipments.length < 4) return 75; // Default se troppo pochi dati
+        
+        const totalShipments = sortedShipments.length;
+        const midPoint = Math.floor(totalShipments / 2);
+        
+        // Prima metà per training, seconda per test
+        const trainingSet = sortedShipments.slice(0, midPoint);
+        const testSet = sortedShipments.slice(midPoint);
+        
+        // Calcola trend medio da training set
+        const trainingAvgCost = trainingSet.reduce((sum, s) => 
+            sum + (parseFloat(s.freight_cost) || 0), 0) / trainingSet.length;
+        
+        const trainingAvgVolume = trainingSet.reduce((sum, s) => 
+            sum + (parseFloat(s.total_volume_cbm) || 0), 0) / trainingSet.length;
+        
+        // Testa previsioni su test set
+        let correctPredictions = 0;
+        
+        testSet.forEach(shipment => {
+            const actualCost = parseFloat(shipment.freight_cost) || 0;
+            const predictedCost = trainingAvgCost; // Previsione semplice = media storica
+            
+            // Considera corretta se within 20% range
+            const tolerance = 0.2;
+            const lowerBound = predictedCost * (1 - tolerance);
+            const upperBound = predictedCost * (1 + tolerance);
+            
+            if (actualCost >= lowerBound && actualCost <= upperBound) {
+                correctPredictions++;
+            }
+        });
+        
+        return testSet.length > 0 ? (correctPredictions / testSet.length) * 100 : 0;
+        
+    } catch (error) {
+        console.error('❌ Error calculating forecast accuracy:', error);
+        return 0;
+    }
+}
+
+// 📏 CAPACITÀ CONTAINER STANDARD
+getContainerCapacity(containerType) {
+    if (!containerType) return 67.7; // Default 40ft
+    
+    const capacities = {
+        "20'": 33.2,      // 20ft standard
+        "40'": 67.7,      // 40ft standard  
+        "40'HC": 76.4,    // 40ft high cube
+        "45'": 86.0       // 45ft high cube
+    };
+    
+    const typeStr = containerType.toString().toUpperCase();
+    
+    // Normalizza tipo container
+    if (typeStr.includes('20')) return capacities["20'"];
+    if (typeStr.includes('40') && typeStr.includes('HC')) return capacities["40'HC"];
+    if (typeStr.includes('40')) return capacities["40'"];
+    if (typeStr.includes('45')) return capacities["45'"];
+    
+    return 67.7; // Default 40ft
+}
+
+// ⏰ TEMPO ATTESO PER MODALITÀ
+getExpectedDeliveryDays(shipment) {
+    const mode = this.determineShipmentMode(shipment, this.rawData.trackings);
+    
+    // Tempi standard per modalità (basati su industry benchmarks)
+    const expectedDays = {
+        'sea': 45,      // 45 giorni mare
+        'air': 7,       // 7 giorni aereo
+        'road': 14,     // 14 giorni stradale
+        'parcel': 5     // 5 giorni corriere
+    };
+    
+    return expectedDays[mode] || 30; // Default 30 giorni
 }
 }
 
