@@ -2938,7 +2938,179 @@ renderTables() {
         console.error('❌ Error rendering tables:', error);
     }
 }
+// ✅ SISTEMA SPEDIZIONI IN CONTROLLO
+async loadControlShipments() {
+    try {
+        console.log('📊 Loading control shipments...');
+        
+        // Mostra loading
+        document.getElementById('controlShipmentsLoading').style.display = 'block';
+        document.getElementById('controlShipmentsEmpty').style.display = 'none';
+        
+        if (!this.rawData || !this.rawData.shipments) {
+            await this.loadRawData();
+        }
+        
+        // Calcola date di riferimento
+        const now = new Date();
+        const sevenDaysAgo = new Date(now.getTime() - (7 * 24 * 60 * 60 * 1000));
+        
+        // Filtra spedizioni: in transito + arrivate negli ultimi 7 giorni
+        const controlShipments = this.rawData.shipments.filter(shipment => {
+            // 1. In transito
+            const currentStatus = (shipment.current_status || shipment.status || '').toLowerCase();
+            const isInTransit = ['in_transit', 'sailing', 'in transit', 'navigando'].includes(currentStatus);
+            
+            if (isInTransit) return true;
+            
+            // 2. Arrivate negli ultimi 7 giorni
+            const isArrived = ['arrived', 'delivered', 'arrivato', 'consegnato', 'discharged'].includes(currentStatus);
+            if (isArrived) {
+                const arrivalDate = shipment.ata || shipment.date_of_arrival || shipment.updated_at;
+                if (arrivalDate) {
+                    const arrival = new Date(arrivalDate);
+                    return arrival >= sevenDaysAgo;
+                }
+            }
+            
+            return false;
+        });
+        
+        console.log(`📊 Found ${controlShipments.length} control shipments`);
+        
+        // Salva per filtri successivi
+        this.controlShipments = controlShipments;
+        this.renderControlShipments(controlShipments);
+        this.updateControlCounts(controlShipments);
+        
+    } catch (error) {
+        console.error('❌ Error loading control shipments:', error);
+        document.getElementById('controlShipmentsLoading').style.display = 'none';
+        document.getElementById('controlShipmentsEmpty').style.display = 'block';
+    }
+}
 
+renderControlShipments(shipments) {
+    const tbody = document.getElementById('controlShipmentsBody');
+    const loading = document.getElementById('controlShipmentsLoading');
+    const empty = document.getElementById('controlShipmentsEmpty');
+    
+    if (!tbody) return;
+    
+    loading.style.display = 'none';
+    
+    if (!shipments || shipments.length === 0) {
+        empty.style.display = 'block';
+        tbody.innerHTML = '';
+        return;
+    }
+    
+    empty.style.display = 'none';
+    
+    // Ordina per urgenza: in transito prima, poi per ETA/arrivo più recente
+    const sortedShipments = shipments.sort((a, b) => {
+        const aStatus = (a.current_status || '').toLowerCase();
+        const bStatus = (b.current_status || '').toLowerCase();
+        
+        const aInTransit = ['in_transit', 'sailing'].includes(aStatus);
+        const bInTransit = ['in_transit', 'sailing'].includes(bStatus);
+        
+        // In transito hanno priorità
+        if (aInTransit && !bInTransit) return -1;
+        if (!aInTransit && bInTransit) return 1;
+        
+        // Poi ordina per ETA/arrivo
+        const aDate = new Date(a.eta || a.ata || a.updated_at);
+        const bDate = new Date(b.eta || b.ata || b.updated_at);
+        return aDate - bDate;
+    });
+    
+    tbody.innerHTML = sortedShipments.map(shipment => {
+        const trackingNumber = shipment.tracking_number || 'N/A';
+        const status = this.formatControlStatus(shipment.current_status || shipment.status);
+        const carrier = shipment.carrier_name || shipment.carrier || 'N/A';
+        const reference = shipment.reference_number || shipment.reference || '-';
+        const origin = this.getOriginDestination(shipment, 'origin') || '-';
+        const destination = this.getOriginDestination(shipment, 'destination') || '-';
+        const departure = this.formatControlDate(shipment.date_of_departure || shipment.departure_date);
+        const eta = this.formatControlDate(shipment.eta);
+        const arrival = this.formatControlDate(shipment.ata || shipment.date_of_arrival);
+        
+        return `
+            <tr onclick="window.metricsSystem.viewShipmentDetails('${shipment.id}')" title="Click per dettagli">
+                <td><strong>${trackingNumber}</strong></td>
+                <td class="text-center">${status}</td>
+                <td>${carrier}</td>
+                <td><small>${reference}</small></td>
+                <td><small>${origin}</small></td>
+                <td><small>${destination}</small></td>
+                <td class="text-center"><small>${departure}</small></td>
+                <td class="text-center"><small>${eta}</small></td>
+                <td class="text-center"><small>${arrival}</small></td>
+                <td class="text-center">
+                    <div class="control-actions">
+                        <button class="btn btn-outline-primary" onclick="event.stopPropagation(); window.metricsSystem.viewShipmentDetails('${shipment.id}')" title="Dettagli">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                    </div>
+                </td>
+            </tr>
+        `;
+    }).join('');
+    
+    console.log('✅ Control shipments table rendered:', shipments.length, 'rows');
+}
+
+formatControlStatus(status) {
+    const statusMap = {
+        'in_transit': { label: 'In Viaggio', class: 'bg-primary' },
+        'sailing': { label: 'Navigando', class: 'bg-info' },
+        'arrived': { label: 'Arrivato', class: 'bg-success' },
+        'delivered': { label: 'Consegnato', class: 'bg-success' },
+        'discharged': { label: 'Scaricato', class: 'bg-warning' },
+        'pending': { label: 'In Attesa', class: 'bg-secondary' }
+    };
+    
+    const normalizedStatus = (status || '').toLowerCase().replace(/[^a-z]/g, '_');
+    const config = statusMap[normalizedStatus] || { label: status || 'Sconosciuto', class: 'bg-secondary' };
+    
+    return `<span class="badge ${config.class} control-status-badge">${config.label}</span>`;
+}
+
+formatControlDate(dateString) {
+    if (!dateString) return '-';
+    
+    try {
+        const date = new Date(dateString);
+        if (isNaN(date.getTime())) return '-';
+        
+        // Formato DD/MM
+        const day = String(date.getDate()).padStart(2, '0');
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        return `${day}/${month}`;
+    } catch (error) {
+        return '-';
+    }
+}
+
+updateControlCounts(shipments) {
+    if (!shipments) return;
+    
+    // Calcola conteggi
+    const total = shipments.length;
+    const inTransit = shipments.filter(s => {
+        const status = (s.current_status || '').toLowerCase();
+        return ['in_transit', 'sailing', 'navigando'].includes(status);
+    }).length;
+    const recentArrived = total - inTransit;
+    
+    // Aggiorna badges nei pulsanti
+    document.getElementById('controlCountAll').textContent = total;
+    document.getElementById('controlCountTransit').textContent = inTransit;
+    document.getElementById('controlCountArrived').textContent = recentArrived;
+    
+    console.log('📊 Control counts updated:', { total, inTransit, recentArrived });
+}
 // ✅ 2. CALCOLA METRICHE PRODOTTI CON GUARDS
 
 calculateProductCostsMetrics() {
