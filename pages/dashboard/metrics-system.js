@@ -3128,70 +3128,147 @@ async loadControlShipments() {
         document.getElementById('controlShipmentsEmpty').style.display = 'block';
     }
 }
-
+// ✅ MAPPA DATI SPEDIZIONE PER VISUALIZZAZIONE
+getShipmentDisplayData(shipment) {
+    const mapping = TrackingUnifiedMapping.COLUMN_MAPPING;
+    
+    // ✅ FUNZIONE DI MAPPING CORRETTA
+    const getField = (fieldName) => {
+        // Cerca il campo nel mapping (chiave -> valore standard)
+        for (const [key, standardField] of Object.entries(mapping)) {
+            if (standardField === fieldName && shipment[key] !== undefined) {
+                return shipment[key];
+            }
+        }
+        
+        // Fallback: cerca direttamente nel shipment
+        if (shipment[fieldName] !== undefined) {
+            return shipment[fieldName];
+        }
+        
+        // Cerca varianti comuni
+        const variants = {
+            tracking_number: ['Container', 'ContainerNumber', 'Container Number', 'tracking_number', 'trackingNumber'],
+            origin: ['Origin', 'departure_port', 'origin_port', 'POL', 'origin'],
+            destination: ['Destination', 'arrival_port', 'destination_port', 'POD', 'destination'],
+            carrier: ['Carrier', 'shipping_line', 'carrier_name', 'carrier'],
+            reference: ['Reference', 'booking', 'BookingNumber', 'reference'],
+            departure_date: ['departure_date', 'ETD', 'sailing_date', 'departureDate'],
+            eta: ['ETA', 'arrival_date', 'estimated_arrival', 'eta'],
+            arrival_date: ['arrival_date', 'actual_arrival', 'arrived_date', 'arrivalDate'],
+            status: ['Status', 'current_status', 'status']
+        };
+        
+        if (variants[fieldName]) {
+            for (const variant of variants[fieldName]) {
+                if (shipment[variant] !== undefined) {
+                    return shipment[variant];
+                }
+            }
+        }
+        
+        return null;
+    };
+    
+    const formatDate = (dateValue) => {
+        if (!dateValue) return null;
+        
+        try {
+            const date = new Date(dateValue);
+            if (isNaN(date.getTime())) return null;
+            
+            return date.toLocaleDateString('it-IT', {
+                day: '2-digit',
+                month: '2-digit',
+                year: '2-digit'
+            });
+        } catch (e) {
+            return null;
+        }
+    };
+    
+    return {
+        tracking_number: getField('tracking_number') || 'N/A',
+        status: getField('status') || 'unknown',
+        carrier: getField('carrier') || 'N/A',
+        reference: getField('reference') || 'N/A',
+        origin: getField('origin') || 'N/A',
+        destination: getField('destination') || 'N/A',
+        departure_date: formatDate(getField('departure_date')),
+        eta: formatDate(getField('eta')),
+        arrival_date: formatDate(getField('arrival_date')),
+        raw: shipment // ✅ MANTIENI DATI RAW PER DEBUG
+    };
+}
 renderControlShipments(shipments = []) {
     const tbody = document.getElementById('controlShipmentsBody');
-    const loading = document.getElementById('controlShipmentsLoading');
-    const empty = document.getElementById('controlShipmentsEmpty');
-
-    if (!tbody) return;
-
-    // Nascondi loading
-    if (loading) loading.style.display = 'none';
-
-    if (!shipments || shipments.length === 0) {
-        tbody.innerHTML = '';
-        if (empty) empty.style.display = 'block';
+    const emptyState = document.getElementById('controlShipmentsEmpty');
+    
+    if (!tbody) {
+        console.warn('⚠️ Control shipments table body not found');
         return;
     }
-
-    if (empty) empty.style.display = 'none';
-
-    tbody.innerHTML = shipments.map(shipment => {
-        const status = (shipment.current_status || '').toLowerCase();
-        const statusBadge = this.getStatusBadge(status);
-        const departureDate = shipment.created_at ? new Date(shipment.created_at).toLocaleDateString('it-IT') : 'N/A';
-        const etaDate = shipment.estimated_arrival ? new Date(shipment.estimated_arrival).toLocaleDateString('it-IT') : 'N/A';
-        const arrivalDate = shipment.actual_arrival ? new Date(shipment.actual_arrival).toLocaleDateString('it-IT') : '-';
-
+    
+    // Gestisci stato vuoto
+    if (shipments.length === 0) {
+        tbody.innerHTML = '';
+        if (emptyState) emptyState.style.display = 'block';
+        return;
+    }
+    
+    if (emptyState) emptyState.style.display = 'none';
+    
+    // ✅ RENDER RIGHE CORRETTE
+    const rows = shipments.map(shipment => {
+        const data = this.getShipmentDisplayData(shipment);
+        const statusInfo = TrackingUnifiedMapping.mapStatus(data.status);
+        
         return `
-            <tr onclick="this.classList.toggle('table-active')">
+            <tr onclick="this.showShipmentDetails && this.showShipmentDetails('${data.tracking_number}')" style="cursor: pointer;">
                 <td>
-                    <div class="fw-semibold">${shipment.tracking_number}</div>
-                    <small class="text-muted">${shipment.tracking_type || 'N/A'}</small>
-                </td>
-                <td class="text-center">${statusBadge}</td>
-                <td>
-                    <div class="fw-semibold">${shipment.carrier_name || 'N/A'}</div>
-                </td>
-                <td>
-                    <span class="badge bg-light text-dark">${shipment.reference || 'N/A'}</span>
-                </td>
-                <td>${shipment.departure_port || shipment.origin || 'N/A'}</td>
-                <td>${shipment.arrival_port || shipment.destination || 'N/A'}</td>
-                <td class="text-center">
-                    <small>${departureDate}</small>
+                    <span class="fw-semibold">${data.tracking_number}</span>
                 </td>
                 <td class="text-center">
-                    <small>${etaDate}</small>
+                    <span class="badge ${statusInfo.className} control-status-badge">
+                        ${statusInfo.label}
+                    </span>
+                </td>
+                <td>
+                    <span class="fw-semibold">${data.carrier}</span>
+                </td>
+                <td>
+                    <span class="text-muted small">${data.reference}</span>
+                </td>
+                <td>
+                    <i class="fas fa-map-marker-alt text-success me-1"></i>
+                    <span class="small">${data.origin}</span>
+                </td>
+                <td>
+                    <i class="fas fa-map-marker-alt text-danger me-1"></i>
+                    <span class="small">${data.destination}</span>
                 </td>
                 <td class="text-center">
-                    <small class="${arrivalDate !== '-' ? 'text-success fw-semibold' : ''}">${arrivalDate}</small>
+                    <span class="small">${data.departure_date || '-'}</span>
+                </td>
+                <td class="text-center">
+                    <span class="small ${data.eta ? 'text-warning fw-semibold' : 'text-muted'}">${data.eta || '-'}</span>
+                </td>
+                <td class="text-center">
+                    <span class="small ${data.arrival_date ? 'text-success fw-semibold' : 'text-muted'}">${data.arrival_date || '-'}</span>
                 </td>
                 <td class="text-center">
                     <div class="control-actions">
-                        <button class="btn btn-outline-primary btn-sm" onclick="event.stopPropagation(); metricsSystem.openShipmentDetails('${shipment.id}')" title="Dettagli">
+                        <button class="btn btn-sm btn-outline-primary" onclick="event.stopPropagation(); this.showShipmentDetails && this.showShipmentDetails('${data.tracking_number}')" title="Dettagli">
                             <i class="fas fa-eye"></i>
-                        </button>
-                        <button class="btn btn-outline-info btn-sm" onclick="event.stopPropagation(); metricsSystem.trackShipment('${shipment.tracking_number || 'N/A'}')" title="Traccia">
-                            <i class="fas fa-search"></i>
                         </button>
                     </div>
                 </td>
             </tr>
         `;
     }).join('');
-
+    
+    tbody.innerHTML = rows;
+    
     console.log(`✅ Rendered ${shipments.length} control shipments`);
 }
 
