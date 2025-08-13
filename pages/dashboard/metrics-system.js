@@ -3464,7 +3464,13 @@ updateControlCounts() {
             'departed', 'partito', 'loading', 'caricamento', 'loaded',
             'on_vessel', 'a_bordo', 'at_sea', 'in_mare'
         ];
-        return transitStates.some(state => status.includes(state));
+        const isTransit = transitStates.some(state => status.includes(state));
+        
+        if (isTransit) {
+            console.log(`🚢 In transit found: ${s.tracking_number} - Status: ${status}`);
+        }
+        
+        return isTransit;
     }).length;
     
     // ✅ CONTA ARRIVATI RECENTI CON VERIFICA DATA
@@ -3478,11 +3484,11 @@ updateControlCounts() {
         const isArrived = arrivedStates.some(state => status.includes(state));
         
         if (isArrived) {
-            // Verifica che sia effettivamente negli ultimi 7 giorni
+            // ✅ VERIFICA DATA ARRIVO PIÙ AMPIA
             let arrivalDate = null;
             const arrivalFields = [
                 'actual_delivery', 'date_of_discharge', 'ata', 
-                'arrival_date', 'delivery_date', 'updated_at'
+                'arrival_date', 'delivery_date', 'last_tracking_update', 'updated_at'
             ];
             
             for (const field of arrivalFields) {
@@ -3494,17 +3500,22 @@ updateControlCounts() {
                 }
             }
             
+            // ✅ SE NON TROVA DATA ARRIVO, USA DATA AGGIORNAMENTO
             if (!arrivalDate || isNaN(arrivalDate.getTime())) {
                 arrivalDate = new Date(s.updated_at || s.created_at);
             }
             
-            return arrivalDate >= sevenDaysAgo;
+            const isRecent = arrivalDate >= sevenDaysAgo;
+            
+            console.log(`📦 Arrived shipment: ${s.tracking_number} - Status: ${status} - Date: ${arrivalDate.toISOString().split('T')[0]} - Recent: ${isRecent}`);
+            
+            return isRecent;
         }
         
         return false;
     }).length;
 
-    // Aggiorna contatori nei pulsanti
+    // ✅ AGGIORNA CONTATORI NEI PULSANTI
     const countAll = document.getElementById('controlCountAll');
     const countTransit = document.getElementById('controlCountTransit');
     const countArrived = document.getElementById('controlCountArrived');
@@ -3514,6 +3525,15 @@ updateControlCounts() {
     if (countArrived) countArrived.textContent = recentArrived;
 
     console.log(`📊 Control counts updated: All=${all}, Transit=${inTransit}, Recent Arrived=${recentArrived}`);
+    
+    // ✅ DEBUG DETTAGLIATO
+    console.log('🔍 Debug breakdown:', {
+        totalShipments: this.controlShipments.length,
+        inTransitCount: inTransit,
+        recentArrivedCount: recentArrived,
+        sevenDaysAgo: sevenDaysAgo.toISOString().split('T')[0],
+        now: now.toISOString().split('T')[0]
+    });
 }
 // ✅ 2. CALCOLA METRICHE PRODOTTI CON GUARDS
 
