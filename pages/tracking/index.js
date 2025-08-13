@@ -310,113 +310,183 @@ document.addEventListener('click', function(e) {
  * usando la fonte dati più affidabile disponibile (eventi API o dati importati).
  * @param {Array<object>} trackingsToProcess - L'array di tracking da processare.
  */
+
 function processAndNormalizeTrackings(trackingsToProcess) {
-    console.log('🔄 Normalizing all tracking data...');
+    console.log('🔄 Normalizing tracking data for date mapping...');
+    
     trackingsToProcess.forEach(tracking => {
         // Get raw API data if it exists
         const rawApiData = tracking.metadata?.raw?.shipment || tracking.metadata?.raw;
         const movements = rawApiData?.movements || (rawApiData?.containers?.[0]?.movements) || [];
-        // FIX: Define actualMovements at a higher scope to prevent ReferenceError.
-        const actualMovements = movements.filter(m => m.status === 'ACT');
+        
+        console.log(`🔍 Processing tracking ${tracking.tracking_number}:`, {
+            hasRawData: !!rawApiData,
+            movementsCount: movements.length,
+            trackingType: tracking.tracking_type
+        });
 
         // --- 1. STATUS MAPPING (dal più recente) ---
         let rawStatus;
+        const actualMovements = movements.filter(m => m.status === 'ACT');
 
         if (rawApiData?.status || rawApiData?.Status) {
             rawStatus = rawApiData.status || rawApiData.Status;
         } else if (actualMovements.length > 0) {
-            if (actualMovements.length > 0) {
-                const lastActualMovement = actualMovements[actualMovements.length - 1];
-                rawStatus = lastActualMovement.event || lastActualMovement.description;
-            }
+            const lastActualMovement = actualMovements[actualMovements.length - 1];
+            rawStatus = lastActualMovement.event || lastActualMovement.description;
         }
         
-        // Case 3: If still no status, use the one from our database record.
         if (!rawStatus) {
             rawStatus = tracking.current_status || tracking.status;
         }
         
-        // Always apply the unified mapping to ensure consistency and handle any raw status strings.
         tracking.current_status = window.TrackingUnifiedMapping.mapStatus(rawStatus);
 
-        // --- 2. DATE & INFO EXTRACTION (only for API data with movements) ---
+        // --- 2. 🔥 FIX CRITICO: MAPPATURA DATE CORRETTA ---
         if (movements && movements.length > 0) {
+            console.log(`📅 Processing ${movements.length} movements for ${tracking.tracking_number}`);
+            
             if (tracking.tracking_type === 'awb') {
-                const departureEvent = movements.find(m => m.event === 'DEP');
-                if (departureEvent?.timestamp) tracking.date_of_departure = departureEvent.timestamp;
-
-                const arrivalEvent = movements.find(m => m.event === 'RCF' || m.event === 'ARR');
-                // Find arrival events (RCF or ARR)
-                const arrivalEvents = movements.filter(m => m.event === 'RCF' || m.event === 'ARR');
-
-                if (arrivalEvents.length > 0) {
-                    // An event without a status or with status 'ACT' is considered actual.
-                    const actualArrival = arrivalEvents.find(m => m.status === 'ACT' || m.status === undefined);
-                    const estimatedArrival = arrivalEvents.find(m => m.status === 'EST');
-if (actualArrival?.timestamp) tracking.ata = actualArrival.timestamp; // Actual Time of Arrival at airport
-                    if (estimatedArrival?.timestamp) tracking.eta = estimatedArrival.timestamp; // Estimated Time of Arrival at airport
-                    
-                    // If we only have an actual arrival but no ETA, we can set ETA to be the same as ATA.
-                    if (actualArrival?.timestamp && !estimatedArrival?.timestamp) {
-                        tracking.eta = actualArrival.timestamp;
+                // ✈️ AEREO: Logica semplificata
+                console.log('✈️ Processing AWB dates...');
+                
+                // Data partenza
+                if (!tracking.date_of_departure) {
+                    const departureEvent = movements.find(m => 
+                        m.event === 'DEP' || 
+                        (m.description || '').toLowerCase().includes('departed')
+                    );
+                    if (departureEvent?.timestamp) {
+                        tracking.date_of_departure = departureEvent.timestamp;
+                        console.log(`✅ AWB Departure set: ${departureEvent.timestamp}`);
                     }
                 }
-                const deliveryEvent = movements.find(m => m.event === 'DLV');
-                if (deliveryEvent?.timestamp) tracking.ata = deliveryEvent.timestamp;
 
-                // --- AWB Cargo Details ---
-                const cargo = rawApiData?.cargo;
-                if (cargo) {
-                    tracking.pieces = cargo.pieces;
-                    tracking.total_weight_kg = cargo.weight;
-                    tracking.total_volume_cbm = cargo.volume;
+                // ETA (Estimated Time of Arrival)
+                if (!tracking.eta) {
+                    const estimatedArrival = movements.find(m => 
+                        (m.event === 'ARR' && m.status === 'EST') ||
+                        (m.event === 'RCF' && m.status === 'EST')
+                    );
+                    if (estimatedArrival?.timestamp) {
+                        tracking.eta = estimatedArrival.timestamp;
+                        console.log(`✅ AWB ETA set: ${estimatedArrival.timestamp}`);
+                    }
                 }
 
-            } else { // Container/BL
-                // FIX: Search within ACTUAL movements
-                let departureEvent = actualMovements.find(m => (m.description || m.event || '').toLowerCase().includes('departed') || (m.event || '').toUpperCase() === 'DEPA');
-                if (!departureEvent) {
-                    departureEvent = actualMovements.find(m => (m.description || m.event || '').toLowerCase().includes('load'));
-                }
-                if (departureEvent?.timestamp) tracking.date_of_departure = departureEvent.timestamp;
-
-               // FIX: Safely get the destination port name and convert to uppercase to prevent TypeError.
-                const destinationPortNameRaw = rawApiData?.route?.port_of_discharge?.location?.name;
-                if (destinationPortNameRaw) {
-                    const destinationPortName = destinationPortNameRaw.toUpperCase();
-                    // FIX: Distinguish between ATA (Actual) and ETA (Estimated)
-                    const finalActualArrival = [...actualMovements].reverse().find(m => m.location?.name?.toUpperCase() === destinationPortName && ((m.description || m.event || '').toUpperCase().includes('DISCHARGE') || (m.description || m.event || '').toUpperCase().includes('ARRIVAL') || (m.event || '').toUpperCase() === 'DISC' || (m.event || '').toUpperCase() === 'ARRV'));
-                    const finalEstimatedArrival = [...movements].reverse().find(m => m.status === 'EST' && m.location?.name?.toUpperCase() === destinationPortName && ((m.description || m.event || '').toUpperCase().includes('ARRIVAL') || (m.event || '').toUpperCase() === 'ARRV'));
-
-                    if (finalActualArrival?.timestamp) tracking.ata = finalActualArrival.timestamp;
-                    if (finalEstimatedArrival?.timestamp) tracking.eta = finalEstimatedArrival.timestamp;
+                // ATA (Actual Time of Arrival) - CHIAVE DEL PROBLEMA
+                if (!tracking.ata) {
+                    const actualArrival = movements.find(m => 
+                        (m.event === 'ARR' && (m.status === 'ACT' || !m.status)) ||
+                        (m.event === 'RCF' && (m.status === 'ACT' || !m.status)) ||
+                        (m.event === 'DLV') // Delivered
+                    );
+                    if (actualArrival?.timestamp) {
+                        tracking.ata = actualArrival.timestamp;
+                        console.log(`✅ AWB ATA set: ${actualArrival.timestamp}`);
+                    }
                 }
 
-                const lastVesselEvent = [...movements].reverse().find(m => m.vessel?.name);
-                if (lastVesselEvent) {
-                    tracking.vessel_name = lastVesselEvent.vessel.name;
-                    tracking.voyage_number = lastVesselEvent.voyage;
+                // Data consegna finale
+                if (!tracking.date_of_arrival) {
+                    // Priorità: ATA > ETA > ultimo movimento
+                    if (tracking.ata) {
+                        tracking.date_of_arrival = tracking.ata;
+                        console.log(`✅ AWB Final arrival from ATA: ${tracking.ata}`);
+                    } else if (tracking.eta) {
+                        tracking.date_of_arrival = tracking.eta;
+                        console.log(`✅ AWB Final arrival from ETA: ${tracking.eta}`);
+                    } else {
+                        // Fallback: ultimo movimento
+                        const lastMovement = movements[movements.length - 1];
+                        if (lastMovement?.timestamp) {
+                            tracking.date_of_arrival = lastMovement.timestamp;
+                            console.log(`✅ AWB Final arrival from last movement: ${lastMovement.timestamp}`);
+                        }
+                    }
                 }
-            }
-        }
 
-        // --- 3. VESSEL / FLIGHT INFO ---
-        if (movements.length > 0) {
-            if (tracking.tracking_type === 'awb') {
-                const flightEvent = movements.find(m => m.flight);
-                if (flightEvent) tracking.flight_number = flightEvent.flight;
             } else {
-                const vesselEvent = movements.find(m => m.vessel?.name);
-                if (vesselEvent) {
-                    tracking.vessel_name = vesselEvent.vessel.name;
-                    tracking.voyage_number = vesselEvent.voyage;
+                // 🚢 CONTAINER/BL: Logica migliorata per mapping date
+                console.log('🚢 Processing Container/BL dates...');
+                
+                // Data partenza
+                if (!tracking.date_of_departure) {
+                    let departureEvent = actualMovements.find(m => 
+                        (m.description || m.event || '').toLowerCase().includes('departed') || 
+                        (m.event || '').toUpperCase() === 'DEPA'
+                    );
+                    if (!departureEvent) {
+                        departureEvent = actualMovements.find(m => 
+                            (m.description || m.event || '').toLowerCase().includes('load')
+                        );
+                    }
+                    if (departureEvent?.timestamp) {
+                        tracking.date_of_departure = departureEvent.timestamp;
+                        console.log(`✅ Container Departure set: ${departureEvent.timestamp}`);
+                    }
+                }
+
+                // 🎯 MAPPING CRITICO PER CONTAINER: ETA/ATA basato su porto destinazione
+                const destinationPortName = rawApiData?.route?.port_of_discharge?.location?.name ||
+                                          rawApiData?.route?.destination?.location?.name;
+                
+                if (destinationPortName) {
+                    const destPortUpper = destinationPortName.toUpperCase();
+                    console.log(`🎯 Target destination port: ${destPortUpper}`);
+                    
+                    // ETA (Estimated) - CERCA MOVIMENTO STIMATO AL PORTO DESTINAZIONE
+                    if (!tracking.eta) {
+                        const estimatedArrival = [...movements].reverse().find(m => 
+                            m.status === 'EST' && 
+                            m.location?.name?.toUpperCase() === destPortUpper && 
+                            ((m.description || m.event || '').toUpperCase().includes('ARRIVAL') || 
+                             (m.event || '').toUpperCase() === 'ARRV')
+                        );
+                        if (estimatedArrival?.timestamp) {
+                            tracking.eta = estimatedArrival.timestamp;
+                            console.log(`✅ Container ETA set: ${estimatedArrival.timestamp} at ${destPortUpper}`);
+                        }
+                    }
+
+                    // ATA (Actual) - CERCA MOVIMENTO EFFETTIVO AL PORTO DESTINAZIONE
+                    if (!tracking.ata) {
+                        const actualArrival = [...actualMovements].reverse().find(m => 
+                            m.location?.name?.toUpperCase() === destPortUpper && 
+                            ((m.description || m.event || '').toUpperCase().includes('DISCHARGE') || 
+                             (m.description || m.event || '').toUpperCase().includes('ARRIVAL') || 
+                             (m.event || '').toUpperCase() === 'DISC' || 
+                             (m.event || '').toUpperCase() === 'ARRV')
+                        );
+                        if (actualArrival?.timestamp) {
+                            tracking.ata = actualArrival.timestamp;
+                            console.log(`✅ Container ATA set: ${actualArrival.timestamp} at ${destPortUpper}`);
+                        }
+                    }
+
+                    // Data arrivo finale - PRIORITÀ CORRETTA
+                    if (!tracking.date_of_arrival) {
+                        if (tracking.ata) {
+                            tracking.date_of_arrival = tracking.ata;
+                            console.log(`✅ Container Final arrival from ATA: ${tracking.ata}`);
+                        } else if (tracking.eta) {
+                            tracking.date_of_arrival = tracking.eta;
+                            console.log(`✅ Container Final arrival from ETA: ${tracking.eta}`);
+                        }
+                    }
+                } else {
+                    console.warn(`⚠️ No destination port found for container ${tracking.tracking_number}`);
                 }
             }
         }
 
-        // --- 4. PORTS / LOCATIONS ---
-        tracking.origin_port = rawApiData?.route?.origin?.location?.name || tracking.origin_port;
-        tracking.destination_port = rawApiData?.route?.destination?.location?.name || tracking.destination_port;
+        // Final logging
+        console.log(`📊 Final dates for ${tracking.tracking_number}:`, {
+            departure: tracking.date_of_departure ? new Date(tracking.date_of_departure).toLocaleDateString() : 'N/A',
+            eta: tracking.eta ? new Date(tracking.eta).toLocaleDateString() : 'N/A',
+            ata: tracking.ata ? new Date(tracking.ata).toLocaleDateString() : 'N/A',
+            final_arrival: tracking.date_of_arrival ? new Date(tracking.date_of_arrival).toLocaleDateString() : 'N/A'
+        });
     });
 }
 
@@ -2480,4 +2550,40 @@ window.initAutoUpdateButtons = function() {
     });
     
     console.log('✅ Auto-update buttons initialized with live timer');
+};
+// Aggiungi questa funzione alla fine di index.js per debug delle date
+window.debugTrackingDates = function() {
+    console.log('🔍 === TRACKING DATES DEBUG ===');
+    
+    if (!window.trackings || window.trackings.length === 0) {
+        console.log('❌ No trackings found');
+        return;
+    }
+
+    window.trackings.slice(0, 5).forEach((tracking, i) => {
+        console.log(`\n📦 ${i + 1}. ${tracking.tracking_number} (${tracking.tracking_type})`);
+        console.log('   Raw metadata available:', !!tracking.metadata?.raw);
+        console.log('   Departure:', tracking.date_of_departure ? new Date(tracking.date_of_departure).toLocaleDateString() : 'N/A');
+        console.log('   ETA:', tracking.eta ? new Date(tracking.eta).toLocaleDateString() : 'N/A');
+        console.log('   ATA:', tracking.ata ? new Date(tracking.ata).toLocaleDateString() : 'N/A');
+        console.log('   Final Arrival:', tracking.date_of_arrival ? new Date(tracking.date_of_arrival).toLocaleDateString() : 'N/A');
+        console.log('   Status:', tracking.current_status);
+        
+        // Debug movements
+        const movements = tracking.metadata?.raw?.shipment?.movements || 
+                         tracking.metadata?.raw?.movements || 
+                         tracking.metadata?.raw?.containers?.[0]?.movements;
+        if (movements) {
+            console.log(`   Total movements: ${movements.length}`);
+            const arrivalEvents = movements.filter(m => 
+                (m.event || '').includes('ARR') || 
+                (m.description || '').toLowerCase().includes('arrival') ||
+                (m.description || '').toLowerCase().includes('discharge')
+            );
+            console.log(`   Arrival-related events: ${arrivalEvents.length}`);
+            if (arrivalEvents.length > 0) {
+                console.log('   Sample arrival event:', arrivalEvents[0]);
+            }
+        }
+    });
 };
