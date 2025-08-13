@@ -3172,10 +3172,12 @@ getShipmentDisplayData(shipment) {
                 'eta', 'estimated_arrival', 'estimated_delivery',
                 'ETA', 'EstimatedArrival'
             ],
-            arrival_date: [
-                'arrival_date', 'ata', 'actual_arrival', 'delivered_date',
-                'ATA', 'ActualArrival', 'arrival_date'
-            ]
+            arrival_date: [  
+        'actual_delivery',      // ✈️ Aereo
+        'date_of_discharge',    // 🚢 Mare
+        'arrival_date', 'ata', 'actual_arrival', 'delivered_date',
+        'ATA', 'ActualArrival'
+    ]
         };
         
         const possibleFields = fieldMapping[fieldName] || [fieldName];
@@ -3211,20 +3213,30 @@ getShipmentDisplayData(shipment) {
     };
     
     // ✅ ESTRAI TUTTI I CAMPI CON FALLBACK INTELLIGENTI
-    const result = {
-        tracking_number: getField('tracking_number') || `SHIP-${shipment.id}`,
-        status: getField('status') || 'registered',
-        carrier: getField('carrier') || 'Non specificato',
-        reference: getField('reference') || shipment.shipment_number || shipment.id,
-        origin: getField('origin') || 'Non specificato',
-        destination: getField('destination') || 'Non specificato',
-        departure_date: formatDate(getField('departure_date')) || formatDate(shipment.created_at),
-        eta: formatDate(getField('eta')),
-        arrival_date: formatDate(getField('arrival_date')) || 
-                     formatDate(shipment.actual_delivery) ||   // ✅ AGGIUNGI questo per AWB
-                     formatDate(shipment.date_of_discharge),   // ✅ AGGIUNGI questo per container
-        raw: shipment // ✅ MANTIENI DATI RAW PER DEBUG
-    };
+   const result = {
+    tracking_number: getField('tracking_number') || `SHIP-${shipment.id}`,
+    status: getField('status') || 'registered',
+    carrier: getField('carrier') || 'Non specificato',
+    reference: getField('reference') || shipment.shipment_number || shipment.id,
+    origin: getField('origin') || 'Non specificato',
+    destination: getField('destination') || 'Non specificato',
+    departure_date: formatDate(getField('departure_date')) || formatDate(shipment.created_at),
+    eta: formatDate(getField('eta')),
+    
+    // 🔥 LOGICA CORRETTA PER DATA ARRIVO:
+    arrival_date: (() => {
+        // Per aereo usa actual_delivery
+        if (shipment.tracking_type === 'awb') {
+            return formatDate(shipment.actual_delivery) || formatDate(getField('arrival_date'));
+        }
+        // Per mare usa date_of_discharge
+        else {
+            return formatDate(shipment.date_of_discharge) || formatDate(getField('arrival_date'));
+        }
+    })(),
+    
+    raw: shipment // ✅ MANTIENI DATI RAW PER DEBUG
+};
     
     console.log('✅ Mapped shipment data:', result);
     return result;

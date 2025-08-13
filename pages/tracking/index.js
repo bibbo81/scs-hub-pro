@@ -550,12 +550,14 @@ function processAndNormalizeTrackings(trackingsToProcess) {
 
         // Final logging
         console.log(`📊 Final dates for ${tracking.tracking_number}:`, {
-            departure: tracking.date_of_departure || updates.date_of_departure,
-            eta: tracking.eta || updates.eta,
-            ata: tracking.ata || updates.ata,
-            actual_delivery: tracking.actual_delivery || updates.actual_delivery,
-            date_of_discharge: tracking.date_of_discharge || updates.date_of_discharge
-        });
+    departure: tracking.date_of_departure || updates.date_of_departure,
+    eta: tracking.eta || updates.eta,
+    ata: tracking.ata || updates.ata,
+    // 🔥 USA CAMPI DIVERSI PER TIPO SPEDIZIONE:
+    actual_delivery: tracking.actual_delivery || updates.actual_delivery,    // ✈️ AEREO
+    date_of_discharge: tracking.date_of_discharge || updates.date_of_discharge, // 🚢 MARE
+    final_arrival_field: tracking.tracking_type === 'awb' ? 'actual_delivery' : 'date_of_discharge'
+});
     });
 }
 
