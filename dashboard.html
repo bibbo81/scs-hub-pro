@@ -1560,10 +1560,10 @@
                     
                     console.log('✅ Dashboard pronto con sistema unificato!');
                     console.log('✅ Modal System loaded and ready');
-                </script>
+                </script>            
             
-                <script>
-                            // ✅ FUNZIONI FILTRI AGGIORNATE
+            <script>
+                // ✅ FUNZIONI FILTRI AGGIORNATE
                     function applyFiltersFromUI() {
                         const filters = {
                             company: document.getElementById('companyFilter').value,
@@ -1597,43 +1597,57 @@
                 }
             }
             </script>
-                        // ✅ FUNZIONI GLOBALI CONTROLLO SPEDIZIONI
-            window.filterControlShipments = function(filterType) {
-                if (!window.metricsSystem || !window.metricsSystem.controlShipments) return;
+                            
+                            
+                                <script>
+                // ✅ FUNZIONI GLOBALI CONTROLLO SPEDIZIONI
+                window.filterControlShipments = function(filterType) {
+                    if (!window.metricsSystem || !window.metricsSystem.controlShipments) {
+                        console.warn('⚠️ MetricsSystem or controlShipments not available');
+                        return;
+                    }
+                    
+                    // Aggiorna pulsanti attivi
+                    document.querySelectorAll('#controlFilterAll, #controlFilterTransit, #controlFilterArrived')
+                        .forEach(btn => btn.classList.remove('active'));
+                    
+                    const targetBtn = document.getElementById(`controlFilter${filterType.charAt(0).toUpperCase() + filterType.slice(1)}`);
+                    if (targetBtn) targetBtn.classList.add('active');
+                    
+                    let filteredShipments;
+                    
+                    switch(filterType) {
+                        case 'in_transit':
+                            filteredShipments = window.metricsSystem.controlShipments.filter(s => {
+                                const status = (s.current_status || '').toLowerCase();
+                                return ['in_transit', 'sailing', 'navigando'].includes(status);
+                            });
+                            break;
+                        case 'recent_arrived':
+                            filteredShipments = window.metricsSystem.controlShipments.filter(s => {
+                                const status = (s.current_status || '').toLowerCase();
+                                return ['arrived', 'delivered', 'discharged', 'arrivato', 'consegnato'].includes(status);
+                            });
+                            break;
+                        default:
+                            filteredShipments = window.metricsSystem.controlShipments;
+                    }
+                    
+                    console.log(`🔍 Filtering control shipments: ${filterType} - ${filteredShipments.length} found`);
+                    window.metricsSystem.renderControlShipments(filteredShipments);
+                };
                 
-                // Aggiorna pulsanti attivi
-                document.querySelectorAll('#controlFilterAll, #controlFilterTransit, #controlFilterArrived')
-                    .forEach(btn => btn.classList.remove('active'));
-                document.getElementById(`controlFilter${filterType.charAt(0).toUpperCase() + filterType.slice(1)}`).classList.add('active');
+                window.refreshControlShipments = async function() {
+                    if (window.metricsSystem && window.metricsSystem.loadControlShipments) {
+                        console.log('🔄 Refreshing control shipments...');
+                        await window.metricsSystem.loadControlShipments();
+                        window.filterControlShipments('all');
+                    } else {
+                        console.warn('⚠️ MetricsSystem loadControlShipments not available');
+                    }
+                };
                 
-                let filteredShipments;
-                
-                switch(filterType) {
-                    case 'in_transit':
-                        filteredShipments = window.metricsSystem.controlShipments.filter(s => {
-                            const status = (s.current_status || '').toLowerCase();
-                            return ['in_transit', 'sailing', 'navigando'].includes(status);
-                        });
-                        break;
-                    case 'recent_arrived':
-                        filteredShipments = window.metricsSystem.controlShipments.filter(s => {
-                            const status = (s.current_status || '').toLowerCase();
-                            return ['arrived', 'delivered', 'discharged', 'arrivato', 'consegnato'].includes(status);
-                        });
-                        break;
-                    default:
-                        filteredShipments = window.metricsSystem.controlShipments;
-                }
-                
-                window.metricsSystem.renderControlShipments(filteredShipments);
-            };
-            
-            window.refreshControlShipments = async function() {
-                if (window.metricsSystem) {
-                    await window.metricsSystem.loadControlShipments();
-                    // Reset filtro a "tutti"
-                    window.filterControlShipments('all');
-                }
-            };
+                console.log('✅ Control shipments functions defined and ready!');
+                </script>  
                 </body>
             </html>
