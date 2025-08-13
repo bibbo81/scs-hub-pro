@@ -3320,11 +3320,7 @@ async loadControlShipments() {
     try {
         console.log('📊 Loading control shipments...');
         
-        // Mostra loading
-        document.getElementById('controlShipmentsLoading').style.display = 'block';
-        document.getElementById('controlShipmentsEmpty').style.display = 'none';
-        
-        if (!this.rawData || !this.rawData.shipments) {
+        if (!this.rawData || !this.rawData.trackings) {
             await this.loadRawData();
         }
         
@@ -3337,148 +3333,204 @@ async loadControlShipments() {
             sevenDaysAgo: sevenDaysAgo.toISOString().split('T')[0]
         });
         
-        // ✅ FILTRA SPEDIZIONI CON LOGICA CORRETTA
-        const controlShipments = this.rawData.shipments.filter(shipment => {
-            // 1. Stati che indicano "in transito"
-            const currentStatus = (shipment.current_status || shipment.status || '').toLowerCase();
+        // ✅ USA I TRACKINGS COME FONTE PRIMARIA (NON LE SPEDIZIONI!)
+        const controlShipments = [];
+        
+        this.rawData.trackings.forEach(tracking => {
+            // ✅ VERIFICA STATI DALLA TABELLA TRACKINGS
+            const trackingStatus = (tracking.status || '').toLowerCase();
+            
+            console.log(`🔍 Analyzing tracking ${tracking.tracking_number}: status="${tracking.status}", type="${tracking.tracking_type}"`);
+            
+            // 🚢 STATI "IN TRANSITO" - BASATI SU TRACKING REALE
             const transitStates = [
-                'in_transit', 'in transit', 'sailing', 'navigando', 'shipped', 
-                'departed', 'partito', 'loading', 'caricamento', 'loaded',
-                'on_vessel', 'a_bordo', 'at_sea', 'in_mare'
+                'sailing', 'navigando', 'in_transit', 'in transit', 'shipped', 
+                'departed', 'partito', 'loading', 'loaded', 'on_vessel', 'at_sea'
             ];
             
-            const isInTransit = transitStates.some(state => currentStatus.includes(state));
+            const isInTransit = transitStates.some(state => trackingStatus.includes(state));
             
             if (isInTransit) {
-                console.log(`✅ In transit: ${shipment.tracking_number} - Status: ${currentStatus}`);
-                return true;
+                console.log(`✅ In transit found: ${tracking.tracking_number} - Status: ${tracking.status}`);
+                
+                // Trova la spedizione corrispondente
+                const shipment = this.rawData.shipments.find(s => 
+                    s.id === tracking.shipment_id || 
+                    s.tracking_number === tracking.tracking_number ||
+                    s.tracking_code === tracking.tracking_number
+                );
+                
+                if (shipment) {
+                    controlShipments.push({
+                        ...shipment,
+                        // ✅ OVERRIDE CON DATI TRACKING REALI
+                        status: tracking.status,
+                        current_status: tracking.status,
+                        tracking_data: tracking,
+                        control_type: 'in_transit'
+                    });
+                }
+                return;
             }
             
-            // 2. Stati che indicano "arrivato/consegnato"
+            // 📦 STATI "ARRIVATO/CONSEGNATO" - CON VERIFICA DATA
             const arrivedStates = [
                 'arrived', 'arrivato', 'delivered', 'consegnato', 'discharged', 
-                'scaricato', 'completed', 'completato', 'finished', 'terminato'
+                'scaricato', 'completed', 'completato'
             ];
             
-            const isArrived = arrivedStates.some(state => currentStatus.includes(state));
+            const isArrived = arrivedStates.some(state => trackingStatus.includes(state));
             
             if (isArrived) {
-                // ✅ VERIFICA DATA ARRIVO CON PIÙ CAMPI
+                // ✅ VERIFICA DATA ARRIVO DAI CAMPI TRACKING
                 let arrivalDate = null;
                 
-                // Cerca in tutti i possibili campi data arrivo
-                const arrivalFields = [
-                    'actual_delivery',     // ✈️ Aereo
-                    'date_of_discharge',   // 🚢 Mare
-                    'ata',                 // Actual arrival
-                    'arrival_date',        // Generico
-                    'delivery_date',       // Data consegna
-                    'updated_at'           // Ultimo aggiornamento
-                ];
-                
-                for (const field of arrivalFields) {
-                    if (shipment[field]) {
-                        arrivalDate = new Date(shipment[field]);
-                        if (!isNaN(arrivalDate.getTime())) {
-                            break;
-                        }
-                    }
-                }
-                
-                // Se non trova data arrivo, usa la data di aggiornamento
-                if (!arrivalDate || isNaN(arrivalDate.getTime())) {
-                    arrivalDate = new Date(shipment.updated_at || shipment.created_at);
-                }
-                
-                const isRecentArrival = arrivalDate >= sevenDaysAgo;
-                
-                if (isRecentArrival) {
-                    console.log(`✅ Recent arrival: ${shipment.tracking_number} - Status: ${currentStatus} - Date: ${arrivalDate.toISOString().split('T')[0]}`);
-                    return true;
+                // Priorità 1: Campi diretti tracking
+                if (tracking.actual_delivery) {
+                    arrivalDate = new Date(tracking.actual_delivery);
+                } else if (tracking.date_of_discharge) {
+                    arrivalDate = new Date(tracking.date_of_discharge);
+                } else if (tracking.ata) {
+                    arrivalDate = new Date(tracking.ata);
+                } else if (tracking.last_event_date) {
+                    arrivalDate = new Date(tracking.last_event_date);
                 } else {
-                    console.log(`❌ Old arrival: ${shipment.tracking_number} - Date: ${arrivalDate.toISOString().split('T')[0]} (older than 7 days)`);
+                    // Fallback: usa updated_at del tracking
+                    arrivalDate = new Date(tracking.updated_at);
+                }
+                
+                if (arrivalDate && !isNaN(arrivalDate.getTime())) {
+                    const isRecentArrival = arrivalDate >= sevenDaysAgo && arrivalDate <= now;
+                    
+                    if (isRecentArrival) {
+                        console.log(`✅ Recent arrival: ${tracking.tracking_number} - Status: ${tracking.status} - Date: ${arrivalDate.toISOString().split('T')[0]}`);
+                        
+                        // Trova la spedizione corrispondente
+                        const shipment = this.rawData.shipments.find(s => 
+                            s.id === tracking.shipment_id || 
+                            s.tracking_number === tracking.tracking_number ||
+                            s.tracking_code === tracking.tracking_number
+                        );
+                        
+                        if (shipment) {
+                            controlShipments.push({
+                                ...shipment,
+                                // ✅ OVERRIDE CON DATI TRACKING REALI
+                                status: tracking.status,
+                                current_status: tracking.status,
+                                tracking_data: tracking,
+                                arrival_date_calculated: arrivalDate.toISOString(),
+                                control_type: 'recent_arrival'
+                            });
+                        }
+                    } else {
+                        console.log(`❌ Old arrival: ${tracking.tracking_number} - Date: ${arrivalDate.toISOString().split('T')[0]} (too old)`);
+                    }
+                } else {
+                    console.log(`⚠️ Arrived status but invalid arrival date: ${tracking.tracking_number}`);
                 }
             }
-            
-            return false;
         });
         
         console.log(`📊 Control shipments found: ${controlShipments.length} total`);
-        console.log('📊 Breakdown by status:', controlShipments.reduce((acc, s) => {
-            const status = (s.current_status || s.status || 'unknown').toLowerCase();
-            acc[status] = (acc[status] || 0) + 1;
+        console.log('📊 Breakdown by control type:', controlShipments.reduce((acc, s) => {
+            acc[s.control_type] = (acc[s.control_type] || 0) + 1;
             return acc;
         }, {}));
         
         // Salva per filtri successivi
         this.controlShipments = controlShipments;
         this.renderControlShipments(controlShipments);
-        this.updateControlCounts(controlShipments);
+        this.updateControlCounts();
         
     } catch (error) {
         console.error('❌ Error loading control shipments:', error);
-        document.getElementById('controlShipmentsLoading').style.display = 'none';
-        document.getElementById('controlShipmentsEmpty').style.display = 'block';
     }
 }
-// ✅ MAPPA DATI SPEDIZIONE PER VISUALIZZAZIONE
+
+// ✅ AGGIORNA ANCHE IL METODO updateControlCounts
+updateControlCounts() {
+    if (!this.controlShipments || !Array.isArray(this.controlShipments)) {
+        console.warn('⚠️ No control shipments available for counting');
+        return;
+    }
+    
+    const all = this.controlShipments.length;
+    
+    // ✅ CONTA PER CONTROL_TYPE (PIÙ PRECISO)
+    const inTransit = this.controlShipments.filter(s => s.control_type === 'in_transit').length;
+    const recentArrived = this.controlShipments.filter(s => s.control_type === 'recent_arrival').length;
+
+    // ✅ AGGIORNA CONTATORI
+    const countAll = document.getElementById('controlCountAll');
+    const countTransit = document.getElementById('controlCountTransit');
+    const countArrived = document.getElementById('controlCountArrived');
+
+    if (countAll) countAll.textContent = all;
+    if (countTransit) countTransit.textContent = inTransit;
+    if (countArrived) countArrived.textContent = recentArrived;
+
+    console.log(`📊 Control counts updated with TRACKING-BASED LOGIC: All=${all}, Transit=${inTransit}, Recent Arrived=${recentArrived}`);
+    
+    // ✅ DEBUG DETTAGLIATO
+    console.log('🔍 Debug breakdown:', {
+        totalShipments: this.controlShipments.length,
+        inTransitCount: inTransit,
+        recentArrivedCount: recentArrived,
+        inTransitList: this.controlShipments.filter(s => s.control_type === 'in_transit').map(s => s.tracking_number),
+        recentArrivedList: this.controlShipments.filter(s => s.control_type === 'recent_arrival').map(s => s.tracking_number)
+    });
+}
+
+// ✅ AGGIORNA ANCHE IL METODO getShipmentDisplayData PER USARE TRACKING DATA
 getShipmentDisplayData(shipment) {
     console.log('🔍 DEBUG getShipmentDisplayData for shipment:', shipment.id);
-    console.log('📦 Raw shipment data:', shipment);
     
-    // ✅ FUNZIONE DI MAPPING DIRETTA - BYPASSA IL SISTEMA COMPLESSO
+    // ✅ USA TRACKING_DATA SE DISPONIBILE
+    const trackingData = shipment.tracking_data || {};
+    
     const getField = (fieldName) => {
-        // 🎯 MAPPING DIRETTO DEI CAMPI PIÙ COMUNI
         const fieldMapping = {
             tracking_number: [
                 'tracking_number', 'tracking_code', 'container_number', 
-                'awb_number', 'bl_number', 'booking_number',
-                'Container', 'ContainerNumber', 'Container Number'
+                'awb_number', 'bl_number', 'booking_number'
             ],
             status: [
-                'status', 'current_status', 'shipment_status',
-                'Status', 'CurrentStatus'
+                'status', 'current_status', 'shipment_status'
             ],
             carrier: [
-                'carrier_name', 'shipping_line', 'airline', 'forwarder_name',
-                'Carrier', 'ShippingLine', 'carrier'
+                'carrier_name', 'shipping_line', 'airline', 'forwarder_name'
             ],
             reference: [
-                'reference', 'booking_reference', 'customer_reference',
-                'Reference', 'BookingReference', 'booking_number'
+                'reference_number', 'booking_reference', 'customer_reference', 'reference'
             ],
             origin: [
-                'origin_port', 'origin', 'departure_port', 'origin_city',
-                'from_port', 'pickup_location', 'origin_location',
-                'Origin', 'OriginPort', 'POL'
+                'origin_port', 'origin', 'departure_port', 'origin_city'
             ],
             destination: [
-                'destination_port', 'destination', 'arrival_port', 'destination_city',
-                'to_port', 'delivery_location', 'destination_location',
-                'Destination', 'DestinationPort', 'POD'
+                'destination_port', 'destination', 'arrival_port', 'destination_city'
             ],
             departure_date: [
-                'departure_date', 'etd', 'sailing_date', 'flight_date',
-                'ETD', 'SailingDate', 'DepartureDate'
+                'date_of_departure', 'shipped_date', 'etd', 'sailing_date'
             ],
             eta: [
-                'eta', 'estimated_arrival', 'estimated_delivery',
-                'ETA', 'EstimatedArrival'
+                'eta', 'estimated_delivery', 'estimated_arrival'
             ],
-            arrival_date: [  
-        'actual_delivery',      // ✈️ Aereo
-        'date_of_discharge',    // 🚢 Mare
-        'arrival_date', 'ata', 'actual_arrival', 'delivered_date',
-        'ATA', 'ActualArrival'
-    ]
+            arrival_date: [
+                'actual_delivery', 'date_of_discharge', 'ata', 'arrival_date'
+            ]
         };
         
         const possibleFields = fieldMapping[fieldName] || [fieldName];
         
-        // Prova tutti i possibili nomi di campo
+        // ✅ CERCA PRIMA NEI TRACKING DATA, POI NEL SHIPMENT
         for (const field of possibleFields) {
+            if (trackingData[field] !== undefined && trackingData[field] !== null && trackingData[field] !== '') {
+                console.log(`✅ Found ${fieldName} in tracking_data.${field}:`, trackingData[field]);
+                return trackingData[field];
+            }
             if (shipment[field] !== undefined && shipment[field] !== null && shipment[field] !== '') {
-                console.log(`✅ Found ${fieldName} in field '${field}':`, shipment[field]);
+                console.log(`✅ Found ${fieldName} in shipment.${field}:`, shipment[field]);
                 return shipment[field];
             }
         }
@@ -3505,33 +3557,113 @@ getShipmentDisplayData(shipment) {
         }
     };
     
-    // ✅ ESTRAI TUTTI I CAMPI CON FALLBACK INTELLIGENTI
-   const result = {
-    tracking_number: getField('tracking_number') || `SHIP-${shipment.id}`,
-    status: getField('status') || 'registered',
-    carrier: getField('carrier') || 'Non specificato',
-    reference: getField('reference') || shipment.shipment_number || shipment.id,
-    origin: getField('origin') || 'Non specificato',
-    destination: getField('destination') || 'Non specificato',
-    departure_date: formatDate(getField('departure_date')) || formatDate(shipment.created_at),
-    eta: formatDate(getField('eta')),
+    // ✅ MAPPATURA CON PRIORITÀ AI TRACKING DATA
+    const result = {
+        tracking_number: getField('tracking_number') || `SHIP-${shipment.id}`,
+        status: shipment.status || trackingData.status || 'registered', // ✅ USA STATUS REAL
+        carrier: getField('carrier') || 'Non specificato',
+        reference: getField('reference') || shipment.shipment_number || shipment.id,
+        origin: getField('origin') || 'Non specificato',
+        destination: getField('destination') || 'Non specificato',
+        departure_date: formatDate(getField('departure_date')) || formatDate(shipment.created_at),
+        eta: formatDate(getField('eta')),
+        arrival_date: shipment.arrival_date_calculated ? formatDate(shipment.arrival_date_calculated) : formatDate(getField('arrival_date')),
+        raw: shipment
+    };
     
-    // 🔥 LOGICA CORRETTA PER DATA ARRIVO:
-    arrival_date: (() => {
-        // Per aereo usa actual_delivery
-        if (shipment.tracking_type === 'awb') {
-            return formatDate(shipment.actual_delivery) || formatDate(getField('arrival_date'));
+    console.log('✅ Mapped shipment data with tracking priority:', result);
+    return result;
+}
+// ✅ MAPPA DATI SPEDIZIONE PER VISUALIZZAZIONE
+getShipmentDisplayData(shipment) {
+    console.log('🔍 DEBUG getShipmentDisplayData for shipment:', shipment.id);
+    
+    // ✅ USA TRACKING_DATA SE DISPONIBILE
+    const trackingData = shipment.tracking_data || {};
+    
+    const getField = (fieldName) => {
+        const fieldMapping = {
+            tracking_number: [
+                'tracking_number', 'tracking_code', 'container_number', 
+                'awb_number', 'bl_number', 'booking_number'
+            ],
+            status: [
+                'status', 'current_status', 'shipment_status'
+            ],
+            carrier: [
+                'carrier_name', 'shipping_line', 'airline', 'forwarder_name'
+            ],
+            reference: [
+                'reference_number', 'booking_reference', 'customer_reference', 'reference'
+            ],
+            origin: [
+                'origin_port', 'origin', 'departure_port', 'origin_city'
+            ],
+            destination: [
+                'destination_port', 'destination', 'arrival_port', 'destination_city'
+            ],
+            departure_date: [
+                'date_of_departure', 'shipped_date', 'etd', 'sailing_date'
+            ],
+            eta: [
+                'eta', 'estimated_delivery', 'estimated_arrival'
+            ],
+            arrival_date: [
+                'actual_delivery', 'date_of_discharge', 'ata', 'arrival_date'
+            ]
+        };
+        
+        const possibleFields = fieldMapping[fieldName] || [fieldName];
+        
+        // ✅ CERCA PRIMA NEI TRACKING DATA, POI NEL SHIPMENT
+        for (const field of possibleFields) {
+            if (trackingData[field] !== undefined && trackingData[field] !== null && trackingData[field] !== '') {
+                console.log(`✅ Found ${fieldName} in tracking_data.${field}:`, trackingData[field]);
+                return trackingData[field];
+            }
+            if (shipment[field] !== undefined && shipment[field] !== null && shipment[field] !== '') {
+                console.log(`✅ Found ${fieldName} in shipment.${field}:`, shipment[field]);
+                return shipment[field];
+            }
         }
-        // Per mare usa date_of_discharge
-        else {
-            return formatDate(shipment.date_of_discharge) || formatDate(getField('arrival_date'));
+        
+        console.log(`❌ Field '${fieldName}' not found in any variant`);
+        return null;
+    };
+    
+    const formatDate = (dateValue) => {
+        if (!dateValue) return null;
+        
+        try {
+            const date = new Date(dateValue);
+            if (isNaN(date.getTime())) return null;
+            
+            return date.toLocaleDateString('it-IT', {
+                day: '2-digit',
+                month: '2-digit',
+                year: '2-digit'
+            });
+        } catch (e) {
+            console.error('Error formatting date:', e);
+            return null;
         }
-    })(),
+    };
     
-    raw: shipment // ✅ MANTIENI DATI RAW PER DEBUG
-};
+    // ✅ MAPPATURA CON PRIORITÀ AI TRACKING DATA
+    const result = {
+        tracking_number: getField('tracking_number') || `SHIP-${shipment.id}`,
+        status: shipment.status || trackingData.status || 'registered', // ✅ USA STATUS REAL
+        carrier: getField('carrier') || 'Non specificato',
+        reference: getField('reference') || shipment.shipment_number || shipment.id,
+        origin: getField('origin') || 'Non specificato',
+        destination: getField('destination') || 'Non specificato',
+        departure_date: formatDate(getField('departure_date')) || formatDate(shipment.created_at),
+        eta: formatDate(getField('eta')),
+        arrival_date: shipment.arrival_date_calculated ? formatDate(shipment.arrival_date_calculated) : formatDate(getField('arrival_date')),
+        raw: shipment
+    };
     
-    console.log('✅ Mapped shipment data:', result);
+    console.log('✅ Mapped shipment data with tracking priority:', result);
     return result;
 }
 // Sostituisci renderControlShipments (circa riga 1080) con questa versione:
