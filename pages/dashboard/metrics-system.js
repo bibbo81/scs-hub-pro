@@ -3094,28 +3094,83 @@ async loadControlShipments() {
         const now = new Date();
         const sevenDaysAgo = new Date(now.getTime() - (7 * 24 * 60 * 60 * 1000));
         
-        // Filtra spedizioni: in transito + arrivate negli ultimi 7 giorni
+        console.log('📅 Control shipments date range:', {
+            now: now.toISOString().split('T')[0],
+            sevenDaysAgo: sevenDaysAgo.toISOString().split('T')[0]
+        });
+        
+        // ✅ FILTRA SPEDIZIONI CON LOGICA CORRETTA
         const controlShipments = this.rawData.shipments.filter(shipment => {
-            // 1. In transito
+            // 1. Stati che indicano "in transito"
             const currentStatus = (shipment.current_status || shipment.status || '').toLowerCase();
-            const isInTransit = ['in_transit', 'sailing', 'in transit', 'navigando'].includes(currentStatus);
+            const transitStates = [
+                'in_transit', 'in transit', 'sailing', 'navigando', 'shipped', 
+                'departed', 'partito', 'loading', 'caricamento', 'loaded',
+                'on_vessel', 'a_bordo', 'at_sea', 'in_mare'
+            ];
             
-            if (isInTransit) return true;
+            const isInTransit = transitStates.some(state => currentStatus.includes(state));
             
-            // 2. Arrivate negli ultimi 7 giorni
-            const isArrived = ['arrived', 'delivered', 'arrivato', 'consegnato', 'discharged'].includes(currentStatus);
+            if (isInTransit) {
+                console.log(`✅ In transit: ${shipment.tracking_number} - Status: ${currentStatus}`);
+                return true;
+            }
+            
+            // 2. Stati che indicano "arrivato/consegnato"
+            const arrivedStates = [
+                'arrived', 'arrivato', 'delivered', 'consegnato', 'discharged', 
+                'scaricato', 'completed', 'completato', 'finished', 'terminato'
+            ];
+            
+            const isArrived = arrivedStates.some(state => currentStatus.includes(state));
+            
             if (isArrived) {
-                const arrivalDate = shipment.ata || shipment.date_of_arrival || shipment.updated_at;
-                if (arrivalDate) {
-                    const arrival = new Date(arrivalDate);
-                    return arrival >= sevenDaysAgo;
+                // ✅ VERIFICA DATA ARRIVO CON PIÙ CAMPI
+                let arrivalDate = null;
+                
+                // Cerca in tutti i possibili campi data arrivo
+                const arrivalFields = [
+                    'actual_delivery',     // ✈️ Aereo
+                    'date_of_discharge',   // 🚢 Mare
+                    'ata',                 // Actual arrival
+                    'arrival_date',        // Generico
+                    'delivery_date',       // Data consegna
+                    'updated_at'           // Ultimo aggiornamento
+                ];
+                
+                for (const field of arrivalFields) {
+                    if (shipment[field]) {
+                        arrivalDate = new Date(shipment[field]);
+                        if (!isNaN(arrivalDate.getTime())) {
+                            break;
+                        }
+                    }
+                }
+                
+                // Se non trova data arrivo, usa la data di aggiornamento
+                if (!arrivalDate || isNaN(arrivalDate.getTime())) {
+                    arrivalDate = new Date(shipment.updated_at || shipment.created_at);
+                }
+                
+                const isRecentArrival = arrivalDate >= sevenDaysAgo;
+                
+                if (isRecentArrival) {
+                    console.log(`✅ Recent arrival: ${shipment.tracking_number} - Status: ${currentStatus} - Date: ${arrivalDate.toISOString().split('T')[0]}`);
+                    return true;
+                } else {
+                    console.log(`❌ Old arrival: ${shipment.tracking_number} - Date: ${arrivalDate.toISOString().split('T')[0]} (older than 7 days)`);
                 }
             }
             
             return false;
         });
         
-        console.log(`📊 Found ${controlShipments.length} control shipments`);
+        console.log(`📊 Control shipments found: ${controlShipments.length} total`);
+        console.log('📊 Breakdown by status:', controlShipments.reduce((acc, s) => {
+            const status = (s.current_status || s.status || 'unknown').toLowerCase();
+            acc[status] = (acc[status] || 0) + 1;
+            return acc;
+        }, {}));
         
         // Salva per filtri successivi
         this.controlShipments = controlShipments;
@@ -3396,14 +3451,57 @@ updateControlCounts() {
         return;
     }
     
+    const now = new Date();
+    const sevenDaysAgo = new Date(now.getTime() - (7 * 24 * 60 * 60 * 1000));
+    
     const all = this.controlShipments.length;
+    
+    // ✅ CONTA IN TRANSITO CON STATI ESTESI
     const inTransit = this.controlShipments.filter(s => {
         const status = (s.current_status || s.status || '').toLowerCase();
-        return ['in_transit', 'sailing', 'shipped', 'navigando', 'departed'].includes(status);
+        const transitStates = [
+            'in_transit', 'in transit', 'sailing', 'navigando', 'shipped', 
+            'departed', 'partito', 'loading', 'caricamento', 'loaded',
+            'on_vessel', 'a_bordo', 'at_sea', 'in_mare'
+        ];
+        return transitStates.some(state => status.includes(state));
     }).length;
+    
+    // ✅ CONTA ARRIVATI RECENTI CON VERIFICA DATA
     const recentArrived = this.controlShipments.filter(s => {
         const status = (s.current_status || s.status || '').toLowerCase();
-        return ['arrived', 'delivered', 'discharged', 'arrivato', 'consegnato'].includes(status);
+        const arrivedStates = [
+            'arrived', 'arrivato', 'delivered', 'consegnato', 'discharged', 
+            'scaricato', 'completed', 'completato', 'finished', 'terminato'
+        ];
+        
+        const isArrived = arrivedStates.some(state => status.includes(state));
+        
+        if (isArrived) {
+            // Verifica che sia effettivamente negli ultimi 7 giorni
+            let arrivalDate = null;
+            const arrivalFields = [
+                'actual_delivery', 'date_of_discharge', 'ata', 
+                'arrival_date', 'delivery_date', 'updated_at'
+            ];
+            
+            for (const field of arrivalFields) {
+                if (s[field]) {
+                    arrivalDate = new Date(s[field]);
+                    if (!isNaN(arrivalDate.getTime())) {
+                        break;
+                    }
+                }
+            }
+            
+            if (!arrivalDate || isNaN(arrivalDate.getTime())) {
+                arrivalDate = new Date(s.updated_at || s.created_at);
+            }
+            
+            return arrivalDate >= sevenDaysAgo;
+        }
+        
+        return false;
     }).length;
 
     // Aggiorna contatori nei pulsanti
@@ -3415,7 +3513,7 @@ updateControlCounts() {
     if (countTransit) countTransit.textContent = inTransit;
     if (countArrived) countArrived.textContent = recentArrived;
 
-    console.log(`📊 Control counts updated: All=${all}, Transit=${inTransit}, Arrived=${recentArrived}`);
+    console.log(`📊 Control counts updated: All=${all}, Transit=${inTransit}, Recent Arrived=${recentArrived}`);
 }
 // ✅ 2. CALCOLA METRICHE PRODOTTI CON GUARDS
 

@@ -1623,43 +1623,83 @@
             </script>
                             
                             
-                                <script>
+            <script>
                 // ✅ FUNZIONI GLOBALI CONTROLLO SPEDIZIONI
                 window.filterControlShipments = function(filterType) {
-                    if (!window.metricsSystem || !window.metricsSystem.controlShipments) {
-                        console.warn('⚠️ MetricsSystem or controlShipments not available');
-                        return;
+    if (!window.metricsSystem || !window.metricsSystem.controlShipments) {
+        console.warn('⚠️ MetricsSystem or controlShipments not available');
+        return;
+    }
+    
+    console.log(`🔍 Filtering control shipments: ${filterType}`);
+    
+    // Aggiorna pulsanti attivi
+    document.querySelectorAll('#controlFilterAll, #controlFilterTransit, #controlFilterArrived')
+        .forEach(btn => btn.classList.remove('active'));
+    
+    const targetBtn = document.getElementById(`controlFilter${filterType.charAt(0).toUpperCase() + filterType.slice(1)}`);
+    if (targetBtn) targetBtn.classList.add('active');
+    
+    const now = new Date();
+    const sevenDaysAgo = new Date(now.getTime() - (7 * 24 * 60 * 60 * 1000));
+    
+    let filteredShipments = [];
+    
+    switch(filterType) {
+        case 'in_transit':
+            filteredShipments = window.metricsSystem.controlShipments.filter(s => {
+                const status = (s.current_status || s.status || '').toLowerCase();
+                const transitStates = [
+                    'in_transit', 'in transit', 'sailing', 'navigando', 'shipped', 
+                    'departed', 'partito', 'loading', 'caricamento', 'loaded',
+                    'on_vessel', 'a_bordo', 'at_sea', 'in_mare'
+                ];
+                return transitStates.some(state => status.includes(state));
+            });
+            break;
+            
+        case 'recent_arrived':
+            filteredShipments = window.metricsSystem.controlShipments.filter(s => {
+                const status = (s.current_status || s.status || '').toLowerCase();
+                const arrivedStates = [
+                    'arrived', 'arrivato', 'delivered', 'consegnato', 'discharged', 
+                    'scaricato', 'completed', 'completato', 'finished', 'terminato'
+                ];
+                
+                const isArrived = arrivedStates.some(state => status.includes(state));
+                
+                if (isArrived) {
+                    let arrivalDate = null;
+                    const arrivalFields = [
+                        'actual_delivery', 'date_of_discharge', 'ata', 
+                        'arrival_date', 'delivery_date', 'updated_at'
+                    ];
+                    
+                    for (const field of arrivalFields) {
+                        if (s[field]) {
+                            arrivalDate = new Date(s[field]);
+                            if (!isNaN(arrivalDate.getTime())) break;
+                        }
                     }
                     
-                    // Aggiorna pulsanti attivi
-                    document.querySelectorAll('#controlFilterAll, #controlFilterTransit, #controlFilterArrived')
-                        .forEach(btn => btn.classList.remove('active'));
-                    
-                    const targetBtn = document.getElementById(`controlFilter${filterType.charAt(0).toUpperCase() + filterType.slice(1)}`);
-                    if (targetBtn) targetBtn.classList.add('active');
-                    
-                    let filteredShipments;
-                    
-                    switch(filterType) {
-                        case 'in_transit':
-                            filteredShipments = window.metricsSystem.controlShipments.filter(s => {
-                                const status = (s.current_status || '').toLowerCase();
-                                return ['in_transit', 'sailing', 'navigando'].includes(status);
-                            });
-                            break;
-                        case 'recent_arrived':
-                            filteredShipments = window.metricsSystem.controlShipments.filter(s => {
-                                const status = (s.current_status || '').toLowerCase();
-                                return ['arrived', 'delivered', 'discharged', 'arrivato', 'consegnato'].includes(status);
-                            });
-                            break;
-                        default:
-                            filteredShipments = window.metricsSystem.controlShipments;
+                    if (!arrivalDate || isNaN(arrivalDate.getTime())) {
+                        arrivalDate = new Date(s.updated_at || s.created_at);
                     }
                     
-                    console.log(`🔍 Filtering control shipments: ${filterType} - ${filteredShipments.length} found`);
-                    window.metricsSystem.renderControlShipments(filteredShipments);
-                };
+                    return arrivalDate >= sevenDaysAgo;
+                }
+                
+                return false;
+            });
+            break;
+            
+        default: // 'all'
+            filteredShipments = window.metricsSystem.controlShipments;
+    }
+    
+    console.log(`🔍 Filter result: ${filteredShipments.length} shipments found for ${filterType}`);
+    window.metricsSystem.renderControlShipments(filteredShipments);
+};
                 
                 window.refreshControlShipments = async function() {
                     if (window.metricsSystem && window.metricsSystem.loadControlShipments) {
