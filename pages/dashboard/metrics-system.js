@@ -3352,7 +3352,37 @@ async loadControlShipments() {
             
             if (isInTransit) {
                 console.log(`✅ In transit found: ${tracking.tracking_number} - Status: ${tracking.status}`);
-                
+
+                if (isInTransit) {
+                    console.log(`✅ In transit found: ${tracking.tracking_number} - Status: ${tracking.status}`);
+                    
+                    // 🔍 DEBUG: CERCA SPEDIZIONE CORRISPONDENTE
+                    console.log(`🔍 Looking for shipment with:`);
+                    console.log(`   tracking.shipment_id: ${tracking.shipment_id}`);
+                    console.log(`   tracking.tracking_number: ${tracking.tracking_number}`);
+                    
+                    const shipment = this.rawData.shipments.find(s => 
+                        s.id === tracking.shipment_id || 
+                        s.tracking_number === tracking.tracking_number ||
+                        s.tracking_code === tracking.tracking_number
+                    );
+                    
+                    if (shipment) {
+                        console.log(`✅ Shipment found: ${shipment.id}`);
+                        controlShipments.push({
+                            ...shipment,
+                            status: tracking.status,
+                            current_status: tracking.status,
+                            tracking_data: tracking,
+                            control_type: 'in_transit'
+                        });
+                    } else {
+                        console.log(`❌ NO SHIPMENT FOUND for tracking ${tracking.tracking_number}`);
+                        console.log(`🔍 Available shipments IDs:`, this.rawData.shipments.map(s => s.id).slice(0, 5));
+                        console.log(`🔍 Available shipments tracking_numbers:`, this.rawData.shipments.map(s => s.tracking_number).filter(t => t).slice(0, 5));
+                    }
+                    return;
+                }
                 // Trova la spedizione corrispondente
                 const shipment = this.rawData.shipments.find(s => 
                     s.id === tracking.shipment_id || 
