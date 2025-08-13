@@ -145,7 +145,7 @@ class UnifiedMetricsSystem {
     }
 
     // ✅ INIZIALIZZAZIONE
-    async init() {
+        async init() {
         if (this.initialized) return;
         
         try {
@@ -157,7 +157,7 @@ class UnifiedMetricsSystem {
             // 2. Ottieni Organization ID
             await this.getOrganizationId();
             
-            // ✅ 3. INIZIALIZZA FILTRI DATE
+            // 3. Inizializza filtri date
             this.initializeDateFilters();
             
             // 4. Carica dati iniziali
@@ -169,6 +169,9 @@ class UnifiedMetricsSystem {
             // 6. Renderizza dashboard
             this.renderDashboard();
             
+            // ✅ 7. CARICA SPEDIZIONI CONTROLLO
+            await this.loadControlShipments();
+            
             this.initialized = true;
             console.log('✅ Unified Metrics System ready!');
             
@@ -177,7 +180,6 @@ class UnifiedMetricsSystem {
             this.renderError(error.message);
         }
     }
-
     // ✅ CONNESSIONE SUPABASE
     async connectToSupabase() {
         let attempts = 0;
@@ -2990,76 +2992,92 @@ async loadControlShipments() {
     }
 }
 
-renderControlShipments(shipments) {
+renderControlShipments(shipments = []) {
     const tbody = document.getElementById('controlShipmentsBody');
     const loading = document.getElementById('controlShipmentsLoading');
     const empty = document.getElementById('controlShipmentsEmpty');
-    
+
     if (!tbody) return;
-    
-    loading.style.display = 'none';
-    
+
+    // Nascondi loading
+    if (loading) loading.style.display = 'none';
+
     if (!shipments || shipments.length === 0) {
-        empty.style.display = 'block';
         tbody.innerHTML = '';
+        if (empty) empty.style.display = 'block';
         return;
     }
-    
-    empty.style.display = 'none';
-    
-    // Ordina per urgenza: in transito prima, poi per ETA/arrivo più recente
-    const sortedShipments = shipments.sort((a, b) => {
-        const aStatus = (a.current_status || '').toLowerCase();
-        const bStatus = (b.current_status || '').toLowerCase();
-        
-        const aInTransit = ['in_transit', 'sailing'].includes(aStatus);
-        const bInTransit = ['in_transit', 'sailing'].includes(bStatus);
-        
-        // In transito hanno priorità
-        if (aInTransit && !bInTransit) return -1;
-        if (!aInTransit && bInTransit) return 1;
-        
-        // Poi ordina per ETA/arrivo
-        const aDate = new Date(a.eta || a.ata || a.updated_at);
-        const bDate = new Date(b.eta || b.ata || b.updated_at);
-        return aDate - bDate;
-    });
-    
-    tbody.innerHTML = sortedShipments.map(shipment => {
-        const trackingNumber = shipment.tracking_number || 'N/A';
-        const status = this.formatControlStatus(shipment.current_status || shipment.status);
-        const carrier = shipment.carrier_name || shipment.carrier || 'N/A';
-        const reference = shipment.reference_number || shipment.reference || '-';
-        const origin = this.getOriginDestination(shipment, 'origin') || '-';
-        const destination = this.getOriginDestination(shipment, 'destination') || '-';
-        const departure = this.formatControlDate(shipment.date_of_departure || shipment.departure_date);
-        const eta = this.formatControlDate(shipment.eta);
-        const arrival = this.formatControlDate(shipment.ata || shipment.date_of_arrival);
-        
+
+    if (empty) empty.style.display = 'none';
+
+    tbody.innerHTML = shipments.map(shipment => {
+        const status = (shipment.current_status || '').toLowerCase();
+        const statusBadge = this.getStatusBadge(status);
+        const departureDate = shipment.created_at ? new Date(shipment.created_at).toLocaleDateString('it-IT') : 'N/A';
+        const etaDate = shipment.estimated_arrival ? new Date(shipment.estimated_arrival).toLocaleDateString('it-IT') : 'N/A';
+        const arrivalDate = shipment.actual_arrival ? new Date(shipment.actual_arrival).toLocaleDateString('it-IT') : '-';
+
         return `
-            <tr onclick="window.metricsSystem.viewShipmentDetails('${shipment.id}')" title="Click per dettagli">
-                <td><strong>${trackingNumber}</strong></td>
-                <td class="text-center">${status}</td>
-                <td>${carrier}</td>
-                <td><small>${reference}</small></td>
-                <td><small>${origin}</small></td>
-                <td><small>${destination}</small></td>
-                <td class="text-center"><small>${departure}</small></td>
-                <td class="text-center"><small>${eta}</small></td>
-                <td class="text-center"><small>${arrival}</small></td>
+            <tr onclick="this.classList.toggle('table-active')">
+                <td>
+                    <div class="fw-semibold">${shipment.tracking_number}</div>
+                    <small class="text-muted">${shipment.tracking_type}</small>
+                </td>
+                <td class="text-center">${statusBadge}</td>
+                <td>
+                    <div class="fw-semibold">${shipment.carrier_name}</div>
+                </td>
+                <td>
+                    <span class="badge bg-light text-dark">${shipment.reference || 'N/A'}</span>
+                </td>
+                <td>${shipment.departure_port || 'N/A'}</td>
+                <td>${shipment.arrival_port || 'N/A'}</td>
+                <td class="text-center">
+                    <small>${departureDate}</small>
+                </td>
+                <td class="text-center">
+                    <small>${etaDate}</small>
+                </td>
+                <td class="text-center">
+                    <small class="${arrivalDate !== '-' ? 'text-success fw-semibold' : ''}">${arrivalDate}</small>
+                </td>
                 <td class="text-center">
                     <div class="control-actions">
-                        <button class="btn btn-outline-primary" onclick="event.stopPropagation(); window.metricsSystem.viewShipmentDetails('${shipment.id}')" title="Dettagli">
+                        <button class="btn btn-outline-primary btn-sm" onclick="event.stopPropagation(); this.openShipmentDetails('${shipment.id}')" title="Dettagli">
                             <i class="fas fa-eye"></i>
+                        </button>
+                        <button class="btn btn-outline-info btn-sm" onclick="event.stopPropagation(); this.trackShipment('${shipment.tracking_number}')" title="Traccia">
+                            <i class="fas fa-search"></i>
                         </button>
                     </div>
                 </td>
             </tr>
         `;
     }).join('');
-    
-    console.log('✅ Control shipments table rendered:', shipments.length, 'rows');
+
+    console.log(`✅ Rendered ${shipments.length} control shipments`);
 }
+
+getStatusBadge(status) {
+    const statusMap = {
+        'in_transit': { class: 'bg-primary', text: 'In Viaggio', icon: 'ship' },
+        'sailing': { class: 'bg-primary', text: 'Navigando', icon: 'ship' },
+        'shipped': { class: 'bg-info', text: 'Spedito', icon: 'truck' },
+        'arrived': { class: 'bg-success', text: 'Arrivato', icon: 'check-circle' },
+        'delivered': { class: 'bg-success', text: 'Consegnato', icon: 'check-circle' },
+        'discharged': { class: 'bg-warning text-dark', text: 'Scaricato', icon: 'download' },
+        'pending': { class: 'bg-secondary', text: 'In Attesa', icon: 'clock' }
+    };
+
+    const config = statusMap[status] || { class: 'bg-light text-dark', text: status || 'Sconosciuto', icon: 'question' };
+    
+    return `
+        <span class="control-status-badge badge ${config.class}">
+            <i class="fas fa-${config.icon} me-1"></i>${config.text}
+        </span>
+    `;
+}
+
 
 formatControlStatus(status) {
     const statusMap = {
@@ -3093,23 +3111,32 @@ formatControlDate(dateString) {
     }
 }
 
-updateControlCounts(shipments) {
-    if (!shipments) return;
+updateControlCounts() {
+    if (!this.controlShipments || !Array.isArray(this.controlShipments)) {
+        console.warn('⚠️ No control shipments available for counting');
+        return;
+    }
     
-    // Calcola conteggi
-    const total = shipments.length;
-    const inTransit = shipments.filter(s => {
-        const status = (s.current_status || '').toLowerCase();
-        return ['in_transit', 'sailing', 'navigando'].includes(status);
+    const all = this.controlShipments.length;
+    const inTransit = this.controlShipments.filter(s => {
+        const status = (s.current_status || s.status || '').toLowerCase();
+        return ['in_transit', 'sailing', 'shipped', 'navigando', 'departed'].includes(status);
     }).length;
-    const recentArrived = total - inTransit;
-    
-    // Aggiorna badges nei pulsanti
-    document.getElementById('controlCountAll').textContent = total;
-    document.getElementById('controlCountTransit').textContent = inTransit;
-    document.getElementById('controlCountArrived').textContent = recentArrived;
-    
-    console.log('📊 Control counts updated:', { total, inTransit, recentArrived });
+    const recentArrived = this.controlShipments.filter(s => {
+        const status = (s.current_status || s.status || '').toLowerCase();
+        return ['arrived', 'delivered', 'discharged', 'arrivato', 'consegnato'].includes(status);
+    }).length;
+
+    // Aggiorna contatori nei pulsanti
+    const countAll = document.getElementById('controlCountAll');
+    const countTransit = document.getElementById('controlCountTransit');
+    const countArrived = document.getElementById('controlCountArrived');
+
+    if (countAll) countAll.textContent = all;
+    if (countTransit) countTransit.textContent = inTransit;
+    if (countArrived) countArrived.textContent = recentArrived;
+
+    console.log(`📊 Control counts updated: All=${all}, Transit=${inTransit}, Arrived=${recentArrived}`);
 }
 // ✅ 2. CALCOLA METRICHE PRODOTTI CON GUARDS
 
