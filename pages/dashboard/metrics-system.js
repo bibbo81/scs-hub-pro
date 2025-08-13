@@ -3220,7 +3220,9 @@ getShipmentDisplayData(shipment) {
         destination: getField('destination') || 'Non specificato',
         departure_date: formatDate(getField('departure_date')) || formatDate(shipment.created_at),
         eta: formatDate(getField('eta')),
-        arrival_date: formatDate(getField('arrival_date')),
+        arrival_date: formatDate(getField('arrival_date')) || 
+                     formatDate(shipment.actual_delivery) ||   // ✅ AGGIUNGI questo per AWB
+                     formatDate(shipment.date_of_discharge),   // ✅ AGGIUNGI questo per container
         raw: shipment // ✅ MANTIENI DATI RAW PER DEBUG
     };
     

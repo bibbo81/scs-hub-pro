@@ -346,66 +346,123 @@ function processAndNormalizeTrackings(trackingsToProcess) {
         if (movements && movements.length > 0) {
             console.log(`📅 Processing ${movements.length} movements for ${tracking.tracking_number}`);
             
-            if (tracking.tracking_type === 'awb') {
-                // ✈️ AEREO: Logica semplificata
-                console.log('✈️ Processing AWB dates...');
+                        if (tracking.tracking_type === 'awb') {
+
+                // ✈️ AEREO: Mappatura corretta basata sui dati reali ShipsGo
+                console.log('✈️ Processing AWB dates with ShipsGo data structure...');
                 
-                // Data partenza
+                // 🎯 ROUTE DATA per AWB (diverso dai container)
+                const route = rawApiData?.route;
+                const origin = route?.origin;
+                const destination = route?.destination;
+                
+                console.log('AWB Route data:', { route, origin, destination });
+                
+                // 📅 DATA PARTENZA: usa date_of_dep dalla route o movimento DEP
                 if (!tracking.date_of_departure) {
-                    const departureEvent = movements.find(m => 
-                        m.event === 'DEP' || 
-                        (m.description || '').toLowerCase().includes('departed')
-                    );
-                    if (departureEvent?.timestamp) {
-                        tracking.date_of_departure = departureEvent.timestamp;
-                        console.log(`✅ AWB Departure set: ${departureEvent.timestamp}`);
+                    let departureDate = null;
+                    
+                    // Priorità 1: date_of_dep dalla route
+                    if (origin?.date_of_dep) {
+                        departureDate = origin.date_of_dep;
+                        console.log(`✅ AWB Departure from route: ${departureDate}`);
                     }
-                }
-
-                // ETA (Estimated Time of Arrival)
-                if (!tracking.eta) {
-                    const estimatedArrival = movements.find(m => 
-                        (m.event === 'ARR' && m.status === 'EST') ||
-                        (m.event === 'RCF' && m.status === 'EST')
-                    );
-                    if (estimatedArrival?.timestamp) {
-                        tracking.eta = estimatedArrival.timestamp;
-                        console.log(`✅ AWB ETA set: ${estimatedArrival.timestamp}`);
-                    }
-                }
-
-                // ATA (Actual Time of Arrival) - CHIAVE DEL PROBLEMA
-                if (!tracking.ata) {
-                    const actualArrival = movements.find(m => 
-                        (m.event === 'ARR' && (m.status === 'ACT' || !m.status)) ||
-                        (m.event === 'RCF' && (m.status === 'ACT' || !m.status)) ||
-                        (m.event === 'DLV') // Delivered
-                    );
-                    if (actualArrival?.timestamp) {
-                        tracking.ata = actualArrival.timestamp;
-                        console.log(`✅ AWB ATA set: ${actualArrival.timestamp}`);
-                    }
-                }
-
-                // Data consegna finale
-                if (!tracking.date_of_arrival) {
-                    // Priorità: ATA > ETA > ultimo movimento
-                    if (tracking.ata) {
-                        tracking.date_of_arrival = tracking.ata;
-                        console.log(`✅ AWB Final arrival from ATA: ${tracking.ata}`);
-                    } else if (tracking.eta) {
-                        tracking.date_of_arrival = tracking.eta;
-                        console.log(`✅ AWB Final arrival from ETA: ${tracking.eta}`);
-                    } else {
-                        // Fallback: ultimo movimento
-                        const lastMovement = movements[movements.length - 1];
-                        if (lastMovement?.timestamp) {
-                            tracking.date_of_arrival = lastMovement.timestamp;
-                            console.log(`✅ AWB Final arrival from last movement: ${lastMovement.timestamp}`);
+                    
+                    // Fallback: movimento DEP
+                    if (!departureDate) {
+                        const departureEvent = movements.find(m => m.event === 'DEP');
+                        if (departureEvent?.timestamp) {
+                            departureDate = departureEvent.timestamp;
+                            console.log(`✅ AWB Departure from DEP movement: ${departureDate}`);
                         }
                     }
+                    
+                    if (departureDate) {
+                        tracking.date_of_departure = departureDate;
+                    }
                 }
-
+            
+                // 📅 ETA: usa date_of_rcf dalla route (questo è l'ETA per l'aereo)
+                if (!tracking.eta) {
+                    if (destination?.date_of_rcf) {
+                        tracking.eta = destination.date_of_rcf;
+                        console.log(`✅ AWB ETA from route date_of_rcf: ${destination.date_of_rcf}`);
+                    }
+                }
+            
+                // 📅 ATA: usa movimento RCF effettivo
+                if (!tracking.ata) {
+                    const rcfMovement = movements.find(m => 
+                        m.event === 'RCF' && 
+                        m.status === 'ACT' &&
+                        m.location?.iata === destination?.location?.iata
+                    );
+                    
+                    if (rcfMovement?.timestamp) {
+                        tracking.ata = rcfMovement.timestamp;
+                        console.log(`✅ AWB ATA from RCF movement: ${rcfMovement.timestamp}`);
+                    }
+                }
+            
+                // 📅 DATA CONSEGNA FINALE: movimento DLV
+                if (!tracking.actual_delivery) {  // ✅ USA actual_delivery (che esiste nel DB)
+                    const deliveryMovement = movements.find(m => m.event === 'DLV' && m.status === 'ACT');
+                    
+                    if (deliveryMovement?.timestamp) {
+                        tracking.actual_delivery = deliveryMovement.timestamp;
+                        console.log(`✅ AWB Final delivery from DLV: ${deliveryMovement.timestamp}`);
+                    } else if (tracking.ata) {
+                        // Fallback: usa ATA se non c'è DLV
+                        tracking.actual_delivery = tracking.ata;
+                        console.log(`✅ AWB Final delivery from ATA fallback: ${tracking.ata}`);
+                    }
+                }
+            
+                // ✈️ FLIGHT INFO
+                if (!tracking.flight_number) {
+                    const flightMovement = movements.find(m => m.flight);
+                    if (flightMovement?.flight) {
+                        tracking.flight_number = flightMovement.flight;
+                        console.log(`✅ AWB Flight number: ${flightMovement.flight}`);
+                    }
+                }
+            
+                // ✈️ AIRLINE INFO
+                if (!tracking.carrier_name && rawApiData?.airline?.name) {
+                    tracking.carrier_name = rawApiData.airline.name;
+                    tracking.carrier_code = rawApiData.airline.iata;
+                    console.log(`✅ AWB Carrier: ${tracking.carrier_name} (${tracking.carrier_code})`);
+                }
+            
+                // ✈️ CARGO INFO
+                if (!tracking.total_weight_kg && rawApiData?.cargo) {
+                    tracking.total_weight_kg = parseFloat(rawApiData.cargo.weight) || 0;
+                    tracking.pieces = parseInt(rawApiData.cargo.pieces) || 0;
+                    if (rawApiData.cargo.volume) {
+                        tracking.total_volume_cbm = parseFloat(rawApiData.cargo.volume) || 0;
+                    }
+                    console.log(`✅ AWB Cargo: ${tracking.total_weight_kg}kg, ${tracking.pieces} pieces`);
+                }
+            
+                // ✈️ ORIGIN/DESTINATION PORTS
+                if (!tracking.origin_port && origin?.location) {
+                    tracking.origin_port = origin.location.name;
+                    tracking.origin_country = origin.location.country?.name;
+                    console.log(`✅ AWB Origin: ${tracking.origin_port}, ${tracking.origin_country}`);
+                }
+                
+                if (!tracking.destination_port && destination?.location) {
+                    tracking.destination_port = destination.location.name;
+                    tracking.destination_country = destination.location.country?.name;
+                    console.log(`✅ AWB Destination: ${tracking.destination_port}, ${tracking.destination_country}`);
+                }
+            
+                // ✈️ REFERENCE
+                if (!tracking.reference_number && rawApiData?.reference) {
+                    tracking.reference_number = rawApiData.reference;
+                    console.log(`✅ AWB Reference: ${tracking.reference_number}`);
+                }
+            
             } else {
                 // 🚢 CONTAINER/BL: Logica migliorata per mapping date
                 console.log('🚢 Processing Container/BL dates...');
@@ -480,12 +537,17 @@ function processAndNormalizeTrackings(trackingsToProcess) {
             }
         }
 
-        // Final logging
-        console.log(`📊 Final dates for ${tracking.tracking_number}:`, {
+                // Final logging con i campi corretti
+        console.log(`📊 Final dates for ${tracking.tracking_number} (${tracking.tracking_type}):`, {
             departure: tracking.date_of_departure ? new Date(tracking.date_of_departure).toLocaleDateString() : 'N/A',
             eta: tracking.eta ? new Date(tracking.eta).toLocaleDateString() : 'N/A',
             ata: tracking.ata ? new Date(tracking.ata).toLocaleDateString() : 'N/A',
-            final_arrival: tracking.date_of_arrival ? new Date(tracking.date_of_arrival).toLocaleDateString() : 'N/A'
+            final_delivery: tracking.actual_delivery ? new Date(tracking.actual_delivery).toLocaleDateString() : 'N/A',
+            discharge: tracking.date_of_discharge ? new Date(tracking.date_of_discharge).toLocaleDateString() : 'N/A',
+            carrier: tracking.carrier_name,
+            flight: tracking.flight_number,
+            weight: tracking.total_weight_kg,
+            pieces: tracking.pieces
         });
     });
 }
