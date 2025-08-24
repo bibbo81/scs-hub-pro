@@ -7,6 +7,8 @@ import { supabase } from '/core/services/supabase-client.js';
 import TableManager from '/core/table-manager.js';
 window.supabase = supabase;
 importWizard.setSupabaseClient(supabase);
+// Expose supabase globally for modules expecting window.supabase
+window.supabase = supabase;
 console.log('[DEBUG] Supabase client in wizard:', window.importWizard.supabase);
 
 // Column configuration
@@ -247,7 +249,7 @@ showStatus(message, type = 'info', duration = 3000) {
         return;
     }
     // Passa il Supabase client all’importWizard
-    window.importWizard.setSupabaseClient(window.supabase);
+    window.importWizard.setSupabaseClient(supabase);
     await window.importWizard.init({
         entity: 'products',
         allowCustomFields: true,
