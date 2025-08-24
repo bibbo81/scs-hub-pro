@@ -646,11 +646,20 @@ class CompleteModalSystem {
     closeAll() {
         const modalIds = Array.from(this.activeModals.keys());
         modalIds.forEach(id => this.close(id));
-        
+
         this.forceCleanupOrphanModals();
         this.confirmResolvers.clear();
-        
+
         console.log('✅ All modals closed and cleaned up');
+    }
+
+    // Legacy API support: keep old calls to `hide()` working
+    hide(modalId) {
+        if (modalId) {
+            this.close(modalId);
+        } else {
+            this.closeTopModal();
+        }
     }
 
     forceCleanupOrphanModals() {

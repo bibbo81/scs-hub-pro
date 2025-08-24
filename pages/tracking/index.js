@@ -90,6 +90,9 @@ const DEFAULT_VISIBLE_COLUMNS = [
     'actions'  // 🔥 INCLUDI ANCHE AZIONI
 ];
 
+// Expose defaults globally so tracking.html can access them
+window.DEFAULT_VISIBLE_COLUMNS = DEFAULT_VISIBLE_COLUMNS;
+
 // Column configuration for table
 const TABLE_COLUMNS = trackingsColumns;
 
